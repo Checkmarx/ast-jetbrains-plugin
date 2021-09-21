@@ -1,0 +1,70 @@
+<idea-plugin>
+    <id>com.checkmarx.checkmarx-ast-jetbrains-plugin</id>
+    <name>Checkmarx AST</name>
+    <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
+
+    <description><![CDATA[
+    Checkmarx Jetbrains plugin allows retrieving scan results from Checkmarx AST.
+    Full user's manual can be found <a href="https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6030557208/JetBrains">here</a>.
+    ]]></description>
+
+    <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable instance="com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable"
+                                 parentId="tools"
+                                 bundle="messages.CxBundle" key="SETTINGS_TITLE"/>
+        <applicationService serviceImplementation="com.checkmarx.intellij.settings.global.GlobalSettingsState"/>
+        <applicationService
+                serviceImplementation="com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState"/>
+
+        <projectService serviceImplementation="com.checkmarx.intellij.project.ProjectResultsService"/>
+
+        <toolWindow id="Checkmarx"
+                    anchor="bottom"
+                    icon="com.checkmarx.intellij.CxIcons.CHECKMARX_13"
+                    factoryClass="com.checkmarx.intellij.tool.window.CxToolWindowFactory"/>
+
+        <notificationGroup id="Checkmarx.Notifications" displayType="BALLOON"
+                           bundle="messages.CxBundle" key="NOTIFICATION_GROUP_NAME"/>
+
+        <localInspection displayName="Checkmarx AST"
+                         groupName="Checkmarx AST"
+                         groupPath="Checkmarx"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.checkmarx.intellij.inspections.CxInspection"/>
+    </extensions>
+
+    <applicationListeners>
+        <listener class="com.checkmarx.intellij.project.ProjectListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </applicationListeners>
+
+    <actions>
+        <group id="Checkmarx.Toolbar">
+            <action id="Checkmarx.OpenSettings"
+                    class="com.checkmarx.intellij.tool.window.actions.OpenSettingsAction"
+                    icon="AllIcons.General.Settings"/>
+            <separator/>
+            <group id="Checkmarx.GroupBy"
+                   icon="AllIcons.Actions.GroupBy"
+                   popup="true"
+                   class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByActionGroup">
+                <action id="Checkmarx.GroupBy.Severity"
+                        class="com.checkmarx.intellij.tool.window.actions.group.by.GroupBySeverityAction"/>
+                <action id="Checkmarx.GroupBy.QueryName"
+                        class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByQueryNameAction"/>
+            </group>
+            <action id="Checkmarx.ExpandAll"
+                    class="com.checkmarx.intellij.tool.window.actions.ExpandAllAction"
+                    icon="AllIcons.Actions.Expandall"/>
+            <action id="Checkmarx.CollapseAll"
+                    class="com.checkmarx.intellij.tool.window.actions.CollapseAllAction"
+                    icon="AllIcons.Actions.Collapseall"/>
+        </group>
+    </actions>
+
+</idea-plugin>
