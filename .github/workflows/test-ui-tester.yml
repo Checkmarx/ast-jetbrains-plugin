@@ -1,4 +1,4 @@
-name: Run UI Tests
+name: Run UI Tests Tester
 on:
   workflow_dispatch
 env:
