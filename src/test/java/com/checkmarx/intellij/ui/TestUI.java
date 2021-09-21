@@ -85,9 +85,12 @@ public class TestUI extends BaseUITest {
                                         waitDuration);
             // check we opened the correct line:column
             String token = linkLabel.getData().getAll().get(2).getText();
+            String cleanToken = token.substring(1, token.length() - 2);
             Assertions.assertTrue(editor.getText()
                                         .substring(editor.getCaretOffset())
-                                        .startsWith(token.substring(1, token.length() - 2)));
+                                        .startsWith(cleanToken),
+                                  String.format("editor: %s | token: %s", editor.getText().substring(
+                                          editor.getCaretOffset()).substring(0, cleanToken.length()), cleanToken));
         });
     }
 
