@@ -26,7 +26,7 @@ jobs:
             report-path: build/reports
             idea-log: idea-linux.log
           - os: windows-latest
-            runIde: start gradlew.bat --info runIdeForUiTests 2>&1 > idea.log
+            runIde: start gradlew.bat runIdeForUiTests 2>&1 > idea.log
             report-name: test-fails-report-windows
             report-path: build/reports
             idea-log: idea-windows.log
