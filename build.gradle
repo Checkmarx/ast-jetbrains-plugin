@@ -14,8 +14,8 @@ repositories {
         name "github"
         url "https://maven.pkg.github.com/CheckmarxDev/ast-cli-java-wrapper"
         credentials {
-            username System.getenv("GH_USERNAME")
-            password System.getenv("GH_TOKEN")
+            username System.getenv("GITHUB_ACTOR")
+            password System.getenv("GITHUB_TOKEN")
         }
     }
 
