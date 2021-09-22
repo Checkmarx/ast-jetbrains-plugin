@@ -63,8 +63,11 @@ public class TestUI extends BaseUITest {
             find("//div[@myaction.key='COLLAPSE_ALL_ACTION']").click();
             Assertions.assertEquals(1, tree.findAllText().size());
             tree.doubleClickRowWithText("Scan", false);
+            RepeatUtilsKt.waitFor(waitDuration, () -> tree.findAllText().size() > 1);
             tree.doubleClickRowWithText("sast", false);
+            RepeatUtilsKt.waitFor(waitDuration, () -> tree.findAllText().size() > 3);
             tree.doubleClickRowWithText("HIGH", false);
+            RepeatUtilsKt.waitFor(waitDuration, () -> tree.findAllText().size() > 5);
             // open first result for sast -> high
             String selected = tree.collectSelectedPaths().get(0).get(tree.collectSelectedPaths().get(0).size() - 1);
             for (int i = 0; i < tree.collectRows().size(); i++) {
