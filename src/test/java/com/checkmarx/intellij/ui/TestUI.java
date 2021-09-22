@@ -4,6 +4,7 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
+import com.checkmarx.intellij.components.LinkLabel;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.awt.event.KeyEvent;
+import java.time.Duration;
 
 import static com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step;
 
@@ -78,16 +80,15 @@ public class TestUI extends BaseUITest {
             }
             // open first node of the opened result
             RepeatUtilsKt.waitFor(waitDuration, () -> findAll("//div[@class='LinkLabel']").size() > 0);
-            ComponentFixture linkLabel = findAll("//div[@class='LinkLabel']").get(0);
-            RepeatUtilsKt.waitFor(waitDuration, () -> {
-                linkLabel.click();
+            RepeatUtilsKt.waitFor(Duration.ofSeconds(600), () -> {
+                findAll("//div[@class='LinkLabel']").get(0).click();
                 return hasAnyComponent("//div[@class='EditorComponentImpl']");
             });
             EditorFixture editor = find(EditorFixture.class,
                                         "//div[@class='EditorComponentImpl']",
                                         waitDuration);
             // check we opened the correct line:column
-            String token = linkLabel.getData().getAll().get(2).getText().trim();
+            String token = findAll("//div[@class='LinkLabel']").get(0).getData().getAll().get(2).getText().trim();
             String cleanToken = token.substring(1, token.length() - 2);
             String editorAtCaret = editor.getText()
                                          .substring(editor.getCaretOffset());
