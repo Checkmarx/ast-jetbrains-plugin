@@ -19,7 +19,7 @@ import java.util.List;
 public abstract class BaseUITest {
 
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
-    protected static final Duration waitDuration = Duration.ofSeconds(600);
+    protected static final Duration waitDuration = Duration.ofSeconds(180);
     private static boolean initialized = false;
 
     @BeforeAll
