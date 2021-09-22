@@ -1,0 +1,1 @@
+.\gradlew.bat runIdeForUiTests > idea.log 2>&1

@@ -17,13 +17,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            runIde: |
-              export DISPLAY=:99.0
-              Xvfb -ac :99 -screen 0 1920x1080x16 &
-              ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
-            report-name: test-fails-report-linux
+          - os: windows-latest
+            runIde: start .\runIdeForUiTests.bat
+            report-name: test-fails-report-windows
             report-path: build/reports
+            idea-log: idea-windows.log
 
     steps:
 
