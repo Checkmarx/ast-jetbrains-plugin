@@ -5,8 +5,7 @@ env:
   CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
   CX_APIKEY: ${{ secrets.CX_APIKEY }}
   CX_TENANT: ${{ secrets.CX_TENANT }}
-  GH_TOKEN: ${{ secrets.GH_TOKEN }}
-  GH_USERNAME: ${{ secrets.GH_USERNAME }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
 
