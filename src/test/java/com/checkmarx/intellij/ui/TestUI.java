@@ -80,7 +80,7 @@ public class TestUI extends BaseUITest {
             }
             // open first node of the opened result
             RepeatUtilsKt.waitFor(waitDuration, () -> findAll("//div[@class='LinkLabel']").size() > 0);
-            RepeatUtilsKt.waitFor(Duration.ofSeconds(600), () -> {
+            RepeatUtilsKt.waitFor(waitDuration, () -> {
                 findAll("//div[@class='LinkLabel']").get(0).click();
                 return hasAnyComponent("//div[@class='EditorComponentImpl']");
             });
