@@ -7,8 +7,8 @@ env:
   CX_TENANT: ${{ secrets.CX_TENANT }}
   CX_TEST_REPO: ${{ secrets.CX_TEST_REPO }}
   CX_TEST_SCAN: ${{ secrets.CX_TEST_SCAN }}
-  GH_TOKEN: ${{ secrets.GH_TOKEN }}
-  GH_USERNAME: ${{ secrets.GH_USERNAME }}
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GH_USERNAME: ${{ env.GITHUB_ACTOR }}
 
 jobs:
 
