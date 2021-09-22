@@ -84,13 +84,14 @@ public class TestUI extends BaseUITest {
                                         "//div[@class='EditorComponentImpl']",
                                         waitDuration);
             // check we opened the correct line:column
-            String token = linkLabel.getData().getAll().get(2).getText();
+            String token = linkLabel.getData().getAll().get(2).getText().trim();
             String cleanToken = token.substring(1, token.length() - 2);
-            Assertions.assertTrue(editor.getText()
-                                        .substring(editor.getCaretOffset())
-                                        .startsWith(cleanToken),
-                                  String.format("editor: %s | token: %s", editor.getText().substring(
-                                          editor.getCaretOffset()).substring(0, cleanToken.length()), cleanToken));
+            String editorAtCaret = editor.getText()
+                                         .substring(editor.getCaretOffset());
+            Assertions.assertTrue(editorAtCaret.startsWith(cleanToken),
+                                  String.format("editor: %s | token: %s",
+                                                editorAtCaret.substring(0, token.length()),
+                                                token));
         });
     }
 
