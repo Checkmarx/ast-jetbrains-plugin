@@ -49,6 +49,11 @@ jobs:
         with:
           distribution: zulu
           java-version: 11
+          cache: gradle
+
+      # Perform clean before testing
+      - name: Clean
+        run: ./gradlew clean
 
       # Run IDEA prepared for UI testing
       - name: Run IDE

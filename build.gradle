@@ -1,6 +1,6 @@
 plugins {
     id 'org.jetbrains.intellij' version '1.1.4'
-    id "io.freefair.lombok" version "6.1.0"
+    id 'io.freefair.lombok' version '6.1.0'
     id 'java'
 }
 
@@ -11,22 +11,21 @@ repositories {
     mavenCentral()
 
     maven {
-        name "github"
-        url "https://maven.pkg.github.com/CheckmarxDev/ast-cli-java-wrapper"
+        name 'github'
+        url 'https://maven.pkg.github.com/CheckmarxDev/ast-cli-java-wrapper'
         credentials {
-            username System.getenv("GITHUB_ACTOR")
-            password System.getenv("GITHUB_TOKEN")
+            username System.getenv('GITHUB_ACTOR')
+            password System.getenv('GITHUB_TOKEN')
         }
     }
 
     maven {
-        url = "https://packages.jetbrains.team/maven/p/ij/intellij-dependencies"
+        url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
     }
 }
 
-def remoteRobotVersion = "0.11.6"
-def jUnitVersion = "5.7.2"
-
+def remoteRobotVersion = '0.11.6'
+def jUnitVersion = '5.7.2'
 dependencies {
     testImplementation 'com.intellij.remoterobot:remote-robot:' + remoteRobotVersion
     testImplementation 'com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion
@@ -44,17 +43,24 @@ intellij {
     version = '2021.2'
 }
 
+runPluginVerifier {
+    ideVersions = ['IC-2021.2']
+}
+
 downloadRobotServerPlugin {
     version = remoteRobotVersion
 }
 
 test {
     useJUnitPlatform()
+    testLogging {
+        showStandardStreams = true
+    }
 }
 
 runIdeForUiTests {
-    systemProperty("jb.privacy.policy.text", "<!--999.999-->")
-    systemProperty("jb.consents.confirmation.enabled", "false")
+    systemProperty('jb.privacy.policy.text', '<!--999.999-->')
+    systemProperty('jb.consents.confirmation.enabled', 'false')
 }
 
 java {
