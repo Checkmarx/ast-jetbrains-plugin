@@ -21,46 +21,55 @@ public class TestUI extends BaseUITest {
      */
     @Test
     public void testEndToEnd() {
+        applySettings();
+        getResults();
+        checkResultsPanel();
+    }
+
+    private void applySettings() {
         step("Apply settings", () -> {
             openCxToolWindow();
-            waitAndClick("//div[@myaction.key='SETTINGS_ACTION']");
+            waitAndClick(SETTINGS_ACTION);
             setFields();
             find(JCheckboxFixture.class,
-                 String.format("//div[@name='%s']", Constants.FIELD_NAME_USE_AUTH_URL),
+                 String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
                  waitDuration).setValue(false);
             // click the validation button
-            find(JButtonFixture.class, "//div[@class='JButton' and @text.key='VALIDATE_BUTTON']").click();
+            find(JButtonFixture.class, VALIDATE_BUTTON).click();
             // wait for the validation success label
             // the test fails if not found
-            find(ComponentFixture.class,
-                 "//div[@accessiblename.key='VALIDATE_SUCCESS']",
-                 waitDuration);
+            find(ComponentFixture.class, "//div[@accessiblename.key='VALIDATE_SUCCESS']", waitDuration);
             find("//div[@text.key='button.ok']").click();
         });
+    }
+
+    private void getResults() {
         step("Get results", () -> {
             RepeatUtilsKt.waitFor(waitDuration, () -> {
-                find(JTextFieldFixture.class, "//div[@class='TextFieldWithProcessing']").click();
-                return find(JTextFieldFixture.class, "//div[@class='TextFieldWithProcessing']").getHasFocus();
+                find(JTextFieldFixture.class, SCAN_FIELD).click();
+                return find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus();
             });
-            find(JTextFieldFixture.class, "//div[@class='TextFieldWithProcessing']").setText(
-                    Environment.SCAN_ID);
+            find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
             RepeatUtilsKt.waitFor(waitDuration,
                                   () -> {
                                       new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-                                      ComponentFixture tree = find("//div[@class='Tree']");
+                                      ComponentFixture tree = find(TREE);
                                       return checkTreeState(tree);
                                   });
-            find("//div[@myaction.key='COLLAPSE_ALL_ACTION']").click();
+            find(COLLAPSE_ACTION).click();
             RepeatUtilsKt.waitFor(waitDuration,
                                   () -> hasAnyComponent(String.format(
                                           "//div[@class='Tree' and @visible_text='Scan %s']", Environment.SCAN_ID)));
         });
+    }
+
+    private void checkResultsPanel() {
         step("Test tree and code link", () -> {
             // navigate the tree for a result
-            JTreeFixture tree = find(JTreeFixture.class, "//div[@class='Tree']");
-            find("//div[@myaction.key='EXPAND_ALL_ACTION']").click();
+            JTreeFixture tree = find(JTreeFixture.class, TREE);
+            find(EXPAND_ACTION).click();
             Assertions.assertTrue(tree.findAllText().size() > 1);
-            find("//div[@myaction.key='COLLAPSE_ALL_ACTION']").click();
+            find(COLLAPSE_ACTION).click();
             Assertions.assertEquals(1, tree.findAllText().size());
             tree.doubleClickRowWithText("Scan", false);
             RepeatUtilsKt.waitFor(waitDuration, () -> tree.findAllText().size() > 1);
@@ -82,20 +91,19 @@ public class TestUI extends BaseUITest {
             final int resultRow = row;
             RepeatUtilsKt.waitFor(waitDuration, () -> {
                 tree.clickRow(resultRow);
-                return findAll("//div[@class='LinkLabel']").size() > 0;
+                return findAll(LINK_LABEL).size() > 0;
             });
             RepeatUtilsKt.waitFor(waitDuration, () -> {
-                findAll("//div[@class='LinkLabel']").get(0).click();
-                return hasAnyComponent("//div[@class='EditorComponentImpl']");
+                findAll(LINK_LABEL).get(0).click();
+                return hasAnyComponent(EDITOR);
             });
-            EditorFixture editor = find(EditorFixture.class,
-                                        "//div[@class='EditorComponentImpl']",
-                                        waitDuration);
+            EditorFixture editor = find(EditorFixture.class, EDITOR, waitDuration);
             // check we opened the correct line:column
-            String token = findAll("//div[@class='LinkLabel']").get(0).getData().getAll().get(2).getText().trim();
+            // token is the string in a link label, enclosed in parens, e.g. (token)
+            String token = findAll(LINK_LABEL).get(0).getData().getAll().get(2).getText().trim();
+            // cleanToken removes the parens
             String cleanToken = token.substring(1, token.length() - 2);
-            String editorAtCaret = editor.getText()
-                                         .substring(editor.getCaretOffset());
+            String editorAtCaret = editor.getText().substring(editor.getCaretOffset());
             Assertions.assertTrue(editorAtCaret.startsWith(cleanToken),
                                   String.format("editor: %s | token: %s",
                                                 editorAtCaret.substring(0, token.length()),
@@ -107,16 +115,16 @@ public class TestUI extends BaseUITest {
     public void testInvalidAuth() {
         step("Test invalid settings", () -> {
             openCxToolWindow();
-            waitAndClick("//div[@myaction.key='SETTINGS_ACTION']");
+            waitAndClick(SETTINGS_ACTION);
             // set the fields
             setFields();
             find(JCheckboxFixture.class,
-                 String.format("//div[@name='%s']", Constants.FIELD_NAME_USE_AUTH_URL),
+                 String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
                  waitDuration).setValue(true);
             setField(Constants.FIELD_NAME_AUTH_URL, "wrongauth");
 
             // click the validation button
-            find(JButtonFixture.class, "//div[@class='JButton' and @text.key='VALIDATE_BUTTON']").click();
+            find(JButtonFixture.class, VALIDATE_BUTTON).click();
             // wait thirty seconds for the validation success label
             // the test fails if not found
             find(ComponentFixture.class, "//div[@accessiblename.key='VALIDATE_FAIL']", waitDuration);
@@ -129,14 +137,14 @@ public class TestUI extends BaseUITest {
         step("test invalid scan id", () -> {
             openCxToolWindow();
             RepeatUtilsKt.waitFor(waitDuration, () -> {
-                find(JTextFieldFixture.class, "//div[@class='TextFieldWithProcessing']").click();
-                return find(JTextFieldFixture.class, "//div[@class='TextFieldWithProcessing']").getHasFocus();
+                find(JTextFieldFixture.class, SCAN_FIELD).click();
+                return find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus();
             });
-            find(JTextFieldFixture.class, "//div[@class='TextFieldWithProcessing']").setText("inva-lid");
+            find(JTextFieldFixture.class, SCAN_FIELD).setText("inva-lid");
             RepeatUtilsKt.waitFor(waitDuration,
                                   () -> {
                                       new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-                                      ComponentFixture tree = find("//div[@class='Tree']");
+                                      ComponentFixture tree = find(TREE);
                                       return tree.getData().getAll().size() == 1
                                              && tree.getData()
                                                     .getAll()
