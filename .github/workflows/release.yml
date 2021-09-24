@@ -18,7 +18,6 @@ jobs:
         with:
           distribution: zulu
           java-version: 11
-          cache: gradle
       # Set the tag in an env var
       - name: Set env
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
@@ -31,3 +30,8 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_VERSION }}
           files: build/distributions/*
+      # Publish the plugin in marketplace
+      - name: Publish Plugin
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: ./gradlew publishPlugin
