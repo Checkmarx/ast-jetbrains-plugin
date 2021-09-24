@@ -19,9 +19,6 @@ jobs:
           distribution: zulu
           java-version: 11
           cache: gradle
-      # Perform clean before releasing
-      - name: Clean
-        run: ./gradlew clean
       # Build plugin
       - name: Build
         run: |
