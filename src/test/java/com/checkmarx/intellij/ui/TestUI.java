@@ -4,7 +4,6 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
-import com.checkmarx.intellij.components.LinkLabel;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
@@ -12,7 +11,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.awt.event.KeyEvent;
-import java.time.Duration;
 
 import static com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step;
 
@@ -72,14 +70,20 @@ public class TestUI extends BaseUITest {
             RepeatUtilsKt.waitFor(waitDuration, () -> tree.findAllText().size() > 5);
             // open first result for sast -> high
             String selected = tree.collectSelectedPaths().get(0).get(tree.collectSelectedPaths().get(0).size() - 1);
+            int row = -1;
             for (int i = 0; i < tree.collectRows().size(); i++) {
                 if (selected.equals(tree.getValueAtRow(i))) {
+                    row = i;
                     tree.clickRow(i + 1);
                     break;
                 }
             }
             // open first node of the opened result
-            RepeatUtilsKt.waitFor(waitDuration, () -> findAll("//div[@class='LinkLabel']").size() > 0);
+            final int resultRow = row;
+            RepeatUtilsKt.waitFor(waitDuration, () -> {
+                tree.clickRow(resultRow);
+                return findAll("//div[@class='LinkLabel']").size() > 0;
+            });
             RepeatUtilsKt.waitFor(waitDuration, () -> {
                 findAll("//div[@class='LinkLabel']").get(0).click();
                 return hasAnyComponent("//div[@class='EditorComponentImpl']");
