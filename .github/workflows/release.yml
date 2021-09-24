@@ -36,4 +36,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.RELEASE_VERSION }}
-          files: ${{ github.workspace }}/build/distributions/checkmarx-ast-jetbrains-plugin-${{ env.RELEASE_VERSION }}.zip
+          files: build/distributions/*
