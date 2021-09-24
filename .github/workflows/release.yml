@@ -19,12 +19,12 @@ jobs:
           distribution: zulu
           java-version: 11
           cache: gradle
-      # Build plugin
-      - name: Build
-        run: ./gradlew buildPlugin --info
       # Set the tag in an env var
       - name: Set env
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      # Build plugin
+      - name: Build
+        run: ./gradlew buildPlugin --info
       # Create the release
       - name: Create Release
         uses: softprops/action-gh-release@v1
