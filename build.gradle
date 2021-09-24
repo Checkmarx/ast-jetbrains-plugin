@@ -1,11 +1,14 @@
+group 'com.checkmarx'
+version System.getenv('RELEASE_VERSION') ?: "dev"
+
+def remoteRobotVersion = '0.11.6'
+def jUnitVersion = '5.7.2'
+
 plugins {
     id 'org.jetbrains.intellij' version '1.1.6'
     id 'io.freefair.lombok' version '6.2.0'
     id 'java'
 }
-
-group 'com.checkmarx'
-version System.getenv('RELEASE_VERSION') ?: "dev"
 
 repositories {
     mavenCentral()
@@ -24,8 +27,6 @@ repositories {
     }
 }
 
-def remoteRobotVersion = '0.11.6'
-def jUnitVersion = '5.7.2'
 dependencies {
     testImplementation 'com.intellij.remoterobot:remote-robot:' + remoteRobotVersion
     testImplementation 'com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion
