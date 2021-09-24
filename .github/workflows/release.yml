@@ -53,5 +53,5 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ github.workspace }}/build/distributions/checkmarx-ast-jetbrains-plugin-${{ env.RELEASE_VERSION }}.zip
           asset_name: checkmarx-ast-jetbrains-plugin-${{ env.RELEASE_VERSION }}.zip
-          asset_content_type: application/multipart-core
+          asset_content_type: application/zip
           overwrite: true
