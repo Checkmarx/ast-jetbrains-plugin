@@ -71,12 +71,9 @@ public class TestUI extends BaseUITest {
             Assertions.assertTrue(tree.findAllText().size() > 1);
             find(COLLAPSE_ACTION).click();
             Assertions.assertEquals(1, tree.findAllText().size());
-            tree.doubleClickRowWithText("Scan", false);
-            RepeatUtilsKt.waitFor(waitDuration, () -> tree.findAllText().size() > 1);
-            tree.doubleClickRowWithText("sast", false);
-            RepeatUtilsKt.waitFor(waitDuration, () -> tree.findAllText().size() > 3);
-            tree.doubleClickRowWithText("HIGH", false);
-            RepeatUtilsKt.waitFor(waitDuration, () -> tree.findAllText().size() > 5);
+            navigate(tree, "Scan", 1);
+            navigate(tree, "sast", 3);
+            navigate(tree, "HIGH", 5);
             // open first result for sast -> high
             String selected = tree.collectSelectedPaths().get(0).get(tree.collectSelectedPaths().get(0).size() - 1);
             int row = -1;
@@ -154,6 +151,13 @@ public class TestUI extends BaseUITest {
                                                             Resource.INVALID_SCAN_ID));
                                   });
 
+        });
+    }
+
+    private void navigate(JTreeFixture tree, String text, int expectedSize) {
+        RepeatUtilsKt.waitFor(waitDuration, () -> {
+            tree.doubleClickRowWithText(text, false);
+            return tree.findAllText().size() > expectedSize;
         });
     }
 
