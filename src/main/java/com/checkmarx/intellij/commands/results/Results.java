@@ -60,7 +60,7 @@ public class Results {
             try {
                 results = CxAuthFactory.build().cxGetResults(scanId);
             } catch (IOException | URISyntaxException | CxException e) {
-                newState.setMessage(Bundle.message(Resource.LATEST_SCAN_ERROR, scanId + Utils.formatLatest(getLatest)));
+                newState.setMessage(Bundle.message(Resource.GETTING_RESULTS_ERROR, scanId + Utils.formatLatest(getLatest)));
                 LOGGER.warn(newState.getMessage(), e);
                 newState.setScanId(null);
                 return newState;

@@ -19,7 +19,9 @@ public class TestResults extends BaseTest {
     public void testGetResults() {
         CompletableFuture<ResultGetState> getFuture = Results.getResults("");
         ResultGetState results = Assertions.assertDoesNotThrow((ThrowingSupplier<ResultGetState>) getFuture::get);
-        Assertions.assertNotEquals(results.getMessage(), Bundle.message(Resource.LATEST_SCAN_ERROR));
+        String errorMsg = "Message: " + results.getMessage();
+        Assertions.assertNotEquals(results.getMessage(), Bundle.message(Resource.LATEST_SCAN_ERROR), errorMsg);
+        Assertions.assertNotEquals(results.getMessage(), Bundle.message(Resource.GETTING_RESULTS_ERROR), errorMsg);
         Assertions.assertTrue(Objects.equals(results.getMessage(), Bundle.message(Resource.NO_RESULTS))
                               || results.getResultOutput() != Results.emptyResults);
         Assertions.assertEquals("", results.getScanIdFieldValue());
