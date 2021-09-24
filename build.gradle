@@ -64,6 +64,10 @@ runIdeForUiTests {
     systemProperty('jb.consents.confirmation.enabled', 'false')
 }
 
+publishPlugin {
+    token.set(System.getenv("PUBLISH_TOKEN"))
+}
+
 java {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
