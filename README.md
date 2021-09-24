@@ -1,1 +1,1 @@
-# checkmarx-ast-intellij-plugin
+# checkmarx-ast-jetbrains-plugin
