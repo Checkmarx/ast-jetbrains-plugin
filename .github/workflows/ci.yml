@@ -55,7 +55,7 @@ jobs:
         run: ${{ matrix.runIde }}
       # Wait for IDEA to be started
       - name: Health Check
-        run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "5" --retry-connrefused "http://127.0.0.1:8580"
+        run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
       # Run tests
       - name: Tests
         run: ./gradlew test --info --tests com.checkmarx.intellij.ui*
