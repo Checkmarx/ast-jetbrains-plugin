@@ -41,7 +41,7 @@ public abstract class BaseUITest {
     protected static final String EDITOR = "//div[@class='EditorComponentImpl']";
 
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
-    protected static final Duration waitDuration = Duration.ofSeconds(900);
+    protected static final Duration waitDuration = Duration.ofSeconds(1200);
     private static boolean initialized = false;
 
     @BeforeAll

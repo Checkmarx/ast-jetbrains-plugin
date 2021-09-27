@@ -25,18 +25,21 @@ jobs:
             report-path: build/reports
             idea-log: idea-linux.log
             health-check-url: http://127.0.0.1:8580
+            sleep-command: sleep 300s
           - os: windows-latest
             runIde: start .\runIdeForUiTests.bat
             report-name: test-fails-report-windows
             report-path: build/reports
             idea-log: idea-windows.log
             health-check-url: http://localhost:8580
+            sleep-command: Start-Sleep -s 300
           - os: macos-latest
             runIde: ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
             report-name: test-fails-report-mac
             report-path: build/reports
             idea-log: idea-mac.log
             health-check-url: http://127.0.0.1:8580
+            sleep-command: sleep 300s
     steps:
       # Check out current repository
       - name: Fetch Sources
@@ -54,12 +57,14 @@ jobs:
       - name: Run IDE
         run: ${{ matrix.runIde }}
       # Wait for IDEA to be started
-      - name: Health Check
-        uses: jtalk/url-health-check-action@v2
-        with:
-          url: ${{ matrix.health-check-url }}
-          max-attempts: 15
-          retry-delay: 30s
+      #- name: Health Check
+      #  uses: jtalk/url-health-check-action@v2
+      #  with:
+      #    url: ${{ matrix.health-check-url }}
+      #    max-attempts: 15
+      #    retry-delay: 30s
+      - name: Sleep
+        run: ${{ matrix.sleep-command }}
       # Run tests
       - name: Tests
         run: ./gradlew test --info --tests com.checkmarx.intellij.ui*
