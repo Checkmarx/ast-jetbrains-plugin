@@ -24,33 +24,22 @@ jobs:
             report-name: test-fails-report-linux
             report-path: build/reports
             idea-log: idea-linux.log
-            health-check-command:
-              - name: Health Check
-                uses: jtalk/url-health-check-action@v2
-                with:
-                  url: http://127.0.0.1:8580
-                  max-attempts: 15
-                  retry-delay: 30s
+            health-check-url: http://127.0.0.1:8580
+            sleep-command: sleep 1s
           - os: windows-latest
             runIde: start .\runIdeForUiTests.bat
             report-name: test-fails-report-windows
             report-path: build/reports
             idea-log: idea-windows.log
-            health-check-command:
-              - name: Sleep
-                run: Start-Sleep -s 300
+            health-check-url: http://localhost:8580
+            sleep-command: Start-Sleep -s 300
           - os: macos-latest
             runIde: ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
             report-name: test-fails-report-mac
             report-path: build/reports
             idea-log: idea-mac.log
-            health-check-command:
-              - name: Health Check
-                uses: jtalk/url-health-check-action@v2
-                with:
-                  url: http://127.0.0.1:8580
-                  max-attempts: 15
-                  retry-delay: 30s
+            health-check-url: http://127.0.0.1:8580
+            sleep-command: sleep 1s
     steps:
       # Check out current repository
       - name: Fetch Sources
@@ -67,7 +56,15 @@ jobs:
       # Run IDEA prepared for UI testing
       - name: Run IDE
         run: ${{ matrix.runIde }}
-      ${{ matrix.health-check-command }}
+      - name: Sleep
+        run: ${{ matrix.sleep-command }}
+      # Wait for IDEA to be started
+      - name: Health Check
+        uses: jtalk/url-health-check-action@v2
+        with:
+          url: ${{ matrix.health-check-url }}
+          max-attempts: 15
+          retry-delay: 30s
       # Run tests
       - name: Tests
         run: ./gradlew test --info --tests com.checkmarx.intellij.ui*
