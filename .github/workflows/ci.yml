@@ -38,7 +38,7 @@ jobs:
             idea-log: idea-windows.log
             health-check-command:
               - name: Sleep
-                run: ${{ matrix.sleep-command }}
+                run: Start-Sleep -s 300
           - os: macos-latest
             runIde: ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
             report-name: test-fails-report-mac
