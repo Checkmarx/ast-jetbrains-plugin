@@ -19,15 +19,15 @@ import java.util.function.Consumer;
 /**
  * Label with link style. Performs the supplied {@link MouseEvent} consumer when clicked.
  */
-public class LinkLabel extends JBLabel {
+public class CxLinkLabel extends JBLabel {
 
-    private static final Logger LOGGER = Utils.getLogger(LinkLabel.class);
+    private static final Logger LOGGER = Utils.getLogger(CxLinkLabel.class);
 
-    public LinkLabel(@NotNull Resource resource, Consumer<MouseEvent> onClick) {
+    public CxLinkLabel(@NotNull Resource resource, Consumer<MouseEvent> onClick) {
         this(Bundle.message(resource), onClick);
     }
 
-    public LinkLabel(@NotNull String text, Consumer<MouseEvent> onClick) {
+    public CxLinkLabel(@NotNull String text, Consumer<MouseEvent> onClick) {
         super(String.format(Constants.HELP_HTML, text));
 
         setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -61,7 +61,7 @@ public class LinkLabel extends JBLabel {
      * @return label link component
      */
     public static JBLabel buildDocLinkLabel(String link, Resource resource) {
-        return new LinkLabel(resource, getMouseEventConsumer(link));
+        return new CxLinkLabel(resource, getMouseEventConsumer(link));
     }
 
     /**
@@ -71,7 +71,7 @@ public class LinkLabel extends JBLabel {
      * @return label link component
      */
     public static JBLabel buildDocLinkLabel(String link, String label) {
-        return new LinkLabel(label, getMouseEventConsumer(link));
+        return new CxLinkLabel(label, getMouseEventConsumer(link));
     }
 
     @NotNull

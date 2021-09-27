@@ -24,16 +24,19 @@ jobs:
             report-name: test-fails-report-linux
             report-path: build/reports
             idea-log: idea-linux.log
+            curl: curl
           - os: windows-latest
             runIde: start .\runIdeForUiTests.bat
             report-name: test-fails-report-windows
             report-path: build/reports
             idea-log: idea-windows.log
+            curl: curl.exe
           - os: macos-latest
             runIde: ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
             report-name: test-fails-report-mac
             report-path: build/reports
             idea-log: idea-mac.log
+            curl: curl
     steps:
       # Check out current repository
       - name: Fetch Sources
@@ -52,11 +55,7 @@ jobs:
         run: ${{ matrix.runIde }}
       # Wait for IDEA to be started
       - name: Health Check
-        uses: jtalk/url-health-check-action@v2
-        with:
-          url: http://127.0.0.1:8580
-          max-attempts: 15
-          retry-delay: 30s
+        run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
       # Run tests
       - name: Tests
         run: ./gradlew test --info --tests com.checkmarx.intellij.ui*
