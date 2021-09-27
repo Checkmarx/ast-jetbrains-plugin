@@ -36,7 +36,7 @@ public abstract class BaseUITest {
     @Language("XPath")
     protected static final String TREE = "//div[@class='Tree']";
     @Language("XPath")
-    protected static final String LINK_LABEL = "//div[@class='LinkLabel']";
+    protected static final String LINK_LABEL = "//div[@class='CxLinkLabel']";
     @Language("XPath")
     protected static final String EDITOR = "//div[@class='EditorComponentImpl']";
 
@@ -56,6 +56,7 @@ public abstract class BaseUITest {
                 find(CLONE_BUTTON).click();
                 waitAndClick("//div[@text.key='untrusted.project.dialog.trust.button']");
                 waitAndClick("//div[contains(@text.key, 'button.close')]");
+                waitAndClick("//div[@text.key='got.it.button.name']");
                 RepeatUtilsKt.waitFor(waitDuration, () -> hasAnyComponent("//div[@class='ContentTabLabel']"));
             }
             initialized = true;

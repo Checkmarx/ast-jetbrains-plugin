@@ -2,7 +2,7 @@ package com.checkmarx.intellij.tool.window.results.tree.nodes;
 
 import com.checkmarx.ast.results.structure.CxResult;
 import com.checkmarx.ast.results.structure.CxResultDataNode;
-import com.checkmarx.intellij.components.LinkLabel;
+import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.components.PaneUtils;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
@@ -155,7 +155,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                                          node.getFileName(),
                                          node.getLine(),
                                          node.getName());
-            panel.add(new LinkLabel(label, mouseEvent -> navigate(project, node)), "span, wrap");
+            panel.add(new CxLinkLabel(label, mouseEvent -> navigate(project, node)), "span, wrap");
         }
         return panel;
     }
@@ -165,7 +165,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(boldLabel(Bundle.message(Resource.PACKAGE_DATA)), "span, wrap");
         for (String pkg : packageData) {
             panel.add(new JBLabel(String.format("[%s]: ", pkg)), "split 2, span");
-            panel.add(LinkLabel.buildDocLinkLabel("https://checkmarx.com", "https://checkmarx.com"), "growx, wrap");
+            panel.add(CxLinkLabel.buildDocLinkLabel("https://checkmarx.com", "https://checkmarx.com"), "growx, wrap");
         }
         return panel;
     }

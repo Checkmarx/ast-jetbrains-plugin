@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.settings.global;
 
 import com.checkmarx.intellij.commands.Authentication;
-import com.checkmarx.intellij.components.LinkLabel;
+import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
@@ -174,7 +174,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private void buildGUI() {
         mainPanel.setLayout(new MigLayout("", "[][grow]"));
 
-        mainPanel.add(LinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.HELP_JETBRAINS),
+        mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.HELP_JETBRAINS),
                       "span, growx, wrap, gapbottom 10");
 
         addSectionHeader(Resource.SERVER_SECTION);
@@ -189,7 +189,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         addSectionHeader(Resource.SCAN_SECTION);
         addField(Resource.ADDITIONAL_PARAMETERS, additionalParametersField, false);
         mainPanel.add(new JBLabel());
-        mainPanel.add(LinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
+        mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
                       "gapleft 5, wrap");
 
         mainPanel.add(validateButton, "sizegroup bttn, gaptop 30");
