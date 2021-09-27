@@ -9,6 +9,7 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
   testUI:
+    needs: [ verify, testIntegration ]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -76,6 +77,7 @@ jobs:
           path: |
             idea.log
   testIntegration:
+    needs: [ verify ]
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
@@ -137,4 +139,4 @@ jobs:
           cx_tenant: ${{ secrets.CX_TENANT }}
           cx_client_id: ${{ secrets.CX_CLIENT_ID }}
           cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
-          additional_params: --tags galactica-team
+          additional_params: --tags galactica-team --file-filter "!.git"
