@@ -59,7 +59,7 @@ jobs:
           retry-delay: 30s
       # Run tests
       - name: Tests
-        run: ./gradlew test -i --tests com.checkmarx.intellij.ui*
+        run: ./gradlew test --info --tests com.checkmarx.intellij.ui*
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
