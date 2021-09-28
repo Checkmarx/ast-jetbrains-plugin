@@ -7,6 +7,9 @@ env:
   CX_TEST_REPO: ${{ secrets.CX_TEST_REPO }}
   CX_TEST_SCAN: ${{ secrets.CX_TEST_SCAN }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+concurrency:
+  group: ${{ github.head_ref }}
+  cancel-in-progress: true
 jobs:
   testUI:
     needs: [ verify, testIntegration ]
