@@ -34,6 +34,7 @@ public final class Constants {
 
     public static final String NODE_FORMAT = "%d: %s:%d (%s)";
     public static final String PACKAGE_FORMAT = "[%s]: %s";
+    public static final String SUMMARY_FORMAT = "%s | %s | %s | %s";
 
     public static final String OS_TEMP_DIR = System.getProperty("java.io.tmpdir");
     public static final String OS_NAME = System.getProperty("os.name").toLowerCase(Locale.ENGLISH);

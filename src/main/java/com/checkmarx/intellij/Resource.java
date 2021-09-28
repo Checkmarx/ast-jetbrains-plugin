@@ -37,6 +37,7 @@ public enum Resource {
     LATEST_SCAN_ERROR,
     INVALID_SCAN_ID,
     LATEST_SCAN,
+    SUMMARY,
     TYPE,
     SEVERITY,
     STATE,
