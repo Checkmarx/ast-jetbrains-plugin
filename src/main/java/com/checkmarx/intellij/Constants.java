@@ -29,9 +29,10 @@ public final class Constants {
     public static final String INTELLIJ_HELP
             = "https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6030557208/JetBrains";
 
+    public static final String FIELD_GAP_BOTTOM = "gapbottom 15";
+
     public static final String HELP_HTML = "<html><a href=\"\">%s</a></html>";
     public static final String HELP_HTML_U = "<html><a href=\"\"><u>%s</u></a></html>";
-
     public static final String NODE_FORMAT = "%d: %s:%d (%s)";
     public static final String PACKAGE_FORMAT = "[%s]: %s";
     public static final String SUMMARY_FORMAT = "%s | %s | %s | %s";

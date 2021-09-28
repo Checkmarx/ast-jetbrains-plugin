@@ -215,12 +215,12 @@ public class GlobalSettingsComponent implements SettingsComponent {
         validatePanel();
         String constraints = "grow, wrap";
         if (gapAfter) {
-            constraints += ", gapbottom 15";
+            constraints += ", " + Constants.FIELD_GAP_BOTTOM;
         }
         String label = String.format(Constants.FIELD_FORMAT,
                                      Bundle.message(resource),
                                      required ? Constants.REQUIRED_MARK : "");
-        mainPanel.add(new JBLabel(label));
+        mainPanel.add(new JBLabel(label), gapAfter ? Constants.FIELD_GAP_BOTTOM : "");
         mainPanel.add(field, constraints);
     }
 
