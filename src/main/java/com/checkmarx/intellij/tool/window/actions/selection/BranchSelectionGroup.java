@@ -2,15 +2,14 @@ package com.checkmarx.intellij.tool.window.actions.selection;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
-public class ProjectSelectionGroup extends BaseSelectionGroup {
+public class BranchSelectionGroup extends BaseSelectionGroup {
 
-    public ProjectSelectionGroup(@NotNull Project project) {
+    public BranchSelectionGroup(@NotNull Project project) {
         super(project);
-        addChild(project.getName());
+        addChild("master");
         addChild("xs");
         addChild("BIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIG");
         addChild("NormalLength");
@@ -18,17 +17,17 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
 
     @Override
     protected String defaultValue() {
-        return project.getName();
+        return "master";
     }
 
     @Override
     protected String getValueProperty() {
-        return Constants.SELECTED_PROJECT_PROPERTY;
+        return Constants.SELECTED_BRANCH_PROPERTY;
     }
 
     @Override
     protected Resource getPrefixResource() {
-        return Resource.PROJECT_SELECT_PREFIX;
+        return Resource.BRANCH_SELECT_PREFIX;
     }
 
     @Override

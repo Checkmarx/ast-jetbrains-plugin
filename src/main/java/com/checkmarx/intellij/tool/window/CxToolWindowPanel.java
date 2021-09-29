@@ -24,20 +24,16 @@ import com.intellij.openapi.ui.Splitter;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.SearchTextField;
 import com.intellij.ui.treeStructure.Tree;
-import com.intellij.util.Consumer;
-import com.intellij.util.ui.components.BorderLayoutPanel;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.TreePath;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import static com.intellij.util.ui.JBUI.Panels.simplePanel;
@@ -72,7 +68,10 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     private boolean getResultsInProgress = false;
 
     private final Project project;
+    // service for indexing current results
     private final ProjectResultsService projectResultsService;
+    // root group for project - branch - scan selection
+    private final RootGroup rootGroup;
 
     /**
      * Creates the basic panel UI and triggers an async call to get the latest results and draw them.
@@ -84,25 +83,28 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         this.project = project;
         this.projectResultsService = project.getService(ProjectResultsService.class);
+        this.rootGroup = new RootGroup(project);
 
+        // listener to get results when enter is pressed on scan id field
         scanIdField.addKeyboardListener(new OnEnterGetResults());
 
+        // split vertical the scan id field and the panel for results tree
         scanTreeSplitter.setResizeEnabled(false);
         scanTreeSplitter.setDividerPositionStrategy(Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE);
         scanTreeSplitter.setLackOfSpaceStrategy(Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE);
         scanTreeSplitter.setFirstComponent(simplePanel(scanIdField));
         scanTreeSplitter.setSecondComponent(simplePanel());
 
+        // split horizontal the scan id field/results tree and the result details panel
         treeDetailsSplitter.setFirstComponent(scanTreeSplitter);
-        BorderLayoutPanel component = simplePanel();
-        treeDetailsSplitter.setSecondComponent(component);
+        treeDetailsSplitter.setSecondComponent(simplePanel());
 
+        // set content and main toolbar
         SimpleToolWindowPanel treePanel = new SimpleToolWindowPanel(true, true);
-        treePanel.setToolbar(getActionToolbar(new RootGroup(project), true).getComponent());
+        treePanel.setToolbar(getActionToolbar(rootGroup, true).getComponent());
         treePanel.setContent(treeDetailsSplitter);
-
-        setToolbar(getActionToolbar(project, Constants.ACTION_GROUP_ID, false).getComponent());
         setContent(treePanel);
+        setToolbar(getActionToolbar(project, Constants.ACTION_GROUP_ID, false).getComponent());
 
         // when starting get the latest scan id
         triggerDrawResultsTree("");
@@ -156,6 +158,11 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
             groupByList.remove(groupBy);
         }
         drawTree();
+    }
+
+    public void refreshToolbar() {
+        JComponent content = getContent();
+        Optional.ofNullable(content).ifPresent(this::setContent);
     }
 
     /**

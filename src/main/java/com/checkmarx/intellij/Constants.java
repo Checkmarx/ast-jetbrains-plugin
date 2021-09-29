@@ -59,4 +59,8 @@ public final class Constants {
     public static final String FIELD_NAME_TENANT = "tenant";
     public static final String FIELD_NAME_API_KEY = "apiKey";
     public static final String FIELD_NAME_ADDITIONAL_PARAMETERS = "additionalParameters";
+
+    public static final String SELECTED_PROJECT_PROPERTY = "Checkmarx.SelectedProject";
+    public static final String SELECTED_BRANCH_PROPERTY = "Checkmarx.SelectedBranch";
+    public static final String SELECTED_SCAN_PROPERTY = "Checkmarx.SelectedScan";
 }
