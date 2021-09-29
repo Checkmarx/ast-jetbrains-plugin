@@ -32,6 +32,8 @@ public class CxAuthFactory {
 
         scan.setPathToExecutable(CLI.getTempBinary());
 
+        scan.setAdditionalParameters(state.getAdditionalParameters());
+
         return new CxAuth(scan, null);
     }
 }

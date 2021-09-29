@@ -63,6 +63,7 @@ public class Results {
                 newState.setMessage(Bundle.message(Resource.GETTING_RESULTS_ERROR, scanId + Utils.formatLatest(getLatest)));
                 LOGGER.warn(newState.getMessage(), e);
                 newState.setScanId(null);
+                newState.setScanIdFieldValue(null);
                 return newState;
             }
 

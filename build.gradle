@@ -36,7 +36,7 @@ dependencies {
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
     implementation 'com.miglayout:miglayout-swing:11.0'
 
-    implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.13'
+    implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.14'
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/

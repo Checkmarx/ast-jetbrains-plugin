@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.settings.global;
 
+import com.checkmarx.ast.results.CxValidateOutput;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
@@ -137,14 +138,14 @@ public class GlobalSettingsComponent implements SettingsComponent {
             setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
             CompletableFuture.runAsync(() -> {
                 try {
-                    int result = Authentication.validateConnection(getStateFromFields(),
-                                                                   getSensitiveStateFromFields());
-                    if (result == 0) {
+                    CxValidateOutput validateOutput = Authentication.validateConnection(getStateFromFields(),
+                                                                                        getSensitiveStateFromFields());
+                    if (validateOutput.getExitCode() == 0) {
                         setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
                         LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
                     } else {
-                        setValidationResult(Bundle.message(Resource.VALIDATE_FAIL), JBColor.RED);
-                        LOGGER.warn(Bundle.message(Resource.VALIDATE_FAIL));
+                        setValidationResult(validateOutput.getMessage(), JBColor.RED);
+                        LOGGER.warn(Bundle.message(Resource.VALIDATE_FAIL, validateOutput.getMessage()));
                     }
                 } catch (Exception e) {
                     setValidationResult(Bundle.message(Resource.VALIDATE_ERROR), JBColor.RED);
@@ -163,7 +164,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
      * @param color   color
      */
     private void setValidationResult(String message, JBColor color) {
-        validateResult.setText(message);
+        validateResult.setText(String.format("<html>%s</html>", message));
         validateResult.setForeground(color);
     }
 
@@ -193,7 +194,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                       "gapleft 5, wrap");
 
         mainPanel.add(validateButton, "sizegroup bttn, gaptop 30");
-        mainPanel.add(validateResult, "gapleft 5");
+        mainPanel.add(validateResult, "gapleft 5, gaptop 30");
     }
 
     private void setupFields() {
