@@ -165,6 +165,9 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
      * Getting and setting the same content forces swing to redraw without rebuilding all the objects.
      */
     public void refreshPanel() {
+        if (!Utils.validThread()) {
+            return;
+        }
         JComponent content = getContent();
         Optional.ofNullable(content).ifPresent(this::setContent);
     }
