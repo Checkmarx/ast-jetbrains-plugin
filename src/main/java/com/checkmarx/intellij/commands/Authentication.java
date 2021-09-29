@@ -25,6 +25,6 @@ public class Authentication {
     public static int validateConnection(GlobalSettingsState state, GlobalSettingsSensitiveState sensitiveState)
             throws IOException, URISyntaxException, InterruptedException {
 
-        return CxAuthFactory.build(state, sensitiveState).cxAuthValidate();
+        return CxAuthFactory.build(state, sensitiveState).cxAuthValidate().getExitCode();
     }
 }
