@@ -161,7 +161,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     }
 
     /**
-     * Refresh the toolbar, for usage with the project/branch/scan selection to force the containers to fix the names.
+     * Refresh and redraw the panel.
      * Getting and setting the same content forces swing to redraw without rebuilding all the objects.
      */
     public void refreshPanel() {
