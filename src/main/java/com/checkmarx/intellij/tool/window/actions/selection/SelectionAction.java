@@ -25,7 +25,7 @@ public class SelectionAction extends AnAction implements CxToolWindowAction {
         if (project != null) {
             PropertiesComponent.getInstance(project)
                                .setValue(property, e.getPresentation().getText());
-            Optional.ofNullable(getCxToolWindowPanel(e)).ifPresent(CxToolWindowPanel::refreshToolbar);
+            Optional.ofNullable(getCxToolWindowPanel(e)).ifPresent(CxToolWindowPanel::refreshPanel);
         }
     }
 }
