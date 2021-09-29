@@ -1,13 +1,14 @@
 package com.checkmarx.intellij.tool.window;
 
-import com.checkmarx.intellij.commands.results.ResultGetState;
-import com.checkmarx.intellij.commands.results.Results;
-import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.commands.results.ResultGetState;
+import com.checkmarx.intellij.commands.results.Results;
+import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.project.ProjectResultsService;
+import com.checkmarx.intellij.tool.window.actions.selection.RootGroup;
 import com.checkmarx.intellij.tool.window.results.tree.GroupBy;
 import com.checkmarx.intellij.tool.window.results.tree.ResultsTreeFactory;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
@@ -23,6 +24,7 @@ import com.intellij.openapi.ui.Splitter;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.SearchTextField;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.ui.components.BorderLayoutPanel;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -56,9 +58,9 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
     // UI state
     // divides the main panel in tree|details sections
-    private final OnePixelSplitter mainSplitter = new OnePixelSplitter(false, 0.3f);
+    private final OnePixelSplitter treeDetailsSplitter = new OnePixelSplitter(false, 0.3f);
     // divides the tree section in scanIdField|resultsTree sections
-    private final OnePixelSplitter resultsSplitter = new OnePixelSplitter(true, 0.1f);
+    private final OnePixelSplitter scanTreeSplitter = new OnePixelSplitter(true, 0.1f);
     // field to input a scan id
     private final SearchTextField scanIdField = new SearchTextField();
 
@@ -82,25 +84,24 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         this.project = project;
         this.projectResultsService = project.getService(ProjectResultsService.class);
 
-        ActionGroup group = (ActionGroup) ActionManager.getInstance().getAction(Constants.ACTION_GROUP_ID);
-        ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar(Constants.TOOL_WINDOW_ID, group, false);
-        toolbar.setTargetComponent(toolbar.getComponent());
-
-        setToolbar(toolbar.getComponent());
-
-        resultsSplitter.setResizeEnabled(false);
-        resultsSplitter.setDividerPositionStrategy(Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE);
-        resultsSplitter.setLackOfSpaceStrategy(Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE);
-
         scanIdField.addKeyboardListener(new OnEnterGetResults());
 
-        resultsSplitter.setFirstComponent(simplePanel(scanIdField));
-        resultsSplitter.setSecondComponent(simplePanel());
+        scanTreeSplitter.setResizeEnabled(false);
+        scanTreeSplitter.setDividerPositionStrategy(Splitter.DividerPositionStrategy.KEEP_FIRST_SIZE);
+        scanTreeSplitter.setLackOfSpaceStrategy(Splitter.LackOfSpaceStrategy.HONOR_THE_FIRST_MIN_SIZE);
+        scanTreeSplitter.setFirstComponent(simplePanel(scanIdField));
+        scanTreeSplitter.setSecondComponent(simplePanel());
 
-        mainSplitter.setFirstComponent(simplePanel(resultsSplitter));
-        mainSplitter.setSecondComponent(simplePanel());
+        treeDetailsSplitter.setFirstComponent(scanTreeSplitter);
+        BorderLayoutPanel component = simplePanel();
+        treeDetailsSplitter.setSecondComponent(component);
 
-        setContent(simplePanel(mainSplitter));
+        SimpleToolWindowPanel treePanel = new SimpleToolWindowPanel(true, true);
+        treePanel.setToolbar(getActionToolbar(new RootGroup(project), true).getComponent());
+        treePanel.setContent(treeDetailsSplitter);
+
+        setToolbar(getActionToolbar(project, Constants.ACTION_GROUP_ID, false).getComponent());
+        setContent(treePanel);
 
         // when starting get the latest scan id
         triggerDrawResultsTree("");
@@ -132,7 +133,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
             for (int i = 0; i < currentTree.getRowCount(); i++) {
                 currentTree.collapseRow(i);
             }
-            mainSplitter.setSecondComponent(simplePanel());
+            treeDetailsSplitter.setSecondComponent(simplePanel());
         }
     }
 
@@ -209,7 +210,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         projectResultsService.indexResults(project, currentState.getResultOutput());
         if (currentState.getMessage() != null) {
             LOGGER.info(String.format("Cannot show results: %s", currentState.getMessage()));
-            resultsSplitter.setSecondComponent(TreeUtils.labelTreePanel(currentState.getMessage()));
+            scanTreeSplitter.setSecondComponent(TreeUtils.labelTreePanel(currentState.getMessage()));
         } else {
             LOGGER.info("Updating state for scan " + currentState.getScanId());
             drawTree();
@@ -230,7 +231,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                                                           groupByList,
                                                           currentState.isLatest());
         currentTree.addTreeSelectionListener(new OnSelectShowDetail());
-        resultsSplitter.setSecondComponent(TreeUtils.treePanel(currentTree));
+        scanTreeSplitter.setSecondComponent(TreeUtils.treePanel(currentTree));
     }
 
     /**
@@ -246,10 +247,24 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 Tree tree = (Tree) e.getSource();
                 if (tree.getModel().isLeaf(selected) && selected instanceof ResultNode) {
                     ResultNode resultNode = (ResultNode) selected;
-                    mainSplitter.setSecondComponent(resultNode.buildResultPanel());
+                    treeDetailsSplitter.setSecondComponent(resultNode.buildResultPanel());
                 }
             }
         }
+    }
+
+    @NotNull
+    private static ActionToolbar getActionToolbar(Project project, String actionGroupId, boolean horizontal) {
+        ActionGroup group = (ActionGroup) ActionManager.getInstance().getAction(actionGroupId);
+        return getActionToolbar(group, horizontal);
+    }
+
+    @NotNull
+    private static ActionToolbar getActionToolbar(ActionGroup group, boolean horizontal) {
+        ActionToolbar toolbar = ActionManager.getInstance()
+                                             .createActionToolbar(Constants.TOOL_WINDOW_ID, group, horizontal);
+        toolbar.setTargetComponent(toolbar.getComponent());
+        return toolbar;
     }
 
     /**
