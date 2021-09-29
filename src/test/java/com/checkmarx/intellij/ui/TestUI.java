@@ -67,10 +67,14 @@ public class TestUI extends BaseUITest {
         step("Test tree and code link", () -> {
             // navigate the tree for a result
             JTreeFixture tree = find(JTreeFixture.class, TREE);
-            find(EXPAND_ACTION).click();
-            Assertions.assertTrue(tree.findAllText().size() > 1);
-            find(COLLAPSE_ACTION).click();
-            Assertions.assertEquals(1, tree.findAllText().size());
+            RepeatUtilsKt.waitFor(waitDuration, () -> {
+                find(EXPAND_ACTION).click();
+                return tree.findAllText().size() > 1;
+            });
+            RepeatUtilsKt.waitFor(waitDuration, () -> {
+                find(COLLAPSE_ACTION).click();
+                return tree.findAllText().size() == 1;
+            });
             navigate(tree, "Scan", 1);
             navigate(tree, "sast", 3);
             navigate(tree, "HIGH", 5);
