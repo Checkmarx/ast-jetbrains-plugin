@@ -2,12 +2,12 @@ package com.checkmarx.intellij.tool.window.results.tree.nodes;
 
 import com.checkmarx.ast.results.structure.CxResult;
 import com.checkmarx.ast.results.structure.CxResultDataNode;
-import com.checkmarx.intellij.components.CxLinkLabel;
-import com.checkmarx.intellij.components.PaneUtils;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.components.CxLinkLabel;
+import com.checkmarx.intellij.components.PaneUtils;
 import com.intellij.icons.AllIcons;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
@@ -122,17 +122,14 @@ public class ResultNode extends DefaultMutableTreeNode {
     private static JPanel buildDetailsPanel(CxResult result) {
         JPanel details = new JPanel(new MigLayout("fillx"));
 
-        details.add(boldLabel(Bundle.message(Resource.TYPE)), "span, wrap");
-        details.add(new JBLabel(result.getType().toUpperCase()), "span, wrap, gapbottom 5");
+        details.add(boldLabel(Bundle.message(Resource.SUMMARY)), "span, wrap");
 
-        details.add(boldLabel(Bundle.message(Resource.SEVERITY)), "span, wrap");
-        details.add(new JBLabel(result.getSeverity()), "span, wrap, gapbottom 5");
-
-        details.add(boldLabel(Bundle.message(Resource.STATE)), "span, wrap");
-        details.add(new JBLabel(result.getState()), "span, wrap, gapbottom 5");
-
-        details.add(boldLabel(Bundle.message(Resource.STATUS)), "span, wrap");
-        details.add(new JBLabel(result.getStatus()), "span, wrap, gapbottom 5");
+        String detailsSummary = String.format(Constants.SUMMARY_FORMAT,
+                                              result.getType(),
+                                              result.getSeverity(),
+                                              result.getState(),
+                                              result.getStatus());
+        details.add(new JBLabel(detailsSummary), "span, wrap, gapbottom 5");
 
         details.add(boldLabel(Bundle.message(Resource.DESCRIPTION)), "span, wrap");
         String description = result.getData().getDescription();

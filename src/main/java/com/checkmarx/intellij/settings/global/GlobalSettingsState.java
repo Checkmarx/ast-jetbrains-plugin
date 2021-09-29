@@ -60,6 +60,9 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
         if (state.isUseAuthURL() && Utils.isEmptyOrBlank(state.getAuthURL())) {
             throw new ConfigurationException(Bundle.missingFieldMessage(Resource.AUTH_URL));
         }
+        if (Utils.isEmptyOrBlank(state.getTenantName())) {
+            throw new ConfigurationException(Bundle.missingFieldMessage(Resource.TENANT_NAME));
+        }
         loadState(state);
     }
 }

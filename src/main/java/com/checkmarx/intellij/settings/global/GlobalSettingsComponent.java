@@ -1,11 +1,11 @@
 package com.checkmarx.intellij.settings.global;
 
-import com.checkmarx.intellij.commands.Authentication;
-import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.commands.Authentication;
+import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.ConfigurationException;
@@ -178,16 +178,16 @@ public class GlobalSettingsComponent implements SettingsComponent {
                       "span, growx, wrap, gapbottom 10");
 
         addSectionHeader(Resource.SERVER_SECTION);
-        addField(Resource.SERVER_URL, serverUrlField, false);
+        addField(Resource.SERVER_URL, serverUrlField, false, true);
         mainPanel.add(useAuthUrlCheckbox);
         mainPanel.add(authUrlField, "grow, wrap");
-        addField(Resource.TENANT_NAME, tenantField, true);
+        addField(Resource.TENANT_NAME, tenantField, true, true);
 
         addSectionHeader(Resource.CREDENTIALS_SECTION);
-        addField(Resource.API_KEY, apiKeyField, true);
+        addField(Resource.API_KEY, apiKeyField, true, true);
 
         addSectionHeader(Resource.SCAN_SECTION);
-        addField(Resource.ADDITIONAL_PARAMETERS, additionalParametersField, false);
+        addField(Resource.ADDITIONAL_PARAMETERS, additionalParametersField, false, false);
         mainPanel.add(new JBLabel());
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
                       "gapleft 5, wrap");
@@ -211,13 +211,16 @@ public class GlobalSettingsComponent implements SettingsComponent {
         mainPanel.add(new JSeparator(), "growx, wrap");
     }
 
-    private void addField(Resource resource, Component field, boolean gapAfter) {
+    private void addField(Resource resource, Component field, boolean gapAfter, boolean required) {
         validatePanel();
         String constraints = "grow, wrap";
         if (gapAfter) {
-            constraints += ", gapbottom 15";
+            constraints += ", " + Constants.FIELD_GAP_BOTTOM;
         }
-        mainPanel.add(new JBLabel(Bundle.message(resource)));
+        String label = String.format(Constants.FIELD_FORMAT,
+                                     Bundle.message(resource),
+                                     required ? Constants.REQUIRED_MARK : "");
+        mainPanel.add(new JBLabel(label), gapAfter ? Constants.FIELD_GAP_BOTTOM : "");
         mainPanel.add(field, constraints);
     }
 
