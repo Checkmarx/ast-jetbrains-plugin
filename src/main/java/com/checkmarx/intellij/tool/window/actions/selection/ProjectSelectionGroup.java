@@ -1,18 +1,27 @@
 package com.checkmarx.intellij.tool.window.actions.selection;
 
-import com.intellij.openapi.actionSystem.ActionGroup;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 public class ProjectSelectionGroup extends BaseSelectionGroup {
 
-    public ProjectSelectionGroup(@NotNull Project project,
-                                 ActionGroup branchActionGroup,
-                                 ActionGroup scanActionGroup) {
-        super();
+    private final PropertiesComponent propertiesComponent;
+
+    public ProjectSelectionGroup(@NotNull Project project) {
+        super(project);
+        propertiesComponent = PropertiesComponent.getInstance(project);
+        String selectedProject = propertiesComponent.getValue("Checkmarx.SelectedProject");
+        if (selectedProject == null) {
+            selectedProject = project.getName();
+            propertiesComponent.setValue("Checkmarx.SelectedProject", selectedProject);
+        }
+        getTemplatePresentation().setText(() -> getPrefix()
+                                                + propertiesComponent.getValue("Checkmarx.SelectedProject"));
+        addAll(makeChild(project.getName()),
+               makeChild("xs"),
+               makeChild("BIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIG"),
+               makeChild("NormalLength"));
     }
 
     @Override
@@ -20,12 +29,9 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
         return "Project: ";
     }
 
-    @Override
-    public AnAction @NotNull [] getChildren(@Nullable AnActionEvent e) {
-        return new AnAction[]{
-                new ProjectSelectionAction("Project1", select),
-                new ProjectSelectionAction("Project2", select)
-        };
+    @NotNull
+    private ProjectSelectionAction makeChild(String name) {
+        return new ProjectSelectionAction(name);
     }
 
     @Override

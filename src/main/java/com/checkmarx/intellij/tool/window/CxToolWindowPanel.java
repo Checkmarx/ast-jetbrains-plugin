@@ -24,6 +24,7 @@ import com.intellij.openapi.ui.Splitter;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.SearchTextField;
 import com.intellij.ui.treeStructure.Tree;
+import com.intellij.util.Consumer;
 import com.intellij.util.ui.components.BorderLayoutPanel;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
