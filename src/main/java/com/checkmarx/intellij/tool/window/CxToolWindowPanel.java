@@ -160,6 +160,10 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         drawTree();
     }
 
+    /**
+     * Refresh the toolbar, for usage with the project/branch/scan selection to force the containers to fix the names.
+     * Getting and setting the same content forces swing to redraw without rebuilding all the objects.
+     */
     public void refreshToolbar() {
         JComponent content = getContent();
         Optional.ofNullable(content).ifPresent(this::setContent);
