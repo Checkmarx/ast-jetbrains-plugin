@@ -7,6 +7,7 @@ import com.checkmarx.intellij.Resource;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
+import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -126,9 +127,12 @@ public class TestUI extends BaseUITest {
 
             // click the validation button
             find(JButtonFixture.class, VALIDATE_BUTTON).click();
-            // wait thirty seconds for the validation success label
-            // the test fails if not found
-            find(ComponentFixture.class, "//div[@accessiblename.key='VALIDATE_FAIL']", waitDuration);
+            // check for validation fail
+            RepeatUtilsKt.waitFor(waitDuration,
+                                  () -> !hasAnyComponent("//div[@accessiblename.key='VALIDATE_IN_PROGRESS']"));
+            Assertions.assertThrows(WaitForConditionTimeoutException.class,
+                                    () -> find(ComponentFixture.class,
+                                               "//div[@accessiblename.key='VALIDATE_SUCCESS']"));
             find("//div[@text.key='button.cancel']").click();
         });
     }
