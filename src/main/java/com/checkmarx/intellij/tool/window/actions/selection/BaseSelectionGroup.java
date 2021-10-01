@@ -1,7 +1,6 @@
 package com.checkmarx.intellij.tool.window.actions.selection;
 
 import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.tool.window.actions.CxToolWindowAction;
 import com.intellij.ide.util.PropertiesComponent;
@@ -40,7 +39,7 @@ public abstract class BaseSelectionGroup extends DefaultActionGroup implements D
     }
 
     protected final void addChild(@NotNull String name) {
-        add(new SelectionAction(name, getValueProperty()));
+        add(new BaseSelectionAction(name, getValueProperty()));
     }
 
     @Override

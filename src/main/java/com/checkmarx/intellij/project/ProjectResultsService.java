@@ -1,8 +1,7 @@
 package com.checkmarx.intellij.project;
 
-import com.checkmarx.ast.results.structure.CxResult;
-import com.checkmarx.ast.results.structure.CxResultDataNode;
-import com.checkmarx.ast.results.structure.CxResultOutput;
+import com.checkmarx.ast.results.result.Node;
+import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.intellij.Utils;
 import com.intellij.openapi.project.Project;
 
@@ -18,9 +17,9 @@ public class ProjectResultsService {
     private final Project project;
 
     // index by file and by line number
-    private Map<String, Map<Integer, List<CxResultDataNode>>> nodesByFile = new HashMap<>();
+    private Map<String, Map<Integer, List<Node>>> nodesByFile = new HashMap<>();
     // index each node by the result
-    private Map<CxResultDataNode, CxResult> resultByNode = new HashMap<>();
+    private Map<Node, Result> resultByNode = new HashMap<>();
 
     public ProjectResultsService(Project project) {
         this.project = project;
@@ -32,7 +31,7 @@ public class ProjectResultsService {
      * @param project project calling the service instance for validation
      * @param results results to index
      */
-    public void indexResults(Project project, CxResultOutput results) {
+    public void indexResults(Project project, com.checkmarx.ast.results.Results results) {
         if (!Utils.validThread()) {
             return;
         }
@@ -42,16 +41,16 @@ public class ProjectResultsService {
         nodesByFile = new HashMap<>();
         resultByNode = new HashMap<>();
 
-        for (CxResult result : results.getResults()) {
-            for (CxResultDataNode node : Optional.ofNullable(result.getData().getNodes())
-                                                 .orElse(Collections.emptyList())) {
-                Map<Integer, List<CxResultDataNode>> nodesByLine
+        for (Result result : results.getResults()) {
+            for (Node node : Optional.ofNullable(result.getData().getNodes())
+                                     .orElse(Collections.emptyList())) {
+                Map<Integer, List<Node>> nodesByLine
                         = nodesByFile.computeIfAbsent(Paths.get(node.getFileName())
                                                            .toString()
                                                            .substring(1),
                                                       k -> new HashMap<>());
-                List<CxResultDataNode> nodesForLine = nodesByLine.computeIfAbsent(node.getLine(),
-                                                                                  k -> new ArrayList<>());
+                List<Node> nodesForLine = nodesByLine.computeIfAbsent(node.getLine(),
+                                                                      k -> new ArrayList<>());
                 nodesForLine.add(node);
                 resultByNode.put(node, result);
             }
@@ -66,21 +65,21 @@ public class ProjectResultsService {
      * @param lineNumber line number in the file
      * @return results for file and line
      */
-    public List<CxResultDataNode> getResultsForFileAndLine(Project project,
-                                                           String file,
-                                                           int lineNumber) {
+    public List<Node> getResultsForFileAndLine(Project project,
+                                               String file,
+                                               int lineNumber) {
         validateProject(project);
 
-        List<CxResultDataNode> nodes = Collections.emptyList();
+        List<Node> nodes = Collections.emptyList();
 
         if (this.project.getBasePath() != null) {
             try {
                 Path projectRoot = Paths.get(this.project.getBasePath());
                 Path absolute = Paths.get(file);
                 String relativePath = projectRoot.relativize(absolute).toString();
-                Map<Integer, List<CxResultDataNode>> nodesByLine = nodesByFile.get(relativePath);
+                Map<Integer, List<Node>> nodesByLine = nodesByFile.get(relativePath);
                 if (nodesByLine != null) {
-                    List<CxResultDataNode> nodesForLine = nodesByLine.get(lineNumber);
+                    List<Node> nodesForLine = nodesByLine.get(lineNumber);
                     if (nodesForLine != null) {
                         nodes = nodesForLine;
                     }
@@ -97,7 +96,7 @@ public class ProjectResultsService {
      * @param node node
      * @return result
      */
-    public CxResult getResultForNode(CxResultDataNode node) {
+    public Result getResultForNode(Node node) {
         return resultByNode.get(node);
     }
 

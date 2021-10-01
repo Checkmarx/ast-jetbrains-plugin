@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.tool.window.results.tree;
 
-import com.checkmarx.ast.results.structure.CxResult;
+import com.checkmarx.ast.results.result.Result;
 
 import java.util.function.Function;
 
@@ -17,9 +17,9 @@ public enum GroupBy {
     /**
      * @return function to apply to a result for getting the parent, that matches the filter
      */
-    public Function<CxResult, String> getFunction() {
+    public Function<Result, String> getFunction() {
         if (this == SEVERITY) {
-            return CxResult::getSeverity;
+            return Result::getSeverity;
         }
         if (this == QUERY_NAME) {
             return (result) -> result.getData().getQueryName() != null

@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.tool.window.results.tree.nodes;
 
-import com.checkmarx.ast.results.structure.CxResult;
-import com.checkmarx.ast.results.structure.CxResultDataNode;
+import com.checkmarx.ast.results.result.Node;
+import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
@@ -47,10 +47,10 @@ import java.util.Optional;
 public class ResultNode extends DefaultMutableTreeNode {
 
     private final String label;
-    private final CxResult result;
+    private final Result result;
     private final Project project;
 
-    private final List<CxResultDataNode> nodes;
+    private final List<Node> nodes;
     private final List<String> packageData;
 
     /**
@@ -59,7 +59,7 @@ public class ResultNode extends DefaultMutableTreeNode {
      * @param result  result for this node
      * @param project context project
      */
-    public ResultNode(CxResult result, Project project) {
+    public ResultNode(Result result, Project project) {
         super();
         this.result = result;
         this.project = project;
@@ -119,7 +119,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     @NotNull
-    private static JPanel buildDetailsPanel(CxResult result) {
+    private static JPanel buildDetailsPanel(Result result) {
         JPanel details = new JPanel(new MigLayout("fillx"));
 
         details.add(boldLabel(Bundle.message(Resource.SUMMARY)), "span, wrap");
@@ -142,11 +142,11 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     @NotNull
-    private static JPanel buildAttackVectorPanel(Project project, List<CxResultDataNode> nodes) {
+    private static JPanel buildAttackVectorPanel(Project project, List<Node> nodes) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         panel.add(boldLabel(Bundle.message(Resource.NODES)), "span, wrap");
         for (int i = 0; i < nodes.size(); i++) {
-            CxResultDataNode node = nodes.get(i);
+            Node node = nodes.get(i);
             String label = String.format(Constants.NODE_FORMAT,
                                          i + 1,
                                          node.getFileName(),
@@ -175,7 +175,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         return label;
     }
 
-    private static void navigate(Project project, CxResultDataNode node) {
+    private static void navigate(Project project, Node node) {
         String fileName = node.getFileName();
         Utils.runAsyncReadAction(() -> {
             VirtualFile file = FilenameIndex.getVirtualFilesByName(FilenameUtils.getName(fileName),

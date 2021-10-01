@@ -9,15 +9,11 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
 
     public BranchSelectionGroup(@NotNull Project project) {
         super(project);
-        addChild("master");
-        addChild("xs");
-        addChild("BIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIGBIG");
-        addChild("NormalLength");
     }
 
     @Override
     protected String defaultValue() {
-        return "master";
+        return "main";
     }
 
     @Override
@@ -28,15 +24,5 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
     @Override
     protected Resource getPrefixResource() {
         return Resource.BRANCH_SELECT_PREFIX;
-    }
-
-    @Override
-    public boolean displayTextInToolbar() {
-        return true;
-    }
-
-    @Override
-    public boolean hideIfNoVisibleChildren() {
-        return false;
     }
 }

@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.standard.commands;
 
+import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
@@ -40,10 +41,7 @@ public class TestAuthentication extends BaseTest {
      */
     @Test
     public void testSuccessfulConnection() {
-        int validationResult = Assertions.assertDoesNotThrow(() -> Authentication.validateConnection(state,
-                                                                                                     sensitiveState)
-                                                                                 .getExitCode());
-        Assertions.assertEquals(0, validationResult, "validation should be successful");
+        Assertions.assertDoesNotThrow(() -> Authentication.validateConnection(state, sensitiveState));
     }
 
     /**
@@ -52,10 +50,7 @@ public class TestAuthentication extends BaseTest {
     @Test
     public void testFailServerURL() {
         state.setServerURL("https://wronghost.com");
-        int validationResult = Assertions.assertDoesNotThrow(() -> Authentication.validateConnection(state,
-                                                                                                     sensitiveState)
-                                                                                 .getExitCode());
-        Assertions.assertEquals(1, validationResult, "validation should fail with wrong server");
+        Assertions.assertThrows(CxException.class, () -> Authentication.validateConnection(state, sensitiveState));
     }
 
     /**
@@ -64,10 +59,7 @@ public class TestAuthentication extends BaseTest {
     @Test
     public void testFailTenant() {
         state.setTenantName("wrong_tenant");
-        int validationResult = Assertions.assertDoesNotThrow(() -> Authentication.validateConnection(state,
-                                                                                                     sensitiveState)
-                                                                                 .getExitCode());
-        Assertions.assertEquals(1, validationResult, "validation should fail with wrong tenant");
+        Assertions.assertThrows(CxException.class, () -> Authentication.validateConnection(state, sensitiveState));
     }
 
     /**
@@ -76,9 +68,6 @@ public class TestAuthentication extends BaseTest {
     @Test
     public void testFailAPIKey() {
         sensitiveState.setApiKey("invalid_key");
-        int validationResult = Assertions.assertDoesNotThrow(() -> Authentication.validateConnection(state,
-                                                                                                     sensitiveState)
-                                                                                 .getExitCode());
-        Assertions.assertEquals(1, validationResult, "validation should fail with wrong api key");
+        Assertions.assertThrows(CxException.class, () -> Authentication.validateConnection(state, sensitiveState));
     }
 }

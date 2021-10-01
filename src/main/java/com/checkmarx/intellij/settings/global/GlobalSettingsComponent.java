@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.settings.global;
 
-import com.checkmarx.ast.results.CxValidateOutput;
+import com.checkmarx.ast.wrapper.CxConfig;
+import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
@@ -21,6 +22,8 @@ import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -138,18 +141,16 @@ public class GlobalSettingsComponent implements SettingsComponent {
             setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
             CompletableFuture.runAsync(() -> {
                 try {
-                    CxValidateOutput validateOutput = Authentication.validateConnection(getStateFromFields(),
-                                                                                        getSensitiveStateFromFields());
-                    if (validateOutput.getExitCode() == 0) {
-                        setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
-                        LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
-                    } else {
-                        setValidationResult(validateOutput.getMessage(), JBColor.RED);
-                        LOGGER.warn(Bundle.message(Resource.VALIDATE_FAIL, validateOutput.getMessage()));
-                    }
-                } catch (Exception e) {
+                    Authentication.validateConnection(getStateFromFields(),
+                                                      getSensitiveStateFromFields());
+                    setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
+                    LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
+                } catch (IOException | URISyntaxException | InterruptedException e) {
                     setValidationResult(Bundle.message(Resource.VALIDATE_ERROR), JBColor.RED);
                     LOGGER.error(Bundle.message(Resource.VALIDATE_ERROR), e);
+                } catch (CxException | CxConfig.InvalidCLIConfigException e) {
+                    setValidationResult(e.getMessage(), JBColor.RED);
+                    LOGGER.warn(Bundle.message(Resource.VALIDATE_FAIL, e.getMessage()));
                 } finally {
                     validateButton.setEnabled(true);
                 }

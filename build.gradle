@@ -11,6 +11,7 @@ def remoteRobotVersion = '0.11.6'
 def jUnitVersion = '5.7.2'
 
 repositories {
+    mavenLocal()
     mavenCentral()
 
     maven {
@@ -36,7 +37,7 @@ dependencies {
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
     implementation 'com.miglayout:miglayout-swing:11.0'
 
-    implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.14'
+    implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.15'
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/

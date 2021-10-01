@@ -9,6 +9,7 @@ public class RootGroup extends DefaultActionGroup implements DumbAware, CxToolWi
 
     public RootGroup(Project project) {
         super();
-        addAll(new ProjectSelectionGroup(project), new BranchSelectionGroup(project), new ScanSelectionGroup(project));
+        ScanSelectionGroup scanSelectionGroup = new ScanSelectionGroup(project);
+        addAll(new ProjectSelectionGroup(project, scanSelectionGroup), new BranchSelectionGroup(project), scanSelectionGroup);
     }
 }

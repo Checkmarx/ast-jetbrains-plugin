@@ -10,11 +10,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
-public class SelectionAction extends AnAction implements CxToolWindowAction {
+public class BaseSelectionAction extends AnAction implements CxToolWindowAction {
 
     private final String property;
 
-    public SelectionAction(String name, String property) {
+    public BaseSelectionAction(String name, String property) {
         super(name);
         this.property = property;
     }
