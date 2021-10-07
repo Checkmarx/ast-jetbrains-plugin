@@ -23,23 +23,6 @@ public final class Utils {
     }
 
     /**
-     * Check a String for null, emptiness or only whitespace characters.
-     *
-     * @param str string to check
-     * @return whether the string is null, empty or only has whitespace characters
-     */
-    public static boolean isEmptyOrBlank(String str) {
-        return StringUtils.isEmpty(str) || StringUtils.isBlank(str);
-    }
-
-    /**
-     * Inverse of {@link Utils#isEmptyOrBlank(String)}.
-     */
-    public static boolean isNotEmptyOrBlank(String str) {
-        return !isEmptyOrBlank(str);
-    }
-
-    /**
      * Compare two {@link InputStream} by their md5 digest.
      *
      * @param a InputStream a

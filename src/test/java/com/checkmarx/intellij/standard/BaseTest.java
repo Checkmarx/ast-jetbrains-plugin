@@ -4,6 +4,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -16,7 +17,7 @@ public abstract class BaseTest extends BasePlatformTestCase {
         GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
 
         state.setServerURL(System.getenv("CX_BASE_URI"));
-        if (Utils.isNotEmptyOrBlank(System.getenv("CX_TENANT"))) {
+        if (StringUtils.isNotBlank(System.getenv("CX_TENANT"))) {
             state.setTenantName(System.getenv("CX_TENANT"));
         }
         sensitiveState.setApiKey(System.getenv("CX_APIKEY"));

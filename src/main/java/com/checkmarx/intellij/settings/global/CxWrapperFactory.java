@@ -3,11 +3,14 @@ package com.checkmarx.intellij.settings.global;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.Execution;
-import com.checkmarx.intellij.Utils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 
+/**
+ * Builds wrapper objects according to the current configuration.
+ */
 public class CxWrapperFactory {
 
     public static CxWrapper build() throws IOException, URISyntaxException, CxConfig.InvalidCLIConfigException {
@@ -23,7 +26,7 @@ public class CxWrapperFactory {
             builder.baseAuthUri(state.getAuthURL());
         }
 
-        if (Utils.isNotEmptyOrBlank(state.getTenantName())) {
+        if (StringUtils.isNotBlank(state.getTenantName())) {
             builder.tenant(state.getTenantName());
         }
 

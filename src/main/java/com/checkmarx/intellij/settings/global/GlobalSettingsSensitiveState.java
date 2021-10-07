@@ -14,6 +14,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -46,7 +47,7 @@ public class GlobalSettingsSensitiveState {
      * @throws ConfigurationException if field validation fails
      */
     public void apply(@NotNull GlobalSettingsSensitiveState state) throws ConfigurationException {
-        if (Utils.isEmptyOrBlank(state.getApiKey())) {
+        if (StringUtils.isBlank(state.getApiKey())) {
             throw new ConfigurationException(Bundle.missingFieldMessage(Resource.API_KEY));
         }
         XmlSerializerUtil.copyBean(state, this);

@@ -105,14 +105,22 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         treePanel.setContent(treeDetailsSplitter);
         setContent(treePanel);
         setToolbar(getActionToolbar(project, Constants.ACTION_GROUP_ID, false).getComponent());
-
-        // when starting get the latest scan id
-        triggerDrawResultsTree("");
     }
 
     @Override
     public void dispose() {
 
+    }
+
+    /**
+     * Trigger drawing the results by a selection
+     *
+     * @param scanId selected scan id
+     */
+    public void selectScan(String scanId) {
+        if (Utils.validThread()) {
+            triggerDrawResultsTree(scanId);
+        }
     }
 
     /**

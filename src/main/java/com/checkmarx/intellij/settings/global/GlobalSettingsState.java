@@ -13,6 +13,7 @@ import com.intellij.util.xmlb.XmlSerializerUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -54,13 +55,13 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     }
 
     public void apply(@NotNull GlobalSettingsState state) throws ConfigurationException {
-        if (Utils.isEmptyOrBlank(state.getServerURL())) {
+        if (StringUtils.isBlank(state.getServerURL())) {
             throw new ConfigurationException(Bundle.missingFieldMessage(Resource.SERVER_URL));
         }
-        if (state.isUseAuthURL() && Utils.isEmptyOrBlank(state.getAuthURL())) {
+        if (state.isUseAuthURL() && StringUtils.isBlank(state.getAuthURL())) {
             throw new ConfigurationException(Bundle.missingFieldMessage(Resource.AUTH_URL));
         }
-        if (Utils.isEmptyOrBlank(state.getTenantName())) {
+        if (StringUtils.isBlank(state.getTenantName())) {
             throw new ConfigurationException(Bundle.missingFieldMessage(Resource.TENANT_NAME));
         }
         loadState(state);

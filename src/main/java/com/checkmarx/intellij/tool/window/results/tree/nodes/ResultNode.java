@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.tool.window.results.tree.nodes;
 
 import com.checkmarx.ast.results.result.Node;
+import com.checkmarx.ast.results.result.PackageData;
 import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
@@ -51,7 +52,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     private final Project project;
 
     private final List<Node> nodes;
-    private final List<String> packageData;
+    private final List<PackageData> packageData;
 
     /**
      * Set node title and store the associated result
@@ -59,12 +60,12 @@ public class ResultNode extends DefaultMutableTreeNode {
      * @param result  result for this node
      * @param project context project
      */
-    public ResultNode(Result result, Project project) {
+    public ResultNode(@NotNull Result result, @NotNull Project project) {
         super();
         this.result = result;
         this.project = project;
         this.nodes = Optional.ofNullable(this.result.getData().getNodes()).orElse(Collections.emptyList());
-        this.packageData = Collections.singletonList("Issue");
+        this.packageData = Optional.ofNullable(this.result.getData().getPackageData()).orElse(Collections.emptyList());
 
         String labelBuilder = (result.getData().getQueryName() != null
                                ? result.getData().getQueryName()
@@ -83,6 +84,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         setUserObject(this.label);
     }
 
+    @NotNull
     public Icon getIcon() {
         switch (getResult().getSeverity()) {
             case "INFO":
@@ -101,6 +103,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     /**
      * @return panel with result details
      */
+    @NotNull
     public JPanel buildResultPanel() {
         JPanel details = buildDetailsPanel(result);
         JPanel secondPanel = JBUI.Panels.simplePanel();
@@ -119,11 +122,10 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     @NotNull
-    private static JPanel buildDetailsPanel(Result result) {
+    private JPanel buildDetailsPanel(@NotNull Result result) {
         JPanel details = new JPanel(new MigLayout("fillx"));
 
         details.add(boldLabel(Bundle.message(Resource.SUMMARY)), "span, wrap");
-
         String detailsSummary = String.format(Constants.SUMMARY_FORMAT,
                                               result.getType(),
                                               result.getSeverity(),
@@ -142,7 +144,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     @NotNull
-    private static JPanel buildAttackVectorPanel(Project project, List<Node> nodes) {
+    private static JPanel buildAttackVectorPanel(@NotNull Project project, @NotNull List<Node> nodes) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         panel.add(boldLabel(Bundle.message(Resource.NODES)), "span, wrap");
         for (int i = 0; i < nodes.size(); i++) {
@@ -157,16 +159,18 @@ public class ResultNode extends DefaultMutableTreeNode {
         return panel;
     }
 
-    private static JPanel buildPackageDataPanel(List<String> packageData) {
+    @NotNull
+    private static JPanel buildPackageDataPanel(@NotNull List<PackageData> packageData) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         panel.add(boldLabel(Bundle.message(Resource.PACKAGE_DATA)), "span, wrap");
-        for (String pkg : packageData) {
-            panel.add(new JBLabel(String.format("[%s]: ", pkg)), "split 2, span");
-            panel.add(CxLinkLabel.buildDocLinkLabel("https://checkmarx.com", "https://checkmarx.com"), "growx, wrap");
+        for (PackageData pkg : packageData) {
+            panel.add(new JBLabel(pkg.getType()), "split 2, span, wrap");
+            panel.add(CxLinkLabel.buildDocLinkLabel(pkg.getUrl(), pkg.getUrl()), "growx, wrap");
         }
         return panel;
     }
 
+    @NotNull
     private static JBLabel boldLabel(@NotNull String text) {
         JBLabel label = new JBLabel(text);
         Font font = label.getFont();
@@ -175,7 +179,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         return label;
     }
 
-    private static void navigate(Project project, Node node) {
+    private static void navigate(@NotNull Project project, @NotNull Node node) {
         String fileName = node.getFileName();
         Utils.runAsyncReadAction(() -> {
             VirtualFile file = FilenameIndex.getVirtualFilesByName(FilenameUtils.getName(fileName),
