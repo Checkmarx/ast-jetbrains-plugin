@@ -96,6 +96,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 drawMainPanel();
             } else {
                 drawAuthPanel();
+                projectResultsService.indexResults(project, Results.emptyResults);
             }
         };
 
