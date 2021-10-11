@@ -3,7 +3,6 @@ package com.checkmarx.intellij;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang.StringUtils;
 
 import java.awt.*;
 import java.io.IOException;

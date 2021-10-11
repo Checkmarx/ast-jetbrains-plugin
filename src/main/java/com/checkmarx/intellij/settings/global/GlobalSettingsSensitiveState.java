@@ -9,7 +9,7 @@ import com.intellij.credentialStore.CredentialAttributesKt;
 import com.intellij.credentialStore.Credentials;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.options.ConfigurationException;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -25,6 +25,8 @@ import org.jetbrains.annotations.NotNull;
 @Setter
 @EqualsAndHashCode
 public class GlobalSettingsSensitiveState {
+
+    private static final Logger LOGGER = Utils.getLogger(GlobalSettingsSensitiveState.class);
 
     public static GlobalSettingsSensitiveState getInstance() {
         return ApplicationManager.getApplication().getService(GlobalSettingsSensitiveState.class);
@@ -44,11 +46,11 @@ public class GlobalSettingsSensitiveState {
      * Apply state and store in {@link PasswordSafe}.
      *
      * @param state state to apply
-     * @throws ConfigurationException if field validation fails
      */
-    public void apply(@NotNull GlobalSettingsSensitiveState state) throws ConfigurationException {
-        if (StringUtils.isBlank(state.getApiKey())) {
-            throw new ConfigurationException(Bundle.missingFieldMessage(Resource.API_KEY));
+    public void apply(@NotNull GlobalSettingsSensitiveState state) {
+        String msg = validate(state);
+        if (msg != null) {
+            LOGGER.warn(msg);
         }
         XmlSerializerUtil.copyBean(state, this);
         store();
@@ -61,10 +63,21 @@ public class GlobalSettingsSensitiveState {
         apiKey = PasswordSafe.getInstance().getPassword(apiKeyAttr);
     }
 
+    public boolean isValid() {
+        return validate(this) == null;
+    }
+
     /**
      * Helper method to store sensitive fields in the {@link com.intellij.ide.passwordSafe.PasswordSafe}.
      */
     private void store() {
         PasswordSafe.getInstance().set(apiKeyAttr, new Credentials(null, apiKey));
+    }
+
+    private static String validate(@NotNull GlobalSettingsSensitiveState state) {
+        if (StringUtils.isBlank(state.getApiKey())) {
+            return Bundle.missingFieldMessage(Resource.API_KEY);
+        }
+        return null;
     }
 }

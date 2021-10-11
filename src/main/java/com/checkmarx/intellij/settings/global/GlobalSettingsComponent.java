@@ -9,8 +9,9 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.settings.SettingsComponent;
+import com.checkmarx.intellij.settings.SettingsListener;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
@@ -72,9 +73,13 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     @Override
-    public void apply() throws ConfigurationException {
+    public void apply() {
         SETTINGS_STATE.apply(getStateFromFields());
         SENSITIVE_SETTINGS_STATE.apply(getSensitiveStateFromFields());
+        ApplicationManager.getApplication()
+                          .getMessageBus()
+                          .syncPublisher(SettingsListener.SETTINGS_APPLIED)
+                          .settingsApplied();
     }
 
     @Override
@@ -100,11 +105,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private GlobalSettingsState getStateFromFields() {
         GlobalSettingsState state = new GlobalSettingsState();
 
-        state.setServerURL(serverUrlField.getText());
+        state.setServerURL(serverUrlField.getText().trim());
         state.setUseAuthURL(useAuthUrlCheckbox.isSelected());
-        state.setAuthURL(useAuthUrlCheckbox.isSelected() ? authUrlField.getText() : "");
-        state.setTenantName(tenantField.getText());
-        state.setAdditionalParameters(additionalParametersField.getText());
+        state.setAuthURL(useAuthUrlCheckbox.isSelected() ? authUrlField.getText().trim() : "");
+        state.setTenantName(tenantField.getText().trim());
+        state.setAdditionalParameters(additionalParametersField.getText().trim());
 
         return state;
     }
@@ -149,7 +154,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     setValidationResult(Bundle.message(Resource.VALIDATE_ERROR), JBColor.RED);
                     LOGGER.error(Bundle.message(Resource.VALIDATE_ERROR), e);
                 } catch (CxException | CxConfig.InvalidCLIConfigException e) {
-                    setValidationResult(e.getMessage(), JBColor.RED);
+                    String msg = e.getMessage().trim();
+                    int lastLineIndex = Math.max(msg.lastIndexOf('\n'), 0);
+                    setValidationResult(msg.substring(lastLineIndex).trim(), JBColor.RED);
                     LOGGER.warn(Bundle.message(Resource.VALIDATE_FAIL, e.getMessage()));
                 } finally {
                     validateButton.setEnabled(true);
@@ -230,5 +237,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
         if (!(mainPanel.getLayout() instanceof MigLayout)) {
             throw new IllegalArgumentException("panel must be using MigLayout");
         }
+    }
+
+    public boolean isValid() {
+        return SETTINGS_STATE.isValid() && SENSITIVE_SETTINGS_STATE.isValid();
     }
 }

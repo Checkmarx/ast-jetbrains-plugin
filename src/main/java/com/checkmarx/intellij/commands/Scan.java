@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Handle scan related operations with the wrapper
@@ -62,5 +63,21 @@ public class Scan {
             CxException {
 
         return CxWrapperFactory.build().scanList(String.format("project-id=%s,limit=10000", projectId));
+    }
+
+    /**
+     * Get scan info by scan id
+     *
+     * @param scanId scan id
+     * @return scan object
+     */
+    public static com.checkmarx.ast.scan.Scan scanShow(String scanId)
+            throws
+            IOException,
+            URISyntaxException,
+            InterruptedException,
+            CxConfig.InvalidCLIConfigException,
+            CxException {
+        return CxWrapperFactory.build().scanShow(UUID.fromString(scanId));
     }
 }

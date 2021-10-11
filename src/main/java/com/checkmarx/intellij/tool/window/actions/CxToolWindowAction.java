@@ -12,6 +12,8 @@ import com.intellij.ui.content.ContentManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
+
 /**
  * Marks actions as Cx actions, allowing them to retrieve the Cx tool window in order to trigger effects on the UI
  */
@@ -50,5 +52,14 @@ public interface CxToolWindowAction extends DumbAware {
             return null;
         }
         return (CxToolWindowPanel) content.getComponent();
+    }
+
+    /**
+     * Refresh the panel to reflect changes.
+     *
+     * @param project Project to get the panel from
+     */
+    default void refreshPanel(@NotNull Project project) {
+        Optional.ofNullable(getCxToolWindowPanel(project)).ifPresent(CxToolWindowPanel::refreshPanel);
     }
 }

@@ -12,6 +12,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -49,15 +50,14 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
     }
 
     @Override
-    @NotNull
-    protected String getTitle() {
-        if (getChildrenCount() == 0) {
-            return Bundle.message(Resource.SCAN_SELECT_PREFIX) + ": ...";
-        }
-        String storedScan = propertiesComponent.getValue(Constants.SELECTED_SCAN_PROPERTY);
-        return Bundle.message(Resource.SCAN_SELECT_PREFIX) + ": " + (StringUtils.isBlank(storedScan)
-                                                                     ? Bundle.message(Resource.NONE_SELECTED)
-                                                                     : storedScan);
+    protected void clear() {
+        propertiesComponent.setValue(Constants.SELECTED_SCAN_PROPERTY, null);
+        removeAll();
+    }
+
+    @Override
+    void override(com.checkmarx.ast.scan.Scan scan) {
+        propertiesComponent.setValue(Constants.SELECTED_SCAN_PROPERTY, formatScan(scan));
     }
 
     /**
@@ -65,7 +65,8 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
      *
      * @param projectId selected project
      */
-    public void refresh(String projectId) {
+    void refresh(String projectId) {
+        setEnabled(false);
         removeAll();
         CompletableFuture.supplyAsync((Supplier<List<com.checkmarx.ast.scan.Scan>>) () -> {
             try {
@@ -77,21 +78,28 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
                 return Collections.emptyList();
             }
         }).thenAccept((List<com.checkmarx.ast.scan.Scan> scans) -> {
-            if (CollectionUtils.isNotEmpty(scans)) {
-                ApplicationManager.getApplication().invokeLater(() -> {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                if (CollectionUtils.isNotEmpty(scans)) {
                     for (com.checkmarx.ast.scan.Scan scan : scans) {
-                        String scanId = scan.getID();
-                        final String formatted = formatScan(scan);
-                        add(new AnAction(formatted) {
-                            @Override
-                            public void actionPerformed(@NotNull AnActionEvent e) {
-                                select(scanId, formatted);
-                            }
-                        });
+                        add(new Action(scan.getID(), formatScan(scan)));
                     }
-                });
-            }
+                }
+                setEnabled(true);
+                refreshPanel(project);
+            });
         });
+    }
+
+    @Override
+    @NotNull
+    protected String getTitle() {
+        if (getChildrenCount() == 0) {
+            return Bundle.message(Resource.SCAN_SELECT_PREFIX) + ": " + (isEnabled() ? NONE_SELECTED : "...");
+        }
+        String storedScan = propertiesComponent.getValue(Constants.SELECTED_SCAN_PROPERTY);
+        return Bundle.message(Resource.SCAN_SELECT_PREFIX) + ": " + (StringUtils.isBlank(storedScan)
+                                                                     ? NONE_SELECTED
+                                                                     : storedScan);
     }
 
     /**
@@ -105,10 +113,8 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
     private void select(String scanId, String formattedScan) {
         propertiesComponent.setValue(Constants.SELECTED_SCAN_PROPERTY, formattedScan);
         Optional<CxToolWindowPanel> toolWindowPanel = Optional.ofNullable(getCxToolWindowPanel(project));
-        toolWindowPanel.ifPresent(cxToolWindowPanel -> {
-            cxToolWindowPanel.selectScan(scanId);
-            cxToolWindowPanel.refreshPanel();
-        });
+        toolWindowPanel.ifPresent(cxToolWindowPanel -> cxToolWindowPanel.selectScan(scanId));
+        refreshPanel(project);
     }
 
     /**
@@ -134,5 +140,25 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
     private String unFormatScan(@NotNull String formattedScan) {
         String[] split = formattedScan.split(" ");
         return split[split.length - 1];
+    }
+
+    /**
+     * Action performed when a scan is selected
+     */
+    private class Action extends AnAction implements DumbAware {
+
+        private final String name;
+        private final String scanId;
+
+        public Action(String scanId, String name) {
+            super(name);
+            this.name = name;
+            this.scanId = scanId;
+        }
+
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            select(scanId, name);
+        }
     }
 }

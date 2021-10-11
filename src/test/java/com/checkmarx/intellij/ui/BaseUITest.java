@@ -63,10 +63,6 @@ public abstract class BaseUITest {
         }
     }
 
-    @BeforeAll
-    public static void checkoutProject() {
-    }
-
     protected static ComponentFixture find(@Language("XPath") String xpath) {
         return find(ComponentFixture.class, xpath);
     }

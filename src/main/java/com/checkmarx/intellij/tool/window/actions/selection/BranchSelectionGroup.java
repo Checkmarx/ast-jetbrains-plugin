@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.tool.window.actions.selection;
 
+import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.intellij.openapi.project.Project;
@@ -15,6 +16,16 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
     protected @NotNull String getTitle() {
         return Bundle.message(Resource.BRANCH_SELECT_PREFIX)
                + ": "
-               + Bundle.message(Resource.NONE_SELECTED);
+               + NONE_SELECTED;
+    }
+
+    @Override
+    protected void clear() {
+
+    }
+
+    @Override
+    void override(Scan scan) {
+
     }
 }
