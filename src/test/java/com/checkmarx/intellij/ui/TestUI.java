@@ -30,7 +30,7 @@ public class TestUI extends BaseUITest {
     private void applySettings() {
         step("Apply settings", () -> {
             openCxToolWindow();
-            waitAndClick(SETTINGS_ACTION);
+            openSettings();
             setFields();
             find(JCheckboxFixture.class,
                  String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
@@ -42,6 +42,14 @@ public class TestUI extends BaseUITest {
             find(ComponentFixture.class, "//div[@accessiblename.key='VALIDATE_SUCCESS']", waitDuration);
             find("//div[@text.key='button.ok']").click();
         });
+    }
+
+    private void openSettings() {
+        if (hasAnyComponent(SETTINGS_ACTION)) {
+            find(SETTINGS_ACTION).click();
+        } else if (hasAnyComponent(SETTINGS_BUTTON)) {
+            find(SETTINGS_BUTTON).click();
+        }
     }
 
     private void getResults() {
@@ -117,7 +125,7 @@ public class TestUI extends BaseUITest {
     public void testInvalidAuth() {
         step("Test invalid settings", () -> {
             openCxToolWindow();
-            waitAndClick(SETTINGS_ACTION);
+            openSettings();
             // set the fields
             setFields();
             find(JCheckboxFixture.class,

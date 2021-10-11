@@ -22,6 +22,8 @@ public abstract class BaseUITest {
     @Language("XPath")
     protected static final String SETTINGS_ACTION = "//div[@myaction.key='SETTINGS_ACTION']";
     @Language("XPath")
+    protected static final String SETTINGS_BUTTON = "//div[@text.key='OPEN_SETTINGS_BUTTON']";
+    @Language("XPath")
     protected static final String EXPAND_ACTION = "//div[@myaction.key='EXPAND_ALL_ACTION']";
     @Language("XPath")
     protected static final String COLLAPSE_ACTION = "//div[@myaction.key='COLLAPSE_ALL_ACTION']";
@@ -109,9 +111,9 @@ public abstract class BaseUITest {
     }
 
     protected static void openCxToolWindow() {
-        if (!hasAnyComponent(SETTINGS_ACTION)) {
-            find("//div[@text='Checkmarx']").click();
-            RepeatUtilsKt.waitFor(waitDuration, () -> hasAnyComponent(SETTINGS_ACTION));
-        }
+        RepeatUtilsKt.waitFor(waitDuration, () -> {
+            find("//div[@text='Checkmarx' and @class='StripeButton']").click();
+            return hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON);
+        });
     }
 }
