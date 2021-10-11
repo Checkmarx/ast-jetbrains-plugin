@@ -74,6 +74,12 @@ public class TestUI extends BaseUITest {
 
     private void checkResultsPanel() {
         step("Test tree and code link", () -> {
+            // check project selection for the project name
+            RepeatUtilsKt.waitFor(waitDuration,
+                                  () -> hasAnyComponent(String.format(
+                                          "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
+                                          Environment.SCAN_ID,
+                                          Environment.SCAN_ID)));
             // navigate the tree for a result
             JTreeFixture tree = find(JTreeFixture.class, TREE);
             RepeatUtilsKt.waitFor(waitDuration, () -> {
@@ -166,7 +172,6 @@ public class TestUI extends BaseUITest {
                                                     .contains(Bundle.message(
                                                             Resource.INVALID_SCAN_ID));
                                   });
-
         });
     }
 
