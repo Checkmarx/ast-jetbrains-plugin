@@ -28,7 +28,7 @@ public class TestResults extends BaseTest {
         Assertions.assertNotEquals(results.getMessage(), Bundle.message(Resource.LATEST_SCAN_ERROR), errorMsg);
         Assertions.assertNotEquals(results.getMessage(), Bundle.message(Resource.GETTING_RESULTS_ERROR), errorMsg);
         Assertions.assertTrue(Objects.equals(results.getMessage(), Bundle.message(Resource.NO_RESULTS, latestScan))
-                              || results.getResultOutput() != Results.emptyResults);
+                              || results.getResultOutput() != Results.emptyResults, results.getMessage());
         Assertions.assertEquals("", results.getScanIdFieldValue());
         Assertions.assertDoesNotThrow(() -> UUID.fromString(results.getScanId()));
     }
