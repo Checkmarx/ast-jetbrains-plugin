@@ -77,6 +77,11 @@ public class TestUI extends BaseUITest {
             // check project selection for the project name
             RepeatUtilsKt.waitFor(waitDuration,
                                   () -> hasAnyComponent(String.format(
+                                          "//div[@class='ActionButtonWithText' and @visible_text='Project: %s']",
+                                          Environment.PROJECT_NAME)));
+            // check project selection for the scan id
+            RepeatUtilsKt.waitFor(waitDuration,
+                                  () -> hasAnyComponent(String.format(
                                           "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
                                           Environment.SCAN_ID,
                                           Environment.SCAN_ID)));
@@ -155,24 +160,66 @@ public class TestUI extends BaseUITest {
     public void testInvalidScanId() {
         step("test invalid scan id", () -> {
             openCxToolWindow();
+            applySettings();
+            setInvalidScanId();
+        });
+    }
+
+    @Test
+    public void testSelection() {
+        step("test project selection", () -> {
+            openCxToolWindow();
+            applySettings();
+            setInvalidScanId();
             RepeatUtilsKt.waitFor(waitDuration, () -> {
-                find(JTextFieldFixture.class, SCAN_FIELD).click();
-                return find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus();
+                ActionButtonFixture projectSelection = find(ActionButtonFixture.class,
+                                                            "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Project: ')]");
+                return projectSelection.isEnabled();
             });
-            find(JTextFieldFixture.class, SCAN_FIELD).setText("inva-lid");
             RepeatUtilsKt.waitFor(waitDuration,
                                   () -> {
-                                      new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
+                                      find(ActionButtonFixture.class,
+                                           "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Project: ')]").click();
+                                      return find(JListFixture.class,
+                                                  "//div[@class='MyList']").findAllText().size() > 0;
+                                  });
+            new Keyboard(remoteRobot).enterText(Environment.PROJECT_NAME);
+            new Keyboard(remoteRobot).enter();
+            RepeatUtilsKt.waitFor(waitDuration, () -> {
+                ActionButtonFixture scanSelection = find(ActionButtonFixture.class,
+                                                         "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]");
+                return scanSelection.isEnabled();
+            });
+            find(ActionButtonFixture.class,
+                 "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]").click();
+            new Keyboard(remoteRobot).enterText(Environment.SCAN_ID);
+            new Keyboard(remoteRobot).enter();
+            RepeatUtilsKt.waitFor(waitDuration,
+                                  () -> {
                                       ComponentFixture tree = find(TREE);
-                                      return tree.getData().getAll().size() == 1
-                                             && tree.getData()
-                                                    .getAll()
-                                                    .get(0)
-                                                    .getText()
-                                                    .contains(Bundle.message(
-                                                            Resource.INVALID_SCAN_ID));
+                                      return checkTreeState(tree);
                                   });
         });
+    }
+
+    private void setInvalidScanId() {
+        RepeatUtilsKt.waitFor(waitDuration, () -> {
+            find(JTextFieldFixture.class, SCAN_FIELD).click();
+            return find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus();
+        });
+        find(JTextFieldFixture.class, SCAN_FIELD).setText("inva-lid");
+        RepeatUtilsKt.waitFor(waitDuration,
+                              () -> {
+                                  new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
+                                  ComponentFixture tree = find(TREE);
+                                  return tree.getData().getAll().size() == 1
+                                         && tree.getData()
+                                                .getAll()
+                                                .get(0)
+                                                .getText()
+                                                .contains(Bundle.message(
+                                                        Resource.INVALID_SCAN_ID));
+                              });
     }
 
     private void navigate(JTreeFixture tree, String text, int expectedSize) {

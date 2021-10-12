@@ -11,17 +11,7 @@ def remoteRobotVersion = '0.11.6'
 def jUnitVersion = '5.7.2'
 
 repositories {
-    mavenLocal()
     mavenCentral()
-
-    maven {
-        name 'github'
-        url 'https://maven.pkg.github.com/CheckmarxDev/ast-cli-java-wrapper'
-        credentials {
-            username System.getenv('GITHUB_ACTOR')
-            password System.getenv('GITHUB_TOKEN')
-        }
-    }
 
     maven {
         url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
