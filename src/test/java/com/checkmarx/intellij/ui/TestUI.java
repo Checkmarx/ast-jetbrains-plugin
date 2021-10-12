@@ -190,8 +190,13 @@ public class TestUI extends BaseUITest {
                                                          "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]");
                 return scanSelection.isEnabled();
             });
-            find(ActionButtonFixture.class,
-                 "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]").click();
+            RepeatUtilsKt.waitFor(waitDuration,
+                                  () -> {
+                                      find(ActionButtonFixture.class,
+                                           "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]").click();
+                                      return find(JListFixture.class,
+                                                  "//div[@class='MyList']").findAllText().size() > 0;
+                                  });
             new Keyboard(remoteRobot).enterText(Environment.SCAN_ID);
             new Keyboard(remoteRobot).enter();
             RepeatUtilsKt.waitFor(waitDuration,
