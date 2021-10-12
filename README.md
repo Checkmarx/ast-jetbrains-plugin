@@ -72,7 +72,7 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 ### Setting Up
 
 
-All the procedures to set the teamcity plugin up can be found [here](https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6058442786/Installing+the+CxAST+JetBrains+Plugin).
+All the procedures to set the jetbrains plugin up can be found [here](https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6058442786/Installing+the+CxAST+JetBrains+Plugin).
 
 
 
