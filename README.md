@@ -83,7 +83,7 @@ To see how you can use our tool, please refer to the [Documentation](https://che
 
 ## Contribution
 
-We appreciate feedback and contribution to the CLI! Before you get started, please see the following:
+We appreciate feedback and contribution to the JETBRAINS PLUGIN! Before you get started, please see the following:
 
 - [Checkmarx contribution guidelines](docs/contributing.md)
 - [Checkmarx Code of Conduct](docs/code_of_conduct.md)
