@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.awt.event.KeyEvent;
+import java.util.List;
 
 import static com.intellij.remoterobot.stepsProcessing.StepWorkerKt.step;
 
@@ -207,7 +208,11 @@ public class TestUI extends BaseUITest {
         RepeatUtilsKt.waitFor(waitDuration,
                               () -> {
                                   new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-                                  ComponentFixture tree = find(TREE);
+                                  List<ComponentFixture> trees = findAll(TREE);
+                                  if (trees.size() != 1) {
+                                      return false;
+                                  }
+                                  ComponentFixture tree = trees.get(0);
                                   return tree.getData().getAll().size() == 1
                                          && tree.getData()
                                                 .getAll()
