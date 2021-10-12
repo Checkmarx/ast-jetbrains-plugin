@@ -62,8 +62,7 @@ public class TestUI extends BaseUITest {
             RepeatUtilsKt.waitFor(waitDuration,
                                   () -> {
                                       new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-                                      ComponentFixture tree = find(TREE);
-                                      return checkTreeState(tree);
+                                      return findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0));
                                   });
             find(COLLAPSE_ACTION).click();
             RepeatUtilsKt.waitFor(waitDuration,
