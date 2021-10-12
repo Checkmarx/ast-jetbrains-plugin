@@ -28,6 +28,78 @@ public class TestUI extends BaseUITest {
         checkResultsPanel();
     }
 
+    @Test
+    public void testInvalidAuth() {
+        step("Test invalid settings", () -> {
+            openCxToolWindow();
+            openSettings();
+            // set the fields
+            setFields();
+            find(JCheckboxFixture.class,
+                 String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
+                 waitDuration).setValue(true);
+            setField(Constants.FIELD_NAME_AUTH_URL, "wrongauth");
+
+            // click the validation button
+            find(JButtonFixture.class, VALIDATE_BUTTON).click();
+            // check for validation fail
+            RepeatUtilsKt.waitFor(waitDuration,
+                                  () -> !hasAnyComponent("//div[@accessiblename.key='VALIDATE_IN_PROGRESS']"));
+            Assertions.assertThrows(WaitForConditionTimeoutException.class,
+                                    () -> find(ComponentFixture.class,
+                                               "//div[@accessiblename.key='VALIDATE_SUCCESS']"));
+            find("//div[@text.key='button.cancel']").click();
+        });
+    }
+
+    @Test
+    public void testInvalidScanId() {
+        step("test invalid scan id", () -> {
+            openCxToolWindow();
+            applySettings();
+            setInvalidScanId();
+        });
+    }
+
+    @Test
+    public void testSelection() {
+        step("test project selection", () -> {
+            openCxToolWindow();
+            applySettings();
+            setInvalidScanId();
+            RepeatUtilsKt.waitFor(waitDuration, () -> {
+                ActionButtonFixture projectSelection = find(ActionButtonFixture.class,
+                                                            "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Project: ')]");
+                return projectSelection.isEnabled();
+            });
+            RepeatUtilsKt.waitFor(waitDuration,
+                                  () -> {
+                                      find(ActionButtonFixture.class,
+                                           "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Project: ')]").click();
+                                      return find(JListFixture.class,
+                                                  "//div[@class='MyList']").findAllText().size() > 0;
+                                  });
+            new Keyboard(remoteRobot).enterText(Environment.PROJECT_NAME);
+            new Keyboard(remoteRobot).enter();
+            RepeatUtilsKt.waitFor(waitDuration, () -> {
+                ActionButtonFixture scanSelection = find(ActionButtonFixture.class,
+                                                         "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]");
+                return scanSelection.isEnabled();
+            });
+            RepeatUtilsKt.waitFor(waitDuration,
+                                  () -> {
+                                      find(ActionButtonFixture.class,
+                                           "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]").click();
+                                      return find(JListFixture.class,
+                                                  "//div[@class='MyList']").findAllText().size() > 0;
+                                  });
+            new Keyboard(remoteRobot).enterText(Environment.SCAN_ID);
+            new Keyboard(remoteRobot).enter();
+            RepeatUtilsKt.waitFor(waitDuration,
+                                  () -> findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0)));
+        });
+    }
+
     private void applySettings() {
         step("Apply settings", () -> {
             openCxToolWindow();
@@ -46,11 +118,14 @@ public class TestUI extends BaseUITest {
     }
 
     private void openSettings() {
-        if (hasAnyComponent(SETTINGS_ACTION)) {
-            find(SETTINGS_ACTION).click();
-        } else if (hasAnyComponent(SETTINGS_BUTTON)) {
-            find(SETTINGS_BUTTON).click();
-        }
+        RepeatUtilsKt.waitFor(waitDuration, () -> {
+            if (hasAnyComponent(SETTINGS_ACTION)) {
+                find(SETTINGS_ACTION).click();
+            } else if (hasAnyComponent(SETTINGS_BUTTON)) {
+                find(SETTINGS_BUTTON).click();
+            }
+            return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_SERVER_URL));
+        });
     }
 
     private void getResults() {
@@ -129,78 +204,6 @@ public class TestUI extends BaseUITest {
                                   String.format("editor: %s | token: %s",
                                                 editorAtCaret.substring(0, token.length()),
                                                 token));
-        });
-    }
-
-    @Test
-    public void testInvalidAuth() {
-        step("Test invalid settings", () -> {
-            openCxToolWindow();
-            openSettings();
-            // set the fields
-            setFields();
-            find(JCheckboxFixture.class,
-                 String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
-                 waitDuration).setValue(true);
-            setField(Constants.FIELD_NAME_AUTH_URL, "wrongauth");
-
-            // click the validation button
-            find(JButtonFixture.class, VALIDATE_BUTTON).click();
-            // check for validation fail
-            RepeatUtilsKt.waitFor(waitDuration,
-                                  () -> !hasAnyComponent("//div[@accessiblename.key='VALIDATE_IN_PROGRESS']"));
-            Assertions.assertThrows(WaitForConditionTimeoutException.class,
-                                    () -> find(ComponentFixture.class,
-                                               "//div[@accessiblename.key='VALIDATE_SUCCESS']"));
-            find("//div[@text.key='button.cancel']").click();
-        });
-    }
-
-    @Test
-    public void testInvalidScanId() {
-        step("test invalid scan id", () -> {
-            openCxToolWindow();
-            applySettings();
-            setInvalidScanId();
-        });
-    }
-
-    @Test
-    public void testSelection() {
-        step("test project selection", () -> {
-            openCxToolWindow();
-            applySettings();
-            setInvalidScanId();
-            RepeatUtilsKt.waitFor(waitDuration, () -> {
-                ActionButtonFixture projectSelection = find(ActionButtonFixture.class,
-                                                            "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Project: ')]");
-                return projectSelection.isEnabled();
-            });
-            RepeatUtilsKt.waitFor(waitDuration,
-                                  () -> {
-                                      find(ActionButtonFixture.class,
-                                           "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Project: ')]").click();
-                                      return find(JListFixture.class,
-                                                  "//div[@class='MyList']").findAllText().size() > 0;
-                                  });
-            new Keyboard(remoteRobot).enterText(Environment.PROJECT_NAME);
-            new Keyboard(remoteRobot).enter();
-            RepeatUtilsKt.waitFor(waitDuration, () -> {
-                ActionButtonFixture scanSelection = find(ActionButtonFixture.class,
-                                                         "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]");
-                return scanSelection.isEnabled();
-            });
-            RepeatUtilsKt.waitFor(waitDuration,
-                                  () -> {
-                                      find(ActionButtonFixture.class,
-                                           "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]").click();
-                                      return find(JListFixture.class,
-                                                  "//div[@class='MyList']").findAllText().size() > 0;
-                                  });
-            new Keyboard(remoteRobot).enterText(Environment.SCAN_ID);
-            new Keyboard(remoteRobot).enter();
-            RepeatUtilsKt.waitFor(waitDuration,
-                                  () -> findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0)));
         });
     }
 
