@@ -194,10 +194,7 @@ public class TestUI extends BaseUITest {
             new Keyboard(remoteRobot).enterText(Environment.SCAN_ID);
             new Keyboard(remoteRobot).enter();
             RepeatUtilsKt.waitFor(waitDuration,
-                                  () -> {
-                                      ComponentFixture tree = find(TREE);
-                                      return checkTreeState(tree);
-                                  });
+                                  () -> findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0)));
         });
     }
 
