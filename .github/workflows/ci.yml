@@ -6,6 +6,7 @@ env:
   CX_TENANT: ${{ secrets.CX_TENANT }}
   CX_TEST_REPO: ${{ secrets.CX_TEST_REPO }}
   CX_TEST_SCAN: ${{ secrets.CX_TEST_SCAN }}
+  CX_TEST_PROJECT: ${{ secrets.CX_TEST_PROJECT }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 concurrency:
   group: ${{ github.head_ref }}
