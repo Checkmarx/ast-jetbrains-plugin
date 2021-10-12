@@ -119,6 +119,7 @@ public class TestUI extends BaseUITest {
 
     private void openSettings() {
         RepeatUtilsKt.waitFor(waitDuration, () -> {
+            find("//div[@text='Checkmarx' and @class='StripeButton']").click();
             if (hasAnyComponent(SETTINGS_ACTION)) {
                 find(SETTINGS_ACTION).click();
             } else if (hasAnyComponent(SETTINGS_BUTTON)) {
