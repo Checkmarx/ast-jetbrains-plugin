@@ -16,7 +16,7 @@ jobs:
     needs: [ verify, testIntegration ]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       max-parallel: 1
       matrix:
         include:
