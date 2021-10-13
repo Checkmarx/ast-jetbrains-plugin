@@ -67,7 +67,7 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 
 - You have a CxAST account and can run CxAST scans on your source code.
 
-- You have a CxAST account and you have an OAuth2 Client ID and Client Secret for that account.
+- You have a CxAST account and you have an API Key.
 
 ### Setting Up
 

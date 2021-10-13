@@ -17,6 +17,5 @@ By submitting a PR to this repository, you agree to the terms within the [Checkm
 ### Checklist
 
 - [ ] I have added documentation for new/changed functionality in this PR (if applicable).
-- [ ] I have updated the CLI help for new/changed functionality in this PR (if applicable).
 - [ ] All active GitHub checks for tests, formatting, and security are passing
 - [ ] The correct base branch is being used
