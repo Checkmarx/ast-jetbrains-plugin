@@ -8,6 +8,8 @@ import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
+import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -68,28 +70,24 @@ public class TestUI extends BaseUITest {
             applySettings();
             setInvalidScanId();
             RepeatUtilsKt.waitFor(waitDuration, () -> {
-                ActionButtonFixture projectSelection = find(ActionButtonFixture.class,
-                                                            "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Project: ')]");
+                ActionButtonFixture projectSelection = findProjectSelection();
                 return projectSelection.isEnabled();
             });
             RepeatUtilsKt.waitFor(waitDuration,
                                   () -> {
-                                      find(ActionButtonFixture.class,
-                                           "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Project: ')]").click();
+                                      findProjectSelection().click();
                                       return find(JListFixture.class,
                                                   "//div[@class='MyList']").findAllText().size() > 0;
                                   });
             new Keyboard(remoteRobot).enterText(Environment.PROJECT_NAME);
             new Keyboard(remoteRobot).enter();
             RepeatUtilsKt.waitFor(waitDuration, () -> {
-                ActionButtonFixture scanSelection = find(ActionButtonFixture.class,
-                                                         "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]");
-                return scanSelection.isEnabled();
+                ActionButtonFixture scanSelection = findScanSelection();
+                return scanSelection.isEnabled() && scanSelection.hasText("Scan: none");
             });
             RepeatUtilsKt.waitFor(waitDuration,
                                   () -> {
-                                      find(ActionButtonFixture.class,
-                                           "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]").click();
+                                      findScanSelection().click();
                                       return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
                                              && findAll(JListFixture.class,
                                                         "//div[@class='MyList']").get(0).findAllText().size() > 0;
@@ -99,6 +97,22 @@ public class TestUI extends BaseUITest {
             RepeatUtilsKt.waitFor(waitDuration,
                                   () -> findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0)));
         });
+    }
+
+    @NotNull
+    private ActionButtonFixture findProjectSelection() {
+        return findSelection("Project");
+    }
+
+    @NotNull
+    private ActionButtonFixture findScanSelection() {
+        return findSelection("Scan");
+    }
+
+    @NotNull
+    private ActionButtonFixture findSelection(String s) {
+        return find(ActionButtonFixture.class,
+                    String.format("//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]", s));
     }
 
     private void applySettings() {
