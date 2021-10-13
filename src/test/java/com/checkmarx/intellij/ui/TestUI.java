@@ -90,8 +90,9 @@ public class TestUI extends BaseUITest {
                                   () -> {
                                       find(ActionButtonFixture.class,
                                            "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'Scan: ')]").click();
-                                      return find(JListFixture.class,
-                                                  "//div[@class='MyList']").findAllText().size() > 0;
+                                      return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
+                                             && findAll(JListFixture.class,
+                                                        "//div[@class='MyList']").get(0).findAllText().size() > 0;
                                   });
             new Keyboard(remoteRobot).enterText(Environment.SCAN_ID);
             new Keyboard(remoteRobot).enter();
@@ -138,6 +139,9 @@ public class TestUI extends BaseUITest {
             find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
             RepeatUtilsKt.waitFor(waitDuration,
                                   () -> {
+                                      if (!find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus()) {
+                                          find(JTextFieldFixture.class, SCAN_FIELD).click();
+                                      }
                                       new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
                                       return findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0));
                                   });
