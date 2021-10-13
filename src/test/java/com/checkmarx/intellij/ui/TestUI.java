@@ -194,6 +194,7 @@ public class TestUI extends BaseUITest {
             navigate(tree, "HIGH", 5);
             // open first result for sast -> high
             String selected = tree.collectSelectedPaths().get(0).get(tree.collectSelectedPaths().get(0).size() - 1);
+            Assertions.assertTrue(selected.startsWith("HIGH"));
             int row = -1;
             for (int i = 0; i < tree.collectRows().size(); i++) {
                 if (selected.equals(tree.getValueAtRow(i))) {
@@ -204,6 +205,7 @@ public class TestUI extends BaseUITest {
             }
             // open first node of the opened result
             final int resultRow = row;
+            Assertions.assertTrue(resultRow > 2);
             RepeatUtilsKt.waitFor(waitDuration, () -> {
                 tree.clickRow(resultRow);
                 return findAll(LINK_LABEL).size() > 0;
