@@ -97,10 +97,14 @@ public abstract class BaseUITest {
 
     protected void setField(String fieldName, String value) {
         RepeatUtilsKt.waitFor(waitDuration, () -> {
-            find(JTextFieldFixture.class, String.format(FIELD_NAME, fieldName), waitDuration).click();
-            return find(JTextFieldFixture.class,
-                        String.format(FIELD_NAME, fieldName),
-                        waitDuration).getHasFocus();
+            JTextFieldFixture field = find(JTextFieldFixture.class,
+                                                       String.format(FIELD_NAME, fieldName),
+                                                       waitDuration);
+            if (!field.isShowing()) {
+                return false;
+            }
+            field.click();
+            return field.getHasFocus();
         });
         find(JTextFieldFixture.class, String.format(FIELD_NAME, fieldName), waitDuration).setText(
                 value);
