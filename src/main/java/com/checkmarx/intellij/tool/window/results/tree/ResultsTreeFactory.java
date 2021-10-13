@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.tool.window.results.tree;
 
-import com.checkmarx.ast.results.structure.CxResult;
-import com.checkmarx.ast.results.structure.CxResultOutput;
+import com.checkmarx.ast.results.Results;
+import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
@@ -35,7 +35,7 @@ public class ResultsTreeFactory {
      */
     @NotNull
     public static Tree buildResultsTree(String scanId,
-                                        CxResultOutput results,
+                                        Results results,
                                         Project project,
                                         List<GroupBy> groupByList,
                                         boolean latest) {
@@ -43,7 +43,7 @@ public class ResultsTreeFactory {
         Tree tree = createTree(scanId, latest);
 
         Map<String, NonLeafNode> engineNodes = new HashMap<>();
-        for (CxResult result : results.getResults()) {
+        for (Result result : results.getResults()) {
             addResultToEngine(project,
                               groupByList,
                               engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
@@ -60,7 +60,7 @@ public class ResultsTreeFactory {
     private static void addResultToEngine(Project project,
                                           List<GroupBy> groupByList,
                                           NonLeafNode parent,
-                                          CxResult result) {
+                                          Result result) {
         for (GroupBy groupBy : groupByList) {
             NonLeafNode child = null;
             String childKey = groupBy.getFunction().apply(result);

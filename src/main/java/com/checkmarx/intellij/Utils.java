@@ -3,7 +3,6 @@ package com.checkmarx.intellij;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang.StringUtils;
 
 import java.awt.*;
 import java.io.IOException;
@@ -20,23 +19,6 @@ public final class Utils {
 
     private Utils() {
         // forbid instantiation of the class
-    }
-
-    /**
-     * Check a String for null, emptiness or only whitespace characters.
-     *
-     * @param str string to check
-     * @return whether the string is null, empty or only has whitespace characters
-     */
-    public static boolean isEmptyOrBlank(String str) {
-        return StringUtils.isEmpty(str) || StringUtils.isBlank(str);
-    }
-
-    /**
-     * Inverse of {@link Utils#isEmptyOrBlank(String)}.
-     */
-    public static boolean isNotEmptyOrBlank(String str) {
-        return !isEmptyOrBlank(str);
     }
 
     /**

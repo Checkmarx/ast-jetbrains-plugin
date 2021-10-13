@@ -6,40 +6,15 @@ env:
   CX_TENANT: ${{ secrets.CX_TENANT }}
   CX_TEST_REPO: ${{ secrets.CX_TEST_REPO }}
   CX_TEST_SCAN: ${{ secrets.CX_TEST_SCAN }}
+  CX_TEST_PROJECT: ${{ secrets.CX_TEST_PROJECT }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 concurrency:
   group: ${{ github.head_ref }}
   cancel-in-progress: true
 jobs:
   testUI:
-    needs: [ verify, testIntegration ]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include:
-          - os: ubuntu-latest
-            runIde: |
-              export DISPLAY=:99.0
-              Xvfb -ac :99 -screen 0 1920x1080x16 &
-              ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
-            report-name: test-fails-report-linux
-            report-path: build/reports
-            idea-log: idea-linux.log
-            curl: curl
-          - os: windows-latest
-            runIde: start .\runIdeForUiTests.bat
-            report-name: test-fails-report-windows
-            report-path: build/reports
-            idea-log: idea-windows.log
-            curl: curl.exe
-          - os: macos-latest
-            runIde: ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
-            report-name: test-fails-report-mac
-            report-path: build/reports
-            idea-log: idea-mac.log
-            curl: curl
+    needs: [ testIntegration ]
+    runs-on: ubuntu-latest
     steps:
       # Check out current repository
       - name: Fetch Sources
@@ -55,10 +30,13 @@ jobs:
         run: ./gradlew clean
       # Run IDEA prepared for UI testing
       - name: Run IDE
-        run: ${{ matrix.runIde }}
+        run: |
+          export DISPLAY=:99.0
+          Xvfb -ac :99 -screen 0 1920x1080x16 &
+          ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
       # Wait for IDEA to be started
       - name: Health Check
-        run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
+        run: curl --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
       # Run tests
       - name: Tests
         run: ./gradlew test --info --tests com.checkmarx.intellij.ui*
@@ -67,19 +45,18 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.report-name }}
+          name: test-fails-report
           path: |
-            ${{ matrix.report-path }}
+            build/reports
       # Save idea log if tests fail
       - name: Save idea log
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.idea-log }}
+          name: idea.log
           path: |
             idea.log
   testIntegration:
-    needs: [ verify ]
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
@@ -105,28 +82,6 @@ jobs:
           name: test-fails-report-integration
           path: |
             build/reports
-  verify:
-    runs-on: ubuntu-latest
-    steps:
-      # Check out current repository
-      - name: Checkout Code
-        uses: actions/checkout@v2
-      # Setup Java 11 environment for the next steps
-      - name: Setup Java
-        uses: actions/setup-java@v2
-        with:
-          distribution: zulu
-          java-version: 11
-      # Run verifier
-      - name: Run plugin verifier
-        run: ./gradlew runPluginVerifier
-      # Upload verifier report
-      - name: Upload report
-        uses: actions/upload-artifact@v2
-        if: always()
-        with:
-          name: verifier-report
-          path: build/reports/pluginVerifier
   cx-scan:
     runs-on: ubuntu-latest
     steps:

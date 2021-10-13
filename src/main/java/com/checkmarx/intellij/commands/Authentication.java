@@ -1,7 +1,8 @@
 package com.checkmarx.intellij.commands;
 
-import com.checkmarx.ast.results.CxValidateOutput;
-import com.checkmarx.intellij.settings.global.CxAuthFactory;
+import com.checkmarx.ast.wrapper.CxConfig;
+import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 
@@ -23,10 +24,15 @@ public class Authentication {
      * @throws URISyntaxException   when the URI to the binary is malformed
      * @throws InterruptedException when the call to the CLI is interrupted
      */
-    public static CxValidateOutput validateConnection(GlobalSettingsState state,
-                                                      GlobalSettingsSensitiveState sensitiveState)
-            throws IOException, URISyntaxException, InterruptedException {
+    public static String validateConnection(GlobalSettingsState state,
+                                            GlobalSettingsSensitiveState sensitiveState)
+            throws
+            IOException,
+            URISyntaxException,
+            InterruptedException,
+            CxConfig.InvalidCLIConfigException,
+            CxException {
 
-        return CxAuthFactory.build(state, sensitiveState).cxAuthValidate();
+        return CxWrapperFactory.build(state, sensitiveState).authValidate();
     }
 }

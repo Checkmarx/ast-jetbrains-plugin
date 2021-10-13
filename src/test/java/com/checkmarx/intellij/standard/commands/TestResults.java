@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.standard.commands;
 
 import com.checkmarx.intellij.Bundle;
+import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.commands.results.ResultGetState;
 import com.checkmarx.intellij.commands.results.Results;
@@ -17,14 +18,16 @@ public class TestResults extends BaseTest {
 
     @Test
     public void testGetResults() {
-        CompletableFuture<ResultGetState> getFuture = Results.getResults("");
+        CompletableFuture<ResultGetState> getFuture = Results.getResults(Environment.SCAN_ID);
         ResultGetState results = Assertions.assertDoesNotThrow((ThrowingSupplier<ResultGetState>) getFuture::get);
         String errorMsg = "Message: " + results.getMessage();
         Assertions.assertNotEquals(results.getMessage(), Bundle.message(Resource.LATEST_SCAN_ERROR), errorMsg);
         Assertions.assertNotEquals(results.getMessage(), Bundle.message(Resource.GETTING_RESULTS_ERROR), errorMsg);
-        Assertions.assertTrue(Objects.equals(results.getMessage(), Bundle.message(Resource.NO_RESULTS))
-                              || results.getResultOutput() != Results.emptyResults);
-        Assertions.assertEquals("", results.getScanIdFieldValue());
+        Assertions.assertTrue(Objects.equals(results.getMessage(),
+                                             Bundle.message(Resource.NO_RESULTS, Environment.SCAN_ID))
+                              || results.getResultOutput() != Results.emptyResults, errorMsg);
+        Assertions.assertEquals(Environment.SCAN_ID, results.getScanIdFieldValue());
+        Assertions.assertEquals(Environment.SCAN_ID, results.getScanId());
         Assertions.assertDoesNotThrow(() -> UUID.fromString(results.getScanId()));
     }
 }

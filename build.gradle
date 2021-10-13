@@ -14,15 +14,6 @@ repositories {
     mavenCentral()
 
     maven {
-        name 'github'
-        url 'https://maven.pkg.github.com/CheckmarxDev/ast-cli-java-wrapper'
-        credentials {
-            username System.getenv('GITHUB_ACTOR')
-            password System.getenv('GITHUB_TOKEN')
-        }
-    }
-
-    maven {
         url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
     }
 }
@@ -36,7 +27,7 @@ dependencies {
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
     implementation 'com.miglayout:miglayout-swing:11.0'
 
-    implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.14'
+    implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.15'
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/

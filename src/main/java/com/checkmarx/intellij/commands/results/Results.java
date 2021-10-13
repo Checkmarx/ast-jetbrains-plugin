@@ -1,12 +1,12 @@
 package com.checkmarx.intellij.commands.results;
 
-import com.checkmarx.ast.exceptions.CxException;
-import com.checkmarx.ast.results.structure.CxResultOutput;
-import com.checkmarx.intellij.commands.Scan;
+import com.checkmarx.ast.wrapper.CxConfig;
+import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.settings.global.CxAuthFactory;
+import com.checkmarx.intellij.commands.Scan;
+import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Collections;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -23,7 +24,8 @@ public class Results {
 
     private static final Logger LOGGER = Utils.getLogger(Results.class);
 
-    public static final CxResultOutput emptyResults = new CxResultOutput(0, Collections.emptyList());
+    public static final com.checkmarx.ast.results.Results emptyResults = new com.checkmarx.ast.results.Results(0,
+                                                                                                               Collections.emptyList());
 
     /**
      * Get a {@link CompletableFuture} which, when completed, supplies a {@link ResultGetState}.
@@ -44,10 +46,13 @@ public class Results {
                 try {
                     scanId = Scan.getLatestScanId();
                     newState.setLatest(true);
-                } catch (IOException | URISyntaxException | InterruptedException | CxException e) {
+                } catch (CxException | CxConfig.InvalidCLIConfigException e) {
+                    newState.setMessage(e.getMessage());
+                    LOGGER.warnInProduction(e);
+                    return newState;
+                } catch (Exception e) {
                     newState.setMessage(Bundle.message(Resource.LATEST_SCAN_ERROR));
-                    LOGGER.warn(newState.getMessage(), e);
-                    newState.setScanId(null);
+                    LOGGER.warnInProduction(e);
                     return newState;
                 }
             } else {
@@ -56,11 +61,12 @@ public class Results {
             newState.setScanId(scanId);
             newState.setScanIdFieldValue(scanIdFieldValue);
 
-            CxResultOutput results;
+            com.checkmarx.ast.results.Results results;
             try {
-                results = CxAuthFactory.build().cxGetResults(scanId);
-            } catch (IOException | URISyntaxException | CxException e) {
-                newState.setMessage(Bundle.message(Resource.GETTING_RESULTS_ERROR, scanId + Utils.formatLatest(getLatest)));
+                results = CxWrapperFactory.build().results(UUID.fromString(scanId));
+            } catch (IOException | URISyntaxException | CxException | CxConfig.InvalidCLIConfigException | InterruptedException e) {
+                newState.setMessage(Bundle.message(Resource.GETTING_RESULTS_ERROR,
+                                                   scanId + Utils.formatLatest(getLatest)));
                 LOGGER.warn(newState.getMessage(), e);
                 newState.setScanId(null);
                 newState.setScanIdFieldValue(null);

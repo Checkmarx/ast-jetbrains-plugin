@@ -2,9 +2,6 @@ package com.checkmarx.intellij;
 
 import org.jetbrains.annotations.NonNls;
 
-import java.util.List;
-import java.util.Locale;
-
 /**
  * Non-translatable constants.
  */
@@ -34,23 +31,15 @@ public final class Constants {
     public static final String HELP_HTML = "<html><a href=\"\">%s</a></html>";
     public static final String HELP_HTML_U = "<html><a href=\"\"><u>%s</u></a></html>";
     public static final String NODE_FORMAT = "%d: %s:%d (%s)";
-    public static final String PACKAGE_FORMAT = "[%s]: %s";
     public static final String SUMMARY_FORMAT = "%s | %s | %s | %s";
     public static final String FIELD_FORMAT = "<html>%s%s</html>";
     public static final String REQUIRED_MARK = "<span style=\"color:#ff0000\">*</span>";
 
     public static final String OS_TEMP_DIR = System.getProperty("java.io.tmpdir");
-    public static final String OS_NAME = System.getProperty("os.name").toLowerCase(Locale.ENGLISH);
-    public static final String OS_LINUX = "linux";
-    public static final String OS_WINDOWS = "windows";
-    public static final List<String> OS_MAC = List.of("mac os x", "darwin", "osx");
-    public static final String FILE_NAME_LINUX = "cx-linux";
-    public static final String FILE_NAME_MAC = "cx-mac";
-    public static final String FILE_NAME_WINDOWS = "cx.exe";
 
     public static final String API_KEY_CREDENTIALS_KEY = "APIKey";
 
-    public static final String GLOBAL_SETTINGS_STATE_NAME = "CxGlobalSettings";
+    public static final String GLOBAL_SETTINGS_STATE_NAME = "Checkmarx AST";
     public static final String GLOBAL_SETTINGS_STATE_FILE = "cx_global_settings.xml";
 
     public static final String FIELD_NAME_SERVER_URL = "serverUrl";
@@ -59,4 +48,8 @@ public final class Constants {
     public static final String FIELD_NAME_TENANT = "tenant";
     public static final String FIELD_NAME_API_KEY = "apiKey";
     public static final String FIELD_NAME_ADDITIONAL_PARAMETERS = "additionalParameters";
+
+    public static final String SELECTED_PROJECT_PROPERTY = "Checkmarx.SelectedProject";
+    public static final String SELECTED_BRANCH_PROPERTY = "Checkmarx.SelectedBranch";
+    public static final String SELECTED_SCAN_PROPERTY = "Checkmarx.SelectedScan";
 }

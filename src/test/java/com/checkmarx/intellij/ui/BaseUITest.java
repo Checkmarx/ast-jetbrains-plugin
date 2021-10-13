@@ -15,12 +15,14 @@ import org.junit.jupiter.api.BeforeAll;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.function.Supplier;
 
 public abstract class BaseUITest {
 
-
     @Language("XPath")
     protected static final String SETTINGS_ACTION = "//div[@myaction.key='SETTINGS_ACTION']";
+    @Language("XPath")
+    protected static final String SETTINGS_BUTTON = "//div[@text.key='OPEN_SETTINGS_BUTTON']";
     @Language("XPath")
     protected static final String EXPAND_ACTION = "//div[@myaction.key='EXPAND_ALL_ACTION']";
     @Language("XPath")
@@ -41,30 +43,30 @@ public abstract class BaseUITest {
     protected static final String EDITOR = "//div[@class='EditorComponentImpl']";
 
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
-    protected static final Duration waitDuration = Duration.ofSeconds(1200);
+    protected static final Duration waitDuration = Duration.ofSeconds(300);
     private static boolean initialized = false;
 
     @BeforeAll
     public static void init() {
         if (!initialized) {
+            log("Initializing the tests");
             StepWorker.registerProcessor(new StepLogger());
             if (hasAnyComponent("//div[@class='FlatWelcomeFrame']")) {
                 find("//div[@defaulticon='fromVCSTab.svg']").click();
                 find(JTextFieldFixture.class, "//div[@class='BorderlessTextField']", Duration.ofSeconds(10))
                         .setText(Environment.REPO);
-                RepeatUtilsKt.waitFor(waitDuration, () -> find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
+                waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
                 find(CLONE_BUTTON).click();
                 waitAndClick("//div[@text.key='untrusted.project.dialog.trust.button']");
                 waitAndClick("//div[contains(@text.key, 'button.close')]");
                 waitAndClick("//div[@text.key='got.it.button.name']");
-                RepeatUtilsKt.waitFor(waitDuration, () -> hasAnyComponent("//div[@class='ContentTabLabel']"));
+                waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
             }
             initialized = true;
+            log("Initialization finished");
+        } else {
+            log("Tests already initialized, skipping");
         }
-    }
-
-    @BeforeAll
-    public static void checkoutProject() {
     }
 
     protected static ComponentFixture find(@Language("XPath") String xpath) {
@@ -92,30 +94,35 @@ public abstract class BaseUITest {
     }
 
     protected static void waitAndClick(@Language("XPath") String xpath) {
-        RepeatUtilsKt.waitFor(waitDuration,
-                              () -> hasAnyComponent(xpath) && find(xpath).isShowing());
+        waitFor(() -> hasAnyComponent(xpath) && find(xpath).isShowing());
         find(xpath).click();
     }
 
     protected void setField(String fieldName, String value) {
-        RepeatUtilsKt.waitFor(waitDuration, () -> {
-            find(JTextFieldFixture.class, String.format(FIELD_NAME, fieldName), waitDuration).click();
-            return find(JTextFieldFixture.class,
-                        String.format(FIELD_NAME, fieldName),
-                        waitDuration).getHasFocus();
-        });
-        find(JTextFieldFixture.class, String.format(FIELD_NAME, fieldName), waitDuration).setText(
-                value);
+        log("Setting field " + fieldName);
+        @Language("XPath") String fieldXpath = String.format(FIELD_NAME, fieldName);
+        waitFor(() -> hasAnyComponent(fieldXpath) && find(fieldXpath).isShowing());
+        find(JTextFieldFixture.class, String.format(FIELD_NAME, fieldName), waitDuration).setText(value);
     }
 
     protected static boolean hasAnyComponent(@Language("XPath") String xpath) {
         return UtilsKt.hasAnyComponent(remoteRobot, Locators.byXpath(xpath));
     }
 
+    protected static void waitFor(Supplier<Boolean> condition) {
+        RepeatUtilsKt.waitFor(waitDuration, condition::get);
+    }
+
     protected static void openCxToolWindow() {
-        if (!hasAnyComponent(SETTINGS_ACTION)) {
-            find("//div[@text='Checkmarx']").click();
-            RepeatUtilsKt.waitFor(waitDuration, () -> hasAnyComponent(SETTINGS_ACTION));
+        log("Opening Cx Tool Window");
+        @Language("XPath") String xpath = "//div[@text='Checkmarx' and @class='StripeButton']";
+        waitFor(() -> hasAnyComponent(xpath));
+        if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
+            find(xpath).click();
         }
+    }
+
+    protected static void log(String msg) {
+        System.out.println("Test log: " + msg);
     }
 }

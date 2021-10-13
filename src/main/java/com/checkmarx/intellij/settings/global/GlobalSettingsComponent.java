@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.settings.global;
 
-import com.checkmarx.ast.results.CxValidateOutput;
+import com.checkmarx.ast.wrapper.CxConfig;
+import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
@@ -8,8 +9,9 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.settings.SettingsComponent;
+import com.checkmarx.intellij.settings.SettingsListener;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
@@ -21,6 +23,8 @@ import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -69,9 +73,13 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     @Override
-    public void apply() throws ConfigurationException {
+    public void apply() {
         SETTINGS_STATE.apply(getStateFromFields());
         SENSITIVE_SETTINGS_STATE.apply(getSensitiveStateFromFields());
+        ApplicationManager.getApplication()
+                          .getMessageBus()
+                          .syncPublisher(SettingsListener.SETTINGS_APPLIED)
+                          .settingsApplied();
     }
 
     @Override
@@ -97,11 +105,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private GlobalSettingsState getStateFromFields() {
         GlobalSettingsState state = new GlobalSettingsState();
 
-        state.setServerURL(serverUrlField.getText());
+        state.setServerURL(serverUrlField.getText().trim());
         state.setUseAuthURL(useAuthUrlCheckbox.isSelected());
-        state.setAuthURL(useAuthUrlCheckbox.isSelected() ? authUrlField.getText() : "");
-        state.setTenantName(tenantField.getText());
-        state.setAdditionalParameters(additionalParametersField.getText());
+        state.setAuthURL(useAuthUrlCheckbox.isSelected() ? authUrlField.getText().trim() : "");
+        state.setTenantName(tenantField.getText().trim());
+        state.setAdditionalParameters(additionalParametersField.getText().trim());
 
         return state;
     }
@@ -138,18 +146,18 @@ public class GlobalSettingsComponent implements SettingsComponent {
             setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
             CompletableFuture.runAsync(() -> {
                 try {
-                    CxValidateOutput validateOutput = Authentication.validateConnection(getStateFromFields(),
-                                                                                        getSensitiveStateFromFields());
-                    if (validateOutput.getExitCode() == 0) {
-                        setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
-                        LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
-                    } else {
-                        setValidationResult(validateOutput.getMessage(), JBColor.RED);
-                        LOGGER.warn(Bundle.message(Resource.VALIDATE_FAIL, validateOutput.getMessage()));
-                    }
-                } catch (Exception e) {
+                    Authentication.validateConnection(getStateFromFields(),
+                                                      getSensitiveStateFromFields());
+                    setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
+                    LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
+                } catch (IOException | URISyntaxException | InterruptedException e) {
                     setValidationResult(Bundle.message(Resource.VALIDATE_ERROR), JBColor.RED);
                     LOGGER.error(Bundle.message(Resource.VALIDATE_ERROR), e);
+                } catch (CxException | CxConfig.InvalidCLIConfigException e) {
+                    String msg = e.getMessage().trim();
+                    int lastLineIndex = Math.max(msg.lastIndexOf('\n'), 0);
+                    setValidationResult(msg.substring(lastLineIndex).trim(), JBColor.RED);
+                    LOGGER.warn(Bundle.message(Resource.VALIDATE_FAIL, e.getMessage()));
                 } finally {
                     validateButton.setEnabled(true);
                 }
@@ -229,5 +237,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
         if (!(mainPanel.getLayout() instanceof MigLayout)) {
             throw new IllegalArgumentException("panel must be using MigLayout");
         }
+    }
+
+    public boolean isValid() {
+        return SETTINGS_STATE.isValid() && SENSITIVE_SETTINGS_STATE.isValid();
     }
 }

@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.commands.results;
 
-import com.checkmarx.ast.results.structure.CxResultOutput;
 import lombok.Data;
 
 /**
@@ -12,7 +11,7 @@ public class ResultGetState {
     private String scanId;
     private String scanIdFieldValue;
     private boolean latest;
-    private CxResultOutput resultOutput = Results.emptyResults;
+    private com.checkmarx.ast.results.Results resultOutput = Results.emptyResults;
     private String message = null;
 
     public ResultGetState() {
