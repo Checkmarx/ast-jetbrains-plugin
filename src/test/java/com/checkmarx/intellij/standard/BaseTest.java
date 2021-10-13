@@ -23,6 +23,7 @@ public abstract class BaseTest extends BasePlatformTestCase {
             state.setTenantName(System.getenv("CX_TENANT"));
         }
         sensitiveState.setApiKey(System.getenv("CX_APIKEY"));
+        state.setAdditionalParameters("--debug");
     }
 
     @AfterEach

@@ -243,6 +243,7 @@ public class TestUI extends BaseUITest {
         setField(Constants.FIELD_NAME_SERVER_URL, Environment.BASE_URL);
         setField(Constants.FIELD_NAME_TENANT, Environment.TENANT);
         setField(Constants.FIELD_NAME_API_KEY, Environment.API_KEY);
+        setField(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS, "--debug");
     }
 
     private boolean checkTreeState(ComponentFixture tree) {
