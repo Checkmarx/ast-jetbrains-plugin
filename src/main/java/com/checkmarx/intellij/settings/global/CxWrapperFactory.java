@@ -34,7 +34,7 @@ public class CxWrapperFactory {
 
         builder.pathToExecutable(Execution.getTempBinary());
 
-        builder.additionalParameters(state.getAdditionalParameters());
+        builder.additionalParameters("--debug " + state.getAdditionalParameters());
 
         return new CxWrapper(builder.build());
     }

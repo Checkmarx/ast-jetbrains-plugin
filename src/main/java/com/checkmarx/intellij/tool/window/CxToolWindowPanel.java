@@ -8,6 +8,7 @@ import com.checkmarx.intellij.project.ProjectResultsService;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
+import com.checkmarx.intellij.tool.window.actions.selection.ResetSelectionAction;
 import com.checkmarx.intellij.tool.window.actions.selection.RootGroup;
 import com.checkmarx.intellij.tool.window.results.tree.GroupBy;
 import com.checkmarx.intellij.tool.window.results.tree.ResultsTreeFactory;
@@ -66,7 +67,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     // divides the tree section in scanIdField|resultsTree sections
     private final OnePixelSplitter scanTreeSplitter = new OnePixelSplitter(true, 0.1f);
     // field to input a scan id
-    private final SearchTextField scanIdField = new SearchTextField();
+    private SearchTextField scanIdField = new SearchTextField();
 
     // Internal state
     private final List<GroupBy> groupByList = new ArrayList<>(Collections.singletonList(GroupBy.DEFAULT_GROUP_BY));
@@ -111,10 +112,19 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
      */
     private void drawMainPanel() {
         removeAll();
+
+        ActionToolbar mainToolbar = getActionToolbar();
+        ResetSelectionAction resetSelectionAction = (ResetSelectionAction) mainToolbar.getActions()
+                                                                                      .stream()
+                                                                                      .filter(a -> a instanceof ResetSelectionAction)
+                                                                                      .findFirst()
+                                                                                      .orElse(null);
+
         // root group for project - branch - scan selection
-        rootGroup = new RootGroup(project);
+        rootGroup = new RootGroup(project, resetSelectionAction);
 
         // listener to get results when enter is pressed on scan id field
+        scanIdField = new SearchTextField();
         scanIdField.addKeyboardListener(new OnEnterGetResults());
 
         // split vertical the scan id field and the panel for results tree
@@ -133,7 +143,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         treePanel.setToolbar(getActionToolbar(rootGroup, true).getComponent());
         treePanel.setContent(treeDetailsSplitter);
         setContent(treePanel);
-        setToolbar(getActionToolbar().getComponent());
+        setToolbar(mainToolbar.getComponent());
     }
 
     /**
@@ -232,6 +242,22 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
             return;
         }
         Optional.ofNullable(getContent()).ifPresent(this::setContent);
+    }
+
+    /**
+     * Completely reset the main panel state
+     */
+    public void resetPanel() {
+        if (!Utils.validThread()) {
+            return;
+        }
+        rootGroup.setEnabled(false);
+        currentState = new ResultGetState();
+        projectResultsService.indexResults(project, Results.emptyResults);
+        scanIdField.setText("");
+        scanTreeSplitter.setSecondComponent(simplePanel());
+        treeDetailsSplitter.setSecondComponent(simplePanel());
+        rootGroup.reset();
     }
 
     /**

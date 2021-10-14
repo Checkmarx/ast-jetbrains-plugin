@@ -13,6 +13,7 @@ import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,14 +28,17 @@ import java.util.function.Supplier;
 public class ProjectSelectionGroup extends BaseSelectionGroup {
 
     private static final Logger LOGGER = Utils.getLogger(ProjectSelectionGroup.class);
+    private final ResetSelectionAction resetSelectionAction;
     private final ScanSelectionGroup scanSelectionGroup;
     private final Map<String, com.checkmarx.ast.project.Project> byId = new HashMap<>();
 
     public ProjectSelectionGroup(@NotNull Project project,
-                                 ScanSelectionGroup scanSelectionGroup) {
+                                 @NotNull ScanSelectionGroup scanSelectionGroup,
+                                 @Nullable ResetSelectionAction resetSelectionAction) {
         super(project);
+        this.resetSelectionAction = resetSelectionAction;
         this.scanSelectionGroup = scanSelectionGroup;
-        refresh();
+        populate(true);
     }
 
     @Override
@@ -54,10 +58,14 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
      * Auto-selects the previously selected project or, if none is stored,
      * tries to inherit the project name from the IDE.
      */
-    private void refresh() {
+    void refresh() {
         setEnabled(false);
         removeAll();
         byId.clear();
+        populate(false);
+    }
+
+    private void populate(boolean inherit) {
         CompletableFuture.supplyAsync((Supplier<List<com.checkmarx.ast.project.Project>>) () -> {
             try {
                 return com.checkmarx.intellij.commands.Project.getList();
@@ -71,7 +79,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
                 for (com.checkmarx.ast.project.Project p : projectList) {
                     add(new Action(p));
                     byId.put(p.getID(), p);
-                    if (storedProject == null && p.getName().equals(project.getName())) {
+                    if (inherit && storedProject == null && p.getName().equals(project.getName())) {
                         propertiesComponent.setValue(Constants.SELECTED_PROJECT_PROPERTY, p.getName());
                         refreshScanGroup(p);
                     } else if (p.getName().equals(storedProject)) {
@@ -79,6 +87,12 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
                     }
                 }
                 setEnabled(true);
+                if (resetSelectionAction != null) {
+                    resetSelectionAction.setEnabled(true);
+                }
+                if (!inherit) {
+                    scanSelectionGroup.setEnabled(true);
+                }
                 refreshPanel(project);
             });
         });
@@ -88,7 +102,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
     @NotNull
     protected String getTitle() {
         if (getChildrenCount() == 0) {
-            return Bundle.message(Resource.PROJECT_SELECT_PREFIX) + ": ...";
+            return Bundle.message(Resource.PROJECT_SELECT_PREFIX) + ": " + (isEnabled() ? NONE_SELECTED : "...");
         }
         String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
         return Bundle.message(Resource.PROJECT_SELECT_PREFIX)
