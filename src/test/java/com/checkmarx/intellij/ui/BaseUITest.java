@@ -123,6 +123,7 @@ public abstract class BaseUITest {
     }
 
     protected static void log(String msg) {
-        System.out.println("Test log: " + msg);
+        StackTraceElement[] st = Thread.currentThread().getStackTrace();
+        System.out.printf("%s: %s%n", st[2], msg);
     }
 }

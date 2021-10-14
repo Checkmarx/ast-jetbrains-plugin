@@ -49,6 +49,9 @@
                     class="com.checkmarx.intellij.tool.window.actions.OpenSettingsAction"
                     icon="AllIcons.General.Settings"/>
             <separator/>
+            <action id="Checkmarx.ResetSelection"
+                    class="com.checkmarx.intellij.tool.window.actions.selection.ResetSelectionAction"/>
+            <separator/>
             <group id="Checkmarx.GroupBy"
                    icon="AllIcons.Actions.GroupBy"
                    popup="true"

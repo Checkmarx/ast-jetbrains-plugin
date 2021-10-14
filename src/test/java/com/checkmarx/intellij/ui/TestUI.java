@@ -6,6 +6,7 @@ import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.utils.Keyboard;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -30,10 +31,7 @@ public class TestUI extends BaseUITest {
         openSettings();
 
         setFields();
-        find(JCheckboxFixture.class,
-             String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
-             waitDuration).setValue(true);
-        setField(Constants.FIELD_NAME_AUTH_URL, "http://wrongauth");
+        setField(Constants.FIELD_NAME_API_KEY, "invalid");
 
         find(JButtonFixture.class, VALIDATE_BUTTON).click();
 
@@ -75,6 +73,21 @@ public class TestUI extends BaseUITest {
         waitFor(() -> findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0)));
     }
 
+    @Test
+    public void testClearSelection() {
+        testSelection();
+        waitFor(() -> {
+            if (findScanSelection().hasText("Scan: ...") || findProjectSelection().hasText("Project: ...")) {
+                return false;
+            }
+            find("//div[@myaction.key='RESET_ACTION']").click();
+            return hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
+                   && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
+                   && !hasAnyComponent(TREE)
+                   && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText());
+        });
+    }
+
     @NotNull
     private ActionButtonFixture findProjectSelection() {
         return findSelection("Project");
@@ -89,6 +102,12 @@ public class TestUI extends BaseUITest {
     private ActionButtonFixture findSelection(String s) {
         return find(ActionButtonFixture.class,
                     String.format("//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]", s));
+    }
+
+    private boolean hasSelection(String s) {
+        return hasAnyComponent(String.format(
+                "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
+                s));
     }
 
     private void applySettings() {
@@ -120,6 +139,7 @@ public class TestUI extends BaseUITest {
 
     private void getResults() {
         JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
+        waitFor(() -> hasSelection("Project") && hasSelection("Scan"));
         setInvalidScanId();
         scanField.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
