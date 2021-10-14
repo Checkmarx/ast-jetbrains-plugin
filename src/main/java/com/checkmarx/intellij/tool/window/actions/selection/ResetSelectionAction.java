@@ -24,7 +24,7 @@ public class ResetSelectionAction extends AnAction implements CxToolWindowAction
 
     public ResetSelectionAction() {
         super(Bundle.messagePointer(Resource.RESET_ACTION));
-        getTemplatePresentation().setIcon(AllIcons.Debugger.Db_invalid_breakpoint);
+        getTemplatePresentation().setIcon(AllIcons.Actions.Refresh);
     }
 
     @Override
