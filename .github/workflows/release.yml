@@ -11,7 +11,7 @@ jobs:
     steps:
       # Check out current repository
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.5
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@v2
@@ -34,7 +34,7 @@ jobs:
     steps:
       # Check out current repository
       - name: Fetch Sources
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.3.5
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@v2
@@ -87,7 +87,7 @@ jobs:
     steps:
       # Check out current repository
       - name: Fetch Sources
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.3.5
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@v2
@@ -128,7 +128,7 @@ jobs:
     steps:
       # Check out current repository
       - name: Fetch Sources
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.3.5
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@v2
