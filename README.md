@@ -65,14 +65,12 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 
 ### Prerequisites
 
-- You have a CxAST account and can run CxAST scans on your source code.
-
-- You have a CxAST account and you have an API Key.
+- You have a CxAST account and you have an [API Key](https://checkmarx.atlassian.net/wiki/spaces/AST/pages/5859574017/Generating+an+API+Key).
 
 ### Setting Up
 
 
-All the procedures to set the jetbrains plugin up can be found [here](https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6058442786/Installing+the+CxAST+JetBrains+Plugin).
+All the procedures to set the JetBrains plugin up can be found [here](https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6058442786/Installing+the+CxAST+JetBrains+Plugin).
 
 
 
@@ -100,7 +98,7 @@ Distributed under the [Apache 2.0](LICENSE). See `LICENSE` for more information.
 
 Checkmarx - AST Integrations Team
 
-Project Link: [https://github.com/CheckmarxDev/checkmarx-ast-jetbrains-plugin](https://github.com/CheckmarxDev/checkmarx-ast-teamcity-plugin)
+Project Link: [https://github.com/Checkmarx/ast-jetbrains-plugin](https://github.com/Checkmarx/ast-jetbrains-plugin)
 
 
 © 2021 Checkmarx Ltd. All Rights Reserved.
