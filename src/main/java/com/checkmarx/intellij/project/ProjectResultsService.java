@@ -3,16 +3,21 @@ package com.checkmarx.intellij.project;
 import com.checkmarx.ast.results.result.Node;
 import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.intellij.Utils;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Service for indexing results of a scan in a given project
  */
 public class ProjectResultsService {
+
+    private static final Logger LOGGER = Utils.getLogger(ProjectResultsService.class);
 
     private final Project project;
 
@@ -36,25 +41,36 @@ public class ProjectResultsService {
             return;
         }
 
+        LOGGER.info(String.format("Indexing %d results", results.getTotalCount()));
+
         validateProject(project);
 
-        nodesByFile = new HashMap<>();
-        resultByNode = new HashMap<>();
+        this.nodesByFile = new HashMap<>();
+        this.resultByNode = new HashMap<>();
 
-        for (Result result : results.getResults()) {
-            for (Node node : Optional.ofNullable(result.getData().getNodes())
-                                     .orElse(Collections.emptyList())) {
-                Map<Integer, List<Node>> nodesByLine
-                        = nodesByFile.computeIfAbsent(Paths.get(node.getFileName())
-                                                           .toString()
-                                                           .substring(1),
-                                                      k -> new HashMap<>());
-                List<Node> nodesForLine = nodesByLine.computeIfAbsent(node.getLine(),
-                                                                      k -> new ArrayList<>());
-                nodesForLine.add(node);
-                resultByNode.put(node, result);
+        CompletableFuture.runAsync(() -> {
+            Map<String, Map<Integer, List<Node>>> nodesByFile = new HashMap<>();
+            Map<Node, Result> resultByNode = new HashMap<>();
+            for (Result result : results.getResults()) {
+                for (Node node : Optional.ofNullable(result.getData().getNodes())
+                                         .orElse(Collections.emptyList())) {
+                    Map<Integer, List<Node>> nodesByLine
+                            = nodesByFile.computeIfAbsent(Paths.get(node.getFileName())
+                                                               .toString()
+                                                               .substring(1),
+                                                          k -> new HashMap<>());
+                    List<Node> nodesForLine = nodesByLine.computeIfAbsent(node.getLine(),
+                                                                          k -> new ArrayList<>());
+                    nodesForLine.add(node);
+                    resultByNode.put(node, result);
+                }
             }
-        }
+            ApplicationManager.getApplication().invokeLater(() -> {
+                this.nodesByFile = nodesByFile;
+                this.resultByNode = resultByNode;
+                LOGGER.info("Indexed results are live");
+            });
+        });
     }
 
     /**

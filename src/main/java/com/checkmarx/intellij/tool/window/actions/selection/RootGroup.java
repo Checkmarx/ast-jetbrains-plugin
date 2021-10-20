@@ -18,6 +18,7 @@ public class RootGroup extends DefaultActionGroup implements DumbAware, CxToolWi
 
     private final Project project;
     private final ScanSelectionGroup scanSelectionGroup;
+    private final BranchSelectionGroup branchSelectionGroup;
     private final ProjectSelectionGroup projectSelectionGroup;
     private final ResetSelectionAction resetSelectionAction;
 
@@ -26,8 +27,12 @@ public class RootGroup extends DefaultActionGroup implements DumbAware, CxToolWi
         this.project = project;
         this.resetSelectionAction = resetSelectionAction;
         scanSelectionGroup = new ScanSelectionGroup(project);
-        projectSelectionGroup = new ProjectSelectionGroup(project, scanSelectionGroup, resetSelectionAction);
-        addAll(projectSelectionGroup, scanSelectionGroup);
+        branchSelectionGroup = new BranchSelectionGroup(project, scanSelectionGroup);
+        projectSelectionGroup = new ProjectSelectionGroup(project,
+                                                          branchSelectionGroup,
+                                                          scanSelectionGroup,
+                                                          resetSelectionAction);
+        addAll(projectSelectionGroup, branchSelectionGroup, scanSelectionGroup);
     }
 
     /**
@@ -37,6 +42,7 @@ public class RootGroup extends DefaultActionGroup implements DumbAware, CxToolWi
      */
     public void override(String scanId) {
         setEnabled(false);
+        branchSelectionGroup.clear();
         scanSelectionGroup.clear();
         CompletableFuture.supplyAsync(() -> {
             try {
@@ -44,18 +50,17 @@ public class RootGroup extends DefaultActionGroup implements DumbAware, CxToolWi
             } catch (Exception e) {
                 return null;
             }
-        }).thenAccept(scan -> {
-            ApplicationManager.getApplication().invokeLater(() -> {
-                if (scan != null) {
-                    projectSelectionGroup.override(scan);
-                }
-                setEnabled(true);
-            });
-        });
+        }).thenAccept(scan -> ApplicationManager.getApplication().invokeLater(() -> {
+            if (scan != null) {
+                projectSelectionGroup.override(scan);
+            }
+            setEnabled(true);
+        }));
     }
 
     public void setEnabled(boolean enabled) {
         projectSelectionGroup.setEnabled(enabled);
+        branchSelectionGroup.setEnabled(enabled);
         scanSelectionGroup.setEnabled(enabled);
         resetSelectionAction.setEnabled(enabled);
         refreshPanel(project);
@@ -63,6 +68,7 @@ public class RootGroup extends DefaultActionGroup implements DumbAware, CxToolWi
 
     public void reset() {
         projectSelectionGroup.clear();
+        branchSelectionGroup.clear();
         scanSelectionGroup.clear();
         refreshPanel(project);
         projectSelectionGroup.refresh();

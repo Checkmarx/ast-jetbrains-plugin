@@ -28,15 +28,19 @@ import java.util.function.Supplier;
 public class ProjectSelectionGroup extends BaseSelectionGroup {
 
     private static final Logger LOGGER = Utils.getLogger(ProjectSelectionGroup.class);
+
     private final ResetSelectionAction resetSelectionAction;
+    private final BranchSelectionGroup branchSelectionGroup;
     private final ScanSelectionGroup scanSelectionGroup;
     private final Map<String, com.checkmarx.ast.project.Project> byId = new HashMap<>();
 
     public ProjectSelectionGroup(@NotNull Project project,
+                                 @NotNull BranchSelectionGroup branchSelectionGroup,
                                  @NotNull ScanSelectionGroup scanSelectionGroup,
                                  @Nullable ResetSelectionAction resetSelectionAction) {
         super(project);
         this.resetSelectionAction = resetSelectionAction;
+        this.branchSelectionGroup = branchSelectionGroup;
         this.scanSelectionGroup = scanSelectionGroup;
         populate(true);
     }
@@ -50,7 +54,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
     @Override
     void override(Scan scan) {
         select(byId.get(scan.getProjectID()));
-        scanSelectionGroup.override(scan);
+        branchSelectionGroup.override(scan);
     }
 
     /**
@@ -59,13 +63,13 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
      * tries to inherit the project name from the IDE.
      */
     void refresh() {
-        setEnabled(false);
         removeAll();
         byId.clear();
         populate(false);
     }
 
     private void populate(boolean inherit) {
+        setEnabled(false);
         CompletableFuture.supplyAsync((Supplier<List<com.checkmarx.ast.project.Project>>) () -> {
             try {
                 return com.checkmarx.intellij.commands.Project.getList();
@@ -73,29 +77,28 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
                 LOGGER.warnInProduction(e);
             }
             return Collections.emptyList();
-        }).thenAccept((projectList) -> {
-            ApplicationManager.getApplication().invokeLater(() -> {
-                String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
-                for (com.checkmarx.ast.project.Project p : projectList) {
-                    add(new Action(p));
-                    byId.put(p.getID(), p);
-                    if (inherit && storedProject == null && p.getName().equals(project.getName())) {
-                        propertiesComponent.setValue(Constants.SELECTED_PROJECT_PROPERTY, p.getName());
-                        refreshScanGroup(p);
-                    } else if (p.getName().equals(storedProject)) {
-                        refreshScanGroup(p);
-                    }
+        }).thenAccept((projectList) -> ApplicationManager.getApplication().invokeLater(() -> {
+            String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
+            for (com.checkmarx.ast.project.Project p : projectList) {
+                add(new Action(p));
+                byId.put(p.getID(), p);
+                if (inherit && storedProject == null && p.getName().equals(project.getName())) {
+                    propertiesComponent.setValue(Constants.SELECTED_PROJECT_PROPERTY, p.getName());
+                    refreshBranchGroup(p, true);
+                } else if (p.getName().equals(storedProject)) {
+                    refreshBranchGroup(p, false);
                 }
-                setEnabled(true);
-                if (resetSelectionAction != null) {
-                    resetSelectionAction.setEnabled(true);
-                }
-                if (!inherit) {
-                    scanSelectionGroup.setEnabled(true);
-                }
-                refreshPanel(project);
-            });
-        });
+            }
+            setEnabled(true);
+            if (resetSelectionAction != null) {
+                resetSelectionAction.setEnabled(true);
+            }
+            if (!inherit) {
+                branchSelectionGroup.setEnabled(true);
+                scanSelectionGroup.setEnabled(true);
+            }
+            refreshPanel(project);
+        }));
     }
 
     @Override
@@ -120,8 +123,8 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
      */
     private void select(com.checkmarx.ast.project.Project p) {
         propertiesComponent.setValue(Constants.SELECTED_PROJECT_PROPERTY, p.getName());
-        scanSelectionGroup.clear();
-        refreshScanGroup(p);
+        branchSelectionGroup.clear();
+        refreshBranchGroup(p, false);
     }
 
     /**
@@ -129,8 +132,8 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
      *
      * @param p project
      */
-    private void refreshScanGroup(com.checkmarx.ast.project.Project p) {
-        scanSelectionGroup.refresh(p.getID());
+    private void refreshBranchGroup(com.checkmarx.ast.project.Project p, boolean inherit) {
+        branchSelectionGroup.refresh(p.getID(), inherit);
         refreshPanel(project);
     }
 

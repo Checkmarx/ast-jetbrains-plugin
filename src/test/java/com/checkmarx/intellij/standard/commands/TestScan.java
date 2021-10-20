@@ -22,7 +22,7 @@ public class TestScan extends BaseTest {
     public void testGetList() {
         Project project = getEnvProject();
         List<com.checkmarx.ast.scan.Scan> scans
-                = Assertions.assertDoesNotThrow(() -> Scan.getList(project.getID()));
+                = Assertions.assertDoesNotThrow(() -> Scan.getList(project.getID(), Environment.BRANCH_NAME));
         Assertions.assertTrue(scans.size() > 0);
     }
 

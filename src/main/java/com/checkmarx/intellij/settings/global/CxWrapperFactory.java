@@ -2,7 +2,6 @@ package com.checkmarx.intellij.settings.global;
 
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxWrapper;
-import com.checkmarx.intellij.Execution;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
@@ -18,7 +17,7 @@ public class CxWrapperFactory {
     }
 
     public static CxWrapper build(GlobalSettingsState state, GlobalSettingsSensitiveState sensitiveState)
-            throws IOException, CxConfig.InvalidCLIConfigException, URISyntaxException {
+            throws IOException, CxConfig.InvalidCLIConfigException {
         final CxConfig.CxConfigBuilder builder = CxConfig.builder();
 
         builder.baseUri(state.getServerURL());
@@ -31,8 +30,6 @@ public class CxWrapperFactory {
         }
 
         builder.apiKey(sensitiveState.getApiKey());
-
-        builder.pathToExecutable(Execution.getTempBinary());
 
         builder.additionalParameters("--debug " + state.getAdditionalParameters());
 

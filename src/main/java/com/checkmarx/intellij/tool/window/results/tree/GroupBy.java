@@ -2,6 +2,9 @@ package com.checkmarx.intellij.tool.window.results.tree;
 
 import com.checkmarx.ast.results.result.Result;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -12,7 +15,7 @@ public enum GroupBy {
     SEVERITY,
     QUERY_NAME;
 
-    public static final GroupBy DEFAULT_GROUP_BY = SEVERITY;
+    public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, QUERY_NAME);
 
     /**
      * @return function to apply to a result for getting the parent, that matches the filter
@@ -27,5 +30,18 @@ public enum GroupBy {
                                : result.getId();
         }
         throw new RuntimeException("Invalid filter");
+    }
+
+    /**
+     * @return comparator to sort children of a given group
+     */
+    public Comparator<String> getComparator() {
+        if (this == SEVERITY) {
+            return Comparator.comparing(Severity::valueOf);
+        }
+        if (this == QUERY_NAME) {
+            return String::compareTo;
+        }
+        return null;
     }
 }

@@ -51,10 +51,11 @@ public class Scan {
      * Get scan list for a specific project.
      *
      * @param projectId id for project
+     * @param branch    branch name
      * @return scan list for project
      */
     @NotNull
-    public static List<com.checkmarx.ast.scan.Scan> getList(String projectId)
+    public static List<com.checkmarx.ast.scan.Scan> getList(String projectId, String branch)
             throws
             IOException,
             URISyntaxException,
@@ -62,7 +63,10 @@ public class Scan {
             CxConfig.InvalidCLIConfigException,
             CxException {
 
-        return CxWrapperFactory.build().scanList(String.format("project-id=%s,limit=10000", projectId));
+        return CxWrapperFactory.build()
+                               .scanList(String.format("project-id=%s,branch=%s,limit=10000,statuses=Completed",
+                                                       projectId,
+                                                       branch));
     }
 
     /**

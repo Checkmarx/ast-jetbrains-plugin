@@ -9,7 +9,7 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.components.PaneUtils;
-import com.intellij.icons.AllIcons;
+import com.checkmarx.intellij.tool.window.results.tree.Severity;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -21,7 +21,6 @@ import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBLabel;
-import com.intellij.util.ui.EmptyIcon;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -37,6 +36,7 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Results tree node.
@@ -72,32 +72,20 @@ public class ResultNode extends DefaultMutableTreeNode {
                                : result.getId());
         int nodeCount = nodes.size();
         if (nodeCount > 0) {
-            labelBuilder += " ("
-                            + new File(result.getData()
-                                             .getNodes()
-                                             .get(nodeCount - 1)
-                                             .getFileName()).getName()
-                            + ")";
+            Node node = result.getData()
+                              .getNodes()
+                              .get(0);
+            labelBuilder += String.format(" (%s:%d)", new File(node.getFileName()).getName(), node.getLine());
         }
         this.label = labelBuilder;
 
         setUserObject(this.label);
+        setAllowsChildren(false);
     }
 
     @NotNull
     public Icon getIcon() {
-        switch (getResult().getSeverity()) {
-            case "INFO":
-                return AllIcons.General.Note;
-            case "LOW":
-                return AllIcons.General.Information;
-            case "MEDIUM":
-                return AllIcons.General.Warning;
-            case "HIGH":
-                return AllIcons.General.Error;
-            default:
-                return EmptyIcon.ICON_0;
-        }
+        return Severity.valueOf(getResult().getSeverity()).getIcon();
     }
 
     /**
@@ -133,13 +121,12 @@ public class ResultNode extends DefaultMutableTreeNode {
                                               result.getStatus());
         details.add(new JBLabel(detailsSummary), "span, wrap, gapbottom 5");
 
-        details.add(boldLabel(Bundle.message(Resource.DESCRIPTION)), "span, wrap");
         String description = result.getData().getDescription();
-        if (StringUtils.isBlank(description)) {
-            description = "Description placeholder";
+        if (StringUtils.isNotBlank(description)) {
+            details.add(boldLabel(Bundle.message(Resource.DESCRIPTION)), "span, wrap");
+            // wrapping the description in html tags auto wraps the text when it reaches the parent component size
+            details.add(new JBLabel(String.format("<html>%s</html>", description)), "wrap, gapbottom 5");
         }
-        // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-        details.add(new JBLabel(String.format("<html>%s</html>", description)), "wrap, gapbottom 5");
         return details;
     }
 
@@ -182,22 +169,29 @@ public class ResultNode extends DefaultMutableTreeNode {
     private static void navigate(@NotNull Project project, @NotNull Node node) {
         String fileName = node.getFileName();
         Utils.runAsyncReadAction(() -> {
-            VirtualFile file = FilenameIndex.getVirtualFilesByName(FilenameUtils.getName(fileName),
-                                                                   GlobalSearchScope.projectScope(project))
-                                            .stream()
-                                            .filter(f -> f.getPath().contains(fileName))
-                                            .findFirst()
-                                            .orElse(null);
-            if (file != null) {
-                OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(project,
-                                                                               file,
-                                                                               node.getLine() - 1,
-                                                                               node.getColumn() - 1);
-                ApplicationManager.getApplication().invokeLater(() -> openFileDescriptor.navigate(true));
-            } else {
+            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(FilenameUtils.getName(fileName),
+                                                                          GlobalSearchScope.projectScope(project))
+                                                   .stream()
+                                                   .filter(f -> f.getPath().contains(fileName))
+                                                   .collect(Collectors.toList());
+            if (files.isEmpty()) {
                 new Notification(Constants.NOTIFICATION_GROUP_ID,
                                  Bundle.message(Resource.MISSING_FILE, fileName),
                                  NotificationType.WARNING).notify(project);
+            } else {
+                if (files.size() > 1) {
+                    new Notification(Constants.NOTIFICATION_GROUP_ID,
+                                     "Multiples files found for " + node.getFileName(),
+                                     NotificationType.WARNING).notify(project);
+                }
+                for (VirtualFile file : files) {
+
+                    OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(project,
+                                                                                   file,
+                                                                                   node.getLine() - 1,
+                                                                                   node.getColumn() - 1);
+                    ApplicationManager.getApplication().invokeLater(() -> openFileDescriptor.navigate(true));
+                }
             }
         });
     }

@@ -70,7 +70,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     private SearchTextField scanIdField = new SearchTextField();
 
     // Internal state
-    private final List<GroupBy> groupByList = new ArrayList<>(Collections.singletonList(GroupBy.DEFAULT_GROUP_BY));
+    private final List<GroupBy> groupByList = new ArrayList<>(GroupBy.DEFAULT_GROUP_BY);
     private ResultGetState currentState = new ResultGetState();
     private Tree currentTree = null;
     private boolean getResultsInProgress = false;
@@ -101,8 +101,10 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
             }
         };
 
-        ApplicationManager.getApplication().getMessageBus().connect(this).subscribe(SettingsListener.SETTINGS_APPLIED,
-                                                                                    r::run);
+        ApplicationManager.getApplication()
+                          .getMessageBus()
+                          .connect(this)
+                          .subscribe(SettingsListener.SETTINGS_APPLIED, r::run);
 
         r.run();
     }
