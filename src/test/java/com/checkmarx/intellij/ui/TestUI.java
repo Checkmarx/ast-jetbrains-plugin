@@ -215,6 +215,10 @@ public class TestUI extends BaseUITest {
         });
         find(JTextFieldFixture.class, SCAN_FIELD).setText("inva-lid");
         waitFor(() -> {
+            find(JTextFieldFixture.class, SCAN_FIELD).click();
+            if (!find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus()) {
+                return false;
+            }
             new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
             List<ComponentFixture> trees = findAll(TREE);
             if (trees.size() != 1) {

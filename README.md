@@ -21,9 +21,9 @@
     <a href="https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6030557208/JetBrains"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/CheckmarxDev/checkmarx-ast-jetbrains-plugin/issues/new">Report Bug</a>
+    <a href="https://github.com/Checkmarx/ast-jetbrains-plugin/issues/new">Report Bug</a>
     ·
-    <a href="https://github.com/CheckmarxDev/checkmarx-ast-jetbrains-plugin/issues/new">Request Feature</a>
+    <a href="https://github.com/Checkmarx/ast-jetbrains-plugin/issues/new">Request Feature</a>
   </p>
 </p>
 
@@ -105,14 +105,14 @@ Project Link: [https://github.com/Checkmarx/ast-jetbrains-plugin](https://github
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/CheckmarxDev/checkmarx-ast-jetbrains-plugin.svg?style=flat-square
-[contributors-url]: https://github.com/CheckmarxDev/checkmarx-ast-jetbrains-plugin/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/CheckmarxDev/checkmarx-ast-jetbrains-plugin.svg?style=flat-square
-[forks-url]: https://github.com/CheckmarxDev/checkmarx-ast-jetbrains-plugin/network/members
-[stars-shield]: https://img.shields.io/github/stars/CheckmarxDev/checkmarx-ast-jetbrains-plugin.svg?style=flat-square
-[stars-url]: https://github.com/CheckmarxDev/checkmarx-ast-jetbrains-plugin/stargazers
-[issues-shield]: https://img.shields.io/github/issues/CheckmarxDev/checkmarx-ast-jetbrains-plugin.svg?style=flat-square
-[issues-url]: https://github.com/CheckmarxDev/checkmarx-ast-jetbrains-plugin/issues
-[license-shield]: https://img.shields.io/github/license/CheckmarxDev/checkmarx-ast-jetbrains-plugin.svg?style=flat-square
-[license-url]: https://github.com/CheckmarxDev/checkmarx-ast-jetbrains-plugin/blob/master/LICENSE
+[contributors-shield]: https://img.shields.io/github/contributors/Checkmarx/ast-jetbrains-plugin.svg?style=flat-square
+[contributors-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/Checkmarx/ast-jetbrains-plugin.svg?style=flat-square
+[forks-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/network/members
+[stars-shield]: https://img.shields.io/github/stars/Checkmarx/ast-jetbrains-plugin.svg?style=flat-square
+[stars-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/stargazers
+[issues-shield]: https://img.shields.io/github/issues/Checkmarx/ast-jetbrains-plugin.svg?style=flat-square
+[issues-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/issues
+[license-shield]: https://img.shields.io/github/license/Checkmarx/ast-jetbrains-plugin.svg?style=flat-square
+[license-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/blob/master/LICENSE
 [product-screenshot]: images/screenshot.png
