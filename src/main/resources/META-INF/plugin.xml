@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>com.checkmarx.checkmarx-ast-jetbrains-plugin</id>
+    <id>com.checkmarx.ast-jetbrains-plugin</id>
     <name>Checkmarx AST</name>
     <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
 
