@@ -71,7 +71,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
         CompletableFuture.supplyAsync((Supplier<List<com.checkmarx.ast.scan.Scan>>) () -> {
             try {
                 return StringUtils.isBlank(projectId) || StringUtils.isBlank(branch)
-                       ? Scan.getList()
+                       ? Collections.emptyList()
                        : Scan.getList(projectId, branch);
             } catch (IOException | URISyntaxException | InterruptedException | CxConfig.InvalidCLIConfigException | CxException e) {
                 LOGGER.warnInProduction(e);
