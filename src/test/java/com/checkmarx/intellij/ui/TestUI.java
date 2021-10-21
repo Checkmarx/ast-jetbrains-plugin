@@ -107,9 +107,9 @@ public class TestUI extends BaseUITest {
 
     private void clearSelection() {
         waitFor(() -> {
-            if (findScanSelection().hasText("Scan: ...")
-                || findBranchSelection().hasText("Branch: ...")
-                || findProjectSelection().hasText("Project: ...")) {
+            if (!findScanSelection().findAllText("Scan: ...").isEmpty()
+                || !findBranchSelection().findAllText("Branch: ...").isEmpty()
+                || !findProjectSelection().findAllText("Project: ...").isEmpty()) {
                 return false;
             }
             click("//div[@myaction.key='RESET_ACTION']");

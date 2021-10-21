@@ -2,6 +2,7 @@ package com.checkmarx.intellij.ui;
 
 import com.checkmarx.intellij.Environment;
 import com.intellij.remoterobot.RemoteRobot;
+import com.intellij.remoterobot.client.IdeaSideException;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.JButtonFixture;
 import com.intellij.remoterobot.fixtures.JTextFieldFixture;
