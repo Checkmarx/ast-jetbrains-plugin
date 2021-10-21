@@ -107,9 +107,12 @@ public class TestUI extends BaseUITest {
 
     private void clearSelection() {
         waitFor(() -> {
-            if (!findScanSelection().findAllText("Scan: ...").isEmpty()
-                || !findBranchSelection().findAllText("Branch: ...").isEmpty()
-                || !findProjectSelection().findAllText("Project: ...").isEmpty()) {
+            ActionButtonFixture scanSelection = findScanSelection();
+            ActionButtonFixture branchSelection = findBranchSelection();
+            ActionButtonFixture projectSelection = findProjectSelection();
+            if (!scanSelection.isShowing() || (scanSelection.hasText("Scan: ..."))
+                || (!branchSelection.isShowing() || branchSelection.hasText("Branch: ..."))
+                || (!projectSelection.isShowing() || projectSelection.hasText("Project: ..."))) {
                 return false;
             }
             click("//div[@myaction.key='RESET_ACTION']");
