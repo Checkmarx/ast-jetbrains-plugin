@@ -28,6 +28,7 @@ public class TestProject extends BaseTest {
         List<String> branches = Assertions.assertDoesNotThrow(() -> com.checkmarx.intellij.commands.Project.getBranches(
                 UUID.fromString(project.getID())));
         Assertions.assertTrue(branches.size() >= 1, branches.toString());
-        Assertions.assertTrue(branches.contains(Environment.BRANCH_NAME), Environment.BRANCH_NAME + " " + branches);
+        Assertions.assertTrue(branches.contains(Environment.BRANCH_NAME),
+                              String.format("Branch: %s Branch List: %s", Environment.BRANCH_NAME, branches));
     }
 }
