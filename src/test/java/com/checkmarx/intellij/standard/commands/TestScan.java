@@ -22,8 +22,15 @@ public class TestScan extends BaseTest {
     public void testGetList() {
         Project project = getEnvProject();
         List<com.checkmarx.ast.scan.Scan> scans
-                = Assertions.assertDoesNotThrow(() -> Scan.getList(project.getID()));
-        Assertions.assertTrue(scans.size() > 0);
+                = Assertions.assertDoesNotThrow(() -> Scan.getList(project.getID(), Environment.BRANCH_NAME));
+        String msg = String.format("project: %s branch: %s scans: %d", project.getID(), Environment.BRANCH_NAME, scans.size());
+        Assertions.assertTrue(scans.size() > 0, msg);
+        Assertions.assertTrue(scans.size() <= 10000, msg);
+        for (com.checkmarx.ast.scan.Scan scan : scans) {
+            Assertions.assertEquals("Completed", scan.getStatus());
+            Assertions.assertEquals(Environment.BRANCH_NAME, scan.getBranch());
+            Assertions.assertEquals(getEnvProject().getID(), scan.getProjectID());
+        }
     }
 
     @Test

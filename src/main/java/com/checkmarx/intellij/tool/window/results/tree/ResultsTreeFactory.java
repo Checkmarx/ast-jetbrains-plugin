@@ -76,14 +76,13 @@ public class ResultsTreeFactory {
             if (child == null) {
                 // if the parent was not found, create a new one
                 child = new NonLeafNode(childKey);
-                parent.add(child);
-            } else {
-                // parent found, we are adding a new leaf to its subtree
-                parent.incrementChildren();
+                parent.add(child, groupBy.getComparator());
             }
+            parent.incrementSubTreeSize();
             parent = child;
         }
-        parent.add(new ResultNode(result, project));
+        parent.add(new ResultNode(result, project), String::compareTo);
+        parent.incrementSubTreeSize();
     }
 
     @NotNull

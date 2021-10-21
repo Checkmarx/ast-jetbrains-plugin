@@ -14,7 +14,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -64,25 +63,24 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
      * Remove all children and repopulate by getting a project's list of scans.
      *
      * @param projectId selected project
+     * @param branch    selected branch
      */
-    void refresh(String projectId) {
+    void refresh(String projectId, String branch) {
         setEnabled(false);
         removeAll();
         CompletableFuture.supplyAsync((Supplier<List<com.checkmarx.ast.scan.Scan>>) () -> {
             try {
-                return StringUtils.isBlank(projectId)
-                       ? Scan.getList()
-                       : Scan.getList(projectId);
+                return StringUtils.isBlank(projectId) || StringUtils.isBlank(branch)
+                       ? Collections.emptyList()
+                       : Scan.getList(projectId, branch);
             } catch (IOException | URISyntaxException | InterruptedException | CxConfig.InvalidCLIConfigException | CxException e) {
                 LOGGER.warnInProduction(e);
                 return Collections.emptyList();
             }
         }).thenAccept((List<com.checkmarx.ast.scan.Scan> scans) -> {
             ApplicationManager.getApplication().invokeLater(() -> {
-                if (CollectionUtils.isNotEmpty(scans)) {
-                    for (com.checkmarx.ast.scan.Scan scan : scans) {
-                        add(new Action(scan.getID(), formatScan(scan)));
-                    }
+                for (com.checkmarx.ast.scan.Scan scan : scans) {
+                    add(new Action(scan.getID(), formatScan(scan)));
                 }
                 setEnabled(true);
                 refreshPanel(project);

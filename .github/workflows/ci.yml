@@ -1,16 +1,21 @@
 name: AST Jetbrains Plugin CI
+
 on: [ pull_request, workflow_dispatch ]
+
 env:
   CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
   CX_APIKEY: ${{ secrets.CX_APIKEY }}
   CX_TENANT: ${{ secrets.CX_TENANT }}
   CX_TEST_REPO: ${{ secrets.CX_TEST_REPO }}
   CX_TEST_SCAN: ${{ secrets.CX_TEST_SCAN }}
+  CX_TEST_BRANCH: ${{ secrets.CX_TEST_BRANCH }}
   CX_TEST_PROJECT: ${{ secrets.CX_TEST_PROJECT }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 concurrency:
   group: ${{ github.head_ref }}
   cancel-in-progress: true
+
 jobs:
   testUI:
     needs: [ testIntegration ]

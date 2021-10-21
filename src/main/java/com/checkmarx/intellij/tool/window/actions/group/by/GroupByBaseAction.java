@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 public abstract class GroupByBaseAction extends ToggleAction implements CxToolWindowAction {
 
 
-    private boolean selected = GroupBy.DEFAULT_GROUP_BY.equals(getGroupBy());
+    private boolean selected = GroupBy.DEFAULT_GROUP_BY.contains(getGroupBy());
 
     public GroupByBaseAction(@NotNull Supplier<@NlsActions.ActionText String> dynamicText) {
         super(dynamicText);
