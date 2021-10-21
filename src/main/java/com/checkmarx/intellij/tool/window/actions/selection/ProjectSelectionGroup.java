@@ -82,7 +82,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
             for (com.checkmarx.ast.project.Project p : projectList) {
                 add(new Action(p));
                 byId.put(p.getID(), p);
-                if (inherit && storedProject == null && p.getName().equals(project.getName())) {
+                if (inherit && storedProject == null && matchProject(p)) {
                     propertiesComponent.setValue(Constants.SELECTED_PROJECT_PROPERTY, p.getName());
                     refreshBranchGroup(p, true);
                 } else if (p.getName().equals(storedProject)) {
@@ -125,6 +125,11 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
         propertiesComponent.setValue(Constants.SELECTED_PROJECT_PROPERTY, p.getName());
         branchSelectionGroup.clear();
         refreshBranchGroup(p, false);
+    }
+
+    private boolean matchProject(com.checkmarx.ast.project.Project astProject) {
+        return astProject.getName().equals(project.getName()) ||
+               (getRootRepository() != null && getRootRepository().getPresentableUrl().endsWith(astProject.getName()));
     }
 
     /**

@@ -8,6 +8,7 @@ import com.intellij.remoterobot.fixtures.JTextFieldFixture;
 import com.intellij.remoterobot.search.locators.Locators;
 import com.intellij.remoterobot.stepsProcessing.StepLogger;
 import com.intellij.remoterobot.stepsProcessing.StepWorker;
+import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.UtilsKt;
 import org.intellij.lang.annotations.Language;
@@ -27,6 +28,8 @@ public abstract class BaseUITest {
     protected static final String EXPAND_ACTION = "//div[@myaction.key='EXPAND_ALL_ACTION']";
     @Language("XPath")
     protected static final String COLLAPSE_ACTION = "//div[@myaction.key='COLLAPSE_ALL_ACTION']";
+    @Language("XPath")
+    protected static final String GROUP_BY_ACTION = "//div[@myicon='groupBy.svg']";
     @Language("XPath")
     protected static final String CLONE_BUTTON = "//div[@text.key='clone.dialog.clone.button']";
     @Language("XPath")
@@ -67,6 +70,17 @@ public abstract class BaseUITest {
         } else {
             log("Tests already initialized, skipping");
         }
+    }
+
+    protected static void enter(String value) {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.enterText(value);
+        waitFor(() -> hasAnyComponent("//div[@visible_text='" + value + "']"));
+        keyboard.enter();
+    }
+
+    protected static void click(@Language("XPath") String xpath) {
+        find(xpath).click();
     }
 
     protected static ComponentFixture find(@Language("XPath") String xpath) {

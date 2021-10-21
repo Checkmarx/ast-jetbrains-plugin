@@ -5,8 +5,6 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
-import com.intellij.dvcs.repo.Repository;
-import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -20,7 +18,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 /**
  * Action group for selecting a branch in the UI.
@@ -129,20 +126,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
      */
     @Nullable
     private String getActiveBranch() {
-        List<Repository> repositories = VcsRepositoryManager.getInstance(project)
-                                                            .getRepositories()
-                                                            .stream()
-                                                            .sorted(Comparator.comparing(r -> r.getRoot()
-                                                                                               .toNioPath()))
-                                                            .collect(Collectors.toUnmodifiableList());
-        Repository repository = repositories.get(0);
-        for (int i = 1; i < repositories.size(); i++) {
-            if (!repositories.get(i).getRoot().toNioPath().startsWith(repository.getRoot().toNioPath())) {
-                repository = null;
-                break;
-            }
-        }
-        return repository == null ? null : repository.getCurrentBranchName();
+        return getRootRepository() == null ? null : getRootRepository().getCurrentBranchName();
     }
 
     /**

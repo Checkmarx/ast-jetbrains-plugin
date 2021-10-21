@@ -5,6 +5,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
 import com.intellij.remoterobot.fixtures.*;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import java.awt.event.KeyEvent;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class TestUI extends BaseUITest {
 
@@ -33,11 +35,11 @@ public class TestUI extends BaseUITest {
         setFields();
         setField(Constants.FIELD_NAME_API_KEY, "invalid");
 
-        find(JButtonFixture.class, VALIDATE_BUTTON).click();
+        click(VALIDATE_BUTTON);
 
         waitFor(() -> !hasAnyComponent("//div[@accessiblename.key='VALIDATE_IN_PROGRESS']"));
         Assertions.assertFalse(hasAnyComponent("//div[@accessiblename.key='VALIDATE_SUCCESS']"));
-        find("//div[@text.key='button.cancel']").click();
+        click("//div[@text.key='button.cancel']");
     }
 
     @Test
@@ -50,42 +52,17 @@ public class TestUI extends BaseUITest {
     public void testSelection() {
         applySettings();
         setInvalidScanId();
-        waitFor(() -> findProjectSelection().isEnabled());
-        waitFor(() -> {
-            findProjectSelection().click();
-            return find(JListFixture.class,
-                        "//div[@class='MyList']").findAllText().size() > 0;
-        });
-        new Keyboard(remoteRobot).enterText(Environment.PROJECT_NAME);
-        new Keyboard(remoteRobot).enter();
-        waitFor(() -> {
-            ActionButtonFixture scanSelection = findScanSelection();
-            return scanSelection.isEnabled() && scanSelection.hasText("Scan: none");
-        });
-        waitFor(() -> {
-            findScanSelection().click();
-            return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
-                   && findAll(JListFixture.class,
-                              "//div[@class='MyList']").get(0).findAllText().size() > 0;
-        });
-        new Keyboard(remoteRobot).enterText(Environment.SCAN_ID);
-        new Keyboard(remoteRobot).enter();
+        clearSelection();
+        testSelectionAction(this::findProjectSelection, "Project", Environment.PROJECT_NAME);
+        testSelectionAction(this::findBranchSelection, "Branch", Environment.BRANCH_NAME);
+        testSelectionAction(this::findScanSelection, "Scan", Environment.SCAN_ID);
         waitFor(() -> findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0)));
     }
 
     @Test
     public void testClearSelection() {
         testSelection();
-        waitFor(() -> {
-            if (findScanSelection().hasText("Scan: ...") || findProjectSelection().hasText("Project: ...")) {
-                return false;
-            }
-            find("//div[@myaction.key='RESET_ACTION']").click();
-            return hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
-                   && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
-                   && !hasAnyComponent(TREE)
-                   && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText());
-        });
+        clearSelection();
     }
 
     @NotNull
@@ -94,8 +71,26 @@ public class TestUI extends BaseUITest {
     }
 
     @NotNull
+    private ActionButtonFixture findBranchSelection() {
+        return findSelection("Branch");
+    }
+
+    @NotNull
     private ActionButtonFixture findScanSelection() {
         return findSelection("Scan");
+    }
+
+    private void testSelectionAction(Supplier<ActionButtonFixture> selectionSupplier, String prefix, String value) {
+        waitFor(() -> {
+            ActionButtonFixture selection = selectionSupplier.get();
+            return findProjectSelection().isEnabled() && selection.hasText(prefix + ": none");
+        });
+        waitFor(() -> {
+            selectionSupplier.get().click();
+            return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
+                   && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() > 0;
+        });
+        enter(value);
     }
 
     @NotNull
@@ -110,6 +105,22 @@ public class TestUI extends BaseUITest {
                 s));
     }
 
+    private void clearSelection() {
+        waitFor(() -> {
+            if (findScanSelection().hasText("Scan: ...")
+                || findBranchSelection().hasText("Branch: ...")
+                || findProjectSelection().hasText("Project: ...")) {
+                return false;
+            }
+            click("//div[@myaction.key='RESET_ACTION']");
+            return hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
+                   && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
+                   && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
+                   && !hasAnyComponent(TREE)
+                   && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText());
+        });
+    }
+
     private void applySettings() {
         openCxToolWindow();
         openSettings();
@@ -118,20 +129,20 @@ public class TestUI extends BaseUITest {
              String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
              waitDuration).setValue(false);
         // click the validation button
-        find(JButtonFixture.class, VALIDATE_BUTTON).click();
+        click(VALIDATE_BUTTON);
         // wait for the validation success label
         // the test fails if not found
         find(ComponentFixture.class, "//div[@accessiblename.key='VALIDATE_SUCCESS']", waitDuration);
-        find("//div[@text.key='button.ok']").click();
+        click("//div[@text.key='button.ok']");
     }
 
     private void openSettings() {
         openCxToolWindow();
         waitFor(() -> {
             if (hasAnyComponent(SETTINGS_ACTION)) {
-                find(SETTINGS_ACTION).click();
+                click(SETTINGS_ACTION);
             } else if (hasAnyComponent(SETTINGS_BUTTON)) {
-                find(SETTINGS_BUTTON).click();
+                click(SETTINGS_BUTTON);
             }
             return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_SERVER_URL));
         });
@@ -158,29 +169,17 @@ public class TestUI extends BaseUITest {
                 Environment.SCAN_ID,
                 Environment.SCAN_ID)));
         // navigate the tree for a result
+        expand();
+        collapse();
+        severity();
+        queryName();
         JTreeFixture tree = find(JTreeFixture.class, TREE);
-        waitFor(() -> {
-            find(EXPAND_ACTION).click();
-            return tree.findAllText().size() > 1;
-        });
-        waitFor(() -> {
-            find(COLLAPSE_ACTION).click();
-            return tree.findAllText().size() == 1;
-        });
         navigate(tree, "Scan", 2);
         navigate(tree, "sast", 4);
-        navigate(tree, "HIGH", 6);
-        List<String> selectedPaths = tree.collectSelectedPaths().get(0);
-        // 3 is scan -> sast -> high
-        Assertions.assertEquals(3, selectedPaths.size());
-        String selected = selectedPaths.get(2);
-        Assertions.assertTrue(selected.startsWith("HIGH"));
-        // open first result for sast -> high
         int row = -1;
         for (int i = 0; i < tree.collectRows().size(); i++) {
-            if (selected.equals(tree.getValueAtRow(i))) {
+            if (tree.getValueAtRow(i).contains(".java:")) {
                 row = i;
-                tree.clickRow(i + 1);
                 break;
             }
         }
@@ -195,12 +194,14 @@ public class TestUI extends BaseUITest {
             findAll(LINK_LABEL).get(0).click();
             return hasAnyComponent(EDITOR);
         });
+        Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
         EditorFixture editor = find(EditorFixture.class, EDITOR, waitDuration);
         // check we opened the correct line:column
         // token is the string in a link label, enclosed in parens, e.g. (token)
-        String token = findAll(LINK_LABEL).get(0).getData().getAll().get(2).getText().trim();
+        List<RemoteText> labelText = findAll(LINK_LABEL).get(0).getData().getAll();
+        String token = labelText.get(labelText.size() - 1).getText().trim();
         // cleanToken removes the parens
-        String cleanToken = token.substring(1, token.length() - 2);
+        String cleanToken = token.substring(token.indexOf('(') + 1, token.lastIndexOf(')'));
         String editorAtCaret = editor.getText().substring(editor.getCaretOffset());
         Assertions.assertTrue(editorAtCaret.startsWith(cleanToken),
                               String.format("editor: %s | token: %s",
@@ -208,14 +209,53 @@ public class TestUI extends BaseUITest {
                                             token));
     }
 
+    private void queryName() {
+        groupAction("Query");
+    }
+
+    private void severity() {
+        groupAction("Severity");
+    }
+
+    private void groupAction(String value) {
+        openGroupBy();
+        waitFor(() -> {
+            enter(value);
+            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
+        });
+    }
+
+    private void openGroupBy() {
+        expand();
+        waitFor(() -> {
+            click(GROUP_BY_ACTION);
+            return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
+                   && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() == 2;
+        });
+    }
+
+    private void collapse() {
+        waitFor(() -> {
+            click(COLLAPSE_ACTION);
+            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
+        });
+    }
+
+    private void expand() {
+        waitFor(() -> {
+            click(EXPAND_ACTION);
+            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
+        });
+    }
+
     private void setInvalidScanId() {
         waitFor(() -> {
-            find(JTextFieldFixture.class, SCAN_FIELD).click();
+            click(SCAN_FIELD);
             return find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus();
         });
         find(JTextFieldFixture.class, SCAN_FIELD).setText("inva-lid");
         waitFor(() -> {
-            find(JTextFieldFixture.class, SCAN_FIELD).click();
+            click(SCAN_FIELD);
             if (!find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus()) {
                 return false;
             }
