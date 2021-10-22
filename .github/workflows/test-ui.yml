@@ -15,7 +15,6 @@ env:
 
 jobs:
   testUI:
-    needs: [ testIntegration ]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
