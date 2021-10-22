@@ -15,18 +15,7 @@ env:
 
 jobs:
   testUI:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include:
-          - os: macos-latest
-            runIde: ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
-            report-name: test-fails-report-mac
-            report-path: build/reports
-            idea-log: idea-mac.log
-            curl: curl
+    runs-on: macos-latest
     steps:
       # Check out current repository
       - name: Fetch Sources
@@ -42,10 +31,10 @@ jobs:
         run: ./gradlew clean
       # Run IDEA prepared for UI testing
       - name: Run IDE
-        run: ${{ matrix.runIde }}
+        run: ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
       # Wait for IDEA to be started
       - name: Health Check
-        run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
+        run: curl --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
       # Run tests
       - name: Tests
         run: |
@@ -56,14 +45,12 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.report-name }}
-          path: |
-            ${{ matrix.report-path }}
+          name: test-fails-report
+          path: build/reports
       # Save idea log if tests fail
       - name: Save idea log
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.idea-log }}
-          path: |
-            idea.log
+          name: idea.log
+          path: idea.log
