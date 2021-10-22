@@ -179,8 +179,16 @@ public class TestUI extends BaseUITest {
         setInvalidScanId();
         scanField.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-        waitFor(() -> hasAnyComponent(String.format("//div[@class='Tree' and @visible_text='Scan %s']",
-                                                    Environment.SCAN_ID)));
+        waitFor(() -> {
+            if (scanField.isEnabled()) {
+                scanField.click();
+                if (scanField.getHasFocus()) {
+                    new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
+                }
+            }
+            return hasAnyComponent(String.format("//div[@class='Tree' and @visible_text='Scan %s']",
+                                          Environment.SCAN_ID));
+        });
     }
 
     private void checkResultsPanel() {
