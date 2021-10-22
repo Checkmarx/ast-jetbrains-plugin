@@ -31,7 +31,9 @@ jobs:
         run: ./gradlew clean
       # Run IDEA prepared for UI testing
       - name: Run IDE
-        run: start .\runIdeForUiTests.bat
+        run: |
+          Set-DisplayResolution -Width 1920 -Height 1080 -Force
+          start .\runIdeForUiTests.bat
       # Wait for IDEA to be started
       - name: Health Check
         run: curl.exe --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
