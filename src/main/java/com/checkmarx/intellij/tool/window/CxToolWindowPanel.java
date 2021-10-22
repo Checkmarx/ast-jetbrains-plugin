@@ -8,9 +8,10 @@ import com.checkmarx.intellij.project.ProjectResultsService;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
+import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction;
 import com.checkmarx.intellij.tool.window.actions.selection.ResetSelectionAction;
 import com.checkmarx.intellij.tool.window.actions.selection.RootGroup;
-import com.checkmarx.intellij.tool.window.results.tree.GroupBy;
 import com.checkmarx.intellij.tool.window.results.tree.ResultsTreeFactory;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
 import com.intellij.openapi.Disposable;
@@ -40,8 +41,10 @@ import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.*;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import static com.intellij.util.ui.JBUI.Panels.simplePanel;
@@ -105,6 +108,8 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                           .getMessageBus()
                           .connect(this)
                           .subscribe(SettingsListener.SETTINGS_APPLIED, r::run);
+        ApplicationManager.getApplication().getMessageBus().connect(this).subscribe(FilterBaseAction.FILTER_CHANGED,
+                                                                                    this::changeFilter);
 
         r.run();
     }
@@ -235,6 +240,15 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         drawTree();
     }
 
+
+    public void changeFilter() {
+        if (!Utils.validThread()) {
+            return;
+        }
+
+        drawTree();
+    }
+
     /**
      * Refresh and redraw the panel.
      * Getting and setting the same content forces swing to redraw without rebuilding all the objects.
@@ -336,7 +350,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
      * Draw the results tree
      */
     private void drawTree() {
-        if (!Utils.validThread()) {
+        if (!Utils.validThread() || currentState.getScanId() == null) {
             return;
         }
 
@@ -344,6 +358,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                                                           currentState.getResultOutput(),
                                                           project,
                                                           groupByList,
+                                                          GlobalSettingsState.getInstance().getFilters(),
                                                           currentState.isLatest());
         currentTree.addTreeSelectionListener(new OnSelectShowDetail());
         scanTreeSplitter.setSecondComponent(TreeUtils.treePanel(currentTree));

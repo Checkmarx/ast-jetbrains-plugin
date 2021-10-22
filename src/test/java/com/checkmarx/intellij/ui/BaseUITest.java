@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ui;
 
 import com.checkmarx.intellij.Environment;
+import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.RemoteRobot;
-import com.intellij.remoterobot.client.IdeaSideException;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.JButtonFixture;
 import com.intellij.remoterobot.fixtures.JTextFieldFixture;
@@ -90,7 +90,7 @@ public abstract class BaseUITest {
 
     protected static <T extends ComponentFixture> T find(Class<T> cls,
                                                          @Language("XPath") String xpath) {
-        return find(cls, xpath, Duration.ofSeconds(2));
+        return find(cls, xpath, Duration.ofSeconds(30));
     }
 
     protected static <T extends ComponentFixture> T find(Class<T> cls,
@@ -135,6 +135,11 @@ public abstract class BaseUITest {
         if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
             find(xpath).click();
         }
+    }
+
+    @Language("XPath")
+    protected static String filterXPath(Severity filter) {
+        return String.format("//div[@tooltiptext='%s']", filter.tooltipSupplier().get());
     }
 
     protected static void log(String msg) {

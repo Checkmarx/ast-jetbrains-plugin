@@ -52,6 +52,15 @@
             <action id="Checkmarx.ResetSelection"
                     class="com.checkmarx.intellij.tool.window.actions.selection.ResetSelectionAction"/>
             <separator/>
+            <action id="Checkmarx.High"
+                    class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$HighFilter"/>
+            <action id="Checkmarx.Medium"
+                    class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$MediumFilter"/>
+            <action id="Checkmarx.Low"
+                    class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$LowFilter"/>
+            <action id="Checkmarx.Info"
+                    class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$InfoFilter"/>
+            <separator/>
             <group id="Checkmarx.GroupBy"
                    icon="AllIcons.Actions.GroupBy"
                    popup="true"

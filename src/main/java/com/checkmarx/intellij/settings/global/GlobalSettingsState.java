@@ -4,18 +4,23 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.xmlb.XmlSerializerUtil;
+import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * State object for not sensitive global settings for the plugin.
@@ -45,6 +50,9 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
 
     @NotNull
     private String additionalParameters = "";
+
+    @NotNull
+    private Set<Severity> filters = new HashSet<>(Severity.DEFAULT_SEVERITIES);
 
     @Override
     public @Nullable GlobalSettingsState getState() {

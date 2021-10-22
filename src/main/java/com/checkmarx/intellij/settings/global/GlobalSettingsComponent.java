@@ -18,6 +18,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.components.fields.ExpandableTextField;
+import com.intellij.util.messages.MessageBus;
 import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
 
@@ -37,6 +38,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private final static GlobalSettingsState SETTINGS_STATE = GlobalSettingsState.getInstance();
     private final static GlobalSettingsSensitiveState SENSITIVE_SETTINGS_STATE
             = GlobalSettingsSensitiveState.getInstance();
+
+    private final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
 
     @Getter
     private final JPanel mainPanel = new JPanel();
@@ -76,10 +79,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     public void apply() {
         SETTINGS_STATE.apply(getStateFromFields());
         SENSITIVE_SETTINGS_STATE.apply(getSensitiveStateFromFields());
-        ApplicationManager.getApplication()
-                          .getMessageBus()
-                          .syncPublisher(SettingsListener.SETTINGS_APPLIED)
-                          .settingsApplied();
+        messageBus.syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied();
     }
 
     @Override

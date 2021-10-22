@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.tool.window.results.tree;
+package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.ast.results.result.Result;
 

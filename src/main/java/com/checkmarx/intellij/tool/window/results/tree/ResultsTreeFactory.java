@@ -5,6 +5,8 @@ import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.tool.window.GroupBy;
+import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.NonLeafNode;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
 import com.intellij.openapi.project.Project;
@@ -13,10 +15,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Factory for result trees
@@ -26,11 +25,12 @@ public class ResultsTreeFactory {
     /**
      * Get results from the CLI in a tree format.
      *
-     * @param scanId      scan id
-     * @param results     list of results
-     * @param project     context project
-     * @param groupByList list of {@link GroupBy}
-     * @param latest      whether the scan id is the latest
+     * @param scanId            scan id
+     * @param results           list of results
+     * @param project           context project
+     * @param groupByList       list of {@link GroupBy}
+     * @param enabledSeverities set of enabled {@link Severity}
+     * @param latest            whether the scan id is the latest
      * @return tree with results
      */
     @NotNull
@@ -38,16 +38,19 @@ public class ResultsTreeFactory {
                                         Results results,
                                         Project project,
                                         List<GroupBy> groupByList,
+                                        Set<Severity> enabledSeverities,
                                         boolean latest) {
 
         Tree tree = createTree(scanId, latest);
 
         Map<String, NonLeafNode> engineNodes = new HashMap<>();
         for (Result result : results.getResults()) {
-            addResultToEngine(project,
-                              groupByList,
-                              engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
-                              result);
+            if (enabledSeverities.contains(Severity.valueOf(result.getSeverity()))) {
+                addResultToEngine(project,
+                                  groupByList,
+                                  engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
+                                  result);
+            }
         }
 
         for (DefaultMutableTreeNode node : engineNodes.values()) {
