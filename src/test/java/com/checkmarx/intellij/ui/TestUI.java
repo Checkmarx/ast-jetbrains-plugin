@@ -102,7 +102,7 @@ public class TestUI extends BaseUITest {
     private void testSelectionAction(Supplier<ActionButtonFixture> selectionSupplier, String prefix, String value) {
         waitFor(() -> {
             ActionButtonFixture selection = selectionSupplier.get();
-            return findProjectSelection().isEnabled() && selection.hasText(prefix + ": none");
+            return selection.isEnabled() && selection.hasText(prefix + ": none");
         });
         waitFor(() -> {
             selectionSupplier.get().click();
@@ -114,8 +114,12 @@ public class TestUI extends BaseUITest {
 
     @NotNull
     private ActionButtonFixture findSelection(String s) {
+        @Language("XPath") String xpath = String.format(
+                "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
+                s);
+        waitFor(() -> hasAnyComponent(xpath));
         return find(ActionButtonFixture.class,
-                    String.format("//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]", s));
+                    xpath);
     }
 
     private boolean hasSelection(String s) {
