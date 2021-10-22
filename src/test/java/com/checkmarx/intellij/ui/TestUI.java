@@ -4,10 +4,12 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
+import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.apache.commons.lang3.StringUtils;
+import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,23 @@ public class TestUI extends BaseUITest {
         applySettings();
         getResults();
         checkResultsPanel();
+    }
+
+    @Test
+    public void testFilters() {
+        applySettings();
+        getResults();
+        waitForScanIdSelection();
+        // disable all severities and check for empty tree
+        for (Severity s : Severity.values()) {
+            toggleFilter(s, false);
+        }
+        navigate(find(JTreeFixture.class, TREE), "Scan", 1);
+        // enable all severities and check for at least 1 result
+        for (Severity s : Severity.values()) {
+            toggleFilter(s, true);
+        }
+        navigate(find(JTreeFixture.class, TREE), "Scan", 2);
     }
 
     @Test
@@ -162,15 +181,7 @@ public class TestUI extends BaseUITest {
     }
 
     private void checkResultsPanel() {
-        // check project selection for the project name
-        waitFor(() -> hasAnyComponent(String.format(
-                "//div[@class='ActionButtonWithText' and @visible_text='Project: %s']",
-                Environment.PROJECT_NAME)));
-        // check scan selection for the scan id
-        waitFor(() -> hasAnyComponent(String.format(
-                "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
-                Environment.SCAN_ID,
-                Environment.SCAN_ID)));
+        waitForScanIdSelection();
         // navigate the tree for a result
         expand();
         collapse();
@@ -210,6 +221,14 @@ public class TestUI extends BaseUITest {
                               String.format("editor: %s | token: %s",
                                             editorAtCaret.substring(0, token.length()),
                                             token));
+    }
+
+    private void waitForScanIdSelection() {
+        // check scan selection for the scan id
+        waitFor(() -> hasAnyComponent(String.format(
+                "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
+                Environment.SCAN_ID,
+                Environment.SCAN_ID)));
     }
 
     private void queryName() {
@@ -300,5 +319,21 @@ public class TestUI extends BaseUITest {
                                                              .getText()
                                                              .contains(Bundle.message(
                                                                      Resource.GETTING_RESULTS)));
+    }
+
+    private void toggleFilter(Severity severity, boolean enabled) {
+        @Language("XPath") String xpath = filterXPath(severity);
+        waitFor(() -> {
+            click(xpath);
+            if (!hasAnyComponent(xpath)) {
+                return false;
+            }
+
+            ActionButtonFixture filter = find(ActionButtonFixture.class, xpath);
+            log(filter.popState().name());
+            return filter.popState().equals(enabled
+                                            ? ActionButtonFixture.PopState.PUSHED
+                                            : ActionButtonFixture.PopState.POPPED);
+        });
     }
 }
