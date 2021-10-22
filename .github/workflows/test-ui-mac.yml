@@ -1,4 +1,4 @@
-name: Test UI
+name: Test UI MacOS
 
 on:
   workflow_dispatch:
@@ -15,28 +15,12 @@ env:
 
 jobs:
   testUI:
-    needs: [ testIntegration ]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       max-parallel: 1
       matrix:
         include:
-          - os: ubuntu-latest
-            runIde: |
-              export DISPLAY=:99.0
-              Xvfb -ac :99 -screen 0 1920x1080x16 &
-              ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
-            report-name: test-fails-report-linux
-            report-path: build/reports
-            idea-log: idea-linux.log
-            curl: curl
-          - os: windows-latest
-            runIde: start .\runIdeForUiTests.bat
-            report-name: test-fails-report-windows
-            report-path: build/reports
-            idea-log: idea-windows.log
-            curl: curl.exe
           - os: macos-latest
             runIde: ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
             report-name: test-fails-report-mac
