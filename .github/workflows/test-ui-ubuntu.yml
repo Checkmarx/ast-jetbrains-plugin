@@ -15,21 +15,7 @@ env:
 
 jobs:
   testUI:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include:
-          - os: ubuntu-latest
-            runIde: |
-              export DISPLAY=:99.0
-              Xvfb -ac :99 -screen 0 1920x1080x16 &
-              ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
-            report-name: test-fails-report-linux
-            report-path: build/reports
-            idea-log: idea-linux.log
-            curl: curl
+    runs-on: ubuntu-latest
     steps:
       # Check out current repository
       - name: Fetch Sources
@@ -45,28 +31,27 @@ jobs:
         run: ./gradlew clean
       # Run IDEA prepared for UI testing
       - name: Run IDE
-        run: ${{ matrix.runIde }}
+        run: |
+          export DISPLAY=:99.0
+          Xvfb -ac :99 -screen 0 1920x1080x16 &
+          ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
       # Wait for IDEA to be started
       - name: Health Check
-        run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
+        run: curl --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
       # Run tests
       - name: Tests
-        run: |
-          "/Library/Application Support/VMware Tools/vmware-resolutionSet" 1920 1080
-          ./gradlew test --info --tests com.checkmarx.intellij.ui*
+        run: ./gradlew test --info --tests com.checkmarx.intellij.ui*
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.report-name }}
-          path: |
-            ${{ matrix.report-path }}
+          name: test-fails-report
+          path: build/reports
       # Save idea log if tests fail
       - name: Save idea log
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.idea-log }}
-          path: |
-            idea.log
+          name: idea.log
+          path: idea.log

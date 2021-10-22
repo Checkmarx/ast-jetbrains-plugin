@@ -15,18 +15,7 @@ env:
 
 jobs:
   testUI:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include:
-          - os: windows-latest
-            runIde: start .\runIdeForUiTests.bat
-            report-name: test-fails-report-windows
-            report-path: build/reports
-            idea-log: idea-windows.log
-            curl: curl.exe
+    runs-on: windows-latest
     steps:
       # Check out current repository
       - name: Fetch Sources
@@ -42,28 +31,26 @@ jobs:
         run: ./gradlew clean
       # Run IDEA prepared for UI testing
       - name: Run IDE
-        run: ${{ matrix.runIde }}
+        run: |
+          Set-DisplayResolution -Width 1920 -Height 1080 -Force
+          start .\runIdeForUiTests.bat
       # Wait for IDEA to be started
       - name: Health Check
-        run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
+        run: curl.exe --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
       # Run tests
       - name: Tests
-        run: |
-          "/Library/Application Support/VMware Tools/vmware-resolutionSet" 1920 1080
-          ./gradlew test --info --tests com.checkmarx.intellij.ui*
+        run: ./gradlew test --info --tests com.checkmarx.intellij.ui*
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.report-name }}
-          path: |
-            ${{ matrix.report-path }}
+          name: test-fails-report
+          path: build/reports
       # Save idea log if tests fail
       - name: Save idea log
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.idea-log }}
-          path: |
-            idea.log
+          name: idea.log
+          path: idea.log
