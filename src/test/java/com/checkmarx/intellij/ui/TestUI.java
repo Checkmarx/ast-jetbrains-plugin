@@ -129,6 +129,13 @@ public class TestUI extends BaseUITest {
 
     private void clearSelection() {
         waitFor(() -> {
+            if (hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
+                && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
+                && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
+                && !hasAnyComponent(TREE)
+                && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
+                return true;
+            }
             ActionButtonFixture scanSelection = findScanSelection();
             ActionButtonFixture branchSelection = findBranchSelection();
             ActionButtonFixture projectSelection = findProjectSelection();
@@ -138,11 +145,7 @@ public class TestUI extends BaseUITest {
                 return false;
             }
             click("//div[@myaction.key='RESET_ACTION']");
-            return hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
-                   && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
-                   && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
-                   && !hasAnyComponent(TREE)
-                   && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText());
+            return false;
         });
     }
 
