@@ -1,4 +1,4 @@
-name: Test UI
+name: Test UI Windows
 
 on:
   workflow_dispatch:
