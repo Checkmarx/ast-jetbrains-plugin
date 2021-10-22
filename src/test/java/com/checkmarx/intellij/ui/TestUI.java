@@ -118,8 +118,7 @@ public class TestUI extends BaseUITest {
                 "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
                 s);
         waitFor(() -> hasAnyComponent(xpath));
-        return find(ActionButtonFixture.class,
-                    xpath);
+        return find(ActionButtonFixture.class, xpath);
     }
 
     private boolean hasSelection(String s) {
