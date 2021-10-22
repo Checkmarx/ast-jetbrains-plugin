@@ -102,7 +102,7 @@ public class TestUI extends BaseUITest {
     private void testSelectionAction(Supplier<ActionButtonFixture> selectionSupplier, String prefix, String value) {
         waitFor(() -> {
             ActionButtonFixture selection = selectionSupplier.get();
-            return findProjectSelection().isEnabled() && selection.hasText(prefix + ": none");
+            return selection.isEnabled() && selection.hasText(prefix + ": none");
         });
         waitFor(() -> {
             selectionSupplier.get().click();
@@ -114,8 +114,11 @@ public class TestUI extends BaseUITest {
 
     @NotNull
     private ActionButtonFixture findSelection(String s) {
-        return find(ActionButtonFixture.class,
-                    String.format("//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]", s));
+        @Language("XPath") String xpath = String.format(
+                "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
+                s);
+        waitFor(() -> hasAnyComponent(xpath));
+        return find(ActionButtonFixture.class, xpath);
     }
 
     private boolean hasSelection(String s) {
@@ -126,6 +129,13 @@ public class TestUI extends BaseUITest {
 
     private void clearSelection() {
         waitFor(() -> {
+            if (hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
+                && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
+                && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
+                && !hasAnyComponent(TREE)
+                && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
+                return true;
+            }
             ActionButtonFixture scanSelection = findScanSelection();
             ActionButtonFixture branchSelection = findBranchSelection();
             ActionButtonFixture projectSelection = findProjectSelection();
@@ -135,11 +145,7 @@ public class TestUI extends BaseUITest {
                 return false;
             }
             click("//div[@myaction.key='RESET_ACTION']");
-            return hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
-                   && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
-                   && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
-                   && !hasAnyComponent(TREE)
-                   && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText());
+            return false;
         });
     }
 
@@ -176,8 +182,16 @@ public class TestUI extends BaseUITest {
         setInvalidScanId();
         scanField.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-        waitFor(() -> hasAnyComponent(String.format("//div[@class='Tree' and @visible_text='Scan %s']",
-                                                    Environment.SCAN_ID)));
+        waitFor(() -> {
+            if (scanField.isEnabled()) {
+                scanField.click();
+                if (scanField.getHasFocus()) {
+                    new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
+                }
+            }
+            return hasAnyComponent(String.format("//div[@class='Tree' and @visible_text='Scan %s']",
+                                          Environment.SCAN_ID));
+        });
     }
 
     private void checkResultsPanel() {
