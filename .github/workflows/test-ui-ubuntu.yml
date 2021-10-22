@@ -30,18 +30,6 @@ jobs:
             report-path: build/reports
             idea-log: idea-linux.log
             curl: curl
-          - os: windows-latest
-            runIde: start .\runIdeForUiTests.bat
-            report-name: test-fails-report-windows
-            report-path: build/reports
-            idea-log: idea-windows.log
-            curl: curl.exe
-          - os: macos-latest
-            runIde: ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
-            report-name: test-fails-report-mac
-            report-path: build/reports
-            idea-log: idea-mac.log
-            curl: curl
     steps:
       # Check out current repository
       - name: Fetch Sources

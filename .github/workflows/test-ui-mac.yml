@@ -1,0 +1,69 @@
+name: Test UI
+
+on:
+  workflow_dispatch:
+
+env:
+  CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
+  CX_APIKEY: ${{ secrets.CX_APIKEY }}
+  CX_TENANT: ${{ secrets.CX_TENANT }}
+  CX_TEST_REPO: ${{ secrets.CX_TEST_REPO }}
+  CX_TEST_SCAN: ${{ secrets.CX_TEST_SCAN }}
+  CX_TEST_BRANCH: ${{ secrets.CX_TEST_BRANCH }}
+  CX_TEST_PROJECT: ${{ secrets.CX_TEST_PROJECT }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  testUI:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - os: macos-latest
+            runIde: ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
+            report-name: test-fails-report-mac
+            report-path: build/reports
+            idea-log: idea-mac.log
+            curl: curl
+    steps:
+      # Check out current repository
+      - name: Fetch Sources
+        uses: actions/checkout@v2.3.5
+      # Setup Java 11 environment for the next steps
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: zulu
+          java-version: 11
+      # Perform clean before testing
+      - name: Clean
+        run: ./gradlew clean
+      # Run IDEA prepared for UI testing
+      - name: Run IDE
+        run: ${{ matrix.runIde }}
+      # Wait for IDEA to be started
+      - name: Health Check
+        run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
+      # Run tests
+      - name: Tests
+        run: |
+          "/Library/Application Support/VMware Tools/vmware-resolutionSet" 1920 1080
+          ./gradlew test --info --tests com.checkmarx.intellij.ui*
+      # Save report if tests fail
+      - name: Save fails report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.report-name }}
+          path: |
+            ${{ matrix.report-path }}
+      # Save idea log if tests fail
+      - name: Save idea log
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.idea-log }}
+          path: |
+            idea.log
