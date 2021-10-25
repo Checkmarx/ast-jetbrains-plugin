@@ -177,6 +177,7 @@ public class TestUI extends BaseUITest {
     }
 
     private void getResults() {
+        waitFor(() -> hasAnyComponent(SCAN_FIELD));
         JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
         waitFor(() -> hasSelection("Project") && hasSelection("Scan"));
         setInvalidScanId();
