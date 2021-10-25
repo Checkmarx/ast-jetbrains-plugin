@@ -48,7 +48,7 @@ public abstract class BaseUITest {
 
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
 
-    private static final Integer waitDurationVal = Integer.getInteger("ui.wait.duration", 300);
+    private static final Integer waitDurationVal = Integer.getInteger("uiWaitDuration", 300);
     protected static final Duration waitDuration = Duration.ofSeconds(waitDurationVal);
 
     private static boolean initialized = false;

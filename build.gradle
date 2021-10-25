@@ -45,6 +45,7 @@ downloadRobotServerPlugin {
 
 test {
     useJUnitPlatform()
+    systemProperties project.properties.subMap(["uiWaitDuration"])
     testLogging {
         showStandardStreams = true
     }
