@@ -47,13 +47,17 @@ public abstract class BaseUITest {
     protected static final String EDITOR = "//div[@class='EditorComponentImpl']";
 
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
-    protected static final Duration waitDuration = Duration.ofSeconds(600);
+
+    private static final Integer waitDurationVal = Integer.getInteger("ui.wait.duration", 300);
+    protected static final Duration waitDuration = Duration.ofSeconds(waitDurationVal);
+
     private static boolean initialized = false;
 
     @BeforeAll
     public static void init() {
         if (!initialized) {
             log("Initializing the tests");
+            log("Wait duration set for " + waitDurationVal);
             StepWorker.registerProcessor(new StepLogger());
             if (hasAnyComponent("//div[@class='FlatWelcomeFrame']")) {
                 find("//div[@defaulticon='fromVCSTab.svg']").click();
