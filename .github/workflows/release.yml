@@ -78,9 +78,24 @@ jobs:
               export DISPLAY=:99.0
               Xvfb -ac :99 -screen 0 1920x1080x16 &
               ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
+            runTests: ./gradlew test --info --tests com.checkmarx.intellij.ui*
             report-name: test-fails-report-linux
             report-path: build/reports
             idea-log: idea-linux.log
+            curl: curl
+          - os: windows-latest
+            runIde: start .\runIdeForUiTests.bat
+            runTests: ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
+            report-name: test-fails-report-windows
+            report-path: build/reports
+            idea-log: idea-windows.log
+            curl: curl.exe
+          - os: macos-latest
+            runIde: ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
+            runTests: ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
+            report-name: test-fails-report-mac
+            report-path: build/reports
+            idea-log: idea-mac.log
             curl: curl
     steps:
       # Check out current repository
@@ -100,10 +115,10 @@ jobs:
         run: ${{ matrix.runIde }}
       # Wait for IDEA to be started
       - name: Health Check
-        run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
+        run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "15" --retry-connrefused "http://127.0.0.1:8580"
       # Run tests
       - name: Tests
-        run: ./gradlew test --info --tests com.checkmarx.intellij.ui*
+        run: ${{ matrix.runTests }}
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
