@@ -130,10 +130,12 @@ public class TestUI extends BaseUITest {
     private void clearSelection() {
         waitFor(() -> {
             if (hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
+                && findProjectSelection().isEnabled()
                 && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
                 && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
                 && !hasAnyComponent(TREE)
                 && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
+                log("clear selection done");
                 return true;
             }
             ActionButtonFixture scanSelection = findScanSelection();
@@ -142,8 +144,10 @@ public class TestUI extends BaseUITest {
             if (!scanSelection.isShowing() || (scanSelection.hasText("Scan: ..."))
                 || (!branchSelection.isShowing() || branchSelection.hasText("Branch: ..."))
                 || (!projectSelection.isShowing() || projectSelection.hasText("Project: ..."))) {
+                log("clear selection still in progress");
                 return false;
             }
+            log("clicking refresh action button");
             click("//div[@myaction.key='RESET_ACTION']");
             return false;
         });
