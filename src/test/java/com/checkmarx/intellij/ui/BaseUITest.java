@@ -16,6 +16,7 @@ import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.BeforeAll;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -145,6 +146,6 @@ public abstract class BaseUITest {
 
     protected static void log(String msg) {
         StackTraceElement[] st = Thread.currentThread().getStackTrace();
-        System.out.printf("%s: %s%n", st[2], msg);
+        System.out.printf("%s | %s: %s%n", Instant.now().toString(), st[2], msg);
     }
 }
