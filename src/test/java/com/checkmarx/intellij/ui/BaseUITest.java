@@ -65,7 +65,6 @@ public abstract class BaseUITest {
                 find(CLONE_BUTTON).click();
                 waitAndClick("//div[@text.key='untrusted.project.dialog.trust.button']");
                 waitAndClick("//div[contains(@text.key, 'button.close')]");
-                waitAndClick("//div[@text.key='got.it.button.name']");
                 waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
             }
             initialized = true;
