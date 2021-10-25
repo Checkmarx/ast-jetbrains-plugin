@@ -48,16 +48,14 @@ public abstract class BaseUITest {
 
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
 
-    private static final Integer waitDurationVal = Integer.getInteger("uiWaitDuration", 300);
-    protected static final Duration waitDuration = Duration.ofSeconds(waitDurationVal);
-
+    protected static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
     private static boolean initialized = false;
 
     @BeforeAll
     public static void init() {
         if (!initialized) {
             log("Initializing the tests");
-            log("Wait duration set for " + waitDurationVal);
+            log("Wait duration set for " + waitDuration.getSeconds());
             StepWorker.registerProcessor(new StepLogger());
             if (hasAnyComponent("//div[@class='FlatWelcomeFrame']")) {
                 find("//div[@defaulticon='fromVCSTab.svg']").click();
