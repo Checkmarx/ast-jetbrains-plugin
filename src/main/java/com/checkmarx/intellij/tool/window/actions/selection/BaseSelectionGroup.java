@@ -16,8 +16,11 @@ import com.intellij.util.ui.EmptyIcon;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -90,18 +93,22 @@ public abstract class BaseSelectionGroup extends DefaultActionGroup implements D
      */
     abstract void override(Scan scan);
 
-    protected Repository getRootRepository() {
+    @Nullable
+    protected final Repository getRootRepository() {
         List<Repository> repositories = VcsRepositoryManager.getInstance(project)
                                                             .getRepositories()
                                                             .stream()
                                                             .sorted(Comparator.comparing(r -> r.getRoot()
                                                                                                .toNioPath()))
                                                             .collect(Collectors.toUnmodifiableList());
-        Repository repository = repositories.get(0);
-        for (int i = 1; i < repositories.size(); i++) {
-            if (!repositories.get(i).getRoot().toNioPath().startsWith(repository.getRoot().toNioPath())) {
-                repository = null;
-                break;
+        Repository repository = null;
+        if (CollectionUtils.isNotEmpty(repositories)) {
+            repository = repositories.get(0);
+            for (int i = 1; i < repositories.size(); i++) {
+                if (!repositories.get(i).getRoot().toNioPath().startsWith(repository.getRoot().toNioPath())) {
+                    repository = null;
+                    break;
+                }
             }
         }
         return repository;
