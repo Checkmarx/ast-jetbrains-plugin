@@ -45,18 +45,19 @@ downloadRobotServerPlugin {
 
 test {
     useJUnitPlatform()
+    systemProperty 'uiWaitDuration', project.findProperty('uiWaitDuration') ?: 300
     testLogging {
         showStandardStreams = true
     }
 }
 
 runIdeForUiTests {
-    systemProperty('jb.privacy.policy.text', '<!--999.999-->')
-    systemProperty('jb.consents.confirmation.enabled', 'false')
+    systemProperty 'jb.privacy.policy.text', '<!--999.999-->'
+    systemProperty 'jb.consents.confirmation.enabled', 'false'
 }
 
 publishPlugin {
-    token.set(System.getenv("PUBLISH_TOKEN"))
+    token.set System.getenv("PUBLISH_TOKEN")
 }
 
 java {

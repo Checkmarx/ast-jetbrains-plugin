@@ -16,6 +16,7 @@ import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.BeforeAll;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -47,13 +48,15 @@ public abstract class BaseUITest {
     protected static final String EDITOR = "//div[@class='EditorComponentImpl']";
 
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
-    protected static final Duration waitDuration = Duration.ofSeconds(600);
+
+    protected static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
     private static boolean initialized = false;
 
     @BeforeAll
     public static void init() {
         if (!initialized) {
             log("Initializing the tests");
+            log("Wait duration set for " + waitDuration.getSeconds());
             StepWorker.registerProcessor(new StepLogger());
             if (hasAnyComponent("//div[@class='FlatWelcomeFrame']")) {
                 find("//div[@defaulticon='fromVCSTab.svg']").click();
@@ -63,7 +66,6 @@ public abstract class BaseUITest {
                 find(CLONE_BUTTON).click();
                 waitAndClick("//div[@text.key='untrusted.project.dialog.trust.button']");
                 waitAndClick("//div[contains(@text.key, 'button.close')]");
-                waitAndClick("//div[@text.key='got.it.button.name']");
                 waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
             }
             initialized = true;
@@ -144,6 +146,6 @@ public abstract class BaseUITest {
 
     protected static void log(String msg) {
         StackTraceElement[] st = Thread.currentThread().getStackTrace();
-        System.out.printf("%s: %s%n", st[2], msg);
+        System.out.printf("%s | %s: %s%n", Instant.now().toString(), st[2], msg);
     }
 }

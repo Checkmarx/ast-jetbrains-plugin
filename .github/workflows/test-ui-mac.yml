@@ -36,10 +36,10 @@ jobs:
           ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
       # Wait for IDEA to be started
       - name: Health Check
-        run: curl --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
+        run: curl --fail -sv --retry "15" --retry-delay "15" --retry-connrefused "http://127.0.0.1:8580"
       # Run tests
       - name: Tests
-        run: ./gradlew test --info --tests com.checkmarx.intellij.ui*
+        run: ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
