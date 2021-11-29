@@ -3,13 +3,13 @@ package com.checkmarx.intellij.tool.window.results.tree.nodes;
 import com.checkmarx.ast.results.result.Node;
 import com.checkmarx.ast.results.result.PackageData;
 import com.checkmarx.ast.results.result.Result;
-import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Resource;
-import com.checkmarx.intellij.Utils;
+import com.checkmarx.ast.wrapper.CxConstants;
+import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.components.PaneUtils;
+import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
+import com.intellij.icons.AllIcons;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -37,6 +37,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static com.checkmarx.intellij.Constants.DEFAULT_COLUMN;
 
 /**
  * Results tree node.
@@ -100,6 +102,9 @@ public class ResultNode extends DefaultMutableTreeNode {
             secondPanel = buildAttackVectorPanel(project, nodes);
         } else if (packageData.size() > 0) {
             secondPanel = buildPackageDataPanel(packageData);
+        } else if (StringUtils.isNotBlank(result.getData().getFileName())) {
+            secondPanel = buildVulnerabilityLocation(project,
+                    result.getData().getFileName(), result.getData().getLine(), DEFAULT_COLUMN);
         }
 
         OnePixelSplitter splitter = new OnePixelSplitter();
@@ -112,6 +117,12 @@ public class ResultNode extends DefaultMutableTreeNode {
     @NotNull
     private JPanel buildDetailsPanel(@NotNull Result result) {
         JPanel details = new JPanel(new MigLayout("fillx"));
+
+        JLabel title = boldLabel(this.label);
+        title.setIcon(getIcon());
+        details.add(title, "growx, wrap");
+
+        details.add(new JSeparator(), "span, growx, wrap");
 
         details.add(boldLabel(Bundle.message(Resource.SUMMARY)), "span, wrap");
         String detailsSummary = String.format(Constants.SUMMARY_FORMAT,
@@ -134,6 +145,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     private static JPanel buildAttackVectorPanel(@NotNull Project project, @NotNull List<Node> nodes) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         panel.add(boldLabel(Bundle.message(Resource.NODES)), "span, wrap");
+        panel.add(new JSeparator(), "span, growx, wrap");
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
             String label = String.format(Constants.NODE_FORMAT,
@@ -141,8 +153,36 @@ public class ResultNode extends DefaultMutableTreeNode {
                                          node.getFileName(),
                                          node.getLine(),
                                          node.getName());
-            panel.add(new CxLinkLabel(label, mouseEvent -> navigate(project, node)), "span, wrap");
+            FileNode fileNode = FileNode
+                    .builder()
+                    .fileName(node.getFileName())
+                    .line(node.getLine())
+                    .column(node.getColumn())
+                    .build();
+
+            panel.add(new CxLinkLabel(label, mouseEvent -> navigate(project, fileNode)), "span, wrap");
         }
+        return panel;
+    }
+
+    @NotNull
+    private static JPanel buildVulnerabilityLocation(@NotNull Project project, @NotNull String fileName, int line, int column) {
+        JPanel panel = new JPanel(new MigLayout("fillx"));
+        panel.add(boldLabel(Bundle.message(Resource.LOCATION)), "span, wrap");
+        panel.add(new JSeparator(), "span, growx, wrap");
+        String label = String.format(Constants.FILE_FORMAT,
+                fileName,
+                line,
+                column);
+
+        FileNode fileNode = FileNode
+                .builder()
+                .fileName(fileName)
+                .line(line)
+                .column(column)
+                .build();
+
+        panel.add(new CxLinkLabel(label, mouseEvent -> navigate(project, fileNode)), "span, wrap");
         return panel;
     }
 
@@ -150,6 +190,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     private static JPanel buildPackageDataPanel(@NotNull List<PackageData> packageData) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         panel.add(boldLabel(Bundle.message(Resource.PACKAGE_DATA)), "span, wrap");
+        panel.add(new JSeparator(), "span, growx, wrap");
         for (PackageData pkg : packageData) {
             panel.add(new JBLabel(pkg.getType()), "split 2, span, wrap");
             panel.add(CxLinkLabel.buildDocLinkLabel(pkg.getUrl(), pkg.getUrl()), "growx, wrap");
@@ -166,8 +207,8 @@ public class ResultNode extends DefaultMutableTreeNode {
         return label;
     }
 
-    private static void navigate(@NotNull Project project, @NotNull Node node) {
-        String fileName = node.getFileName();
+    private static void navigate(@NotNull Project project, @NotNull FileNode fileNode) {
+        String fileName = fileNode.getFileName();
         Utils.runAsyncReadAction(() -> {
             List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(FilenameUtils.getName(fileName),
                                                                           GlobalSearchScope.projectScope(project))
@@ -181,15 +222,15 @@ public class ResultNode extends DefaultMutableTreeNode {
             } else {
                 if (files.size() > 1) {
                     new Notification(Constants.NOTIFICATION_GROUP_ID,
-                                     "Multiples files found for " + node.getFileName(),
+                                     "Multiples files found for " + fileNode.getFileName(),
                                      NotificationType.WARNING).notify(project);
                 }
                 for (VirtualFile file : files) {
 
                     OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(project,
                                                                                    file,
-                                                                                   node.getLine() - 1,
-                                                                                   node.getColumn() - 1);
+                                                                                   fileNode.getLine() - 1,
+                                                                                   fileNode.getColumn() - 1);
                     ApplicationManager.getApplication().invokeLater(() -> openFileDescriptor.navigate(true));
                 }
             }

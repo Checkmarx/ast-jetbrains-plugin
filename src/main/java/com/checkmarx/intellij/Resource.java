@@ -39,6 +39,7 @@ public enum Resource {
     DESCRIPTION,
     NODES,
     PACKAGE_DATA,
+    LOCATION,
     MISSING_FILE,
     NONE_SELECTED,
     PROJECT_SELECT_PREFIX,
