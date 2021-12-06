@@ -31,6 +31,7 @@ public final class Constants {
     public static final String HELP_HTML = "<html><a href=\"\">%s</a></html>";
     public static final String HELP_HTML_U = "<html><a href=\"\"><u>%s</u></a></html>";
     public static final String NODE_FORMAT = "%s: %s:%d (%s)";
+    public static final String FILE_FORMAT = "%s:%d (%s)";
     public static final String SUMMARY_FORMAT = "%s | %s | %s | %s";
     public static final String FIELD_FORMAT = "<html>%s%s</html>";
     public static final String REQUIRED_MARK = "<span style=\"color:#ff0000\">*</span>";
@@ -50,4 +51,6 @@ public final class Constants {
     public static final String SELECTED_PROJECT_PROPERTY = "Checkmarx.SelectedProject";
     public static final String SELECTED_BRANCH_PROPERTY = "Checkmarx.SelectedBranch";
     public static final String SELECTED_SCAN_PROPERTY = "Checkmarx.SelectedScan";
+
+    public static final int DEFAULT_COLUMN = 0;
 }

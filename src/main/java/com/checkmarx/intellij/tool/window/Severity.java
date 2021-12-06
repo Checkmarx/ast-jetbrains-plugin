@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.tool.window;
 
+import com.checkmarx.intellij.CxIcons;
 import com.intellij.icons.AllIcons;
 import lombok.Getter;
 
@@ -12,10 +13,10 @@ import java.util.function.Supplier;
  */
 @Getter
 public enum Severity {
-    HIGH(AllIcons.General.Error),
-    MEDIUM(AllIcons.General.Warning),
-    LOW(AllIcons.General.Information),
-    INFO(AllIcons.General.Note),
+    HIGH(CxIcons.HIGH),
+    MEDIUM(CxIcons.MEDIUM),
+    LOW(CxIcons.LOW),
+    INFO(CxIcons.INFO),
     ;
 
     public static final Set<Severity> DEFAULT_SEVERITIES = Set.of(HIGH, MEDIUM);
