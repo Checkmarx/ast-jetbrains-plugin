@@ -36,7 +36,7 @@ intellij {
 }
 
 runPluginVerifier {
-    ideVersions = ['IC-2021.2']
+    ideVersions = ['IC-2021.2', 'IC-2021.3']
 }
 
 downloadRobotServerPlugin {
@@ -63,4 +63,9 @@ publishPlugin {
 java {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
+}
+
+patchPluginXml {
+    sinceBuild = '212'
+    untilBuild = '213.*'
 }
