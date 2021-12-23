@@ -30,7 +30,7 @@ public final class Constants {
 
     public static final String HELP_HTML = "<html><a href=\"\">%s</a></html>";
     public static final String HELP_HTML_U = "<html><a href=\"\"><u>%s</u></a></html>";
-    public static final String NODE_FORMAT = "%s: %s:%d (%s)";
+    public static final String NODE_FORMAT = "%s | %s";
     public static final String FILE_FORMAT = "%s:%d (%s)";
     public static final String SUMMARY_FORMAT = "%s | %s | %s | %s";
     public static final String FIELD_FORMAT = "<html>%s%s</html>";
@@ -53,4 +53,6 @@ public final class Constants {
     public static final String SELECTED_SCAN_PROPERTY = "Checkmarx.SelectedScan";
 
     public static final int DEFAULT_COLUMN = 0;
+    public static final int FILE_PATH_MAX_LEN = 45;
+    public static final String COLLAPSE_CRUMB = "...";
 }
