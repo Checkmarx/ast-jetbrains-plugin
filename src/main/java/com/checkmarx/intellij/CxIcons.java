@@ -18,4 +18,6 @@ public final class CxIcons {
     public static final Icon MEDIUM = IconLoader.getIcon("/icons/medium.svg", CxIcons.class);
     public static final Icon LOW = IconLoader.getIcon("/icons/low.svg", CxIcons.class);
     public static final Icon INFO = IconLoader.getIcon("/icons/info.svg", CxIcons.class);
+    public static final Icon COMMENT = IconLoader.getIcon("/icons/comment_icon_16_16.png", CxIcons.class);
+    public static final Icon STATE = IconLoader.getIcon("/icons/state_icon_16_16.png", CxIcons.class);
 }

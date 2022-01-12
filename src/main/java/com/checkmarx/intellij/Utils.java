@@ -7,6 +7,9 @@ import org.apache.commons.codec.digest.DigestUtils;
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -74,5 +77,22 @@ public final class Utils {
             return false;
         }
         return true;
+    }
+
+    public static String dateParser(String unformattedDate) {
+
+        SimpleDateFormat input = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        SimpleDateFormat output = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+
+        Date d = null;
+        try
+        {
+            d = input.parse(unformattedDate);
+        }
+        catch (ParseException e)
+        {
+            e.printStackTrace();
+        }
+        return output.format(d);
     }
 }

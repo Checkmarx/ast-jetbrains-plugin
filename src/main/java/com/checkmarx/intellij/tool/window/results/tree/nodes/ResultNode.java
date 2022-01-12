@@ -1,21 +1,26 @@
 package com.checkmarx.intellij.tool.window.results.tree.nodes;
 
+import com.checkmarx.ast.predicate.Predicate;
 import com.checkmarx.ast.results.result.Node;
 import com.checkmarx.ast.results.result.PackageData;
 import com.checkmarx.ast.results.result.Result;
-import com.checkmarx.ast.wrapper.CxConstants;
+import com.checkmarx.ast.scan.Scan;
+import com.checkmarx.ast.wrapper.CxConfig;
+import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.components.PaneUtils;
+import com.checkmarx.intellij.settings.global.CxWrapperFactory;
+import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
-import com.intellij.icons.AllIcons;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.options.FontSize;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -33,9 +38,14 @@ import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.Constants.DEFAULT_COLUMN;
@@ -52,9 +62,18 @@ public class ResultNode extends DefaultMutableTreeNode {
     private final String label;
     private final Result result;
     private final Project project;
+    private final String scanId;
 
     private final List<Node> nodes;
     private final List<PackageData> packageData;
+
+    public enum StateEnum {
+        TO_VERIFY,
+        NOT_EXPLOITABLE,
+        PROPOSED_NOT_EXPLOITABLE,
+        CONFIRMED,
+        URGENT
+    }
 
     /**
      * Set node title and store the associated result
@@ -62,21 +81,22 @@ public class ResultNode extends DefaultMutableTreeNode {
      * @param result  result for this node
      * @param project context project
      */
-    public ResultNode(@NotNull Result result, @NotNull Project project) {
+    public ResultNode(@NotNull Result result, @NotNull Project project, String scanId) {
         super();
         this.result = result;
         this.project = project;
+        this.scanId = scanId;
         this.nodes = Optional.ofNullable(this.result.getData().getNodes()).orElse(Collections.emptyList());
         this.packageData = Optional.ofNullable(this.result.getData().getPackageData()).orElse(Collections.emptyList());
 
         String labelBuilder = (result.getData().getQueryName() != null
-                               ? result.getData().getQueryName()
-                               : result.getId());
+                ? result.getData().getQueryName()
+                : result.getId());
         int nodeCount = nodes.size();
         if (nodeCount > 0) {
             Node node = result.getData()
-                              .getNodes()
-                              .get(0);
+                    .getNodes()
+                    .get(0);
             labelBuilder += String.format(" (%s:%d)", new File(node.getFileName()).getName(), node.getLine());
         }
         this.label = labelBuilder;
@@ -94,8 +114,8 @@ public class ResultNode extends DefaultMutableTreeNode {
      * @return panel with result details
      */
     @NotNull
-    public JPanel buildResultPanel() {
-        JPanel details = buildDetailsPanel(result);
+    public JPanel buildResultPanel(Runnable runnable) {
+        JPanel details = buildDetailsPanel(runnable);
         JPanel secondPanel = JBUI.Panels.simplePanel();
 
         if (nodes.size() > 0) {
@@ -115,22 +135,56 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     @NotNull
-    private JPanel buildDetailsPanel(@NotNull Result result) {
+    private JPanel buildDetailsPanel(@NotNull Runnable runnable) {
         JPanel details = new JPanel(new MigLayout("fillx"));
-
         JLabel title = boldLabel(this.label);
         title.setIcon(getIcon());
-        details.add(title, "growx, wrap");
 
+        details.add(title, "growx, wrap");
         details.add(new JSeparator(), "span, growx, wrap");
 
-        details.add(boldLabel(Bundle.message(Resource.SUMMARY)), "span, wrap");
-        String detailsSummary = String.format(Constants.SUMMARY_FORMAT,
-                                              result.getType(),
-                                              result.getSeverity(),
-                                              result.getState(),
-                                              result.getStatus());
-        details.add(new JBLabel(detailsSummary), "span, wrap, gapbottom 5");
+        //Panel with triage form
+        JPanel triageForm = new JPanel(new MigLayout("fillx"));
+        JButton updateButton = new JButton();
+        updateButton.setText("Update");
+
+        //Constructing selection of State combobox
+        final ComboBox<StateEnum> stateComboBox = new ComboBox<>(StateEnum.values());
+        stateComboBox.setEditable(true);
+        stateComboBox.setSelectedItem(result.getState());
+
+        //Constructing selection of Severity combobox
+        final ComboBox<Severity> severityComboBox = new ComboBox<>(Severity.values());
+        severityComboBox.setEditable(true);
+        severityComboBox.setSelectedItem(result.getSeverity());
+
+        //Button action
+        updateButton.addActionListener(e -> {
+            updateButton.setEnabled(false);
+            String newState = stateComboBox.getSelectedItem().toString();
+            String newSeverity = severityComboBox.getSelectedItem().toString();
+
+            result.setState(newState);
+            result.setSeverity(newSeverity);
+
+            CompletableFuture.runAsync(() -> {
+                try {
+                    CxWrapperFactory.build().triageUpdate(
+                            UUID.fromString(getProjectId()), result.getSimilarityId(), result.getType(), newState, "test commentary ",newSeverity);
+                    runnable.run();
+                } catch (Throwable error) {
+                    Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+                } finally {
+                    //UI thread stuff
+                    ApplicationManager.getApplication().invokeLater(() -> updateButton.setEnabled(true));
+                }
+            });
+        });
+
+        triageForm.add(severityComboBox);
+        triageForm.add(stateComboBox);
+        triageForm.add(updateButton);
+        details.add(triageForm, "span, wrap");
 
         String description = result.getData().getDescription();
         if (StringUtils.isNotBlank(description)) {
@@ -138,6 +192,45 @@ public class ResultNode extends DefaultMutableTreeNode {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
             details.add(new JBLabel(String.format("<html>%s</html>", description)), "wrap, gapbottom 5");
         }
+
+        details.add(boldLabel(Bundle.message(Resource.CHANGES)), "span, wrap");
+        //Triage Changes Panel
+        JPanel triageChanges = new JPanel(new MigLayout("fillx"));
+
+        CompletableFuture.supplyAsync((Supplier<List<Predicate>>) () -> {
+            try {
+                return CxWrapperFactory.build().triageShow(
+                        UUID.fromString(getProjectId()),
+                        result.getSimilarityId(),
+                        result.getType().equals(Constants.SCAN_TYPE_INFRASTRUCTURE) ? Constants.SCAN_TYPE_KICS : result.getType());
+            } catch (Throwable error) {
+                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+            }
+            return Collections.emptyList();
+        }).thenAccept(triageChangesList -> ApplicationManager.getApplication().invokeLater(() -> {
+            for (Predicate predicate : triageChangesList) {
+                triageChanges.add(boldLabel(String.format("<html>%s</html>", predicate.getCreatedBy())), "span, wrap");
+                triageChanges.add(new JLabel(String.format("<html>%s</html>", Utils.dateParser(predicate.getCreatedAt()))), "span, wrap");
+
+                JLabel severityLabel = new JLabel(String.format("<html>%s</html>", predicate.getSeverity()));
+                severityLabel.setIcon(Severity.valueOf(predicate.getSeverity()).getIcon());
+                triageChanges.add(severityLabel, "span, wrap");
+
+                JLabel stateLabel = new JLabel(String.format("<html>%s</html>", predicate.getState()));
+                stateLabel.setIcon(CxIcons.STATE);
+                triageChanges.add(stateLabel, "span, wrap");
+
+                if(!predicate.getComment().equals("")){
+                    JLabel commentLabel = new JLabel(String.format("<html>%s</html>", predicate.getComment()));
+                    commentLabel.setIcon(CxIcons.COMMENT);
+                    triageChanges.add(commentLabel, "span, wrap");
+                }
+
+                triageChanges.add(new JSeparator(), "span, wrap ,growx");
+            }
+        }));
+        details.add(triageChanges);
+
         return details;
     }
 
@@ -149,10 +242,10 @@ public class ResultNode extends DefaultMutableTreeNode {
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
             String label = String.format(Constants.NODE_FORMAT,
-                                         i + 1,
-                                         node.getFileName(),
-                                         node.getLine(),
-                                         node.getName());
+                    i + 1,
+                    node.getFileName(),
+                    node.getLine(),
+                    node.getName());
             FileNode fileNode = FileNode
                     .builder()
                     .fileName(node.getFileName())
@@ -211,29 +304,34 @@ public class ResultNode extends DefaultMutableTreeNode {
         String fileName = fileNode.getFileName();
         Utils.runAsyncReadAction(() -> {
             List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(FilenameUtils.getName(fileName),
-                                                                          GlobalSearchScope.projectScope(project))
-                                                   .stream()
-                                                   .filter(f -> f.getPath().contains(fileName))
-                                                   .collect(Collectors.toList());
+                            GlobalSearchScope.projectScope(project))
+                    .stream()
+                    .filter(f -> f.getPath().contains(fileName))
+                    .collect(Collectors.toList());
             if (files.isEmpty()) {
                 new Notification(Constants.NOTIFICATION_GROUP_ID,
-                                 Bundle.message(Resource.MISSING_FILE, fileName),
-                                 NotificationType.WARNING).notify(project);
+                        Bundle.message(Resource.MISSING_FILE, fileName),
+                        NotificationType.WARNING).notify(project);
             } else {
                 if (files.size() > 1) {
                     new Notification(Constants.NOTIFICATION_GROUP_ID,
-                                     "Multiples files found for " + fileNode.getFileName(),
-                                     NotificationType.WARNING).notify(project);
+                            "Multiples files found for " + fileNode.getFileName(),
+                            NotificationType.WARNING).notify(project);
                 }
                 for (VirtualFile file : files) {
 
                     OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(project,
-                                                                                   file,
-                                                                                   fileNode.getLine() - 1,
-                                                                                   fileNode.getColumn() - 1);
+                            file,
+                            fileNode.getLine() - 1,
+                            fileNode.getColumn() - 1);
                     ApplicationManager.getApplication().invokeLater(() -> openFileDescriptor.navigate(true));
                 }
             }
         });
+    }
+
+    private String getProjectId() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+        Scan scan = CxWrapperFactory.build().scanShow(UUID.fromString(scanId));
+        return scan.getProjectID();
     }
 }
