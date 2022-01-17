@@ -10,6 +10,8 @@ import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.NonLeafNode;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.hover.TreeHoverListener;
+import com.intellij.ui.tree.ui.DefaultTreeUI;
 import com.intellij.ui.treeStructure.Tree;
 import org.jetbrains.annotations.NotNull;
 
@@ -97,6 +99,11 @@ public class ResultsTreeFactory {
         Tree tree = new Tree(root);
 
         tree.setCellRenderer(new ResultsTreeCellRenderer());
+
+        tree.setUI(new DefaultTreeUI());
+
+        //noinspection UnstableApiUsage
+        TreeHoverListener.DEFAULT.addTo(tree);
 
         return tree;
     }
