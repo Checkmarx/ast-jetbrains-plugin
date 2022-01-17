@@ -136,7 +136,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                                               result.getStatus());
         details.add(new JBLabel(detailsSummary), "span, wrap, gapbottom 5");
 
-        String description = result.getData().getDescription();
+        String description = result.getDescription();
         if (StringUtils.isNotBlank(description)) {
             details.add(boldLabel(Bundle.message(Resource.DESCRIPTION)), "span, wrap");
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
