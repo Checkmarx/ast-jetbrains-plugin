@@ -11,9 +11,7 @@ import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.components.PaneUtils;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
-import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
-import com.checkmarx.intellij.tool.window.FileNode;
-import com.checkmarx.intellij.tool.window.Severity;
+import com.checkmarx.intellij.tool.window.*;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -24,8 +22,10 @@ import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -37,6 +37,8 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -114,8 +116,8 @@ public class ResultNode extends DefaultMutableTreeNode {
      * @return panel with result details
      */
     @NotNull
-    public JPanel buildResultPanel(Runnable runnable) {
-        JPanel details = buildDetailsPanel(runnable);
+    public JPanel buildResultPanel(Runnable runnableDraw, Runnable runnableUpdater) {
+        JPanel details = buildDetailsPanel(runnableDraw, runnableUpdater);
         JPanel secondPanel = JBUI.Panels.simplePanel();
 
         if (nodes.size() > 0) {
@@ -135,7 +137,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     @NotNull
-    private JPanel buildDetailsPanel(@NotNull Runnable runnable) {
+    private JPanel buildDetailsPanel(@NotNull Runnable runnableDraw, Runnable runnableUpdater) {
         JPanel details = new JPanel(new MigLayout("fillx"));
         JLabel title = boldLabel(this.label);
         title.setIcon(getIcon());
@@ -158,6 +160,26 @@ public class ResultNode extends DefaultMutableTreeNode {
         severityComboBox.setEditable(true);
         severityComboBox.setSelectedItem(result.getSeverity());
 
+        //Constructing Comment textField
+        JTextField commentText;
+        commentText = new JTextField("Comment");
+        commentText.setForeground(Color.GRAY);
+        commentText.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (commentText.getText().equals("Comment")) {
+                    commentText.setText("");
+                    commentText.setForeground(Color.WHITE);
+                }
+            }
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (commentText.getText().isEmpty()) {
+                    commentText.setForeground(Color.GRAY);
+                    commentText.setText("Comment");
+                }
+            }
+        });
         //Button action
         updateButton.addActionListener(e -> {
             updateButton.setEnabled(false);
@@ -170,8 +192,8 @@ public class ResultNode extends DefaultMutableTreeNode {
             CompletableFuture.runAsync(() -> {
                 try {
                     CxWrapperFactory.build().triageUpdate(
-                            UUID.fromString(getProjectId()), result.getSimilarityId(), result.getType(), newState, "test commentary ",newSeverity);
-                    runnable.run();
+                            UUID.fromString(getProjectId()), result.getSimilarityId(), result.getType(), newState, commentText.getText() ,newSeverity);
+                    runnableDraw.run();
                 } catch (Throwable error) {
                     Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
                 } finally {
@@ -185,17 +207,25 @@ public class ResultNode extends DefaultMutableTreeNode {
         triageForm.add(stateComboBox);
         triageForm.add(updateButton);
         details.add(triageForm, "span, wrap");
+        details.add(commentText, "growx, gapleft 6, gapright 5, wrap");
+
+        //Construction of the tabs
+        JBTabbedPane tabbedPane = new JBTabbedPane();
+
+        JPanel descriptionPanel = new JPanel();
+        descriptionPanel.setLayout(new MigLayout("fillx"));
 
         String description = result.getData().getDescription();
         if (StringUtils.isNotBlank(description)) {
-            details.add(boldLabel(Bundle.message(Resource.DESCRIPTION)), "span, wrap");
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            details.add(new JBLabel(String.format("<html>%s</html>", description)), "wrap, gapbottom 5");
+            descriptionPanel.add(new JBLabel(String.format("<html>%s</html>", description)), "wrap, gapbottom 5");
         }
+        tabbedPane.add(Bundle.message(Resource.DESCRIPTION), descriptionPanel);
 
-        details.add(boldLabel(Bundle.message(Resource.CHANGES)), "span, wrap");
+
         //Triage Changes Panel
-        JPanel triageChanges = new JPanel(new MigLayout("fillx"));
+        JPanel triageChanges = new JPanel();
+        triageChanges.setLayout(new MigLayout("fillx"));
 
         CompletableFuture.supplyAsync((Supplier<List<Predicate>>) () -> {
             try {
@@ -209,8 +239,9 @@ public class ResultNode extends DefaultMutableTreeNode {
             return Collections.emptyList();
         }).thenAccept(triageChangesList -> ApplicationManager.getApplication().invokeLater(() -> {
             for (Predicate predicate : triageChangesList) {
-                triageChanges.add(boldLabel(String.format("<html>%s</html>", predicate.getCreatedBy())), "span, wrap");
-                triageChanges.add(new JLabel(String.format("<html>%s</html>", Utils.dateParser(predicate.getCreatedAt()))), "span, wrap");
+
+                JLabel firstLabel = new JLabel(String.format("<html><b>%s</b> | %s</html>", boldLabel(predicate.getCreatedBy()).getText(), Utils.dateParser(predicate.getCreatedAt())));
+                triageChanges.add(firstLabel, "span, wrap");
 
                 JLabel severityLabel = new JLabel(String.format("<html>%s</html>", predicate.getSeverity()));
                 severityLabel.setIcon(Severity.valueOf(predicate.getSeverity()).getIcon());
@@ -225,11 +256,13 @@ public class ResultNode extends DefaultMutableTreeNode {
                     commentLabel.setIcon(CxIcons.COMMENT);
                     triageChanges.add(commentLabel, "span, wrap");
                 }
-
                 triageChanges.add(new JSeparator(), "span, wrap ,growx");
             }
+            runnableUpdater.run();
         }));
-        details.add(triageChanges);
+
+        tabbedPane.add(Bundle.message(Resource.CHANGES), triageChanges);
+        details.add(tabbedPane, "growx");
 
         return details;
     }

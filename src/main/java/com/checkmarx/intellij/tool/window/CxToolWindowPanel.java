@@ -397,7 +397,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                             }
                             valueChanged(new TreeSelectionEvent(currentTree, path, true, e.getOldLeadSelectionPath(), e.getNewLeadSelectionPath()));
                         });
-                    }));
+                    }, () -> refreshPanel()));
                 }
             }
         }
