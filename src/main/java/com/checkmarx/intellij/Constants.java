@@ -28,6 +28,7 @@ public final class Constants {
 
     public static final String FIELD_GAP_BOTTOM = "gapbottom 15";
 
+    public static final String HTML_WRAPPER_FORMAT = "<html>%s</html>";
     public static final String HELP_HTML = "<html><a href=\"\">%s</a></html>";
     public static final String HELP_HTML_U = "<html><a href=\"\"><u>%s</u></a></html>";
     public static final String NODE_FORMAT = "%s | %s";
@@ -35,6 +36,7 @@ public final class Constants {
     public static final String SUMMARY_FORMAT = "%s | %s | %s | %s";
     public static final String FIELD_FORMAT = "<html>%s%s</html>";
     public static final String REQUIRED_MARK = "<span style=\"color:#ff0000\">*</span>";
+    public static final String VALUE_FORMAT = "<html><b>%s</b>: %s</html>";
 
     public static final String API_KEY_CREDENTIALS_KEY = "APIKey";
 

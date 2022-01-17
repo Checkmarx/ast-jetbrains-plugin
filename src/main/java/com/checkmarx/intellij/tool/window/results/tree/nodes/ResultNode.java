@@ -140,7 +140,17 @@ public class ResultNode extends DefaultMutableTreeNode {
         if (StringUtils.isNotBlank(description)) {
             details.add(boldLabel(Bundle.message(Resource.DESCRIPTION)), "span, wrap");
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            details.add(new JBLabel(String.format("<html>%s</html>", description)), "wrap, gapbottom 5");
+            details.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)), "wrap, gapbottom 5");
+        }
+        if (StringUtils.isNotBlank(result.getData().getValue()) && StringUtils.isNotBlank(result.getData()
+                                                                                                .getExpectedValue())) {
+
+            details.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
+                                                  Bundle.message(Resource.ACTUAL_VALUE),
+                                                  result.getData().getValue())), "span, growx, wrap");
+            details.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
+                                                  Bundle.message(Resource.EXPECTED_VALUE),
+                                                  result.getData().getExpectedValue())), "span, growx, wrap");
         }
         return details;
     }
