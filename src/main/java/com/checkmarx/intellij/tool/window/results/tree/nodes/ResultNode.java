@@ -257,7 +257,8 @@ public class ResultNode extends DefaultMutableTreeNode {
     @NotNull
     private static String capToLen(String fileName) {
         return fileName.length() > Constants.FILE_PATH_MAX_LEN
-               ? Constants.COLLAPSE_CRUMB + fileName.substring(fileName.length() - Constants.COLLAPSE_CRUMB.length())
+               ? Constants.COLLAPSE_CRUMB + fileName.substring(fileName.length() - Constants.FILE_PATH_MAX_LEN
+                                                               + Constants.COLLAPSE_CRUMB.length())
                : fileName;
     }
 }
