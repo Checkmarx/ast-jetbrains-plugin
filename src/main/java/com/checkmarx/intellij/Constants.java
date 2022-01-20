@@ -55,5 +55,11 @@ public final class Constants {
     public static final String SCAN_TYPE_KICS = "kics";
     public static final String SCAN_TYPE_INFRASTRUCTURE = "infrastructure";
 
+    public static final String SCAN_STATE_CONFIRMED = "confirmed";
+    public static final String SCAN_STATE_TO_VERIFY = "to_verify";
+
+    public static final String SCAN_SEVERITY_HIGH = "high";
+    public static final String SCAN_SEVERITY_LOW = "low";
+
     public static final int DEFAULT_COLUMN = 0;
 }
