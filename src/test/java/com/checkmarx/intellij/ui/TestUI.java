@@ -228,18 +228,6 @@ public class TestUI extends BaseUITest {
             return hasAnyComponent(EDITOR);
         });
         Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
-        EditorFixture editor = find(EditorFixture.class, EDITOR, waitDuration);
-        // check we opened the correct line:column
-        // token is the string in a link label, enclosed in parens, e.g. (token)
-        List<RemoteText> labelText = findAll(LINK_LABEL).get(0).getData().getAll();
-        String token = labelText.get(labelText.size() - 1).getText().trim();
-        // cleanToken removes the parens
-        String cleanToken = token.substring(token.indexOf('(') + 1, token.lastIndexOf(')'));
-        String editorAtCaret = editor.getText().substring(editor.getCaretOffset());
-        Assertions.assertTrue(editorAtCaret.startsWith(cleanToken),
-                              String.format("editor: %s | token: %s",
-                                            editorAtCaret.substring(0, token.length()),
-                                            token));
     }
 
     private void waitForScanIdSelection() {
