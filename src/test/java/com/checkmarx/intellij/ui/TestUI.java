@@ -5,10 +5,12 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.tool.window.Severity;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.apache.commons.lang3.StringUtils;
+import org.assertj.swing.fixture.JComboBoxFixture;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
@@ -207,6 +209,7 @@ public class TestUI extends BaseUITest {
         severity();
         queryName();
         JTreeFixture tree = find(JTreeFixture.class, TREE);
+
         navigate(tree, "Scan", 2);
         navigate(tree, "sast", 4);
         int row = -1;
@@ -222,6 +225,20 @@ public class TestUI extends BaseUITest {
         waitFor(() -> {
             tree.clickRow(resultRow);
             return findAll(LINK_LABEL).size() > 0;
+        });
+        waitFor(() -> {
+            find(SEVERITY_COMBOBOX_ARROW).click();
+            find(JListFixture.class,"//div[@class='JList']").findText("LOW").click();
+            find(STATE_COMBOBOX_ARROW).click();
+            find(JListFixture.class,"//div[@class='JList']").findText("CONFIRMED").click();
+            find("//div[@class='JTextField']").click();
+            enter("UI Test commentary");
+            find("//div[@text.key='action.UpdateFiles.text']").click();
+            waitFor(() -> {
+                find("//div[contains(@text.key, 'CHANGES')]").click();
+                return hasAnyComponent("//div[@class='JBTabbedPane']//div[@class='JSeparator']");
+            });
+            return true;
         });
         waitFor(() -> {
             findAll(LINK_LABEL).get(0).click();
