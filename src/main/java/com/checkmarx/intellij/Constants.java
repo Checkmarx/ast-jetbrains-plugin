@@ -55,7 +55,6 @@ public final class Constants {
     public static final String SELECTED_SCAN_PROPERTY = "Checkmarx.SelectedScan";
 
     public static final String SCAN_TYPE_KICS = "kics";
-    public static final String SCAN_TYPE_INFRASTRUCTURE = "infrastructure";
 
     public static final String SCAN_STATE_CONFIRMED = "confirmed";
     public static final String SCAN_STATE_TO_VERIFY = "to_verify";

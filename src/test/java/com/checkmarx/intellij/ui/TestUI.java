@@ -6,6 +6,7 @@ import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.remoterobot.client.IdeaSideException;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
@@ -16,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.UUID;
@@ -227,24 +229,49 @@ public class TestUI extends BaseUITest {
             tree.clickRow(resultRow);
             return findAll(LINK_LABEL).size() > 0;
         });
+
+//        waitFor(() -> {
+//            find(SEVERITY_COMBOBOX_ARROW).click();
+//            return findAll("//div[@class='JList']").size() > 0
+//                    && find(JListFixture.class, "//div[@class='JList']").hasText("LOW");
+//        });
+//
+//        waitFor(() -> find(JListFixture.class, "//div[@class='JList']").isShowing());
+//        find(JListFixture.class,"//div[@class='JList']").clickItem("LOW", true);
+//
+//        waitFor(() -> {
+//            find(STATE_COMBOBOX_ARROW).click();
+//            return findAll("//div[@class='JList']").size() > 0
+//                    && find(JListFixture.class, "//div[@class='JList']").hasText("CONFIRMED");
+//        });
+//
+//        waitFor(() -> find(JListFixture.class, "//div[@class='JList']").isShowing());
+//        find(JListFixture.class,"//div[@class='JList']").clickItem("CONFIRMED", true);
+        String commentUUID = UUID.randomUUID().toString();
+
         waitFor(() -> {
             find(SEVERITY_COMBOBOX_ARROW).click();
-            return findAll("//div[@class='JList']").size() > 0 && find(JListFixture.class, "//div[@class='JList']").hasText("LOW");
+            find(JListFixture.class, "//div[@class='JList']").isShowing();
+            try {
+                find(JListFixture.class, "//div[@class='JList']").clickItem("LOW", true);
+            } catch (Throwable ice) {
+                return false;
+            }
+            return findAll("//div[@class='ComboBox'][.//div[@visible_text='LOW']]").size() > 0;
         });
-
-        find(JListFixture.class,"//div[@class='JList']").clickItem("LOW", true);
-
 
         waitFor(() -> {
             find(STATE_COMBOBOX_ARROW).click();
-            return findAll("//div[@class='JList']").size() > 0 && find(JListFixture.class, "//div[@class='JList']").hasText("CONFIRMED");
+            find(JListFixture.class, "//div[@class='JList']").isShowing();
+            try {
+                find(JListFixture.class, "//div[@class='JList']").clickItem("CONFIRMED", true);
+            } catch (Throwable ice) {
+                return false;
+            }
+            return findAll("//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]").size() > 0;
         });
 
-        find(JListFixture.class,"//div[@class='JList']").clickItem("CONFIRMED", true);
-
-
         find("//div[@class='JTextField']").click();
-        String commentUUID = UUID.randomUUID().toString();
         enter(commentUUID);
 
         waitFor(() -> {
@@ -252,9 +279,22 @@ public class TestUI extends BaseUITest {
             return !find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").isEnabled();
         });
 
+//        find("//div[@class='JTextField']").click();
+//        String commentUUID = UUID.randomUUID().toString();
+//        enter(commentUUID);
+//
+//        waitFor(() -> {
+//            find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").click();
+//            return !find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").isEnabled();
+//        });
+        waitFor(() -> find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").isEnabled());
+
         waitFor(() -> {
             find("//div[contains(@text.key, 'CHANGES')]").click();
-            return findAll("//div[@class='JBTabbedPane']//div[@class='JPanel']").size() > 0;
+            @Language("XPath") String fieldXpath = String.format(CHANGES_COMMENT, commentUUID, commentUUID);
+
+            find("//div[@class='JBTabbedPane']//div[@class='JPanel']").isShowing();
+            return findAll(fieldXpath).size() > 0;
         });
 
         waitFor(() -> {
@@ -262,19 +302,6 @@ public class TestUI extends BaseUITest {
             return hasAnyComponent(EDITOR);
         });
         Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
-        EditorFixture editor = find(EditorFixture.class, EDITOR, waitDuration);
-        // check we opened the correct line:column
-        // token is the string in a link label, enclosed in parens, e.g. (token)
-        List<RemoteText> labelText = findAll(LINK_LABEL).get(0).getData().getAll();
-        String token = labelText.get(labelText.size() - 1).getText().trim();
-        // cleanToken removes the parens
-        String cleanToken = token.substring(token.indexOf('(') + 1, token.lastIndexOf(')'));
-        String editorAtCaret = editor.getText().substring(editor.getCaretOffset());
-        Assertions.assertTrue(editorAtCaret.startsWith(cleanToken),
-                String.format("editor: %s | token: %s",
-                        editorAtCaret.substring(0, token.length()),
-                        token));
-
     }
 
     private void waitForScanIdSelection() {

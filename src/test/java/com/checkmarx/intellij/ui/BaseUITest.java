@@ -37,6 +37,8 @@ public abstract class BaseUITest {
     @Language("XPath")
     protected static final String FIELD_NAME = "//div[@name='%s']";
     @Language("XPath")
+    protected static final String CHANGES_COMMENT = "//div[@accessiblename='%s' and @class='JLabel' and @text='<html>%s</html>']";
+    @Language("XPath")
     protected static final String VALIDATE_BUTTON = "//div[@class='JButton' and @text.key='VALIDATE_BUTTON']";
     @Language("XPath")
     protected static final String STATE_COMBOBOX = "//div[@class='ComboBox'][.//div[@visible_text='TO_VERIFY']]";

@@ -253,7 +253,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                 return CxWrapperFactory.build().triageShow(
                         UUID.fromString(getProjectId()),
                         result.getSimilarityId(),
-                        result.getType().equals(Constants.SCAN_TYPE_INFRASTRUCTURE) ? Constants.SCAN_TYPE_KICS : result.getType());
+                        result.getType());
             } catch (Throwable error) {
                 Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
             }
