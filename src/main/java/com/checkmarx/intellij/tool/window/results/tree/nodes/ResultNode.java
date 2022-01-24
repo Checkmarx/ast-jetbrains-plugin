@@ -167,7 +167,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     @NotNull
     private static JPanel buildAttackVectorPanel(@NotNull Project project, @NotNull List<Node> nodes) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
-        addLocationHeader(panel, Resource.NODES);
+        addHeader(panel, Resource.NODES);
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
             FileNode fileNode = FileNode
@@ -196,7 +196,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                                                      int line,
                                                      int column) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
-        addLocationHeader(panel, Resource.LOCATION);
+        addHeader(panel, Resource.LOCATION);
 
         FileNode fileNode = FileNode
                 .builder()
@@ -217,7 +217,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     @NotNull
     private static JPanel buildPackageDataPanel(@NotNull List<PackageData> packageData) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
-        addLocationHeader(panel, Resource.PACKAGE_DATA);
+        addHeader(panel, Resource.PACKAGE_DATA);
         for (PackageData pkg : packageData) {
             String labelContent = String.format(Constants.NODE_FORMAT,
                                                 pkg.getType(),
@@ -262,8 +262,8 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(rowPanel, "growx, wrap");
     }
 
-    private static void addLocationHeader(@NotNull JPanel panel, @Nls Resource packageData) {
-        panel.add(boldLabel(Bundle.message(packageData)), "span, wrap");
+    private static void addHeader(@NotNull JPanel panel, @Nls Resource resource) {
+        panel.add(boldLabel(Bundle.message(resource)), "span, wrap");
         panel.add(new JSeparator(), "span, growx, wrap");
     }
 
