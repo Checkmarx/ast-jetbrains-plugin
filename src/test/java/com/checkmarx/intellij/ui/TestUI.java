@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.awt.event.KeyEvent;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 public class TestUI extends BaseUITest {
@@ -109,7 +110,7 @@ public class TestUI extends BaseUITest {
         waitFor(() -> {
             selectionSupplier.get().click();
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
-                   && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() > 0;
+                    && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() > 0;
         });
         enter(value);
     }
@@ -132,11 +133,11 @@ public class TestUI extends BaseUITest {
     private void clearSelection() {
         waitFor(() -> {
             if (hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
-                && findProjectSelection().isEnabled()
-                && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
-                && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
-                && !hasAnyComponent(TREE)
-                && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
+                    && findProjectSelection().isEnabled()
+                    && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
+                    && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
+                    && !hasAnyComponent(TREE)
+                    && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
                 log("clear selection done");
                 return true;
             }
@@ -144,8 +145,8 @@ public class TestUI extends BaseUITest {
             ActionButtonFixture branchSelection = findBranchSelection();
             ActionButtonFixture projectSelection = findProjectSelection();
             if (!scanSelection.isShowing() || (scanSelection.hasText("Scan: ..."))
-                || (!branchSelection.isShowing() || branchSelection.hasText("Branch: ..."))
-                || (!projectSelection.isShowing() || projectSelection.hasText("Project: ..."))) {
+                    || (!branchSelection.isShowing() || branchSelection.hasText("Branch: ..."))
+                    || (!projectSelection.isShowing() || projectSelection.hasText("Project: ..."))) {
                 log("clear selection still in progress");
                 return false;
             }
@@ -160,8 +161,8 @@ public class TestUI extends BaseUITest {
         openSettings();
         setFields();
         find(JCheckboxFixture.class,
-             String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
-             waitDuration).setValue(false);
+                String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
+                waitDuration).setValue(false);
         // click the validation button
         click(VALIDATE_BUTTON);
         // wait for the validation success label
@@ -197,7 +198,7 @@ public class TestUI extends BaseUITest {
                 }
             }
             return hasAnyComponent(String.format("//div[@class='Tree' and @visible_text='Scan %s']",
-                                          Environment.SCAN_ID));
+                    Environment.SCAN_ID));
         });
     }
 
@@ -228,18 +229,34 @@ public class TestUI extends BaseUITest {
         });
         waitFor(() -> {
             find(SEVERITY_COMBOBOX_ARROW).click();
-            find(JListFixture.class,"//div[@class='JList']").findText("LOW").click();
-            find(STATE_COMBOBOX_ARROW).click();
-            find(JListFixture.class,"//div[@class='JList']").findText("CONFIRMED").click();
-            find("//div[@class='JTextField']").click();
-            enter("UI Test commentary");
-            find("//div[@text.key='action.UpdateFiles.text']").click();
-            waitFor(() -> {
-                find("//div[contains(@text.key, 'CHANGES')]").click();
-                return hasAnyComponent("//div[@class='JBTabbedPane']//div[@class='JSeparator']");
-            });
-            return true;
+            return findAll("//div[@class='JList']").size() > 0 && find(JListFixture.class, "//div[@class='JList']").hasText("LOW");
         });
+
+        find(JListFixture.class,"//div[@class='JList']").clickItem("LOW", true);
+
+
+        waitFor(() -> {
+            find(STATE_COMBOBOX_ARROW).click();
+            return findAll("//div[@class='JList']").size() > 0 && find(JListFixture.class, "//div[@class='JList']").hasText("CONFIRMED");
+        });
+
+        find(JListFixture.class,"//div[@class='JList']").clickItem("CONFIRMED", true);
+
+
+        find("//div[@class='JTextField']").click();
+        String commentUUID = UUID.randomUUID().toString();
+        enter(commentUUID);
+
+        waitFor(() -> {
+            find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").click();
+            return !find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").isEnabled();
+        });
+
+        waitFor(() -> {
+            find("//div[contains(@text.key, 'CHANGES')]").click();
+            return findAll("//div[@class='JBTabbedPane']//div[@class='JPanel']").size() > 0;
+        });
+
         waitFor(() -> {
             findAll(LINK_LABEL).get(0).click();
             return hasAnyComponent(EDITOR);
@@ -254,9 +271,9 @@ public class TestUI extends BaseUITest {
         String cleanToken = token.substring(token.indexOf('(') + 1, token.lastIndexOf(')'));
         String editorAtCaret = editor.getText().substring(editor.getCaretOffset());
         Assertions.assertTrue(editorAtCaret.startsWith(cleanToken),
-                              String.format("editor: %s | token: %s",
-                                            editorAtCaret.substring(0, token.length()),
-                                            token));
+                String.format("editor: %s | token: %s",
+                        editorAtCaret.substring(0, token.length()),
+                        token));
     }
 
     private void waitForScanIdSelection() {
@@ -288,7 +305,7 @@ public class TestUI extends BaseUITest {
         waitFor(() -> {
             click(GROUP_BY_ACTION);
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
-                   && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() == 2;
+                    && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() == 2;
         });
     }
 
@@ -324,12 +341,12 @@ public class TestUI extends BaseUITest {
             }
             ComponentFixture tree = trees.get(0);
             return tree.getData().getAll().size() == 1
-                   && tree.getData()
-                          .getAll()
-                          .get(0)
-                          .getText()
-                          .contains(Bundle.message(
-                                  Resource.INVALID_SCAN_ID));
+                    && tree.getData()
+                    .getAll()
+                    .get(0)
+                    .getText()
+                    .contains(Bundle.message(
+                            Resource.INVALID_SCAN_ID));
         });
     }
 
@@ -349,12 +366,12 @@ public class TestUI extends BaseUITest {
 
     private boolean checkTreeState(ComponentFixture tree) {
         return tree.getData().getAll().size() > 1 || (tree.getData().getAll().size() == 1
-                                                      && tree.getData()
-                                                             .getAll()
-                                                             .get(0)
-                                                             .getText()
-                                                             .contains(Bundle.message(
-                                                                     Resource.GETTING_RESULTS)));
+                && tree.getData()
+                .getAll()
+                .get(0)
+                .getText()
+                .contains(Bundle.message(
+                        Resource.GETTING_RESULTS)));
     }
 
     private void toggleFilter(Severity severity, boolean enabled) {
@@ -368,8 +385,8 @@ public class TestUI extends BaseUITest {
             ActionButtonFixture filter = find(ActionButtonFixture.class, xpath);
             log(filter.popState().name());
             return filter.popState().equals(enabled
-                                            ? ActionButtonFixture.PopState.PUSHED
-                                            : ActionButtonFixture.PopState.POPPED);
+                    ? ActionButtonFixture.PopState.PUSHED
+                    : ActionButtonFixture.PopState.POPPED);
         });
     }
 }
