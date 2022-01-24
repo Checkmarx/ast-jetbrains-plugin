@@ -393,6 +393,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     private String getProjectId() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         Scan scan = CxWrapperFactory.build().scanShow(UUID.fromString(scanId));
         return scan.getProjectID();
+    }
 
     @NotNull
     private static String capToLen(String fileName) {
