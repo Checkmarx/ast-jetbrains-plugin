@@ -177,12 +177,15 @@ public class ResultNode extends DefaultMutableTreeNode {
                     .column(node.getColumn())
                     .build();
 
-            String label = String.format(Constants.NODE_FORMAT,
-                                         i + 1,
-                                         node.getName());
-            panel.add(new BoldLabel(label), "gapbottom 5");
-            panel.add(new CxLinkLabel(capToLen(node.getFileName()),
-                                      mouseEvent -> navigate(project, fileNode)), "span, wrap, gapbottom 5");
+            String labelContent = String.format(Constants.NODE_FORMAT, i + 1, node.getName());
+
+            BoldLabel label = new BoldLabel(labelContent);
+            label.setOpaque(true);
+
+            CxLinkLabel link = new CxLinkLabel(capToLen(node.getFileName()),
+                                               mouseEvent -> navigate(project, fileNode));
+
+            addToPanel(panel, label, link);
         }
         return panel;
     }
@@ -202,11 +205,12 @@ public class ResultNode extends DefaultMutableTreeNode {
                 .column(column)
                 .build();
 
-        String label = String.format(Constants.NODE_FORMAT,
-                                     Bundle.message(Resource.LOCATION),
-                                     "");
-        panel.add(new BoldLabel(label), "split 2, span, gapbottom 5");
-        panel.add(new CxLinkLabel(label, mouseEvent -> navigate(project, fileNode)), "growx, wrap, gapbottom 5");
+        String labelContent = String.format(Constants.NODE_FORMAT, "File", "");
+        BoldLabel label = new BoldLabel(labelContent);
+        label.setOpaque(true);
+        CxLinkLabel link = new CxLinkLabel(fileName, mouseEvent -> navigate(project, fileNode));
+
+        addToPanel(panel, label, link);
         return panel;
     }
 
@@ -215,13 +219,47 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         addLocationHeader(panel, Resource.PACKAGE_DATA);
         for (PackageData pkg : packageData) {
-            String label = String.format(Constants.NODE_FORMAT,
-                                         pkg.getType(),
-                                         "");
-            panel.add(new BoldLabel(label), "split 2, span, gapbottom 5");
-            panel.add(CxLinkLabel.buildDocLinkLabel(pkg.getUrl(), pkg.getUrl()), "growx, wrap, gapbottom 5");
+            String labelContent = String.format(Constants.NODE_FORMAT,
+                                                pkg.getType(),
+                                                "");
+            BoldLabel label = new BoldLabel(labelContent);
+            label.setOpaque(true);
+            JComponent link = CxLinkLabel.buildDocLinkLabel(pkg.getUrl(), pkg.getUrl());
+            addToPanel(panel, label, link);
         }
         return panel;
+    }
+
+    private static void addToPanel(JPanel panel, BoldLabel label, JComponent link) {
+        JPanel rowPanel = new JPanel(new MigLayout("fillx"));
+        MouseAdapter hoverListener = new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                label.setBackground(JBUI.CurrentTheme.List.Hover.background(true));
+                rowPanel.setBackground(JBUI.CurrentTheme.List.Hover.background(true));
+                label.repaint();
+                rowPanel.repaint();
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                mouseEntered(e);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                label.setBackground(JBUI.CurrentTheme.List.BACKGROUND);
+                rowPanel.setBackground(JBUI.CurrentTheme.List.BACKGROUND);
+                label.repaint();
+                rowPanel.repaint();
+            }
+        };
+        label.addMouseListener(hoverListener);
+        link.addMouseListener(hoverListener);
+        rowPanel.addMouseListener(hoverListener);
+        rowPanel.add(label, "split 2, span");
+        rowPanel.add(link, "span");
+        panel.add(rowPanel, "growx, wrap");
     }
 
     private static void addLocationHeader(@NotNull JPanel panel, @Nls Resource packageData) {
