@@ -230,23 +230,6 @@ public class TestUI extends BaseUITest {
             return findAll(LINK_LABEL).size() > 0;
         });
 
-//        waitFor(() -> {
-//            find(SEVERITY_COMBOBOX_ARROW).click();
-//            return findAll("//div[@class='JList']").size() > 0
-//                    && find(JListFixture.class, "//div[@class='JList']").hasText("LOW");
-//        });
-//
-//        waitFor(() -> find(JListFixture.class, "//div[@class='JList']").isShowing());
-//        find(JListFixture.class,"//div[@class='JList']").clickItem("LOW", true);
-//
-//        waitFor(() -> {
-//            find(STATE_COMBOBOX_ARROW).click();
-//            return findAll("//div[@class='JList']").size() > 0
-//                    && find(JListFixture.class, "//div[@class='JList']").hasText("CONFIRMED");
-//        });
-//
-//        waitFor(() -> find(JListFixture.class, "//div[@class='JList']").isShowing());
-//        find(JListFixture.class,"//div[@class='JList']").clickItem("CONFIRMED", true);
         String commentUUID = UUID.randomUUID().toString();
 
         waitFor(() -> {
@@ -279,14 +262,6 @@ public class TestUI extends BaseUITest {
             return !find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").isEnabled();
         });
 
-//        find("//div[@class='JTextField']").click();
-//        String commentUUID = UUID.randomUUID().toString();
-//        enter(commentUUID);
-//
-//        waitFor(() -> {
-//            find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").click();
-//            return !find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").isEnabled();
-//        });
         waitFor(() -> find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").isEnabled());
 
         waitFor(() -> {
