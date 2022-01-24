@@ -222,7 +222,7 @@ public class TestUI extends BaseUITest {
         }
         // open first node of the opened result
         final int resultRow = row;
-        Assertions.assertTrue(resultRow > 2);
+        Assertions.assertTrue(resultRow > 1); // at least scan (0) and sast (1)
         waitFor(() -> {
             tree.clickRow(resultRow);
             return findAll(LINK_LABEL).size() > 0;
@@ -274,6 +274,7 @@ public class TestUI extends BaseUITest {
                 String.format("editor: %s | token: %s",
                         editorAtCaret.substring(0, token.length()),
                         token));
+
     }
 
     private void waitForScanIdSelection() {

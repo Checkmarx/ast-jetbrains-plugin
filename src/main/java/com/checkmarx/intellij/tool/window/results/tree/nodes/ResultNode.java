@@ -8,10 +8,16 @@ import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.*;
-import com.checkmarx.intellij.components.CxLinkLabel;
-import com.checkmarx.intellij.components.PaneUtils;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.tool.window.*;
+import com.checkmarx.intellij.Bundle;
+import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Resource;
+import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.components.CxLinkLabel;
+import com.checkmarx.intellij.components.PaneUtils;
+import com.checkmarx.intellij.tool.window.FileNode;
+import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -26,6 +32,7 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBTabbedPane;
+import com.intellij.ui.components.labels.BoldLabel;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -126,7 +133,9 @@ public class ResultNode extends DefaultMutableTreeNode {
             secondPanel = buildPackageDataPanel(packageData);
         } else if (StringUtils.isNotBlank(result.getData().getFileName())) {
             secondPanel = buildVulnerabilityLocation(project,
-                    result.getData().getFileName(), result.getData().getLine(), DEFAULT_COLUMN);
+                                                     result.getData().getFileName(),
+                                                     result.getData().getLine(),
+                                                     DEFAULT_COLUMN);
         }
 
         OnePixelSplitter splitter = new OnePixelSplitter();
@@ -215,10 +224,22 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel descriptionPanel = new JPanel();
         descriptionPanel.setLayout(new MigLayout("fillx"));
 
-        String description = result.getData().getDescription();
+        String description = result.getDescription();
         if (StringUtils.isNotBlank(description)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
             descriptionPanel.add(new JBLabel(String.format("<html>%s</html>", description)), "wrap, gapbottom 5");
+
+            details.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)), "wrap, gapbottom 5");
+        }
+        if (StringUtils.isNotBlank(result.getData().getValue()) && StringUtils.isNotBlank(result.getData()
+                                                                                                .getExpectedValue())) {
+
+            details.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
+                                                  Bundle.message(Resource.ACTUAL_VALUE),
+                                                  result.getData().getValue())), "span, growx, wrap");
+            details.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
+                                                  Bundle.message(Resource.EXPECTED_VALUE),
+                                                  result.getData().getExpectedValue())), "span, growx, wrap");
         }
         tabbedPane.add(Bundle.message(Resource.DESCRIPTION), descriptionPanel);
 
@@ -275,10 +296,10 @@ public class ResultNode extends DefaultMutableTreeNode {
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
             String label = String.format(Constants.NODE_FORMAT,
-                    i + 1,
-                    node.getFileName(),
-                    node.getLine(),
-                    node.getName());
+                                         
+                                         i + 1,
+                                         node.getName());
+
             FileNode fileNode = FileNode
                     .builder()
                     .fileName(node.getFileName())
@@ -286,20 +307,25 @@ public class ResultNode extends DefaultMutableTreeNode {
                     .column(node.getColumn())
                     .build();
 
-            panel.add(new CxLinkLabel(label, mouseEvent -> navigate(project, fileNode)), "span, wrap");
+            panel.add(new BoldLabel(label), "split 2, span, gapbottom 5");
+            panel.add(new CxLinkLabel(capToLen(node.getFileName()),
+                                      mouseEvent -> navigate(project, fileNode)), "growx, wrap, gapbottom 5");
         }
         return panel;
     }
 
     @NotNull
-    private static JPanel buildVulnerabilityLocation(@NotNull Project project, @NotNull String fileName, int line, int column) {
+    private static JPanel buildVulnerabilityLocation(@NotNull Project project,
+                                                     @NotNull String fileName,
+                                                     int line,
+                                                     int column) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         panel.add(boldLabel(Bundle.message(Resource.LOCATION)), "span, wrap");
         panel.add(new JSeparator(), "span, growx, wrap");
         String label = String.format(Constants.FILE_FORMAT,
-                fileName,
-                line,
-                column);
+                                     fileName,
+                                     line,
+                                     column);
 
         FileNode fileNode = FileNode
                 .builder()
@@ -318,8 +344,8 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(boldLabel(Bundle.message(Resource.PACKAGE_DATA)), "span, wrap");
         panel.add(new JSeparator(), "span, growx, wrap");
         for (PackageData pkg : packageData) {
-            panel.add(new JBLabel(pkg.getType()), "split 2, span, wrap");
-            panel.add(CxLinkLabel.buildDocLinkLabel(pkg.getUrl(), pkg.getUrl()), "growx, wrap");
+            panel.add(new BoldLabel(pkg.getType() + " | "), "split 2, span, gapbottom 5");
+            panel.add(CxLinkLabel.buildDocLinkLabel(pkg.getUrl(), pkg.getUrl()), "growx, wrap, gapbottom 5");
         }
         return panel;
     }
@@ -363,8 +389,16 @@ public class ResultNode extends DefaultMutableTreeNode {
         });
     }
 
+
     private String getProjectId() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         Scan scan = CxWrapperFactory.build().scanShow(UUID.fromString(scanId));
         return scan.getProjectID();
+
+    @NotNull
+    private static String capToLen(String fileName) {
+        return fileName.length() > Constants.FILE_PATH_MAX_LEN
+               ? Constants.COLLAPSE_CRUMB + fileName.substring(fileName.length() - Constants.FILE_PATH_MAX_LEN
+                                                               + Constants.COLLAPSE_CRUMB.length())
+               : fileName;
     }
 }
