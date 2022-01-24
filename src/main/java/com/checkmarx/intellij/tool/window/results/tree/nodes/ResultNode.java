@@ -23,17 +23,26 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.labels.BoldLabel;
+import com.intellij.ui.hover.TableHoverListener;
+import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
@@ -158,13 +167,9 @@ public class ResultNode extends DefaultMutableTreeNode {
     @NotNull
     private static JPanel buildAttackVectorPanel(@NotNull Project project, @NotNull List<Node> nodes) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
-        panel.add(boldLabel(Bundle.message(Resource.NODES)), "span, wrap");
-        panel.add(new JSeparator(), "span, growx, wrap");
+        addLocationHeader(panel, Resource.NODES);
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
-            String label = String.format(Constants.NODE_FORMAT,
-                                         i + 1,
-                                         node.getName());
             FileNode fileNode = FileNode
                     .builder()
                     .fileName(node.getFileName())
@@ -172,9 +177,12 @@ public class ResultNode extends DefaultMutableTreeNode {
                     .column(node.getColumn())
                     .build();
 
-            panel.add(new BoldLabel(label), "split 2, span, gapbottom 5");
+            String label = String.format(Constants.NODE_FORMAT,
+                                         i + 1,
+                                         node.getName());
+            panel.add(new BoldLabel(label), "gapbottom 5");
             panel.add(new CxLinkLabel(capToLen(node.getFileName()),
-                                      mouseEvent -> navigate(project, fileNode)), "growx, wrap, gapbottom 5");
+                                      mouseEvent -> navigate(project, fileNode)), "span, wrap, gapbottom 5");
         }
         return panel;
     }
@@ -185,12 +193,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                                                      int line,
                                                      int column) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
-        panel.add(boldLabel(Bundle.message(Resource.LOCATION)), "span, wrap");
-        panel.add(new JSeparator(), "span, growx, wrap");
-        String label = String.format(Constants.FILE_FORMAT,
-                                     fileName,
-                                     line,
-                                     column);
+        addLocationHeader(panel, Resource.LOCATION);
 
         FileNode fileNode = FileNode
                 .builder()
@@ -199,20 +202,31 @@ public class ResultNode extends DefaultMutableTreeNode {
                 .column(column)
                 .build();
 
-        panel.add(new CxLinkLabel(label, mouseEvent -> navigate(project, fileNode)), "span, wrap");
+        String label = String.format(Constants.NODE_FORMAT,
+                                     Bundle.message(Resource.LOCATION),
+                                     "");
+        panel.add(new BoldLabel(label), "split 2, span, gapbottom 5");
+        panel.add(new CxLinkLabel(label, mouseEvent -> navigate(project, fileNode)), "growx, wrap, gapbottom 5");
         return panel;
     }
 
     @NotNull
     private static JPanel buildPackageDataPanel(@NotNull List<PackageData> packageData) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
-        panel.add(boldLabel(Bundle.message(Resource.PACKAGE_DATA)), "span, wrap");
-        panel.add(new JSeparator(), "span, growx, wrap");
+        addLocationHeader(panel, Resource.PACKAGE_DATA);
         for (PackageData pkg : packageData) {
-            panel.add(new BoldLabel(pkg.getType() + " | "), "split 2, span, gapbottom 5");
+            String label = String.format(Constants.NODE_FORMAT,
+                                         pkg.getType(),
+                                         "");
+            panel.add(new BoldLabel(label), "split 2, span, gapbottom 5");
             panel.add(CxLinkLabel.buildDocLinkLabel(pkg.getUrl(), pkg.getUrl()), "growx, wrap, gapbottom 5");
         }
         return panel;
+    }
+
+    private static void addLocationHeader(@NotNull JPanel panel, @Nls Resource packageData) {
+        panel.add(boldLabel(Bundle.message(packageData)), "span, wrap");
+        panel.add(new JSeparator(), "span, growx, wrap");
     }
 
     @NotNull
@@ -260,5 +274,146 @@ public class ResultNode extends DefaultMutableTreeNode {
                ? Constants.COLLAPSE_CRUMB + fileName.substring(fileName.length() - Constants.FILE_PATH_MAX_LEN
                                                                + Constants.COLLAPSE_CRUMB.length())
                : fileName;
+    }
+
+    /*JBTable table = new AttackVectorTable(project, nodes);
+    DefaultTableModel model = new NoEditTableModel(2);
+    for (int i = 0; i < nodes.size(); i++) {
+        Node node = nodes.get(i);
+        model.addRow(new Object[]{String.format(Constants.NODE_FORMAT, i + 1, node.getName()), node.getFileName()});
+    }
+    table.setModel(model);
+    table.setRowHeight(table.getRowHeight() + 10);
+    table.setRowMargin(10);
+    table.getColumnModel().setColumnMargin(10);
+    panel.add(table, "");*/
+
+    private static class NoSelectionTableCellRenderer extends DefaultTableCellRenderer {
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table,
+                                                       Object value,
+                                                       boolean isSelected,
+                                                       boolean hasFocus,
+                                                       int row,
+                                                       int column) {
+            super.getTableCellRendererComponent(table,
+                                                value,
+                                                isSelected,
+                                                hasFocus,
+                                                row,
+                                                column);
+            setBorder(noFocusBorder);
+            return this;
+        }
+    }
+
+    private static class NoEditTableModel extends DefaultTableModel {
+        public NoEditTableModel(int columnCount) {
+            super(0, columnCount);
+        }
+
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
+
+
+    }
+
+    private static class AutoAdjustedTable extends JBTable {
+        @Override
+        public @NotNull Component prepareRenderer(@NotNull TableCellRenderer renderer, int row, int column) {
+            Component component = super.prepareRenderer(renderer, row, column);
+            int rendererWidth = component.getPreferredSize().width;
+            TableColumn tableColumn = getColumnModel().getColumn(column);
+            tableColumn.setPreferredWidth(Math.max(rendererWidth + getIntercellSpacing().width,
+                                                   row == 0 ? 0 : tableColumn.getPreferredWidth()));
+            return component;
+        }
+    }
+
+    private static final class AttackVectorTableCellRenderer extends NoSelectionTableCellRenderer {
+
+        private final List<Node> nodes;
+
+        public AttackVectorTableCellRenderer(List<Node> nodes) {
+            super();
+            this.nodes = nodes;
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table,
+                                                       Object value,
+                                                       boolean isSelected,
+                                                       boolean hasFocus,
+                                                       int row,
+                                                       int column) {
+            super.getTableCellRendererComponent(table,
+                                                value,
+                                                isSelected,
+                                                hasFocus,
+                                                row,
+                                                column);
+            if (column == 0) {
+                setFont(new Font(getFont().getFontName(), Font.BOLD, getFont().getSize()));
+            }
+            if (column == 1) {
+                return new JLabel(String.format(Constants.HELP_HTML, nodes.get(row).getFileName()));
+            }
+            return this;
+        }
+    }
+
+    private static final class AttackVectorTable extends AutoAdjustedTable {
+        public AttackVectorTable(@NotNull Project project,
+                                 @NotNull List<Node> nodes) {
+            super();
+            setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+            getTableHeader().setReorderingAllowed(false);
+            setShowGrid(false);
+            setRowSelectionAllowed(false);
+            setExpandableItemsEnabled(true);
+            setDefaultRenderer(Object.class, new AttackVectorTableCellRenderer(nodes));
+            //noinspection UnstableApiUsage
+            TableHoverListener.DEFAULT.addTo(this);
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    int row = rowAtPoint(new Point(e.getX(), e.getY()));
+                    int col = columnAtPoint(new Point(e.getX(), e.getY()));
+                    if (col == 1) {
+                        Node node = nodes.get(row);
+                        FileNode fileNode = FileNode
+                                .builder()
+                                .fileName(node.getFileName())
+                                .line(node.getLine())
+                                .column(node.getColumn())
+                                .build();
+                        navigate(project, fileNode);
+                    }
+                }
+
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    if (columnAtPoint(new Point(e.getX(), e.getY())) == 1) {
+                        setCursor(new Cursor(Cursor.HAND_CURSOR));
+                    }
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    if (columnAtPoint(new Point(e.getX(), e.getY())) != 1) {
+                        setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+                    }
+                }
+            });
+        }
+
+        @NotNull
+        @Override
+        public Rectangle getCellRect(int row, int column, boolean includeSpacing) {
+            return super.getCellRect(row, column, true);
+        }
     }
 }
