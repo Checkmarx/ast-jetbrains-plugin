@@ -261,23 +261,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         }).thenAccept(triageChangesList -> ApplicationManager.getApplication().invokeLater(() -> {
             for (Predicate predicate : triageChangesList) {
 
-                JLabel firstLabel = new JLabel(String.format("<html><b>%s</b> | %s</html>", boldLabel(predicate.getCreatedBy()).getText(), Utils.dateParser(predicate.getCreatedAt())));
-                triageChanges.add(firstLabel, "span, wrap");
-
-                JLabel severityLabel = new JLabel(String.format("<html>%s</html>", predicate.getSeverity()));
-                severityLabel.setIcon(Severity.valueOf(predicate.getSeverity()).getIcon());
-                triageChanges.add(severityLabel, "span, wrap");
-
-                JLabel stateLabel = new JLabel(String.format("<html>%s</html>", predicate.getState()));
-                stateLabel.setIcon(CxIcons.STATE);
-                triageChanges.add(stateLabel, "span, wrap");
-
-                if(!predicate.getComment().equals("")){
-                    JLabel commentLabel = new JLabel(String.format("<html>%s</html>", predicate.getComment()));
-                    commentLabel.setIcon(CxIcons.COMMENT);
-                    triageChanges.add(commentLabel, "span, wrap");
-                }
-                triageChanges.add(new JSeparator(), "span, wrap ,growx");
+                createChangesPanels(triageChanges, predicate);
             }
             runnableUpdater.run();
         }));
@@ -286,6 +270,26 @@ public class ResultNode extends DefaultMutableTreeNode {
         details.add(tabbedPane, "growx");
 
         return details;
+    }
+
+    private void createChangesPanels(JPanel triageChanges, Predicate predicate) {
+        JLabel firstLabel = new JLabel(String.format("<html><b>%s</b> | %s</html>", boldLabel(predicate.getCreatedBy()).getText(), Utils.dateParser(predicate.getCreatedAt())));
+        triageChanges.add(firstLabel, "span, wrap");
+
+        JLabel severityLabel = new JLabel(String.format("<html>%s</html>", predicate.getSeverity()));
+        severityLabel.setIcon(Severity.valueOf(predicate.getSeverity()).getIcon());
+        triageChanges.add(severityLabel, "span, wrap");
+
+        JLabel stateLabel = new JLabel(String.format("<html>%s</html>", predicate.getState()));
+        stateLabel.setIcon(CxIcons.STATE);
+        triageChanges.add(stateLabel, "span, wrap");
+
+        if(!predicate.getComment().equals("")){
+            JLabel commentLabel = new JLabel(String.format("<html>%s</html>", predicate.getComment()));
+            commentLabel.setIcon(CxIcons.COMMENT);
+            triageChanges.add(commentLabel, "span, wrap");
+        }
+        triageChanges.add(new JSeparator(), "span, wrap ,growx");
     }
 
     @NotNull

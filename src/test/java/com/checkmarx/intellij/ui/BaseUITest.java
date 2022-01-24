@@ -41,13 +41,9 @@ public abstract class BaseUITest {
     @Language("XPath")
     protected static final String VALIDATE_BUTTON = "//div[@class='JButton' and @text.key='VALIDATE_BUTTON']";
     @Language("XPath")
-    protected static final String STATE_COMBOBOX = "//div[@class='ComboBox'][.//div[@visible_text='TO_VERIFY']]";
+    protected static final String STATE_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='TO_VERIFY']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='URGENT']]//div[@class='BasicArrowButton']";
     @Language("XPath")
-    protected static final String STATE_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='TO_VERIFY']]//div[@class='BasicArrowButton']";
-    @Language("XPath")
-    protected static final String SEVERITY_COMBOBOX = "//div[@class='ComboBox'][.//div[@visible_text='MEDIUM']]";
-    @Language("XPath")
-    protected static final String SEVERITY_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='MEDIUM']]//div[@class='BasicArrowButton']";
+    protected static final String SEVERITY_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='MEDIUM']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='HIGH']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='LOW']]//div[@class='BasicArrowButton']";
     @Language("XPath")
     protected static final String SCAN_FIELD = "//div[@class='TextFieldWithProcessing']";
     @Language("XPath")

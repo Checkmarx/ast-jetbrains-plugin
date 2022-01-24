@@ -81,18 +81,16 @@ public final class Utils {
 
     public static String dateParser(String unformattedDate) {
 
-        SimpleDateFormat input = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        SimpleDateFormat output = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-
+        SimpleDateFormat input = new SimpleDateFormat(Constants.INPUT_DATE_FORMAT);
+        SimpleDateFormat output = new SimpleDateFormat(Constants.OUTPUT_DATE_FORMAT);
         Date d = null;
-        try
-        {
+
+        try {
             d = input.parse(unformattedDate);
+            return output.format(d);
+        } catch (ParseException e) {
+            LOGGER.error(e);
         }
-        catch (ParseException e)
-        {
-            e.printStackTrace();
-        }
-        return output.format(d);
+        return "Date unavailable";
     }
 }

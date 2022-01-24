@@ -37,6 +37,8 @@ public final class Constants {
     public static final String FIELD_FORMAT = "<html>%s%s</html>";
     public static final String REQUIRED_MARK = "<span style=\"color:#ff0000\">*</span>";
     public static final String VALUE_FORMAT = "<html><b>%s</b>: %s</html>";
+    public static final String INPUT_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+    public static final String OUTPUT_DATE_FORMAT = "dd/MM/yyyy HH:mm:ss";
 
     public static final String API_KEY_CREDENTIALS_KEY = "APIKey";
 

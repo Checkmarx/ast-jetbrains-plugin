@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Handle project related operations with the wrapper
+ * Handle triage related operations with the wrapper
  */
 public class Triage {
 
