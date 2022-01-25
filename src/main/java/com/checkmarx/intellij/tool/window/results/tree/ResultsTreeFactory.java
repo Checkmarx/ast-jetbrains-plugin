@@ -51,7 +51,7 @@ public class ResultsTreeFactory {
                 addResultToEngine(project,
                                   groupByList,
                                   engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
-                                  result);
+                                  result, scanId);
             }
         }
 
@@ -65,7 +65,8 @@ public class ResultsTreeFactory {
     private static void addResultToEngine(Project project,
                                           List<GroupBy> groupByList,
                                           NonLeafNode parent,
-                                          Result result) {
+                                          Result result,
+                                          String scanId) {
         for (GroupBy groupBy : groupByList) {
             NonLeafNode child = null;
             String childKey = groupBy.getFunction().apply(result);
@@ -86,7 +87,7 @@ public class ResultsTreeFactory {
             parent.incrementSubTreeSize();
             parent = child;
         }
-        parent.add(new ResultNode(result, project), String::compareTo);
+        parent.add(new ResultNode(result, project, scanId), String::compareTo);
         parent.incrementSubTreeSize();
     }
 

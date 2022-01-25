@@ -37,6 +37,7 @@ public enum Resource {
     LATEST_SCAN,
     SUMMARY,
     DESCRIPTION,
+    CHANGES,
     NODES,
     PACKAGE_DATA,
     LOCATION,

@@ -30,21 +30,23 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
+import com.intellij.util.messages.Topic;
 import com.intellij.util.ui.JBUI;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 import static com.intellij.util.ui.JBUI.Panels.simplePanel;
@@ -122,8 +124,8 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         ActionToolbar mainToolbar = getActionToolbar();
         ResetSelectionAction resetSelectionAction = (ResetSelectionAction) mainToolbar.getActions()
-                                                                                      .stream()
-                                                                                      .filter(a -> a instanceof ResetSelectionAction)
+                .stream()
+                .filter(a -> a instanceof ResetSelectionAction)
                                                                                       .findFirst()
                                                                                       .orElse(null);
 
@@ -369,6 +371,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
      */
     private class OnSelectShowDetail implements TreeSelectionListener {
 
+        @SneakyThrows
         @Override
         public void valueChanged(TreeSelectionEvent e) {
             TreePath path = e.getNewLeadSelectionPath();
@@ -377,7 +380,24 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 Tree tree = (Tree) e.getSource();
                 if (tree.getModel().isLeaf(selected) && selected instanceof ResultNode) {
                     ResultNode resultNode = (ResultNode) selected;
-                    treeDetailsSplitter.setSecondComponent(resultNode.buildResultPanel());
+                    treeDetailsSplitter.setSecondComponent(resultNode.buildResultPanel(() -> {
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            drawTree();
+                            DefaultMutableTreeNode root = (DefaultMutableTreeNode) currentTree.getModel().getRoot();
+                            Enumeration<TreeNode> enumeration = root.depthFirstEnumeration();
+                            while (enumeration.hasMoreElements()) {
+                                TreeNode treeNode = enumeration.nextElement();
+                                if (tree.getModel().isLeaf(treeNode) && treeNode instanceof ResultNode) {
+                                    ResultNode node = (ResultNode) treeNode;
+                                    if (node.getResult() == resultNode.getResult()) {
+                                        currentTree.expandPath(new TreePath(node.getPath()).getParentPath());
+                                        break;
+                                    }
+                                }
+                            }
+                            valueChanged(new TreeSelectionEvent(currentTree, path, true, e.getOldLeadSelectionPath(), e.getNewLeadSelectionPath()));
+                        });
+                    }, () -> refreshPanel()));
                 }
             }
         }
@@ -418,5 +438,9 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 triggerDrawResultsTree(scanIdField.getText().trim(), true);
             }
         }
+    }
+
+    public interface CxRefreshHandler {
+        void refresh();
     }
 }
