@@ -5,9 +5,11 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.ui.HyperlinkLabel;
 import com.intellij.ui.components.JBLabel;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -19,7 +21,7 @@ import java.util.function.Consumer;
 /**
  * Label with link style. Performs the supplied {@link MouseEvent} consumer when clicked.
  */
-public class CxLinkLabel extends JBLabel {
+public class CxLinkLabel extends HyperlinkLabel {
 
     private static final Logger LOGGER = Utils.getLogger(CxLinkLabel.class);
 
@@ -28,9 +30,7 @@ public class CxLinkLabel extends JBLabel {
     }
 
     public CxLinkLabel(@NotNull String text, Consumer<MouseEvent> onClick) {
-        super(String.format(Constants.HELP_HTML, text));
-
-        setCursor(new Cursor(Cursor.HAND_CURSOR));
+        super(text);
 
         addMouseListener(new MouseAdapter() {
 
@@ -38,18 +38,6 @@ public class CxLinkLabel extends JBLabel {
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
                 onClick.accept(e);
-            }
-
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                super.mouseEntered(e);
-                setText(String.format(Constants.HELP_HTML_U, text));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                super.mouseExited(e);
-                setText(String.format(Constants.HELP_HTML, text));
             }
         });
     }
@@ -60,7 +48,7 @@ public class CxLinkLabel extends JBLabel {
      *
      * @return label link component
      */
-    public static JBLabel buildDocLinkLabel(String link, Resource resource) {
+    public static JComponent buildDocLinkLabel(String link, Resource resource) {
         return new CxLinkLabel(resource, getMouseEventConsumer(link));
     }
 
@@ -70,7 +58,7 @@ public class CxLinkLabel extends JBLabel {
      *
      * @return label link component
      */
-    public static JBLabel buildDocLinkLabel(String link, String label) {
+    public static JComponent buildDocLinkLabel(String link, String label) {
         return new CxLinkLabel(label, getMouseEventConsumer(link));
     }
 

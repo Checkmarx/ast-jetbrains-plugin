@@ -39,6 +39,7 @@ import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -46,6 +47,8 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -295,15 +298,9 @@ public class ResultNode extends DefaultMutableTreeNode {
     @NotNull
     private static JPanel buildAttackVectorPanel(@NotNull Project project, @NotNull List<Node> nodes) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
-        panel.add(boldLabel(Bundle.message(Resource.NODES)), "span, wrap");
-        panel.add(new JSeparator(), "span, growx, wrap");
+        addHeader(panel, Resource.NODES);
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
-            String label = String.format(Constants.NODE_FORMAT,
-                                         
-                                         i + 1,
-                                         node.getName());
-
             FileNode fileNode = FileNode
                     .builder()
                     .fileName(node.getFileName())
@@ -311,9 +308,15 @@ public class ResultNode extends DefaultMutableTreeNode {
                     .column(node.getColumn())
                     .build();
 
-            panel.add(new BoldLabel(label), "split 2, span, gapbottom 5");
-            panel.add(new CxLinkLabel(capToLen(node.getFileName()),
-                                      mouseEvent -> navigate(project, fileNode)), "growx, wrap, gapbottom 5");
+            String labelContent = String.format(Constants.NODE_FORMAT, i + 1, node.getName());
+
+            BoldLabel label = new BoldLabel(labelContent);
+            label.setOpaque(true);
+
+            CxLinkLabel link = new CxLinkLabel(capToLen(node.getFileName()),
+                                               mouseEvent -> navigate(project, fileNode));
+
+            addToPanel(panel, label, link);
         }
         return panel;
     }
@@ -324,12 +327,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                                                      int line,
                                                      int column) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
-        panel.add(boldLabel(Bundle.message(Resource.LOCATION)), "span, wrap");
-        panel.add(new JSeparator(), "span, growx, wrap");
-        String label = String.format(Constants.FILE_FORMAT,
-                                     fileName,
-                                     line,
-                                     column);
+        addHeader(panel, Resource.LOCATION);
 
         FileNode fileNode = FileNode
                 .builder()
@@ -338,20 +336,62 @@ public class ResultNode extends DefaultMutableTreeNode {
                 .column(column)
                 .build();
 
-        panel.add(new CxLinkLabel(label, mouseEvent -> navigate(project, fileNode)), "span, wrap");
+        String labelContent = String.format(Constants.NODE_FORMAT, "File", "");
+        BoldLabel label = new BoldLabel(labelContent);
+        label.setOpaque(true);
+        CxLinkLabel link = new CxLinkLabel(fileName, mouseEvent -> navigate(project, fileNode));
+
+        addToPanel(panel, label, link);
         return panel;
     }
 
     @NotNull
     private static JPanel buildPackageDataPanel(@NotNull List<PackageData> packageData) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
-        panel.add(boldLabel(Bundle.message(Resource.PACKAGE_DATA)), "span, wrap");
-        panel.add(new JSeparator(), "span, growx, wrap");
+        addHeader(panel, Resource.PACKAGE_DATA);
         for (PackageData pkg : packageData) {
-            panel.add(new BoldLabel(pkg.getType() + " | "), "split 2, span, gapbottom 5");
-            panel.add(CxLinkLabel.buildDocLinkLabel(pkg.getUrl(), pkg.getUrl()), "growx, wrap, gapbottom 5");
+            String labelContent = String.format(Constants.NODE_FORMAT,
+                                                pkg.getType(),
+                                                "");
+            BoldLabel label = new BoldLabel(labelContent);
+            label.setOpaque(true);
+            JComponent link = CxLinkLabel.buildDocLinkLabel(pkg.getUrl(), pkg.getUrl());
+            addToPanel(panel, label, link);
         }
         return panel;
+    }
+
+    private static void addToPanel(JPanel panel, BoldLabel label, JComponent link) {
+        JPanel rowPanel = new JPanel(new MigLayout("fillx"));
+        MouseAdapter hoverListener = new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                toggleHover(label, true);
+                toggleHover(rowPanel, true);
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                mouseEntered(e);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                toggleHover(label, false);
+                toggleHover(rowPanel, false);
+            }
+        };
+        label.addMouseListener(hoverListener);
+        link.addMouseListener(hoverListener);
+        rowPanel.addMouseListener(hoverListener);
+        rowPanel.add(label, "split 2, span");
+        rowPanel.add(link, "span");
+        panel.add(rowPanel, "growx, wrap");
+    }
+
+    private static void addHeader(@NotNull JPanel panel, @Nls Resource resource) {
+        panel.add(boldLabel(Bundle.message(resource)), "span, wrap");
+        panel.add(new JSeparator(), "span, growx, wrap");
     }
 
     @NotNull
@@ -405,5 +445,12 @@ public class ResultNode extends DefaultMutableTreeNode {
                ? Constants.COLLAPSE_CRUMB + fileName.substring(fileName.length() - Constants.FILE_PATH_MAX_LEN
                                                                + Constants.COLLAPSE_CRUMB.length())
                : fileName;
+    }
+
+    private static void toggleHover(JComponent component, boolean hover) {
+        component.setBackground(hover
+                                ? JBUI.CurrentTheme.List.Hover.background(true)
+                                : JBUI.CurrentTheme.List.BACKGROUND);
+        component.repaint();
     }
 }

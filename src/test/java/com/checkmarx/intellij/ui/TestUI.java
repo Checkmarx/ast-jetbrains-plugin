@@ -277,6 +277,18 @@ public class TestUI extends BaseUITest {
             return hasAnyComponent(EDITOR);
         });
         Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
+        EditorFixture editor = find(EditorFixture.class, EDITOR, waitDuration);
+        // check we opened the correct line:column
+        // token is the string in a bold label after a |
+        List<RemoteText> labelText = findAll(BOLD_LABEL).get(0).getData().getAll();
+        String token = labelText.get(labelText.size() - 1).getText().trim();
+        // remove index and pipe from token, keep only the actual code
+        token = token.substring(token.lastIndexOf("| ") + 2);
+        String editorAtCaret = editor.getText().substring(editor.getCaretOffset());
+        Assertions.assertTrue(editorAtCaret.startsWith(token),
+                              String.format("editor: %s | token: %s",
+                                            editorAtCaret.substring(0, token.length()),
+                                            token));
     }
 
     private void waitForScanIdSelection() {
