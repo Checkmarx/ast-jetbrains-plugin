@@ -23,8 +23,6 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.labels.BoldLabel;
-import com.intellij.ui.hover.TableHoverListener;
-import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -35,10 +33,6 @@ import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableColumn;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -235,10 +229,8 @@ public class ResultNode extends DefaultMutableTreeNode {
         MouseAdapter hoverListener = new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                label.setBackground(JBUI.CurrentTheme.List.Hover.background(true));
-                rowPanel.setBackground(JBUI.CurrentTheme.List.Hover.background(true));
-                label.repaint();
-                rowPanel.repaint();
+                toggleHover(label, true);
+                toggleHover(rowPanel, true);
             }
 
             @Override
@@ -248,10 +240,8 @@ public class ResultNode extends DefaultMutableTreeNode {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                label.setBackground(JBUI.CurrentTheme.List.BACKGROUND);
-                rowPanel.setBackground(JBUI.CurrentTheme.List.BACKGROUND);
-                label.repaint();
-                rowPanel.repaint();
+                toggleHover(label, false);
+                toggleHover(rowPanel, false);
             }
         };
         label.addMouseListener(hoverListener);
@@ -312,5 +302,12 @@ public class ResultNode extends DefaultMutableTreeNode {
                ? Constants.COLLAPSE_CRUMB + fileName.substring(fileName.length() - Constants.FILE_PATH_MAX_LEN
                                                                + Constants.COLLAPSE_CRUMB.length())
                : fileName;
+    }
+
+    private static void toggleHover(JComponent component, boolean hover) {
+        component.setBackground(hover
+                                ? JBUI.CurrentTheme.List.Hover.background(true)
+                                : JBUI.CurrentTheme.List.BACKGROUND);
+        component.repaint();
     }
 }
