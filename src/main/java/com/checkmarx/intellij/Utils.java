@@ -7,6 +7,9 @@ import org.apache.commons.codec.digest.DigestUtils;
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -16,6 +19,8 @@ import java.util.concurrent.CompletableFuture;
 public final class Utils {
 
     private static final Logger LOGGER = getLogger(Utils.class);
+    private static final SimpleDateFormat input = new SimpleDateFormat(Constants.INPUT_DATE_FORMAT);
+    private static final SimpleDateFormat output = new SimpleDateFormat(Constants.OUTPUT_DATE_FORMAT);
 
     private Utils() {
         // forbid instantiation of the class
@@ -74,5 +79,16 @@ public final class Utils {
             return false;
         }
         return true;
+    }
+
+    public static String dateParser(String unformattedDate) {
+        Date d = null;
+        try {
+            d = input.parse(unformattedDate);
+            return output.format(d);
+        } catch (ParseException e) {
+            LOGGER.error(e);
+        }
+        return "Date unavailable";
     }
 }

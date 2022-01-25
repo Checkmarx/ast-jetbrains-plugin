@@ -36,6 +36,8 @@ public final class Constants {
     public static final String FIELD_FORMAT = "<html>%s%s</html>";
     public static final String REQUIRED_MARK = "<span style=\"color:#ff0000\">*</span>";
     public static final String VALUE_FORMAT = "<html><b>%s</b>: %s</html>";
+    public static final String INPUT_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+    public static final String OUTPUT_DATE_FORMAT = "dd/MM/yyyy HH:mm:ss";
 
     public static final String API_KEY_CREDENTIALS_KEY = "APIKey";
 
@@ -52,6 +54,14 @@ public final class Constants {
     public static final String SELECTED_PROJECT_PROPERTY = "Checkmarx.SelectedProject";
     public static final String SELECTED_BRANCH_PROPERTY = "Checkmarx.SelectedBranch";
     public static final String SELECTED_SCAN_PROPERTY = "Checkmarx.SelectedScan";
+
+    public static final String SCAN_TYPE_KICS = "kics";
+
+    public static final String SCAN_STATE_CONFIRMED = "confirmed";
+    public static final String SCAN_STATE_TO_VERIFY = "to_verify";
+
+    public static final String SCAN_SEVERITY_HIGH = "high";
+    public static final String SCAN_SEVERITY_LOW = "low";
 
     public static final int DEFAULT_COLUMN = 0;
     public static final int FILE_PATH_MAX_LEN = 45;
