@@ -19,6 +19,8 @@ import java.util.concurrent.CompletableFuture;
 public final class Utils {
 
     private static final Logger LOGGER = getLogger(Utils.class);
+    private static final SimpleDateFormat input = new SimpleDateFormat(Constants.INPUT_DATE_FORMAT);
+    private static final SimpleDateFormat output = new SimpleDateFormat(Constants.OUTPUT_DATE_FORMAT);
 
     private Utils() {
         // forbid instantiation of the class
@@ -80,11 +82,7 @@ public final class Utils {
     }
 
     public static String dateParser(String unformattedDate) {
-
-        SimpleDateFormat input = new SimpleDateFormat(Constants.INPUT_DATE_FORMAT);
-        SimpleDateFormat output = new SimpleDateFormat(Constants.OUTPUT_DATE_FORMAT);
         Date d = null;
-
         try {
             d = input.parse(unformattedDate);
             return output.format(d);
