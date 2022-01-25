@@ -45,6 +45,8 @@ public abstract class BaseUITest {
     @Language("XPath")
     protected static final String LINK_LABEL = "//div[@class='CxLinkLabel']";
     @Language("XPath")
+    protected static final String BOLD_LABEL = "//div[@class='BoldLabel']";
+    @Language("XPath")
     protected static final String EDITOR = "//div[@class='EditorComponentImpl']";
 
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");

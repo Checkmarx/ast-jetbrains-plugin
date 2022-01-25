@@ -30,7 +30,6 @@ public final class Constants {
 
     public static final String HTML_WRAPPER_FORMAT = "<html>%s</html>";
     public static final String HELP_HTML = "<html><a href=\"\">%s</a></html>";
-    public static final String HELP_HTML_U = "<html><a href=\"\"><u>%s</u></a></html>";
     public static final String NODE_FORMAT = "%s | %s";
     public static final String FILE_FORMAT = "%s:%d (%s)";
     public static final String SUMMARY_FORMAT = "%s | %s | %s | %s";
