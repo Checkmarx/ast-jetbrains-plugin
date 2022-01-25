@@ -43,7 +43,7 @@ public abstract class BaseSelectionGroup extends DefaultActionGroup implements D
         super();
         this.project = project;
         this.propertiesComponent = PropertiesComponent.getInstance(project);
-        getTemplatePresentation().setText(this::getTitle);
+        getTemplatePresentation().setText(this::getTitle, false);
         getTemplatePresentation().setIcon(EmptyIcon.ICON_16);
         setPopup(true);
     }
