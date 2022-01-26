@@ -49,4 +49,5 @@ public enum Resource {
     OPEN_SETTINGS_BUTTON,
     ACTUAL_VALUE,
     EXPECTED_VALUE,
+    COMMENT_PLACEHOLDER,
 }
