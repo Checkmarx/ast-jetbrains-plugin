@@ -81,7 +81,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         CONFIRMED,
         URGENT
     }
-
+    
     /**
      * Set node title and store the associated result
      *
@@ -244,10 +244,10 @@ public class ResultNode extends DefaultMutableTreeNode {
         if (StringUtils.isNotBlank(result.getData().getValue()) && StringUtils.isNotBlank(result.getData()
                                                                                                 .getExpectedValue())) {
 
-            details.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
+            descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
                                                   Bundle.message(Resource.ACTUAL_VALUE),
                                                   result.getData().getValue())), "span, growx, wrap");
-            details.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
+            descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
                                                   Bundle.message(Resource.EXPECTED_VALUE),
                                                   result.getData().getExpectedValue())), "span, growx, wrap");
         }
