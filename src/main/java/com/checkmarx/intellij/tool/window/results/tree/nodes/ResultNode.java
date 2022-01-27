@@ -79,13 +79,6 @@ public class ResultNode extends DefaultMutableTreeNode {
     private final List<Node> nodes;
     private final List<PackageData> packageData;
 
-    public enum StateEnum {
-        TO_VERIFY,
-        NOT_EXPLOITABLE,
-        PROPOSED_NOT_EXPLOITABLE,
-        CONFIRMED,
-        URGENT
-    }
 
     /**
      * Set node title and store the associated result
@@ -163,7 +156,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         updateButton.setText("Update");
 
         //Constructing selection of State combobox
-        final ComboBox<StateEnum> stateComboBox = new ComboBox<>(StateEnum.values());
+        final ComboBox<State> stateComboBox = new ComboBox<>(State.values());
         stateComboBox.setEditable(true);
         stateComboBox.setSelectedItem(result.getState());
 
@@ -230,17 +223,15 @@ public class ResultNode extends DefaultMutableTreeNode {
         String description = result.getDescription();
         if (StringUtils.isNotBlank(description)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            descriptionPanel.add(new JBLabel(String.format("<html>%s</html>", description)), "wrap, gapbottom 5");
-
-            details.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)), "wrap, gapbottom 5");
+            descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)), "wrap, gapbottom 5");
         }
         if (StringUtils.isNotBlank(result.getData().getValue()) && StringUtils.isNotBlank(result.getData()
                                                                                                 .getExpectedValue())) {
 
-            details.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
+            descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
                                                   Bundle.message(Resource.ACTUAL_VALUE),
                                                   result.getData().getValue())), "span, growx, wrap");
-            details.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
+            descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
                                                   Bundle.message(Resource.EXPECTED_VALUE),
                                                   result.getData().getExpectedValue())), "span, growx, wrap");
         }
