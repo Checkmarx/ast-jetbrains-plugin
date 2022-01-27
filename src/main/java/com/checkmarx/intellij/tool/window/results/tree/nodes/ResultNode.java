@@ -74,7 +74,14 @@ public class ResultNode extends DefaultMutableTreeNode {
     private final List<Node> nodes;
     private final List<PackageData> packageData;
 
-
+    public enum StateEnum {
+        TO_VERIFY,
+        NOT_EXPLOITABLE,
+        PROPOSED_NOT_EXPLOITABLE,
+        CONFIRMED,
+        URGENT
+    }
+    
     /**
      * Set node title and store the associated result
      *
@@ -151,7 +158,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         updateButton.setText("Update");
 
         //Constructing selection of State combobox
-        final ComboBox<State> stateComboBox = new ComboBox<>(State.values());
+        final ComboBox<StateEnum> stateComboBox = new ComboBox<>(StateEnum.values());
         stateComboBox.setEditable(true);
         stateComboBox.setSelectedItem(result.getState());
 
