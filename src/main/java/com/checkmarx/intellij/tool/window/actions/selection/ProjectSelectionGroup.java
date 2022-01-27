@@ -151,6 +151,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
 
         public Action(com.checkmarx.ast.project.Project project) {
             super(project.getName());
+            getTemplatePresentation().setText(project::getName, false);
             this.project = project;
         }
 

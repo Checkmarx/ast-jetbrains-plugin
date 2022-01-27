@@ -8,14 +8,9 @@ import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.*;
-import com.checkmarx.intellij.settings.global.CxWrapperFactory;
-import com.checkmarx.intellij.tool.window.*;
-import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Resource;
-import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.components.PaneUtils;
+import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.notification.Notification;
@@ -167,29 +162,43 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         //Constructing Comment textField
         JTextField commentText;
-        commentText = new JTextField("Comment");
-        commentText.setForeground(Color.GRAY);
+        commentText = new JTextField(Bundle.message(Resource.COMMENT_PLACEHOLDER));
+        commentText.setForeground(JBColor.GRAY);
         commentText.addFocusListener(new FocusListener() {
+            private boolean userEdited = false;
             @Override
             public void focusGained(FocusEvent e) {
-                if (commentText.getText().equals("Comment")) {
+                if (commentText.getText().equals(Bundle.message(Resource.COMMENT_PLACEHOLDER)) && !userEdited) {
+                    userEdited = true;
                     commentText.setText("");
-                    commentText.setForeground(Color.WHITE);
+                    commentText.setForeground(JBColor.BLACK);
                 }
             }
+
             @Override
             public void focusLost(FocusEvent e) {
                 if (commentText.getText().isEmpty()) {
-                    commentText.setForeground(Color.GRAY);
-                    commentText.setText("Comment");
+                    userEdited = false;
+                    commentText.setForeground(JBColor.GRAY);
+                    commentText.setText(Bundle.message(Resource.COMMENT_PLACEHOLDER));
                 }
             }
         });
         //Button action
         updateButton.addActionListener(e -> {
             updateButton.setEnabled(false);
-            String newState = stateComboBox.getSelectedItem().toString();
-            String newSeverity = severityComboBox.getSelectedItem().toString();
+            Object selectedState = stateComboBox.getSelectedItem();
+            Object selectedSeverity = severityComboBox.getSelectedItem();
+            if (selectedState == null || selectedSeverity == null) {
+                Utils.getLogger(ResultNode.class)
+                     .info("found null value when triaging, aborting. state "
+                           + selectedState
+                           + " severity "
+                           + selectedSeverity);
+                return;
+            }
+            String newState = selectedState.toString();
+            String newSeverity = selectedSeverity.toString();
 
             result.setState(newState);
             result.setSeverity(newSeverity);

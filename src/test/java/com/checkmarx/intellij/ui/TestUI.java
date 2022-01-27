@@ -5,19 +5,15 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.tool.window.Severity;
-import com.intellij.openapi.ui.ComboBox;
-import com.intellij.remoterobot.client.IdeaSideException;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.apache.commons.lang3.StringUtils;
-import org.assertj.swing.fixture.JComboBoxFixture;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.UUID;
@@ -112,7 +108,7 @@ public class TestUI extends BaseUITest {
         waitFor(() -> {
             selectionSupplier.get().click();
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
-                    && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() > 0;
+                   && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() > 0;
         });
         enter(value);
     }
@@ -135,11 +131,11 @@ public class TestUI extends BaseUITest {
     private void clearSelection() {
         waitFor(() -> {
             if (hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
-                    && findProjectSelection().isEnabled()
-                    && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
-                    && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
-                    && !hasAnyComponent(TREE)
-                    && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
+                && findProjectSelection().isEnabled()
+                && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
+                && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
+                && !hasAnyComponent(TREE)
+                && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
                 log("clear selection done");
                 return true;
             }
@@ -147,8 +143,8 @@ public class TestUI extends BaseUITest {
             ActionButtonFixture branchSelection = findBranchSelection();
             ActionButtonFixture projectSelection = findProjectSelection();
             if (!scanSelection.isShowing() || (scanSelection.hasText("Scan: ..."))
-                    || (!branchSelection.isShowing() || branchSelection.hasText("Branch: ..."))
-                    || (!projectSelection.isShowing() || projectSelection.hasText("Project: ..."))) {
+                || (!branchSelection.isShowing() || branchSelection.hasText("Branch: ..."))
+                || (!projectSelection.isShowing() || projectSelection.hasText("Project: ..."))) {
                 log("clear selection still in progress");
                 return false;
             }
@@ -163,8 +159,8 @@ public class TestUI extends BaseUITest {
         openSettings();
         setFields();
         find(JCheckboxFixture.class,
-                String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
-                waitDuration).setValue(false);
+             String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
+             waitDuration).setValue(false);
         // click the validation button
         click(VALIDATE_BUTTON);
         // wait for the validation success label
@@ -200,7 +196,7 @@ public class TestUI extends BaseUITest {
                 }
             }
             return hasAnyComponent(String.format("//div[@class='Tree' and @visible_text='Scan %s']",
-                    Environment.SCAN_ID));
+                                                 Environment.SCAN_ID));
         });
     }
 
@@ -233,10 +229,17 @@ public class TestUI extends BaseUITest {
         String commentUUID = UUID.randomUUID().toString();
 
         waitFor(() -> {
+            if (findAll(SEVERITY_COMBOBOX_ARROW).size() < 1) {
+                return false;
+            }
             find(SEVERITY_COMBOBOX_ARROW).click();
-            find(JListFixture.class, "//div[@class='JList']").isShowing();
+
+            if (findAll(JLIST).size() < 1) {
+                return false;
+            }
+            find(JListFixture.class, JLIST).isShowing();
             try {
-                find(JListFixture.class, "//div[@class='JList']").clickItem("LOW", true);
+                find(JListFixture.class, JLIST).clickItem("LOW", true);
             } catch (Throwable ice) {
                 return false;
             }
@@ -244,10 +247,17 @@ public class TestUI extends BaseUITest {
         });
 
         waitFor(() -> {
+            if (findAll(STATE_COMBOBOX_ARROW).size() < 1) {
+                return false;
+            }
             find(STATE_COMBOBOX_ARROW).click();
-            find(JListFixture.class, "//div[@class='JList']").isShowing();
+
+            if (findAll(JLIST).size() < 1) {
+                return false;
+            }
+            find(JListFixture.class, JLIST).isShowing();
             try {
-                find(JListFixture.class, "//div[@class='JList']").clickItem("CONFIRMED", true);
+                find(JListFixture.class, JLIST).clickItem("CONFIRMED", true);
             } catch (Throwable ice) {
                 return false;
             }
@@ -320,7 +330,7 @@ public class TestUI extends BaseUITest {
         waitFor(() -> {
             click(GROUP_BY_ACTION);
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
-                    && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() == 2;
+                   && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() == 2;
         });
     }
 
@@ -356,12 +366,12 @@ public class TestUI extends BaseUITest {
             }
             ComponentFixture tree = trees.get(0);
             return tree.getData().getAll().size() == 1
-                    && tree.getData()
-                    .getAll()
-                    .get(0)
-                    .getText()
-                    .contains(Bundle.message(
-                            Resource.INVALID_SCAN_ID));
+                   && tree.getData()
+                          .getAll()
+                          .get(0)
+                          .getText()
+                          .contains(Bundle.message(
+                                  Resource.INVALID_SCAN_ID));
         });
     }
 
@@ -381,12 +391,12 @@ public class TestUI extends BaseUITest {
 
     private boolean checkTreeState(ComponentFixture tree) {
         return tree.getData().getAll().size() > 1 || (tree.getData().getAll().size() == 1
-                && tree.getData()
-                .getAll()
-                .get(0)
-                .getText()
-                .contains(Bundle.message(
-                        Resource.GETTING_RESULTS)));
+                                                      && tree.getData()
+                                                             .getAll()
+                                                             .get(0)
+                                                             .getText()
+                                                             .contains(Bundle.message(
+                                                                     Resource.GETTING_RESULTS)));
     }
 
     private void toggleFilter(Severity severity, boolean enabled) {
@@ -400,8 +410,8 @@ public class TestUI extends BaseUITest {
             ActionButtonFixture filter = find(ActionButtonFixture.class, xpath);
             log(filter.popState().name());
             return filter.popState().equals(enabled
-                    ? ActionButtonFixture.PopState.PUSHED
-                    : ActionButtonFixture.PopState.POPPED);
+                                            ? ActionButtonFixture.PopState.PUSHED
+                                            : ActionButtonFixture.PopState.POPPED);
         });
     }
 }

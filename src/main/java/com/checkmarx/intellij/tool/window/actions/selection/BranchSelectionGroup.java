@@ -138,6 +138,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
 
         public Action(String projectId, String branch) {
             super(branch);
+            getTemplatePresentation().setText(() -> branch, false);
             this.projectId = projectId;
         }
 
