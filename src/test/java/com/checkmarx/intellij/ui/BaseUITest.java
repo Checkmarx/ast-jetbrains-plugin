@@ -87,8 +87,12 @@ public abstract class BaseUITest {
 
     protected static void enter(String value) {
         Keyboard keyboard = new Keyboard(remoteRobot);
-        keyboard.enterText(value);
-        waitFor(() -> hasAnyComponent("//div[@visible_text='" + value + "']"));
+        waitFor(() -> {
+            keyboard.selectAll();
+            keyboard.backspace();
+            keyboard.enterText(value);
+            return hasAnyComponent("//div[@visible_text='" + value + "']");
+        });
         keyboard.enter();
     }
 
