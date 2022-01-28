@@ -66,7 +66,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          path: /**/*.fail.png
+          path: ./*.fail.png
   testIntegration:
     runs-on: ubuntu-latest
     steps:
