@@ -70,7 +70,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
-      max-parallel: 1
       matrix:
         include:
           - os: ubuntu-latest
