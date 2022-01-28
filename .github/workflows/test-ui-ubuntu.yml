@@ -55,3 +55,9 @@ jobs:
         with:
           name: idea.log
           path: idea.log
+      # Save screenshots
+      - name: Save screenshots
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          path: /**/*.fail.png

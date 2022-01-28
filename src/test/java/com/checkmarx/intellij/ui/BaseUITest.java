@@ -15,8 +15,13 @@ import com.intellij.remoterobot.utils.UtilsKt;
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.BeforeAll;
 
+import javax.imageio.ImageIO;
+import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -33,17 +38,23 @@ public abstract class BaseUITest {
     @Language("XPath")
     protected static final String GROUP_BY_ACTION = "//div[@myicon='groupBy.svg']";
     @Language("XPath")
-    protected static final String CLONE_BUTTON = "//div[@text.key='clone.dialog.clone.button']";
+    protected static final String CLONE_BUTTON = "//div[@text.key='clone.dialog.clone.butto']";
     @Language("XPath")
     protected static final String FIELD_NAME = "//div[@name='%s']";
     @Language("XPath")
-    protected static final String CHANGES_COMMENT = "//div[@accessiblename='%s' and @class='JLabel' and @text='<html>%s</html>']";
+    protected static final String
+            CHANGES_COMMENT
+            = "//div[@accessiblename='%s' and @class='JLabel' and @text='<html>%s</html>']";
     @Language("XPath")
     protected static final String VALIDATE_BUTTON = "//div[@class='JButton' and @text.key='VALIDATE_BUTTON']";
     @Language("XPath")
-    protected static final String STATE_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='TO_VERIFY']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='URGENT']]//div[@class='BasicArrowButton']";
+    protected static final String
+            STATE_COMBOBOX_ARROW
+            = "//div[@class='ComboBox'][.//div[@visible_text='TO_VERIFY']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='URGENT']]//div[@class='BasicArrowButton']";
     @Language("XPath")
-    protected static final String SEVERITY_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='MEDIUM']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='HIGH']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='LOW']]//div[@class='BasicArrowButton']";
+    protected static final String
+            SEVERITY_COMBOBOX_ARROW
+            = "//div[@class='ComboBox'][.//div[@visible_text='MEDIUM']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='HIGH']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='LOW']]//div[@class='BasicArrowButton']";
     @Language("XPath")
     protected static final String SCAN_FIELD = "//div[@class='TextFieldWithProcessing']";
     @Language("XPath")
@@ -59,7 +70,7 @@ public abstract class BaseUITest {
 
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
 
-    protected static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
+    protected static final Duration waitDuration = Duration.ofSeconds(1);
     private static boolean initialized = false;
 
     @BeforeAll
@@ -112,7 +123,12 @@ public abstract class BaseUITest {
     protected static <T extends ComponentFixture> T find(Class<T> cls,
                                                          @Language("XPath") String xpath,
                                                          Duration duration) {
-        return remoteRobot.find(cls, Locators.byXpath(xpath), duration);
+        try {
+            return remoteRobot.find(cls, Locators.byXpath(xpath), duration);
+        } catch (Throwable t) {
+            screenshot();
+            throw new RuntimeException(t);
+        }
     }
 
     protected static List<ComponentFixture> findAll(@Language("XPath") String xpath) {
@@ -121,7 +137,12 @@ public abstract class BaseUITest {
 
     protected static <T extends ComponentFixture> List<T> findAll(Class<T> cls,
                                                                   @Language("XPath") String xpath) {
-        return remoteRobot.findAll(cls, Locators.byXpath(xpath));
+        try {
+            return remoteRobot.findAll(cls, Locators.byXpath(xpath));
+        } catch (Throwable t) {
+            screenshot();
+            throw new RuntimeException(t);
+        }
     }
 
     protected static void waitAndClick(@Language("XPath") String xpath) {
@@ -141,7 +162,20 @@ public abstract class BaseUITest {
     }
 
     protected static void waitFor(Supplier<Boolean> condition) {
-        RepeatUtilsKt.waitFor(waitDuration, condition::get);
+        try {
+            RepeatUtilsKt.waitFor(waitDuration, condition::get);
+        } catch (Throwable t) {
+            try {
+                log("trying to take a screenshot");
+                ImageIO.write(remoteRobot.getScreenshot(),
+                              "png",
+                              new File(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"))
+                                       + ".fail.png"));
+            } catch (IOException e) {
+                log(e.getMessage());
+            }
+            throw new RuntimeException(t);
+        }
     }
 
     protected static void openCxToolWindow() {
@@ -161,5 +195,17 @@ public abstract class BaseUITest {
     protected static void log(String msg) {
         StackTraceElement[] st = Thread.currentThread().getStackTrace();
         System.out.printf("%s | %s: %s%n", Instant.now().toString(), st[2], msg);
+    }
+
+    private static void screenshot() {
+        try {
+            log("trying to take a screenshot");
+            ImageIO.write(remoteRobot.getScreenshot(),
+                          "png",
+                          new File(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"))
+                                   + ".fail.png"));
+        } catch (IOException e) {
+            log(e.getMessage());
+        }
     }
 }
