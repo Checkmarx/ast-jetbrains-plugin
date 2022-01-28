@@ -62,11 +62,16 @@ jobs:
           path: |
             idea.log
       # Save screenshots
-      - name: Save screenshots
+      - name: Take screenshot
+        if: ${{ failure() }}
+        run: |
+          DISPLAY=:99 import -window root ./screenshot.png
+      # Save screenshots
+      - name: Save screenshot
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          path: ./*.fail.png
+          path: ./screenshot.png
   testIntegration:
     runs-on: ubuntu-latest
     steps:
