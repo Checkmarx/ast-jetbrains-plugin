@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.tool.window.actions.filter;
 
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.CxToolWindowAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -20,12 +21,12 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
     public static final Topic<FilterChanged> FILTER_CHANGED = Topic.create("Filter Changed", FilterChanged.class);
 
     private final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
-    private final Severity severity = getSeverity();
+    private final Filterable filterable = getFilterable();
 
     public FilterBaseAction() {
         super();
-        getTemplatePresentation().setText(severity.tooltipSupplier());
-        getTemplatePresentation().setIcon(severity.getIcon());
+        getTemplatePresentation().setText(filterable.tooltipSupplier());
+        getTemplatePresentation().setIcon(filterable.getIcon());
     }
 
     /**
@@ -34,7 +35,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
      */
     @Override
     public final boolean isSelected(@NotNull AnActionEvent e) {
-        return GlobalSettingsState.getInstance().getFilters().contains(severity);
+        return GlobalSettingsState.getInstance().getFilters().contains(filterable);
     }
 
     /**
@@ -45,9 +46,9 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
     @Override
     public final void setSelected(@NotNull AnActionEvent e, boolean state) {
         if (state) {
-            GlobalSettingsState.getInstance().getFilters().add(severity);
+            GlobalSettingsState.getInstance().getFilters().add(filterable);
         } else {
-            GlobalSettingsState.getInstance().getFilters().remove(severity);
+            GlobalSettingsState.getInstance().getFilters().remove(filterable);
         }
         messageBus.syncPublisher(FILTER_CHANGED).filterChanged();
     }
@@ -55,7 +56,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
     /**
      * @return severity for the extending filter
      */
-    protected abstract Severity getSeverity();
+    protected abstract Filterable getFilterable();
 
     public static class HighFilter extends FilterBaseAction {
 
@@ -64,7 +65,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
         }
 
         @Override
-        protected Severity getSeverity() {
+        protected Filterable getFilterable() {
             return Severity.HIGH;
         }
     }
@@ -76,7 +77,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
         }
 
         @Override
-        protected Severity getSeverity() {
+        protected Filterable getFilterable() {
             return Severity.MEDIUM;
         }
     }
@@ -88,7 +89,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
         }
 
         @Override
-        protected Severity getSeverity() {
+        protected Filterable getFilterable() {
             return Severity.LOW;
         }
     }
@@ -100,8 +101,68 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
         }
 
         @Override
-        protected Severity getSeverity() {
+        protected Filterable getFilterable() {
             return Severity.INFO;
+        }
+    }
+
+    public static class ConfirmedFilter extends FilterBaseAction {
+
+        public ConfirmedFilter() {
+            super();
+        }
+
+        @Override
+        protected Filterable getFilterable() {
+            return ResultState.CONFIRMED;
+        }
+    }
+
+    public static class UrgentFilter extends FilterBaseAction {
+
+        public UrgentFilter() {
+            super();
+        }
+
+        @Override
+        protected Filterable getFilterable() {
+            return ResultState.URGENT;
+        }
+    }
+
+    public static class ToVerifyFilter extends FilterBaseAction {
+
+        public ToVerifyFilter() {
+            super();
+        }
+
+        @Override
+        protected Filterable getFilterable() {
+            return ResultState.TO_VERIFY;
+        }
+    }
+
+    public static class NotExploitableFilter extends FilterBaseAction {
+
+        public NotExploitableFilter() {
+            super();
+        }
+
+        @Override
+        protected Filterable getFilterable() {
+            return ResultState.NOT_EXPLOITABLE;
+        }
+    }
+
+    public static class ProposedNotExploitableFilter extends FilterBaseAction {
+
+        public ProposedNotExploitableFilter() {
+            super();
+        }
+
+        @Override
+        protected Filterable getFilterable() {
+            return ResultState.PROPOSED_NOT_EXPLOITABLE;
         }
     }
 

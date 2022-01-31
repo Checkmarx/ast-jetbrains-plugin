@@ -6,7 +6,9 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.tool.window.GroupBy;
+import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
+import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.NonLeafNode;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
 import com.intellij.openapi.project.Project;
@@ -31,7 +33,7 @@ public class ResultsTreeFactory {
      * @param results           list of results
      * @param project           context project
      * @param groupByList       list of {@link GroupBy}
-     * @param enabledSeverities set of enabled {@link Severity}
+     * @param enabledFilters    set of enabled {@link Filterable}
      * @param latest            whether the scan id is the latest
      * @return tree with results
      */
@@ -40,14 +42,14 @@ public class ResultsTreeFactory {
                                         Results results,
                                         Project project,
                                         List<GroupBy> groupByList,
-                                        Set<Severity> enabledSeverities,
+                                        Set<Filterable> enabledFilters,
                                         boolean latest) {
 
         Tree tree = createTree(scanId, latest);
 
         Map<String, NonLeafNode> engineNodes = new HashMap<>();
         for (Result result : results.getResults()) {
-            if (enabledSeverities.contains(Severity.valueOf(result.getSeverity()))) {
+            if (enabledFilters.contains(Severity.valueOf(result.getSeverity())) && enabledFilters.contains(ResultState.valueOf(result.getState()))) {
                 addResultToEngine(project,
                                   groupByList,
                                   engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
