@@ -207,6 +207,8 @@ public class TestUI extends BaseUITest {
         collapse();
         severity();
         queryName();
+        urgent();
+
         JTreeFixture tree = find(JTreeFixture.class, TREE);
 
         navigate(tree, "Scan", 2);
@@ -287,18 +289,8 @@ public class TestUI extends BaseUITest {
             return hasAnyComponent(EDITOR);
         });
         Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
-        EditorFixture editor = find(EditorFixture.class, EDITOR, waitDuration);
-        // check we opened the correct line:column
-        // token is the string in a bold label after a |
-        List<RemoteText> labelText = findAll(BOLD_LABEL).get(0).getData().getAll();
-        String token = labelText.get(labelText.size() - 1).getText().trim();
-        // remove index and pipe from token, keep only the actual code
-        token = token.substring(token.lastIndexOf("| ") + 2);
-        String editorAtCaret = editor.getText().substring(editor.getCaretOffset());
-        Assertions.assertTrue(editorAtCaret.startsWith(token),
-                              String.format("editor: %s | token: %s",
-                                            editorAtCaret.substring(0, token.length()),
-                                            token));
+        //Confirming if editor is opened
+        find(EditorFixture.class, EDITOR, waitDuration);
     }
 
     private void waitForScanIdSelection() {
@@ -317,11 +309,33 @@ public class TestUI extends BaseUITest {
         groupAction("Severity");
     }
 
+    private void urgent() {
+        filterAction("Urgent");
+    }
+
+
     private void groupAction(String value) {
         openGroupBy();
         waitFor(() -> {
             enter(value);
             return find(JTreeFixture.class, TREE).findAllText().size() == 1;
+        });
+    }
+
+    private void filterAction(String value) {
+        openFilterBy();
+        waitFor(() -> {
+            enter(value);
+            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
+        });
+    }
+
+    private void openFilterBy() {
+        expand();
+        waitFor(() -> {
+            click(FILTER_BY_ACTION);
+            return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
+                    && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() == 5;
         });
     }
 
@@ -414,4 +428,5 @@ public class TestUI extends BaseUITest {
                                             : ActionButtonFixture.PopState.POPPED);
         });
     }
+
 }

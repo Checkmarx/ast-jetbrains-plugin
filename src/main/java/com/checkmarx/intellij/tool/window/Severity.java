@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.CxIcons;
+import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.icons.AllIcons;
 import lombok.Getter;
 
@@ -12,14 +13,14 @@ import java.util.function.Supplier;
  * Link severity with an icon.
  */
 @Getter
-public enum Severity {
+public enum Severity implements Filterable {
     HIGH(CxIcons.HIGH),
     MEDIUM(CxIcons.MEDIUM),
     LOW(CxIcons.LOW),
     INFO(CxIcons.INFO),
     ;
 
-    public static final Set<Severity> DEFAULT_SEVERITIES = Set.of(HIGH, MEDIUM);
+    public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(HIGH, MEDIUM);
 
     private final Icon icon;
 

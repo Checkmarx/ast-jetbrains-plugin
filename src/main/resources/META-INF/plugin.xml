@@ -60,6 +60,21 @@
                     class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$LowFilter"/>
             <action id="Checkmarx.Info"
                     class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$InfoFilter"/>
+            <group id="Checkmarx.State"
+                   icon="AllIcons.General.Filter"
+                   popup="true"
+                   class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByActionGroup">
+                <action id="Checkmarx.Confirmed"
+                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$ConfirmedFilter"/>
+                <action id="Checkmarx.UrgentFilter"
+                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$UrgentFilter"/>
+                <action id="Checkmarx.ToVerifyFilter"
+                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$ToVerifyFilter"/>
+                <action id="Checkmarx.NotExploitableFilter"
+                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$NotExploitableFilter"/>
+                <action id="Checkmarx.ProposedNotExploitableFilter"
+                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$ProposedNotExploitableFilter"/>
+            </group>
             <separator/>
             <group id="Checkmarx.GroupBy"
                    icon="AllIcons.Actions.GroupBy"
