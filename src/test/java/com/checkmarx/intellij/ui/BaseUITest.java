@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.ui;
 
 import com.checkmarx.intellij.Environment;
+import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
@@ -30,6 +31,8 @@ public abstract class BaseUITest {
     protected static final String EXPAND_ACTION = "//div[@myaction.key='EXPAND_ALL_ACTION']";
     @Language("XPath")
     protected static final String COLLAPSE_ACTION = "//div[@myaction.key='COLLAPSE_ALL_ACTION']";
+    @Language("XPath")
+    protected static final String FILTER_BY_ACTION = "//div[@myicon='filter.svg']";
     @Language("XPath")
     protected static final String GROUP_BY_ACTION = "//div[@myicon='groupBy.svg']";
     @Language("XPath")

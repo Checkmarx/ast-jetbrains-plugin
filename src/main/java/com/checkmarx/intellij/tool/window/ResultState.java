@@ -17,7 +17,7 @@ public enum ResultState implements Filterable {
     TO_VERIFY("To Verify"),
     URGENT("Urgent"),
     NOT_EXPLOITABLE("Not Exploitable"),
-    PROPOSED_NOT_EXPLOITABLE("Proposed not Exploitable"),
+    PROPOSED_NOT_EXPLOITABLE("Proposed Not Exploitable"),
     ;
 
     public static final Set<Filterable> DEFAULT_STATES = Set.of(CONFIRMED, TO_VERIFY, URGENT);

@@ -207,6 +207,8 @@ public class TestUI extends BaseUITest {
         collapse();
         severity();
         queryName();
+        urgent();
+
         JTreeFixture tree = find(JTreeFixture.class, TREE);
 
         navigate(tree, "Scan", 2);
@@ -317,11 +319,33 @@ public class TestUI extends BaseUITest {
         groupAction("Severity");
     }
 
+    private void urgent() {
+        filterAction("Urgent");
+    }
+
+
     private void groupAction(String value) {
         openGroupBy();
         waitFor(() -> {
             enter(value);
             return find(JTreeFixture.class, TREE).findAllText().size() == 1;
+        });
+    }
+
+    private void filterAction(String value) {
+        openFilterBy();
+        waitFor(() -> {
+            enter(value);
+            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
+        });
+    }
+
+    private void openFilterBy() {
+        expand();
+        waitFor(() -> {
+            click(FILTER_BY_ACTION);
+            return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
+                    && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() == 5;
         });
     }
 
@@ -414,4 +438,5 @@ public class TestUI extends BaseUITest {
                                             : ActionButtonFixture.PopState.POPPED);
         });
     }
+
 }
