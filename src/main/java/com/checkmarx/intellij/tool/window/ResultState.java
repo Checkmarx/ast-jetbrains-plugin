@@ -29,12 +29,6 @@ public enum ResultState implements Filterable {
     }
 
     @Override
-    public Icon getIcon() {
-        return EmptyIcon.ICON_0;
-    }
-
-
-    @Override
     public Supplier<String> tooltipSupplier() {
         return this::getLabel;
     }

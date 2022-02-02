@@ -91,7 +91,7 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
         return null;
     }
 
-    public Set<Filterable> getDefaultFilters() {
+    public static Set<Filterable> getDefaultFilters() {
         Set<Filterable> set = new HashSet<>();
 
         set.addAll(Severity.DEFAULT_SEVERITIES);
