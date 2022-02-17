@@ -32,12 +32,12 @@ dependencies {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = '2021.2'
+    version = '2021.1'
     updateSinceUntilBuild = false
 }
 
 runPluginVerifier {
-    ideVersions = ['IC-2021.2', 'IC-2021.3']
+    ideVersions = ['IC-2021.1', 'IC-2021.2', 'IC-2021.3']
 }
 
 downloadRobotServerPlugin {
@@ -67,5 +67,5 @@ java {
 }
 
 patchPluginXml {
-    sinceBuild = '212'
+    sinceBuild = '211'
 }
