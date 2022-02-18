@@ -13,6 +13,7 @@ import java.util.function.Function;
  */
 public enum GroupBy {
     SEVERITY,
+    STATE,
     QUERY_NAME;
 
     public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, QUERY_NAME);
@@ -29,6 +30,9 @@ public enum GroupBy {
                                ? result.getData().getQueryName()
                                : result.getId();
         }
+        if (this == STATE) {
+            return Result::getState;
+        }
         throw new RuntimeException("Invalid filter");
     }
 
@@ -38,6 +42,9 @@ public enum GroupBy {
     public Comparator<String> getComparator() {
         if (this == SEVERITY) {
             return Comparator.comparing(Severity::valueOf);
+        }
+        if (this == STATE) {
+            return Comparator.comparing(ResultState::valueOf);
         }
         if (this == QUERY_NAME) {
             return String::compareTo;

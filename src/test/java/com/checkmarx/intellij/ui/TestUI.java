@@ -4,9 +4,10 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
+import com.checkmarx.intellij.tool.window.GroupBy;
+import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.*;
-import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.apache.commons.lang3.StringUtils;
 import org.intellij.lang.annotations.Language;
@@ -206,6 +207,11 @@ public class TestUI extends BaseUITest {
         expand();
         collapse();
         severity();
+
+        // enable and disable state
+        state();
+        state();
+
         queryName();
         urgent();
 
@@ -309,10 +315,13 @@ public class TestUI extends BaseUITest {
         groupAction("Severity");
     }
 
+    private void state() {
+        groupAction("State");
+    }
+
     private void urgent() {
         filterAction("Urgent");
     }
-
 
     private void groupAction(String value) {
         openGroupBy();
@@ -335,7 +344,8 @@ public class TestUI extends BaseUITest {
         waitFor(() -> {
             click(FILTER_BY_ACTION);
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
-                    && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() == 5;
+                   && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size()
+                      == ResultState.values().length;
         });
     }
 
@@ -344,7 +354,8 @@ public class TestUI extends BaseUITest {
         waitFor(() -> {
             click(GROUP_BY_ACTION);
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
-                   && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() == 2;
+                   && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size()
+                      == GroupBy.values().length;
         });
     }
 

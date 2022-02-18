@@ -166,6 +166,30 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
         }
     }
 
+    public static class IgnoredFilter extends FilterBaseAction {
+
+        public IgnoredFilter() {
+            super();
+        }
+
+        @Override
+        protected Filterable getFilterable() {
+            return ResultState.IGNORED;
+        }
+    }
+
+    public static class NotIgnoredFilter extends FilterBaseAction {
+
+        public NotIgnoredFilter() {
+            super();
+        }
+
+        @Override
+        protected Filterable getFilterable() {
+            return ResultState.NOT_IGNORED;
+        }
+    }
+
     /**
      * Interface for topic {@link FilterBaseAction#FILTER_CHANGED}.
      */
