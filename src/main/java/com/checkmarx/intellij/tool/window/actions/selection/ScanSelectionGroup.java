@@ -56,7 +56,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
 
     @Override
     void override(com.checkmarx.ast.scan.Scan scan) {
-        propertiesComponent.setValue(Constants.SELECTED_SCAN_PROPERTY, formatScan(scan));
+        propertiesComponent.setValue(Constants.SELECTED_SCAN_PROPERTY, formatScan(scan, false));
     }
 
     /**
@@ -65,7 +65,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
      * @param projectId selected project
      * @param branch    selected branch
      */
-    void refresh(String projectId, String branch) {
+    void refresh(String projectId, String branch, Boolean selectLatestScan) {
         setEnabled(false);
         removeAll();
         CompletableFuture.supplyAsync((Supplier<List<com.checkmarx.ast.scan.Scan>>) () -> {
@@ -80,7 +80,14 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
         }).thenAccept((List<com.checkmarx.ast.scan.Scan> scans) -> {
             ApplicationManager.getApplication().invokeLater(() -> {
                 for (com.checkmarx.ast.scan.Scan scan : scans) {
-                    add(new Action(scan.getID(), formatScan(scan)));
+                    if(scan == scans.get(0)) {
+                        add(new Action(scan.getID(), formatScan(scan, true)));
+                    } else {
+                        add(new Action(scan.getID(), formatScan(scan, false)));
+                    }
+                }
+                if (scans.size() != 0 && selectLatestScan) {
+                    select(scans.get(0).getID(), formatScan(scans.get(0), true));
                 }
                 setEnabled(true);
                 refreshPanel(project);
@@ -122,14 +129,14 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
      * @return formatted string for scan, see {@link ScanSelectionGroup#scanFormat}
      */
     @NotNull
-    private String formatScan(com.checkmarx.ast.scan.Scan scan) {
-        return String.format(scanFormat,
+    private String formatScan(com.checkmarx.ast.scan.Scan scan, boolean isLatest) {
+        return String.format("%s %s %s",
                              LocalDateTime.parse(scan.getCreatedAt(), sourceFormat).format(prettyFormat),
-                             scan.getID());
+                             scan.getID(), isLatest ? "(Latest)" : "");
     }
 
     /**
-     * Gets the scan id from a formatted string, reversing {@link ScanSelectionGroup#formatScan(com.checkmarx.ast.scan.Scan)}.
+     * Gets the scan id from a formatted string, reversing.
      *
      * @param formattedScan formatted scan string
      * @return scan id
