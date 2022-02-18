@@ -83,7 +83,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
                     if(scan == scans.get(0)) {
                         add(new Action(scan.getID(), formatScan(scan, true)));
                     } else {
-                        add(new Action(scan.getId(), formatScan(scan, false)));
+                        add(new Action(scan.getID(), formatScan(scan, false)));
                     }
                 }
                 if (scans.size() != 0 && selectLatestScan) {
@@ -132,7 +132,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
     private String formatScan(com.checkmarx.ast.scan.Scan scan, boolean isLatest) {
         return String.format("%s %s %s",
                              LocalDateTime.parse(scan.getCreatedAt(), sourceFormat).format(prettyFormat),
-                             scan.getId(), isLatest ? "(Latest)" : "");
+                             scan.getID(), isLatest ? "(Latest)" : "");
     }
 
     /**
