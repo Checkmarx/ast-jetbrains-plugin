@@ -81,13 +81,13 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
             ApplicationManager.getApplication().invokeLater(() -> {
                 for (com.checkmarx.ast.scan.Scan scan : scans) {
                     if(scan == scans.get(0)) {
-                        add(new Action(scan.getID(), formatScan(scan, true)));
+                        add(new Action(scan.getId(), formatScan(scan, true)));
                     } else {
-                        add(new Action(scan.getID(), formatScan(scan, false)));
+                        add(new Action(scan.getId(), formatScan(scan, false)));
                     }
                 }
                 if (scans.size() != 0 && selectLatestScan) {
-                    select(scans.get(0).getID(), formatScan(scans.get(0), true));
+                    select(scans.get(0).getId(), formatScan(scans.get(0), true));
                 }
                 setEnabled(true);
                 refreshPanel(project);
@@ -132,7 +132,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
     private String formatScan(com.checkmarx.ast.scan.Scan scan, boolean isLatest) {
         return String.format(scanFormat,
                              LocalDateTime.parse(scan.getCreatedAt(), sourceFormat).format(prettyFormat),
-                             scan.getID(), isLatest ? "(latest)" : "");
+                             scan.getId(), isLatest ? "(latest)" : "");
     }
 
     /**
