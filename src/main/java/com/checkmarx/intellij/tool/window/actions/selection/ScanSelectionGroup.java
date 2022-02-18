@@ -80,7 +80,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
         }).thenAccept((List<com.checkmarx.ast.scan.Scan> scans) -> {
             ApplicationManager.getApplication().invokeLater(() -> {
                 for (com.checkmarx.ast.scan.Scan scan : scans) {
-                    add(new Action(scan.getID(), formatScan(scan)));
+                    add(new Action(scan.getId(), formatScan(scan)));
                 }
                 setEnabled(true);
                 refreshPanel(project);
@@ -125,7 +125,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
     private String formatScan(com.checkmarx.ast.scan.Scan scan) {
         return String.format(scanFormat,
                              LocalDateTime.parse(scan.getCreatedAt(), sourceFormat).format(prettyFormat),
-                             scan.getID());
+                             scan.getId());
     }
 
     /**
