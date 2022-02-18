@@ -36,7 +36,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
 
     private static final DateTimeFormatter sourceFormat = DateTimeFormatter.ISO_DATE_TIME;
     private static final DateTimeFormatter prettyFormat = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
-    private static final String scanFormat = "%s    %s";
+    private static final String scanFormat = "%s  %s  %s";
 
     public ScanSelectionGroup(@NotNull Project project) {
         super(project);
@@ -130,9 +130,9 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
      */
     @NotNull
     private String formatScan(com.checkmarx.ast.scan.Scan scan, boolean isLatest) {
-        return String.format("%s %s %s",
+        return String.format(scanFormat,
                              LocalDateTime.parse(scan.getCreatedAt(), sourceFormat).format(prettyFormat),
-                             scan.getID(), isLatest ? "(Latest)" : "");
+                             scan.getID(), isLatest ? "(latest)" : "");
     }
 
     /**
