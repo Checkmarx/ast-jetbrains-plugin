@@ -90,30 +90,23 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
                 add(new Action(projectId, branch));
                 if (inherit && storedBranch == null && Objects.equals(branch, activeBranch)) {
                     propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY, branch);
-                    refreshScanGroup(projectId, branch);
+                    refreshScanGroup(projectId, branch, false);
                 } else if (branch.equals(storedBranch)) {
-                    refreshScanGroup(projectId, branch);
+                    refreshScanGroup(projectId, branch, false);
                 }
             }
             setEnabled(true);
             refreshPanel(project);
         }));
     }
-
-    private void select(String projectId, String branch) {
-        propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY, branch);
-        scanSelectionGroup.clear();
-        refreshScanGroup(projectId, branch);
-    }
-
     /**
      * Repopulate the scan selection according to the given branch
-     *
-     * @param projectId selected project
+     *  @param projectId selected project
      * @param branch    selected branch
+     * @param autoSelectLatest
      */
-    private void refreshScanGroup(String projectId, String branch) {
-        scanSelectionGroup.refresh(projectId, branch);
+    private void refreshScanGroup(String projectId, String branch, boolean autoSelectLatest) {
+        scanSelectionGroup.refresh(projectId, branch, autoSelectLatest);
         refreshPanel(project);
     }
 
@@ -144,7 +137,10 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
 
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
-            select(projectId, getTemplatePresentation().getText());
+            String branch = getTemplatePresentation().getText();
+            propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY, branch);
+            scanSelectionGroup.clear();
+            refreshScanGroup(projectId, branch, true);
         }
     }
 
@@ -194,7 +190,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
                     LOGGER.info("Matching branch found. Switching the branch to " + branchName);
                     propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY,
                                                  branchName);
-                    refreshScanGroup(projectId, branchName);
+                    refreshScanGroup(projectId, branchName, true);
                     return;
                 }
             }
