@@ -53,7 +53,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
 
     @Override
     void override(Scan scan) {
-        select(byId.get(scan.getProjectID()));
+        select(byId.get(scan.getProjectId()));
         branchSelectionGroup.override(scan);
     }
 
@@ -81,7 +81,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
             String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
             for (com.checkmarx.ast.project.Project p : projectList) {
                 add(new Action(p));
-                byId.put(p.getID(), p);
+                byId.put(p.getId(), p);
                 if (inherit && storedProject == null && matchProject(p)) {
                     propertiesComponent.setValue(Constants.SELECTED_PROJECT_PROPERTY, p.getName());
                     refreshBranchGroup(p, true);
@@ -138,7 +138,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
      * @param p project
      */
     private void refreshBranchGroup(com.checkmarx.ast.project.Project p, boolean inherit) {
-        branchSelectionGroup.refresh(p.getID(), inherit);
+        branchSelectionGroup.refresh(p.getId(), inherit);
         refreshPanel(project);
     }
 

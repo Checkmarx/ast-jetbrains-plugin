@@ -27,7 +27,7 @@ public class Scan {
             URISyntaxException,
             CxException,
             InterruptedException {
-        return CxWrapperFactory.build().scanList().get(0).getID();
+        return CxWrapperFactory.build().scanList().get(0).getId();
     }
 
     /**
