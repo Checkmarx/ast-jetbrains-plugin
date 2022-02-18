@@ -5,6 +5,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.tool.window.GroupBy;
+import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.utils.Keyboard;
@@ -339,7 +340,8 @@ public class TestUI extends BaseUITest {
         waitFor(() -> {
             click(FILTER_BY_ACTION);
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
-                   && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() == 5;
+                   && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size()
+                      == ResultState.values().length;
         });
     }
 
