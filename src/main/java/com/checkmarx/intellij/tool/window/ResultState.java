@@ -1,10 +1,8 @@
 package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
-import com.intellij.util.ui.EmptyIcon;
 import lombok.Getter;
 
-import javax.swing.*;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -22,7 +20,12 @@ public enum ResultState implements Filterable {
     NOT_IGNORED("Not Ignored"),
     ;
 
-    public static final Set<Filterable> DEFAULT_STATES = Set.of(CONFIRMED, TO_VERIFY, URGENT);
+    public static final Set<Filterable> DEFAULT_STATES = Set.of(CONFIRMED,
+                                                                TO_VERIFY,
+                                                                URGENT,
+                                                                PROPOSED_NOT_EXPLOITABLE,
+                                                                IGNORED,
+                                                                NOT_IGNORED);
 
     private final String label;
 

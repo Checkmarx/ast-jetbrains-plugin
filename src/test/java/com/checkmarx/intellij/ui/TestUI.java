@@ -207,7 +207,11 @@ public class TestUI extends BaseUITest {
         expand();
         collapse();
         severity();
+
+        // enable and disable state
         state();
+        state();
+
         queryName();
         urgent();
 
