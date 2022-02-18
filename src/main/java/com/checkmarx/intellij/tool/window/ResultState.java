@@ -18,6 +18,8 @@ public enum ResultState implements Filterable {
     URGENT("Urgent"),
     NOT_EXPLOITABLE("Not Exploitable"),
     PROPOSED_NOT_EXPLOITABLE("Proposed Not Exploitable"),
+    IGNORED("Ignored"),
+    NOT_IGNORED("Not Ignored"),
     ;
 
     public static final Set<Filterable> DEFAULT_STATES = Set.of(CONFIRMED, TO_VERIFY, URGENT);
@@ -33,10 +35,4 @@ public enum ResultState implements Filterable {
         return this::getLabel;
     }
 
-    public static ResultState fromID(String id) {
-        if (id.startsWith("Checkmarx.")) {
-            return ResultState.valueOf(id.substring(id.indexOf('.') + 1).toUpperCase());
-        }
-        throw new IllegalArgumentException("Invalid ID for result state");
-    }
 }

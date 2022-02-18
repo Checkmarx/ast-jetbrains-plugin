@@ -206,6 +206,7 @@ public class TestUI extends BaseUITest {
         expand();
         collapse();
         severity();
+        state();
         queryName();
         urgent();
 
@@ -309,10 +310,13 @@ public class TestUI extends BaseUITest {
         groupAction("Severity");
     }
 
+    private void state() {
+        groupAction("State");
+    }
+
     private void urgent() {
         filterAction("Urgent");
     }
-
 
     private void groupAction(String value) {
         openGroupBy();
