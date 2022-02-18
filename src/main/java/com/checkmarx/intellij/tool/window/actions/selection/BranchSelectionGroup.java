@@ -103,7 +103,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
      * Repopulate the scan selection according to the given branch
      *  @param projectId selected project
      * @param branch    selected branch
-     * @param autoSelectLatest
+     * @param autoSelectLatest flag indication if latest scan should be auto selected
      */
     private void refreshScanGroup(String projectId, String branch, boolean autoSelectLatest) {
         scanSelectionGroup.refresh(projectId, branch, autoSelectLatest);
