@@ -1,9 +1,6 @@
 package com.checkmarx.intellij.ui;
 
-import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Environment;
-import com.checkmarx.intellij.Resource;
+import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
@@ -76,7 +73,8 @@ public class TestUI extends BaseUITest {
         clearSelection();
         testSelectionAction(this::findProjectSelection, "Project", Environment.PROJECT_NAME);
         testSelectionAction(this::findBranchSelection, "Branch", Environment.BRANCH_NAME);
-        testSelectionAction(this::findScanSelection, "Scan", Environment.SCAN_ID);
+        findLatestScanSelection();
+
         waitFor(() -> findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0)));
     }
 
@@ -99,6 +97,13 @@ public class TestUI extends BaseUITest {
     @NotNull
     private ActionButtonFixture findScanSelection() {
         return findSelection("Scan");
+    }
+
+    private void findLatestScanSelection() {
+        @Language("XPath") String xpath = String.format(
+                "//div[@class='ActionButtonWithText' and ends-with(@visible_text,'%s')]",
+                Utils.formatLatest(true));
+        waitFor(() -> hasAnyComponent(xpath));
     }
 
     private void testSelectionAction(Supplier<ActionButtonFixture> selectionSupplier, String prefix, String value) {
