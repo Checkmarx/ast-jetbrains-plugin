@@ -101,7 +101,7 @@ public class TestUI extends BaseUITest {
 
     private void findLatestScanSelection() {
         @Language("XPath") String xpath = String.format(
-                "//div[@class='ActionButtonWithText' and ends-with(@visible_text,'%s')]",
+                "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
                 Utils.formatLatest(true));
         waitFor(() -> hasAnyComponent(xpath));
     }
