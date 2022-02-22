@@ -23,7 +23,6 @@ public enum ResultState implements Filterable {
     public static final Set<Filterable> DEFAULT_STATES = Set.of(CONFIRMED,
                                                                 TO_VERIFY,
                                                                 URGENT,
-                                                                PROPOSED_NOT_EXPLOITABLE,
                                                                 IGNORED,
                                                                 NOT_IGNORED);
 
