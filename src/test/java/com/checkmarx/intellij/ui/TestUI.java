@@ -420,13 +420,7 @@ public class TestUI extends BaseUITest {
     }
 
     private boolean checkTreeState(ComponentFixture tree) {
-        return tree.getData().getAll().size() > 1 || (tree.getData().getAll().size() == 1
-                                                      && tree.getData()
-                                                             .getAll()
-                                                             .get(0)
-                                                             .getText()
-                                                             .contains(Bundle.message(
-                                                                     Resource.GETTING_RESULTS)));
+        return tree.getData().getAll().size() > 0;
     }
 
     private void toggleFilter(Severity severity, boolean enabled) {
