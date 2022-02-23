@@ -110,6 +110,7 @@ public class TestUI extends BaseUITest {
     private void testSelectionAction(Supplier<ActionButtonFixture> selectionSupplier, String prefix, String value) {
         waitFor(() -> {
             ActionButtonFixture selection = selectionSupplier.get();
+            System.out.println(selection.getTemplatePresentationText());
             return selection.isEnabled() && selection.getTemplatePresentationText().contains(prefix);
         });
         waitFor(() -> {
@@ -421,13 +422,11 @@ public class TestUI extends BaseUITest {
     }
 
     private boolean checkTreeState(ComponentFixture tree) {
-        return tree.getData().getAll().size() > 1 || (tree.getData().getAll().size() == 1
-                && tree.getData()
+        return tree.getData().getAll().size() > 0 && !tree.getData()
                 .getAll()
                 .get(0)
                 .getText()
-                .contains(Bundle.message(
-                        Resource.GETTING_RESULTS)));
+                .contains(Bundle.message(Resource.GETTING_RESULTS_ERROR));
     }
 
     private void toggleFilter(Severity severity, boolean enabled) {
