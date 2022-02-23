@@ -110,7 +110,7 @@ public class TestUI extends BaseUITest {
     private void testSelectionAction(Supplier<ActionButtonFixture> selectionSupplier, String prefix, String value) {
         waitFor(() -> {
             ActionButtonFixture selection = selectionSupplier.get();
-            return selection.isEnabled() && selection.hasText(prefix + ": none");
+            return selection.isEnabled() && selection.getTemplatePresentationText().contains(prefix);
         });
         waitFor(() -> {
             selectionSupplier.get().click();
