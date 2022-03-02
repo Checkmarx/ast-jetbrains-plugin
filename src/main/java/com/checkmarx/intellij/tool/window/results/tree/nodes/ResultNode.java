@@ -46,6 +46,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
@@ -145,11 +146,27 @@ public class ResultNode extends DefaultMutableTreeNode {
 
     @NotNull
     private JPanel buildDetailsPanel(@NotNull Runnable runnableDraw, Runnable runnableUpdater) {
+        //Creating title label
         JPanel details = new JPanel(new MigLayout("fillx"));
         JLabel title = boldLabel(this.label);
         title.setIcon(getIcon());
 
+        //Creating codebashing label
+        JLabel codebashing = new JLabel();
+        codebashing.setText("<html>Learn more at <font color='#F36A22'><b>>_</b></font>codebashing</html>");
+        codebashing.setHorizontalAlignment(SwingConstants.RIGHT);
+        codebashing.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        codebashing.setToolTipText(String.format("Learn more about %s using Checkmarx's eLearning platform ", result.getData().getQueryName()));
+
+        codebashing.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                openCodebashingLink();
+            }
+        });
+
         details.add(title, "growx, wrap");
+        details.add(codebashing, "growx, wrap");
         details.add(new JSeparator(), "span, growx, wrap");
 
         //Panel with triage form
@@ -459,5 +476,17 @@ public class ResultNode extends DefaultMutableTreeNode {
                                 ? JBUI.CurrentTheme.List.Hover.background(true)
                                 : JBUI.CurrentTheme.List.BACKGROUND);
         component.repaint();
+    }
+
+    private void openCodebashingLink(){
+        try {
+            new Notification(Constants.NOTIFICATION_GROUP_ID,
+                    "<html>You don't have a license for Codebashing. Please Contact your Admin for the full version implementation. Meanwhile, you can use <a href=https://free.codebashing.com>https://free.codebashing.com</a></html>",
+                    NotificationType.WARNING).notify(this.project);
+
+            Desktop.getDesktop().browse(new URI("https://ast-master.dev.cxast.net/spec/v1"));
+        } catch (IOException | URISyntaxException e1) {
+            e1.printStackTrace();
+        }
     }
 }
