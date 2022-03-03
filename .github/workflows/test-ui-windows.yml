@@ -26,12 +26,19 @@ jobs:
         with:
           distribution: zulu
           java-version: 11
+      - name: Setup FFmpeg
+          uses: FedericoCarboni/setup-ffmpeg@v1
+          with:
+            # Not strictly necessary, but it may prevent rate limit
+            # errors especially on GitHub-hosted macos machines.
+            token: ${{ secrets.GITHUB_TOKEN }}
       # Perform clean before testing
       - name: Clean
         run: ./gradlew clean
       # Run IDEA prepared for UI testing
       - name: Run IDE
         run: |
+          mkdir -p build/reports
           Set-DisplayResolution -Width 1920 -Height 1080 -Force
           start .\runIdeForUiTests.bat
       # Wait for IDEA to be started
@@ -40,6 +47,10 @@ jobs:
       # Run tests
       - name: Tests
         run: ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
+      # Save video if tests fail
+      - name: Move video
+        if: ${{ failure() }}
+        run: mv video build/reports
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
