@@ -27,7 +27,6 @@ public class TestUI extends BaseUITest {
     @Video
     public void testEndToEnd() {
         applySettings();
-        resizeToolBar();
         getResults();
         checkResultsPanel();
     }
@@ -172,6 +171,7 @@ public class TestUI extends BaseUITest {
 
     private void applySettings() {
         openCxToolWindow();
+        resizeToolBar();
         openSettings();
         setFields();
         find(JCheckboxFixture.class,
