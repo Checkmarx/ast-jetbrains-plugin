@@ -47,7 +47,9 @@ jobs:
         run: curl --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
       # Run tests
       - name: Tests
-        run: ./gradlew test --info --tests com.checkmarx.intellij.ui*
+        run: |
+          export DISPLAY=:99.0
+          ./gradlew test --info --tests com.checkmarx.intellij.ui*
       # Save video if tests fail
       - name: Move video
         if: ${{ failure() }}
