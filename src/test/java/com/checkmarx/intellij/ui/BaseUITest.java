@@ -92,7 +92,7 @@ public abstract class BaseUITest {
     protected static void resizeToolBar() {
         Keyboard keyboard = new Keyboard(remoteRobot);
         if (remoteRobot.isMac()) {
-            keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_ALT, KeyEvent.VK_UP);
+            keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_META, KeyEvent.VK_UP);
         } else {
             keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_UP);
         }
