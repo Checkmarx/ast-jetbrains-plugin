@@ -28,6 +28,9 @@ dependencies {
     implementation 'com.miglayout:miglayout-swing:11.0'
 
     implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.31'
+
+    // Video Recording
+    implementation 'com.automation-remarks:video-recorder-junit5:2.0'
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/

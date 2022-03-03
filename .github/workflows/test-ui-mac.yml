@@ -26,6 +26,12 @@ jobs:
         with:
           distribution: zulu
           java-version: 11
+      - name: Setup FFmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v1
+        with:
+          # Not strictly necessary, but it may prevent rate limit
+          # errors especially on GitHub-hosted macos machines.
+          token: ${{ secrets.GITHUB_TOKEN }}
       # Perform clean before testing
       - name: Clean
         run: ./gradlew clean
@@ -47,6 +53,10 @@ jobs:
         with:
           name: test-fails-report
           path: build/reports
+      # Save video if tests fail
+      - name: Move video
+        if: ${{ failure() }}
+        run: mv ui-test-example/video ui-test-example/build/reports
       # Save idea log if tests fail
       - name: Save idea log
         if: ${{ failure() }}

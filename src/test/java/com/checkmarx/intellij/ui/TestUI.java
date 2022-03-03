@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.ui;
 
+import com.automation.remarks.junit5.Video;
 import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.ResultState;
@@ -23,6 +24,7 @@ public class TestUI extends BaseUITest {
      * Apply valid settings, get results and test the results UI
      */
     @Test
+    @Video
     public void testEndToEnd() {
         applySettings();
         getResults();
@@ -30,6 +32,7 @@ public class TestUI extends BaseUITest {
     }
 
     @Test
+    @Video
     public void testFilters() {
         applySettings();
         getResults();
@@ -47,6 +50,7 @@ public class TestUI extends BaseUITest {
     }
 
     @Test
+    @Video
     public void testInvalidAuth() {
         openSettings();
 
@@ -61,12 +65,14 @@ public class TestUI extends BaseUITest {
     }
 
     @Test
+    @Video
     public void testInvalidScanId() {
         applySettings();
         setInvalidScanId();
     }
 
     @Test
+    @Video
     public void testSelection() {
         applySettings();
         setInvalidScanId();
@@ -80,6 +86,7 @@ public class TestUI extends BaseUITest {
     }
 
     @Test
+    @Video
     public void testClearSelection() {
         testSelection();
         clearSelection();
