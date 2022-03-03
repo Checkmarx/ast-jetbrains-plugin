@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.tool.window.results.tree.nodes;
 
+import com.checkmarx.ast.codebashing.CodeBashing;
 import com.checkmarx.ast.predicate.Predicate;
 import com.checkmarx.ast.results.result.Node;
 import com.checkmarx.ast.results.result.PackageData;
@@ -32,6 +33,7 @@ import com.intellij.ui.components.labels.BoldLabel;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import net.miginfocom.swing.MigLayout;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
@@ -149,11 +151,9 @@ public class ResultNode extends DefaultMutableTreeNode {
     private JPanel buildDetailsPanel(@NotNull Runnable runnableDraw, Runnable runnableUpdater) {
         //Creating title label
         JPanel details = new JPanel(new MigLayout("fillx"));
-
         JPanel header = new JPanel(new MigLayout("fillx"));
         JLabel title = boldLabel(this.label);
         title.setIcon(getIcon());
-
         header.add(title);
 
         if (result.getType().equals(CxConstants.SAST)) {
@@ -162,18 +162,17 @@ public class ResultNode extends DefaultMutableTreeNode {
             codebashing.setCursor(new Cursor(Cursor.HAND_CURSOR));
             codebashing.setToolTipText(String.format("Learn more about %s using Checkmarx's eLearning platform ", result.getData().getQueryName()));
             codebashing.addMouseListener(new MouseAdapter() {
+                @SneakyThrows
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     openCodebashingLink();
                 }
             });
 
-            header.add(Box.createHorizontalGlue());
-            header.add(codebashing);
+            header.add(codebashing, "span, align r");
         }
 
-
-        details.add(header, "span, growx, wrap, gapright 5");
+        details.add(header, "span, growx, wrap");
         details.add(new JSeparator(), "span, growx, wrap");
 
         //Panel with triage form
@@ -485,11 +484,28 @@ public class ResultNode extends DefaultMutableTreeNode {
         component.repaint();
     }
 
-    private void openCodebashingLink(){
+    private void openCodebashingLink() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException {
         try {
-            Desktop.getDesktop().browse(new URI("https://ast-master.dev.cxast.net/spec/v1"));
-        } catch (IOException | URISyntaxException error) {
-            Utils.getLogger(ResultNode.class).error(error.getMessage(), error);;
-        }
+            CodeBashing response = CxWrapperFactory.build().codeBashingList(
+                    result.getVulnerabilityDetails().getCweId(),
+                    result.getData().getLanguageName(),
+                    result.getData().getQueryName()).get(0);
+
+            if(response.getPath().contains("http")){
+                Desktop.getDesktop().browse(new URI(response.getPath()));
+            } else {
+                new Notification(Constants.NOTIFICATION_GROUP_ID,
+                        "<html>You don't have a license for Codebashing. Please Contact your Admin for the full version implementation. Meanwhile, you can use <a href=https://free.codebashing.com>https://free.codebashing.com</a></html>",
+                        NotificationType.WARNING).notify(project);
+            }
+
+            } catch (CxException error) {
+                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+                new Notification(Constants.NOTIFICATION_GROUP_ID,
+                        "Currently, this vulnerability has no lesson.",
+                        NotificationType.WARNING).notify(project);
+            } catch (InterruptedException error) {
+                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+            }
     }
 }
