@@ -26,9 +26,15 @@ public class TestUI extends BaseUITest {
     @Test
     @Video
     public void testEndToEnd() {
+        maximizeWindow();
         applySettings();
         getResults();
         checkResultsPanel();
+    }
+
+    private void maximizeWindow() {
+        waitFor(() -> hasAnyComponent("//div[@accessiblename='Maximize']"));
+        find("//div[@accessiblename='Maximize']").click();
     }
 
     @Test
