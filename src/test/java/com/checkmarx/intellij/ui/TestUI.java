@@ -27,6 +27,7 @@ public class TestUI extends BaseUITest {
     @Video
     public void testEndToEnd() {
         applySettings();
+        resizeToolBar();
         getResults();
         checkResultsPanel();
     }
@@ -375,7 +376,6 @@ public class TestUI extends BaseUITest {
 
     private void collapse() {
         waitFor(() -> {
-            resizeToolBar();
             click(COLLAPSE_ACTION);
             return find(JTreeFixture.class, TREE).findAllText().size() == 1;
         });
@@ -383,7 +383,6 @@ public class TestUI extends BaseUITest {
 
     private void expand() {
         waitFor(() -> {
-            resizeToolBar();
             click(EXPAND_ACTION);
             return find(JTreeFixture.class, TREE).findAllText().size() > 1;
         });
