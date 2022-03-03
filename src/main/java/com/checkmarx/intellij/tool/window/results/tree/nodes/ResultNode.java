@@ -6,6 +6,7 @@ import com.checkmarx.ast.results.result.PackageData;
 import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.ast.wrapper.CxConfig;
+import com.checkmarx.ast.wrapper.CxConstants;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.components.CxLinkLabel;
@@ -148,25 +149,31 @@ public class ResultNode extends DefaultMutableTreeNode {
     private JPanel buildDetailsPanel(@NotNull Runnable runnableDraw, Runnable runnableUpdater) {
         //Creating title label
         JPanel details = new JPanel(new MigLayout("fillx"));
+
+        JPanel header = new JPanel(new MigLayout("fillx"));
         JLabel title = boldLabel(this.label);
         title.setIcon(getIcon());
 
-        //Creating codebashing label
-        JLabel codebashing = new JLabel();
-        codebashing.setText("<html>Learn more at <font color='#F36A22'><b>>_</b></font>codebashing</html>");
-        codebashing.setHorizontalAlignment(SwingConstants.RIGHT);
-        codebashing.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        codebashing.setToolTipText(String.format("Learn more about %s using Checkmarx's eLearning platform ", result.getData().getQueryName()));
+        header.add(title);
 
-        codebashing.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                openCodebashingLink();
-            }
-        });
+        if (result.getType().equals(CxConstants.SAST)) {
+            //Creating codebashing label
+            JLabel codebashing = new JLabel("<html>Learn more at <font color='#F36A22'><b>>_</b></font>codebashing</html>");
+            codebashing.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            codebashing.setToolTipText(String.format("Learn more about %s using Checkmarx's eLearning platform ", result.getData().getQueryName()));
+            codebashing.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    openCodebashingLink();
+                }
+            });
 
-        details.add(title, "growx, wrap");
-        details.add(codebashing, "growx, wrap");
+            header.add(Box.createHorizontalGlue());
+            header.add(codebashing);
+        }
+
+
+        details.add(header, "span, growx, wrap, gapright 5");
         details.add(new JSeparator(), "span, growx, wrap");
 
         //Panel with triage form
@@ -230,7 +237,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             CompletableFuture.runAsync(() -> {
                 try {
                     CxWrapperFactory.build().triageUpdate(
-                            UUID.fromString(getProjectId()), result.getSimilarityId(), result.getType(), newState, commentText.getText() ,newSeverity);
+                            UUID.fromString(getProjectId()), result.getSimilarityId(), result.getType(), newState, commentText.getText(), newSeverity);
                     runnableDraw.run();
                 } catch (Throwable error) {
                     Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
@@ -480,13 +487,9 @@ public class ResultNode extends DefaultMutableTreeNode {
 
     private void openCodebashingLink(){
         try {
-            new Notification(Constants.NOTIFICATION_GROUP_ID,
-                    "<html>You don't have a license for Codebashing. Please Contact your Admin for the full version implementation. Meanwhile, you can use <a href=https://free.codebashing.com>https://free.codebashing.com</a></html>",
-                    NotificationType.WARNING).notify(this.project);
-
             Desktop.getDesktop().browse(new URI("https://ast-master.dev.cxast.net/spec/v1"));
-        } catch (IOException | URISyntaxException e1) {
-            e1.printStackTrace();
+        } catch (IOException | URISyntaxException error) {
+            Utils.getLogger(ResultNode.class).error(error.getMessage(), error);;
         }
     }
 }
