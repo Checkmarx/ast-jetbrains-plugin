@@ -31,10 +31,6 @@ public class TestUI extends BaseUITest {
         checkResultsPanel();
     }
 
-    private void maximizeWindow() {
-        click("//div[@accessiblename='Maximize']");
-    }
-
     @Test
     @Video
     public void testFilters() {
@@ -186,7 +182,6 @@ public class TestUI extends BaseUITest {
         // the test fails if not found
         find(ComponentFixture.class, "//div[@accessiblename.key='VALIDATE_SUCCESS']", waitDuration);
         click("//div[@text.key='button.ok']");
-        maximizeWindow();
     }
 
     private void openSettings() {
@@ -380,6 +375,7 @@ public class TestUI extends BaseUITest {
 
     private void collapse() {
         waitFor(() -> {
+            resizeToolBar();
             click(COLLAPSE_ACTION);
             return find(JTreeFixture.class, TREE).findAllText().size() == 1;
         });
@@ -387,6 +383,7 @@ public class TestUI extends BaseUITest {
 
     private void expand() {
         waitFor(() -> {
+            resizeToolBar();
             click(EXPAND_ACTION);
             return find(JTreeFixture.class, TREE).findAllText().size() > 1;
         });
