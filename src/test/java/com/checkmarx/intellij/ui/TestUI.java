@@ -32,8 +32,7 @@ public class TestUI extends BaseUITest {
     }
 
     private void maximizeWindow() {
-        waitFor(() -> hasAnyComponent("//div[@accessiblename='Maximize']"));
-        find("//div[@accessiblename='Maximize']").click();
+        click("//div[@accessiblename='Maximize']");
     }
 
     @Test
