@@ -26,7 +26,6 @@ public class TestUI extends BaseUITest {
     @Test
     @Video
     public void testEndToEnd() {
-        maximizeWindow();
         applySettings();
         getResults();
         checkResultsPanel();
@@ -188,6 +187,7 @@ public class TestUI extends BaseUITest {
         // the test fails if not found
         find(ComponentFixture.class, "//div[@accessiblename.key='VALIDATE_SUCCESS']", waitDuration);
         click("//div[@text.key='button.ok']");
+        maximizeWindow();
     }
 
     private void openSettings() {
