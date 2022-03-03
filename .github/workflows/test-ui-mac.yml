@@ -38,6 +38,7 @@ jobs:
       # Run IDEA prepared for UI testing
       - name: Run IDE
         run: |
+          mkdir -p build/reports
           "/Library/Application Support/VMware Tools/vmware-resolutionSet" 1920 1080
           ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
       # Wait for IDEA to be started
@@ -46,17 +47,17 @@ jobs:
       # Run tests
       - name: Tests
         run: ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
+      # Save video if tests fail
+      - name: Move video
+        if: ${{ failure() }}
+        run: mv video build/reports
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: test-fails-report
+          name: test-mac-fails-report
           path: build/reports
-      # Save video if tests fail
-      - name: Move video
-        if: ${{ failure() }}
-        run: mv ui-test-example/video ui-test-example/build/reports
       # Save idea log if tests fail
       - name: Save idea log
         if: ${{ failure() }}
