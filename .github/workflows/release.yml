@@ -77,7 +77,9 @@ jobs:
               export DISPLAY=:99.0
               Xvfb -ac :99 -screen 0 1920x1080x16 &
               ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
-            runTests: ./gradlew test --info --tests com.checkmarx.intellij.ui*
+            runTests: |
+              export DISPLAY=:99.0
+              ./gradlew test --info --tests com.checkmarx.intellij.ui*
             report-name: test-fails-report-linux
             report-path: build/reports
             idea-log: idea-linux.log
@@ -86,7 +88,9 @@ jobs:
             runIde: |
               Set-DisplayResolution -Width 1920 -Height 1080 -Force
               start .\runIdeForUiTests.bat
-            runTests: ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
+            runTests: |
+              Set-DisplayResolution -Width 1920 -Height 1080 -Force
+              ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
             report-name: test-fails-report-windows
             report-path: build/reports
             idea-log: idea-windows.log
@@ -110,6 +114,12 @@ jobs:
         with:
           distribution: zulu
           java-version: 11
+      - name: Setup FFmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v1
+        with:
+          # Not strictly necessary, but it may prevent rate limit
+          # errors especially on GitHub-hosted macos machines.
+          token: ${{ secrets.GITHUB_TOKEN }}
       # Perform clean before testing
       - name: Clean
         run: ./gradlew clean
@@ -122,6 +132,9 @@ jobs:
       # Run tests
       - name: Tests
         run: ${{ matrix.runTests }}
+      - name: Move video
+        if: ${{ failure() }}
+        run: mv video ${{ matrix.report-path }}
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
