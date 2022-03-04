@@ -22,15 +22,15 @@ dependencies {
     testImplementation 'com.intellij.remoterobot:remote-robot:' + remoteRobotVersion
     testImplementation 'com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion
     testImplementation 'org.junit.jupiter:junit-jupiter-api:' + jUnitVersion
+    // Video Recording
+    testImplementation 'com.automation-remarks:video-recorder-junit5:2.0'
+
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:' + jUnitVersion
 
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
     implementation 'com.miglayout:miglayout-swing:11.0'
 
     implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.31'
-
-    // Video Recording
-    implementation 'com.automation-remarks:video-recorder-junit5:2.0'
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
