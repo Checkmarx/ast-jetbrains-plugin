@@ -16,6 +16,7 @@ import com.intellij.remoterobot.utils.UtilsKt;
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.BeforeAll;
 
+import java.awt.event.KeyEvent;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -85,6 +86,15 @@ public abstract class BaseUITest {
             log("Initialization finished");
         } else {
             log("Tests already initialized, skipping");
+        }
+    }
+
+    protected static void resizeToolBar() {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        if (remoteRobot.isMac()) {
+            keyboard.hotKey(KeyEvent.VK_SHIFT, KeyEvent.VK_META, KeyEvent.VK_UP);
+        } else {
+            keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_UP);
         }
     }
 
