@@ -121,11 +121,12 @@ public class ResultNode extends DefaultMutableTreeNode {
      * @return panel with result details
      */
     @NotNull
-    public JPanel buildResultPanel(Runnable runnableDraw, Runnable runnableUpdater) {
+    public JPanel buildResultPanel(Runnable runnableDraw, Runnable runnableUpdater) throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
         JPanel details = buildDetailsPanel(runnableDraw, runnableUpdater);
         JPanel secondPanel = JBUI.Panels.simplePanel();
 
         if (nodes.size() > 0) {
+            getBFL();
             secondPanel = buildAttackVectorPanel(project, nodes);
         } else if (packageData.size() > 0) {
             secondPanel = buildPackageDataPanel(packageData);
@@ -325,6 +326,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
             addToPanel(panel, label, link);
         }
+
         return panel;
     }
 
@@ -444,6 +446,14 @@ public class ResultNode extends DefaultMutableTreeNode {
     private String getProjectId() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         Scan scan = CxWrapperFactory.build().scanShow(UUID.fromString(scanId));
         return scan.getProjectId();
+    }
+
+    private void getBFL() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+        System.out.println("ScanId: " + scanId);
+        System.out.println("QueryId: " + result.getData().getQueryId());
+        System.out.println("Nodes size: " + getNodes().size());
+        int bflIndex = CxWrapperFactory.build().getResultsBfl(UUID.fromString(scanId), result.getData().getQueryId(), getNodes());
+        System.out.println("Here bfl: " + bflIndex );
     }
 
     @NotNull
