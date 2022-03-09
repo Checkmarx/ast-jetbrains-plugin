@@ -495,14 +495,17 @@ public class ResultNode extends DefaultMutableTreeNode {
                 Desktop.getDesktop().browse(new URI(response.getPath()));
             } else {
                 new Notification(Constants.NOTIFICATION_GROUP_ID,
-                        "<html>You don't have a license for Codebashing. Please Contact your Admin for the full version implementation. Meanwhile, you can use <a href=https://free.codebashing.com>https://free.codebashing.com</a></html>",
+                        String.format("<html>%s <a href=%s>%s </a> </html>",
+                                Bundle.message(Resource.CODEBASHING_NO_LICENSE),
+                                Bundle.message(Resource.CODEBASHING_LINK),
+                                Bundle.message(Resource.CODEBASHING_LINK)),
                         NotificationType.WARNING).notify(project);
             }
 
             } catch (CxException error) {
                 Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
                 new Notification(Constants.NOTIFICATION_GROUP_ID,
-                        "Currently, this vulnerability has no lesson.",
+                        Bundle.message(Resource.CODEBASHING_NO_LESSON),
                         NotificationType.WARNING).notify(project);
             } catch (InterruptedException error) {
                 Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
