@@ -28,6 +28,7 @@ import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.components.labels.BoldLabel;
+import com.intellij.util.ui.EmptyIcon;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -121,12 +122,12 @@ public class ResultNode extends DefaultMutableTreeNode {
      * @return panel with result details
      */
     @NotNull
-    public JPanel buildResultPanel(Runnable runnableDraw, Runnable runnableUpdater) {
+    public JPanel buildResultPanel(Runnable runnableDraw, Runnable runnableUpdater) throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
         JPanel details = buildDetailsPanel(runnableDraw, runnableUpdater);
         JPanel secondPanel = JBUI.Panels.simplePanel();
 
         if (nodes.size() > 0) {
-            secondPanel = buildAttackVectorPanel(project, nodes);
+            secondPanel = buildAttackVectorPanel(runnableUpdater, project, nodes);
         } else if (packageData.size() > 0) {
             secondPanel = buildPackageDataPanel(packageData);
         } else if (StringUtils.isNotBlank(result.getData().getFileName())) {
@@ -303,9 +304,43 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     @NotNull
-    private static JPanel buildAttackVectorPanel(@NotNull Project project, @NotNull List<Node> nodes) {
+    private JPanel buildAttackVectorPanel(Runnable runnableUpdater, @NotNull Project project, @NotNull List<Node> nodes) throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         addHeader(panel, Resource.NODES);
+
+        JLabel bflHint = new JLabel(Bundle.message(Resource.LOADING_BFL));
+        panel.add(bflHint, "span, growx, wrap");
+        generateAttackVectorNodes(project, nodes, panel, -1);
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return getBFL();
+            } catch (Throwable error) {
+                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+            }
+            return -1;
+        }).thenAccept(bfl -> ApplicationManager.getApplication().invokeLater(() -> {
+            updateAttackVectorPanel(runnableUpdater, project, nodes, panel, bflHint, bfl);
+        }));
+
+        return panel;
+    }
+
+    private void updateAttackVectorPanel(Runnable runnableUpdater, @NotNull Project project, @NotNull List<Node> nodes, JPanel panel, JLabel bflHint, Integer bfl) {
+        panel.removeAll();
+        addHeader(panel, Resource.NODES);
+
+        if(bfl >= 0) {
+            bflHint.setText(Bundle.message(Resource.BFL_HINT));
+            bflHint.setIcon(CxIcons.CHECKMARX_13_COLOR);
+            panel.add(bflHint, "span, growx, wrap");
+        } else {
+            panel.remove(bflHint);
+        }
+        generateAttackVectorNodes(project, nodes, panel, bfl);
+        runnableUpdater.run();
+    }
+
+    private void generateAttackVectorNodes(@NotNull Project project, @NotNull List<Node> nodes, JPanel panel, Integer bfl) {
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
             FileNode fileNode = FileNode
@@ -320,12 +355,17 @@ public class ResultNode extends DefaultMutableTreeNode {
             BoldLabel label = new BoldLabel(labelContent);
             label.setOpaque(true);
 
+            if(i == bfl) {
+                label.setIcon(CxIcons.CHECKMARX_13_COLOR);
+            } else {
+                label.setIcon(EmptyIcon.ICON_8);
+            }
+
             CxLinkLabel link = new CxLinkLabel(capToLen(node.getFileName()),
-                                               mouseEvent -> navigate(project, fileNode));
+                    mouseEvent -> navigate(project, fileNode));
 
             addToPanel(panel, label, link);
         }
-        return panel;
     }
 
     @NotNull
@@ -444,6 +484,12 @@ public class ResultNode extends DefaultMutableTreeNode {
     private String getProjectId() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         Scan scan = CxWrapperFactory.build().scanShow(UUID.fromString(scanId));
         return scan.getProjectId();
+    }
+
+    private int getBFL() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+        int bflIndex = CxWrapperFactory.build().getResultsBfl(UUID.fromString(scanId), result.getData().getQueryId(), getNodes());
+
+        return bflIndex;
     }
 
     @NotNull
