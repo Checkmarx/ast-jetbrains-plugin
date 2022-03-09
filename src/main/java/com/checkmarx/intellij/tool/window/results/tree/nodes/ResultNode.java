@@ -308,7 +308,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         addHeader(panel, Resource.NODES);
 
-        JLabel bflHint = new JLabel("Loading best fix location");
+        JLabel bflHint = new JLabel(Bundle.message(Resource.LOADING_BFL));
         panel.add(bflHint, "span, growx, wrap");
         generateAttackVectorNodes(project, nodes, panel, -1);
         CompletableFuture.supplyAsync(() -> {
@@ -330,7 +330,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         addHeader(panel, Resource.NODES);
 
         if(bfl >= 0) {
-            bflHint.setText("points to the best fix location in the code - Make remediation much quicker!");
+            bflHint.setText(Bundle.message(Resource.BFL_HINT));
             bflHint.setIcon(CxIcons.CHECKMARX_13_COLOR);
             panel.add(bflHint, "span, growx, wrap");
         } else {

@@ -51,4 +51,6 @@ public enum Resource {
     ACTUAL_VALUE,
     EXPECTED_VALUE,
     COMMENT_PLACEHOLDER,
+    LOADING_BFL,
+    BFL_HINT
 }
