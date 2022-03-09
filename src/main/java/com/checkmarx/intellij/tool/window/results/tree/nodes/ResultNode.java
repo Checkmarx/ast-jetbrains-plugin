@@ -127,7 +127,6 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel secondPanel = JBUI.Panels.simplePanel();
 
         if (nodes.size() > 0) {
-            getBFL();
             secondPanel = buildAttackVectorPanel(runnableUpdater, project, nodes);
         } else if (packageData.size() > 0) {
             secondPanel = buildPackageDataPanel(packageData);
