@@ -1,11 +1,13 @@
 package com.checkmarx.intellij.tool.window.results.tree.nodes;
 
+import com.checkmarx.ast.codebashing.CodeBashing;
 import com.checkmarx.ast.predicate.Predicate;
 import com.checkmarx.ast.results.result.Node;
 import com.checkmarx.ast.results.result.PackageData;
 import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.ast.wrapper.CxConfig;
+import com.checkmarx.ast.wrapper.CxConstants;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.components.CxLinkLabel;
@@ -32,6 +34,7 @@ import com.intellij.util.ui.EmptyIcon;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import net.miginfocom.swing.MigLayout;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
@@ -47,6 +50,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
@@ -146,11 +150,30 @@ public class ResultNode extends DefaultMutableTreeNode {
 
     @NotNull
     private JPanel buildDetailsPanel(@NotNull Runnable runnableDraw, Runnable runnableUpdater) {
+        //Creating title label
         JPanel details = new JPanel(new MigLayout("fillx"));
+        JPanel header = new JPanel(new MigLayout("fillx"));
         JLabel title = boldLabel(this.label);
         title.setIcon(getIcon());
+        header.add(title);
 
-        details.add(title, "growx, wrap");
+        if (result.getType().equals(CxConstants.SAST)) {
+            //Creating codebashing label
+            JLabel codebashing = new JLabel("<html>Learn more at <font color='#F36A22'><b>>_</b></font>codebashing</html>");
+            codebashing.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            codebashing.setToolTipText(String.format("Learn more about %s using Checkmarx's eLearning platform ", result.getData().getQueryName()));
+            codebashing.addMouseListener(new MouseAdapter() {
+                @SneakyThrows
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    openCodebashingLink();
+                }
+            });
+
+            header.add(codebashing, "span, align r");
+        }
+
+        details.add(header, "span, growx, wrap");
         details.add(new JSeparator(), "span, growx, wrap");
 
         //Panel with triage form
@@ -214,7 +237,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             CompletableFuture.runAsync(() -> {
                 try {
                     CxWrapperFactory.build().triageUpdate(
-                            UUID.fromString(getProjectId()), result.getSimilarityId(), result.getType(), newState, commentText.getText() ,newSeverity);
+                            UUID.fromString(getProjectId()), result.getSimilarityId(), result.getType(), newState, commentText.getText(), newSeverity);
                     runnableDraw.run();
                 } catch (Throwable error) {
                     Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
@@ -505,5 +528,33 @@ public class ResultNode extends DefaultMutableTreeNode {
                                 ? JBUI.CurrentTheme.List.Hover.background(true)
                                 : JBUI.CurrentTheme.List.BACKGROUND);
         component.repaint();
+    }
+
+    private void openCodebashingLink() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException {
+        try {
+            CodeBashing response = CxWrapperFactory.build().codeBashingList(
+                    result.getVulnerabilityDetails().getCweId(),
+                    result.getData().getLanguageName(),
+                    result.getData().getQueryName()).get(0);
+
+            if(response.getPath().contains("http")){
+                Desktop.getDesktop().browse(new URI(response.getPath()));
+            } else {
+                new Notification(Constants.NOTIFICATION_GROUP_ID,
+                        String.format("<html>%s <a href=%s>%s </a> </html>",
+                                Bundle.message(Resource.CODEBASHING_NO_LICENSE),
+                                Bundle.message(Resource.CODEBASHING_LINK),
+                                Bundle.message(Resource.CODEBASHING_LINK)),
+                        NotificationType.WARNING).notify(project);
+            }
+
+            } catch (CxException error) {
+                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+                new Notification(Constants.NOTIFICATION_GROUP_ID,
+                        Bundle.message(Resource.CODEBASHING_NO_LESSON),
+                        NotificationType.WARNING).notify(project);
+            } catch (InterruptedException error) {
+                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+            }
     }
 }
