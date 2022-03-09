@@ -54,4 +54,6 @@ public enum Resource {
     CODEBASHING_NO_LESSON,
     CODEBASHING_NO_LICENSE,
     CODEBASHING_LINK,
+    LOADING_BFL,
+    BFL_HINT
 }
