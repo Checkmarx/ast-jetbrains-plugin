@@ -1,24 +1,30 @@
+<img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/banner.png">
+<br />
+<div align="center">
+
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
+[![Install][install-shield]][install-url]
 [![APACHE License][license-shield]][license-url]
 
-
-
-<!-- PROJECT LOGO -->
+</div>
 <br />
+
 <p align="center">
-  <a href="">
-    <img src="./logo.png" alt="Logo" width="80" height="80">
+  <a href="https://github.com/Checkmarx/ast-jetbrains-plugin">
+    <img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/logo.png" alt="Logo" width="80" height="80" />
   </a>
 
 <h3 align="center">AST-JETBRAINS-PLUGIN</h3>
 
 <p align="center">
     The CxAST JetBrains plugin enables you to import results from a CxAST scan directly into your IDE.
-<br />
+    <br />
     <a href="https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6030557208/JetBrains"><strong>Explore the docs »</strong></a>
+    <br />
+    <a href="https://plugins.jetbrains.com/plugin/17672-checkmarx-ast"><strong>Marketplace »</strong></a>
     <br />
     <br />
     <a href="https://github.com/Checkmarx/ast-jetbrains-plugin/issues/new">Report Bug</a>
@@ -30,7 +36,7 @@
 
 
 <!-- TABLE OF CONTENTS -->
-<details open="open">
+<details>
   <summary>Table of Contents</summary>
   <ol>
     <li>
@@ -86,8 +92,6 @@ We appreciate feedback and contribution to the JETBRAINS PLUGIN! Before you get 
 - [Checkmarx contribution guidelines](docs/contributing.md)
 - [Checkmarx Code of Conduct](docs/code_of_conduct.md)
 
-** **
-
 <!-- LICENSE -->
 ## License
 Distributed under the [Apache 2.0](LICENSE). See `LICENSE` for more information.
@@ -100,19 +104,22 @@ Checkmarx - AST Integrations Team
 
 Project Link: [https://github.com/Checkmarx/ast-jetbrains-plugin](https://github.com/Checkmarx/ast-jetbrains-plugin)
 
+Find more integrations from our team [here](https://github.com/Checkmarx/ci-cd-integrations#checkmarx-ast-integrations)
+
 
 © 2022 Checkmarx Ltd. All Rights Reserved.
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/Checkmarx/ast-jetbrains-plugin.svg?style=flat-square
+[contributors-shield]: https://img.shields.io/github/contributors/Checkmarx/ast-jetbrains-plugin.svg
 [contributors-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/Checkmarx/ast-jetbrains-plugin.svg?style=flat-square
+[forks-shield]: https://img.shields.io/github/forks/Checkmarx/ast-jetbrains-plugin.svg
 [forks-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/network/members
-[stars-shield]: https://img.shields.io/github/stars/Checkmarx/ast-jetbrains-plugin.svg?style=flat-square
+[stars-shield]: https://img.shields.io/github/stars/Checkmarx/ast-jetbrains-plugin.svg
 [stars-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/stargazers
-[issues-shield]: https://img.shields.io/github/issues/Checkmarx/ast-jetbrains-plugin.svg?style=flat-square
+[issues-shield]: https://img.shields.io/github/issues/Checkmarx/ast-jetbrains-plugin.svg
 [issues-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/issues
-[license-shield]: https://img.shields.io/github/license/Checkmarx/ast-jetbrains-plugin.svg?style=flat-square
-[license-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/blob/master/LICENSE
-[product-screenshot]: images/screenshot.png
+[license-shield]: https://img.shields.io/github/license/Checkmarx/ast-jetbrains-plugin.svg
+[license-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/blob/main/LICENSE
+[install-shield]: https://img.shields.io/jetbrains/plugin/d/17672-checkmarx-ast
+[install-url]: https://plugins.jetbrains.com/plugin/17672-checkmarx-ast
