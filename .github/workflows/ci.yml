@@ -100,18 +100,3 @@ jobs:
           name: test-fails-report-integration
           path: |
             build/reports
-  cx-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Checkmarx AST CLI Action
-        uses: checkmarx/ast-github-action@main
-        with:
-          project_name: ast-jetbrains-plugin
-          branch: main
-          base_uri: ${{ secrets.CX_BASE_URI }}
-          cx_tenant: ${{ secrets.CX_TENANT }}
-          cx_client_id: ${{ secrets.CX_CLIENT_ID }}
-          cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
-          additional_params: --tags galactica-team --file-filter "!.git"
