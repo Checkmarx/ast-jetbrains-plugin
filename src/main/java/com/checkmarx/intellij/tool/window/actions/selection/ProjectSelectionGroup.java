@@ -74,7 +74,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
             try {
                 return com.checkmarx.intellij.commands.Project.getList();
             } catch (Exception e) {
-                LOGGER.warnInProduction(e);
+                LOGGER.warn(e);
             }
             return Collections.emptyList();
         }).thenAccept((projectList) -> ApplicationManager.getApplication().invokeLater(() -> {
