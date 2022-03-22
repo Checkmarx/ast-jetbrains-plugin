@@ -37,7 +37,7 @@ public abstract class BaseUITest {
     @Language("XPath")
     protected static final String GROUP_BY_ACTION = "//div[@myicon='groupBy.svg']";
     @Language("XPath")
-    protected static final String CLONE_BUTTON = "//div[@text.key='clone.dialog.clone.button']";
+    protected static final String CLONE_BUTTON = "//div[@text='Clone']";
     @Language("XPath")
     protected static final String FIELD_NAME = "//div[@name='%s']";
     @Language("XPath")
@@ -78,8 +78,8 @@ public abstract class BaseUITest {
                         .setText(Environment.REPO);
                 waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
                 find(CLONE_BUTTON).click();
-                waitAndClick("//div[@text.key='untrusted.project.dialog.trust.button']");
-                waitAndClick("//div[contains(@text.key, 'button.close')]");
+                waitAndClick("//div[@text='Trust Project']");
+                waitAndClick("//div[@text='Close']");
                 waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
             }
             initialized = true;
