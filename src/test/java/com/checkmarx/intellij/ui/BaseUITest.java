@@ -13,6 +13,7 @@ import com.intellij.remoterobot.stepsProcessing.StepWorker;
 import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.UtilsKt;
+import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.BeforeAll;
 
@@ -78,7 +79,11 @@ public abstract class BaseUITest {
                 find(CLONE_BUTTON).click();
                 waitAndClick("//div[@text='Trust Project']");
                 waitAndClick("//div[@text='Close']");
-//                waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
+                try {
+                    waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
+                } catch (WaitForConditionTimeoutException e) {
+                    // if exception is thrown, sync was successful, so we can keep going
+                }
             }
             initialized = true;
             log("Initialization finished");
