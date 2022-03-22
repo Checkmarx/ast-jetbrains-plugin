@@ -59,9 +59,9 @@ public class TestUI extends BaseUITest {
 
         click(VALIDATE_BUTTON);
 
-        waitFor(() -> !hasAnyComponent("//div[@accessiblename.key='VALIDATE_IN_PROGRESS']"));
-        Assertions.assertFalse(hasAnyComponent("//div[@accessiblename.key='VALIDATE_SUCCESS']"));
-        click("//div[@text.key='button.cancel']");
+        waitFor(() -> !hasAnyComponent("//div[@accessiblename='Validating...']"));
+        Assertions.assertFalse(hasAnyComponent("//div[@accessiblename='Successfully authenticated to AST server']"));
+        click("//div[@text='OK']");
     }
 
     @Test
@@ -164,7 +164,7 @@ public class TestUI extends BaseUITest {
                 return false;
             }
             log("clicking refresh action button");
-            click("//div[@myaction.key='RESET_ACTION']");
+            click("//div[@myicon='refresh.svg']");
             return false;
         });
     }
