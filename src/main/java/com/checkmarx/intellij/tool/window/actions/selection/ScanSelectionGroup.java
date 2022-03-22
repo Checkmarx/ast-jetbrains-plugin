@@ -74,7 +74,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
                        ? Collections.emptyList()
                        : Scan.getList(projectId, branch);
             } catch (IOException | URISyntaxException | InterruptedException | CxConfig.InvalidCLIConfigException | CxException e) {
-                LOGGER.warnInProduction(e);
+                LOGGER.warn(e);
                 return Collections.emptyList();
             }
         }).thenAccept((List<com.checkmarx.ast.scan.Scan> scans) -> {

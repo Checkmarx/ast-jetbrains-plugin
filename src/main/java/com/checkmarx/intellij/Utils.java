@@ -1,7 +1,10 @@
 package com.checkmarx.intellij;
 
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import java.awt.*;
@@ -82,13 +85,23 @@ public final class Utils {
     }
 
     public static String dateParser(String unformattedDate) {
-        Date d = null;
         try {
-            d = input.parse(unformattedDate);
+            Date d = input.parse(unformattedDate);
             return output.format(d);
         } catch (ParseException e) {
             LOGGER.error(e);
         }
         return "Date unavailable";
+    }
+
+    public static void notify(Project project, String content, NotificationType type) {
+        new Notification(Constants.NOTIFICATION_GROUP_ID,
+                         null,
+                         null,
+                         null,
+                         content,
+                         type,
+                         null)
+                .notify(project);
     }
 }
