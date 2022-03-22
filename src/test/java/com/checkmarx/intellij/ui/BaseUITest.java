@@ -25,13 +25,13 @@ import java.util.function.Supplier;
 public abstract class BaseUITest {
 
     @Language("XPath")
-    protected static final String SETTINGS_ACTION = "//div[@myaction.key='SETTINGS_ACTION']";
+    protected static final String SETTINGS_ACTION = "//div[@myicon='settings.svg']";
     @Language("XPath")
-    protected static final String SETTINGS_BUTTON = "//div[@text.key='OPEN_SETTINGS_BUTTON']";
+    protected static final String SETTINGS_BUTTON = "//div[@text='Open Settings']";
     @Language("XPath")
-    protected static final String EXPAND_ACTION = "//div[@myaction.key='EXPAND_ALL_ACTION']";
+    protected static final String EXPAND_ACTION = "//div[@tooltiptext='Expand all']";
     @Language("XPath")
-    protected static final String COLLAPSE_ACTION = "//div[@myaction.key='COLLAPSE_ALL_ACTION']";
+    protected static final String COLLAPSE_ACTION = "//div[@tooltiptext='Collapse all']";
     @Language("XPath")
     protected static final String FILTER_BY_ACTION = "//div[@myicon='filter.svg']";
     @Language("XPath")
@@ -43,7 +43,7 @@ public abstract class BaseUITest {
     @Language("XPath")
     protected static final String CHANGES_COMMENT = "//div[@accessiblename='%s' and @class='JLabel' and @text='<html>%s</html>']";
     @Language("XPath")
-    protected static final String VALIDATE_BUTTON = "//div[@class='JButton' and @text.key='VALIDATE_BUTTON']";
+    protected static final String VALIDATE_BUTTON = "//div[@class='JButton' and @text='Validate connection']";
     @Language("XPath")
     protected static final String STATE_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='TO_VERIFY']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='URGENT']]//div[@class='BasicArrowButton']";
     @Language("XPath")
@@ -54,8 +54,6 @@ public abstract class BaseUITest {
     protected static final String TREE = "//div[@class='Tree']";
     @Language("XPath")
     protected static final String LINK_LABEL = "//div[@class='CxLinkLabel']";
-    @Language("XPath")
-    protected static final String BOLD_LABEL = "//div[@class='BoldLabel']";
     @Language("XPath")
     protected static final String EDITOR = "//div[@class='EditorComponentImpl']";
     @Language("XPath")
@@ -80,7 +78,7 @@ public abstract class BaseUITest {
                 find(CLONE_BUTTON).click();
                 waitAndClick("//div[@text='Trust Project']");
                 waitAndClick("//div[@text='Close']");
-                waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
+//                waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
             }
             initialized = true;
             log("Initialization finished");
@@ -169,7 +167,7 @@ public abstract class BaseUITest {
 
     @Language("XPath")
     protected static String filterXPath(Severity filter) {
-        return String.format("//div[@tooltiptext='%s']", filter.tooltipSupplier().get());
+        return String.format("//div[@myicon='%s.svg']", filter.tooltipSupplier().get().toLowerCase());
     }
 
     protected static void log(String msg) {

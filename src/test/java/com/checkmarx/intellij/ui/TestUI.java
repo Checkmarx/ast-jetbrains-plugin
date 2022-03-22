@@ -181,8 +181,8 @@ public class TestUI extends BaseUITest {
         click(VALIDATE_BUTTON);
         // wait for the validation success label
         // the test fails if not found
-        find(ComponentFixture.class, "//div[@accessiblename.key='VALIDATE_SUCCESS']", waitDuration);
-        click("//div[@text.key='button.ok']");
+        find(ComponentFixture.class, "//div[@accessiblename='Successfully authenticated to AST server']", waitDuration);
+        click("//div[@text='OK']");
     }
 
     private void openSettings() {
@@ -291,14 +291,14 @@ public class TestUI extends BaseUITest {
         enter(commentUUID);
 
         waitFor(() -> {
-            find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").click();
-            return !find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").isEnabled();
+            find(JButtonFixture.class, "//div[@text='Update']").click();
+            return !find(JButtonFixture.class, "//div[@text='Update']").isEnabled();
         });
 
-        waitFor(() -> find(JButtonFixture.class, "//div[@text.key='action.UpdateFiles.text']").isEnabled());
+        waitFor(() -> find(JButtonFixture.class, "//div[@text='Update']").isEnabled());
 
         waitFor(() -> {
-            find("//div[contains(@text.key, 'CHANGES')]").click();
+            find("//div[@text='Changes']").click();
             @Language("XPath") String fieldXpath = String.format(CHANGES_COMMENT, commentUUID, commentUUID);
 
             find("//div[@class='JBTabbedPane']//div[@class='JPanel']").isShowing();
