@@ -330,20 +330,19 @@ public class ResultNode extends DefaultMutableTreeNode {
     private JPanel buildAttackVectorPanel(Runnable runnableUpdater, @NotNull Project project, @NotNull List<Node> nodes) throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         addHeader(panel, Resource.NODES);
-
-        JLabel bflHint = new JLabel(Bundle.message(Resource.LOADING_BFL));
-        panel.add(bflHint, "span, growx, wrap");
         generateAttackVectorNodes(project, nodes, panel, -1);
-        CompletableFuture.supplyAsync(() -> {
-            try {
-                return getBFL();
-            } catch (Throwable error) {
-                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
-            }
-            return -1;
-        }).thenAccept(bfl -> ApplicationManager.getApplication().invokeLater(() -> {
-            updateAttackVectorPanel(runnableUpdater, project, nodes, panel, bflHint, bfl);
-        }));
+//        JLabel bflHint = new JLabel(Bundle.message(Resource.LOADING_BFL));
+//        panel.add(bflHint, "span, growx, wrap");
+//        CompletableFuture.supplyAsync(() -> {
+//            try {
+//                return getBFL();
+//            } catch (Throwable error) {
+//                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+//            }
+//            return -1;
+//        }).thenAccept(bfl -> ApplicationManager.getApplication().invokeLater(() -> {
+//            updateAttackVectorPanel(runnableUpdater, project, nodes, panel, bflHint, bfl);
+//        }));
 
         return panel;
     }
@@ -537,22 +536,24 @@ public class ResultNode extends DefaultMutableTreeNode {
                     result.getData().getLanguageName(),
                     result.getData().getQueryName()).get(0);
 
-            if(response.getPath().contains("http")){
-                Desktop.getDesktop().browse(new URI(response.getPath()));
-            } else {
-                new Notification(Constants.NOTIFICATION_GROUP_ID,
-                        String.format("<html>%s <a href=%s>%s </a> </html>",
-                                Bundle.message(Resource.CODEBASHING_NO_LICENSE),
-                                Bundle.message(Resource.CODEBASHING_LINK),
-                                Bundle.message(Resource.CODEBASHING_LINK)),
-                        NotificationType.WARNING).notify(project);
-            }
+            Desktop.getDesktop().browse(new URI(response.getPath()));
 
             } catch (CxException error) {
-                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
-                new Notification(Constants.NOTIFICATION_GROUP_ID,
-                        Bundle.message(Resource.CODEBASHING_NO_LESSON),
-                        NotificationType.WARNING).notify(project);
+                if (error.getExitCode() == Constants.LICENSE_NOT_FOUND_EXIT_CODE) {
+                    new Notification(Constants.NOTIFICATION_GROUP_ID,
+                            String.format("<html>%s <a href=%s>%s </a> </html>",
+                                    Bundle.message(Resource.CODEBASHING_NO_LICENSE),
+                                    Bundle.message(Resource.CODEBASHING_LINK),
+                                    Bundle.message(Resource.CODEBASHING_LINK)),
+                            NotificationType.WARNING).notify(project);
+                } else if (error.getExitCode() == Constants.LESSON_NOT_FOUND_EXIT_CODE) {
+                    new Notification(Constants.NOTIFICATION_GROUP_ID,
+                            Bundle.message(Resource.CODEBASHING_NO_LESSON),
+                            NotificationType.WARNING).notify(project);
+                } else {
+                    Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+                }
+
             } catch (InterruptedException error) {
                 Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
             }

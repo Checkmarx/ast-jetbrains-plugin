@@ -66,4 +66,7 @@ public final class Constants {
     public static final int DEFAULT_COLUMN = 0;
     public static final int FILE_PATH_MAX_LEN = 45;
     public static final String COLLAPSE_CRUMB = "...";
+
+    public static final int LICENSE_NOT_FOUND_EXIT_CODE = 3;
+    public static final int LESSON_NOT_FOUND_EXIT_CODE = 4;
 }
