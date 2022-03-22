@@ -123,7 +123,7 @@ public abstract class BaseUITest {
 
     protected static <T extends ComponentFixture> T find(Class<T> cls,
                                                          @Language("XPath") String xpath) {
-        return find(cls, xpath, Duration.ofSeconds(60));
+        return find(cls, xpath, Duration.ofSeconds(90));
     }
 
     protected static <T extends ComponentFixture> T find(Class<T> cls,
