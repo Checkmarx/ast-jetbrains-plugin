@@ -28,7 +28,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v2
         with:
-          distribution: zulu
+          distribution: temurin
           java-version: 11
       - name: Setup FFmpeg
         uses: FedericoCarboni/setup-ffmpeg@v1
