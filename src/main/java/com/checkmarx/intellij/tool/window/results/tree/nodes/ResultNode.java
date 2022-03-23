@@ -389,7 +389,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             if(i == bfl) {
                 label.setIcon(CxIcons.CHECKMARX_13_COLOR);
             } else {
-                label.setIcon(EmptyIcon.ICON_8);
+                label.setIcon(EmptyIcon.ICON_13);
             }
 
             CxLinkLabel link = new CxLinkLabel(capToLen(node.getFileName()),
