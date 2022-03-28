@@ -15,6 +15,7 @@ import com.checkmarx.intellij.components.PaneUtils;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
+import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
@@ -85,7 +86,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         CONFIRMED,
         URGENT
     }
-
+    
     /**
      * Set node title and store the associated result
      *
@@ -339,19 +340,21 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         addHeader(panel, Resource.NODES);
 
-        JLabel bflHint = new JLabel(Bundle.message(Resource.LOADING_BFL));
-        panel.add(bflHint, "span, growx, wrap");
+        //JLabel bflHint = new JLabel(Bundle.message(Resource.LOADING_BFL));
+        //panel.add(bflHint, "span, growx, wrap");
         generateAttackVectorNodes(project, nodes, panel, -1);
-        CompletableFuture.supplyAsync(() -> {
-            try {
-                return getBFL();
-            } catch (Throwable error) {
-                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
-            }
-            return -1;
-        }).thenAccept(bfl -> ApplicationManager.getApplication().invokeLater(() -> {
-            updateAttackVectorPanel(runnableUpdater, project, nodes, panel, bflHint, bfl);
-        }));
+//        JLabel bflHint = new JLabel(Bundle.message(Resource.LOADING_BFL));
+//        panel.add(bflHint, "span, growx, wrap");
+//        CompletableFuture.supplyAsync(() -> {
+//            try {
+//                return getBFL();
+//            } catch (Throwable error) {
+//                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+//            }
+//            return -1;
+//        }).thenAccept(bfl -> ApplicationManager.getApplication().invokeLater(() -> {
+//            updateAttackVectorPanel(runnableUpdater, project, nodes, panel, bflHint, bfl);
+//        }));
 
         return panel;
     }
@@ -555,24 +558,27 @@ public class ResultNode extends DefaultMutableTreeNode {
                     result.getData().getLanguageName(),
                     result.getData().getQueryName()).get(0);
 
-            if(response.getPath().contains("http")){
-                Desktop.getDesktop().browse(new URI(response.getPath()));
-            } else {
-                Utils.notify(project,
-                             String.format("<html>%s <a href=%s>%s </a> </html>",
-                                           Bundle.message(Resource.CODEBASHING_NO_LICENSE),
-                                           Bundle.message(Resource.CODEBASHING_LINK),
-                                           Bundle.message(Resource.CODEBASHING_LINK)),
-                             NotificationType.WARNING
-                             );
-            }
+            Desktop.getDesktop().browse(new URI(response.getPath()));
 
             } catch (CxException error) {
-                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
-            Utils.notify(project,
-                         Bundle.message(Resource.CODEBASHING_NO_LESSON),
-                         NotificationType.WARNING
-                        );
+                if (error.getExitCode() == Constants.LICENSE_NOT_FOUND_EXIT_CODE) {
+                    Utils.notify(project,
+                            String.format("<html>%s <a href=%s>%s </a> </html>",
+                                    Bundle.message(Resource.CODEBASHING_NO_LICENSE),
+                                    Bundle.message(Resource.CODEBASHING_LINK),
+                                    Bundle.message(Resource.CODEBASHING_LINK)),
+                            NotificationType.WARNING
+                    );
+                } else if (error.getExitCode() == Constants.LESSON_NOT_FOUND_EXIT_CODE) {
+                    Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+                    Utils.notify(project,
+                            Bundle.message(Resource.CODEBASHING_NO_LESSON),
+                            NotificationType.WARNING
+                    );
+                } else {
+                    Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+                }
+
             } catch (InterruptedException error) {
                 Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
             }
