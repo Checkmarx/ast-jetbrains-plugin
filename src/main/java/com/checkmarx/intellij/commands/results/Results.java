@@ -48,11 +48,11 @@ public class Results {
                     newState.setLatest(true);
                 } catch (CxException | CxConfig.InvalidCLIConfigException e) {
                     newState.setMessage(e.getMessage());
-                    LOGGER.warnInProduction(e);
+                    LOGGER.warn(e);
                     return newState;
                 } catch (Exception e) {
                     newState.setMessage(Bundle.message(Resource.LATEST_SCAN_ERROR));
-                    LOGGER.warnInProduction(e);
+                    LOGGER.warn(e);
                     return newState;
                 }
             } else {

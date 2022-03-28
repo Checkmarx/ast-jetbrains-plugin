@@ -79,7 +79,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
             try {
                 branches = com.checkmarx.intellij.commands.Project.getBranches(UUID.fromString(projectId));
             } catch (Exception e) {
-                LOGGER.warnInProduction(e);
+                LOGGER.warn(e);
             }
             return Optional.ofNullable(branches).orElse(Collections.emptyList());
         }).thenAccept((List<String> branches) -> ApplicationManager.getApplication().invokeLater(() -> {

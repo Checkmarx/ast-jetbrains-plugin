@@ -102,13 +102,13 @@ public class ResultNode extends DefaultMutableTreeNode {
         this.packageData = Optional.ofNullable(this.result.getData().getPackageData()).orElse(Collections.emptyList());
 
         String labelBuilder = (result.getData().getQueryName() != null
-                ? result.getData().getQueryName()
-                : result.getId());
+                               ? result.getData().getQueryName()
+                               : result.getId());
         int nodeCount = nodes.size();
         if (nodeCount > 0) {
             Node node = result.getData()
-                    .getNodes()
-                    .get(0);
+                              .getNodes()
+                              .get(0);
             labelBuilder += String.format(" (%s:%d)", new File(node.getFileName()).getName(), node.getLine());
         }
         this.label = labelBuilder;
@@ -126,7 +126,7 @@ public class ResultNode extends DefaultMutableTreeNode {
      * @return panel with result details
      */
     @NotNull
-    public JPanel buildResultPanel(Runnable runnableDraw, Runnable runnableUpdater) throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
+    public JPanel buildResultPanel(Runnable runnableDraw, Runnable runnableUpdater) {
         JPanel details = buildDetailsPanel(runnableDraw, runnableUpdater);
         JPanel secondPanel = JBUI.Panels.simplePanel();
 
@@ -197,6 +197,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         commentText.setForeground(JBColor.GRAY);
         commentText.addFocusListener(new FocusListener() {
             private boolean userEdited = false;
+
             @Override
             public void focusGained(FocusEvent e) {
                 if (commentText.getText().equals(Bundle.message(Resource.COMMENT_PLACEHOLDER)) && !userEdited) {
@@ -237,7 +238,12 @@ public class ResultNode extends DefaultMutableTreeNode {
             CompletableFuture.runAsync(() -> {
                 try {
                     CxWrapperFactory.build().triageUpdate(
-                            UUID.fromString(getProjectId()), result.getSimilarityId(), result.getType(), newState, commentText.getText(), newSeverity);
+                            UUID.fromString(getProjectId()),
+                            result.getSimilarityId(),
+                            result.getType(),
+                            newState,
+                            commentText.getText(),
+                            newSeverity);
                     runnableDraw.run();
                 } catch (Throwable error) {
                     Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
@@ -263,17 +269,18 @@ public class ResultNode extends DefaultMutableTreeNode {
         String description = result.getDescription();
         if (StringUtils.isNotBlank(description)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)), "wrap, gapbottom 5");
+            descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)),
+                                 "wrap, gapbottom 5");
         }
         if (StringUtils.isNotBlank(result.getData().getValue()) && StringUtils.isNotBlank(result.getData()
                                                                                                 .getExpectedValue())) {
 
             descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
-                                                  Bundle.message(Resource.ACTUAL_VALUE),
-                                                  result.getData().getValue())), "span, growx, wrap");
+                                                           Bundle.message(Resource.ACTUAL_VALUE),
+                                                           result.getData().getValue())), "span, growx, wrap");
             descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
-                                                  Bundle.message(Resource.EXPECTED_VALUE),
-                                                  result.getData().getExpectedValue())), "span, growx, wrap");
+                                                           Bundle.message(Resource.EXPECTED_VALUE),
+                                                           result.getData().getExpectedValue())), "span, growx, wrap");
         }
         tabbedPane.add(Bundle.message(Resource.DESCRIPTION), descriptionPanel);
 
@@ -307,7 +314,9 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     private void createChangesPanels(JPanel triageChanges, Predicate predicate) {
-        JLabel firstLabel = new JLabel(String.format("<html><b>%s</b> | %s</html>", boldLabel(predicate.getCreatedBy()).getText(), Utils.dateParser(predicate.getCreatedAt())));
+        JLabel firstLabel = new JLabel(String.format("<html><b>%s</b> | %s</html>",
+                                                     boldLabel(predicate.getCreatedBy()).getText(),
+                                                     Utils.dateParser(predicate.getCreatedAt())));
         triageChanges.add(firstLabel, "span, wrap");
 
         JLabel severityLabel = new JLabel(String.format("<html>%s</html>", predicate.getSeverity()));
@@ -318,7 +327,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         stateLabel.setIcon(CxIcons.STATE);
         triageChanges.add(stateLabel, "span, wrap");
 
-        if(!predicate.getComment().equals("")){
+        if (!predicate.getComment().equals("")) {
             JLabel commentLabel = new JLabel(String.format("<html>%s</html>", predicate.getComment()));
             commentLabel.setIcon(CxIcons.COMMENT);
             triageChanges.add(commentLabel, "span, wrap");
@@ -327,9 +336,12 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     @NotNull
-    private JPanel buildAttackVectorPanel(Runnable runnableUpdater, @NotNull Project project, @NotNull List<Node> nodes) throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
+    private JPanel buildAttackVectorPanel(Runnable runnableUpdater, @NotNull Project project, @NotNull List<Node> nodes) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
         addHeader(panel, Resource.NODES);
+
+        //JLabel bflHint = new JLabel(Bundle.message(Resource.LOADING_BFL));
+        //panel.add(bflHint, "span, growx, wrap");
         generateAttackVectorNodes(project, nodes, panel, -1);
 //        JLabel bflHint = new JLabel(Bundle.message(Resource.LOADING_BFL));
 //        panel.add(bflHint, "span, growx, wrap");
@@ -380,7 +392,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             if(i == bfl) {
                 label.setIcon(CxIcons.CHECKMARX_13_COLOR);
             } else {
-                label.setIcon(EmptyIcon.ICON_8);
+                label.setIcon(EmptyIcon.ICON_13);
             }
 
             CxLinkLabel link = new CxLinkLabel(capToLen(node.getFileName()),
@@ -475,27 +487,27 @@ public class ResultNode extends DefaultMutableTreeNode {
     private static void navigate(@NotNull Project project, @NotNull FileNode fileNode) {
         String fileName = fileNode.getFileName();
         Utils.runAsyncReadAction(() -> {
-            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(FilenameUtils.getName(fileName),
-                            GlobalSearchScope.projectScope(project))
-                    .stream()
-                    .filter(f -> f.getPath().contains(fileName))
-                    .collect(Collectors.toList());
+            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(project, FilenameUtils.getName(fileName),
+                                                                          GlobalSearchScope.projectScope(project))
+                                                   .stream()
+                                                   .filter(f -> f.getPath().contains(fileName))
+                                                   .collect(Collectors.toList());
             if (files.isEmpty()) {
-                new Notification(Constants.NOTIFICATION_GROUP_ID,
-                        Bundle.message(Resource.MISSING_FILE, fileName),
-                        NotificationType.WARNING).notify(project);
+                Utils.notify(project,
+                             Bundle.message(Resource.MISSING_FILE, fileName),
+                             NotificationType.WARNING);
             } else {
                 if (files.size() > 1) {
-                    new Notification(Constants.NOTIFICATION_GROUP_ID,
-                            "Multiples files found for " + fileNode.getFileName(),
-                            NotificationType.WARNING).notify(project);
+                    Utils.notify(project,
+                                 Bundle.message(Resource.MULTIPLE_FILES, fileName),
+                                 NotificationType.WARNING);
                 }
                 for (VirtualFile file : files) {
 
                     OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(project,
-                            file,
-                            fileNode.getLine() - 1,
-                            fileNode.getColumn() - 1);
+                                                                                   file,
+                                                                                   fileNode.getLine() - 1,
+                                                                                   fileNode.getColumn() - 1);
                     ApplicationManager.getApplication().invokeLater(() -> openFileDescriptor.navigate(true));
                 }
             }
@@ -503,15 +515,25 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
 
-    private String getProjectId() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    private String getProjectId() throws
+            CxConfig.InvalidCLIConfigException,
+            IOException,
+            URISyntaxException,
+            CxException,
+            InterruptedException {
         Scan scan = CxWrapperFactory.build().scanShow(UUID.fromString(scanId));
         return scan.getProjectId();
     }
 
-    private int getBFL() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
-        int bflIndex = CxWrapperFactory.build().getResultsBfl(UUID.fromString(scanId), result.getData().getQueryId(), getNodes());
+    private int getBFL() throws
+            CxConfig.InvalidCLIConfigException,
+            IOException,
+            URISyntaxException,
+            CxException,
+            InterruptedException {
 
-        return bflIndex;
+        return CxWrapperFactory.build()
+                               .getResultsBfl(UUID.fromString(scanId), result.getData().getQueryId(), getNodes());
     }
 
     @NotNull
@@ -540,16 +562,19 @@ public class ResultNode extends DefaultMutableTreeNode {
 
             } catch (CxException error) {
                 if (error.getExitCode() == Constants.LICENSE_NOT_FOUND_EXIT_CODE) {
-                    new Notification(Constants.NOTIFICATION_GROUP_ID,
+                    Utils.notify(project,
                             String.format("<html>%s <a href=%s>%s </a> </html>",
                                     Bundle.message(Resource.CODEBASHING_NO_LICENSE),
                                     Bundle.message(Resource.CODEBASHING_LINK),
                                     Bundle.message(Resource.CODEBASHING_LINK)),
-                            NotificationType.WARNING).notify(project);
+                            NotificationType.WARNING
+                    );
                 } else if (error.getExitCode() == Constants.LESSON_NOT_FOUND_EXIT_CODE) {
-                    new Notification(Constants.NOTIFICATION_GROUP_ID,
+                    Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+                    Utils.notify(project,
                             Bundle.message(Resource.CODEBASHING_NO_LESSON),
-                            NotificationType.WARNING).notify(project);
+                            NotificationType.WARNING
+                    );
                 } else {
                     Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
                 }

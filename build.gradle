@@ -30,17 +30,19 @@ dependencies {
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
     implementation 'com.miglayout:miglayout-swing:11.0'
 
-    implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.32'
+    implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.33'
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.13.2.20220324")) // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
+
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = '2021.2'
+    version = '2021.1.1'
     updateSinceUntilBuild = false
 }
 
 runPluginVerifier {
-    ideVersions = ['IC-2021.2', 'IC-2021.3']
+    ideVersions = ['IC-2021.1.1', 'IC-2021.2', 'IC-2021.3']
 }
 
 downloadRobotServerPlugin {
@@ -65,10 +67,11 @@ publishPlugin {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
 }
 
 patchPluginXml {
-    sinceBuild = '212'
+    sinceBuild = '211.6693.111'
 }

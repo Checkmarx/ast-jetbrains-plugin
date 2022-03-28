@@ -67,7 +67,7 @@ public abstract class BaseSelectionGroup extends DefaultActionGroup implements D
     public void update(@NotNull AnActionEvent e) {
         super.update(e);
         e.getPresentation()
-         .setDisabledIcon(enabled || getChildrenCount() > 0 ? EmptyIcon.ICON_16 : AllIcons.General.InlineRefresh);
+         .setDisabledIcon(enabled || getChildrenCount() > 0 ? EmptyIcon.ICON_16 : AllIcons.Actions.Refresh);
         e.getPresentation().setEnabled(enabled);
     }
 
