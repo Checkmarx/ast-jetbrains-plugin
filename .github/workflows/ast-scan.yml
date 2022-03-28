@@ -8,6 +8,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: zulu
+          java-version: 11
+
+      - name: Download SCA Resolver
+        run: |
+          wget https://sca-downloads.s3.amazonaws.com/cli/latest/ScaResolver-linux64.tar.gz
+          tar -xzvf ScaResolver-linux64.tar.gz
+          rm -rf ScaResolver-linux64.tar.gz
+
+      - name: Run SCA Resolver in offline mode
+        run: |
+          ./ScaResolver offline -s . -r .cxsca-results.json --log-level Debug --scan-containers
+          rm -rf ./ScaResolver
+          cat .cxsca-results.json  
+
       - name: Checkmarx AST CLI Action
         uses: checkmarx/ast-github-action@main
         with:
@@ -15,4 +34,4 @@ jobs:
           cx_tenant: ${{ secrets.TENANT }}
           cx_client_id: ${{ secrets.CLIENT_ID }}
           cx_client_secret: ${{ secrets.CLIENT_SECRET }}
-          additional_params: --tags galactica-team --threshold sast-high=1;kics-high=1;sca-high=1
+          additional_params: --tags galactica-team
