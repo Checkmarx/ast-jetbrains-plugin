@@ -563,7 +563,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             } catch (CxException error) {
                 if (error.getExitCode() == Constants.LICENSE_NOT_FOUND_EXIT_CODE) {
                     Utils.notify(project,
-                            String.format("<html>%s <a href=%s>%s </a> </html>",
+                            String.format("<html>%s <a href=%s>%s</a> </html>",
                                     Bundle.message(Resource.CODEBASHING_NO_LICENSE),
                                     Bundle.message(Resource.CODEBASHING_LINK),
                                     Bundle.message(Resource.CODEBASHING_LINK)),

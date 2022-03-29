@@ -1,6 +1,7 @@
 package com.checkmarx.intellij;
 
 import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationListener;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -96,12 +97,12 @@ public final class Utils {
 
     public static void notify(Project project, String content, NotificationType type) {
         new Notification(Constants.NOTIFICATION_GROUP_ID,
-                         null,
-                         null,
-                         null,
-                         content,
-                         type,
-                         null)
+                null,
+                null,
+                null,
+                content,
+                type,
+                NotificationListener.URL_OPENING_LISTENER)
                 .notify(project);
     }
 }
