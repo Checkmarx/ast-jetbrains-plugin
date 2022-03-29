@@ -89,7 +89,7 @@
                 <action id="Checkmarx.GroupBy.State"
                         class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByStateAction"/>
                 <action id="Checkmarx.GroupBy.QueryName"
-                        class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByQueryNameAction"/>
+                        class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByVulnerabilityTypeAction"/>
             </group>
             <action id="Checkmarx.ExpandAll"
                     class="com.checkmarx.intellij.tool.window.actions.ExpandAllAction"

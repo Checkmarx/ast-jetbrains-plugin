@@ -14,9 +14,9 @@ import java.util.function.Function;
 public enum GroupBy {
     SEVERITY,
     STATE,
-    QUERY_NAME;
+    VULNERABILITY_TYPE_NAME;
 
-    public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, QUERY_NAME);
+    public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, VULNERABILITY_TYPE_NAME);
 
     /**
      * @return function to apply to a result for getting the parent, that matches the filter
@@ -25,7 +25,7 @@ public enum GroupBy {
         if (this == SEVERITY) {
             return Result::getSeverity;
         }
-        if (this == QUERY_NAME) {
+        if (this == VULNERABILITY_TYPE_NAME) {
             return (result) -> result.getData().getQueryName() != null
                                ? result.getData().getQueryName()
                                : result.getId();
@@ -46,7 +46,7 @@ public enum GroupBy {
         if (this == STATE) {
             return Comparator.comparing(ResultState::valueOf);
         }
-        if (this == QUERY_NAME) {
+        if (this == VULNERABILITY_TYPE_NAME) {
             return String::compareTo;
         }
         return null;
