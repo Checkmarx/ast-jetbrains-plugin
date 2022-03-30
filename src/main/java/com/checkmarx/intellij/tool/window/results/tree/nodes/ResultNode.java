@@ -15,7 +15,6 @@ import com.checkmarx.intellij.components.PaneUtils;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
-import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
