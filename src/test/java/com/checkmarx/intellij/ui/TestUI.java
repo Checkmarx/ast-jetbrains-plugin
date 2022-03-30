@@ -323,7 +323,7 @@ public class TestUI extends BaseUITest {
     }
 
     private void vulnerabilityType() {
-        groupAction("Vulnerability Type");
+        groupAction("Vulnerability");
     }
 
     private void severity() {
