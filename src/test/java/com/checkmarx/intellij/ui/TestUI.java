@@ -227,7 +227,7 @@ public class TestUI extends BaseUITest {
         state();
         state();
 
-        queryName();
+        vulnerabilityType();
         urgent();
 
         JTreeFixture tree = find(JTreeFixture.class, TREE);
@@ -322,8 +322,8 @@ public class TestUI extends BaseUITest {
                 Environment.SCAN_ID)));
     }
 
-    private void queryName() {
-        groupAction("Query");
+    private void vulnerabilityType() {
+        groupAction("Vulnerability");
     }
 
     private void severity() {

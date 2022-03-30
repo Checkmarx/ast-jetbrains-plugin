@@ -143,7 +143,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
      */
     @NotNull
     private String unFormatScan(@NotNull String formattedScan) {
-        String[] split = formattedScan.split(" ");
+        String[] split = formattedScan.replace(Utils.formatLatest(true), "").split(" ");
         return split[split.length - 1];
     }
 
