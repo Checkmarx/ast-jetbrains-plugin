@@ -227,10 +227,10 @@ public class ResultNode extends DefaultMutableTreeNode {
             Object selectedSeverity = severityComboBox.getSelectedItem();
             if (selectedState == null || selectedSeverity == null) {
                 Utils.getLogger(ResultNode.class)
-                        .info("found null value when triaging, aborting. state "
-                            + selectedState
-                            + " severity "
-                            + selectedSeverity);
+                     .info("found null value when triaging, aborting. state "
+                          + selectedState
+                          + " severity "
+                          + selectedSeverity);
                 return;
             }
             String newState = selectedState.toString();
