@@ -175,96 +175,99 @@ public class ResultNode extends DefaultMutableTreeNode {
         details.add(header, "span, growx, wrap");
         details.add(new JSeparator(), "span, growx, wrap");
 
+        boolean triageEnabled = !result.getType().equals(Constants.SCAN_TYPE_SCA);
         //Panel with triage form, not available to sca type
-        if (!result.getType().equals(Constants.SCAN_TYPE_SCA)) {
-            JPanel triageForm = new JPanel(new MigLayout("fillx"));
-            JButton updateButton = new JButton();
-            updateButton.setText("Update");
+        JPanel triageForm = new JPanel(new MigLayout("fillx"));
+        JButton updateButton = new JButton();
+        updateButton.setText("Update");
+        updateButton.setEnabled(triageEnabled);
 
-            //Constructing selection of State combobox
-            final ComboBox<StateEnum> stateComboBox = new ComboBox<>(StateEnum.values());
-            stateComboBox.setEditable(true);
-            stateComboBox.setSelectedItem(result.getState());
+        //Constructing selection of State combobox
+        final ComboBox<StateEnum> stateComboBox = new ComboBox<>(StateEnum.values());
+        stateComboBox.setEditable(true);
+        stateComboBox.setSelectedItem(result.getState());
+        stateComboBox.setEnabled(triageEnabled);
 
-            //Constructing selection of Severity combobox
-            final ComboBox<Severity> severityComboBox = new ComboBox<>(Severity.values());
-            severityComboBox.setEditable(true);
-            severityComboBox.setSelectedItem(result.getSeverity());
+        //Constructing selection of Severity combobox
+        final ComboBox<Severity> severityComboBox = new ComboBox<>(Severity.values());
+        severityComboBox.setEditable(true);
+        severityComboBox.setSelectedItem(result.getSeverity());
+        severityComboBox.setEnabled(triageEnabled);
 
-            //Constructing Comment textField
-            JTextField commentText;
-            commentText = new JTextField(Bundle.message(Resource.COMMENT_PLACEHOLDER));
-            commentText.setForeground(JBColor.GRAY);
-            commentText.addFocusListener(new FocusListener() {
-                private boolean userEdited = false;
+        //Constructing Comment textField
+        JTextField commentText;
+        commentText = new JTextField(Bundle.message(Resource.COMMENT_PLACEHOLDER));
+        commentText.setForeground(JBColor.GRAY);
+        commentText.setEnabled(triageEnabled);
+        commentText.addFocusListener(new FocusListener() {
+        private boolean userEdited = false;
 
-                @Override
-                public void focusGained(FocusEvent e) {
-                    if (commentText.getText().equals(Bundle.message(Resource.COMMENT_PLACEHOLDER)) && !userEdited) {
-                        userEdited = true;
-                        commentText.setText("");
-                        commentText.setForeground(JBColor.BLACK);
-                    }
-                }
-
-                @Override
-                public void focusLost(FocusEvent e) {
-                    if (commentText.getText().isEmpty()) {
-                        userEdited = false;
-                        commentText.setForeground(JBColor.GRAY);
-                        commentText.setText(Bundle.message(Resource.COMMENT_PLACEHOLDER));
-                    }
-                }
-            });
-            //Button action
-            updateButton.addActionListener(e -> {
-                updateButton.setEnabled(false);
-                Object selectedState = stateComboBox.getSelectedItem();
-                Object selectedSeverity = severityComboBox.getSelectedItem();
-                if (selectedState == null || selectedSeverity == null) {
-                    Utils.getLogger(ResultNode.class)
-                         .info("found null value when triaging, aborting. state "
-                               + selectedState
-                               + " severity "
-                               + selectedSeverity);
-                    return;
-                }
-                String newState = selectedState.toString();
-                String newSeverity = selectedSeverity.toString();
-
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        CxWrapperFactory.build().triageUpdate(
-                                UUID.fromString(getProjectId()),
-                                result.getSimilarityId(),
-                                result.getType(),
-                                newState,
-                                commentText.getText(),
-                                newSeverity);
-                        runnableDraw.run();
-                        result.setState(newState);
-                        result.setSeverity(newSeverity);
-                    } catch (Throwable error) {
-                        Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
-                        // Get log final line with error message
-                        String[] lines = error.getMessage().split("\n");
-                        String lastLine = lines[lines.length - 1];
-                        Utils.notify(project,
-                                lastLine,
-                                NotificationType.ERROR);
-                    } finally {
-                        //UI thread stuff
-                        ApplicationManager.getApplication().invokeLater(() -> updateButton.setEnabled(true));
-                    }
-                });
-            });
-
-            triageForm.add(severityComboBox);
-            triageForm.add(stateComboBox);
-            triageForm.add(updateButton);
-            details.add(triageForm, "span, wrap");
-            details.add(commentText, "growx, gapleft 6, gapright 5, wrap");
+        @Override
+        public void focusGained(FocusEvent e) {
+            if (commentText.getText().equals(Bundle.message(Resource.COMMENT_PLACEHOLDER)) && !userEdited) {
+                userEdited = true;
+                commentText.setText("");
+                commentText.setForeground(JBColor.BLACK);
+            }
         }
+
+        @Override
+        public void focusLost(FocusEvent e) {
+            if (commentText.getText().isEmpty()) {
+                userEdited = false;
+                commentText.setForeground(JBColor.GRAY);
+                commentText.setText(Bundle.message(Resource.COMMENT_PLACEHOLDER));
+            }
+        }
+        });
+        //Button action
+        updateButton.addActionListener(e -> {
+            updateButton.setEnabled(false);
+            Object selectedState = stateComboBox.getSelectedItem();
+            Object selectedSeverity = severityComboBox.getSelectedItem();
+            if (selectedState == null || selectedSeverity == null) {
+                Utils.getLogger(ResultNode.class)
+                        .info("found null value when triaging, aborting. state "
+                            + selectedState
+                            + " severity "
+                            + selectedSeverity);
+                return;
+            }
+            String newState = selectedState.toString();
+            String newSeverity = selectedSeverity.toString();
+
+            CompletableFuture.runAsync(() -> {
+                try {
+                    CxWrapperFactory.build().triageUpdate(
+                            UUID.fromString(getProjectId()),
+                            result.getSimilarityId(),
+                            result.getType(),
+                            newState,
+                            commentText.getText(),
+                            newSeverity);
+                    runnableDraw.run();
+                    result.setState(newState);
+                    result.setSeverity(newSeverity);
+                } catch (Throwable error) {
+                    Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+                    // Get log final line with error message
+                    String[] lines = error.getMessage().split("\n");
+                    String lastLine = lines[lines.length - 1];
+                    Utils.notify(project,
+                            lastLine,
+                            NotificationType.ERROR);
+                } finally {
+                    //UI thread stuff
+                    ApplicationManager.getApplication().invokeLater(() -> updateButton.setEnabled(true));
+                }
+            });
+        });
+
+        triageForm.add(severityComboBox);
+        triageForm.add(stateComboBox);
+        triageForm.add(updateButton);
+        details.add(triageForm, "span, wrap");
+        details.add(commentText, "growx, gapleft 6, gapright 5, wrap");
         //Construction of the tabs
         JBTabbedPane tabbedPane = new JBTabbedPane();
 
