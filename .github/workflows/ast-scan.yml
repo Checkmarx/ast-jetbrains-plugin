@@ -15,17 +15,17 @@ jobs:
           distribution: zulu
           java-version: 11
 
-      - name: Download SCA Resolver
-        run: |
-          wget https://sca-downloads.s3.amazonaws.com/cli/latest/ScaResolver-linux64.tar.gz
-          tar -xzvf ScaResolver-linux64.tar.gz
-          rm -rf ScaResolver-linux64.tar.gz
+      # - name: Download SCA Resolver
+      #   run: |
+      #     wget https://sca-downloads.s3.amazonaws.com/cli/latest/ScaResolver-linux64.tar.gz
+      #     tar -xzvf ScaResolver-linux64.tar.gz
+      #     rm -rf ScaResolver-linux64.tar.gz
 
-      - name: Run SCA Resolver in offline mode
-        run: |
-          ./ScaResolver offline -s . -r .cxsca-results.json --log-level Debug --scan-containers
-          rm -rf ./ScaResolver
-          cat .cxsca-results.json  
+      # - name: Run SCA Resolver in offline mode
+      #   run: |
+      #     ./ScaResolver offline -s . -r .cxsca-results.json --log-level Debug --scan-containers
+      #     rm -rf ./ScaResolver
+      #     cat .cxsca-results.json  
 
       - name: Checkmarx AST CLI Action
         uses: checkmarx/ast-github-action@main
