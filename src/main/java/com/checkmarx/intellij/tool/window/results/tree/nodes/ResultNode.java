@@ -180,7 +180,6 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel triageForm = new JPanel(new MigLayout("fillx"));
         JButton updateButton = new JButton();
         updateButton.setText("Update");
-        updateButton.setEnabled(triageEnabled);
 
         //Constructing selection of State combobox
         final ComboBox<StateEnum> stateComboBox = new ComboBox<>(StateEnum.values());
@@ -198,7 +197,6 @@ public class ResultNode extends DefaultMutableTreeNode {
         JTextField commentText;
         commentText = new JTextField(Bundle.message(Resource.COMMENT_PLACEHOLDER));
         commentText.setForeground(JBColor.GRAY);
-        commentText.setEnabled(triageEnabled);
         commentText.addFocusListener(new FocusListener() {
         private boolean userEdited = false;
 
@@ -265,9 +263,11 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         triageForm.add(severityComboBox);
         triageForm.add(stateComboBox);
-        triageForm.add(updateButton);
+        if(triageEnabled){
+            triageForm.add(updateButton);
+            details.add(commentText, "growx, gapleft 6, gapright 5, wrap");
+        }
         details.add(triageForm, "span, wrap");
-        details.add(commentText, "growx, gapleft 6, gapright 5, wrap");
         //Construction of the tabs
         JBTabbedPane tabbedPane = new JBTabbedPane();
 
