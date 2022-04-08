@@ -31,7 +31,7 @@ dependencies {
     implementation 'com.miglayout:miglayout-swing:11.0'
 
     implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.33'
-    implementation(platform("com.fasterxml.jackson:jackson-bom:2.13.2.20220324")) // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.13.2.20220328")) // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
 
 }
 
