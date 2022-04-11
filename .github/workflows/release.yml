@@ -33,7 +33,7 @@ jobs:
         run: ./gradlew runPluginVerifier
       # Upload verifier report
       - name: Upload report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: always()
         with:
           name: verifier-report
@@ -60,7 +60,7 @@ jobs:
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: test-fails-report-integration
           path: |
@@ -139,7 +139,7 @@ jobs:
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.report-name }}
           path: |
@@ -147,7 +147,7 @@ jobs:
       # Save idea log if tests fail
       - name: Save idea log
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.idea-log }}
           path: |
