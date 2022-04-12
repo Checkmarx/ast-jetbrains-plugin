@@ -227,6 +227,7 @@ public class TestUI extends BaseUITest {
         state();
         state();
         file();
+        file();
 
         vulnerabilityType();
         urgent();
