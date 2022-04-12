@@ -61,7 +61,7 @@ jobs:
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: test-fails-report
           path: |
@@ -69,7 +69,7 @@ jobs:
       # Save idea log if tests fail
       - name: Save idea log
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: idea.log
           path: |
@@ -95,7 +95,7 @@ jobs:
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: test-fails-report-integration
           path: |
