@@ -90,6 +90,8 @@
                         class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByStateAction"/>
                 <action id="Checkmarx.GroupBy.QueryName"
                         class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByVulnerabilityTypeAction"/>
+                <action id="Checkmarx.GroupBy.File"
+                        class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByFileAction"/>
             </group>
             <action id="Checkmarx.ExpandAll"
                     class="com.checkmarx.intellij.tool.window.actions.ExpandAllAction"

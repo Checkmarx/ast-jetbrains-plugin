@@ -14,6 +14,7 @@ import java.util.function.Function;
 public enum GroupBy {
     SEVERITY,
     STATE,
+    FILE,
     VULNERABILITY_TYPE_NAME;
 
     public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, VULNERABILITY_TYPE_NAME);
@@ -29,6 +30,11 @@ public enum GroupBy {
             return (result) -> result.getData().getQueryName() != null
                                ? result.getData().getQueryName()
                                : result.getId();
+        }
+        if (this == FILE) {
+            return (result) -> result.getData().getFileName() != null
+                    ? result.getData().getFileName()
+                    : result.getId();
         }
         if (this == STATE) {
             return Result::getState;
@@ -47,6 +53,9 @@ public enum GroupBy {
             return Comparator.comparing(ResultState::valueOf);
         }
         if (this == VULNERABILITY_TYPE_NAME) {
+            return String::compareTo;
+        }
+        if (this == FILE) {
             return String::compareTo;
         }
         return null;

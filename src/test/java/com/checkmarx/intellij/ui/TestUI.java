@@ -226,6 +226,7 @@ public class TestUI extends BaseUITest {
         // enable and disable state
         state();
         state();
+        file();
 
         vulnerabilityType();
         urgent();
@@ -332,6 +333,10 @@ public class TestUI extends BaseUITest {
 
     private void state() {
         groupAction("State");
+    }
+
+    private void file() {
+        groupAction("File");
     }
 
     private void urgent() {
