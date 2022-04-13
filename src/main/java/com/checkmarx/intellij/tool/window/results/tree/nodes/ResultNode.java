@@ -262,13 +262,13 @@ public class ResultNode extends DefaultMutableTreeNode {
             });
         });
 
-        triageForm.add(severityComboBox);
-        triageForm.add(stateComboBox);
+        triageForm.add(severityComboBox, "growx");
+        triageForm.add(stateComboBox, "growx");
         if(triageEnabled){
-            triageForm.add(updateButton);
-            details.add(commentText, "growx, gapleft 6, gapright 5, wrap");
+            triageForm.add(updateButton, "growx, wrap");
+            triageForm.add(commentText, "span, growx");
         }
-        details.add(triageForm, "span, wrap");
+        details.add(triageForm, "span, growx, wrap");
         //Construction of the tabs
         JBTabbedPane tabbedPane = new JBTabbedPane();
 
