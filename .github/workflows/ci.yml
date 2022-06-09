@@ -100,8 +100,6 @@ jobs:
           name: test-fails-report-integration
           path: |
             build/reports
-      - name: Run Tests
-        run: ./gradlew test
 
       - name: Run Test Coverage
         run: ./gradlew jacocoTestReport
