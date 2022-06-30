@@ -25,7 +25,7 @@ public class Results {
     private static final Logger LOGGER = Utils.getLogger(Results.class);
 
     public static final com.checkmarx.ast.results.Results emptyResults = new com.checkmarx.ast.results.Results(0,
-                                                                                                               Collections.emptyList());
+                                                                                                               Collections.emptyList(), "");
 
     /**
      * Get a {@link CompletableFuture} which, when completed, supplies a {@link ResultGetState}.

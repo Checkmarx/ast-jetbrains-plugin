@@ -52,10 +52,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collections;
+import java.util.*;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -141,11 +139,120 @@ public class ResultNode extends DefaultMutableTreeNode {
                                                      DEFAULT_COLUMN);
         }
 
-        OnePixelSplitter splitter = new OnePixelSplitter();
-        splitter.setFirstComponent(PaneUtils.inVerticalScrollPane(details));
-        splitter.setSecondComponent(PaneUtils.inVerticalScrollPane(secondPanel));
+        if(!result.getType().equals(Constants.SCAN_TYPE_SCA)){
+            System.out.println("NOT SCA");
+            OnePixelSplitter splitter = new OnePixelSplitter();
+            splitter.setFirstComponent(PaneUtils.inVerticalScrollPane(details));
+            splitter.setSecondComponent(PaneUtils.inVerticalScrollPane(secondPanel));
 
-        return JBUI.Panels.simplePanel(splitter);
+            return JBUI.Panels.simplePanel(splitter);
+        } else {
+            return buildScaPanel(result, runnableDraw, runnableUpdater);
+        }
+    }
+
+    @NotNull
+    private  JPanel buildScaPanel(Result result, @NotNull Runnable runnableDraw, Runnable runnableUpdater) {
+
+        String type = result.getVulnerabilityDetails().getCvss().getScope();
+        String cveName = result.getVulnerabilityDetails().getCveName();
+        String score = Double.toString(result.getVulnerabilityDetails().getCvssScore());
+        String severity = result.getSeverity();
+
+        JPanel details = new JPanel(new MigLayout("fillx"));
+        JPanel header = new JPanel(new MigLayout("fillx"));
+        JLabel title = boldLabel(result.getData().getPackageIdentifier());
+        title.setIcon(getIcon());
+        header.add(title);
+
+        details.add(header, "growx, wrap, span");
+
+        JPanel scaBody = new JPanel(new MigLayout("fillx"));
+
+        //Result resume label
+        JLabel resultResume = new JLabel();
+        resultResume.setText(String.format(Constants.SUMMARY_FORMAT, type, cveName, score, severity));
+        scaBody.add(resultResume, "span, growx, wrap, gapbottom 6");
+
+        //Vulnerability Path
+        String location =  result.getData().getScanPackageCollection() != null ? result.getData().getScanPackageCollection().getLocations().get(0): "Not able to find location";
+        System.out.println(result.getData().getScanPackageCollection());
+        JLabel vulnerabilityPath;
+        vulnerabilityPath = new JLabel(String.format("<html><b>%s</b> %s</html>", boldLabel(Bundle.message(Resource.PATH)).getText(), location));
+        scaBody.add(vulnerabilityPath, "span, growx");
+
+        //Description
+        JPanel descriptionPanel = new JPanel();
+        descriptionPanel.setLayout(new MigLayout("fillx"));
+
+        JLabel descriptionTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.DESCRIPTION)).getText()));
+        scaBody.add(descriptionTitle, "span, growx");
+
+        String description = result.getDescription();
+        if (StringUtils.isNotBlank(description)) {
+            // wrapping the description in html tags auto wraps the text when it reaches the parent component size
+            descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)),
+                    "wrap, gapbottom 3");
+        }
+
+        scaBody.add(descriptionPanel, "span, growx");
+
+        //Remediation
+        JLabel remediationTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.REMEDIATION)).getText()));
+        scaBody.add(remediationTitle, "span, growx");
+
+        JLabel remediation = new JLabel(String.format(Constants.HTML_FONT_YELLOW_FORMAT, "Upgrade to version: " + result.getData().getRecommendedVersion()));
+        scaBody.add(remediation, "span, growx, gapbottom 5");
+
+        //Additional knowledge
+        JLabel additionalKnowledgeTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.ADDITIONAL_KNOWLEDGE)).getText()));
+        scaBody.add(additionalKnowledgeTitle, "span, growx, gapbottom 5");
+
+        JLabel aboutVulnerability = new JLabel(String.format(Constants.HTML_WRAPPER_FORMAT, boldLabel(Bundle.message(Resource.ABOUT_VULNERABILITY)).getText()));
+        aboutVulnerability.setIcon(CxIcons.ABOUT);
+        aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        aboutVulnerability.addMouseListener(new MouseAdapter() {
+            @SneakyThrows
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                Desktop.getDesktop().browse(new URI("https://devhub.checkmarx.com/cve-detail/"+ cveName));
+            }
+        });
+        scaBody.add(aboutVulnerability, "span, growx, gapbottom 5");
+
+        JLabel findPackage = new JLabel(String.format(Constants.HTML_WRAPPER_FORMAT, boldLabel(Bundle.message(Resource.FIND_PACKAGE_VERSION)).getText()));
+        findPackage.setIcon(CxIcons.ABOUT);
+        findPackage.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        findPackage.addMouseListener(new MouseAdapter() {
+            @SneakyThrows
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                Desktop.getDesktop().browse(new URI("https://devhub.checkmarx.com/packages-detail/"));
+//              + result.<package_manager>/<package_name>/<?optiona_package_version>
+            }
+        });
+        scaBody.add(findPackage, "span, growx, gapbottom 5");
+
+        //References
+        JLabel referencesTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.REFERENCES)).getText()));
+        scaBody.add(referencesTitle, "span, growx, gapbottom 5");
+
+        for (int i = 0; i < result.getData().getPackageData().size(); i++) {
+            PackageData packageData = result.getData().getPackageData().get(i);
+            JLabel packageName = new JLabel(String.format(Constants.HTML_FONT_BLUE_FORMAT, result.getData().getPackageData().get(i).getType()));
+            packageName.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            packageName.addMouseListener(new MouseAdapter() {
+                @SneakyThrows
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    Desktop.getDesktop().browse(new URI(packageData.getUrl()));
+                }
+            });
+            scaBody.add(packageName);
+        }
+
+        details.add(scaBody);
+        return details;
     }
 
     @NotNull
