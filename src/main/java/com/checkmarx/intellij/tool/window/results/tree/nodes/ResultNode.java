@@ -175,8 +175,8 @@ public class ResultNode extends DefaultMutableTreeNode {
         scaBody.add(resultResume, "span, growx, wrap, gapbottom 6");
 
         //Vulnerability Path
-        String location =  result.getData().getScanPackageCollection() != null ? result.getData().getScanPackageCollection().getLocations().get(0): "Not able to find location";
-        System.out.println(result.getData().getScanPackageCollection());
+        String location =  result.getData().getScaPackageData() != null ? result.getData().getScaPackageData().getLocations().get(0): "Not able to find location";
+        System.out.println(result.getData().getScaPackageData());
         JLabel vulnerabilityPath;
         vulnerabilityPath = new JLabel(String.format("<html><b>%s</b> %s</html>", boldLabel(Bundle.message(Resource.PATH)).getText(), location));
         scaBody.add(vulnerabilityPath, "span, growx");
@@ -210,12 +210,13 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         JLabel aboutVulnerability = new JLabel(String.format(Constants.HTML_WRAPPER_FORMAT, boldLabel(Bundle.message(Resource.ABOUT_VULNERABILITY)).getText()));
         aboutVulnerability.setIcon(CxIcons.ABOUT);
+        System.out.println(result.getData().getScaPackageData());
         aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
         aboutVulnerability.addMouseListener(new MouseAdapter() {
             @SneakyThrows
             @Override
             public void mouseClicked(MouseEvent e) {
-                Desktop.getDesktop().browse(new URI("https://devhub.checkmarx.com/cve-detail/"+ cveName));
+                Desktop.getDesktop().browse(new URI(result.getData().getScaPackageData().getFixLink()));
             }
         });
         scaBody.add(aboutVulnerability, "span, growx, gapbottom 5");
@@ -251,7 +252,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             scaBody.add(packageName);
         }
 
-        details.add(scaBody);
+        details.add(scaBody, "span, growx, wrap");
         return details;
     }
 
