@@ -15,9 +15,10 @@ public enum GroupBy {
     SEVERITY,
     STATE,
     FILE,
-    VULNERABILITY_TYPE_NAME;
+    VULNERABILITY_TYPE_NAME,
+    PACKAGE;
 
-    public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, VULNERABILITY_TYPE_NAME);
+    public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, VULNERABILITY_TYPE_NAME, PACKAGE);
 
     /**
      * @return function to apply to a result for getting the parent, that matches the filter
@@ -39,6 +40,11 @@ public enum GroupBy {
         if (this == STATE) {
             return Result::getState;
         }
+        if (this == PACKAGE) {
+            return (result) -> result.getData().getPackageIdentifier() != null
+                    ? result.getData().getPackageIdentifier()
+                    : result.getId();
+        }
         throw new RuntimeException("Invalid filter");
     }
 
@@ -56,6 +62,9 @@ public enum GroupBy {
             return String::compareTo;
         }
         if (this == FILE) {
+            return String::compareTo;
+        }
+        if (this == PACKAGE) {
             return String::compareTo;
         }
         return null;

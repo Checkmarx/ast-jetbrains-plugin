@@ -32,6 +32,7 @@ public final class Constants {
     public static final String HTML_FONT_YELLOW_FORMAT = "<html><font color='#DCB33F'>%s</font></html>";
     public static final String HTML_FONT_BLUE_FORMAT = "<html><font color='#2C7AE4'>%s</font></html>";
     public static final String HELP_HTML = "<html><a href=\"\">%s</a></html>";
+    public static final String HREF_HTML = "<html><a href=%s>%s</a>";
     public static final String NODE_FORMAT = "%s | %s";
     public static final String FILE_FORMAT = "%s:%d (%s)";
     public static final String SUMMARY_FORMAT = "%s | %s | %s | %s";

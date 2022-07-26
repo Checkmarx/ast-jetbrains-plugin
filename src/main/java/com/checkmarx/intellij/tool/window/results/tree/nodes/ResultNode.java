@@ -29,6 +29,7 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.components.labels.BoldLabel;
 import com.intellij.util.ui.EmptyIcon;
@@ -202,7 +203,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             remediation.setText("No information");
         }
 
-        scaBody.add(remediation, "span, growx, gapbottom 5");
+        scaBody.add(remediation, "span, growx, gapbottom 5, gapleft 6");
 
         //Additional knowledge
         JLabel additionalKnowledgeTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.ADDITIONAL_KNOWLEDGE)).getText()));
@@ -220,7 +221,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                         "nothing for now"));
             }
         });
-        scaBody.add(aboutVulnerability, "span, growx, gapbottom 5");
+        scaBody.add(aboutVulnerability, "span, growx, gapbottom 5, gapleft 6");
 
         JLabel findPackage = new JLabel(String.format(Constants.HTML_WRAPPER_FORMAT, boldLabel(Bundle.message(Resource.FIND_PACKAGE_VERSION)).getText()));
         findPackage.setIcon(CxIcons.ABOUT);
@@ -233,7 +234,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 //              + result.<package_manager>/<package_name>/<?optiona_package_version>
             }
         });
-        scaBody.add(findPackage, "span, growx, gapbottom 10");
+        scaBody.add(findPackage, "span, growx, gapbottom 10, gapleft 6");
 
         //Vulnerability Path
         JLabel vulnerabilityPathTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.PATH)).getText()));
@@ -245,31 +246,43 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         if(dependencyPaths != null) {
             for(int i = 0; i < dependencyPaths.size(); i++) {
+
                 StringBuilder vulnerabilities = new StringBuilder();
-                StringBuilder locations = new StringBuilder();
                 for(int j = 0; j < dependencyPaths.get(i).size(); j++) {
                     vulnerabilities.append(dependencyPaths.get(i).get(j).getName());
                     if(j != dependencyPaths.get(i).size()-1) {
                         vulnerabilities.append(" -> ");
                     }
-                    if(j==0 && dependencyPaths.get(i).get(j).getLocations() != null ){
-                        for(int l=0; l<dependencyPaths.get(i).get(j).getLocations().size(); l++) {
-                            locations.append(dependencyPaths.get(i).get(j).getLocations().get(l)).append(" | ");
-                        }
+                }
+                JPanel locs = new JPanel(new MigLayout("fillx"));
+
+                if(dependencyPaths.get(i).get(0).getLocations() != null && dependencyPaths.get(i).get(0).getLocations().size() != 0){
+                    for(int r=0; r < dependencyPaths.get(i).get(0).getLocations().size(); r++){
+                        FileNode fileNode = FileNode.builder().fileName(dependencyPaths.get(i).get(0).getLocations().get(r)).line(0).column(0).build();
+
+                        CxLinkLabel locations = new CxLinkLabel(dependencyPaths.get(i).get(0).getLocations().get(r),
+                                mouseEvent -> navigate(project, fileNode));
+
+                        locations.setText(dependencyPaths.get(i).get(0).getLocations().get(r));
+                        locs.add(locations, "wrap");
+
                     }
+                } else {
+                    JLabel locations = new JLabel();
+                    locations.setText("No information");
+                    locs.add(locations);
                 }
 
                 vulnerabilitiesPanel.add(new JLabel(vulnerabilities.toString()), "span, wrap, growx");
-                vulnerabilitiesPanel.add(new JLabel(
-                        String.format("Package %s is present in: ",
-                                result.getData().getScaPackageData().getDependencyPaths().get(i).get(0).getName())), "span, growx");
-                vulnerabilitiesPanel.add(new JLabel(locations.toString()), "span, wrap, growx");
+                vulnerabilitiesPanel.add(new JLabel(String.format("Package %s is present in: ",
+                                result.getData().getScaPackageData().getDependencyPaths().get(i).get(0).getName())), "span, wrap, growx");
+                vulnerabilitiesPanel.add(locs,
+                        "span, wrap, growx, gapbottom 3, gapleft 0");
                 vulnerabilitiesPanel.add(new JSeparator(), "span, growx, wrap");
             }
         } else {
             vulnerabilitiesPanel.add(new JLabel("No information"), "span, growx, gapbottom 5");
         }
-
 
         scaBody.add(vulnerabilitiesPanel, "span, growx, gapbottom 5");
 
@@ -289,14 +302,15 @@ public class ResultNode extends DefaultMutableTreeNode {
                         Desktop.getDesktop().browse(new URI(packageData.getUrl()));
                     }
                 });
-                scaBody.add(packageName);
+                scaBody.add(packageName, "gapleft 6");
             }
         } else {
             scaBody.add(new JLabel("No information"), "span, growx, gapbottom 5");
         }
+        JBScrollPane scrollPane = new JBScrollPane(scaBody);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        details.add(scrollPane, "span, growx, wrap");
 
-
-        details.add(scaBody, "span, growx, wrap");
         return details;
     }
 
