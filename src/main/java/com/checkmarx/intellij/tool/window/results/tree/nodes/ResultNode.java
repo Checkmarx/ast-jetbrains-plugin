@@ -142,7 +142,6 @@ public class ResultNode extends DefaultMutableTreeNode {
         }
 
         if(!result.getType().equals(Constants.SCAN_TYPE_SCA)){
-            System.out.println("NOT SCA");
             OnePixelSplitter splitter = new OnePixelSplitter();
             splitter.setFirstComponent(PaneUtils.inVerticalScrollPane(details));
             splitter.setSecondComponent(PaneUtils.inVerticalScrollPane(secondPanel));
@@ -192,51 +191,51 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         scaBody.add(descriptionPanel, "span, growx, gapleft 0");
 
-        //Remediation
-        JLabel remediationTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.REMEDIATION)).getText()));
-        scaBody.add(remediationTitle, "span, growx");
-
-        JLabel remediation = new JLabel();
-        if (result.getData().getRecommendedVersion() != null) {
-            remediation.setText(String.format(Constants.HTML_FONT_YELLOW_FORMAT, "Upgrade to version: " + result.getData().getRecommendedVersion()));
-        } else {
-            remediation.setText("No information");
-        }
-
+        JLabel remediation = getSCARemediationLabel(result, scaBody);
         scaBody.add(remediation, "span, growx, gapbottom 5, gapleft 6");
 
         //Additional knowledge
-        JLabel additionalKnowledgeTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.ADDITIONAL_KNOWLEDGE)).getText()));
-        scaBody.add(additionalKnowledgeTitle, "span, growx, gapbottom 5");
-
-        JLabel aboutVulnerability = new JLabel(String.format(Constants.HTML_WRAPPER_FORMAT, boldLabel(Bundle.message(Resource.ABOUT_VULNERABILITY)).getText()));
-        aboutVulnerability.setIcon(CxIcons.ABOUT);
-        aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        aboutVulnerability.addMouseListener(new MouseAdapter() {
-            @SneakyThrows
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                Desktop.getDesktop().browse(new URI(result.getData().getScaPackageData() != null ?
-                        result.getData().getScaPackageData().getFixLink() :
-                        "nothing for now"));
-            }
-        });
+        JLabel aboutVulnerability = getAboutVulnerabilityLabel(result, scaBody);
         scaBody.add(aboutVulnerability, "span, growx, gapbottom 5, gapleft 6");
 
-        JLabel findPackage = new JLabel(String.format(Constants.HTML_WRAPPER_FORMAT, boldLabel(Bundle.message(Resource.FIND_PACKAGE_VERSION)).getText()));
-        findPackage.setIcon(CxIcons.ABOUT);
-        findPackage.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        findPackage.addMouseListener(new MouseAdapter() {
-            @SneakyThrows
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                Desktop.getDesktop().browse(new URI("https://devhub.checkmarx.com/packages-detail/"));
-//              + result.<package_manager>/<package_name>/<?optiona_package_version>
-            }
-        });
-        scaBody.add(findPackage, "span, growx, gapbottom 10, gapleft 6");
-
         //Vulnerability Path
+        JPanel vulnerabilitiesPanel = getSCAVulnerabilityPathPanel(result, scaBody);
+        scaBody.add(vulnerabilitiesPanel, "span, growx, gapbottom 5");
+
+        //References
+        JLabel referencesTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.REFERENCES)).getText()));
+        scaBody.add(referencesTitle, "span, growx, gapbottom 5");
+
+        int r = JBColor.BLUE.getRed();
+        int g = JBColor.BLUE.getGreen();
+        int b = JBColor.BLUE.getBlue();
+        String hex = String.format("#%02x%02x%02x", r, g, b);
+        if(result.getData().getScaPackageData() != null) {
+            for (int i = 0; i < result.getData().getPackageData().size(); i++) {
+                PackageData packageData = result.getData().getPackageData().get(i);
+                JLabel packageName = new JLabel(String.format(Constants.HTML_FONT_BLUE_FORMAT, hex, result.getData().getPackageData().get(i).getType()));
+                packageName.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                packageName.addMouseListener(new MouseAdapter() {
+                    @SneakyThrows
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        Desktop.getDesktop().browse(new URI(packageData.getUrl()));
+                    }
+                });
+                scaBody.add(packageName, "gapleft 6");
+            }
+        } else {
+            scaBody.add(new JLabel("No information"), "span, growx, gapbottom 5");
+        }
+        JBScrollPane scrollPane = new JBScrollPane(scaBody);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        details.add(scrollPane, "span, growx, wrap");
+
+        return details;
+    }
+
+    @NotNull
+    private JPanel getSCAVulnerabilityPathPanel(Result result, JPanel scaBody) {
         JLabel vulnerabilityPathTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.PATH)).getText()));
         scaBody.add(vulnerabilityPathTitle, "span, growx");
         List<List<DependencyPath>> dependencyPaths;
@@ -283,35 +282,44 @@ public class ResultNode extends DefaultMutableTreeNode {
         } else {
             vulnerabilitiesPanel.add(new JLabel("No information"), "span, growx, gapbottom 5");
         }
+        return vulnerabilitiesPanel;
+    }
 
-        scaBody.add(vulnerabilitiesPanel, "span, growx, gapbottom 5");
+    @NotNull
+    private JLabel getAboutVulnerabilityLabel(Result result, JPanel scaBody) {
 
-        //References
-        JLabel referencesTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.REFERENCES)).getText()));
-        scaBody.add(referencesTitle, "span, growx, gapbottom 5");
-
-        if(result.getData().getScaPackageData() != null) {
-            for (int i = 0; i < result.getData().getPackageData().size(); i++) {
-                PackageData packageData = result.getData().getPackageData().get(i);
-                JLabel packageName = new JLabel(String.format(Constants.HTML_FONT_BLUE_FORMAT, result.getData().getPackageData().get(i).getType()));
-                packageName.setCursor(new Cursor(Cursor.HAND_CURSOR));
-                packageName.addMouseListener(new MouseAdapter() {
-                    @SneakyThrows
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        Desktop.getDesktop().browse(new URI(packageData.getUrl()));
-                    }
-                });
-                scaBody.add(packageName, "gapleft 6");
+        JLabel aboutVulnerability = new JLabel(String.format(Constants.HTML_WRAPPER_FORMAT, boldLabel(Bundle.message(Resource.ABOUT_VULNERABILITY)).getText()));
+        aboutVulnerability.setIcon(CxIcons.ABOUT);
+        aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        aboutVulnerability.addMouseListener(new MouseAdapter() {
+            @SneakyThrows
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                Desktop.getDesktop().browse(new URI(result.getData().getScaPackageData() != null ?
+                        result.getData().getScaPackageData().getFixLink() :
+                        "nothing for now"));
             }
-        } else {
-            scaBody.add(new JLabel("No information"), "span, growx, gapbottom 5");
-        }
-        JBScrollPane scrollPane = new JBScrollPane(scaBody);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        details.add(scrollPane, "span, growx, wrap");
+        });
+        return aboutVulnerability;
+    }
 
-        return details;
+    @NotNull
+    private JLabel getSCARemediationLabel(Result result, JPanel scaBody) {
+        JLabel remediationTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.REMEDIATION)).getText()));
+        scaBody.add(remediationTitle, "span, growx");
+
+        int r = JBColor.ORANGE.getRed();
+        int g = JBColor.ORANGE.getGreen();
+        int b = JBColor.ORANGE.getBlue();
+        String hex = String.format("#%02x%02x%02x", r, g, b);
+
+        JLabel remediation = new JLabel();
+        if (result.getData().getRecommendedVersion() != null) {
+            remediation.setText(String.format(Constants.HTML_FONT_YELLOW_FORMAT, hex, "Upgrade to version: " + result.getData().getRecommendedVersion()));
+        } else {
+            remediation.setText("No information");
+        }
+        return remediation;
     }
 
     @NotNull

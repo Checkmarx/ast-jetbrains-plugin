@@ -29,8 +29,8 @@ public final class Constants {
     public static final String FIELD_GAP_BOTTOM = "gapbottom 15";
 
     public static final String HTML_WRAPPER_FORMAT = "<html>%s</html>";
-    public static final String HTML_FONT_YELLOW_FORMAT = "<html><font color='#DCB33F'>%s</font></html>";
-    public static final String HTML_FONT_BLUE_FORMAT = "<html><font color='#2C7AE4'>%s</font></html>";
+    public static final String HTML_FONT_YELLOW_FORMAT = "<html><font color=%s>%s</font></html>";
+    public static final String HTML_FONT_BLUE_FORMAT = "<html><font color=%s>%s</font></html>";
     public static final String HELP_HTML = "<html><a href=\"\">%s</a></html>";
     public static final String HREF_HTML = "<html><a href=%s>%s</a>";
     public static final String NODE_FORMAT = "%s | %s";
