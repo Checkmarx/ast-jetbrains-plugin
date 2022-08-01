@@ -262,8 +262,11 @@ public class ResultNode extends DefaultMutableTreeNode {
                         CxLinkLabel locations = new CxLinkLabel(dependencyPaths.get(i).get(0).getLocations().get(r),
                                 mouseEvent -> navigate(project, fileNode));
 
-                        locations.setText(dependencyPaths.get(i).get(0).getLocations().get(r));
-                        locs.add(locations, "wrap");
+//                        locations.setText(dependencyPaths.get(i).get(0).getLocations().get(r));
+
+                        addToPanelNoLabel(locs, locations);
+
+//                        locs.add(locations, "wrap");
 
                     }
                 } else {
@@ -649,6 +652,30 @@ public class ResultNode extends DefaultMutableTreeNode {
         link.addMouseListener(hoverListener);
         rowPanel.addMouseListener(hoverListener);
         rowPanel.add(label, "split 2, span");
+        rowPanel.add(link, "span");
+        panel.add(rowPanel, "growx, wrap");
+    }
+
+    private static void addToPanelNoLabel(JPanel panel, JComponent link) {
+        JPanel rowPanel = new JPanel(new MigLayout("fillx"));
+        MouseAdapter hoverListener = new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                toggleHover(rowPanel, true);
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                mouseEntered(e);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                toggleHover(rowPanel, false);
+            }
+        };
+        link.addMouseListener(hoverListener);
+        rowPanel.addMouseListener(hoverListener);
         rowPanel.add(link, "span");
         panel.add(rowPanel, "growx, wrap");
     }
