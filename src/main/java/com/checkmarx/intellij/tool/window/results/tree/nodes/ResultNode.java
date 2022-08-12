@@ -195,6 +195,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         scaBody.add(remediation, "span, growx, gapbottom 5, gapleft 6");
 
         //Additional knowledge
+
         JLabel aboutVulnerability = getAboutVulnerabilityLabel(result, scaBody);
         scaBody.add(aboutVulnerability, "span, growx, gapbottom 5, gapleft 6");
 
@@ -261,12 +262,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
                         CxLinkLabel locations = new CxLinkLabel(dependencyPaths.get(i).get(0).getLocations().get(r),
                                 mouseEvent -> navigate(project, fileNode));
-
-//                        locations.setText(dependencyPaths.get(i).get(0).getLocations().get(r));
-
                         addToPanelNoLabel(locs, locations);
-
-//                        locs.add(locations, "wrap");
 
                     }
                 } else {
@@ -290,7 +286,8 @@ public class ResultNode extends DefaultMutableTreeNode {
 
     @NotNull
     private JLabel getAboutVulnerabilityLabel(Result result, JPanel scaBody) {
-
+        JLabel additionalKnowledgeTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.ADDITIONAL_KNOWLEDGE)).getText()));
+        scaBody.add(additionalKnowledgeTitle, "span, growx");
         JLabel aboutVulnerability = new JLabel(String.format(Constants.HTML_WRAPPER_FORMAT, boldLabel(Bundle.message(Resource.ABOUT_VULNERABILITY)).getText()));
         aboutVulnerability.setIcon(CxIcons.ABOUT);
         aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -319,6 +316,25 @@ public class ResultNode extends DefaultMutableTreeNode {
         JLabel remediation = new JLabel();
         if (result.getData().getRecommendedVersion() != null) {
             remediation.setText(String.format(Constants.HTML_FONT_YELLOW_FORMAT, hex, "Upgrade to version: " + result.getData().getRecommendedVersion()));
+            remediation.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            remediation.addMouseListener(new MouseAdapter() {
+                @SneakyThrows
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    CompletableFuture.supplyAsync(() -> {
+                        System.out.println("FILENAME:" + FilenameUtils.getName(result.getData().getScaPackageData().getDependencyPaths().get(0).get(0).getName()));
+                         try {
+                             CxWrapperFactory.build().scaRemediation(result.getData().getScaPackageData().getDependencyPaths().get(0).get(0).getName(), result.getData().getPackageIdentifier(), result.getData().getRecommendedVersion());
+                         } catch (CxException | InterruptedException | IOException | URISyntaxException | CxConfig.InvalidCLIConfigException cxException) {
+                             cxException.printStackTrace();
+                         }
+                        remediation.setEnabled(false);
+                         return null;
+                    }).thenAcceptAsync((reply) -> ApplicationManager.getApplication().invokeLater(() -> {
+                        remediation.setEnabled(true);
+                    }));
+                }
+            });
         } else {
             remediation.setText("No information");
         }
