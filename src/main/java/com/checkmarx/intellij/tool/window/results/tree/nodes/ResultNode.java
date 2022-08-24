@@ -16,12 +16,14 @@ import com.checkmarx.intellij.components.PaneUtils;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
-import com.intellij.notification.Notification;
+import com.intellij.icons.AllIcons;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.options.FontSize;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectUtil;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.FilenameIndex;
@@ -54,8 +56,11 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -70,6 +75,8 @@ import static com.checkmarx.intellij.Constants.DEFAULT_COLUMN;
 @Getter
 @EqualsAndHashCode(callSuper = true)
 public class ResultNode extends DefaultMutableTreeNode {
+
+    private static final Logger LOGGER = Utils.getLogger(ResultNode.class);
 
     private final String label;
     private final Result result;
@@ -86,7 +93,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         CONFIRMED,
         URGENT
     }
-    
+
     /**
      * Set node title and store the associated result
      *
@@ -201,7 +208,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         //Vulnerability Path
         JPanel vulnerabilitiesPanel = getSCAVulnerabilityPathPanel(result, scaBody);
-        scaBody.add(vulnerabilitiesPanel, "span, growx, gapbottom 5");
+        scaBody.add(vulnerabilitiesPanel, "span, growx");
 
         //References
         JLabel referencesTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.REFERENCES)).getText()));
@@ -211,6 +218,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         int g = JBColor.BLUE.getGreen();
         int b = JBColor.BLUE.getBlue();
         String hex = String.format("#%02x%02x%02x", r, g, b);
+        JPanel linksPanel = new JPanel(new MigLayout());
         if(result.getData().getScaPackageData() != null) {
             for (int i = 0; i < result.getData().getPackageData().size(); i++) {
                 PackageData packageData = result.getData().getPackageData().get(i);
@@ -223,8 +231,9 @@ public class ResultNode extends DefaultMutableTreeNode {
                         Desktop.getDesktop().browse(new URI(packageData.getUrl()));
                     }
                 });
-                scaBody.add(packageName, "gapleft 6");
+                linksPanel.add(packageName, "gapleft 6");
             }
+            scaBody.add(linksPanel, "wrap, split 2");
         } else {
             scaBody.add(new JLabel("No information"), "span, growx, gapbottom 5");
         }
@@ -262,7 +271,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
                         CxLinkLabel locations = new CxLinkLabel(dependencyPaths.get(i).get(0).getLocations().get(r),
                                 mouseEvent -> navigate(project, fileNode));
-                        addToPanelNoLabel(locs, locations);
+                        addToPanelNoLabel(locs, locations, result, i, r);
 
                     }
                 } else {
@@ -275,11 +284,10 @@ public class ResultNode extends DefaultMutableTreeNode {
                 vulnerabilitiesPanel.add(new JLabel(String.format("Package %s is present in: ",
                                 result.getData().getScaPackageData().getDependencyPaths().get(i).get(0).getName())), "span, wrap, growx");
                 vulnerabilitiesPanel.add(locs,
-                        "span, wrap, growx, gapbottom 3, gapleft 0");
-                vulnerabilitiesPanel.add(new JSeparator(), "span, growx, wrap");
+                        "span, wrap, growx, gapleft 0");
             }
         } else {
-            vulnerabilitiesPanel.add(new JLabel("No information"), "span, growx, gapbottom 5");
+            vulnerabilitiesPanel.add(new JLabel("No information"), "span, growx");
         }
         return vulnerabilitiesPanel;
     }
@@ -315,30 +323,79 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         JLabel remediation = new JLabel();
         if (result.getData().getRecommendedVersion() != null) {
+            remediation.setIcon(AllIcons.Diff.MagicResolve);
+            remediation.setToolTipText(Bundle.message(Resource.AUTO_REMEDIATION_TOOLTIP));
             remediation.setText(String.format(Constants.HTML_FONT_YELLOW_FORMAT, hex, "Upgrade to version: " + result.getData().getRecommendedVersion()));
             remediation.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            remediation.addMouseListener(new MouseAdapter() {
-                @SneakyThrows
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    CompletableFuture.supplyAsync(() -> {
-                        System.out.println("FILENAME:" + FilenameUtils.getName(result.getData().getScaPackageData().getDependencyPaths().get(0).get(0).getName()));
-                         try {
-                             CxWrapperFactory.build().scaRemediation(result.getData().getScaPackageData().getDependencyPaths().get(0).get(0).getName(), result.getData().getPackageIdentifier(), result.getData().getRecommendedVersion());
-                         } catch (CxException | InterruptedException | IOException | URISyntaxException | CxConfig.InvalidCLIConfigException cxException) {
-                             cxException.printStackTrace();
-                         }
-                        remediation.setEnabled(false);
-                         return null;
-                    }).thenAcceptAsync((reply) -> ApplicationManager.getApplication().invokeLater(() -> {
-                        remediation.setEnabled(true);
-                    }));
-                }
-            });
+            if (result.getData().getScaPackageData().isSupportsQuickFix()) {
+                remediation.addMouseListener(new MouseAdapter() {
+                    @SneakyThrows
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        handleGeneralRemediationClick(remediation, result);
+                    }
+                });
+            } else {
+                remediation.setEnabled(false);
+            }
         } else {
             remediation.setText("No information");
         }
         return remediation;
+    }
+
+    private void handleGeneralRemediationClick(JLabel remediation, Result result) {
+        remediation.setEnabled(false);
+        CompletableFuture.runAsync(() -> {
+            if (!result.getData().getScaPackageData().isSupportsQuickFix()) {
+                return;
+            }
+            VirtualFile projectDir = ProjectUtil.guessProjectDir(project);
+            if (projectDir == null) {
+                return;
+            }
+            String baseDir = projectDir.getCanonicalPath();
+            if (StringUtils.isBlank(baseDir)) {
+                return;
+            }
+            List<List<DependencyPath>> dependencyPaths = result.getData()
+                                                               .getScaPackageData()
+                                                               .getDependencyPaths();
+            boolean error = false;
+            for (List<DependencyPath> dependencyPath : dependencyPaths) {
+                DependencyPath head = dependencyPath.get(0);
+                if (head.isSupportsQuickFix()) {
+                    StringBuilder locationFullPaths = new StringBuilder();
+                    head.getLocations()
+                        .forEach(l -> locationFullPaths.append(Paths.get(baseDir, l)).append(","));
+                    locationFullPaths.deleteCharAt(locationFullPaths.length() - 1);
+                    try {
+                        CxWrapperFactory.build()
+                                        .scaRemediation(locationFullPaths.toString(),
+                                                        head.getName(),
+                                                        result.getData().getRecommendedVersion());
+                    } catch (CxException | InterruptedException | IOException | URISyntaxException |
+                             CxConfig.InvalidCLIConfigException ex) {
+                        error = true;
+                        Utils.notify(project,
+                                     Bundle.message(Resource.AUTO_REMEDIATION_FAIL,
+                                                    result.getData().getPackageIdentifier(),
+                                                    locationFullPaths),
+                                     NotificationType.WARNING);
+                        LOGGER.warn(ex);
+                    }
+                }
+            }
+            if (!error) {
+                Utils.notify(project,
+                             Bundle.message(Resource.AUTO_REMEDIATION_OK,
+                                            result.getData().getPackageIdentifier(),
+                                            result.getData().getRecommendedVersion()),
+                             NotificationType.INFORMATION);
+            }
+        }).thenAcceptAsync((reply) -> ApplicationManager.getApplication().invokeLater(() -> {
+            remediation.setEnabled(true);
+        }));
     }
 
     @NotNull
@@ -672,7 +729,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(rowPanel, "growx, wrap");
     }
 
-    private static void addToPanelNoLabel(JPanel panel, JComponent link) {
+    private void addToPanelNoLabel(JPanel panel, JComponent link, Result result, int i, int r) {
         JPanel rowPanel = new JPanel(new MigLayout("fillx"));
         MouseAdapter hoverListener = new MouseAdapter() {
             @Override
@@ -692,8 +749,91 @@ public class ResultNode extends DefaultMutableTreeNode {
         };
         link.addMouseListener(hoverListener);
         rowPanel.addMouseListener(hoverListener);
+        DependencyPath dependencyPath = result.getData().getScaPackageData().getDependencyPaths().get(i).get(0);
+        if (dependencyPath.isSupportsQuickFix()) {
+            JPanel buttonPanel = new JPanel(new MigLayout("fillx"));
+            JBLabel icon = new JBLabel(AllIcons.Diff.MagicResolveToolbar);
+            MouseAdapter hoverListenerButton = new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    toggleHover(buttonPanel, true);
+                    buttonPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                }
+
+                @Override
+                public void mouseMoved(MouseEvent e) {
+                    mouseEntered(e);
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    toggleHover(buttonPanel, false);
+                    buttonPanel.setCursor(null);
+                }
+
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    handleFileRemediationClick(buttonPanel,
+                                               icon,
+                                               dependencyPath.getLocations().get(r),
+                                               result,
+                                               result.getData()
+                                                     .getScaPackageData()
+                                                     .getDependencyPaths()
+                                                     .get(i)
+                                                     .get(0)
+                                                     .getName());
+                }
+            };
+            buttonPanel.add(icon);
+            icon.addMouseListener(hoverListenerButton);
+            icon.setToolTipText(Bundle.message(Resource.AUTO_REMEDIATION_TOOLTIP));
+            buttonPanel.addMouseListener(hoverListenerButton);
+            panel.add(buttonPanel, "split 2, gapright 0");
+        }
         rowPanel.add(link, "span");
-        panel.add(rowPanel, "growx, wrap");
+        panel.add(rowPanel, "span, growx, wrap, gapleft 0");
+    }
+
+    private void handleFileRemediationClick(JPanel buttonPanel,
+                                            JBLabel icon,
+                                            String location,
+                                            Result result,
+                                            String name) {
+        buttonPanel.setEnabled(false);
+        icon.setEnabled(false);
+        CompletableFuture.runAsync(() -> {
+            VirtualFile projectDir = ProjectUtil.guessProjectDir(project);
+            if (projectDir == null) {
+                return;
+            }
+            String baseDir = projectDir.getCanonicalPath();
+            if (StringUtils.isBlank(baseDir)) {
+                return;
+            }
+            try {
+                CxWrapperFactory.build()
+                                .scaRemediation(Paths.get(baseDir, location).toString(),
+                                                name,
+                                                result.getData().getRecommendedVersion());
+                Utils.notify(project,
+                             Bundle.message(Resource.AUTO_REMEDIATION_OK,
+                                            result.getData().getPackageIdentifier(),
+                                            result.getData().getRecommendedVersion()),
+                             NotificationType.INFORMATION);
+            } catch (CxException | IOException | InterruptedException | URISyntaxException |
+                     CxConfig.InvalidCLIConfigException ex) {
+                Utils.notify(project,
+                             Bundle.message(Resource.AUTO_REMEDIATION_FAIL,
+                                            result.getData().getPackageIdentifier(),
+                                            location),
+                             NotificationType.WARNING);
+                LOGGER.warn(ex);
+            }
+        }).thenAcceptAsync((reply) -> ApplicationManager.getApplication().invokeLater(() -> {
+            buttonPanel.setEnabled(true);
+            icon.setEnabled(true);
+        }));
     }
 
     private static void addHeader(@NotNull JPanel panel, @Nls Resource resource) {
