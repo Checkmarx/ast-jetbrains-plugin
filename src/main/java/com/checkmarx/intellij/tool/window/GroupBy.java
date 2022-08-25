@@ -28,22 +28,16 @@ public enum GroupBy {
             return Result::getSeverity;
         }
         if (this == VULNERABILITY_TYPE_NAME) {
-            return (result) -> result.getData().getQueryName() != null
-                               ? result.getData().getQueryName()
-                               : result.getId();
+            return (result) -> result.getData().getQueryName();
         }
         if (this == FILE) {
-            return (result) -> result.getData().getFileName() != null
-                    ? result.getData().getFileName()
-                    : result.getId();
+            return (result) -> result.getData().getFileName();
         }
         if (this == STATE) {
             return Result::getState;
         }
         if (this == PACKAGE) {
-            return (result) -> result.getData().getPackageIdentifier() != null
-                    ? result.getData().getPackageIdentifier()
-                    : result.getId();
+            return (result) -> result.getData().getPackageIdentifier();
         }
         throw new RuntimeException("Invalid filter");
     }
