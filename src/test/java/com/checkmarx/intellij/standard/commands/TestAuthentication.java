@@ -54,15 +54,6 @@ public class TestAuthentication extends BaseTest {
     }
 
     /**
-     * Test failing connection due to wrong tenant
-     */
-    @Test
-    public void testFailTenant() {
-        state.setTenantName("wrong_tenant");
-        Assertions.assertThrows(CxException.class, () -> Authentication.validateConnection(state, sensitiveState));
-    }
-
-    /**
      * Test failing connection due to wrong api key
      */
     @Test
