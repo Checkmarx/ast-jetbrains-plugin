@@ -78,7 +78,6 @@ public abstract class BaseUITest {
                 waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
                 find(CLONE_BUTTON).click();
                 waitAndClick("//div[@text='Trust Project']");
-                waitAndClick("//div[@text='Close']");
                 try {
                     waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
                 } catch (WaitForConditionTimeoutException e) {
