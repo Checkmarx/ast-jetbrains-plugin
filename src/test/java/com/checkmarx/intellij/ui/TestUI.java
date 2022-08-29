@@ -408,7 +408,7 @@ public class TestUI extends BaseUITest {
             click(GROUP_BY_ACTION);
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
                     && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size()
-                    == GroupBy.values().length;
+                    == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
         });
     }
 

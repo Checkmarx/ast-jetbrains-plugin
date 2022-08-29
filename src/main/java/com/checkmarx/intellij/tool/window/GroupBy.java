@@ -19,6 +19,7 @@ public enum GroupBy {
     PACKAGE;
 
     public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, VULNERABILITY_TYPE_NAME, PACKAGE);
+    public static final List<GroupBy> HIDDEN_GROUPS = List.of(PACKAGE);
 
     /**
      * @return function to apply to a result for getting the parent, that matches the filter
