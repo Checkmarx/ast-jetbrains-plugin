@@ -1,5 +1,5 @@
 plugins {
-    id 'org.jetbrains.intellij' version '1.8.0'
+    id 'org.jetbrains.intellij' version '1.8.1'
     id 'io.freefair.lombok' version '6.5.0.2'
     id 'java'
 }
@@ -7,7 +7,7 @@ plugins {
 group 'com.checkmarx'
 version System.getenv('RELEASE_VERSION') ?: "dev"
 
-def remoteRobotVersion = '0.11.6'
+def remoteRobotVersion = '0.11.16'
 def jUnitVersion = '5.7.2'
 
 repositories {
@@ -42,7 +42,7 @@ intellij {
 }
 
 runPluginVerifier {
-    ideVersions = ['IC-2021.1.1', 'IC-2021.2', 'IC-2021.3']
+    ideVersions = ['IC-2021.1.1', 'IC-2021.2', 'IC-2021.3', 'IC-2022.1', 'IC-2022.2']
 }
 
 downloadRobotServerPlugin {

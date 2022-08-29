@@ -6,6 +6,7 @@ import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.*;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.apache.commons.lang3.StringUtils;
 import org.intellij.lang.annotations.Language;
@@ -17,6 +18,7 @@ import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class TestUI extends BaseUITest {
 
@@ -29,6 +31,42 @@ public class TestUI extends BaseUITest {
         applySettings();
         getResults();
         checkResultsPanel();
+    }
+
+    /**
+     *
+     */
+    @Test
+    @Video
+    public void testScaPanel() {
+        applySettings();
+        getResults();
+        waitForScanIdSelection();
+
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
+        navigate(tree, "Scan", 2);
+        navigate(tree, "sca", 3);
+        navigate(tree, "HIGH", 4);
+        navigate(tree, "Npm", 5);
+
+        int row = -1;
+        for (int i = 0; i < tree.collectRows().size(); i++) {
+            if (tree.getValueAtRow(i).startsWith("CVE")) {
+                row = i;
+                break;
+            }
+        }
+        // open first node of the opened result
+        final int resultRow = row;
+        Assertions.assertTrue(resultRow > 1);
+        waitFor(() -> {
+            tree.clickRow(resultRow);
+            return findAll(LINK_LABEL).size() > 0;
+        });
+
+        Assertions.assertTrue(hasAnyComponent("//div[@disabledicon='magicResolve.svg']"));
+
+        testFileNavigation();
     }
 
     @Test
@@ -307,13 +345,7 @@ public class TestUI extends BaseUITest {
             return findAll(fieldXpath).size() > 0;
         });
 
-        waitFor(() -> {
-            findAll(LINK_LABEL).get(0).click();
-            return hasAnyComponent(EDITOR);
-        });
-        Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
-        //Confirming if editor is opened
-        find(EditorFixture.class, EDITOR, waitDuration);
+        testFileNavigation();
     }
 
     private void waitForScanIdSelection() {
@@ -423,7 +455,15 @@ public class TestUI extends BaseUITest {
 
     private void navigate(JTreeFixture tree, String prefix, int minExpectedSize) {
         waitFor(() -> {
-            tree.doubleClickRowWithText(prefix, false);
+            List<RemoteText> prefixNodes = tree.getData()
+                                               .getAll()
+                                               .stream()
+                                               .filter(t -> t.getText().startsWith(prefix))
+                                               .collect(Collectors.toList());
+            if (prefixNodes.size() == 0) {
+                return false;
+            }
+            prefixNodes.get(0).doubleClick();
             return tree.findAllText().size() >= minExpectedSize;
         });
     }
@@ -459,4 +499,13 @@ public class TestUI extends BaseUITest {
         });
     }
 
+    private static void testFileNavigation() {
+        waitFor(() -> {
+            findAll(LINK_LABEL).get(0).click();
+            return hasAnyComponent(EDITOR);
+        });
+        Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
+        //Confirming if editor is opened
+        find(EditorFixture.class, EDITOR, waitDuration);
+    }
 }
