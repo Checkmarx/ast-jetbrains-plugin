@@ -843,7 +843,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
     @NotNull
     private static JBLabel boldLabel(@NotNull String text) {
-        JBLabel label = new JBLabel(text);
+        JBLabel label = new JBLabel(String.format("<html>%s</html>", text));
         Font font = label.getFont();
         Font bold = new Font(font.getFontName(), Font.BOLD, FontSize.MEDIUM.getSize());
         label.setFont(bold);
