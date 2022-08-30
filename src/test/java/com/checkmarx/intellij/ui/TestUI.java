@@ -29,6 +29,7 @@ public class TestUI extends BaseUITest {
     @Video
     public void testEndToEnd() {
         applySettings();
+        resizeToolBar();
         getResults();
         checkResultsPanel();
     }
@@ -40,6 +41,7 @@ public class TestUI extends BaseUITest {
     @Video
     public void testScaPanel() {
         applySettings();
+        resizeToolBar();
         getResults();
         waitForScanIdSelection();
 
