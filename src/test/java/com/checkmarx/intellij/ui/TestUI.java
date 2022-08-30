@@ -29,7 +29,6 @@ public class TestUI extends BaseUITest {
     @Video
     public void testEndToEnd() {
         applySettings();
-        resizeToolBar();
         getResults();
         checkResultsPanel();
     }
@@ -41,7 +40,6 @@ public class TestUI extends BaseUITest {
     @Video
     public void testScaPanel() {
         applySettings();
-        resizeToolBar();
         getResults();
         waitForScanIdSelection();
 
@@ -302,11 +300,13 @@ public class TestUI extends BaseUITest {
             if (findAll(JLIST).size() < 1) {
                 return false;
             }
-            find(JListFixture.class, JLIST).isShowing();
-            try {
-                find(JListFixture.class, JLIST).clickItem("LOW", true);
-            } catch (Throwable ice) {
-                return false;
+            JListFixture list = find(JListFixture.class, JLIST);
+            if (list.isShowing()) {
+                try {
+                    list.clickItem("LOW", true);
+                } catch (Throwable ice) {
+                    return false;
+                }
             }
             return findAll("//div[@class='ComboBox'][.//div[@visible_text='LOW']]").size() > 0;
         });
@@ -320,11 +320,13 @@ public class TestUI extends BaseUITest {
             if (findAll(JLIST).size() < 1) {
                 return false;
             }
-            find(JListFixture.class, JLIST).isShowing();
-            try {
-                find(JListFixture.class, JLIST).clickItem("CONFIRMED", true);
-            } catch (Throwable ice) {
-                return false;
+            JListFixture list = find(JListFixture.class, JLIST);
+            if (list.isShowing()) {
+                try {
+                    list.clickItem("CONFIRMED", true);
+                } catch (Throwable ice) {
+                    return false;
+                }
             }
             return findAll("//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]").size() > 0;
         });
