@@ -43,12 +43,12 @@ public class TestUI extends BaseUITest {
         getResults();
         waitForScanIdSelection();
 
-        JTreeFixture tree = find(JTreeFixture.class, TREE);
-        navigate(tree, "Scan", 2);
-        navigate(tree, "sca", 3);
-        navigate(tree, "HIGH", 4);
-        navigate(tree, "Npm", 5);
+        navigate("Scan", 2);
+        navigate("sca", 3);
+        navigate("HIGH", 4);
+        navigate("Npm", 5);
 
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
         int row = -1;
         for (int i = 0; i < tree.collectRows().size(); i++) {
             if (tree.getValueAtRow(i).startsWith("CVE")) {
@@ -79,12 +79,12 @@ public class TestUI extends BaseUITest {
         for (Severity s : Severity.values()) {
             toggleFilter(s, false);
         }
-        navigate(find(JTreeFixture.class, TREE), "Scan", 1);
+        navigate("Scan", 1);
         // enable all severities and check for at least 1 result
         for (Severity s : Severity.values()) {
             toggleFilter(s, true);
         }
-        navigate(find(JTreeFixture.class, TREE), "Scan", 2);
+        navigate("Scan", 2);
     }
 
     @Test
@@ -270,10 +270,10 @@ public class TestUI extends BaseUITest {
         vulnerabilityType();
         urgent();
 
-        JTreeFixture tree = find(JTreeFixture.class, TREE);
 
-        navigate(tree, "Scan", 2);
-        navigate(tree, "sast", 4);
+        navigate("Scan", 2);
+        navigate("sast", 4);
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
         int row = -1;
         for (int i = 0; i < tree.collectRows().size(); i++) {
             if (tree.getValueAtRow(i).contains(".java:")) {
@@ -457,18 +457,18 @@ public class TestUI extends BaseUITest {
         });
     }
 
-    private void navigate(JTreeFixture tree, String prefix, int minExpectedSize) {
+    private void navigate(String prefix, int minExpectedSize) {
         waitFor(() -> {
-            List<RemoteText> prefixNodes = tree.getData()
-                                               .getAll()
-                                               .stream()
-                                               .filter(t -> t.getText().startsWith(prefix))
-                                               .collect(Collectors.toList());
+            List<RemoteText> prefixNodes = find(JTreeFixture.class, TREE).getData()
+                                                                                    .getAll()
+                                                                                    .stream()
+                                                                                    .filter(t -> t.getText().startsWith(prefix))
+                                                                                    .collect(Collectors.toList());
             if (prefixNodes.size() == 0) {
                 return false;
             }
             prefixNodes.get(0).doubleClick();
-            return tree.findAllText().size() >= minExpectedSize;
+            return find(JTreeFixture.class, TREE).findAllText().size() >= minExpectedSize;
         });
     }
 
