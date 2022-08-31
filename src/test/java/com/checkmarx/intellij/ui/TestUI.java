@@ -506,7 +506,7 @@ public class TestUI extends BaseUITest {
     private static void testFileNavigation() {
         waitFor(() -> {
             findAll("//div[@class='JLabel']").get(0).click();
-            findAll(LINK_LABEL).get(0).click();
+            findAll(LINK_LABEL).get(0).doubleClick();
             return hasAnyComponent(EDITOR);
         });
         Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
