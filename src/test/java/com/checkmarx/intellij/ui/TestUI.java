@@ -45,7 +45,15 @@ public class TestUI extends BaseUITest {
 
         navigate("Scan", 2);
         navigate("sca", 3);
-        navigate("HIGH", 4);
+
+        List<RemoteText> prefixNodes = find(JTreeFixture.class, TREE).getData()
+                                                                     .getAll()
+                                                                     .stream()
+                                                                     .filter(t -> t.getText().startsWith("HIGH"))
+                                                                     .collect(Collectors.toList());
+        if (prefixNodes.size() != 0) {
+            navigate("HIGH", 4);
+        }
         navigate("Npm", 5);
 
         JTreeFixture tree = find(JTreeFixture.class, TREE);
