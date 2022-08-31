@@ -297,10 +297,11 @@ public class TestUI extends BaseUITest {
             }
             find(SEVERITY_COMBOBOX_ARROW).click();
 
-            if (findAll(JLIST).size() < 1) {
+            List<JListFixture> lists = findAll(JListFixture.class, JLIST);
+            if (lists.size() < 1) {
                 return false;
             }
-            JListFixture list = find(JListFixture.class, JLIST);
+            JListFixture list = lists.get(0);
             if (list.isShowing()) {
                 try {
                     list.clickItem("LOW", true);
