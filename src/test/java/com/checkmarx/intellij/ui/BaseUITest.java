@@ -78,7 +78,6 @@ public abstract class BaseUITest {
                 waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
                 find(CLONE_BUTTON).click();
                 waitAndClick("//div[@text='Trust Project']");
-                waitAndClick("//div[@text='Close']");
                 try {
                     waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
                 } catch (WaitForConditionTimeoutException e) {
@@ -94,10 +93,12 @@ public abstract class BaseUITest {
 
     protected static void resizeToolBar() {
         Keyboard keyboard = new Keyboard(remoteRobot);
-        if (remoteRobot.isMac()) {
-            keyboard.hotKey(KeyEvent.VK_SHIFT, KeyEvent.VK_META, KeyEvent.VK_UP);
-        } else {
-            keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_UP);
+        for (int i = 0; i < 3; i++) {
+            if (remoteRobot.isMac()) {
+                keyboard.hotKey(KeyEvent.VK_SHIFT, KeyEvent.VK_META, KeyEvent.VK_UP);
+            } else {
+                keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_UP);
+            }
         }
     }
 

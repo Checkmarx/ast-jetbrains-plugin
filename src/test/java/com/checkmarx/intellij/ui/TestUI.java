@@ -6,6 +6,7 @@ import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.*;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.apache.commons.lang3.StringUtils;
 import org.intellij.lang.annotations.Language;
@@ -17,6 +18,7 @@ import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class TestUI extends BaseUITest {
 
@@ -31,6 +33,50 @@ public class TestUI extends BaseUITest {
         checkResultsPanel();
     }
 
+    /**
+     *
+     */
+    @Test
+    @Video
+    public void testScaPanel() {
+        applySettings();
+        getResults();
+        waitForScanIdSelection();
+
+        navigate("Scan", 2);
+        navigate("sca", 3);
+
+        List<RemoteText> prefixNodes = find(JTreeFixture.class, TREE).getData()
+                                                                     .getAll()
+                                                                     .stream()
+                                                                     .filter(t -> t.getText().startsWith("HIGH"))
+                                                                     .collect(Collectors.toList());
+        if (prefixNodes.size() != 0) {
+            navigate("HIGH", 4);
+        }
+        navigate("Npm", 5);
+
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
+        int row = -1;
+        for (int i = 0; i < tree.collectRows().size(); i++) {
+            if (tree.getValueAtRow(i).startsWith("CVE")) {
+                row = i;
+                break;
+            }
+        }
+        // open first node of the opened result
+        final int resultRow = row;
+        Assertions.assertTrue(resultRow > 1);
+        waitFor(() -> {
+            tree.clickRow(resultRow);
+            return findAll(LINK_LABEL).size() > 0;
+        });
+
+        Assertions.assertTrue(hasAnyComponent("//div[@disabledicon='magicResolve.svg']"));
+
+        testFileNavigation();
+    }
+
     @Test
     @Video
     public void testFilters() {
@@ -41,12 +87,12 @@ public class TestUI extends BaseUITest {
         for (Severity s : Severity.values()) {
             toggleFilter(s, false);
         }
-        navigate(find(JTreeFixture.class, TREE), "Scan", 1);
+        navigate("Scan", 1);
         // enable all severities and check for at least 1 result
         for (Severity s : Severity.values()) {
             toggleFilter(s, true);
         }
-        navigate(find(JTreeFixture.class, TREE), "Scan", 2);
+        navigate("Scan", 2);
     }
 
     @Test
@@ -232,10 +278,10 @@ public class TestUI extends BaseUITest {
         vulnerabilityType();
         urgent();
 
-        JTreeFixture tree = find(JTreeFixture.class, TREE);
 
-        navigate(tree, "Scan", 2);
-        navigate(tree, "sast", 4);
+        navigate("Scan", 2);
+        navigate("sast", 4);
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
         int row = -1;
         for (int i = 0; i < tree.collectRows().size(); i++) {
             if (tree.getValueAtRow(i).contains(".java:")) {
@@ -259,14 +305,17 @@ public class TestUI extends BaseUITest {
             }
             find(SEVERITY_COMBOBOX_ARROW).click();
 
-            if (findAll(JLIST).size() < 1) {
+            List<JListFixture> lists = findAll(JListFixture.class, JLIST);
+            if (lists.size() < 1) {
                 return false;
             }
-            find(JListFixture.class, JLIST).isShowing();
-            try {
-                find(JListFixture.class, JLIST).clickItem("LOW", true);
-            } catch (Throwable ice) {
-                return false;
+            JListFixture list = lists.get(0);
+            if (list.isShowing()) {
+                try {
+                    list.clickItem("LOW", true);
+                } catch (Throwable ice) {
+                    return false;
+                }
             }
             return findAll("//div[@class='ComboBox'][.//div[@visible_text='LOW']]").size() > 0;
         });
@@ -280,11 +329,13 @@ public class TestUI extends BaseUITest {
             if (findAll(JLIST).size() < 1) {
                 return false;
             }
-            find(JListFixture.class, JLIST).isShowing();
-            try {
-                find(JListFixture.class, JLIST).clickItem("CONFIRMED", true);
-            } catch (Throwable ice) {
-                return false;
+            JListFixture list = find(JListFixture.class, JLIST);
+            if (list.isShowing()) {
+                try {
+                    list.clickItem("CONFIRMED", true);
+                } catch (Throwable ice) {
+                    return false;
+                }
             }
             return findAll("//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]").size() > 0;
         });
@@ -307,13 +358,7 @@ public class TestUI extends BaseUITest {
             return findAll(fieldXpath).size() > 0;
         });
 
-        waitFor(() -> {
-            findAll(LINK_LABEL).get(0).click();
-            return hasAnyComponent(EDITOR);
-        });
-        Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
-        //Confirming if editor is opened
-        find(EditorFixture.class, EDITOR, waitDuration);
+        testFileNavigation();
     }
 
     private void waitForScanIdSelection() {
@@ -376,7 +421,7 @@ public class TestUI extends BaseUITest {
             click(GROUP_BY_ACTION);
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
                     && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size()
-                    == GroupBy.values().length;
+                    == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
         });
     }
 
@@ -421,10 +466,18 @@ public class TestUI extends BaseUITest {
         });
     }
 
-    private void navigate(JTreeFixture tree, String prefix, int minExpectedSize) {
+    private void navigate(String prefix, int minExpectedSize) {
         waitFor(() -> {
-            tree.doubleClickRowWithText(prefix, false);
-            return tree.findAllText().size() >= minExpectedSize;
+            List<RemoteText> prefixNodes = find(JTreeFixture.class, TREE).getData()
+                                                                                    .getAll()
+                                                                                    .stream()
+                                                                                    .filter(t -> t.getText().startsWith(prefix))
+                                                                                    .collect(Collectors.toList());
+            if (prefixNodes.size() == 0) {
+                return false;
+            }
+            prefixNodes.get(0).doubleClick();
+            return find(JTreeFixture.class, TREE).findAllText().size() >= minExpectedSize;
         });
     }
 
@@ -459,4 +512,14 @@ public class TestUI extends BaseUITest {
         });
     }
 
+    private static void testFileNavigation() {
+        waitFor(() -> {
+            findAll("//div[@class='JLabel']").get(0).click();
+            findAll(LINK_LABEL).get(0).doubleClick();
+            return hasAnyComponent(EDITOR);
+        });
+        Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
+        //Confirming if editor is opened
+        find(EditorFixture.class, EDITOR, waitDuration);
+    }
 }
