@@ -88,7 +88,6 @@ public class ResultNode extends DefaultMutableTreeNode {
 
     private final List<Node> nodes;
     private final List<PackageData> packageData;
-    private final String queryId;
 
     public enum StateEnum {
         TO_VERIFY,
@@ -104,7 +103,7 @@ public class ResultNode extends DefaultMutableTreeNode {
      * @param result  result for this node
      * @param project context project
      */
-    public ResultNode(@NotNull Result result, @NotNull Project project, String scanId, String queryId) {
+    public ResultNode(@NotNull Result result, @NotNull Project project, String scanId) {
         super();
         this.result = result;
         this.project = project;
@@ -123,7 +122,6 @@ public class ResultNode extends DefaultMutableTreeNode {
             labelBuilder += String.format(" (%s:%d)", new File(node.getFileName()).getName(), node.getLine());
         }
         this.label = labelBuilder;
-        this.queryId = queryId;
 
         setUserObject(this.label);
         setAllowsChildren(false);

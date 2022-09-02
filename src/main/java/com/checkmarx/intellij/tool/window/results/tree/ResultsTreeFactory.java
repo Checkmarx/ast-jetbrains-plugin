@@ -93,7 +93,7 @@ public class ResultsTreeFactory {
             parent.incrementSubTreeSize();
             parent = child;
         }
-        parent.add(new ResultNode(result, project, scanId,result.getData().getQueryId()), String::compareTo);
+        parent.add(new ResultNode(result, project, scanId), String::compareTo);
         parent.incrementSubTreeSize();
     }
 
