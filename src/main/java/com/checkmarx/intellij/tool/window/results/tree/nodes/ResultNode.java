@@ -1,6 +1,8 @@
 package com.checkmarx.intellij.tool.window.results.tree.nodes;
 
 import com.checkmarx.ast.codebashing.CodeBashing;
+import com.checkmarx.ast.learnMore.LearnMore;
+import com.checkmarx.ast.learnMore.Sample;
 import com.checkmarx.ast.predicate.Predicate;
 import com.checkmarx.ast.results.result.DependencyPath;
 import com.checkmarx.ast.results.result.Node;
@@ -20,6 +22,7 @@ import com.intellij.icons.AllIcons;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.EditorGutter;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.options.FontSize;
 import com.intellij.openapi.project.Project;
@@ -85,6 +88,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
     private final List<Node> nodes;
     private final List<PackageData> packageData;
+    private final String queryId;
 
     public enum StateEnum {
         TO_VERIFY,
@@ -100,7 +104,7 @@ public class ResultNode extends DefaultMutableTreeNode {
      * @param result  result for this node
      * @param project context project
      */
-    public ResultNode(@NotNull Result result, @NotNull Project project, String scanId) {
+    public ResultNode(@NotNull Result result, @NotNull Project project, String scanId, String queryId) {
         super();
         this.result = result;
         this.project = project;
@@ -119,6 +123,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             labelBuilder += String.format(" (%s:%d)", new File(node.getFileName()).getName(), node.getLine());
         }
         this.label = labelBuilder;
+        this.queryId = queryId;
 
         setUserObject(this.label);
         setAllowsChildren(false);
@@ -597,11 +602,15 @@ public class ResultNode extends DefaultMutableTreeNode {
     @NotNull
     private JPanel buildAttackVectorPanel(Runnable runnableUpdater, @NotNull Project project, @NotNull List<Node> nodes) {
         JPanel panel = new JPanel(new MigLayout("fillx"));
-        addHeader(panel, Resource.NODES);
+        JPanel attackPanel = new JPanel(new MigLayout("fillx"));
+        JPanel learnMorePanel = new JPanel(new MigLayout("fillx"));
+        JPanel codeSamplesPanel = new JPanel(new MigLayout("fillx"));
+        //addHeader(panel, Resource.NODES);
+        JBTabbedPane tabbedPane = new JBTabbedPane();
 
         //JLabel bflHint = new JLabel(Bundle.message(Resource.LOADING_BFL));
         //panel.add(bflHint, "span, growx, wrap");
-        generateAttackVectorNodes(project, nodes, panel, -1);
+        generateAttackVectorNodes(project, nodes, attackPanel, -1);
 //        JLabel bflHint = new JLabel(Bundle.message(Resource.LOADING_BFL));
 //        panel.add(bflHint, "span, growx, wrap");
 //        CompletableFuture.supplyAsync(() -> {
@@ -615,6 +624,25 @@ public class ResultNode extends DefaultMutableTreeNode {
 //            updateAttackVectorPanel(runnableUpdater, project, nodes, panel, bflHint, bfl);
 //        }));
 
+        // Adding inner tabs
+        tabbedPane.add(Bundle.message(Resource.ATTACK_VECTOR), attackPanel);
+        CompletableFuture.supplyAsync((Supplier<List<LearnMore>>) () -> {
+            try {
+                return CxWrapperFactory.build().learnMore(result.getData().getQueryId());
+            } catch (Throwable error) {
+                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+            }
+            return Collections.emptyList();
+        }).thenAccept(learnMoreList -> ApplicationManager.getApplication().invokeLater(() -> {
+            for (LearnMore learnMore : learnMoreList) {
+                generateLearnMore(learnMore,learnMorePanel);
+                generateCodeSamples(learnMore,codeSamplesPanel);
+            }
+            runnableUpdater.run();
+        }));
+        tabbedPane.add(Bundle.message(Resource.LEARN_MORE), learnMorePanel);
+        tabbedPane.add(Bundle.message(Resource.CODE_SAMPLES), codeSamplesPanel);
+        panel.add(tabbedPane, "growx");
         return panel;
     }
 
@@ -948,5 +976,58 @@ public class ResultNode extends DefaultMutableTreeNode {
             } catch (InterruptedException error) {
                 Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
             }
+    }
+
+    private void generateLearnMore(@NotNull LearnMore learnMore, JPanel panel) {
+        JLabel riskTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.RISK)).getText()));
+        panel.add(riskTitle, "span, growx");
+
+        String risk = learnMore.getRisk();
+        if (StringUtils.isNotBlank(risk)) {
+            // wrapping the description in html tags auto wraps the text when it reaches the parent component size
+            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, risk.replaceAll("\n","<br/>"))),
+                    "wrap, gapbottom 3, gapleft 0");
+        }
+
+        JLabel causeTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.CAUSE)).getText()));
+        panel.add(causeTitle, "span, growx");
+
+        String cause = learnMore.getCause();
+        if (StringUtils.isNotBlank(cause)) {
+            // wrapping the description in html tags auto wraps the text when it reaches the parent component size
+            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, cause.replaceAll("\n","<br/>"))),
+                    "wrap, gapbottom 3, gapleft 0");
+        }
+
+        JLabel recommendationsTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.GENERAL_RECOMMENDATIONS)).getText()));
+        panel.add(recommendationsTitle, "span, growx");
+
+        String recommendations = learnMore.getGeneralRecommendations();
+        if (StringUtils.isNotBlank(cause)) {
+            // wrapping the description in html tags auto wraps the text when it reaches the parent component size
+            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, recommendations.replaceAll("\n","<br/>"))),
+                    "wrap, gapbottom 3, gapleft 0");
+        }
+    }
+
+    private void generateCodeSamples(@NotNull LearnMore learnMore, JPanel panel) {
+        List<Sample> samples = learnMore.getSamples();
+        if(samples.size()>0){
+            for (Sample sample : samples) {
+                String title = sample.getTitle();
+                panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, title +" using "+ sample.getProgLanguage())),
+                    "wrap, gapbottom 3, gapleft 0");
+                JEditorPane editor = new JEditorPane();
+                editor.setEditable(false);
+                editor.setMinimumSize(new Dimension(418,30));
+                editor.setText(sample.getCode());
+                editor.setMargin(new Insets(10, 10, 10, 10));
+                panel.add(editor,"wrap, gapbottom 3, gapleft 0");
+            }
+        }
+        else{
+            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, "No code samples available")),
+                    "wrap, gapbottom 3, gapleft 0");
+        }
     }
 }
