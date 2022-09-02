@@ -37,6 +37,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.components.labels.BoldLabel;
+import com.intellij.ui.tabs.impl.JBEditorTabPainter;
 import com.intellij.util.ui.EmptyIcon;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
@@ -671,14 +672,14 @@ public class ResultNode extends DefaultMutableTreeNode {
 
             String labelContent = String.format(Constants.NODE_FORMAT, i + 1, node.getName());
 
-            BoldLabel label = new BoldLabel(labelContent);
+            BoldLabel label = new BoldLabel(labelContent,SwingConstants.LEFT);
             label.setOpaque(true);
 
-            if(i == bfl) {
-                label.setIcon(CxIcons.CHECKMARX_13_COLOR);
-            } else {
-                label.setIcon(EmptyIcon.ICON_13);
-            }
+//            if(i == bfl) {
+//                label.setIcon(CxIcons.CHECKMARX_13_COLOR);
+//            } else {
+//                label.setIcon(EmptyIcon.ICON_13);
+//            }
 
             CxLinkLabel link = new CxLinkLabel(capToLen(node.getFileName()),
                     mouseEvent -> navigate(project, fileNode));
