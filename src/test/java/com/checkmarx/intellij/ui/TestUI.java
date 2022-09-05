@@ -354,7 +354,7 @@ public class TestUI extends BaseUITest {
             find("//div[@text='Changes']").click();
             @Language("XPath") String fieldXpath = String.format(CHANGES_COMMENT, commentUUID, commentUUID);
 
-            find("//div[@class='JBTabbedPane']//div[@class='JPanel']").isShowing();
+            find("//div[@accessiblename='Changes' and @accessiblename.key='changes.default.changelist.name CHANGES' and @class='JBTabbedPane']//div[@class='JPanel']").isShowing();
             return findAll(fieldXpath).size() > 0;
         });
 
