@@ -365,7 +365,7 @@ public class TestUI extends BaseUITest {
 
         waitFor(() -> {
             find("//div[@text.key='CODE_SAMPLES']").click();
-            return find("//div[@text.key='CODE_SAMPLES']").findAllText().size()>0;
+            return find("//div[@text.key='CODE_SAMPLES']").isShowing();
         });
 
         testFileNavigation();
