@@ -357,7 +357,7 @@ public class TestUI extends BaseUITest {
             find("//div[@accessiblename='Changes' and @accessiblename.key='changes.default.changelist.name CHANGES' and @class='JBTabbedPane']//div[@class='JPanel']").isShowing();
             return findAll(fieldXpath).size() > 0;
         });
-
+        testFileNavigation();
         waitFor(() -> {
             find("//div[@text.key='LEARN_MORE']").click();
             return findAll("//div[@accessiblename.key='RISK']").size() > 0 && findAll("//div[@accessiblename.key='CAUSE']").size() > 0 && findAll("//div[@accessiblename.key='GENERAL_RECOMMENDATIONS']").size() > 0;
@@ -367,8 +367,6 @@ public class TestUI extends BaseUITest {
             find("//div[@text.key='CODE_SAMPLES']").click();
             return find("//div[@text.key='CODE_SAMPLES']").isShowing();
         });
-
-        testFileNavigation();
     }
 
     private void waitForScanIdSelection() {
