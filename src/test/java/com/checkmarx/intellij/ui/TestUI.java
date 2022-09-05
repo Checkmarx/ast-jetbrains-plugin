@@ -224,8 +224,8 @@ public class TestUI extends BaseUITest {
                 String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
                 waitDuration).setValue(false);
         // click the validation button
-        click(VALIDATE_BUTTON);
         // wait for the validation success label
+        click(VALIDATE_BUTTON);
         // the test fails if not found
         find(ComponentFixture.class, "//div[@accessiblename='Successfully authenticated to AST server']", waitDuration);
         click("//div[@text='OK']");
@@ -356,6 +356,16 @@ public class TestUI extends BaseUITest {
 
             find("//div[@class='JBTabbedPane']//div[@class='JPanel']").isShowing();
             return findAll(fieldXpath).size() > 0;
+        });
+
+        waitFor(() -> {
+            find("//div[@text.key='LEARN_MORE']").click();
+            return findAll("//div[@accessiblename.key='RISK']").size() > 0 && findAll("//div[@accessiblename.key='CAUSE']").size() > 0 && findAll("//div[@accessiblename.key='GENERAL_RECOMMENDATIONS']").size() > 0;
+        });
+
+        waitFor(() -> {
+            find("//div[@text.key='CODE_SAMPLES']").click();
+            return find("//div[@text.key='CODE_SAMPLES']").findAllText().size()>0;
         });
 
         testFileNavigation();
