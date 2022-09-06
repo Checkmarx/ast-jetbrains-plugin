@@ -1014,7 +1014,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         if(samples.size()>0){
             for (Sample sample : samples) {
                 String title = sample.getTitle();
-                panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, title +" using "+ sample.getProgLanguage())),
+                panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, title + Constants.CODE_SAMPLES_USING + sample.getProgLanguage())),
                     "wrap, gapbottom 3, gapleft 0");
                 JEditorPane editor = new JEditorPane();
                 editor.setEditable(false);
@@ -1025,7 +1025,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             }
         }
         else{
-            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, "No code samples available")),
+            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, Resource.NO_CODE_SAMPLES)),
                     "wrap, gapbottom 3, gapleft 0");
         }
     }

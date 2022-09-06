@@ -72,4 +72,5 @@ public enum Resource {
     RISK,
     CAUSE,
     GENERAL_RECOMMENDATIONS,
+    NO_CODE_SAMPLES,
 }
