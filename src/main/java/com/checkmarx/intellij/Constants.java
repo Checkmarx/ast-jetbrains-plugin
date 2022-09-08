@@ -22,9 +22,9 @@ public final class Constants {
     public static final String NOTIFICATION_GROUP_ID = "Checkmarx.Notifications";
 
     public static final String ADDITIONAL_PARAMETERS_HELP
-            = "https://checkmarx.atlassian.net/wiki/spaces/AST/pages/3080194906/scan+create";
+            = "https://checkmarx.com/resource/documents/en/34965-68643-scan.html#UUID-a0bb20d5-5182-3fb4-3da0-0e263344ffe7";
     public static final String INTELLIJ_HELP
-            = "https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6030557208/JetBrains";
+            = "https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html";
 
     public static final String FIELD_GAP_BOTTOM = "gapbottom 15";
 

@@ -5,7 +5,7 @@
 
     <description><![CDATA[
     Checkmarx Jetbrains plugin allows retrieving scan results from Checkmarx AST.
-    Full user's manual can be found <a href="https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6030557208/JetBrains">here</a>.
+    Full user's manual can be found <a href="https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html">here</a>.
     ]]></description>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html

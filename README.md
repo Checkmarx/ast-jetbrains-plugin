@@ -22,7 +22,7 @@
 <p align="center">
     The CxAST JetBrains plugin enables you to import results from a CxAST scan directly into your IDE.
     <br />
-    <a href="https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6030557208/JetBrains"><strong>Explore the docs »</strong></a>
+    <a href="https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html"><strong>Explore the docs »</strong></a>
     <br />
     <a href="https://plugins.jetbrains.com/plugin/17672-checkmarx-ast"><strong>Marketplace »</strong></a>
     <br />
@@ -71,18 +71,18 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 
 ### Prerequisites
 
-- You have a CxAST account and you have an [API Key](https://checkmarx.atlassian.net/wiki/spaces/AST/pages/5859574017/Generating+an+API+Key).
+- You have a CxAST account and you have an [API Key](https://checkmarx.com/resource/documents/en/34965-68618-generating-an-api-key.html).
 
 ### Setting Up
 
 
-All the procedures to set the JetBrains plugin up can be found [here](https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6058442786/Installing+the+CxAST+JetBrains+Plugin).
+All the procedures to set the JetBrains plugin up can be found [here](https://checkmarx.com/resource/documents/en/34965-68734-installing-the-checkmarx-one-jetbrains-plugin.html).
 
 
 
 ## Usage
 
-To see how you can use our tool, please refer to the [Documentation](https://checkmarx.atlassian.net/wiki/spaces/AST/pages/6030557208/JetBrains)
+To see how you can use our tool, please refer to the [Documentation](https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html)
 
 
 ## Contribution
