@@ -73,4 +73,6 @@ public final class Constants {
 
     public static final int LICENSE_NOT_FOUND_EXIT_CODE = 3;
     public static final int LESSON_NOT_FOUND_EXIT_CODE = 4;
+
+    public static final String CODE_SAMPLES_USING = " using ";
 }
