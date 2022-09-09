@@ -35,14 +35,14 @@ public class CancelScanAction extends AnAction implements CxToolWindowAction {
         ProgressManager.getInstance().run(new Task.Backgroundable(e.getProject(), "Cancelling scan..."){
             @SneakyThrows
             public void run(@NotNull ProgressIndicator progressIndicator) {
+                StartScanAction.cancelStartScanAction();
                 StartScanAction.setEnabled(false);
-                setEnabled(true);
+                setEnabled(false);
                 String scanId = propertiesComponent.getValue("RunningScanId");
                 Thread.sleep(20000);
                 Scan.scanCancel(scanId);
                 System.out.println("Scan with id: " + scanId + " cancelled.");
                 StartScanAction.setEnabled(true);
-                setEnabled(false);
             }
         });
     }

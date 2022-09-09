@@ -48,9 +48,9 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
     private CxToolWindowPanel cxToolWindowPanel;
 
-    @Getter
-    @Setter
-    private static ScheduledExecutorService pollScanExecutor;
+    private static Task.Backgroundable creatingScanTask;
+
+    private ScheduledExecutorService pollScanExecutor;
 
     public StartScanAction() {
         super(Bundle.messagePointer(Resource.START_SCAN_ACTION));
@@ -101,21 +101,27 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
         System.out.println(" Project Name: " + storedProject);
         System.out.println(" Project Branch: " + storedBranch);
 
-        CancelScanAction.setEnabled(true);
         setEnabled(false);
 
-        Task.Backgroundable creatingScanTask = new Task.Backgroundable(workspaceProject, "Creating scan...") {
+        creatingScanTask = new Task.Backgroundable(workspaceProject, "Creating scan...") {
             @SneakyThrows
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 com.checkmarx.ast.scan.Scan scan = Scan.scanCreate(Paths.get(Objects.requireNonNull(workspaceProject.getBasePath())).toString(), storedProject, storedBranch);
+                CancelScanAction.setEnabled(true);
                 System.out.println("Scan created with id: " + scan.getId() + " with status: " + scan.getStatus());
                 propertiesComponent.setValue("RunningScanId", scan.getId());
                 Thread.sleep(1000);
                 pollScan(scan.getId(), indicator);
             }
-        };
 
+            @SneakyThrows
+            @Override
+            public void onCancel() {
+                super.onCancel();
+                pollScanExecutor.shutdown();
+            }
+        };
 
         ProgressManager.getInstance().run(creatingScanTask);
     }
@@ -123,7 +129,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     private void pollScan(String scanId, ProgressIndicator indicator) {
         indicator.setText("Scan running...");
         pollScanExecutor = Executors.newScheduledThreadPool(1);
-        ScheduledFuture<?> future = pollScanExecutor.scheduleAtFixedRate(pollingScan(scanId), 0, 10, TimeUnit.SECONDS);
+        pollScanExecutor.scheduleAtFixedRate(pollingScan(scanId), 0, 10, TimeUnit.SECONDS);
         do {
             indicator.setText("Scan running...");
         } while (!pollScanExecutor.isTerminated());
@@ -182,5 +188,9 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     public void update(@NotNull AnActionEvent e) {
         super.update(e);
         e.getPresentation().setEnabled(isEnabled());
+    }
+
+    public static void cancelStartScanAction() {
+        creatingScanTask.onCancel();
     }
 }
