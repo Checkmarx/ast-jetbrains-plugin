@@ -1,6 +1,7 @@
 package com.checkmarx.intellij;
 
 import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationAction;
 import com.intellij.notification.NotificationListener;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -104,5 +105,19 @@ public final class Utils {
                 type,
                 NotificationListener.URL_OPENING_LISTENER)
                 .notify(project);
+    }
+
+    public static void notifyScan(String title, String message, Project project, Runnable func, NotificationType notificationType, String actionText) {
+        Notification notification = new Notification(Constants.NOTIFICATION_GROUP_ID,
+                null,
+                title,
+                null,
+                message,
+                notificationType,
+                NotificationListener.URL_OPENING_LISTENER);
+
+        NotificationAction action = NotificationAction.createSimple(actionText, func);
+        notification.addAction(action);
+        notification.notify(project);
     }
 }

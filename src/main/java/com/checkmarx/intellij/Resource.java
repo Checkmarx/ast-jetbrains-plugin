@@ -73,4 +73,6 @@ public enum Resource {
     CAUSE,
     GENERAL_RECOMMENDATIONS,
     NO_CODE_SAMPLES,
+    START_SCAN_ACTION,
+    CANCEL_SCAN_ACTION,
 }
