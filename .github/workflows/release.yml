@@ -73,18 +73,6 @@ jobs:
       max-parallel: 1
       matrix:
         include:
-          - os: ubuntu-latest
-            runIde: |
-              export DISPLAY=:99.0
-              Xvfb -ac :99 -screen 0 1920x1080x24 &
-              ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
-            runTests: |
-              export DISPLAY=:99.0
-              ./gradlew test --info --tests com.checkmarx.intellij.ui*
-            report-name: test-fails-report-linux
-            report-path: build/reports
-            idea-log: idea-linux.log
-            curl: curl
           - os: windows-latest
             runIde: |
               Set-DisplayResolution -Width 1920 -Height 1080 -Force
