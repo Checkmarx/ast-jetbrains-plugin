@@ -1,5 +1,7 @@
 package com.checkmarx.intellij;
 
+import com.intellij.dvcs.repo.Repository;
+import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationAction;
 import com.intellij.notification.NotificationListener;
@@ -8,15 +10,20 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.collections.CollectionUtils;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * Class for static, common util methods.
@@ -108,16 +115,35 @@ public final class Utils {
     }
 
     public static void notifyScan(String title, String message, Project project, Runnable func, NotificationType notificationType, String actionText) {
-        Notification notification = new Notification(Constants.NOTIFICATION_GROUP_ID,
+        new Notification(Constants.NOTIFICATION_GROUP_ID,
                 null,
                 title,
                 null,
                 message,
                 notificationType,
-                NotificationListener.URL_OPENING_LISTENER);
+                NotificationListener.URL_OPENING_LISTENER)
+                .addAction(NotificationAction.createSimple(actionText, func))
+                .notify(project);
+    }
 
-        NotificationAction action = NotificationAction.createSimple(actionText, func);
-        notification.addAction(action);
-        notification.notify(project);
+    @Nullable
+    public static Repository getRootRepository(Project project) {
+        List<Repository> repositories = VcsRepositoryManager.getInstance(project)
+                .getRepositories()
+                .stream()
+                .sorted(Comparator.comparing(r -> r.getRoot()
+                        .toNioPath()))
+                .collect(Collectors.toUnmodifiableList());
+        Repository repository = null;
+        if (CollectionUtils.isNotEmpty(repositories)) {
+            repository = repositories.get(0);
+            for (int i = 1; i < repositories.size(); i++) {
+                if (!repositories.get(i).getRoot().toNioPath().startsWith(repository.getRoot().toNioPath())) {
+                    repository = null;
+                    break;
+                }
+            }
+        }
+        return repository;
     }
 }

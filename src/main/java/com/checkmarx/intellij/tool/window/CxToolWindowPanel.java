@@ -77,6 +77,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
     // Internal state
     private final List<GroupBy> groupByList = new ArrayList<>(GroupBy.DEFAULT_GROUP_BY);
+    @Getter
     private ResultGetState currentState = new ResultGetState();
     private Tree currentTree = null;
     private boolean getResultsInProgress = false;

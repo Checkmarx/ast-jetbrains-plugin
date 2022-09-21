@@ -119,7 +119,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
      */
     @Nullable
     private String getActiveBranch() {
-        return getRootRepository() == null ? null : getRootRepository().getCurrentBranchName();
+        return Utils.getRootRepository(project) == null ? null : Objects.requireNonNull(Utils.getRootRepository(project)).getCurrentBranchName();
     }
 
     /**

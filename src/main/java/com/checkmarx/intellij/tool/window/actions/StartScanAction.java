@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.tool.window.actions;
 
+import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Bundle;
@@ -8,49 +9,51 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Scan;
 import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
-import com.checkmarx.intellij.tool.window.actions.selection.RootGroup;
 import com.checkmarx.intellij.tool.window.actions.selection.ScanSelectionGroup;
 import com.intellij.dvcs.repo.Repository;
-import com.intellij.dvcs.repo.VcsRepositoryManager;
+import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.*;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import lombok.Getter;
-import lombok.Setter;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.search.FilenameIndex;
+import com.intellij.psi.search.GlobalSearchScope;
 import lombok.SneakyThrows;
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Collections;
+import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class StartScanAction extends AnAction implements CxToolWindowAction {
-    @Getter
-    @Setter
-    private static boolean enabled = true;
+
+    private static final Logger LOGGER = Utils.getLogger(StartScanAction.class);
+
+    private boolean isPollingScan = false;
+    private boolean scanTriggered = false;
 
     private Project workspaceProject;
     private PropertiesComponent propertiesComponent;
-
     private CxToolWindowPanel cxToolWindowPanel;
-
-    private static Task.Backgroundable creatingScanTask;
-
     private ScheduledExecutorService pollScanExecutor;
+
+    private static Task.Backgroundable pollScanTask;
 
     public StartScanAction() {
         super(Bundle.messagePointer(Resource.START_SCAN_ACTION));
@@ -63,56 +66,108 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     @SneakyThrows
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-        cxToolWindowPanel = getCxToolWindowPanel(e);
-        workspaceProject = e.getProject();
-        propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(workspaceProject));
-        Repository repository = getRootRepository(workspaceProject);
-        String storedBranch = propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY);
-        String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
-        boolean matchBranch = storedBranch.equals(repository.getCurrentBranchName());
-        System.out.println("StoredProject: " + storedProject);
-        System.out.println("Project: " +repository.getPresentableUrl());
-        //Change it by checking if the files in the project exist
-        boolean matchProject = storedProject.equals(workspaceProject.getName()) || repository.getPresentableUrl().endsWith(StringUtils.substringAfterLast(storedProject, "/"));
+        Repository repository = Utils.getRootRepository(workspaceProject);
+        String storedBranch = Optional.ofNullable(propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY)).orElse(StringUtils.EMPTY);
+        boolean matchBranch = storedBranch.equals(Objects.requireNonNull(repository).getCurrentBranchName());
+        boolean matchProject = astProjectMatchesWorkspaceProject();
 
         if(matchBranch && matchProject) {
-            startScan();
+            createScan();
         } else {
-            System.out.println(" Scan no eligible. matchBranch: " + matchBranch + " matchProject: " + matchProject);
-            System.out.println(" ===> Stored Branch: " + storedBranch);
-            System.out.println(" ===> Repo Branch: " + repository.getCurrentBranchName());
-            System.out.println(" ===> Stored Project: " + StringUtils.substringAfterLast(storedProject, "/"));
-            System.out.println(" ===> Presentable Project Url: " + repository.getPresentableUrl());
-
             if (!matchProject) {
-                Utils.notifyScan("Current project doesn't match", "Project in workspace doesn't match checkmarx project. Do you want to proceed?", workspaceProject, this::startScan, NotificationType.WARNING, "Scan anyway");
+                Utils.notifyScan(msg(Resource.PROJECT_DOES_NOT_MATCH_TITLE), msg(Resource.PROJECT_DOES_NOT_MATCH_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
             } else {
-                Utils.notifyScan("Current branch doesn't match", "Git branch doesn't match checkmarx branch. Do you want to proceed?", workspaceProject, this::startScan, NotificationType.WARNING, "Scan anyway");
+                Utils.notifyScan(msg(Resource.BRANCH_DOES_NOT_MATCH_TITLE), msg(Resource.BRANCH_DOES_NOT_MATCH_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
             }
         }
     }
 
-    private void startScan() {
-        String storedBranch = propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY);
-        String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
+    /**
+     * Check if project in workspace matches the selected checkmarx plugin project
+     *
+     * @return True if matches. False otherwise
+     */
+    private boolean astProjectMatchesWorkspaceProject() {
+        List<Result> results = cxToolWindowPanel.getCurrentState().getResultOutput().getResults();
+        List<String> resultsFileNames = new ArrayList<>();
 
-        System.out.println(" Initiating Scan...");
-        System.out.println(" Source Path: " + Paths.get(Objects.requireNonNull(workspaceProject.getBasePath())));
-        System.out.println(" Project Name: " + storedProject);
-        System.out.println(" Project Branch: " + storedBranch);
+        for(Result result : results) {
+            if(!Optional.ofNullable(result.getData().getNodes()).orElse(Collections.emptyList()).isEmpty()){
+                // Add SAST file name
+                resultsFileNames.add(result.getData().getNodes().get(0).getFileName());
+            } else if(StringUtils.isNotBlank(result.getData().getFileName())) {
+                // Add KICS file name
+                resultsFileNames.add(result.getData().getFileName());
+            }
+        }
 
-        setEnabled(false);
+        for(String fileName : resultsFileNames) {
+            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(workspaceProject, FilenameUtils.getName(fileName),
+                            GlobalSearchScope.projectScope(workspaceProject))
+                    .stream()
+                    .filter(f -> f.getPath().contains(fileName))
+                    .collect(Collectors.toList());
 
-        creatingScanTask = new Task.Backgroundable(workspaceProject, "Creating scan...") {
+            if(!files.isEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Create a backgroundable task which creates a new scan
+     */
+    private void createScan() {
+        scanTriggered = true;
+
+        Task.Backgroundable creatingScanTask = new Task.Backgroundable(workspaceProject, msg(Resource.CREATING_SCAN_TITLE)) {
             @SneakyThrows
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
+                String storedBranch = propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY);
+                String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
+
+                LOGGER.info(msg(Resource.STARTING_SCAN_IDE, storedProject, storedBranch));
+
                 com.checkmarx.ast.scan.Scan scan = Scan.scanCreate(Paths.get(Objects.requireNonNull(workspaceProject.getBasePath())).toString(), storedProject, storedBranch);
-                CancelScanAction.setEnabled(true);
-                System.out.println("Scan created with id: " + scan.getId() + " with status: " + scan.getStatus());
-                propertiesComponent.setValue("RunningScanId", scan.getId());
-                Thread.sleep(1000);
-                pollScan(scan.getId(), indicator);
+
+                LOGGER.info(msg(Resource.SCAN_CREATED_IDE, scan.getId(), scan.getStatus()));
+
+                propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, scan.getId());
+                ActivityTracker.getInstance().inc();
+                pollScan(scan.getId());
+            }
+
+            @Override
+            public void onFinished() {
+                super.onFinished();
+                scanTriggered = false;
+            }
+        };
+
+        ProgressManager.getInstance().run(creatingScanTask);
+    }
+
+    /**
+     * Create a backgroundable task which polls a scan to verify its status.
+     *
+     * @param scanId - scan id
+     */
+    private void pollScan(String scanId) {
+        isPollingScan = true;
+
+        pollScanTask = new Task.Backgroundable(workspaceProject, msg(Resource.SCAN_RUNNING_TITLE)) {
+            @SneakyThrows
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                pollScanExecutor = Executors.newScheduledThreadPool(1);
+                pollScanExecutor.scheduleAtFixedRate(pollingScan(scanId), 0, 15, TimeUnit.SECONDS);
+                // Keep backgroundable task alive so that it isn't removed while the scan is still running
+                do {
+                    indicator.setText(msg(Resource.SCAN_RUNNING_TITLE));
+                } while (!pollScanExecutor.isTerminated());
             }
 
             @SneakyThrows
@@ -121,76 +176,90 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
                 super.onCancel();
                 pollScanExecutor.shutdown();
             }
+
+            @Override
+            public void onFinished() {
+                super.onFinished();
+                isPollingScan = false;
+            }
         };
 
-        ProgressManager.getInstance().run(creatingScanTask);
+        ProgressManager.getInstance().run(pollScanTask);
     }
 
-    private void pollScan(String scanId, ProgressIndicator indicator) {
-        indicator.setText("Scan running...");
-        pollScanExecutor = Executors.newScheduledThreadPool(1);
-        pollScanExecutor.scheduleAtFixedRate(pollingScan(scanId), 0, 10, TimeUnit.SECONDS);
-        do {
-            indicator.setText("Scan running...");
-        } while (!pollScanExecutor.isTerminated());
-    }
-
+    /**
+     * Polls a scan to check weather it already finished or not
+     *
+     * @param scanId - scan id to poll
+     * @return - Runnable
+     */
     private Runnable pollingScan(String scanId) {
         return () -> {
             try {
                 com.checkmarx.ast.scan.Scan scan = Scan.scanShow(scanId);
-                boolean isScanRunning = !scan.getStatus().toLowerCase(Locale.ROOT).equals("completed") && !scan.getStatus().toLowerCase(Locale.ROOT).equals("partial");
+                boolean isScanRunning = scan.getStatus().toLowerCase(Locale.ROOT).equals(Constants.SCAN_STATUS_RUNNING);
 
                 if(isScanRunning){
-                    System.out.println("Scan running...");
+                    LOGGER.info(msg(Resource.SCAN_RUNNING, scanId));
                 } else {
-                    System.out.println("Scan finished with status: " + scan.getStatus());
+                    LOGGER.info(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()));
+                    propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, StringUtils.EMPTY);
+                    ActivityTracker.getInstance().inc();
                     pollScanExecutor.shutdown();
-                    CancelScanAction.setEnabled(false);
-                    setEnabled(true);
-                    Utils.notifyScan("Scan finished with status " + scan.getStatus(), "Do you want to reload results?", workspaceProject, () -> reloadResults(scan), NotificationType.INFORMATION, "Reload checkmarx results");
+                    Utils.notifyScan(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()), msg(Resource.SCAN_FINISHED_LOAD_RESULTS), workspaceProject, () -> loadResults(scan), NotificationType.INFORMATION, msg(Resource.LOAD_CX_RESULTS));
                 }
             } catch (IOException | URISyntaxException | InterruptedException | CxConfig.InvalidCLIConfigException | CxException e) {
-                e.printStackTrace();
+                LOGGER.error(msg(Resource.ERROR_POLLING_SCAN, e.getMessage()), e);
             }
         };
     }
 
-    private void reloadResults(com.checkmarx.ast.scan.Scan scan) {
-        System.out.println("Reloading results...");
-        RootGroup rootGroup = cxToolWindowPanel.getRootGroup();
-        ScanSelectionGroup scanSelectionGroup = rootGroup.getScanSelectionGroup();
+    /**
+     * Load checkmarx plugin with results of triggered scan
+     *
+     * @param scan - checkmarx scan
+     */
+    private void loadResults(com.checkmarx.ast.scan.Scan scan) {
+        LOGGER.info(msg(Resource.LOAD_RESULTS, scan.getId()));
+        ScanSelectionGroup scanSelectionGroup = cxToolWindowPanel.getRootGroup().getScanSelectionGroup();
         scanSelectionGroup.refresh(scan.getProjectId(), scan.getBranch(), true);
-    }
-
-    @Nullable
-    protected final Repository getRootRepository(Project project) {
-        List<Repository> repositories = VcsRepositoryManager.getInstance(project)
-                .getRepositories()
-                .stream()
-                .sorted(Comparator.comparing(r -> r.getRoot()
-                        .toNioPath()))
-                .collect(Collectors.toList()); // TODO: check if we can use unmodified list
-        Repository repository = null;
-        if (CollectionUtils.isNotEmpty(repositories)) {
-            repository = repositories.get(0);
-            for (int i = 1; i < repositories.size(); i++) {
-                if (!repositories.get(i).getRoot().toNioPath().startsWith(repository.getRoot().toNioPath())) {
-                    repository = null;
-                    break;
-                }
-            }
-        }
-        return repository;
     }
 
     @Override
     public void update(@NotNull AnActionEvent e) {
         super.update(e);
-        e.getPresentation().setEnabled(isEnabled());
+        cxToolWindowPanel = getCxToolWindowPanel(e);
+        workspaceProject = e.getProject();
+        propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(workspaceProject));
+        boolean isScanRunning = StringUtils.isNotBlank(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
+        String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
+        String storedBranch = propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY);
+
+        boolean projectAndBranchSelected = StringUtils.isNotBlank(storedProject) && StringUtils.isNotBlank(storedBranch);
+
+        // Check if IDE was restarted and there's a scan still running
+        if(isScanRunning && !isPollingScan) {
+            pollScan(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
+        }
+
+        e.getPresentation().setEnabled(!isScanRunning && !isPollingScan && !scanTriggered && projectAndBranchSelected);
     }
 
-    public static void cancelStartScanAction() {
-        creatingScanTask.onCancel();
+    /**
+     * Cancel backgroundable task
+     */
+    public static void cancelRunningScan() {
+        pollScanTask.onCancel();
+    }
+
+    /**
+     * Get bundled message from resource
+     *
+     * @param resource - resource message
+     * @param params - message parameters
+     * @return - message
+     */
+    private static String msg(Resource resource, Object... params) {
+        return Bundle.message(resource, params);
     }
 }

@@ -1,25 +1,27 @@
 package com.checkmarx.intellij.tool.window.actions;
 
 import com.checkmarx.intellij.Bundle;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
+import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Scan;
+import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
 public class CancelScanAction extends AnAction implements CxToolWindowAction {
-    @Getter
-    @Setter
-    private static boolean enabled = false;
+
+    private static final Logger LOGGER = Utils.getLogger(CancelScanAction.class);
 
     public CancelScanAction() {
         super(Bundle.messagePointer(Resource.CANCEL_SCAN_ACTION));
@@ -32,17 +34,16 @@ public class CancelScanAction extends AnAction implements CxToolWindowAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(e.getProject()));
-        ProgressManager.getInstance().run(new Task.Backgroundable(e.getProject(), "Cancelling scan..."){
+        ProgressManager.getInstance().run(new Task.Backgroundable(e.getProject(), Bundle.message(Resource.SCAN_CANCELLING_TITLE)){
             @SneakyThrows
             public void run(@NotNull ProgressIndicator progressIndicator) {
-                StartScanAction.cancelStartScanAction();
-                StartScanAction.setEnabled(false);
-                setEnabled(false);
-                String scanId = propertiesComponent.getValue("RunningScanId");
-                Thread.sleep(20000);
+                StartScanAction.cancelRunningScan();
+                String scanId = propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY);
+                LOGGER.info(Bundle.message(Resource.SCAN_CANCELLING_INFO, scanId));
                 Scan.scanCancel(scanId);
-                System.out.println("Scan with id: " + scanId + " cancelled.");
-                StartScanAction.setEnabled(true);
+                LOGGER.info(Bundle.message(Resource.SCAN_CANCELLED, scanId));
+                propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, StringUtils.EMPTY);
+                ActivityTracker.getInstance().inc();
             }
         });
     }
@@ -50,6 +51,8 @@ public class CancelScanAction extends AnAction implements CxToolWindowAction {
     @Override
     public void update(@NotNull AnActionEvent e) {
         super.update(e);
-        e.getPresentation().setEnabled(isEnabled());
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(e.getProject()));
+        boolean isScanRunning = StringUtils.isNotBlank(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
+        e.getPresentation().setEnabled(isScanRunning);
     }
 }
