@@ -205,11 +205,12 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
                 if(isScanRunning){
                     LOGGER.info(msg(Resource.SCAN_RUNNING, scanId));
                 } else {
-                    if(scan.getStatus().toLowerCase(Locale.ROOT).equals("completed")) {
-                        LOGGER.info(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()));
-                        propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, StringUtils.EMPTY);
-                        ActivityTracker.getInstance().inc();
-                        pollScanExecutor.shutdown();
+                    LOGGER.info(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()));
+                    propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, StringUtils.EMPTY);
+                    ActivityTracker.getInstance().inc();
+                    pollScanExecutor.shutdown();
+
+                    if(scan.getStatus().toLowerCase(Locale.ROOT).equals(Constants.SCAN_STATUS_COMPLETED)) {
                         Utils.notifyScan(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()), msg(Resource.SCAN_FINISHED_LOAD_RESULTS), workspaceProject, () -> loadResults(scan), NotificationType.INFORMATION, msg(Resource.LOAD_CX_RESULTS));
                     }
                 }

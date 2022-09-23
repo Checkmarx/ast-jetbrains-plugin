@@ -78,4 +78,5 @@ public final class Constants {
     public static final String CODE_SAMPLES_USING = " using ";
 
     public static final String SCAN_STATUS_RUNNING = "running";
+    public static final String SCAN_STATUS_COMPLETED = "completed";
 }
