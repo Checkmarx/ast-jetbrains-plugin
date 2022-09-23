@@ -7,6 +7,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Scan;
 import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.diagnostic.Logger;
@@ -34,16 +35,17 @@ public class CancelScanAction extends AnAction implements CxToolWindowAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(e.getProject()));
-        ProgressManager.getInstance().run(new Task.Backgroundable(e.getProject(), Bundle.message(Resource.SCAN_CANCELLING_TITLE)){
+        ProgressManager.getInstance().run(new Task.Backgroundable(e.getProject(), Bundle.message(Resource.SCAN_CANCELING_TITLE)){
             @SneakyThrows
             public void run(@NotNull ProgressIndicator progressIndicator) {
                 StartScanAction.cancelRunningScan();
                 String scanId = propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY);
-                LOGGER.info(Bundle.message(Resource.SCAN_CANCELLING_INFO, scanId));
+                LOGGER.info(Bundle.message(Resource.SCAN_CANCELING_INFO, scanId));
                 Scan.scanCancel(scanId);
-                LOGGER.info(Bundle.message(Resource.SCAN_CANCELLED, scanId));
+                LOGGER.info(Bundle.message(Resource.SCAN_CANCELED, scanId));
                 propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, StringUtils.EMPTY);
                 ActivityTracker.getInstance().inc();
+                Utils.notifyScan(null, Bundle.message(Resource.SCAN_CANCELED_SUCCESSFULLY), e.getProject(), null, NotificationType.INFORMATION, null);
             }
         });
     }

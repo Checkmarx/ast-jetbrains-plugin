@@ -47,13 +47,15 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
     private boolean isPollingScan = false;
     private boolean scanTriggered = false;
+    // state variable used to check if a scan is running when IDE restarts
+    private boolean actionInitialized = false;
 
     private Project workspaceProject;
     private PropertiesComponent propertiesComponent;
     private CxToolWindowPanel cxToolWindowPanel;
     private ScheduledExecutorService pollScanExecutor;
 
-    private static Task.Backgroundable pollScanTask;
+    private static Task.Backgroundable pollScanTask = null;
 
     public StartScanAction() {
         super(Bundle.messagePointer(Resource.START_SCAN_ACTION));
@@ -181,6 +183,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
             public void onFinished() {
                 super.onFinished();
                 isPollingScan = false;
+                pollScanExecutor = null;
             }
         };
 
@@ -202,11 +205,13 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
                 if(isScanRunning){
                     LOGGER.info(msg(Resource.SCAN_RUNNING, scanId));
                 } else {
-                    LOGGER.info(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()));
-                    propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, StringUtils.EMPTY);
-                    ActivityTracker.getInstance().inc();
-                    pollScanExecutor.shutdown();
-                    Utils.notifyScan(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()), msg(Resource.SCAN_FINISHED_LOAD_RESULTS), workspaceProject, () -> loadResults(scan), NotificationType.INFORMATION, msg(Resource.LOAD_CX_RESULTS));
+                    if(scan.getStatus().toLowerCase(Locale.ROOT).equals("completed")) {
+                        LOGGER.info(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()));
+                        propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, StringUtils.EMPTY);
+                        ActivityTracker.getInstance().inc();
+                        pollScanExecutor.shutdown();
+                        Utils.notifyScan(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()), msg(Resource.SCAN_FINISHED_LOAD_RESULTS), workspaceProject, () -> loadResults(scan), NotificationType.INFORMATION, msg(Resource.LOAD_CX_RESULTS));
+                    }
                 }
             } catch (IOException | URISyntaxException | InterruptedException | CxConfig.InvalidCLIConfigException | CxException e) {
                 LOGGER.error(msg(Resource.ERROR_POLLING_SCAN, e.getMessage()), e);
@@ -238,9 +243,11 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
         boolean projectAndBranchSelected = StringUtils.isNotBlank(storedProject) && StringUtils.isNotBlank(storedBranch);
 
         // Check if IDE was restarted and there's a scan still running
-        if(isScanRunning && !isPollingScan) {
+        if(isScanRunning && !isPollingScan && !actionInitialized) {
             pollScan(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
         }
+
+        actionInitialized = true;
 
         e.getPresentation().setEnabled(!isScanRunning && !isPollingScan && !scanTriggered && projectAndBranchSelected);
     }

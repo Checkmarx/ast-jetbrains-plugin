@@ -115,15 +115,19 @@ public final class Utils {
     }
 
     public static void notifyScan(String title, String message, Project project, Runnable func, NotificationType notificationType, String actionText) {
-        new Notification(Constants.NOTIFICATION_GROUP_ID,
+        Notification notification = new Notification(Constants.NOTIFICATION_GROUP_ID,
                 null,
                 title,
                 null,
                 message,
                 notificationType,
-                NotificationListener.URL_OPENING_LISTENER)
-                .addAction(NotificationAction.createSimple(actionText, func))
-                .notify(project);
+                null);
+
+        if (func != null) {
+            notification.addAction(NotificationAction.createSimple(actionText, func));
+        }
+
+        notification.notify(project);
     }
 
     @Nullable
