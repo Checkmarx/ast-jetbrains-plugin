@@ -44,13 +44,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
     @Getter
     private final JPanel mainPanel = new JPanel();
 
-    private final JBTextField serverUrlField = new JBTextField();
-
-    private final JBCheckBox useAuthUrlCheckbox = new JBCheckBox(Bundle.message(Resource.USE_AUTH_URL));
-    private final JBTextField authUrlField = new JBTextField();
-
-    private final JBTextField tenantField = new JBTextField();
-
     private final JBPasswordField apiKeyField = new JBPasswordField();
 
     private final ExpandableTextField additionalParametersField = new ExpandableTextField();
@@ -59,7 +52,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private final JBLabel validateResult = new JBLabel();
 
     public GlobalSettingsComponent() {
-        addUseAuthUrlListener();
         addValidateConnectionListener();
 
         setupFields();
@@ -84,11 +76,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     @Override
     public void reset() {
-        serverUrlField.setText(SETTINGS_STATE.getServerURL());
-        useAuthUrlCheckbox.setSelected(SETTINGS_STATE.isUseAuthURL());
-        authUrlField.setEnabled(SETTINGS_STATE.isUseAuthURL());
-        authUrlField.setText(SETTINGS_STATE.isUseAuthURL() ? SETTINGS_STATE.getAuthURL() : "");
-        tenantField.setText(SETTINGS_STATE.getTenantName());
         additionalParametersField.setText(SETTINGS_STATE.getAdditionalParameters());
 
         SENSITIVE_SETTINGS_STATE.reset();
@@ -104,11 +91,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
      */
     private GlobalSettingsState getStateFromFields() {
         GlobalSettingsState state = new GlobalSettingsState();
-
-        state.setServerURL(serverUrlField.getText().trim());
-        state.setUseAuthURL(useAuthUrlCheckbox.isSelected());
-        state.setAuthURL(useAuthUrlCheckbox.isSelected() ? authUrlField.getText().trim() : "");
-        state.setTenantName(tenantField.getText().trim());
         state.setAdditionalParameters(additionalParametersField.getText().trim());
 
         return state;
@@ -125,13 +107,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
         state.setApiKey(String.valueOf(apiKeyField.getPassword()));
 
         return state;
-    }
-
-    /**
-     * Add listener to enable/disable the auth URL field when the checkbox is selected.
-     */
-    private void addUseAuthUrlListener() {
-        useAuthUrlCheckbox.addActionListener(event -> authUrlField.setEnabled(useAuthUrlCheckbox.isSelected()));
     }
 
     /**
@@ -186,12 +161,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.HELP_JETBRAINS),
                       "span, growx, wrap, gapbottom 10");
 
-        addSectionHeader(Resource.SERVER_SECTION);
-        addField(Resource.SERVER_URL, serverUrlField, false, true);
-        mainPanel.add(useAuthUrlCheckbox);
-        mainPanel.add(authUrlField, "grow, wrap");
-        addField(Resource.TENANT_NAME, tenantField, true, true);
-
         addSectionHeader(Resource.CREDENTIALS_SECTION);
         addField(Resource.API_KEY, apiKeyField, true, true);
 
@@ -206,10 +175,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     private void setupFields() {
-        serverUrlField.setName(Constants.FIELD_NAME_SERVER_URL);
-        authUrlField.setName(Constants.FIELD_NAME_AUTH_URL);
-        useAuthUrlCheckbox.setName(Constants.FIELD_NAME_USE_AUTH_URL);
-        tenantField.setName(Constants.FIELD_NAME_TENANT);
         apiKeyField.setName(Constants.FIELD_NAME_API_KEY);
         additionalParametersField.setName(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS);
     }
@@ -240,6 +205,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     public boolean isValid() {
-        return SETTINGS_STATE.isValid() && SENSITIVE_SETTINGS_STATE.isValid();
+        return SENSITIVE_SETTINGS_STATE.isValid();
     }
 }

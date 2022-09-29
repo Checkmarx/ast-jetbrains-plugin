@@ -47,10 +47,6 @@ public final class Constants {
     public static final String GLOBAL_SETTINGS_STATE_NAME = "Checkmarx AST";
     public static final String GLOBAL_SETTINGS_STATE_FILE = "cx_global_settings.xml";
 
-    public static final String FIELD_NAME_SERVER_URL = "serverUrl";
-    public static final String FIELD_NAME_AUTH_URL = "authUrl";
-    public static final String FIELD_NAME_USE_AUTH_URL = "useAuthUrl";
-    public static final String FIELD_NAME_TENANT = "tenant";
     public static final String FIELD_NAME_API_KEY = "apiKey";
     public static final String FIELD_NAME_ADDITIONAL_PARAMETERS = "additionalParameters";
 

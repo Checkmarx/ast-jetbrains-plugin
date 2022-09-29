@@ -19,18 +19,7 @@ public class CxWrapperFactory {
     public static CxWrapper build(GlobalSettingsState state, GlobalSettingsSensitiveState sensitiveState)
             throws IOException, CxConfig.InvalidCLIConfigException {
         final CxConfig.CxConfigBuilder builder = CxConfig.builder();
-
-        builder.baseUri(state.getServerURL());
-        if (state.isUseAuthURL()) {
-            builder.baseAuthUri(state.getAuthURL());
-        }
-
-        if (StringUtils.isNotBlank(state.getTenantName())) {
-            builder.tenant(state.getTenantName());
-        }
-
         builder.apiKey(sensitiveState.getApiKey());
-
         builder.additionalParameters("--debug " + state.getAdditionalParameters());
 
         return new CxWrapper(builder.build());
