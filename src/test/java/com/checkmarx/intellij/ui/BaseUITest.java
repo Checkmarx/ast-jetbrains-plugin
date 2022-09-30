@@ -59,6 +59,10 @@ public abstract class BaseUITest {
     protected static final String EDITOR = "//div[@class='EditorComponentImpl']";
     @Language("XPath")
     protected static final String JLIST = "//div[@class='JList']";
+    @Language("XPath")
+    protected static final String START_SCAN_BTN = "//div[@myaction.key='START_SCAN_ACTION']";
+    @Language("XPath")
+    protected static final String CANCEL_SCAN_BTN = "//div[@myaction.key='CANCEL_SCAN_ACTION']";
 
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
 
@@ -77,8 +81,8 @@ public abstract class BaseUITest {
                         .setText(Environment.REPO);
                 waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
                 find(CLONE_BUTTON).click();
-                waitAndClick("//div[@text='Trust Project']");
                 try {
+                    waitAndClick("//div[@text='Trust Project']");
                     waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
                 } catch (WaitForConditionTimeoutException e) {
                     // if exception is thrown, sync was successful, so we can keep going
@@ -97,7 +101,7 @@ public abstract class BaseUITest {
             if (remoteRobot.isMac()) {
                 keyboard.hotKey(KeyEvent.VK_SHIFT, KeyEvent.VK_META, KeyEvent.VK_UP);
             } else {
-                keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_UP);
+                keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_ALT, KeyEvent.VK_UP);
             }
         }
     }

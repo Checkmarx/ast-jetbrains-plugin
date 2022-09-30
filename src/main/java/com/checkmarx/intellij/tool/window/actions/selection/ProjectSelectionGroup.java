@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -129,7 +130,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
 
     private boolean matchProject(com.checkmarx.ast.project.Project astProject) {
         return astProject.getName().equals(project.getName()) ||
-               (getRootRepository() != null && getRootRepository().getPresentableUrl().endsWith(astProject.getName()));
+               (Utils.getRootRepository(project) != null && Objects.requireNonNull(Utils.getRootRepository(project)).getPresentableUrl().endsWith(astProject.getName()));
     }
 
     /**

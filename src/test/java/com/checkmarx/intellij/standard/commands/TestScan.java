@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 public class TestScan extends BaseTest {
@@ -38,5 +39,22 @@ public class TestScan extends BaseTest {
         com.checkmarx.ast.scan.Scan scan = Assertions.assertDoesNotThrow(() -> Scan.scanShow(Environment.SCAN_ID));
         Project project = getEnvProject();
         Assertions.assertEquals(scan.getProjectId(), project.getId());
+    }
+
+    @Test
+    public void testScanCreate() {
+        com.checkmarx.ast.scan.Scan scan = Assertions.assertDoesNotThrow(() -> Scan.scanCreate(System.getProperty("user.dir"), Environment.PROJECT_NAME, Environment.BRANCH_NAME));
+        Project project = getEnvProject();
+        Assertions.assertNotEquals("completed", scan.getStatus().toLowerCase(Locale.ROOT));
+        Assertions.assertEquals(scan.getProjectId(), project.getId());
+    }
+
+    @Test
+    public void testScanCancel() {
+        com.checkmarx.ast.scan.Scan scan = Assertions.assertDoesNotThrow(() -> Scan.scanCreate(System.getProperty("user.dir"), Environment.PROJECT_NAME, Environment.BRANCH_NAME));
+        Project project = getEnvProject();
+        Assertions.assertNotEquals("completed", scan.getStatus().toLowerCase(Locale.ROOT));
+        Assertions.assertEquals(scan.getProjectId(), project.getId());
+        Assertions.assertDoesNotThrow(() -> Scan.scanCancel(scan.getId()));
     }
 }
