@@ -167,6 +167,7 @@ public class TestUI extends BaseUITest {
     public void testTriggerScanProjectAndBranchDontMatch() {
         applySettings();
         getResults();
+        waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
         testSelectionAction(this::findProjectSelection, "Project", Environment.NOT_MATCH_PROJECT_NAME);
         testSelectionAction(this::findBranchSelection, "Branch", Environment.BRANCH_NAME);
         waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
