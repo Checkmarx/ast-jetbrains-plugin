@@ -163,6 +163,14 @@ public class TestUI extends BaseUITest {
         applySettings();
         getResults();
         waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
+        System.out.println(" ======== HUGO: INIT");
+        waitFor(() -> {
+            click(SCAN_FIELD);
+            return find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus();
+        });
+        find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.NOT_MATCH_PROJECT_NAME);
+        setInvalidScanId();
+
         testSelectionAction(this::findProjectSelection, "Project", Environment.NOT_MATCH_PROJECT_NAME);
         testSelectionAction(this::findBranchSelection, "Branch", Environment.BRANCH_NAME);
         waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
