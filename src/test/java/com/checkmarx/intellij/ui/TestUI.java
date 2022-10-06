@@ -22,9 +22,7 @@ import java.util.stream.Collectors;
 
 public class TestUI extends BaseUITest {
 
-    /**
-     * Apply valid settings, get results and test the results UI
-     */
+    /*
     @Test
     @Video
     public void testEndToEnd() {
@@ -33,9 +31,6 @@ public class TestUI extends BaseUITest {
         checkResultsPanel();
     }
 
-    /**
-     *
-     */
     @Test
     @Video
     public void testScaPanel() {
@@ -160,7 +155,7 @@ public class TestUI extends BaseUITest {
         waitFor(() -> hasAnyComponent(String.format("//div[@class='JEditorPane'and @visible_text='%s']", Bundle.message(Resource.SCAN_CANCELED_SUCCESSFULLY))));
 
         Assertions.assertTrue(find(ActionButtonFixture.class, START_SCAN_BTN).isEnabled());
-    }
+    }*/
 
     @Test
     @Video
@@ -180,7 +175,7 @@ public class TestUI extends BaseUITest {
         Assertions.assertTrue(hasAnyComponent("//div[@accessiblename.key='BRANCH_DOES_NOT_MATCH_TITLE']"));
     }
 
-    @Test
+    /*@Test
     @Video
     public void testTriggerScanAndLoadResults() {
         applySettings();
@@ -195,7 +190,7 @@ public class TestUI extends BaseUITest {
         JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
         // Assert that new results were loaded for a new scan id
         Assertions.assertFalse(treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID));
-    }
+    }*/
 
     @NotNull
     private ActionButtonFixture findProjectSelection() {
