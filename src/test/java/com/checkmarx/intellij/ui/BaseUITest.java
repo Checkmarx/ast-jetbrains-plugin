@@ -68,6 +68,7 @@ public abstract class BaseUITest {
 
     protected static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
     private static boolean initialized = false;
+    private static int retries = 0;
 
     @BeforeAll
     public static void init() {
@@ -93,9 +94,12 @@ public abstract class BaseUITest {
         } else {
             log("Tests already initialized, skipping");
         }
+        openCxToolWindow();
+        resizeToolBar();
     }
 
     protected static void resizeToolBar() {
+        click("//div[@class='BaseLabel']");
         Keyboard keyboard = new Keyboard(remoteRobot);
         for (int i = 0; i < 3; i++) {
             if (remoteRobot.isMac()) {
@@ -163,7 +167,17 @@ public abstract class BaseUITest {
     }
 
     protected static void waitFor(Supplier<Boolean> condition) {
-        RepeatUtilsKt.waitFor(waitDuration, condition::get);
+        try {
+            RepeatUtilsKt.waitFor(waitDuration, condition::get);
+        }catch(WaitForConditionTimeoutException e) {
+            retries++;
+            if(retries < 3){
+                click("//div[@class='BaseLabel']");
+            } else{
+                retries = 0;
+                throw e;
+            }
+        }
     }
 
     protected static void openCxToolWindow() {

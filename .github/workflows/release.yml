@@ -14,6 +14,8 @@ env:
   CX_TEST_BRANCH: ${{ secrets.CX_TEST_BRANCH }}
   CX_TEST_PROJECT: ${{ secrets.CX_TEST_PROJECT }}
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  CX_NOT_MATCH_TEST_PROJECT: ${{ secrets.CX_NOT_MATCH_TEST_PROJECT }}
+  CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
 
 jobs:
   verify:

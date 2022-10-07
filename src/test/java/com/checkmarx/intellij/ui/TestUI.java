@@ -22,9 +22,6 @@ import java.util.stream.Collectors;
 
 public class TestUI extends BaseUITest {
 
-    /**
-     * Apply valid settings, get results and test the results UI
-     */
     @Test
     @Video
     public void testEndToEnd() {
@@ -33,9 +30,6 @@ public class TestUI extends BaseUITest {
         checkResultsPanel();
     }
 
-    /**
-     *
-     */
     @Test
     @Video
     public void testScaPanel() {
@@ -275,8 +269,6 @@ public class TestUI extends BaseUITest {
     }
 
     private void applySettings() {
-        openCxToolWindow();
-        resizeToolBar();
         openSettings();
         setFields();
         // click the validation button
@@ -288,7 +280,6 @@ public class TestUI extends BaseUITest {
     }
 
     private void openSettings() {
-        openCxToolWindow();
         waitFor(() -> {
             if (hasAnyComponent(SETTINGS_ACTION)) {
                 click(SETTINGS_ACTION);
@@ -576,7 +567,7 @@ public class TestUI extends BaseUITest {
 
     private static void testFileNavigation() {
         waitFor(() -> {
-            findAll("//div[@class='JLabel']").get(0).click();
+            click("//div[@class='BaseLabel']");
             findAll(LINK_LABEL).get(0).doubleClick();
             return hasAnyComponent(EDITOR);
         });
