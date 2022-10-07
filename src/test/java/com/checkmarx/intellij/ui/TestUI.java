@@ -71,7 +71,7 @@ public class TestUI extends BaseUITest {
         testFileNavigation();
     }
 
-    /*@Test
+    @Test
     @Video
     public void testFilters() {
         applySettings();
@@ -132,7 +132,7 @@ public class TestUI extends BaseUITest {
         clearSelection();
     }
 
-    @Test
+    /*@Test
     @Video
     public void testScanButtonsDisabledWhenMissingProjectOrBranch() {
         applySettings();
