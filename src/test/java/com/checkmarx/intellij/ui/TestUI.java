@@ -169,7 +169,7 @@ public class TestUI extends BaseUITest {
         find(START_SCAN_BTN).click();
         Assertions.assertTrue(hasAnyComponent("//div[@accessiblename.key='PROJECT_DOES_NOT_MATCH_TITLE']"));
         testSelectionAction(this::findProjectSelection, "Project", Environment.PROJECT_NAME);
-        testSelectionAction(this::findBranchSelection, "Branch", "idevsixproject");
+        testSelectionAction(this::findBranchSelection, "Branch", "feature");
         waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
         find(START_SCAN_BTN).click();
         Assertions.assertTrue(hasAnyComponent("//div[@accessiblename.key='BRANCH_DOES_NOT_MATCH_TITLE']"));
