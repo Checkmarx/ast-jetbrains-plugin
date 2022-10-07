@@ -32,7 +32,7 @@ public class TestUI extends BaseUITest {
 
     @Test
     @Video
-    public void testScaPanel() {
+    /*public void testScaPanel() {
         applySettings();
         getResults();
         waitForScanIdSelection();
@@ -189,7 +189,7 @@ public class TestUI extends BaseUITest {
         JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
         // Assert that new results were loaded for a new scan id
         Assertions.assertFalse(treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID));
-    }
+    }*/
 
     @NotNull
     private ActionButtonFixture findProjectSelection() {
