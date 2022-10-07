@@ -32,7 +32,7 @@ public class TestUI extends BaseUITest {
 
     @Test
     @Video
-    /*public void testScaPanel() {
+    public void testScaPanel() {
         applySettings();
         getResults();
         waitForScanIdSelection();
@@ -71,7 +71,7 @@ public class TestUI extends BaseUITest {
         testFileNavigation();
     }
 
-    @Test
+    /*@Test
     @Video
     public void testFilters() {
         applySettings();
