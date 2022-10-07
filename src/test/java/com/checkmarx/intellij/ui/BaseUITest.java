@@ -93,9 +93,12 @@ public abstract class BaseUITest {
         } else {
             log("Tests already initialized, skipping");
         }
+
+        resizeToolBar();
     }
 
     protected static void resizeToolBar() {
+        click("//div[@class='BaseLabel']");
         Keyboard keyboard = new Keyboard(remoteRobot);
         for (int i = 0; i < 3; i++) {
             if (remoteRobot.isMac()) {

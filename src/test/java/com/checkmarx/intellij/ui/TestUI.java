@@ -270,7 +270,6 @@ public class TestUI extends BaseUITest {
 
     private void applySettings() {
         openCxToolWindow();
-        resizeToolBar();
         openSettings();
         setFields();
         find(JCheckboxFixture.class,
@@ -575,7 +574,7 @@ public class TestUI extends BaseUITest {
 
     private static void testFileNavigation() {
         waitFor(() -> {
-            findAll("//div[@class='JLabel']").get(0).click();
+            click("//div[@text.key='ATTACK_VECTOR']");
             findAll(LINK_LABEL).get(0).doubleClick();
             return hasAnyComponent(EDITOR);
         });
