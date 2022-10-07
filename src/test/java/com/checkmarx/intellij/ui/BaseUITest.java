@@ -68,6 +68,7 @@ public abstract class BaseUITest {
 
     protected static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
     private static boolean initialized = false;
+    private static int retries = 0;
 
     @BeforeAll
     public static void init() {
@@ -166,7 +167,17 @@ public abstract class BaseUITest {
     }
 
     protected static void waitFor(Supplier<Boolean> condition) {
-        RepeatUtilsKt.waitFor(waitDuration, condition::get);
+        try {
+            RepeatUtilsKt.waitFor(waitDuration, condition::get);
+        }catch(WaitForConditionTimeoutException e) {
+            retries++;
+            if(retries < 3){
+                click("//div[@class='BaseLabel']");
+            } else{
+                retries = 0;
+                throw e;
+            }
+        }
     }
 
     protected static void openCxToolWindow() {
