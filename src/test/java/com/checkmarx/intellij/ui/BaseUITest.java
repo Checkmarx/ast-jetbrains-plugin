@@ -93,7 +93,7 @@ public abstract class BaseUITest {
         } else {
             log("Tests already initialized, skipping");
         }
-
+        openCxToolWindow();
         resizeToolBar();
     }
 

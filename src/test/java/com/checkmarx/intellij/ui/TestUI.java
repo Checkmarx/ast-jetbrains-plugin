@@ -269,7 +269,6 @@ public class TestUI extends BaseUITest {
     }
 
     private void applySettings() {
-        openCxToolWindow();
         openSettings();
         setFields();
         find(JCheckboxFixture.class,
@@ -284,7 +283,6 @@ public class TestUI extends BaseUITest {
     }
 
     private void openSettings() {
-        openCxToolWindow();
         waitFor(() -> {
             if (hasAnyComponent(SETTINGS_ACTION)) {
                 click(SETTINGS_ACTION);
