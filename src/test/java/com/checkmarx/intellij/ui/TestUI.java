@@ -572,7 +572,7 @@ public class TestUI extends BaseUITest {
 
     private static void testFileNavigation() {
         waitFor(() -> {
-            click("//div[@text.key='ATTACK_VECTOR']");
+            click("//div[@class='BaseLabel']");
             findAll(LINK_LABEL).get(0).doubleClick();
             return hasAnyComponent(EDITOR);
         });
