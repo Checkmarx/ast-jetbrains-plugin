@@ -4,8 +4,6 @@ import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.tool.window.actions.CxToolWindowAction;
-import com.intellij.dvcs.repo.Repository;
-import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -16,13 +14,7 @@ import com.intellij.util.ui.EmptyIcon;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Base class for the selection groups, performing basic and common configurations
@@ -91,25 +83,4 @@ public abstract class BaseSelectionGroup extends DefaultActionGroup implements D
      * @param scan overriding scan
      */
     abstract void override(Scan scan);
-
-    @Nullable
-    protected final Repository getRootRepository() {
-        List<Repository> repositories = VcsRepositoryManager.getInstance(project)
-                                                            .getRepositories()
-                                                            .stream()
-                                                            .sorted(Comparator.comparing(r -> r.getRoot()
-                                                                                               .toNioPath()))
-                                                            .collect(Collectors.toUnmodifiableList());
-        Repository repository = null;
-        if (CollectionUtils.isNotEmpty(repositories)) {
-            repository = repositories.get(0);
-            for (int i = 1; i < repositories.size(); i++) {
-                if (!repositories.get(i).getRoot().toNioPath().startsWith(repository.getRoot().toNioPath())) {
-                    repository = null;
-                    break;
-                }
-            }
-        }
-        return repository;
-    }
 }

@@ -45,6 +45,13 @@
 
     <actions>
         <group id="Checkmarx.Toolbar">
+            <action id="Checkmarx.StartScan"
+                    class="com.checkmarx.intellij.tool.window.actions.StartScanAction"
+                    icon="AllIcons.Actions.Execute"/>
+            <action id="Checkmarx.CancelScan"
+                    class="com.checkmarx.intellij.tool.window.actions.CancelScanAction"
+                    icon="AllIcons.Actions.Suspend"/>
+            <separator/>
             <action id="Checkmarx.OpenSettings"
                     class="com.checkmarx.intellij.tool.window.actions.OpenSettingsAction"
                     icon="AllIcons.General.Settings"/>

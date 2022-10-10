@@ -7,7 +7,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -66,5 +68,33 @@ public class Scan {
             CxConfig.InvalidCLIConfigException,
             CxException {
         return CxWrapperFactory.build().scanShow(UUID.fromString(scanId));
+    }
+
+    @NotNull
+    public static com.checkmarx.ast.scan.Scan scanCreate(String sourcePath, String projectName, String branchName) throws
+            CxConfig.InvalidCLIConfigException,
+            IOException,
+            URISyntaxException,
+            CxException,
+            InterruptedException {
+
+        Map<String, String> scanArguments = new HashMap<>();
+        scanArguments.put("-s", sourcePath);
+        scanArguments.put("--project-name", projectName);
+        scanArguments.put("--branch", branchName);
+
+        String additionalParameters = "--async --sast-incremental --resubmit";
+
+        return CxWrapperFactory.build().scanCreate(scanArguments, additionalParameters);
+    }
+
+    public static void scanCancel(String scanId) throws
+            CxConfig.InvalidCLIConfigException,
+            IOException,
+            URISyntaxException,
+            CxException,
+            InterruptedException {
+
+        CxWrapperFactory.build().scanCancel(scanId);
     }
 }

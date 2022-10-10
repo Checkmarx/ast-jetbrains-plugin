@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 public class RootGroup extends DefaultActionGroup implements DumbAware, CxToolWindowAction {
 
     private final Project project;
+    @Getter
     private final ScanSelectionGroup scanSelectionGroup;
     private final BranchSelectionGroup branchSelectionGroup;
     private final ProjectSelectionGroup projectSelectionGroup;

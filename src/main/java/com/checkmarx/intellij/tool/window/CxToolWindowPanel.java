@@ -32,6 +32,7 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.messages.Topic;
 import com.intellij.util.ui.JBUI;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
@@ -76,10 +77,12 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
     // Internal state
     private final List<GroupBy> groupByList = new ArrayList<>(GroupBy.DEFAULT_GROUP_BY);
+    @Getter
     private ResultGetState currentState = new ResultGetState();
     private Tree currentTree = null;
     private boolean getResultsInProgress = false;
 
+    @Getter
     private RootGroup rootGroup;
 
     private final Project project;

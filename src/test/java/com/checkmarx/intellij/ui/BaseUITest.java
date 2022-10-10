@@ -59,11 +59,16 @@ public abstract class BaseUITest {
     protected static final String EDITOR = "//div[@class='EditorComponentImpl']";
     @Language("XPath")
     protected static final String JLIST = "//div[@class='JList']";
+    @Language("XPath")
+    protected static final String START_SCAN_BTN = "//div[@myaction.key='START_SCAN_ACTION']";
+    @Language("XPath")
+    protected static final String CANCEL_SCAN_BTN = "//div[@myaction.key='CANCEL_SCAN_ACTION']";
 
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
 
     protected static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
     private static boolean initialized = false;
+    private static int retries = 0;
 
     @BeforeAll
     public static void init() {
@@ -77,8 +82,8 @@ public abstract class BaseUITest {
                         .setText(Environment.REPO);
                 waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
                 find(CLONE_BUTTON).click();
-                waitAndClick("//div[@text='Trust Project']");
                 try {
+                    waitAndClick("//div[@text='Trust Project']");
                     waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
                 } catch (WaitForConditionTimeoutException e) {
                     // if exception is thrown, sync was successful, so we can keep going
@@ -89,15 +94,18 @@ public abstract class BaseUITest {
         } else {
             log("Tests already initialized, skipping");
         }
+        openCxToolWindow();
+        resizeToolBar();
     }
 
     protected static void resizeToolBar() {
+        click("//div[@class='BaseLabel']");
         Keyboard keyboard = new Keyboard(remoteRobot);
         for (int i = 0; i < 3; i++) {
             if (remoteRobot.isMac()) {
                 keyboard.hotKey(KeyEvent.VK_SHIFT, KeyEvent.VK_META, KeyEvent.VK_UP);
             } else {
-                keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_UP);
+                keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_ALT, KeyEvent.VK_UP);
             }
         }
     }
@@ -159,7 +167,17 @@ public abstract class BaseUITest {
     }
 
     protected static void waitFor(Supplier<Boolean> condition) {
-        RepeatUtilsKt.waitFor(waitDuration, condition::get);
+        try {
+            RepeatUtilsKt.waitFor(waitDuration, condition::get);
+        }catch(WaitForConditionTimeoutException e) {
+            retries++;
+            if(retries < 3){
+                click("//div[@class='BaseLabel']");
+            } else{
+                retries = 0;
+                throw e;
+            }
+        }
     }
 
     protected static void openCxToolWindow() {

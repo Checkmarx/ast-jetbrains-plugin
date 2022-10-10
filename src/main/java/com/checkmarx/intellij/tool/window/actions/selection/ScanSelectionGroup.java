@@ -65,7 +65,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
      * @param projectId selected project
      * @param branch    selected branch
      */
-    void refresh(String projectId, String branch, Boolean selectLatestScan) {
+    public void refresh(String projectId, String branch, Boolean selectLatestScan) {
         setEnabled(false);
         removeAll();
         CompletableFuture.supplyAsync((Supplier<List<com.checkmarx.ast.scan.Scan>>) () -> {

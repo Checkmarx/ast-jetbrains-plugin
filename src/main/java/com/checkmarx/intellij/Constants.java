@@ -57,6 +57,7 @@ public final class Constants {
     public static final String SELECTED_PROJECT_PROPERTY = "Checkmarx.SelectedProject";
     public static final String SELECTED_BRANCH_PROPERTY = "Checkmarx.SelectedBranch";
     public static final String SELECTED_SCAN_PROPERTY = "Checkmarx.SelectedScan";
+    public static final String RUNNING_SCAN_ID_PROPERTY = "Checkmarx.RunningScanId";
 
     public static final String SCAN_TYPE_SCA = "sca";
     public static final String SCAN_TYPE_KICS = "kics";
@@ -75,4 +76,7 @@ public final class Constants {
     public static final int LESSON_NOT_FOUND_EXIT_CODE = 4;
 
     public static final String CODE_SAMPLES_USING = " using ";
+
+    public static final String SCAN_STATUS_RUNNING = "running";
+    public static final String SCAN_STATUS_COMPLETED = "completed";
 }
