@@ -30,7 +30,7 @@ public class TestUI extends BaseUITest {
         checkResultsPanel();
     }
 
-    /*@Test
+    @Test
     @Video
     public void testScaPanel() {
         applySettings();
@@ -89,7 +89,7 @@ public class TestUI extends BaseUITest {
         navigate("Scan", 2);
     }
 
-    @Test
+    /*@Test
     @Video
     public void testInvalidAuth() {
         openSettings();
