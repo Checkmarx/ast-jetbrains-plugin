@@ -89,7 +89,7 @@ public class TestUI extends BaseUITest {
         navigate("Scan", 2);
     }
 
-    /*@Test
+    @Test
     @Video
     public void testInvalidAuth() {
         openSettings();
@@ -132,7 +132,7 @@ public class TestUI extends BaseUITest {
         clearSelection();
     }
 
-    @Test
+    /*@Test
     @Video
     public void testScanButtonsDisabledWhenMissingProjectOrBranch() {
         applySettings();
