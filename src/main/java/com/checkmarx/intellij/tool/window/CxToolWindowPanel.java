@@ -30,7 +30,6 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
-import com.intellij.util.messages.Topic;
 import com.intellij.util.ui.JBUI;
 import lombok.Getter;
 import lombok.SneakyThrows;

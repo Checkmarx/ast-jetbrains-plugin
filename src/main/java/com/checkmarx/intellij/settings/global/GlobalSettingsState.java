@@ -39,17 +39,6 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     }
 
     @NotNull
-    private String serverURL = "";
-
-    private boolean useAuthURL;
-
-    @NotNull
-    private String authURL = "";
-
-    @NotNull
-    private String tenantName = "";
-
-    @NotNull
     private String additionalParameters = "";
 
     @NotNull
@@ -66,29 +55,7 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     }
 
     public void apply(@NotNull GlobalSettingsState state) {
-        String msg = validate(state);
-        if (msg != null) {
-            LOGGER.warn(msg);
-        }
         loadState(state);
-    }
-
-    public boolean isValid() {
-        return validate(this) == null;
-    }
-
-    private static String validate(@NotNull GlobalSettingsState state) {
-
-        if (StringUtils.isBlank(state.getServerURL())) {
-            return Bundle.missingFieldMessage(Resource.SERVER_URL);
-        }
-        if (state.isUseAuthURL() && StringUtils.isBlank(state.getAuthURL())) {
-            return Bundle.missingFieldMessage(Resource.AUTH_URL);
-        }
-        if (StringUtils.isBlank(state.getTenantName())) {
-            return Bundle.missingFieldMessage(Resource.TENANT_NAME);
-        }
-        return null;
     }
 
     public static Set<Filterable> getDefaultFilters() {

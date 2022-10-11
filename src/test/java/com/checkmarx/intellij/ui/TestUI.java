@@ -271,9 +271,6 @@ public class TestUI extends BaseUITest {
     private void applySettings() {
         openSettings();
         setFields();
-        find(JCheckboxFixture.class,
-                String.format(FIELD_NAME, Constants.FIELD_NAME_USE_AUTH_URL),
-                waitDuration).setValue(false);
         // click the validation button
         // wait for the validation success label
         click(VALIDATE_BUTTON);
@@ -289,7 +286,7 @@ public class TestUI extends BaseUITest {
             } else if (hasAnyComponent(SETTINGS_BUTTON)) {
                 click(SETTINGS_BUTTON);
             }
-            return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_SERVER_URL));
+            return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
         });
     }
 
@@ -540,8 +537,6 @@ public class TestUI extends BaseUITest {
     }
 
     private void setFields() {
-        setField(Constants.FIELD_NAME_SERVER_URL, Environment.BASE_URL);
-        setField(Constants.FIELD_NAME_TENANT, Environment.TENANT);
         setField(Constants.FIELD_NAME_API_KEY, Environment.API_KEY);
         setField(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS, "--debug");
     }

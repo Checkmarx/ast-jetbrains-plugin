@@ -5,11 +5,6 @@ package com.checkmarx.intellij;
  */
 public enum Resource {
     SETTINGS_TITLE,
-    SERVER_SECTION,
-    SERVER_URL,
-    USE_AUTH_URL,
-    AUTH_URL,
-    TENANT_NAME,
     CREDENTIALS_SECTION,
     API_KEY,
     SCAN_SECTION,
