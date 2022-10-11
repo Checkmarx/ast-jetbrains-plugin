@@ -8,6 +8,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Scan;
+import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
 import com.checkmarx.intellij.tool.window.actions.selection.ScanSelectionGroup;
 import com.intellij.dvcs.repo.Repository;
@@ -60,11 +61,10 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
     private static Task.Backgroundable pollScanTask = null;
 
-    public StartScanAction() {
+    public StartScanAction() throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
         super(Bundle.messagePointer(Resource.START_SCAN_ACTION));
 
-        //TODO: call java wrapper/CLI to check if the user has permissions to scan
-        userHasPermissionsToScan = true;
+        userHasPermissionsToScan = TenantSetting.isScanAllowed();
     }
 
     /**
