@@ -83,7 +83,7 @@ public class Scan {
         scanArguments.put("--project-name", projectName);
         scanArguments.put("--branch", branchName);
 
-        String additionalParameters = "--async --sast-incremental";
+        String additionalParameters = "--async --sast-incremental --resubmit";
 
         return CxWrapperFactory.build().scanCreate(scanArguments, additionalParameters);
     }
