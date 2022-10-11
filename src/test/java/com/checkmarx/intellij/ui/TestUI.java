@@ -132,7 +132,7 @@ public class TestUI extends BaseUITest {
         clearSelection();
     }
 
-    /*@Test
+    @Test
     @Video
     public void testScanButtonsDisabledWhenMissingProjectOrBranch() {
         applySettings();
@@ -189,7 +189,7 @@ public class TestUI extends BaseUITest {
         JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
         // Assert that new results were loaded for a new scan id
         Assertions.assertFalse(treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID));
-    }*/
+    }
 
     @NotNull
     private ActionButtonFixture findProjectSelection() {
