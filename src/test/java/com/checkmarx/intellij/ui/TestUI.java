@@ -147,7 +147,9 @@ public class TestUI extends BaseUITest {
         applySettings();
         getResults();
         waitForScanIdSelection();
-        find(START_SCAN_BTN).click();
+        ActionButtonFixture runScanBtn = find(ActionButtonFixture.class, START_SCAN_BTN);
+        waitFor(runScanBtn::isEnabled);
+        runScanBtn.click();
         waitFor(() -> find(ActionButtonFixture.class, CANCEL_SCAN_BTN).isEnabled());
         find(CANCEL_SCAN_BTN).click();
 
@@ -165,12 +167,15 @@ public class TestUI extends BaseUITest {
         testSelectionAction(this::findProjectSelection, "Project", Environment.NOT_MATCH_PROJECT_NAME);
         testSelectionAction(this::findBranchSelection, "Branch", Environment.BRANCH_NAME);
         waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
-        find(START_SCAN_BTN).click();
+        ActionButtonFixture runScanBtn = find(ActionButtonFixture.class, START_SCAN_BTN);
+        waitFor(runScanBtn::isEnabled);
+        runScanBtn.click();
         Assertions.assertTrue(hasAnyComponent("//div[@accessiblename.key='PROJECT_DOES_NOT_MATCH_TITLE']"));
         testSelectionAction(this::findProjectSelection, "Project", Environment.PROJECT_NAME);
         testSelectionAction(this::findBranchSelection, "Branch", Environment.NOT_MATCH_BRANCH_NAME);
         waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
-        find(START_SCAN_BTN).click();
+        waitFor(runScanBtn::isEnabled);
+        runScanBtn.click();
         Assertions.assertTrue(hasAnyComponent("//div[@accessiblename.key='BRANCH_DOES_NOT_MATCH_TITLE']"));
     }
 
@@ -180,7 +185,9 @@ public class TestUI extends BaseUITest {
         applySettings();
         getResults();
         waitForScanIdSelection();
-        find(START_SCAN_BTN).click();
+        ActionButtonFixture runScanBtn = find(ActionButtonFixture.class, START_SCAN_BTN);
+        waitFor(runScanBtn::isEnabled);
+        runScanBtn.click();
         JTreeFixture treeBeforeScan = find(JTreeFixture.class, TREE);
         Assertions.assertTrue(treeBeforeScan.getValueAtRow(0).contains(Environment.SCAN_ID));
         waitFor(() -> hasAnyComponent("//div[@accessiblename.key='SCAN_FINISHED']"));
