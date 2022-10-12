@@ -53,6 +53,12 @@ public class CancelScanAction extends AnAction implements CxToolWindowAction {
     @Override
     public void update(@NotNull AnActionEvent e) {
         super.update(e);
+
+        if(!StartScanAction.isUserHasPermissionsToScan()){
+            e.getPresentation().setVisible(false);
+            return;
+        }
+
         PropertiesComponent propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(e.getProject()));
         boolean isScanRunning = StringUtils.isNotBlank(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
         e.getPresentation().setEnabled(isScanRunning);
