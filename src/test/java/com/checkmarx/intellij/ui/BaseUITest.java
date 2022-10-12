@@ -60,7 +60,7 @@ public abstract class BaseUITest {
     @Language("XPath")
     protected static final String JLIST = "//div[@class='JList']";
     @Language("XPath")
-    protected static final String START_SCAN_BTN = "//div[@myaction.key='START_SCAN_ACTION']";
+    protected static final String START_SCAN_BTN = "//div[contains(@myaction.key, 'START_SCAN_ACTION')]";
     @Language("XPath")
     protected static final String CANCEL_SCAN_BTN = "//div[@myaction.key='CANCEL_SCAN_ACTION']";
 
