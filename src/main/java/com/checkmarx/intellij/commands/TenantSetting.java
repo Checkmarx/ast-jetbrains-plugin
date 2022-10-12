@@ -16,7 +16,7 @@ public class TenantSetting {
     /**
      * Check if current tenant has permissions to scan from the IDE
      *
-     * @return scan id
+     * @return true if tenant has permissions to scan. false otherwise
      */
     @NotNull
     public static Boolean isScanAllowed() throws
