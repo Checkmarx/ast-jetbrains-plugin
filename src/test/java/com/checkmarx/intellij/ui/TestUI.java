@@ -135,6 +135,8 @@ public class TestUI extends BaseUITest {
     @Test
     @Video
     public void testScanButtonsDisabledWhenMissingProjectOrBranch() {
+        if(triggerScanNotAllowed()) return;
+
         applySettings();
         clearSelection();
         Assertions.assertFalse(find(ActionButtonFixture.class, START_SCAN_BTN).isEnabled());
@@ -144,6 +146,8 @@ public class TestUI extends BaseUITest {
     @Test
     @Video
     public void testCancelScan() {
+        if(triggerScanNotAllowed()) return;
+
         applySettings();
         getResults();
         waitForScanIdSelection();
@@ -159,6 +163,8 @@ public class TestUI extends BaseUITest {
     @Test
     @Video
     public void testTriggerScanProjectAndBranchDontMatch() {
+        if(triggerScanNotAllowed()) return;
+
         applySettings();
         getResults();
         waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
@@ -177,6 +183,8 @@ public class TestUI extends BaseUITest {
     @Test
     @Video
     public void testTriggerScanAndLoadResults() {
+        if(triggerScanNotAllowed()) return;
+
         applySettings();
         getResults();
         waitForScanIdSelection();
@@ -189,6 +197,10 @@ public class TestUI extends BaseUITest {
         JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
         // Assert that new results were loaded for a new scan id
         Assertions.assertFalse(treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID));
+    }
+
+    private boolean triggerScanNotAllowed(){
+        return !hasAnyComponent(START_SCAN_BTN);
     }
 
     @NotNull
