@@ -12,7 +12,6 @@ def jUnitVersion = '5.7.2'
 
 repositories {
     mavenCentral()
-    mavenLocal()
     maven {
         url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
     }
