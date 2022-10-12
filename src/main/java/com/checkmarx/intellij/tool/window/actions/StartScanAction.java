@@ -8,6 +8,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Scan;
+import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
 import com.checkmarx.intellij.tool.window.actions.selection.ScanSelectionGroup;
 import com.intellij.dvcs.repo.Repository;
@@ -24,6 +25,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -47,6 +49,8 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
     private boolean isPollingScan = false;
     private boolean scanTriggered = false;
+    @Getter
+    private static boolean userHasPermissionsToScan;
     // state variable used to check if a scan is running when IDE restarts
     private boolean actionInitialized = false;
 
@@ -57,8 +61,10 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
     private static Task.Backgroundable pollScanTask = null;
 
-    public StartScanAction() {
+    public StartScanAction() throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
         super(Bundle.messagePointer(Resource.START_SCAN_ACTION));
+
+        userHasPermissionsToScan = TenantSetting.isScanAllowed();
     }
 
     /**
@@ -234,6 +240,12 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     @Override
     public void update(@NotNull AnActionEvent e) {
         super.update(e);
+
+        if(!userHasPermissionsToScan){
+            e.getPresentation().setVisible(userHasPermissionsToScan);
+            return;
+        }
+
         cxToolWindowPanel = getCxToolWindowPanel(e);
         workspaceProject = e.getProject();
         propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(workspaceProject));
