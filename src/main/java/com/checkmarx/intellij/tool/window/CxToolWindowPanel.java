@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.*;
+import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.commands.results.ResultGetState;
 import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.components.TreeUtils;
@@ -9,6 +10,7 @@ import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.tool.window.actions.StartScanAction;
 import com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction;
 import com.checkmarx.intellij.tool.window.actions.selection.ResetSelectionAction;
 import com.checkmarx.intellij.tool.window.actions.selection.RootGroup;
@@ -47,6 +49,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 import static com.intellij.util.ui.JBUI.Panels.simplePanel;
@@ -130,6 +133,19 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 .filter(a -> a instanceof ResetSelectionAction)
                                                                                       .findFirst()
                                                                                       .orElse(null);
+
+        // update scan buttons visibility based on tenant settings
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return TenantSetting.isScanAllowed();
+            } catch (Exception e) {
+                return null;
+            }
+        }).thenAccept(ideScansAllowed -> ApplicationManager.getApplication().invokeLater(() -> {
+            if (ideScansAllowed != null) {
+                StartScanAction.setUserHasPermissionsToScan(ideScansAllowed);
+            }
+        }));
 
         // root group for project - branch - scan selection
         rootGroup = new RootGroup(project, resetSelectionAction);
