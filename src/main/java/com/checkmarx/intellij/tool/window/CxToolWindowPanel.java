@@ -139,13 +139,10 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
             try {
                 return TenantSetting.isScanAllowed();
             } catch (Exception e) {
-                return null;
+                LOGGER.error(e);
+                return false;
             }
-        }).thenAccept(ideScansAllowed -> ApplicationManager.getApplication().invokeLater(() -> {
-            if (ideScansAllowed != null) {
-                StartScanAction.setUserHasPermissionsToScan(ideScansAllowed);
-            }
-        }));
+        }).thenAccept(ideScansAllowed -> ApplicationManager.getApplication().invokeLater(() -> StartScanAction.setUserHasPermissionsToScan(ideScansAllowed)));
 
         // root group for project - branch - scan selection
         rootGroup = new RootGroup(project, resetSelectionAction);
