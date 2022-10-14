@@ -19,7 +19,7 @@ public class TenantSetting {
      * @return true if tenant has permissions to scan. false otherwise
      */
     @NotNull
-    public static Boolean isScanAllowed() throws
+    public static boolean isScanAllowed() throws
             CxConfig.InvalidCLIConfigException,
             IOException,
             URISyntaxException,
