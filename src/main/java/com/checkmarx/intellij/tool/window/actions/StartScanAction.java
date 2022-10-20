@@ -26,6 +26,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -50,6 +51,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     private boolean isPollingScan = false;
     private boolean scanTriggered = false;
     @Getter
+    @Setter
     private static boolean userHasPermissionsToScan;
     // state variable used to check if a scan is running when IDE restarts
     private boolean actionInitialized = false;
