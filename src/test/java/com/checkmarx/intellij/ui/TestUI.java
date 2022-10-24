@@ -182,7 +182,7 @@ public class TestUI extends BaseUITest {
 
     @Test
     @Video
-    public void testTriggerScanAndLoadResults() {
+    public void testTriggerScanAndLoadResults() throws InterruptedException {
         if(triggerScanNotAllowed()) return;
 
         applySettings();
@@ -193,6 +193,7 @@ public class TestUI extends BaseUITest {
         Assertions.assertTrue(treeBeforeScan.getValueAtRow(0).contains(Environment.SCAN_ID));
         waitFor(() -> hasAnyComponent("//div[@accessiblename.key='SCAN_FINISHED']"));
         find("//div[@class='LinkLabel']").click();
+        wait(waitDuration.toMillis());
         waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
         JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
         // Assert that new results were loaded for a new scan id
