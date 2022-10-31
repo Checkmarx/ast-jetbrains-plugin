@@ -53,7 +53,7 @@ public class ResultsTreeFactory {
             if (enabledFilters.contains(Severity.valueOf(result.getSeverity())) && enabledFilters.contains(ResultState.valueOf(result.getState()))) {
                 addResultToEngine(project,
                                   groupByList,
-                                  engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
+                                  engineNodes.computeIfAbsent(result.getLabel(), NonLeafNode::new),
                                   result, scanId);
             }
         }
