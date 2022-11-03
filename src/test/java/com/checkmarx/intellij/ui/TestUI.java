@@ -41,10 +41,10 @@ public class TestUI extends BaseUITest {
         navigate("sca", 3);
 
         List<RemoteText> prefixNodes = find(JTreeFixture.class, TREE).getData()
-                                                                     .getAll()
-                                                                     .stream()
-                                                                     .filter(t -> t.getText().startsWith("HIGH"))
-                                                                     .collect(Collectors.toList());
+                .getAll()
+                .stream()
+                .filter(t -> t.getText().startsWith("HIGH"))
+                .collect(Collectors.toList());
         if (prefixNodes.size() != 0) {
             navigate("HIGH", 4);
         }
@@ -135,7 +135,7 @@ public class TestUI extends BaseUITest {
     @Test
     @Video
     public void testScanButtonsDisabledWhenMissingProjectOrBranch() {
-        if(triggerScanNotAllowed()) return;
+        if (triggerScanNotAllowed()) return;
 
         applySettings();
         clearSelection();
@@ -146,7 +146,7 @@ public class TestUI extends BaseUITest {
     @Test
     @Video
     public void testCancelScan() {
-        if(triggerScanNotAllowed()) return;
+        if (triggerScanNotAllowed()) return;
 
         applySettings();
         getResults();
@@ -163,7 +163,7 @@ public class TestUI extends BaseUITest {
     @Test
     @Video
     public void testTriggerScanProjectAndBranchDontMatch() {
-        if(triggerScanNotAllowed()) return;
+        if (triggerScanNotAllowed()) return;
 
         applySettings();
         getResults();
@@ -183,7 +183,7 @@ public class TestUI extends BaseUITest {
     @Test
     @Video
     public void testTriggerScanAndLoadResults() throws InterruptedException {
-        if(triggerScanNotAllowed()) return;
+        if (triggerScanNotAllowed()) return;
 
         applySettings();
         getResults();
@@ -206,7 +206,7 @@ public class TestUI extends BaseUITest {
         runScanBtn.click();
     }
 
-    private boolean triggerScanNotAllowed(){
+    private boolean triggerScanNotAllowed() {
         return !hasAnyComponent(START_SCAN_BTN);
     }
 
@@ -430,8 +430,8 @@ public class TestUI extends BaseUITest {
         });
 
         waitFor(() -> {
-            find("//div[@text.key='CODE_SAMPLES']").click();
-            return find("//div[@text.key='CODE_SAMPLES']").isShowing();
+            find("//div[@text.key='REMEDIATION_EXAMPLES']").click();
+            return find("//div[@text.key='REMEDIATION_EXAMPLES']").isShowing();
         });
     }
 
@@ -543,10 +543,10 @@ public class TestUI extends BaseUITest {
     private void navigate(String prefix, int minExpectedSize) {
         waitFor(() -> {
             List<RemoteText> prefixNodes = find(JTreeFixture.class, TREE).getData()
-                                                                                    .getAll()
-                                                                                    .stream()
-                                                                                    .filter(t -> t.getText().startsWith(prefix))
-                                                                                    .collect(Collectors.toList());
+                    .getAll()
+                    .stream()
+                    .filter(t -> t.getText().startsWith(prefix))
+                    .collect(Collectors.toList());
             if (prefixNodes.size() == 0) {
                 return false;
             }

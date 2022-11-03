@@ -22,7 +22,6 @@ import com.intellij.icons.AllIcons;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.EditorGutter;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.options.FontSize;
 import com.intellij.openapi.project.Project;
@@ -37,8 +36,6 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.components.labels.BoldLabel;
-import com.intellij.ui.tabs.impl.JBEditorTabPainter;
-import com.intellij.util.ui.EmptyIcon;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -640,7 +637,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             runnableUpdater.run();
         }));
         tabbedPane.add(Bundle.message(Resource.LEARN_MORE), learnMorePanel);
-        tabbedPane.add(Bundle.message(Resource.CODE_SAMPLES), codeSamplesPanel);
+        tabbedPane.add(Bundle.message(Resource.REMEDIATION_EXAMPLES), codeSamplesPanel);
         panel.add(tabbedPane, "growx");
         return panel;
     }
@@ -1014,7 +1011,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         if(samples.size()>0){
             for (Sample sample : samples) {
                 String title = sample.getTitle();
-                panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, title + Constants.CODE_SAMPLES_USING + sample.getProgLanguage())),
+                panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, title + Constants.REMEDIATION_EXAMPLES_USING + sample.getProgLanguage())),
                     "wrap, gapbottom 3, gapleft 0");
                 JEditorPane editor = new JEditorPane();
                 editor.setEditable(false);
@@ -1025,7 +1022,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             }
         }
         else{
-            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, Resource.NO_CODE_SAMPLES)),
+            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, Resource.NO_REMEDIATION_EXAMPLES)),
                     "wrap, gapbottom 3, gapleft 0");
         }
     }
