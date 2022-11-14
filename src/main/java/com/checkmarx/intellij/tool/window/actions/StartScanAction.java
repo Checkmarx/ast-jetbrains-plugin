@@ -77,11 +77,11 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Repository repository = Utils.getRootRepository(workspaceProject);
+        boolean matchProject = astProjectMatchesWorkspaceProject();
+        // Case it is a git repo check for project and branch match
         if (repository != null) {
             String storedBranch = Optional.ofNullable(propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY)).orElse(StringUtils.EMPTY);
             boolean matchBranch = storedBranch.equals(Objects.requireNonNull(repository).getCurrentBranchName());
-            boolean matchProject = astProjectMatchesWorkspaceProject();
-
             if(matchBranch && matchProject) {
                 createScan();
             } else {
@@ -92,8 +92,13 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
                 }
             }
         }
+        // Case it is not a git repo, only check for project match
         else{
-            Utils.notifyScan(msg(Resource.PROJECT_NOT_GIT_REPO), msg(Resource.PROJECT_NOT_GIT_REPO_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
+            if (matchProject) {
+                createScan();
+            } else{
+                Utils.notifyScan(msg(Resource.PROJECT_DOES_NOT_MATCH_TITLE), msg(Resource.PROJECT_DOES_NOT_MATCH_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
+            }
         }
     }
 
