@@ -193,7 +193,7 @@ public class TestUI extends BaseUITest {
         Assertions.assertTrue(treeBeforeScan.getValueAtRow(0).contains(Environment.SCAN_ID));
         waitFor(() -> hasAnyComponent("//div[@accessiblename.key='SCAN_FINISHED']"));
         find("//div[@class='LinkLabel']").click();
-        waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
+        waitFor(() -> findRunScanButton().isEnabled() && findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
         JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
         // Assert that new results were loaded for a new scan id
         Assertions.assertFalse(treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID));
@@ -203,6 +203,10 @@ public class TestUI extends BaseUITest {
         ActionButtonFixture runScanBtn = find(ActionButtonFixture.class, START_SCAN_BTN);
         waitFor(runScanBtn::isEnabled);
         runScanBtn.click();
+    }
+
+    private ActionButtonFixture findRunScanButton() {
+        return find(ActionButtonFixture.class, START_SCAN_BTN);
     }
 
     private boolean triggerScanNotAllowed() {
