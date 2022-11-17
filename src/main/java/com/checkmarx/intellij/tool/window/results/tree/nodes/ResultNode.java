@@ -47,6 +47,9 @@ import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.StyleSheet;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.FocusEvent;
@@ -162,9 +165,8 @@ public class ResultNode extends DefaultMutableTreeNode {
 
     @NotNull
     private  JPanel buildScaPanel(Result result, @NotNull Runnable runnableDraw, Runnable runnableUpdater) {
-
         String type = "Vulnerability";
-        String cveName = result.getVulnerabilityDetails().getCveName();
+        String cveName = result.getVulnerabilityDetails().getCveName() != null ? result.getVulnerabilityDetails().getCveName() : result.getVulnerabilityDetails().getCweId();
         String score = Double.toString(result.getVulnerabilityDetails().getCvssScore());
         String severity = result.getSeverity();
 
@@ -176,146 +178,78 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         details.add(header, "growx, wrap, span");
 
-        JPanel scaBody = new JPanel(new MigLayout("fillx"));
+        JPanel scaBody = new JPanel();
+        scaBody.setLayout(new BoxLayout(scaBody, BoxLayout.Y_AXIS));
 
-        //Result resume label
-        JLabel resultResume = new JLabel();
-        resultResume.setText(String.format(Constants.SUMMARY_FORMAT, type, cveName, score, severity));
-        scaBody.add(resultResume, "span, growx, wrap, gapbottom 6");
+        // Summary
+        JLabel resultResume = new JLabel(String.format(Constants.SUMMARY_FORMAT, type, cveName, score, severity));
+        resultResume.setBorder(JBUI.Borders.emptyBottom(20));
+        scaBody.add(resultResume);
 
-        //Description
-        JPanel descriptionPanel = new JPanel();
-        descriptionPanel.setLayout(new MigLayout("fillx"));
+        // Description
+        drawSCADescription(scaBody);
 
-        JLabel descriptionTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.DESCRIPTION)).getText()));
-        scaBody.add(descriptionTitle, "span, growx");
-
-        String description = result.getDescription();
-        if (StringUtils.isNotBlank(description)) {
-            // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)),
-                    "wrap, gapbottom 3, gapleft 0");
-        }
-
-        scaBody.add(descriptionPanel, "span, growx, gapleft 0");
-
-        JLabel remediation = getSCARemediationLabel(result, scaBody);
-        scaBody.add(remediation, "span, growx, gapbottom 5, gapleft 6");
+        // Remediation
+        drawSCARemediation(result, scaBody);
 
         //Additional knowledge
-
-        JLabel aboutVulnerability = getAboutVulnerabilityLabel(result, scaBody);
-        scaBody.add(aboutVulnerability, "span, growx, gapbottom 5, gapleft 6");
+        drawSCAAboutVulnerability(result, scaBody);
 
         //Vulnerability Path
-        JPanel vulnerabilitiesPanel = getSCAVulnerabilityPathPanel(result, scaBody);
-        scaBody.add(vulnerabilitiesPanel, "span, growx");
+        drawSCAVulnerabilityPath(result, scaBody);;
 
         //References
-        JLabel referencesTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.REFERENCES)).getText()));
-        scaBody.add(referencesTitle, "span, growx, gapbottom 5");
+        drawSCAReferences(result, scaBody);
 
-        int r = JBColor.BLUE.getRed();
-        int g = JBColor.BLUE.getGreen();
-        int b = JBColor.BLUE.getBlue();
-        String hex = String.format("#%02x%02x%02x", r, g, b);
-        JPanel linksPanel = new JPanel(new MigLayout());
-        if(result.getData().getScaPackageData() != null) {
-            for (int i = 0; i < result.getData().getPackageData().size(); i++) {
-                PackageData packageData = result.getData().getPackageData().get(i);
-                JLabel packageName = new JLabel(String.format(Constants.HTML_FONT_BLUE_FORMAT, hex, result.getData().getPackageData().get(i).getType()));
-                packageName.setCursor(new Cursor(Cursor.HAND_CURSOR));
-                packageName.addMouseListener(new MouseAdapter() {
-                    @SneakyThrows
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        Desktop.getDesktop().browse(new URI(packageData.getUrl()));
-                    }
-                });
-                linksPanel.add(packageName, "gapleft 6");
-            }
-            scaBody.add(linksPanel, "wrap, split 2");
-        } else {
-            scaBody.add(new JLabel("No information"), "span, growx, gapbottom 5");
-        }
         JBScrollPane scrollPane = new JBScrollPane(scaBody);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        details.add(scrollPane, "span, growx, wrap");
+        details.add(scrollPane, "span, growx, wrap, gapleft 6");
 
         return details;
     }
 
-    @NotNull
-    private JPanel getSCAVulnerabilityPathPanel(Result result, JPanel scaBody) {
-        JLabel vulnerabilityPathTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.PATH)).getText()));
-        scaBody.add(vulnerabilityPathTitle, "span, growx");
-        List<List<DependencyPath>> dependencyPaths;
-        dependencyPaths = result.getData().getScaPackageData() != null ? result.getData().getScaPackageData().getDependencyPaths() : null;
-        JPanel vulnerabilitiesPanel = new JPanel();
-        vulnerabilitiesPanel.setLayout(new MigLayout("fillx"));
+    /**
+     * Draw SCA description section
+     *
+     * @param scaBody - body panel
+     */
+    private void drawSCADescription(JPanel scaBody) {
+        String description = result.getDescriptionHTML();
+        if (StringUtils.isNotBlank(description)) {
+            HTMLEditorKit kit = new HTMLEditorKit();
+            StyleSheet styleSheet = kit.getStyleSheet();
+            styleSheet.addRule("p {margin: 0}");
 
-        if(dependencyPaths != null) {
-            for(int i = 0; i < dependencyPaths.size(); i++) {
-
-                StringBuilder vulnerabilities = new StringBuilder();
-                for(int j = 0; j < dependencyPaths.get(i).size(); j++) {
-                    vulnerabilities.append(dependencyPaths.get(i).get(j).getName());
-                    if(j != dependencyPaths.get(i).size()-1) {
-                        vulnerabilities.append(" -> ");
+            JEditorPane descriptionEditorPane = new JEditorPane();
+            descriptionEditorPane.setEditorKit(kit);
+            descriptionEditorPane.setContentType("text/html");
+            descriptionEditorPane.setText(description);
+            descriptionEditorPane.setLayout(new BoxLayout(descriptionEditorPane, BoxLayout.Y_AXIS));
+            descriptionEditorPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+            descriptionEditorPane.setEditable(false);
+            descriptionEditorPane.setOpaque(false);
+            descriptionEditorPane.setBorder(JBUI.Borders.emptyBottom(20));
+            descriptionEditorPane.addHyperlinkListener(hle -> {
+                if (HyperlinkEvent.EventType.ACTIVATED.equals(hle.getEventType())) {
+                    try {
+                        Desktop.getDesktop().browse(new URI(hle.getURL().toString()));
+                    } catch (IOException | URISyntaxException e) {
+                        LOGGER.error(e);
                     }
                 }
-                JPanel locs = new JPanel(new MigLayout("fillx"));
+            });
 
-                if(dependencyPaths.get(i).get(0).getLocations() != null && dependencyPaths.get(i).get(0).getLocations().size() != 0){
-                    for(int r=0; r < dependencyPaths.get(i).get(0).getLocations().size(); r++){
-                        FileNode fileNode = FileNode.builder().fileName(dependencyPaths.get(i).get(0).getLocations().get(r)).line(0).column(0).build();
-
-                        CxLinkLabel locations = new CxLinkLabel(dependencyPaths.get(i).get(0).getLocations().get(r),
-                                mouseEvent -> navigate(project, fileNode));
-                        addToPanelNoLabel(locs, locations, result, i, r);
-
-                    }
-                } else {
-                    JLabel locations = new JLabel();
-                    locations.setText("No information");
-                    locs.add(locations);
-                }
-
-                vulnerabilitiesPanel.add(new JLabel(vulnerabilities.toString()), "span, wrap, growx");
-                vulnerabilitiesPanel.add(new JLabel(String.format("Package %s is present in: ",
-                                result.getData().getScaPackageData().getDependencyPaths().get(i).get(0).getName())), "span, wrap, growx");
-                vulnerabilitiesPanel.add(locs,
-                        "span, wrap, growx, gapleft 0");
-            }
-        } else {
-            vulnerabilitiesPanel.add(new JLabel("No information"), "span, growx");
+            scaBody.add(descriptionEditorPane);
         }
-        return vulnerabilitiesPanel;
     }
 
-    @NotNull
-    private JLabel getAboutVulnerabilityLabel(Result result, JPanel scaBody) {
-        JLabel additionalKnowledgeTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.ADDITIONAL_KNOWLEDGE)).getText()));
-        scaBody.add(additionalKnowledgeTitle, "span, growx");
-        JLabel aboutVulnerability = new JLabel(String.format(Constants.HTML_WRAPPER_FORMAT, boldLabel(Bundle.message(Resource.ABOUT_VULNERABILITY)).getText()));
-        aboutVulnerability.setIcon(CxIcons.ABOUT);
-        aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        aboutVulnerability.addMouseListener(new MouseAdapter() {
-            @SneakyThrows
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                Desktop.getDesktop().browse(new URI(result.getData().getScaPackageData() != null ?
-                        result.getData().getScaPackageData().getFixLink() :
-                        "nothing for now"));
-            }
-        });
-        return aboutVulnerability;
-    }
-
-    @NotNull
-    private JLabel getSCARemediationLabel(Result result, JPanel scaBody) {
-        JLabel remediationTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.REMEDIATION)).getText()));
-        scaBody.add(remediationTitle, "span, growx");
+    /**
+     * Draw SCA remediation section
+     *
+     * @param scaBody - body panel
+     */
+    private void drawSCARemediation(Result result, JPanel scaBody) {
+        addSectionTitle(scaBody, Resource.REMEDIATION);
 
         int r = JBColor.ORANGE.getRed();
         int g = JBColor.ORANGE.getGreen();
@@ -323,7 +257,8 @@ public class ResultNode extends DefaultMutableTreeNode {
         String hex = String.format("#%02x%02x%02x", r, g, b);
 
         JLabel remediation = new JLabel();
-        if (result.getData().getRecommendedVersion() != null) {
+        remediation.setBorder(JBUI.Borders.empty(0, 10, 20, 0));
+        if (StringUtils.isNotBlank(result.getData().getRecommendedVersion())) {
             remediation.setIcon(AllIcons.Diff.MagicResolve);
             remediation.setToolTipText(Bundle.message(Resource.AUTO_REMEDIATION_TOOLTIP));
             remediation.setText(String.format(Constants.HTML_FONT_YELLOW_FORMAT, hex, "Upgrade to version: " + result.getData().getRecommendedVersion()));
@@ -342,7 +277,120 @@ public class ResultNode extends DefaultMutableTreeNode {
         } else {
             remediation.setText("No information");
         }
-        return remediation;
+
+        scaBody.add(remediation);
+    }
+
+    /**
+     * Draw SCA about vulnerability section
+     *
+     * @param scaBody - body panel
+     */
+    private void drawSCAAboutVulnerability(Result result, JPanel scaBody) {
+        addSectionTitle(scaBody, Resource.ADDITIONAL_KNOWLEDGE);
+
+        JLabel aboutVulnerability = new JLabel(String.format(Constants.HTML_WRAPPER_FORMAT, boldLabel(Bundle.message(Resource.ABOUT_VULNERABILITY)).getText()));
+        aboutVulnerability.setBorder(JBUI.Borders.empty(0, 10, 20, 0));
+        aboutVulnerability.setIcon(CxIcons.ABOUT);
+        aboutVulnerability.setText("About this vulnerability");
+        aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        aboutVulnerability.addMouseListener(new MouseAdapter() {
+            @SneakyThrows
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                Desktop.getDesktop().browse(new URI(result.getData().getScaPackageData() != null ?
+                        result.getData().getScaPackageData().getFixLink() :
+                        "nothing for now"));
+            }
+        });
+
+        scaBody.add(aboutVulnerability);
+    }
+
+    /**
+     * Draw SCA vulnerability path section
+     *
+     * @param scaBody - body panel
+     */
+    private void drawSCAVulnerabilityPath(Result result, JPanel scaBody) {
+        addSectionTitle(scaBody, Resource.PATH);
+
+        List<List<DependencyPath>> dependencyPaths = result.getData().getScaPackageData() != null ? result.getData().getScaPackageData().getDependencyPaths() : null;
+        JPanel vulnerabilitiesPanel = new JPanel();
+        vulnerabilitiesPanel.setBorder(JBUI.Borders.empty(0, 10, 20, 0));
+        vulnerabilitiesPanel.setLayout(new BoxLayout(vulnerabilitiesPanel, BoxLayout.Y_AXIS));
+
+        if(dependencyPaths != null) {
+            for(int i = 0; i < dependencyPaths.size(); i++) {
+                StringBuilder vulnerabilities = new StringBuilder();
+                for(int j = 0; j < dependencyPaths.get(i).size(); j++) {
+                    vulnerabilities.append(dependencyPaths.get(i).get(j).getName());
+                    if(j != dependencyPaths.get(i).size()-1) {
+                        vulnerabilities.append(" -> ");
+                    }
+                }
+                JPanel locs = new JPanel(new MigLayout("fillx"));
+
+                if(dependencyPaths.get(i).get(0).getLocations() != null && dependencyPaths.get(i).get(0).getLocations().size() != 0){
+                    for(int r=0; r < dependencyPaths.get(i).get(0).getLocations().size(); r++){
+                        FileNode fileNode = FileNode.builder().fileName(dependencyPaths.get(i).get(0).getLocations().get(r)).line(0).column(0).build();
+
+                        CxLinkLabel locations = new CxLinkLabel(dependencyPaths.get(i).get(0).getLocations().get(r), mouseEvent -> navigate(project, fileNode));
+                        addToPanelNoLabel(locs, locations, result, i, r);
+                    }
+                } else {
+                    JLabel locations = new JLabel();
+                    locations.setText("No information");
+                    locs.add(locations);
+                }
+
+                vulnerabilitiesPanel.add(new JLabel(vulnerabilities.toString()));
+                vulnerabilitiesPanel.add(new JLabel(String.format("Package %s is present in: ", result.getData().getScaPackageData().getDependencyPaths().get(i).get(0).getName())));
+                vulnerabilitiesPanel.add(locs);
+            }
+        } else {
+            vulnerabilitiesPanel.add(new JLabel("No information"));
+        }
+
+        scaBody.add(vulnerabilitiesPanel);
+    }
+
+    /**
+     * Draw SCA references section
+     *
+     * @param scaBody - body panel
+     */
+    private void drawSCAReferences(Result result, JPanel scaBody) {
+        addSectionTitle(scaBody, Resource.REFERENCES);
+
+        JPanel linksPanel = new JPanel();
+        linksPanel.setBorder(JBUI.Borders.empty(-5, 6, 20, 0));
+        linksPanel.setLayout(new MigLayout());
+
+        int r = JBColor.BLUE.getRed();
+        int g = JBColor.BLUE.getGreen();
+        int b = JBColor.BLUE.getBlue();
+        String hex = String.format("#%02x%02x%02x", r, g, b);
+        if(result.getData().getScaPackageData() != null && result.getData().getPackageData() != null) {
+            for (int i = 0; i < result.getData().getPackageData().size(); i++) {
+                PackageData packageData = result.getData().getPackageData().get(i);
+                JLabel packageName = new JLabel(String.format(Constants.HTML_FONT_BLUE_FORMAT, hex, result.getData().getPackageData().get(i).getType()));
+                packageName.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                packageName.addMouseListener(new MouseAdapter() {
+                    @SneakyThrows
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        Desktop.getDesktop().browse(new URI(packageData.getUrl()));
+                    }
+                });
+                linksPanel.add(packageName);
+            }
+            scaBody.add(linksPanel);
+        } else {
+            JLabel noInformation = new JLabel("No information");
+            noInformation.setBorder(JBUI.Borders.empty(0, 6, 20, 0));
+            scaBody.add(noInformation);
+        }
     }
 
     private void handleGeneralRemediationClick(JLabel remediation, Result result) {
@@ -397,6 +445,18 @@ public class ResultNode extends DefaultMutableTreeNode {
         }).thenAcceptAsync((reply) -> ApplicationManager.getApplication().invokeLater(() -> {
             remediation.setEnabled(true);
         }));
+    }
+
+    /**
+     * Create a section title in the panel
+     *
+     * @param scaBody - body panel
+     * @param resource - message recourse
+     */
+    private void addSectionTitle(JPanel scaBody, Resource resource) {
+        JLabel sectionTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(resource)).getText()));
+        sectionTitle.setBorder(JBUI.Borders.emptyBottom(10));
+        scaBody.add(sectionTitle);
     }
 
     @NotNull
