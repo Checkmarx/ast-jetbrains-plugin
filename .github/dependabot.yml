@@ -10,10 +10,10 @@ updates:
     schedule:
       interval: "daily"
     reviewers:
-      - "Checkmarx/ast-galactica-team"
+      - "diogopcx"
   - package-ecosystem: "github-actions" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
     reviewers:
-      - "Checkmarx/ast-galactica-team"
+      - "diogopcx"
