@@ -77,17 +77,27 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Repository repository = Utils.getRootRepository(workspaceProject);
-        String storedBranch = Optional.ofNullable(propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY)).orElse(StringUtils.EMPTY);
-        boolean matchBranch = storedBranch.equals(Objects.requireNonNull(repository).getCurrentBranchName());
         boolean matchProject = astProjectMatchesWorkspaceProject();
-
-        if(matchBranch && matchProject) {
-            createScan();
-        } else {
-            if (!matchProject) {
-                Utils.notifyScan(msg(Resource.PROJECT_DOES_NOT_MATCH_TITLE), msg(Resource.PROJECT_DOES_NOT_MATCH_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
+        // Case it is a git repo check for project and branch match
+        if (repository != null) {
+            String storedBranch = Optional.ofNullable(propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY)).orElse(StringUtils.EMPTY);
+            boolean matchBranch = storedBranch.equals(Objects.requireNonNull(repository).getCurrentBranchName());
+            if(matchBranch && matchProject) {
+                createScan();
             } else {
-                Utils.notifyScan(msg(Resource.BRANCH_DOES_NOT_MATCH_TITLE), msg(Resource.BRANCH_DOES_NOT_MATCH_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
+                if (!matchProject) {
+                    Utils.notifyScan(msg(Resource.PROJECT_DOES_NOT_MATCH_TITLE), msg(Resource.PROJECT_DOES_NOT_MATCH_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
+                } else {
+                    Utils.notifyScan(msg(Resource.BRANCH_DOES_NOT_MATCH_TITLE), msg(Resource.BRANCH_DOES_NOT_MATCH_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
+                }
+            }
+        }
+        // Case it is not a git repo, only check for project match
+        else{
+            if (matchProject) {
+                createScan();
+            } else{
+                Utils.notifyScan(msg(Resource.PROJECT_DOES_NOT_MATCH_TITLE), msg(Resource.PROJECT_DOES_NOT_MATCH_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
             }
         }
     }

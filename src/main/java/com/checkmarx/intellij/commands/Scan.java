@@ -82,6 +82,7 @@ public class Scan {
         scanArguments.put("-s", sourcePath);
         scanArguments.put("--project-name", projectName);
         scanArguments.put("--branch", branchName);
+        scanArguments.put("--agent", "Jetbrains");
 
         String additionalParameters = "--async --sast-incremental --resubmit";
 
