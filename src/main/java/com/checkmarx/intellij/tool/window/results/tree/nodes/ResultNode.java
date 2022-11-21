@@ -275,7 +275,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                 remediation.setEnabled(false);
             }
         } else {
-            remediation.setText("No information");
+            remediation.setText(Bundle.message(Resource.NO_INFORMATION));
         }
 
         scaBody.add(remediation);
@@ -289,20 +289,21 @@ public class ResultNode extends DefaultMutableTreeNode {
     private void drawSCAAboutVulnerability(Result result, JPanel scaBody) {
         addSectionTitle(scaBody, Resource.ADDITIONAL_KNOWLEDGE);
 
-        JLabel aboutVulnerability = new JLabel(String.format(Constants.HTML_WRAPPER_FORMAT, boldLabel(Bundle.message(Resource.ABOUT_VULNERABILITY)).getText()));
+        JLabel aboutVulnerability = new JLabel(Bundle.message(Resource.ABOUT_VULNERABILITY));
         aboutVulnerability.setBorder(JBUI.Borders.empty(0, 10, 20, 0));
-        aboutVulnerability.setIcon(CxIcons.ABOUT);
-        aboutVulnerability.setText("About this vulnerability");
-        aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        aboutVulnerability.addMouseListener(new MouseAdapter() {
-            @SneakyThrows
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                Desktop.getDesktop().browse(new URI(result.getData().getScaPackageData() != null ?
-                        result.getData().getScaPackageData().getFixLink() :
-                        "nothing for now"));
-            }
-        });
+        if(result.getData().getScaPackageData() != null && StringUtils.isNotBlank(result.getData().getScaPackageData().getFixLink())) {
+            aboutVulnerability.setIcon(CxIcons.ABOUT);
+            aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            aboutVulnerability.addMouseListener(new MouseAdapter() {
+                @SneakyThrows
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    Desktop.getDesktop().browse(new URI(result.getData().getScaPackageData().getFixLink()));
+                }
+            });
+        }else{
+            aboutVulnerability.setText(Bundle.message(Resource.NO_INFORMATION));
+        }
 
         scaBody.add(aboutVulnerability);
     }
@@ -340,7 +341,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                     }
                 } else {
                     JLabel locations = new JLabel();
-                    locations.setText("No information");
+                    locations.setText(Bundle.message(Resource.NO_INFORMATION));
                     locs.add(locations);
                 }
 
@@ -349,7 +350,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                 vulnerabilitiesPanel.add(locs);
             }
         } else {
-            vulnerabilitiesPanel.add(new JLabel("No information"));
+            vulnerabilitiesPanel.add(new JLabel(Bundle.message(Resource.NO_INFORMATION)));
         }
 
         scaBody.add(vulnerabilitiesPanel);
@@ -374,20 +375,26 @@ public class ResultNode extends DefaultMutableTreeNode {
         if(result.getData().getScaPackageData() != null && result.getData().getPackageData() != null) {
             for (int i = 0; i < result.getData().getPackageData().size(); i++) {
                 PackageData packageData = result.getData().getPackageData().get(i);
-                JLabel packageName = new JLabel(String.format(Constants.HTML_FONT_BLUE_FORMAT, hex, result.getData().getPackageData().get(i).getType()));
-                packageName.setCursor(new Cursor(Cursor.HAND_CURSOR));
-                packageName.addMouseListener(new MouseAdapter() {
-                    @SneakyThrows
-                    @Override
-                    public void mouseClicked(MouseEvent e) {
-                        Desktop.getDesktop().browse(new URI(packageData.getUrl()));
-                    }
-                });
+                JLabel packageName;
+                if(StringUtils.isNotBlank(packageData.getUrl())) {
+                    packageName = new JLabel(String.format(Constants.HTML_FONT_BLUE_FORMAT, hex, result.getData().getPackageData().get(i).getType()));
+                    packageName.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                    packageName.addMouseListener(new MouseAdapter() {
+                        @SneakyThrows
+                        @Override
+                        public void mouseClicked(MouseEvent e) {
+                            Desktop.getDesktop().browse(new URI(packageData.getUrl()));
+                        }
+                    });
+                } else {
+                    packageName = new JLabel(result.getData().getPackageData().get(i).getType());
+                    packageName.setEnabled(false);
+                }
                 linksPanel.add(packageName);
             }
             scaBody.add(linksPanel);
         } else {
-            JLabel noInformation = new JLabel("No information");
+            JLabel noInformation = new JLabel(Bundle.message(Resource.NO_INFORMATION));
             noInformation.setBorder(JBUI.Borders.empty(0, 6, 20, 0));
             scaBody.add(noInformation);
         }
@@ -454,7 +461,7 @@ public class ResultNode extends DefaultMutableTreeNode {
      * @param resource - message recourse
      */
     private void addSectionTitle(JPanel scaBody, Resource resource) {
-        JLabel sectionTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(resource)).getText()));
+        JLabel sectionTitle = new JLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel(Bundle.message(resource)).getText()));
         sectionTitle.setBorder(JBUI.Borders.emptyBottom(10));
         scaBody.add(sectionTitle);
     }
@@ -1035,7 +1042,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     private void generateLearnMore(@NotNull LearnMore learnMore, JPanel panel) {
-        JLabel riskTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.RISK)).getText()));
+        JLabel riskTitle = new JLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel(Bundle.message(Resource.RISK)).getText()));
         panel.add(riskTitle, "span, growx");
 
         String risk = learnMore.getRisk();
@@ -1045,7 +1052,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                     "wrap, gapbottom 3, gapleft 0");
         }
 
-        JLabel causeTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.CAUSE)).getText()));
+        JLabel causeTitle = new JLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel(Bundle.message(Resource.CAUSE)).getText()));
         panel.add(causeTitle, "span, growx");
 
         String cause = learnMore.getCause();
@@ -1055,7 +1062,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                     "wrap, gapbottom 3, gapleft 0");
         }
 
-        JLabel recommendationsTitle = new JLabel(String.format("<html><b>%s</b></html>", boldLabel(Bundle.message(Resource.GENERAL_RECOMMENDATIONS)).getText()));
+        JLabel recommendationsTitle = new JLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel(Bundle.message(Resource.GENERAL_RECOMMENDATIONS)).getText()));
         panel.add(recommendationsTitle, "span, growx");
 
         String recommendations = learnMore.getGeneralRecommendations();
