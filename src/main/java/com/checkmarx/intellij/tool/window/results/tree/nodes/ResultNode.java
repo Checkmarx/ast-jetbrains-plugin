@@ -302,7 +302,9 @@ public class ResultNode extends DefaultMutableTreeNode {
                 }
             });
         }else{
-            aboutVulnerability.setText(Bundle.message(Resource.NO_INFORMATION));
+            aboutVulnerability.setIcon(CxIcons.ABOUT);
+            aboutVulnerability.setText(Bundle.message(Resource.ABOUT_VULNERABILITY));
+            aboutVulnerability.setEnabled(false);
         }
 
         scaBody.add(aboutVulnerability);
