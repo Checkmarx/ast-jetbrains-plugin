@@ -16,7 +16,8 @@ public enum GroupBy {
     STATE,
     FILE,
     VULNERABILITY_TYPE_NAME,
-    PACKAGE;
+    PACKAGE,
+    DIRECT_DEPENDENCY;
 
     public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, VULNERABILITY_TYPE_NAME, PACKAGE);
     public static final List<GroupBy> HIDDEN_GROUPS = List.of(PACKAGE);
@@ -40,6 +41,20 @@ public enum GroupBy {
         if (this == PACKAGE) {
             return (result) -> result.getData().getPackageIdentifier();
         }
+        if (this == DIRECT_DEPENDENCY) {
+            return (result) -> {
+                try {
+                    if (result.getData().getScaPackageData().isDirectDependency()) {
+                        return "Direct Dependency";
+                    }
+                    return "Indirect Dependency";
+                }
+                // Exception might be thrown when grouping by non sca results
+                catch (Exception e){
+                    return "";
+                }
+            };
+        }
         throw new RuntimeException("Invalid filter");
     }
 
@@ -60,6 +75,9 @@ public enum GroupBy {
             return String::compareTo;
         }
         if (this == PACKAGE) {
+            return String::compareTo;
+        }
+        if (this == DIRECT_DEPENDENCY) {
             return String::compareTo;
         }
         return null;
