@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Enum for filters, currently only supports by severity.
+ * Enum for filters.
  * This corresponds to the parent nodes in the tree for each result.
  */
 public enum GroupBy {
@@ -17,10 +17,11 @@ public enum GroupBy {
     FILE,
     VULNERABILITY_TYPE_NAME,
     PACKAGE,
-    DIRECT_DEPENDENCY;
+    DIRECT_DEPENDENCY,
+    SCA_TYPE;
 
-    public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, VULNERABILITY_TYPE_NAME, PACKAGE);
-    public static final List<GroupBy> HIDDEN_GROUPS = List.of(PACKAGE);
+    public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, VULNERABILITY_TYPE_NAME,PACKAGE);
+    public static final List<GroupBy> HIDDEN_GROUPS = List.of(SCA_TYPE,PACKAGE);
 
     /**
      * @return function to apply to a result for getting the parent, that matches the filter
@@ -43,17 +44,15 @@ public enum GroupBy {
         }
         if (this == DIRECT_DEPENDENCY) {
             return (result) -> {
-                try {
-                    if (result.getData().getScaPackageData().isDirectDependency()) {
-                        return "Direct Dependency";
-                    }
-                    return "Indirect Dependency";
+                String r = "";
+                if(result.getData().getScaPackageData()!=null){
+                    r = result.getData().getScaPackageData().getTypeOfDependency() ;
                 }
-                // Exception might be thrown when grouping by non sca results
-                catch (Exception e){
-                    return "";
-                }
+                return r;
             };
+        }
+        if (this == SCA_TYPE) {
+            return (result) -> result.getScaType();
         }
         throw new RuntimeException("Invalid filter");
     }
@@ -78,6 +77,9 @@ public enum GroupBy {
             return String::compareTo;
         }
         if (this == DIRECT_DEPENDENCY) {
+            return String::compareTo;
+        }
+        if (this == SCA_TYPE) {
             return String::compareTo;
         }
         return null;

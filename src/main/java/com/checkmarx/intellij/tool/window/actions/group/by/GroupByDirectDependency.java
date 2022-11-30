@@ -4,8 +4,8 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.tool.window.GroupBy;
 
-public class GroubByDirectDepedency extends GroupByBaseAction  {
-    public GroubByDirectDepedency() {
+public class GroupByDirectDependency extends GroupByBaseAction  {
+    public GroupByDirectDependency() {
         super(Bundle.messagePointer(Resource.DIRECT_DEPENDENCY_ACTION));
     }
 
