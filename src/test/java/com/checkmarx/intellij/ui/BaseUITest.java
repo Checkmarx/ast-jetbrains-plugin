@@ -256,8 +256,6 @@ public abstract class BaseUITest {
     }
 
     protected void getResults() {
-        ComponentFixture cf = find("//div[@class='BaseLabel']");
-        cf.click();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
         scanField.setText(Environment.SCAN_ID);
