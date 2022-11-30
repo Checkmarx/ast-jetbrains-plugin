@@ -298,4 +298,16 @@ public class TestGeneral extends BaseUITest {
                     == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
         });
     }
+
+    @Language("XPath")
+    private static String filterXPath(Severity filter) {
+        return String.format("//div[@myicon='%s.svg']", filter.tooltipSupplier().get().toLowerCase());
+    }
+
+    private void expand() {
+        waitFor(() -> {
+            click(EXPAND_ACTION);
+            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
+        });
+    }
 }

@@ -110,7 +110,7 @@ public abstract class BaseUITest {
         }
     }
 
-    protected static void resizeToolBar() {
+    private static void resizeToolBar() {
         ComponentFixture cf = find("//div[@class='BaseLabel']");
 
         Keyboard keyboard = new Keyboard(remoteRobot);
@@ -164,12 +164,12 @@ public abstract class BaseUITest {
         return remoteRobot.findAll(cls, Locators.byXpath(xpath));
     }
 
-    protected static void waitAndClick(@Language("XPath") String xpath) {
+    private static void waitAndClick(@Language("XPath") String xpath) {
         waitFor(() -> hasAnyComponent(xpath) && find(xpath).isShowing());
         find(xpath).click();
     }
 
-    protected static void setField(String fieldName, String value) {
+    private static void setField(String fieldName, String value) {
         log("Setting field " + fieldName);
         @Language("XPath") String fieldXpath = String.format(FIELD_NAME, fieldName);
         waitFor(() -> hasAnyComponent(fieldXpath) && find(fieldXpath).isShowing());
@@ -194,7 +194,7 @@ public abstract class BaseUITest {
         }
     }
 
-    protected static void openCxToolWindow() {
+    private static void openCxToolWindow() {
         log("Opening Cx Tool Window");
         @Language("XPath") String xpath = "//div[@text='Checkmarx' and @class='StripeButton']";
         waitFor(() -> hasAnyComponent(xpath));
@@ -203,17 +203,12 @@ public abstract class BaseUITest {
         }
     }
 
-    @Language("XPath")
-    protected static String filterXPath(Severity filter) {
-        return String.format("//div[@myicon='%s.svg']", filter.tooltipSupplier().get().toLowerCase());
-    }
-
     protected static void log(String msg) {
         StackTraceElement[] st = Thread.currentThread().getStackTrace();
         System.out.printf("%s | %s: %s%n", Instant.now().toString(), st[2], msg);
     }
 
-    protected static void openSettings() {
+    private static void openSettings() {
         waitFor(() -> {
             if (hasAnyComponent(SETTINGS_ACTION)) {
                 click(SETTINGS_ACTION);
@@ -224,15 +219,11 @@ public abstract class BaseUITest {
         });
     }
 
-    protected static void setCheckmarxCredentials(boolean validCredentials) {
-        setField(Constants.FIELD_NAME_API_KEY, validCredentials ? Environment.API_KEY : "invalidAPIKey");
-        setField(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS, "--debug");
-    }
-
     protected static void testASTConnection(boolean validCredentials) {
         openSettings();
 
-        setCheckmarxCredentials(validCredentials);
+        setField(Constants.FIELD_NAME_API_KEY, validCredentials ? Environment.API_KEY : "invalidAPIKey");
+        setField(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS, "--debug");
 
         click(VALIDATE_BUTTON);
 
@@ -265,19 +256,17 @@ public abstract class BaseUITest {
     }
 
     protected void getResults() {
+        ComponentFixture cf = find("//div[@class='BaseLabel']");
+        cf.click();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
         scanField.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-        waitFor(() -> {
-            boolean has = hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID));
-            return has;
-        });
+        waitFor(() -> hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID)));
     }
 
 
     private static boolean hasSelection(String s) {
-
         return hasAnyComponent(String.format(
                 "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
                 s));
@@ -289,13 +278,6 @@ public abstract class BaseUITest {
                 "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
                 Environment.SCAN_ID,
                 Environment.SCAN_ID)));
-    }
-
-    protected void expand() {
-        waitFor(() -> {
-            click(EXPAND_ACTION);
-            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
-        });
     }
 
     protected void navigate(String prefix, int minExpectedSize) {
@@ -319,7 +301,7 @@ public abstract class BaseUITest {
     }
 
     @NotNull
-    protected ActionButtonFixture findSelection(String s) {
+    private ActionButtonFixture findSelection(String s) {
         @Language("XPath") String xpath = String.format(
                 "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
                 s);
