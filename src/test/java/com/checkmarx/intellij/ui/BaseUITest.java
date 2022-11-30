@@ -2,8 +2,6 @@ package com.checkmarx.intellij.ui;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
-import com.checkmarx.intellij.tool.window.Severity;
-import com.intellij.openapi.wm.impl.content.ToolWindowContentUi;
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
@@ -28,7 +26,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public abstract class BaseUITest {
-
     @Language("XPath")
     protected static final String SETTINGS_ACTION = "//div[@myicon='settings.svg']";
     @Language("XPath")
@@ -67,9 +64,7 @@ public abstract class BaseUITest {
     protected static final String START_SCAN_BTN = "//div[contains(@myaction.key, 'START_SCAN_ACTION')]";
     @Language("XPath")
     protected static final String CANCEL_SCAN_BTN = "//div[@myaction.key='CANCEL_SCAN_ACTION']";
-
     protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
-
     protected static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
     private static boolean initialized = false;
     private static int retries = 0;
@@ -82,8 +77,7 @@ public abstract class BaseUITest {
             StepWorker.registerProcessor(new StepLogger());
             if (hasAnyComponent("//div[@class='FlatWelcomeFrame']")) {
                 find("//div[@defaulticon='fromVCSTab.svg']").click();
-                find(JTextFieldFixture.class, "//div[@class='BorderlessTextField']", Duration.ofSeconds(10))
-                        .setText(Environment.REPO);
+                find(JTextFieldFixture.class, "//div[@class='BorderlessTextField']", Duration.ofSeconds(10)).setText(Environment.REPO);
                 waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
                 find(CLONE_BUTTON).click();
                 try {
@@ -262,7 +256,6 @@ public abstract class BaseUITest {
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID)));
     }
-
 
     private static boolean hasSelection(String s) {
         return hasAnyComponent(String.format(

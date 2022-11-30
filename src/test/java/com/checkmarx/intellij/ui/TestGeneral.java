@@ -37,15 +37,13 @@ public class TestGeneral extends BaseUITest {
     @Video
     public void testFilters() {
         waitForScanIdSelection();
+
         // disable all severities and check for empty tree
-        for (Severity s : Severity.values()) {
-            toggleFilter(s, false);
-        }
+        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, false));
         navigate("Scan", 1);
+
         // enable all severities and check for at least 1 result
-        for (Severity s : Severity.values()) {
-            toggleFilter(s, true);
-        }
+        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, true));
         navigate("Scan", 2);
     }
 
