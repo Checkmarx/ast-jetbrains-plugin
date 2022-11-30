@@ -1,12 +1,12 @@
 package com.checkmarx.intellij.ui;
 
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
-import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
+import com.intellij.openapi.wm.impl.content.ToolWindowContentUi;
 import com.intellij.remoterobot.RemoteRobot;
-import com.intellij.remoterobot.fixtures.ComponentFixture;
-import com.intellij.remoterobot.fixtures.JButtonFixture;
-import com.intellij.remoterobot.fixtures.JTextFieldFixture;
+import com.intellij.remoterobot.fixtures.*;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.search.locators.Locators;
 import com.intellij.remoterobot.stepsProcessing.StepLogger;
 import com.intellij.remoterobot.stepsProcessing.StepWorker;
@@ -14,7 +14,10 @@ import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.UtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
+import org.apache.commons.lang3.StringUtils;
 import org.intellij.lang.annotations.Language;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 
 import java.awt.event.KeyEvent;
@@ -22,6 +25,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public abstract class BaseUITest {
 
@@ -89,19 +93,29 @@ public abstract class BaseUITest {
                     // if exception is thrown, sync was successful, so we can keep going
                 }
             }
+
+            // Open Checkmarx One plugin
+            openCxToolWindow();
+
+            // Resize Checkmarx One plugin so that all toolbar icons are visible
+            resizeToolBar();
+
+            // Connect to AST
+            testASTConnection(true);
+
             initialized = true;
             log("Initialization finished");
         } else {
             log("Tests already initialized, skipping");
         }
-        openCxToolWindow();
-        resizeToolBar();
     }
 
     protected static void resizeToolBar() {
-        click("//div[@class='BaseLabel']");
+        ComponentFixture cf = find("//div[@class='BaseLabel']");
+
         Keyboard keyboard = new Keyboard(remoteRobot);
         for (int i = 0; i < 3; i++) {
+            cf.click();
             if (remoteRobot.isMac()) {
                 keyboard.hotKey(KeyEvent.VK_SHIFT, KeyEvent.VK_META, KeyEvent.VK_UP);
             } else {
@@ -155,7 +169,7 @@ public abstract class BaseUITest {
         find(xpath).click();
     }
 
-    protected void setField(String fieldName, String value) {
+    protected static void setField(String fieldName, String value) {
         log("Setting field " + fieldName);
         @Language("XPath") String fieldXpath = String.format(FIELD_NAME, fieldName);
         waitFor(() -> hasAnyComponent(fieldXpath) && find(fieldXpath).isShowing());
@@ -197,5 +211,169 @@ public abstract class BaseUITest {
     protected static void log(String msg) {
         StackTraceElement[] st = Thread.currentThread().getStackTrace();
         System.out.printf("%s | %s: %s%n", Instant.now().toString(), st[2], msg);
+    }
+
+    protected static void openSettings() {
+        waitFor(() -> {
+            if (hasAnyComponent(SETTINGS_ACTION)) {
+                click(SETTINGS_ACTION);
+            } else if (hasAnyComponent(SETTINGS_BUTTON)) {
+                click(SETTINGS_BUTTON);
+            }
+            return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
+        });
+    }
+
+    protected static void setCheckmarxCredentials(boolean validCredentials) {
+        setField(Constants.FIELD_NAME_API_KEY, validCredentials ? Environment.API_KEY : "invalidAPIKey");
+        setField(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS, "--debug");
+    }
+
+    protected static void testASTConnection(boolean validCredentials) {
+        openSettings();
+
+        setCheckmarxCredentials(validCredentials);
+
+        click(VALIDATE_BUTTON);
+
+        waitFor(() -> !hasAnyComponent("//div[@accessiblename='Validating...']"));
+
+        if (validCredentials) {
+            Assertions.assertTrue(hasAnyComponent("//div[@accessiblename='Successfully authenticated to AST server']"));
+            click("//div[@text='OK']");
+            // Ensure that start scan button and cancel scan button are hidden with invalid credentials
+            waitFor(() -> hasAnyComponent("//div[contains(@myaction.key, 'START_SCAN_ACTION')]"));
+            waitFor(() -> hasAnyComponent("//div[contains(@myaction.key, 'CANCEL_SCAN_ACTION')]"));
+        } else {
+            Assertions.assertFalse(hasAnyComponent("//div[@accessiblename='Successfully authenticated to AST server']"));
+            click("//div[@text='OK']");
+            // Ensure that start scan button and cancel scan button are hidden with invalid credentials
+            waitFor(() -> !hasAnyComponent("//div[contains(@myaction.key, 'START_SCAN_ACTION')]"));
+            waitFor(() -> !hasAnyComponent("//div[contains(@myaction.key, 'CANCEL_SCAN_ACTION')]"));
+        }
+    }
+
+    protected static void testFileNavigation() {
+        waitFor(() -> {
+            click("//div[@class='BaseLabel']");
+            findAll(LINK_LABEL).get(0).doubleClick();
+            return hasAnyComponent(EDITOR);
+        });
+        Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
+        //Confirming if editor is opened
+        find(EditorFixture.class, EDITOR, waitDuration);
+    }
+
+    protected void getResults() {
+        waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
+        JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
+        scanField.setText(Environment.SCAN_ID);
+        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
+        waitFor(() -> {
+            boolean has = hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID));
+            return has;
+        });
+    }
+
+
+    private static boolean hasSelection(String s) {
+
+        return hasAnyComponent(String.format(
+                "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
+                s));
+    }
+
+    protected void waitForScanIdSelection() {
+        // check scan selection for the scan id
+        waitFor(() -> hasAnyComponent(String.format(
+                "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
+                Environment.SCAN_ID,
+                Environment.SCAN_ID)));
+    }
+
+    protected void expand() {
+        waitFor(() -> {
+            click(EXPAND_ACTION);
+            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
+        });
+    }
+
+    protected void navigate(String prefix, int minExpectedSize) {
+        waitFor(() -> {
+            List<RemoteText> prefixNodes = find(JTreeFixture.class, TREE).getData()
+                    .getAll()
+                    .stream()
+                    .filter(t -> t.getText().startsWith(prefix))
+                    .collect(Collectors.toList());
+            if (prefixNodes.size() == 0) {
+                return false;
+            }
+            prefixNodes.get(0).doubleClick();
+            return find(JTreeFixture.class, TREE).findAllText().size() >= minExpectedSize;
+        });
+    }
+
+    @NotNull
+    protected ActionButtonFixture findScanSelection() {
+        return findSelection("Scan");
+    }
+
+    @NotNull
+    protected ActionButtonFixture findSelection(String s) {
+        @Language("XPath") String xpath = String.format(
+                "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
+                s);
+        waitFor(() -> hasAnyComponent(xpath));
+        return find(ActionButtonFixture.class, xpath);
+    }
+
+    protected void testSelectionAction(Supplier<ActionButtonFixture> selectionSupplier, String prefix, String value) {
+        waitFor(() -> {
+            ActionButtonFixture selection = selectionSupplier.get();
+            System.out.println(selection.getTemplatePresentationText());
+            return selection.isEnabled() && selection.getTemplatePresentationText().contains(prefix);
+        });
+        waitFor(() -> {
+            selectionSupplier.get().click();
+            return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
+                    && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() > 0;
+        });
+        enter(value);
+    }
+
+    @NotNull
+    protected ActionButtonFixture findProjectSelection() {
+        return findSelection("Project");
+    }
+
+    @NotNull
+    protected ActionButtonFixture findBranchSelection() {
+        return findSelection("Branch");
+    }
+
+    protected void clearSelection() {
+        waitFor(() -> {
+            if (hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
+                    && findProjectSelection().isEnabled()
+                    && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
+                    && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
+                    && !hasAnyComponent(TREE)
+                    && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
+                log("clear selection done");
+                return true;
+            }
+            ActionButtonFixture scanSelection = findScanSelection();
+            ActionButtonFixture branchSelection = findBranchSelection();
+            ActionButtonFixture projectSelection = findProjectSelection();
+            if (!scanSelection.isShowing() || (scanSelection.hasText("Scan: ..."))
+                    || (!branchSelection.isShowing() || branchSelection.hasText("Branch: ..."))
+                    || (!projectSelection.isShowing() || projectSelection.hasText("Project: ..."))) {
+                log("clear selection still in progress");
+                return false;
+            }
+            log("clicking refresh action button");
+            click("//div[@myicon='refresh.svg']");
+            return false;
+        });
     }
 }
