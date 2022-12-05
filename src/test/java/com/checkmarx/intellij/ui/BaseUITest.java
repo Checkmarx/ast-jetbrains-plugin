@@ -100,9 +100,9 @@ public abstract class BaseUITest {
             // Open Checkmarx One plugin
             openCxToolWindow();
 
-            //log(" =====> Resize Toolbar...");
+            log(" =====> Resize Toolbar...");
             // Resize Checkmarx One plugin so that all toolbar icons are visible
-            //resizeToolBar();
+            resizeToolBar();
 
             //log(" =====> Test AST Connection...");
             // Connect to AST
@@ -208,6 +208,7 @@ public abstract class BaseUITest {
             log(" ===============> Checkmarx Plugin not found");
         }
         if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
+            log(" ============> Open Checkmarx Plugin....");
             find(xpath).click();
         }else {
             log(" ============> Plugin already open");
