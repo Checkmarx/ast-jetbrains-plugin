@@ -15,7 +15,7 @@ public class TestSca extends BaseUITest {
     public void testScaPanel() {
         log(" =====> Init Sca Test...");
         getResults();
-        /*log(" =====> Wait For Scan Id Selection...");
+        log(" =====> Wait For Scan Id Selection...");
         waitForScanIdSelection();
 
         log(" =====> Navigate...");
@@ -50,6 +50,6 @@ public class TestSca extends BaseUITest {
 
         Assertions.assertTrue(hasAnyComponent("//div[@disabledicon='magicResolve.svg']"));
 
-        testFileNavigation();*/
+        testFileNavigation();
     }
 }

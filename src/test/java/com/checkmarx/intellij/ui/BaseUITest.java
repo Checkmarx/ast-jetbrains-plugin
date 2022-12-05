@@ -282,7 +282,6 @@ public abstract class BaseUITest {
         waitFor(() -> hasAnyComponent(SCAN_FIELD));
         JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
         waitFor(() -> hasSelection("Project") && hasSelection("Scan"));
-        //setInvalidScanId();
         cf.click();
         scanField.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
