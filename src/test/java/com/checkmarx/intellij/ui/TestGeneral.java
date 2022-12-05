@@ -27,13 +27,13 @@ public class TestGeneral extends BaseUITest {
         getResults();
     }
 
-    @Test
+    //@Test
     @Video
     public void testEndToEnd() {
         checkResultsPanel();
     }
 
-    @Test
+    //@Test
     @Video
     public void testFilters() {
         waitForScanIdSelection();
@@ -47,7 +47,7 @@ public class TestGeneral extends BaseUITest {
         navigate("Scan", 2);
     }
 
-    @Test
+    //@Test
     @Video
     public void testInvalidScanId() {
         waitFor(() -> {
@@ -76,7 +76,7 @@ public class TestGeneral extends BaseUITest {
         });
     }
 
-    @Test
+    //@Test
     @Video
     public void testSelection() {
         clearSelection();
@@ -88,7 +88,7 @@ public class TestGeneral extends BaseUITest {
         waitFor(() -> findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0)));
     }
 
-    @Test
+    //@Test
     @Video
     public void testClearSelection() {
         testSelection();

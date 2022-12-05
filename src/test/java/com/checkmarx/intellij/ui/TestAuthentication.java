@@ -4,7 +4,7 @@ import com.automation.remarks.junit5.Video;
 import org.junit.jupiter.api.Test;
 
 public class TestAuthentication extends BaseUITest{
-    @Test
+    //@Test
     @Video
     public void testASTAuthentication() {
         // Test wrong connection

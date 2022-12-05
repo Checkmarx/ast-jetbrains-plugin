@@ -85,15 +85,19 @@ public abstract class BaseUITest {
                     waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
                 } catch (WaitForConditionTimeoutException e) {
                     // if exception is thrown, sync was successful, so we can keep going
+                    log(" =====> Catch exception !!!!!");
                 }
             }
 
+            log(" =====> Open Cx Plugin...");
             // Open Checkmarx One plugin
             openCxToolWindow();
 
+            log(" =====> Resize Toolbar...");
             // Resize Checkmarx One plugin so that all toolbar icons are visible
             resizeToolBar();
 
+            log(" =====> Test AST Connection...");
             // Connect to AST
             testASTConnection(true);
 
@@ -250,6 +254,7 @@ public abstract class BaseUITest {
     }
 
     protected void getResults() {
+        log(" =====> Get Results...");
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
         scanField.setText(Environment.SCAN_ID);

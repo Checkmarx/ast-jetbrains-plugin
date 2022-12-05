@@ -13,9 +13,12 @@ public class TestSca extends BaseUITest {
     @Test
     @Video
     public void testScaPanel() {
+        log(" =====> Init Sca Test...");
         getResults();
+        log(" =====> Wait For Scan Id Selection...");
         waitForScanIdSelection();
 
+        log(" =====> Navigate...");
         navigate("Scan", 2);
         navigate("sca", 3);
 
