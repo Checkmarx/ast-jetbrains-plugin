@@ -267,13 +267,32 @@ public abstract class BaseUITest {
         find(EditorFixture.class, EDITOR, waitDuration);
     }
 
-    protected void getResults() {
+    /*protected void getResults() {
         log(" =====> Get Results...");
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
         scanField.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID)));
+    }*/
+
+    protected void getResults() {
+        waitFor(() -> hasAnyComponent(SCAN_FIELD));
+        JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
+        waitFor(() -> hasSelection("Project") && hasSelection("Scan"));
+        //setInvalidScanId();
+        scanField.setText(Environment.SCAN_ID);
+        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
+        waitFor(() -> {
+            if (scanField.isEnabled()) {
+                scanField.click();
+                if (scanField.getHasFocus()) {
+                    new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
+                }
+            }
+            return hasAnyComponent(String.format("//div[@class='Tree' and @visible_text='Scan %s']",
+                    Environment.SCAN_ID));
+        });
     }
 
     private static boolean hasSelection(String s) {
