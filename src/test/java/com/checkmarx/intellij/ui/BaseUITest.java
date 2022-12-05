@@ -104,9 +104,9 @@ public abstract class BaseUITest {
             // Resize Checkmarx One plugin so that all toolbar icons are visible
             resizeToolBar();
 
-            //log(" =====> Test AST Connection...");
+            log(" =====> Test AST Connection...");
             // Connect to AST
-            //testASTConnection(true);
+            testASTConnection(true);
 
             initialized = true;
             log("Initialization finished");
