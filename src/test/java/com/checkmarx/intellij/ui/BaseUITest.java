@@ -277,10 +277,13 @@ public abstract class BaseUITest {
     }*/
 
     protected void getResults() {
+        ComponentFixture cf = find("//div[@class='BaseLabel']");
+        cf.click();
         waitFor(() -> hasAnyComponent(SCAN_FIELD));
         JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
         waitFor(() -> hasSelection("Project") && hasSelection("Scan"));
         //setInvalidScanId();
+        cf.click();
         scanField.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> {
