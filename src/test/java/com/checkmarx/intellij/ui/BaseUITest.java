@@ -344,11 +344,14 @@ public abstract class BaseUITest {
     }
 
     protected void testSelectionAction(Supplier<ActionButtonFixture> selectionSupplier, String prefix, String value) {
+        ComponentFixture cf = find("//div[@class='BaseLabel']");
+        cf.click();
         waitFor(() -> {
             ActionButtonFixture selection = selectionSupplier.get();
             System.out.println(selection.getTemplatePresentationText());
             return selection.isEnabled() && selection.getTemplatePresentationText().contains(prefix);
         });
+        cf.click();
         waitFor(() -> {
             selectionSupplier.get().click();
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
