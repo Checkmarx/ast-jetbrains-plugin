@@ -267,16 +267,19 @@ public abstract class BaseUITest {
         find(EditorFixture.class, EDITOR, waitDuration);
     }
 
-    /*protected void getResults() {
+    protected void getResults() {
         log(" =====> Get Results...");
+        ComponentFixture cf = find("//div[@class='BaseLabel']");
+        cf.click();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
+        cf.click();
         scanField.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID)));
-    }*/
+    }
 
-    protected void getResults() {
+    /*protected void getResults() {
         ComponentFixture cf = find("//div[@class='BaseLabel']");
         cf.click();
         waitFor(() -> hasAnyComponent(SCAN_FIELD));
@@ -295,7 +298,7 @@ public abstract class BaseUITest {
             return hasAnyComponent(String.format("//div[@class='Tree' and @visible_text='Scan %s']",
                     Environment.SCAN_ID));
         });
-    }
+    }*/
 
     private static boolean hasSelection(String s) {
         return hasAnyComponent(String.format(
