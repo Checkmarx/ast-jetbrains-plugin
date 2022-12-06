@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 public class TestTriggerScan extends BaseUITest {
 
-    //@Test
+    @Test
     @Video
     public void testScanButtonsDisabledWhenMissingProjectOrBranch() {
         if (triggerScanNotAllowed()) return;
@@ -21,7 +21,7 @@ public class TestTriggerScan extends BaseUITest {
         Assertions.assertFalse(find(ActionButtonFixture.class, CANCEL_SCAN_BTN).isEnabled());
     }
 
-    //@Test
+    @Test
     @Video
     public void testCancelScan() {
         if (triggerScanNotAllowed()) return;
@@ -37,7 +37,7 @@ public class TestTriggerScan extends BaseUITest {
         Assertions.assertTrue(find(ActionButtonFixture.class, START_SCAN_BTN).isEnabled());
     }
 
-    //@Test
+    @Test
     @Video
     public void testTriggerScanProjectAndBranchDontMatch() {
         if (triggerScanNotAllowed()) return;
@@ -56,7 +56,7 @@ public class TestTriggerScan extends BaseUITest {
         Assertions.assertTrue(hasAnyComponent("//div[@accessiblename.key='BRANCH_DOES_NOT_MATCH_TITLE']"));
     }
 
-    //@Test
+    @Test
     @Video
     public void testTriggerScanAndLoadResults() {
         if (triggerScanNotAllowed()) return;
