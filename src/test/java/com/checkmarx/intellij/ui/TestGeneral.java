@@ -96,6 +96,8 @@ public class TestGeneral extends BaseUITest {
     }
 
     private void findLatestScanSelection() {
+        ComponentFixture cf = find("//div[@class='BaseLabel']");
+        cf.click();
         @Language("XPath") String xpath = String.format(
                 "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
                 Utils.formatLatest(true), Utils.formatLatest(true));
