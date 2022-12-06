@@ -27,7 +27,7 @@ public class TestGeneral extends BaseUITest {
         getResults();
     }
 
-    //@Test
+    @Test
     @Video
     public void testEndToEnd() {
         checkResultsPanel();
