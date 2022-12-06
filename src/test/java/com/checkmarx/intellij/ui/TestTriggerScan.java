@@ -69,7 +69,6 @@ public class TestTriggerScan extends BaseUITest {
         waitFor(() -> hasAnyComponent("//div[@accessiblename.key='SCAN_FINISHED']"));
         find("//div[@class='LinkLabel']").click();
         waitFor(() -> findRunScanButton().isEnabled() && findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
-        waitForScanIdSelection();
         JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
         // Assert that new results were loaded for a new scan id
         Assertions.assertFalse(treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID));
