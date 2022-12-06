@@ -307,6 +307,8 @@ public abstract class BaseUITest {
     }
 
     protected void waitForScanIdSelection() {
+        ComponentFixture cf = find("//div[@class='BaseLabel']");
+        cf.click();
         // check scan selection for the scan id
         waitFor(() -> hasAnyComponent(String.format(
                 "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
