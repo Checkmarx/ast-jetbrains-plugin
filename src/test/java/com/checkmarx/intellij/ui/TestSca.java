@@ -9,8 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.checkmarx.intellij.ui.Xpath.LINK_LABEL;
-import static com.checkmarx.intellij.ui.Xpath.TREE;
+import static com.checkmarx.intellij.ui.Xpath.*;
 
 public class TestSca extends BaseUITest {
     @Test
@@ -48,7 +47,7 @@ public class TestSca extends BaseUITest {
             return findAll(LINK_LABEL).size() > 0;
         });
 
-        Assertions.assertTrue(hasAnyComponent("//div[@disabledicon='magicResolve.svg']"));
+        Assertions.assertTrue(hasAnyComponent(MAGIC_RESOLVE));
 
         testFileNavigation();
     }

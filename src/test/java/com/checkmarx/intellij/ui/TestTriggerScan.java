@@ -59,12 +59,12 @@ public class TestTriggerScan extends BaseUITest {
         testSelectionAction(branchCombobox, "Branch", Environment.BRANCH_NAME);
         waitFor(() -> scanCombobox.isEnabled() && projectCombobox.isEnabled() && branchCombobox.isEnabled());
         findRunScanButtonAndClick();
-        Assertions.assertTrue(hasAnyComponent("//div[@accessiblename.key='PROJECT_DOES_NOT_MATCH_TITLE']"));
+        Assertions.assertTrue(hasAnyComponent(PROJECT_DOES_NOT_MATCH));
         testSelectionAction(projectCombobox, "Project", Environment.PROJECT_NAME);
         testSelectionAction(branchCombobox, "Branch", Environment.NOT_MATCH_BRANCH_NAME);
         waitFor(() -> scanCombobox.isEnabled() && projectCombobox.isEnabled() && branchCombobox.isEnabled());
         findRunScanButtonAndClick();
-        Assertions.assertTrue(hasAnyComponent("//div[@accessiblename.key='BRANCH_DOES_NOT_MATCH_TITLE']"));
+        Assertions.assertTrue(hasAnyComponent(BRANCH_DOES_NOT_MATCH));
     }
 
     @Test
@@ -76,8 +76,8 @@ public class TestTriggerScan extends BaseUITest {
         findRunScanButtonAndClick();
         JTreeFixture treeBeforeScan = find(JTreeFixture.class, TREE);
         Assertions.assertTrue(treeBeforeScan.getValueAtRow(0).contains(Environment.SCAN_ID));
-        waitFor(() -> hasAnyComponent("//div[@accessiblename.key='SCAN_FINISHED']"));
-        find("//div[@class='LinkLabel']").click();
+        waitFor(() -> hasAnyComponent(SCAN_FINISHED));
+        find(LOAD_RESULTS).click();
         waitFor(() -> {
             JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
             return treeAfterScan.getValueAtRow(0).startsWith("Scan") && !treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID);

@@ -144,6 +144,9 @@ public class TestGeneral extends BaseUITest {
         vulnerabilityType();
         urgent();
 
+        // enable all severities and check for at least 1 result
+        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, true));
+
         navigate("Scan", 2);
         navigate("sast", 4);
         JTreeFixture tree = find(JTreeFixture.class, TREE);
@@ -182,7 +185,7 @@ public class TestGeneral extends BaseUITest {
                     return false;
                 }
             }
-            return findAll("//div[@class='ComboBox'][.//div[@visible_text='LOW']]").size() > 0;
+            return findAll(TRIAGE_LOW).size() > 0;
         });
 
         waitFor(() -> {
@@ -202,37 +205,37 @@ public class TestGeneral extends BaseUITest {
                     return false;
                 }
             }
-            return findAll("//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]").size() > 0;
+            return findAll(TRIAGE_CONFIRMED).size() > 0;
         });
 
-        JTextFieldFixture commentField = find(JTextFieldFixture.class, "//div[@class='JTextField']");
+        JTextFieldFixture commentField = find(JTextFieldFixture.class, TRIAGE_COMMENT);
         commentField.setText(commentUUID);
 
         waitFor(() -> {
-            find(JButtonFixture.class, "//div[@text='Update']").click();
-            return !find(JButtonFixture.class, "//div[@text='Update']").isEnabled();
+            find(JButtonFixture.class, UPDATE_BTN).click();
+            return !find(JButtonFixture.class, UPDATE_BTN).isEnabled();
         });
 
-        waitFor(() -> find(JButtonFixture.class, "//div[@text='Update']").isEnabled());
+        waitFor(() -> find(JButtonFixture.class, UPDATE_BTN).isEnabled());
 
         waitFor(() -> {
-            find("//div[@text='Changes']").click();
+            find(TAB_CHANGES).click();
             @Language("XPath") String fieldXpath = String.format(CHANGES_COMMENT, commentUUID, commentUUID);
 
-            find("//div[@accessiblename='Changes' and @accessiblename.key='changes.default.changelist.name CHANGES' and @class='JBTabbedPane']//div[@class='JPanel']").isShowing();
+            find(TAB_CHANGES_CONTENT).isShowing();
             return findAll(fieldXpath).size() > 0;
         });
 
         testFileNavigation();
 
         waitFor(() -> {
-            find("//div[@text.key='LEARN_MORE']").click();
-            return findAll("//div[@accessiblename.key='RISK']").size() > 0 && findAll("//div[@accessiblename.key='CAUSE']").size() > 0 && findAll("//div[@accessiblename.key='GENERAL_RECOMMENDATIONS']").size() > 0;
+            find(TAB_LEARN_MORE).click();
+            return findAll(TAB_RISK).size() > 0 && findAll(CAUSE).size() > 0 && findAll(TAB_RECOMMENDATIONS).size() > 0;
         });
 
         waitFor(() -> {
-            find("//div[@text.key='REMEDIATION_EXAMPLES']").click();
-            return find("//div[@text.key='REMEDIATION_EXAMPLES']").isShowing();
+            find(TAB_RECOMMENDATIONS_EXAMPLES).click();
+            return find(TAB_RECOMMENDATIONS_EXAMPLES).isShowing();
         });
     }
 
@@ -260,7 +263,11 @@ public class TestGeneral extends BaseUITest {
     }
 
     private void urgent() {
-        filterAction("Urgent");
+        openFilterBy();
+        waitFor(() -> {
+            enter("Urgent");
+            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
+        });
     }
 
     private void groupAction(String value) {
@@ -271,20 +278,12 @@ public class TestGeneral extends BaseUITest {
         });
     }
 
-    private void filterAction(String value) {
-        openFilterBy();
-        waitFor(() -> {
-            enter(value);
-            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
-        });
-    }
-
     private void openFilterBy() {
         expand();
         waitFor(() -> {
             click(FILTER_BY_ACTION);
-            return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
-                    && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size()
+            return findAll(JListFixture.class, MY_LIST).size() == 1
+                    && findAll(JListFixture.class, MY_LIST).get(0).findAllText().size()
                     == ResultState.values().length;
         });
     }
@@ -293,8 +292,8 @@ public class TestGeneral extends BaseUITest {
         expand();
         waitFor(() -> {
             click(GROUP_BY_ACTION);
-            return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
-                    && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size()
+            return findAll(JListFixture.class, MY_LIST).size() == 1
+                    && findAll(JListFixture.class, MY_LIST).get(0).findAllText().size()
                     == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
         });
     }

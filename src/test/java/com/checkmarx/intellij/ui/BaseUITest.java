@@ -33,7 +33,6 @@ public abstract class BaseUITest {
     protected static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
     private static boolean initialized = false;
     private static int retries = 0;
-
     protected static ComponentFixture baseLabel;
     protected static JTextFieldFixture scanIdTextBox;
     protected static ActionButtonFixture projectCombobox;
@@ -46,9 +45,9 @@ public abstract class BaseUITest {
             log("Initializing the tests");
             log("Wait duration set for " + waitDuration.getSeconds());
             StepWorker.registerProcessor(new StepLogger());
-            if (hasAnyComponent("//div[@class='FlatWelcomeFrame']")) {
-                find("//div[@defaulticon='fromVCSTab.svg']").click();
-                find(JTextFieldFixture.class, "//div[@class='BorderlessTextField']", Duration.ofSeconds(10)).setText(Environment.REPO);
+            if (hasAnyComponent(FLAT_WELCOME_FRAME)) {
+                find(FROM_VCS_TAB).click();
+                find(JTextFieldFixture.class, BORDERLESS_TEXT_FIELD, Duration.ofSeconds(10)).setText(Environment.REPO);
                 waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
                 find(CLONE_BUTTON).click();
                 trustClonedProject();
@@ -73,8 +72,8 @@ public abstract class BaseUITest {
     }
 
     private static void resizeToolBar() {
-        waitFor(() -> hasAnyComponent("//div[@class='BaseLabel']"));
-        baseLabel = find("//div[@class='BaseLabel']");
+        waitFor(() -> hasAnyComponent(BASE_LABEL));
+        baseLabel = find(BASE_LABEL);
         Keyboard keyboard = new Keyboard(remoteRobot);
         for (int i = 0; i < 3; i++) {
             baseLabel.click();
@@ -93,7 +92,7 @@ public abstract class BaseUITest {
                 keyboard.backspace();
             }
             keyboard.enterText(value);
-            return hasAnyComponent("//div[@visible_text='" + value + "']");
+            return hasAnyComponent(String.format(VISIBLE_TEXT, value));
         });
         keyboard.enter();
     }
@@ -128,9 +127,8 @@ public abstract class BaseUITest {
 
     private static void trustClonedProject() {
         try {
-            @Language("XPath") String xpath = "//div[@text='Trust Project']";
-            waitFor(() -> hasAnyComponent(xpath) && find(xpath).isShowing());
-            find(xpath).click();
+            waitFor(() -> hasAnyComponent(TRUST_PROJECT) && find(TRUST_PROJECT).isShowing());
+            find(TRUST_PROJECT).click();
         } catch(WaitForConditionTimeoutException ignored) {}
     }
 
@@ -163,10 +161,9 @@ public abstract class BaseUITest {
 
     private static void openCxToolWindow() {
         log("Opening Cx Tool Window");
-        @Language("XPath") String xpath = "//div[@text='Checkmarx' and @class='StripeButton']";
-        waitFor(() -> hasAnyComponent(xpath));
+        waitFor(() -> hasAnyComponent(CHECKMARX_STRIPE_BTN));
         if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
-            find(xpath).click();
+            find(CHECKMARX_STRIPE_BTN).click();
         }
     }
 
@@ -202,22 +199,22 @@ public abstract class BaseUITest {
 
         click(VALIDATE_BUTTON);
 
-        waitFor(() -> !hasAnyComponent("//div[@accessiblename='Validating...']"));
+        waitFor(() -> !hasAnyComponent(VALIDATING_CONNECTION));
 
         if (validCredentials) {
-            Assertions.assertTrue(hasAnyComponent("//div[@accessiblename='Successfully authenticated to AST server']"));
-            click("//div[@text='OK']");
+            Assertions.assertTrue(hasAnyComponent(SUCCESS_CONNECTION));
+            click(OK_BTN);
             baseLabel.click();
             // Ensure that start scan button and cancel scan button are hidden with invalid credentials
-            waitFor(() -> hasAnyComponent("//div[contains(@myaction.key, 'START_SCAN_ACTION')]"));
-            waitFor(() -> hasAnyComponent("//div[contains(@myaction.key, 'CANCEL_SCAN_ACTION')]"));
+            waitFor(() -> hasAnyComponent(START_SCAN_BTN));
+            waitFor(() -> hasAnyComponent(CANCEL_SCAN_BTN));
         } else {
-            Assertions.assertFalse(hasAnyComponent("//div[@accessiblename='Successfully authenticated to AST server']"));
-            click("//div[@text='OK']");
+            Assertions.assertFalse(hasAnyComponent(SUCCESS_CONNECTION));
+            click(OK_BTN);
             baseLabel.click();
             // Ensure that start scan button and cancel scan button are hidden with invalid credentials
-            waitFor(() -> !hasAnyComponent("//div[contains(@myaction.key, 'START_SCAN_ACTION')]"));
-            waitFor(() -> !hasAnyComponent("//div[contains(@myaction.key, 'CANCEL_SCAN_ACTION')]"));
+            waitFor(() -> !hasAnyComponent(START_SCAN_BTN));
+            waitFor(() -> !hasAnyComponent(CANCEL_SCAN_BTN));
         }
     }
 
@@ -292,18 +289,19 @@ public abstract class BaseUITest {
         baseLabel.click();
         waitFor(() -> {
             selection.click();
-            return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
-                    && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() > 0;
+            List<JListFixture> jListFixtures = findAll(JListFixture.class, MY_LIST);
+
+            return jListFixtures.size() == 1 && jListFixtures.get(0).findAllText().size() > 0;
         });
         enter(value);
     }
 
     protected void clearSelection() {
         waitFor(() -> {
-            if (hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
+            if (hasAnyComponent(NO_PROJECT_SELECTED)
                     && projectCombobox.isEnabled()
-                    && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
-                    && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
+                    && hasAnyComponent(NO_BRANCH_SELECTED)
+                    && hasAnyComponent(NO_SCAN_SELECTED)
                     && !hasAnyComponent(TREE)
                     && StringUtils.isBlank(scanIdTextBox.getText())) {
                 log("clear selection done");
@@ -316,7 +314,7 @@ public abstract class BaseUITest {
                 return false;
             }
             log("clicking refresh action button");
-            click("//div[@myicon='refresh.svg']");
+            click(CLEAR_BTN);
             return false;
         });
     }
