@@ -98,6 +98,8 @@ public abstract class BaseUITest {
             // Connect to AST
             testASTConnection(true);
 
+            initializeElements();
+
             initialized = true;
             log("Initialization finished");
         } else {
@@ -106,6 +108,7 @@ public abstract class BaseUITest {
     }
 
     private static void resizeToolBar() {
+        baseLabel = find("//div[@class='BaseLabel']");
         Keyboard keyboard = new Keyboard(remoteRobot);
         for (int i = 0; i < 3; i++) {
             baseLabel.click();
@@ -182,7 +185,9 @@ public abstract class BaseUITest {
         }catch(WaitForConditionTimeoutException e) {
             retries++;
             if(retries < 3){
-                click("//div[@class='BaseLabel']");
+                if(baseLabel != null && baseLabel.isShowing()) {
+                    baseLabel.click();
+                }
             } else{
                 retries = 0;
                 throw e;
@@ -197,12 +202,9 @@ public abstract class BaseUITest {
         if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
             find(xpath).click();
         }
-
-        initializeElements();
     }
 
     private static void initializeElements() {
-        baseLabel = find("//div[@class='BaseLabel']");
         scanIdTextBox = find(JTextFieldFixture.class, SCAN_FIELD);
         projectCombobox = findSelection("Project");
         branchCombobox = findSelection("Branch");
