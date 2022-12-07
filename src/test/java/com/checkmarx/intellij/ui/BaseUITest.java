@@ -70,6 +70,10 @@ public abstract class BaseUITest {
     private static int retries = 0;
 
     protected static ComponentFixture baseLabel;
+    protected static JTextFieldFixture scanIdTextBox;
+    protected static ActionButtonFixture projectCombobox;
+    protected static ActionButtonFixture branchCombobox;
+    protected static ActionButtonFixture scanCombobox;
 
     @BeforeAll
     public static void init() {
@@ -199,6 +203,10 @@ public abstract class BaseUITest {
 
     private static void initializeElements() {
         baseLabel = find("//div[@class='BaseLabel']");
+        scanIdTextBox = find(JTextFieldFixture.class, SCAN_FIELD);
+        projectCombobox = findSelection("Project");
+        branchCombobox = findSelection("Branch");
+        scanCombobox = findSelection("Scan");
     }
 
     protected static void log(String msg) {
@@ -259,9 +267,8 @@ public abstract class BaseUITest {
         log(" =====> Get Results...");
         baseLabel.click();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
-        JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
         baseLabel.click();
-        scanField.setText(Environment.SCAN_ID);
+        scanIdTextBox.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID)));
     }
@@ -297,12 +304,7 @@ public abstract class BaseUITest {
     }
 
     @NotNull
-    protected ActionButtonFixture findScanSelection() {
-        return findSelection("Scan");
-    }
-
-    @NotNull
-    private ActionButtonFixture findSelection(String s) {
+    private static ActionButtonFixture findSelection(String s) {
         @Language("XPath") String xpath = String.format(
                 "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
                 s);
@@ -310,49 +312,35 @@ public abstract class BaseUITest {
         return find(ActionButtonFixture.class, xpath);
     }
 
-    protected void testSelectionAction(Supplier<ActionButtonFixture> selectionSupplier, String prefix, String value) {
+    protected void testSelectionAction(ActionButtonFixture selection, String prefix, String value) {
         baseLabel.click();
         waitFor(() -> {
-            ActionButtonFixture selection = selectionSupplier.get();
             System.out.println(selection.getTemplatePresentationText());
             return selection.isEnabled() && selection.getTemplatePresentationText().contains(prefix);
         });
         baseLabel.click();
         waitFor(() -> {
-            selectionSupplier.get().click();
+            selection.click();
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
                     && findAll(JListFixture.class, "//div[@class='MyList']").get(0).findAllText().size() > 0;
         });
         enter(value);
     }
 
-    @NotNull
-    protected ActionButtonFixture findProjectSelection() {
-        return findSelection("Project");
-    }
-
-    @NotNull
-    protected ActionButtonFixture findBranchSelection() {
-        return findSelection("Branch");
-    }
-
     protected void clearSelection() {
         waitFor(() -> {
             if (hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Project: none']")
-                    && findProjectSelection().isEnabled()
+                    && projectCombobox.isEnabled()
                     && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Branch: none']")
                     && hasAnyComponent("//div[@class='ActionButtonWithText' and @visible_text='Scan: none']")
                     && !hasAnyComponent(TREE)
-                    && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
+                    && StringUtils.isBlank(scanIdTextBox.getText())) {
                 log("clear selection done");
                 return true;
             }
-            ActionButtonFixture scanSelection = findScanSelection();
-            ActionButtonFixture branchSelection = findBranchSelection();
-            ActionButtonFixture projectSelection = findProjectSelection();
-            if (!scanSelection.isShowing() || (scanSelection.hasText("Scan: ..."))
-                    || (!branchSelection.isShowing() || branchSelection.hasText("Branch: ..."))
-                    || (!projectSelection.isShowing() || projectSelection.hasText("Project: ..."))) {
+            if (!scanCombobox.isShowing() || (scanCombobox.hasText("Scan: ..."))
+                    || (!branchCombobox.isShowing() || branchCombobox.hasText("Branch: ..."))
+                    || (!projectCombobox.isShowing() || projectCombobox.hasText("Project: ..."))) {
                 log("clear selection still in progress");
                 return false;
             }

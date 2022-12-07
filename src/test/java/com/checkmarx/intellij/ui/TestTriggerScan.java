@@ -43,15 +43,15 @@ public class TestTriggerScan extends BaseUITest {
         if (triggerScanNotAllowed()) return;
 
         getResults();
-        waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
-        testSelectionAction(this::findProjectSelection, "Project", Environment.NOT_MATCH_PROJECT_NAME);
-        testSelectionAction(this::findBranchSelection, "Branch", Environment.BRANCH_NAME);
-        waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
+        waitFor(() -> scanCombobox.isEnabled() && projectCombobox.isEnabled() && branchCombobox.isEnabled());
+        testSelectionAction(projectCombobox, "Project", Environment.NOT_MATCH_PROJECT_NAME);
+        testSelectionAction(branchCombobox, "Branch", Environment.BRANCH_NAME);
+        waitFor(() -> scanCombobox.isEnabled() && projectCombobox.isEnabled() && branchCombobox.isEnabled());
         findRunScanButtonAndClick();
         Assertions.assertTrue(hasAnyComponent("//div[@accessiblename.key='PROJECT_DOES_NOT_MATCH_TITLE']"));
-        testSelectionAction(this::findProjectSelection, "Project", Environment.PROJECT_NAME);
-        testSelectionAction(this::findBranchSelection, "Branch", Environment.NOT_MATCH_BRANCH_NAME);
-        waitFor(() -> findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
+        testSelectionAction(projectCombobox, "Project", Environment.PROJECT_NAME);
+        testSelectionAction(branchCombobox, "Branch", Environment.NOT_MATCH_BRANCH_NAME);
+        waitFor(() -> scanCombobox.isEnabled() && projectCombobox.isEnabled() && branchCombobox.isEnabled());
         findRunScanButtonAndClick();
         Assertions.assertTrue(hasAnyComponent("//div[@accessiblename.key='BRANCH_DOES_NOT_MATCH_TITLE']"));
     }
@@ -68,7 +68,7 @@ public class TestTriggerScan extends BaseUITest {
         Assertions.assertTrue(treeBeforeScan.getValueAtRow(0).contains(Environment.SCAN_ID));
         waitFor(() -> hasAnyComponent("//div[@accessiblename.key='SCAN_FINISHED']"));
         find("//div[@class='LinkLabel']").click();
-        waitFor(() -> findRunScanButton().isEnabled() && findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
+        waitFor(() -> findRunScanButton().isEnabled() && scanCombobox.isEnabled() && projectCombobox.isEnabled() && branchCombobox.isEnabled());
         baseLabel.click();
         JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
         // Assert that new results were loaded for a new scan id

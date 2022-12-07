@@ -80,11 +80,11 @@ public class TestGeneral extends BaseUITest {
     @Video
     public void testSelection() {
         clearSelection();
-        testSelectionAction(this::findProjectSelection, "Project", Environment.PROJECT_NAME);
-        testSelectionAction(this::findBranchSelection, "Branch", Environment.BRANCH_NAME);
+        testSelectionAction(projectCombobox, "Project", Environment.PROJECT_NAME);
+        testSelectionAction(branchCombobox, "Branch", Environment.BRANCH_NAME);
         findLatestScanSelection();
 
-        testSelectionAction(this::findScanSelection, "Scan", Environment.SCAN_ID);
+        testSelectionAction(scanCombobox, "Scan", Environment.SCAN_ID);
         waitFor(() -> findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0)));
     }
 
