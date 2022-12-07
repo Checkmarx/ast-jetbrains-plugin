@@ -69,6 +69,8 @@ public abstract class BaseUITest {
     private static boolean initialized = false;
     private static int retries = 0;
 
+    private static ComponentFixture baseLabel;
+
     @BeforeAll
     public static void init() {
         if (!initialized) {
@@ -88,12 +90,13 @@ public abstract class BaseUITest {
                     log(" =====> Catch exception TRUST PROJECT!!!!!");
                 }
 
-                try {
+                /*try {
+                    log(" =====> Content tab label...");
                     waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
                 } catch (WaitForConditionTimeoutException e) {
                     // if exception is thrown, sync was successful, so we can keep going
                     log(" =====> Catch exception ContentTabLabel!!!!!");
-                }
+                }*/
             }
 
             log(" =====> Open Cx Plugin...");
@@ -116,11 +119,9 @@ public abstract class BaseUITest {
     }
 
     private static void resizeToolBar() {
-        ComponentFixture cf = find("//div[@class='BaseLabel']");
-
         Keyboard keyboard = new Keyboard(remoteRobot);
         for (int i = 0; i < 3; i++) {
-            cf.click();
+            baseLabel.click();
             if (remoteRobot.isMac()) {
                 keyboard.hotKey(KeyEvent.VK_SHIFT, KeyEvent.VK_META, KeyEvent.VK_UP);
             } else {
@@ -213,6 +214,12 @@ public abstract class BaseUITest {
         }else {
             log(" ============> Plugin already open");
         }
+
+        initializeElements();
+    }
+
+    private static void initializeElements() {
+        baseLabel = find("//div[@class='BaseLabel']");
     }
 
     protected static void log(String msg) {
@@ -244,12 +251,14 @@ public abstract class BaseUITest {
         if (validCredentials) {
             Assertions.assertTrue(hasAnyComponent("//div[@accessiblename='Successfully authenticated to AST server']"));
             click("//div[@text='OK']");
+            baseLabel.click();
             // Ensure that start scan button and cancel scan button are hidden with invalid credentials
             waitFor(() -> hasAnyComponent("//div[contains(@myaction.key, 'START_SCAN_ACTION')]"));
             waitFor(() -> hasAnyComponent("//div[contains(@myaction.key, 'CANCEL_SCAN_ACTION')]"));
         } else {
             Assertions.assertFalse(hasAnyComponent("//div[@accessiblename='Successfully authenticated to AST server']"));
             click("//div[@text='OK']");
+            baseLabel.click();
             // Ensure that start scan button and cancel scan button are hidden with invalid credentials
             waitFor(() -> !hasAnyComponent("//div[contains(@myaction.key, 'START_SCAN_ACTION')]"));
             waitFor(() -> !hasAnyComponent("//div[contains(@myaction.key, 'CANCEL_SCAN_ACTION')]"));
@@ -258,7 +267,7 @@ public abstract class BaseUITest {
 
     protected static void testFileNavigation() {
         waitFor(() -> {
-            click("//div[@class='BaseLabel']");
+            baseLabel.click();
             findAll(LINK_LABEL).get(0).doubleClick();
             return hasAnyComponent(EDITOR);
         });
@@ -269,11 +278,10 @@ public abstract class BaseUITest {
 
     protected void getResults() {
         log(" =====> Get Results...");
-        ComponentFixture cf = find("//div[@class='BaseLabel']");
-        cf.click();
+        baseLabel.click();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
-        cf.click();
+        baseLabel.click();
         scanField.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID)));
@@ -307,8 +315,7 @@ public abstract class BaseUITest {
     }
 
     protected void waitForScanIdSelection() {
-        ComponentFixture cf = find("//div[@class='BaseLabel']");
-        cf.click();
+        baseLabel.click();
         // check scan selection for the scan id
         waitFor(() -> hasAnyComponent(String.format(
                 "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
@@ -346,14 +353,13 @@ public abstract class BaseUITest {
     }
 
     protected void testSelectionAction(Supplier<ActionButtonFixture> selectionSupplier, String prefix, String value) {
-        ComponentFixture cf = find("//div[@class='BaseLabel']");
-        cf.click();
+        baseLabel.click();
         waitFor(() -> {
             ActionButtonFixture selection = selectionSupplier.get();
             System.out.println(selection.getTemplatePresentationText());
             return selection.isEnabled() && selection.getTemplatePresentationText().contains(prefix);
         });
-        cf.click();
+        baseLabel.click();
         waitFor(() -> {
             selectionSupplier.get().click();
             return findAll(JListFixture.class, "//div[@class='MyList']").size() == 1
