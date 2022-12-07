@@ -205,6 +205,7 @@ public abstract class BaseUITest {
     }
 
     private static void initializeElements() {
+        baseLabel.click();
         scanIdTextBox = find(JTextFieldFixture.class, SCAN_FIELD);
         projectCombobox = findSelection("Project");
         branchCombobox = findSelection("Branch");
