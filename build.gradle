@@ -29,7 +29,7 @@ dependencies {
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
     implementation 'com.miglayout:miglayout-swing:11.0'
 
-    implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.51'
+    implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.53'
     implementation(platform("com.fasterxml.jackson:jackson-bom:2.14.1")) // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
 
 }
