@@ -7,9 +7,20 @@ import com.checkmarx.intellij.Resource;
 import com.intellij.remoterobot.fixtures.ActionButtonFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 public class TestTriggerScan extends BaseUITest {
+
+    @BeforeEach
+    public void checkResults(TestInfo info) {
+        if (info.getDisplayName().equals("testScanButtonsDisabledWhenMissingProjectOrBranch")) {
+            return;
+        }
+
+        getResults();
+    }
 
     @Test
     @Video
@@ -26,7 +37,6 @@ public class TestTriggerScan extends BaseUITest {
     public void testCancelScan() {
         if (triggerScanNotAllowed()) return;
 
-        getResults();
         waitForScanIdSelection();
         findRunScanButtonAndClick();
         waitFor(() -> find(ActionButtonFixture.class, CANCEL_SCAN_BTN).isEnabled());
@@ -42,7 +52,6 @@ public class TestTriggerScan extends BaseUITest {
     public void testTriggerScanProjectAndBranchDontMatch() {
         if (triggerScanNotAllowed()) return;
 
-        getResults();
         waitFor(() -> scanCombobox.isEnabled() && projectCombobox.isEnabled() && branchCombobox.isEnabled());
         testSelectionAction(projectCombobox, "Project", Environment.NOT_MATCH_PROJECT_NAME);
         testSelectionAction(branchCombobox, "Branch", Environment.BRANCH_NAME);
@@ -61,18 +70,16 @@ public class TestTriggerScan extends BaseUITest {
     public void testTriggerScanAndLoadResults() {
         if (triggerScanNotAllowed()) return;
 
-        getResults();
         waitForScanIdSelection();
         findRunScanButtonAndClick();
         JTreeFixture treeBeforeScan = find(JTreeFixture.class, TREE);
         Assertions.assertTrue(treeBeforeScan.getValueAtRow(0).contains(Environment.SCAN_ID));
         waitFor(() -> hasAnyComponent("//div[@accessiblename.key='SCAN_FINISHED']"));
         find("//div[@class='LinkLabel']").click();
-        waitFor(() -> findRunScanButton().isEnabled() && scanCombobox.isEnabled() && projectCombobox.isEnabled() && branchCombobox.isEnabled());
-        baseLabel.click();
-        JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
-        // Assert that new results were loaded for a new scan id
-        Assertions.assertFalse(treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID));
+        waitFor(() -> {
+            JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
+            return treeAfterScan.getValueAtRow(0).startsWith("Scan") && !treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID);
+        });
     }
 
     private void findRunScanButtonAndClick() {
