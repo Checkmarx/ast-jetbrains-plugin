@@ -5,7 +5,6 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.Resource;
 import com.intellij.remoterobot.fixtures.ActionButtonFixture;
-import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -70,8 +69,7 @@ public class TestTriggerScan extends BaseUITest {
         waitFor(() -> hasAnyComponent("//div[@accessiblename.key='SCAN_FINISHED']"));
         find("//div[@class='LinkLabel']").click();
         waitFor(() -> findRunScanButton().isEnabled() && findScanSelection().isEnabled() && findProjectSelection().isEnabled() && findBranchSelection().isEnabled());
-        ComponentFixture cf = find("//div[@class='BaseLabel']");
-        cf.click();
+        baseLabel.click();
         JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
         // Assert that new results were loaded for a new scan id
         Assertions.assertFalse(treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID));

@@ -69,7 +69,7 @@ public abstract class BaseUITest {
     private static boolean initialized = false;
     private static int retries = 0;
 
-    private static ComponentFixture baseLabel;
+    protected static ComponentFixture baseLabel;
 
     @BeforeAll
     public static void init() {
@@ -82,32 +82,15 @@ public abstract class BaseUITest {
                 find(JTextFieldFixture.class, "//div[@class='BorderlessTextField']", Duration.ofSeconds(10)).setText(Environment.REPO);
                 waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
                 find(CLONE_BUTTON).click();
-
-                try {
-                    waitAndClick("//div[@text='Trust Project']");
-                } catch (WaitForConditionTimeoutException e) {
-                    // if exception is thrown, sync was successful, so we can keep going
-                    log(" =====> Catch exception TRUST PROJECT!!!!!");
-                }
-
-                /*try {
-                    log(" =====> Content tab label...");
-                    waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
-                } catch (WaitForConditionTimeoutException e) {
-                    // if exception is thrown, sync was successful, so we can keep going
-                    log(" =====> Catch exception ContentTabLabel!!!!!");
-                }*/
+                trustClonedProject();
             }
 
-            log(" =====> Open Cx Plugin...");
             // Open Checkmarx One plugin
             openCxToolWindow();
 
-            log(" =====> Resize Toolbar...");
             // Resize Checkmarx One plugin so that all toolbar icons are visible
             resizeToolBar();
 
-            log(" =====> Test AST Connection...");
             // Connect to AST
             testASTConnection(true);
 
@@ -170,9 +153,12 @@ public abstract class BaseUITest {
         return remoteRobot.findAll(cls, Locators.byXpath(xpath));
     }
 
-    private static void waitAndClick(@Language("XPath") String xpath) {
-        waitFor(() -> hasAnyComponent(xpath) && find(xpath).isShowing());
-        find(xpath).click();
+    private static void trustClonedProject() {
+        try {
+            @Language("XPath") String xpath = "//div[@text='Trust Project']";
+            waitFor(() -> hasAnyComponent(xpath) && find(xpath).isShowing());
+            find(xpath).click();
+        } catch(WaitForConditionTimeoutException ignored) {}
     }
 
     private static void setField(String fieldName, String value) {
@@ -203,16 +189,9 @@ public abstract class BaseUITest {
     private static void openCxToolWindow() {
         log("Opening Cx Tool Window");
         @Language("XPath") String xpath = "//div[@text='Checkmarx' and @class='StripeButton']";
-        try {
-            waitFor(() -> hasAnyComponent(xpath));
-        }catch (Exception e) {
-            log(" ===============> Checkmarx Plugin not found");
-        }
+        waitFor(() -> hasAnyComponent(xpath));
         if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
-            log(" ============> Open Checkmarx Plugin....");
             find(xpath).click();
-        }else {
-            log(" ============> Plugin already open");
         }
 
         initializeElements();
@@ -286,27 +265,6 @@ public abstract class BaseUITest {
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID)));
     }
-
-    /*protected void getResults() {
-        ComponentFixture cf = find("//div[@class='BaseLabel']");
-        cf.click();
-        waitFor(() -> hasAnyComponent(SCAN_FIELD));
-        JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
-        waitFor(() -> hasSelection("Project") && hasSelection("Scan"));
-        cf.click();
-        scanField.setText(Environment.SCAN_ID);
-        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-        waitFor(() -> {
-            if (scanField.isEnabled()) {
-                scanField.click();
-                if (scanField.getHasFocus()) {
-                    new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-                }
-            }
-            return hasAnyComponent(String.format("//div[@class='Tree' and @visible_text='Scan %s']",
-                    Environment.SCAN_ID));
-        });
-    }*/
 
     private static boolean hasSelection(String s) {
         return hasAnyComponent(String.format(
