@@ -9,16 +9,16 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.checkmarx.intellij.ui.Xpath.LINK_LABEL;
+import static com.checkmarx.intellij.ui.Xpath.TREE;
+
 public class TestSca extends BaseUITest {
     @Test
     @Video
     public void testScaPanel() {
-        log(" =====> Init Sca Test...");
         getResults();
-        log(" =====> Wait For Scan Id Selection...");
         waitForScanIdSelection();
 
-        log(" =====> Navigate...");
         navigate("Scan", 2);
         navigate("sca", 3);
 

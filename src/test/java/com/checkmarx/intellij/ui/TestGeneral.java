@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import static com.checkmarx.intellij.ui.Xpath.*;
+
 public class TestGeneral extends BaseUITest {
 
     @BeforeEach

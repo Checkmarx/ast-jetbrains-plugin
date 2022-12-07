@@ -11,6 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
+import static com.checkmarx.intellij.ui.Xpath.*;
+
 public class TestTriggerScan extends BaseUITest {
 
     @BeforeEach
@@ -86,10 +88,6 @@ public class TestTriggerScan extends BaseUITest {
         ActionButtonFixture runScanBtn = find(ActionButtonFixture.class, START_SCAN_BTN);
         waitFor(runScanBtn::isEnabled);
         runScanBtn.click();
-    }
-
-    private ActionButtonFixture findRunScanButton() {
-        return find(ActionButtonFixture.class, START_SCAN_BTN);
     }
 
     private boolean triggerScanNotAllowed() {
