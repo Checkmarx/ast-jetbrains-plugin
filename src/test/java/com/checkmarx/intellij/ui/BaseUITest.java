@@ -267,13 +267,15 @@ public abstract class BaseUITest {
     }
 
     protected void getResults() {
-        log(" =====> Get Results...");
         baseLabel.click();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         baseLabel.click();
         scanIdTextBox.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-        waitFor(() -> hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID)));
+        waitFor(() -> {
+            baseLabel.click();
+            return hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID));
+        });
     }
 
     private static boolean hasSelection(String s) {
