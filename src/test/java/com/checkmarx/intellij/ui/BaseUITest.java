@@ -205,7 +205,7 @@ public abstract class BaseUITest {
             Assertions.assertTrue(hasAnyComponent(SUCCESS_CONNECTION));
             click(OK_BTN);
             baseLabel.click();
-            // Ensure that start scan button and cancel scan button are hidden with invalid credentials
+            // Ensure that start scan button and cancel scan button are visible with valid credentials
             waitFor(() -> hasAnyComponent(START_SCAN_BTN));
             waitFor(() -> hasAnyComponent(CANCEL_SCAN_BTN));
         } else {

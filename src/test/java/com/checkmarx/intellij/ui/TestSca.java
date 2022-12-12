@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.ui.Xpath.*;
@@ -21,29 +22,22 @@ public class TestSca extends BaseUITest {
         navigate("Scan", 2);
         navigate("sca", 3);
 
-        List<RemoteText> prefixNodes = find(JTreeFixture.class, TREE).getData()
-                .getAll()
-                .stream()
-                .filter(t -> t.getText().startsWith("HIGH"))
-                .collect(Collectors.toList());
-        if (prefixNodes.size() != 0) {
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
+
+        List<RemoteText> scaHighNodes = tree.getData().getAll().stream().filter(t -> t.getText().startsWith("HIGH")).collect(Collectors.toList());
+
+        if (scaHighNodes.size() != 0) {
             navigate("HIGH", 4);
         }
+
         navigate("Pip", 5);
 
-        JTreeFixture tree = find(JTreeFixture.class, TREE);
-        int row = -1;
-        for (int i = 0; i < tree.collectRows().size(); i++) {
-            if (tree.getValueAtRow(i).startsWith("CVE")) {
-                row = i;
-                break;
-            }
-        }
-        // open first node of the opened result
-        final int resultRow = row;
-        Assertions.assertTrue(resultRow > 1);
+        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("CVE")).findFirst();
+        int dsvwRowIdx = cveRow.map(s -> tree.collectRows().indexOf(s)).orElse(-1);
+
+        Assertions.assertTrue(dsvwRowIdx > 1);
         waitFor(() -> {
-            tree.clickRow(resultRow);
+            tree.clickRow(dsvwRowIdx);
             return findAll(LINK_LABEL).size() > 0;
         });
 

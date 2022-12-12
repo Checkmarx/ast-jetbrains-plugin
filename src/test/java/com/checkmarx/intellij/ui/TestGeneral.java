@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import java.awt.event.KeyEvent;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.checkmarx.intellij.ui.Xpath.*;
@@ -53,28 +54,19 @@ public class TestGeneral extends BaseUITest {
     @Video
     public void testInvalidScanId() {
         waitFor(() -> {
-            click(SCAN_FIELD);
-            return find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus();
-        });
-        find(JTextFieldFixture.class, SCAN_FIELD).setText("inva-lid");
-        waitFor(() -> {
-            click(SCAN_FIELD);
-            if (!find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus()) {
+            scanIdTextBox.click();
+
+            if (!scanIdTextBox.getHasFocus()) {
                 return false;
             }
+
+            scanIdTextBox.setText("inva-lid");
             new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-            List<ComponentFixture> trees = findAll(TREE);
-            if (trees.size() != 1) {
-                return false;
-            }
-            ComponentFixture tree = trees.get(0);
-            return tree.getData().getAll().size() == 1
-                    && tree.getData()
-                    .getAll()
-                    .get(0)
-                    .getText()
-                    .contains(Bundle.message(
-                            Resource.INVALID_SCAN_ID));
+
+            JTreeFixture tree = find(JTreeFixture.class, TREE);
+            boolean invalidMsgDisplayed = tree.getData().getAll().get(0).getText().contains(Bundle.message(Resource.INVALID_SCAN_ID));
+
+            return tree.getData().getAll().size() == 1 && invalidMsgDisplayed;
         });
     }
 
@@ -87,7 +79,7 @@ public class TestGeneral extends BaseUITest {
         findLatestScanSelection();
 
         testSelectionAction(scanCombobox, "Scan", Environment.SCAN_ID);
-        waitFor(() -> findAll(TREE).size() == 1 && checkTreeState(findAll(TREE).get(0)));
+        waitFor(() -> find(JTreeFixture.class, TREE).getData().getAll().size() > 0);
     }
 
     @Test
@@ -98,18 +90,7 @@ public class TestGeneral extends BaseUITest {
     }
 
     private void findLatestScanSelection() {
-        @Language("XPath") String xpath = String.format(
-                "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
-                Utils.formatLatest(true), Utils.formatLatest(true));
-        waitFor(() -> hasAnyComponent(xpath));
-    }
-
-    private boolean checkTreeState(ComponentFixture tree) {
-        return tree.getData().getAll().size() > 0 && !tree.getData()
-                .getAll()
-                .get(0)
-                .getText()
-                .contains(Bundle.message(Resource.GETTING_RESULTS_ERROR));
+        waitFor(() -> hasAnyComponent(String.format(LATEST_SCAN, Utils.formatLatest(true), Utils.formatLatest(true))));
     }
 
     private void toggleFilter(Severity severity, boolean enabled) {
@@ -122,9 +103,7 @@ public class TestGeneral extends BaseUITest {
 
             ActionButtonFixture filter = find(ActionButtonFixture.class, xpath);
             log(filter.popState().name());
-            return filter.popState().equals(enabled
-                    ? ActionButtonFixture.PopState.PUSHED
-                    : ActionButtonFixture.PopState.POPPED);
+            return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
         });
     }
 
@@ -150,18 +129,12 @@ public class TestGeneral extends BaseUITest {
         navigate("Scan", 2);
         navigate("sast", 4);
         JTreeFixture tree = find(JTreeFixture.class, TREE);
-        int row = -1;
-        for (int i = 0; i < tree.collectRows().size(); i++) {
-            if (tree.getValueAtRow(i).contains("dsvw.py")) {
-                row = i;
-                break;
-            }
-        }
-        // open first node of the opened result
-        final int resultRow = row;
-        Assertions.assertTrue(resultRow > 1); // at least scan (0) and sast (1)
+        Optional<String> dsvwRow = tree.collectRows().stream().filter(treeRow -> treeRow.contains("dsvw.py")).findFirst();
+        int dsvwRowIdx = dsvwRow.map(s -> tree.collectRows().indexOf(s)).orElse(-1);
+
+        Assertions.assertTrue(dsvwRowIdx > 1);
         waitFor(() -> {
-            tree.clickRow(resultRow);
+            tree.clickRow(dsvwRowIdx);
             return findAll(LINK_LABEL).size() > 0;
         });
 
@@ -211,12 +184,13 @@ public class TestGeneral extends BaseUITest {
         JTextFieldFixture commentField = find(JTextFieldFixture.class, TRIAGE_COMMENT);
         commentField.setText(commentUUID);
 
+        JButtonFixture updateBtn = find(JButtonFixture.class, UPDATE_BTN);
         waitFor(() -> {
-            find(JButtonFixture.class, UPDATE_BTN).click();
-            return !find(JButtonFixture.class, UPDATE_BTN).isEnabled();
+            updateBtn.click();
+            return !updateBtn.isEnabled();
         });
 
-        waitFor(() -> find(JButtonFixture.class, UPDATE_BTN).isEnabled());
+        waitFor(updateBtn::isEnabled);
 
         waitFor(() -> {
             find(TAB_CHANGES).click();
@@ -282,9 +256,8 @@ public class TestGeneral extends BaseUITest {
         expand();
         waitFor(() -> {
             click(FILTER_BY_ACTION);
-            return findAll(JListFixture.class, MY_LIST).size() == 1
-                    && findAll(JListFixture.class, MY_LIST).get(0).findAllText().size()
-                    == ResultState.values().length;
+            List<JListFixture> myList = findAll(JListFixture.class, MY_LIST);
+            return myList.size() == 1 && myList.get(0).findAllText().size() == ResultState.values().length;
         });
     }
 
@@ -292,9 +265,8 @@ public class TestGeneral extends BaseUITest {
         expand();
         waitFor(() -> {
             click(GROUP_BY_ACTION);
-            return findAll(JListFixture.class, MY_LIST).size() == 1
-                    && findAll(JListFixture.class, MY_LIST).get(0).findAllText().size()
-                    == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
+            List<JListFixture> myList = findAll(JListFixture.class, MY_LIST);
+            return myList.size() == 1 && myList.get(0).findAllText().size() == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
         });
     }
 

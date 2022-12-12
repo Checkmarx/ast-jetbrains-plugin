@@ -103,4 +103,6 @@ public class Xpath {
     protected static final String SCAN_FINISHED = "//div[@accessiblename.key='SCAN_FINISHED']";
     @Language("XPath")
     protected static final String LOAD_RESULTS = "//div[@class='LinkLabel']";
+    @Language("XPath")
+    protected static final String LATEST_SCAN = "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']";
 }
