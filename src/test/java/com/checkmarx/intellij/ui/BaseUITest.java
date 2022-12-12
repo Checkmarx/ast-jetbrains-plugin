@@ -2,15 +2,12 @@ package com.checkmarx.intellij.ui;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
-import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
-import com.intellij.remoterobot.search.locators.Locators;
 import com.intellij.remoterobot.stepsProcessing.StepLogger;
 import com.intellij.remoterobot.stepsProcessing.StepWorker;
 import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
-import com.intellij.remoterobot.utils.UtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.apache.commons.lang3.StringUtils;
 import org.intellij.lang.annotations.Language;
@@ -25,11 +22,11 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static com.checkmarx.intellij.ui.Xpath.*;
+import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 public abstract class BaseUITest {
 
-    protected static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
     protected static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
     private static boolean initialized = false;
     private static int retries = 0;
@@ -52,7 +49,6 @@ public abstract class BaseUITest {
                 find(CLONE_BUTTON).click();
                 trustClonedProject();
             }
-
             // Open Checkmarx One plugin
             openCxToolWindow();
 
@@ -62,6 +58,7 @@ public abstract class BaseUITest {
             // Connect to AST
             testASTConnection(true);
 
+            // Store elements to be used during the tests
             initializeElements();
 
             initialized = true;
@@ -97,34 +94,6 @@ public abstract class BaseUITest {
         keyboard.enter();
     }
 
-    protected static void click(@Language("XPath") String xpath) {
-        find(xpath).click();
-    }
-
-    protected static ComponentFixture find(@Language("XPath") String xpath) {
-        return find(ComponentFixture.class, xpath);
-    }
-
-    protected static <T extends ComponentFixture> T find(Class<T> cls,
-                                                         @Language("XPath") String xpath) {
-        return find(cls, xpath, Duration.ofSeconds(90));
-    }
-
-    protected static <T extends ComponentFixture> T find(Class<T> cls,
-                                                         @Language("XPath") String xpath,
-                                                         Duration duration) {
-        return remoteRobot.find(cls, Locators.byXpath(xpath), duration);
-    }
-
-    protected static List<ComponentFixture> findAll(@Language("XPath") String xpath) {
-        return findAll(ComponentFixture.class, xpath);
-    }
-
-    protected static <T extends ComponentFixture> List<T> findAll(Class<T> cls,
-                                                                  @Language("XPath") String xpath) {
-        return remoteRobot.findAll(cls, Locators.byXpath(xpath));
-    }
-
     private static void trustClonedProject() {
         try {
             waitFor(() -> hasAnyComponent(TRUST_PROJECT) && find(TRUST_PROJECT).isShowing());
@@ -137,10 +106,6 @@ public abstract class BaseUITest {
         @Language("XPath") String fieldXpath = String.format(FIELD_NAME, fieldName);
         waitFor(() -> hasAnyComponent(fieldXpath) && find(fieldXpath).isShowing());
         find(JTextFieldFixture.class, String.format(FIELD_NAME, fieldName), waitDuration).setText(value);
-    }
-
-    protected static boolean hasAnyComponent(@Language("XPath") String xpath) {
-        return UtilsKt.hasAnyComponent(remoteRobot, Locators.byXpath(xpath));
     }
 
     protected static void waitFor(Supplier<Boolean> condition) {
@@ -180,17 +145,6 @@ public abstract class BaseUITest {
         System.out.printf("%s | %s: %s%n", Instant.now().toString(), st[2], msg);
     }
 
-    private static void openSettings() {
-        waitFor(() -> {
-            if (hasAnyComponent(SETTINGS_ACTION)) {
-                click(SETTINGS_ACTION);
-            } else if (hasAnyComponent(SETTINGS_BUTTON)) {
-                click(SETTINGS_BUTTON);
-            }
-            return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
-        });
-    }
-
     protected static void testASTConnection(boolean validCredentials) {
         openSettings();
 
@@ -218,6 +172,17 @@ public abstract class BaseUITest {
         }
     }
 
+    private static void openSettings() {
+        waitFor(() -> {
+            if (hasAnyComponent(SETTINGS_ACTION)) {
+                click(SETTINGS_ACTION);
+            } else if (hasAnyComponent(SETTINGS_BUTTON)) {
+                click(SETTINGS_BUTTON);
+            }
+            return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
+        });
+    }
+
     protected static void testFileNavigation() {
         waitFor(() -> {
             baseLabel.click();
@@ -242,18 +207,13 @@ public abstract class BaseUITest {
     }
 
     private static boolean hasSelection(String s) {
-        return hasAnyComponent(String.format(
-                "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
-                s));
+        return hasAnyComponent(String.format(HAS_SELECTION, s));
     }
 
     protected void waitForScanIdSelection() {
         baseLabel.click();
         // check scan selection for the scan id
-        waitFor(() -> hasAnyComponent(String.format(
-                "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']",
-                Environment.SCAN_ID,
-                Environment.SCAN_ID)));
+        waitFor(() -> hasAnyComponent(String.format(SCAN_ID_SELECTION, Environment.SCAN_ID, Environment.SCAN_ID)));
     }
 
     protected void navigate(String prefix, int minExpectedSize) {
@@ -281,13 +241,13 @@ public abstract class BaseUITest {
     }
 
     protected void testSelectionAction(ActionButtonFixture selection, String prefix, String value) {
-        baseLabel.click();
         waitFor(() -> {
+            baseLabel.click();
             System.out.println(selection.getTemplatePresentationText());
             return selection.isEnabled() && selection.getTemplatePresentationText().contains(prefix);
         });
-        baseLabel.click();
         waitFor(() -> {
+            baseLabel.click();
             selection.click();
             List<JListFixture> jListFixtures = findAll(JListFixture.class, MY_LIST);
 

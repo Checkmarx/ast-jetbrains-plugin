@@ -21,7 +21,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.checkmarx.intellij.ui.Xpath.*;
+import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 public class TestGeneral extends BaseUITest {
 

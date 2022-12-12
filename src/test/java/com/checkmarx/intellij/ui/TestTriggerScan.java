@@ -11,7 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
-import static com.checkmarx.intellij.ui.Xpath.*;
+import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 public class TestTriggerScan extends BaseUITest {
 

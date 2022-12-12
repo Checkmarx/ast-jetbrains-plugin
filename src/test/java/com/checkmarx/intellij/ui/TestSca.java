@@ -10,7 +10,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.checkmarx.intellij.ui.Xpath.*;
+import static com.checkmarx.intellij.ui.utils.Xpath.*;
+import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 
 public class TestSca extends BaseUITest {
     @Test
