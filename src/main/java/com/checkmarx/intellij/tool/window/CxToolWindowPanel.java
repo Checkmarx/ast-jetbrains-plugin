@@ -126,6 +126,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
      */
     private void drawMainPanel() {
         removeAll();
+        currentState.setScanIdFieldValue(null);
 
         ActionToolbar mainToolbar = getActionToolbar();
         ResetSelectionAction resetSelectionAction = (ResetSelectionAction) mainToolbar.getActions()
