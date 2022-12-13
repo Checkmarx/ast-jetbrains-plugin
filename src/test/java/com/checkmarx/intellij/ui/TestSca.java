@@ -22,6 +22,7 @@ public class TestSca extends BaseUITest {
 
         navigate("Scan", 2);
         navigate("sca", 3);
+        navigate("Vulnerability", 4);
 
         JTreeFixture tree = find(JTreeFixture.class, TREE);
 
