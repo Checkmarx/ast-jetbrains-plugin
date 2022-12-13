@@ -45,7 +45,7 @@ public final class Constants {
 
     public static final String API_KEY_CREDENTIALS_KEY = "APIKey";
 
-    public static final String GLOBAL_SETTINGS_STATE_NAME = "Checkmarx AST";
+    public static final String GLOBAL_SETTINGS_STATE_NAME = "Checkmarx ONE";
     public static final String GLOBAL_SETTINGS_STATE_FILE = "cx_global_settings.xml";
 
     public static final String FIELD_NAME_API_KEY = "apiKey";
