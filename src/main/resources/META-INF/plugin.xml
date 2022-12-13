@@ -99,6 +99,8 @@
                         class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByVulnerabilityTypeAction"/>
                 <action id="Checkmarx.GroupBy.File"
                         class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByFileAction"/>
+                <action id="Checkmarx.GroupBy.DirectDependency"
+                        class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByDirectDependency"/>
             </group>
             <action id="Checkmarx.ExpandAll"
                     class="com.checkmarx.intellij.tool.window.actions.ExpandAllAction"

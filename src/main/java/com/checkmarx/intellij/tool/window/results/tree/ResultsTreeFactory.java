@@ -22,6 +22,9 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.util.*;
 
+import static com.checkmarx.intellij.tool.window.GroupBy.PACKAGE;
+import static com.checkmarx.intellij.tool.window.GroupBy.SCA_TYPE;
+
 /**
  * Factory for result trees
  */
@@ -49,6 +52,9 @@ public class ResultsTreeFactory {
         Tree tree = createTree(scanId, latest);
 
         Map<String, NonLeafNode> engineNodes = new HashMap<>();
+        // Make sure sca type groupBy is always applied first
+        groupByList.remove(SCA_TYPE);
+        groupByList.add(0,SCA_TYPE);
         for (Result result : results.getResults()) {
             if (enabledFilters.contains(Severity.valueOf(result.getSeverity())) && enabledFilters.contains(ResultState.valueOf(result.getState()))) {
                 addResultToEngine(project,
