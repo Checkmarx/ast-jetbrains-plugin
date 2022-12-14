@@ -87,7 +87,7 @@ public class Xpath {
     static final String VALIDATING_CONNECTION = "//div[@accessiblename='Validating...']";
     @Language("XPath")
     public
-    static final String SUCCESS_CONNECTION = "//div[@accessiblename='Successfully authenticated to AST server']";
+    static final String SUCCESS_CONNECTION = "//div[@accessiblename.key='VALIDATE_SUCCESS']";
     @Language("XPath")
     public
     static final String OK_BTN = "//div[@text='OK']";

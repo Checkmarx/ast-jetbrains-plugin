@@ -1,4 +1,4 @@
-name: ONE Jetbrains Plugin CI
+name: Checkmarx One Jetbrains Plugin CI
 
 on: [ pull_request, workflow_dispatch ]
 
