@@ -38,7 +38,9 @@ public abstract class BaseUITest {
 
     @BeforeAll
     public static void init() {
+        System.out.println(" ==========> BASEUI: init");
         if (!initialized) {
+            System.out.println(" ==========> BASEUI: Entrei para iniciar");
             log("Initializing the tests");
             log("Wait duration set for " + waitDuration.getSeconds());
             StepWorker.registerProcessor(new StepLogger());
@@ -58,12 +60,14 @@ public abstract class BaseUITest {
             // Connect to AST
             testASTConnection(true);
 
+            System.out.println(" ==========> BASEUI: Initialize elements...");
             // Store elements to be used during the tests
             initializeElements();
 
             initialized = true;
             log("Initialization finished");
         } else {
+            System.out.println(" ==========> BASEUI: Já está iniciado");
             log("Tests already initialized, skipping");
         }
     }
@@ -135,6 +139,8 @@ public abstract class BaseUITest {
     private static void initializeElements() {
         baseLabel.click();
         scanIdTextBox = find(JTextFieldFixture.class, SCAN_FIELD);
+        System.out.println(" =====> Scan Field showing: " + scanIdTextBox.isShowing());
+        System.out.println(" =====> Scan Field enabled: " + scanIdTextBox.isEnabled());
         projectCombobox = findSelection("Project");
         branchCombobox = findSelection("Branch");
         scanCombobox = findSelection("Scan");
@@ -158,17 +164,20 @@ public abstract class BaseUITest {
         if (validCredentials) {
             Assertions.assertTrue(hasAnyComponent(SUCCESS_CONNECTION));
             click(OK_BTN);
-            baseLabel.click();
             // Ensure that start scan button and cancel scan button are visible with valid credentials
-            waitFor(() -> hasAnyComponent(START_SCAN_BTN));
-            waitFor(() -> hasAnyComponent(CANCEL_SCAN_BTN));
+            waitFor(() -> {
+                baseLabel.click();
+                return hasAnyComponent(START_SCAN_BTN) && hasAnyComponent(CANCEL_SCAN_BTN);
+            });
         } else {
             Assertions.assertFalse(hasAnyComponent(SUCCESS_CONNECTION));
             click(OK_BTN);
             baseLabel.click();
             // Ensure that start scan button and cancel scan button are hidden with invalid credentials
-            waitFor(() -> !hasAnyComponent(START_SCAN_BTN));
-            waitFor(() -> !hasAnyComponent(CANCEL_SCAN_BTN));
+            waitFor(() -> {
+                baseLabel.click();
+                return !hasAnyComponent(START_SCAN_BTN) && !hasAnyComponent(CANCEL_SCAN_BTN);
+            });
         }
     }
 
@@ -195,9 +204,21 @@ public abstract class BaseUITest {
     }
 
     protected void getResults() {
+
         baseLabel.click();
-        waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
-        baseLabel.click();
+        waitFor(() -> {
+            try {
+                System.out.println(" =====> Scan Field showing: " + scanIdTextBox.isShowing());
+                System.out.println(" =====> Scan Field enabled: " + scanIdTextBox.isEnabled());
+            } catch(Exception e) {
+                System.out.println(" =====> CATCH <======: ");
+            }
+            return hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan");
+        });
+        waitFor(() -> {
+            baseLabel.click();
+            return scanIdTextBox.isShowing();
+        });
         scanIdTextBox.setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> {

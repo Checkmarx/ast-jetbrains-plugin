@@ -7,6 +7,7 @@ public class TestAuthentication extends BaseUITest{
     @Test
     @Video
     public void testASTAuthentication() {
+        System.out.println(" ==========> TestAuthentication: testar autenticação");
         // Test wrong connection
         testASTConnection(false);
 
