@@ -1,4 +1,4 @@
-name: Checkmarx ONE Scan
+name: Checkmarx One Scan
 
 on: [ pull_request, workflow_dispatch ]
 
@@ -15,7 +15,7 @@ jobs:
           distribution: zulu
           java-version: 11
   
-      - name: Checkmarx ONE CLI Action
+      - name: Checkmarx One CLI Action
         uses: checkmarx/ast-github-action@main
         with:
           base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
