@@ -15,7 +15,7 @@ env:
   CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
 
 concurrency:
-  group: ${{ github.head_ref }}
+  group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
