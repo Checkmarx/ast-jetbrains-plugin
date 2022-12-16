@@ -102,7 +102,8 @@ public abstract class BaseUITest {
         try {
             waitFor(() -> hasAnyComponent(TRUST_PROJECT) && find(TRUST_PROJECT).isShowing());
             find(TRUST_PROJECT).click();
-        } catch(WaitForConditionTimeoutException ignored) {}
+        } catch (WaitForConditionTimeoutException ignored) {
+        }
     }
 
     private static void setField(String fieldName, String value) {
@@ -115,13 +116,13 @@ public abstract class BaseUITest {
     protected static void waitFor(Supplier<Boolean> condition) {
         try {
             RepeatUtilsKt.waitFor(waitDuration, condition::get);
-        }catch(WaitForConditionTimeoutException e) {
+        } catch (WaitForConditionTimeoutException e) {
             retries++;
-            if(retries < 3){
-                if(baseLabel != null && baseLabel.isShowing()) {
+            if (retries < 3) {
+                if (baseLabel != null && baseLabel.isShowing()) {
                     baseLabel.click();
                 }
-            } else{
+            } else {
                 retries = 0;
                 throw e;
             }
@@ -204,13 +205,13 @@ public abstract class BaseUITest {
     }
 
     protected void getResults() {
-
         baseLabel.click();
+        scanIdTextBox = find(JTextFieldFixture.class, SCAN_FIELD);
         waitFor(() -> {
             try {
                 System.out.println(" =====> Scan Field showing: " + scanIdTextBox.isShowing());
                 System.out.println(" =====> Scan Field enabled: " + scanIdTextBox.isEnabled());
-            } catch(Exception e) {
+            } catch (Exception e) {
                 System.out.println(" =====> CATCH <======: ");
             }
             return hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan");
