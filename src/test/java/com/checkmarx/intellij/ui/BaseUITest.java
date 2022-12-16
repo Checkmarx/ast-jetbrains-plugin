@@ -31,10 +31,6 @@ public abstract class BaseUITest {
     private static boolean initialized = false;
     private static int retries = 0;
     protected static ComponentFixture baseLabel;
-    protected static JTextFieldFixture scanIdTextBox;
-    protected static ActionButtonFixture projectCombobox;
-    protected static ActionButtonFixture branchCombobox;
-    protected static ActionButtonFixture scanCombobox;
 
     @BeforeAll
     public static void init() {
@@ -59,10 +55,6 @@ public abstract class BaseUITest {
 
             // Connect to AST
             testASTConnection(true);
-
-            System.out.println(" ==========> BASEUI: Initialize elements...");
-            // Store elements to be used during the tests
-            initializeElements();
 
             initialized = true;
             log("Initialization finished");
@@ -137,16 +129,6 @@ public abstract class BaseUITest {
         }
     }
 
-    private static void initializeElements() {
-        baseLabel.click();
-        scanIdTextBox = find(JTextFieldFixture.class, SCAN_FIELD);
-        System.out.println(" =====> Scan Field showing: " + scanIdTextBox.isShowing());
-        System.out.println(" =====> Scan Field enabled: " + scanIdTextBox.isEnabled());
-        projectCombobox = findSelection("Project");
-        branchCombobox = findSelection("Branch");
-        scanCombobox = findSelection("Scan");
-    }
-
     protected static void log(String msg) {
         StackTraceElement[] st = Thread.currentThread().getStackTrace();
         System.out.printf("%s | %s: %s%n", Instant.now().toString(), st[2], msg);
@@ -206,21 +188,8 @@ public abstract class BaseUITest {
 
     protected void getResults() {
         baseLabel.click();
-        scanIdTextBox = find(JTextFieldFixture.class, SCAN_FIELD);
-        waitFor(() -> {
-            try {
-                System.out.println(" =====> Scan Field showing: " + scanIdTextBox.isShowing());
-                System.out.println(" =====> Scan Field enabled: " + scanIdTextBox.isEnabled());
-            } catch (Exception e) {
-                System.out.println(" =====> CATCH <======: ");
-            }
-            return hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan");
-        });
-        waitFor(() -> {
-            baseLabel.click();
-            return scanIdTextBox.isShowing();
-        });
-        scanIdTextBox.setText(Environment.SCAN_ID);
+        waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
+        find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> {
             baseLabel.click();
@@ -254,7 +223,7 @@ public abstract class BaseUITest {
     }
 
     @NotNull
-    private static ActionButtonFixture findSelection(String s) {
+    protected static ActionButtonFixture findSelection(String s) {
         @Language("XPath") String xpath = String.format(
                 "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
                 s);
@@ -281,17 +250,17 @@ public abstract class BaseUITest {
     protected void clearSelection() {
         waitFor(() -> {
             if (hasAnyComponent(NO_PROJECT_SELECTED)
-                    && projectCombobox.isEnabled()
+                    && findSelection("Project").isEnabled()
                     && hasAnyComponent(NO_BRANCH_SELECTED)
                     && hasAnyComponent(NO_SCAN_SELECTED)
                     && !hasAnyComponent(TREE)
-                    && StringUtils.isBlank(scanIdTextBox.getText())) {
+                    && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
                 log("clear selection done");
                 return true;
             }
-            if (!scanCombobox.isShowing() || (scanCombobox.hasText("Scan: ..."))
-                    || (!branchCombobox.isShowing() || branchCombobox.hasText("Branch: ..."))
-                    || (!projectCombobox.isShowing() || projectCombobox.hasText("Project: ..."))) {
+            if (!findSelection("Scan").isShowing() || (findSelection("Scan").hasText("Scan: ..."))
+                    || (!findSelection("Branch").isShowing() || findSelection("Branch").hasText("Branch: ..."))
+                    || (!findSelection("Project").isShowing() || findSelection("Project").hasText("Project: ..."))) {
                 log("clear selection still in progress");
                 return false;
             }

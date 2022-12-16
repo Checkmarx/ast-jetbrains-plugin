@@ -55,15 +55,15 @@ public class TestTriggerScan extends BaseUITest {
     public void testTriggerScanProjectAndBranchDontMatch() {
         if (triggerScanNotAllowed()) return;
 
-        waitFor(() -> scanCombobox.isEnabled() && projectCombobox.isEnabled() && branchCombobox.isEnabled());
-        testSelectionAction(projectCombobox, "Project", Environment.NOT_MATCH_PROJECT_NAME);
-        testSelectionAction(branchCombobox, "Branch", Environment.BRANCH_NAME);
-        waitFor(() -> scanCombobox.isEnabled() && projectCombobox.isEnabled() && branchCombobox.isEnabled());
+        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled());
+        testSelectionAction(findSelection("Project"), "Project", Environment.NOT_MATCH_PROJECT_NAME);
+        testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
+        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled());
         findRunScanButtonAndClick();
         Assertions.assertTrue(hasAnyComponent(PROJECT_DOES_NOT_MATCH));
-        testSelectionAction(projectCombobox, "Project", Environment.PROJECT_NAME);
-        testSelectionAction(branchCombobox, "Branch", Environment.NOT_MATCH_BRANCH_NAME);
-        waitFor(() -> scanCombobox.isEnabled() && projectCombobox.isEnabled() && branchCombobox.isEnabled());
+        testSelectionAction(findSelection("Project"), "Project", Environment.PROJECT_NAME);
+        testSelectionAction(findSelection("Branch"), "Branch", Environment.NOT_MATCH_BRANCH_NAME);
+        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled());
         findRunScanButtonAndClick();
         Assertions.assertTrue(hasAnyComponent(BRANCH_DOES_NOT_MATCH));
     }
