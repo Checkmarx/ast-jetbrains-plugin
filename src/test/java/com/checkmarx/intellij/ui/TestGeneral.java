@@ -28,14 +28,12 @@ public class TestGeneral extends BaseUITest {
 
     @BeforeEach
     public void checkResults() {
-        System.out.println(" ==========> Test General: before each");
         getResults();
     }
 
     @Test
     @Video
     public void testEndToEnd() {
-        System.out.println(" ==========> Test General: end2end");
         checkResultsPanel();
     }
 

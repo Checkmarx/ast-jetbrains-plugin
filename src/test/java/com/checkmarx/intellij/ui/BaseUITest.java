@@ -34,9 +34,7 @@ public abstract class BaseUITest {
 
     @BeforeAll
     public static void init() {
-        System.out.println(" ==========> BASEUI: init");
         if (!initialized) {
-            System.out.println(" ==========> BASEUI: Entrei para iniciar");
             log("Initializing the tests");
             log("Wait duration set for " + waitDuration.getSeconds());
             StepWorker.registerProcessor(new StepLogger());
@@ -59,7 +57,6 @@ public abstract class BaseUITest {
             initialized = true;
             log("Initialization finished");
         } else {
-            System.out.println(" ==========> BASEUI: Já está iniciado");
             log("Tests already initialized, skipping");
         }
     }
