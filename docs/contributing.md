@@ -1,13 +1,13 @@
-# Contributing to ONE JETBRAINS PLUGIN
+# Contributing to Checkmarx One JETBRAINS PLUGIN
 
-Welcome and thank you for considering contributing to the ONE JETBRAINS PLUGIN
+Welcome and thank you for considering contributing to the Checkmarx One JETBRAINS PLUGIN
 
 Reading and following these guidelines will help us make the contribution process easy and effective for everyone involved. It also communicates that you agree to respect the time of the developers managing and developing these open source projects. In return, we will reciprocate that respect by addressing your issue, assessing changes, and helping you finalize your pull requests.
 
 
 ## Quicklinks
 
-- [Contributing to ONE JETBRAINS PLUGIN](#contributing-to-one-jetbrains-plugin)
+- [Contributing to Checkmarx One JETBRAINS PLUGIN](#contributing-to-checkmarx-one-jetbrains-plugin)
     - [Quicklinks](#quicklinks)
     - [Code of Conduct](#code-of-conduct)
     - [Getting Started](#getting-started)

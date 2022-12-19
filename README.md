@@ -17,10 +17,10 @@
     <img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/logo.png" alt="Logo" width="80" height="80" />
   </a>
 
-<h3 align="center">ONE-JETBRAINS-PLUGIN</h3>
+<h3 align="center">CHECKMARX-ONE-JETBRAINS-PLUGIN</h3>
 
 <p align="center">
-    The CxONE JetBrains plugin enables you to import results from a CxONE scan directly into your IDE.
+    The Checkmarx One JetBrains plugin enables you to import results from a Checkmarx One scan directly into your IDE.
     <br />
     <a href="https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html"><strong>Explore the docs »</strong></a>
     <br />
@@ -67,11 +67,11 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 
 <!-- GETTING STARTED -->
 ## Getting Started
-
+ 
 
 ### Prerequisites
 
-- You have a CxONE account and you have an [API Key](https://checkmarx.com/resource/documents/en/34965-68618-generating-an-api-key.html).
+- You have a Checkmarx One account, and you have an [API Key](https://checkmarx.com/resource/documents/en/34965-68618-generating-an-api-key.html).
 
 ### Setting Up
 
@@ -100,7 +100,7 @@ Distributed under the [Apache 2.0](LICENSE). See `LICENSE` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Checkmarx - ONE Integrations Team
+Checkmarx - Checkmarx One Integrations Team
 
 Project Link: [https://github.com/Checkmarx/ast-jetbrains-plugin](https://github.com/Checkmarx/ast-jetbrains-plugin)
 

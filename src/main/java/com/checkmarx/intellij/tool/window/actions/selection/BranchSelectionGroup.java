@@ -151,7 +151,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
 
         /**
          * {@inheritDoc}
-         * Log the event and ignore it, we should only change ONE branch when the branch change is confirmed.
+         * Log the event and ignore it, we should only change Checkmarx One branch when the branch change is confirmed.
          */
         @Override
         public void branchWillChange(@NotNull String branchName) {
@@ -160,7 +160,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
 
         /**
          * {@inheritDoc}
-         * Trigger a branch change in ONE if the selected branch matches an available ONE branch for the current project.
+         * Trigger a branch change in Checkmarx One if the selected branch matches an available Checkmarx One branch for the current project.
          */
         @Override
         public void branchHasChanged(@NotNull String branchName) {
