@@ -263,7 +263,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             remediation.setToolTipText(Bundle.message(Resource.AUTO_REMEDIATION_TOOLTIP));
             remediation.setText(String.format(Constants.HTML_FONT_YELLOW_FORMAT, hex, "Upgrade to version: " + result.getData().getRecommendedVersion()));
             remediation.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            if (result.getData().getScaPackageData().isSupportsQuickFix()) {
+            if (result.getData().getScaPackageData() != null && result.getData().getScaPackageData().isSupportsQuickFix()) {
                 remediation.addMouseListener(new MouseAdapter() {
                     @SneakyThrows
                     @Override
