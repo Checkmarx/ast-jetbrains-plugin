@@ -40,7 +40,7 @@ public class TestSca extends BaseUITest {
         Assertions.assertTrue(dsvwRowIdx > 1);
         waitFor(() -> {
             tree.clickRow(dsvwRowIdx);
-            return findAll(LINK_LABEL).size() > 0;
+            return !findAll(LINK_LABEL).isEmpty();
         });
 
         Assertions.assertTrue(hasAnyComponent(MAGIC_RESOLVE));

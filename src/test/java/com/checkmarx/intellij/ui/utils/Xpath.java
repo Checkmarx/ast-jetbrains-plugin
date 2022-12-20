@@ -138,7 +138,7 @@ public class Xpath {
     static final String TAB_RECOMMENDATIONS_EXAMPLES = "//div[@text.key='REMEDIATION_EXAMPLES']";
     @Language("XPath")
     public
-    static final String MAGIC_RESOLVE = "//div[@disabledicon='magicResolve.svg']";
+    static final String MAGIC_RESOLVE = "//div[@tooltiptext.key='AUTO_REMEDIATION_TOOLTIP']";
     @Language("XPath")
     public
     static final String PROJECT_DOES_NOT_MATCH = "//div[@accessiblename.key='PROJECT_DOES_NOT_MATCH_TITLE']";
