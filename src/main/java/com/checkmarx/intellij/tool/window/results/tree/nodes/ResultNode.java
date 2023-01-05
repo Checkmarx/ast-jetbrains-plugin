@@ -98,6 +98,8 @@ public class ResultNode extends DefaultMutableTreeNode {
         URGENT
     }
 
+    public static final String UPGRADE_TO_VERSION_LABEL = "Upgrade to version: ";
+
     /**
      * Set node title and store the associated result
      *
@@ -261,7 +263,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         if (StringUtils.isNotBlank(result.getData().getRecommendedVersion())) {
             remediation.setIcon(AllIcons.Diff.MagicResolve);
             remediation.setToolTipText(Bundle.message(Resource.AUTO_REMEDIATION_TOOLTIP));
-            remediation.setText(String.format(Constants.HTML_FONT_YELLOW_FORMAT, hex, "Upgrade to version: " + result.getData().getRecommendedVersion()));
+            remediation.setText(String.format(Constants.HTML_FONT_YELLOW_FORMAT, hex, UPGRADE_TO_VERSION_LABEL + result.getData().getRecommendedVersion()));
             remediation.setCursor(new Cursor(Cursor.HAND_CURSOR));
             if (result.getData().getScaPackageData() != null && result.getData().getScaPackageData().isSupportsQuickFix()) {
                 remediation.addMouseListener(new MouseAdapter() {

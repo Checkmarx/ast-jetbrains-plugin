@@ -48,6 +48,9 @@ public class Xpath {
     static final String LINK_LABEL = "//div[@class='CxLinkLabel']";
     @Language("XPath")
     public
+    static final String NO_INFORMATION = "//div[@text.key='NO_INFORMATION']";
+    @Language("XPath")
+    public
     static final String EDITOR = "//div[@class='EditorComponentImpl']";
     @Language("XPath")
     public
@@ -138,7 +141,10 @@ public class Xpath {
     static final String TAB_RECOMMENDATIONS_EXAMPLES = "//div[@text.key='REMEDIATION_EXAMPLES']";
     @Language("XPath")
     public
-    static final String MAGIC_RESOLVE = "//div[@tooltiptext.key='AUTO_REMEDIATION_TOOLTIP']";
+    static final String AUTO_REMEDIATION = "//div[@tooltiptext.key='AUTO_REMEDIATION_TOOLTIP']";
+    @Language("XPath")
+    public
+    static final String MAGIC_RESOLVE = "//div[@defaulticon='magicResolve.svg']";
     @Language("XPath")
     public
     static final String PROJECT_DOES_NOT_MATCH = "//div[@accessiblename.key='PROJECT_DOES_NOT_MATCH_TITLE']";

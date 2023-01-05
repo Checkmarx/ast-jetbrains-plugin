@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode.UPGRADE_TO_VERSION_LABEL;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 
@@ -32,18 +33,29 @@ public class TestSca extends BaseUITest {
             navigate("HIGH", 4);
         }
 
-        navigate("Pip", 5);
+        navigate("Npm", 5);
 
-        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("CVE")).findFirst();
+        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("Cx")).findFirst();
         int dsvwRowIdx = cveRow.map(s -> tree.collectRows().indexOf(s)).orElse(-1);
 
         Assertions.assertTrue(dsvwRowIdx > 1);
         waitFor(() -> {
             tree.clickRow(dsvwRowIdx);
-            return !findAll(LINK_LABEL).isEmpty();
+            return findAll(LINK_LABEL).size() > 0;
         });
 
-        Assertions.assertTrue(hasAnyComponent(MAGIC_RESOLVE));
+        // If there is an auto remediation to the file, there must be a label starting with Upgrade to version. Otherwise, no information must be displayed
+        if(hasAnyComponent(AUTO_REMEDIATION)) {
+            waitFor(() -> {
+                tree.clickRow(dsvwRowIdx);
+                return  find(MAGIC_RESOLVE).getData().getAll().stream().anyMatch(element -> element.getText().startsWith(UPGRADE_TO_VERSION_LABEL));
+            });
+        } else {
+            waitFor(() -> {
+                tree.clickRow(dsvwRowIdx);
+                return findAll(NO_INFORMATION).size() > 0;
+            });
+        }
 
         testFileNavigation();
     }
