@@ -159,12 +159,15 @@ public abstract class BaseUITest {
     }
 
     private static void openSettings() {
+        waitFor(() -> hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON));
+        if (hasAnyComponent(SETTINGS_ACTION)) {
+            click(SETTINGS_ACTION);
+        } else if (hasAnyComponent(SETTINGS_BUTTON)) {
+            click(SETTINGS_BUTTON);
+        }
+
         waitFor(() -> {
-            if (hasAnyComponent(SETTINGS_ACTION)) {
-                click(SETTINGS_ACTION);
-            } else if (hasAnyComponent(SETTINGS_BUTTON)) {
-                click(SETTINGS_BUTTON);
-            }
+            find("//div[contains(@text.key, 'title.settings')]").click();
             return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
         });
     }
