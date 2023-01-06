@@ -159,7 +159,9 @@ public abstract class BaseUITest {
     }
 
     private static void openSettings() {
+        focusCxWindow();
         waitFor(() -> {
+            focusCxWindow();
             boolean hasComponent = hasAnyComponent("//div[@myaction.key='SETTINGS_ACTION']");
             boolean isShowing = find("//div[@myaction.key='SETTINGS_ACTION']").isShowing();
             System.out.println(" ======> hasComponent: " + hasComponent);
