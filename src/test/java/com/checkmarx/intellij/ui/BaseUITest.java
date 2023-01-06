@@ -30,6 +30,7 @@ public abstract class BaseUITest {
     protected static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
     private static boolean initialized = false;
     private static int retries = 0;
+    protected static ComponentFixture baseLabel;
 
     @BeforeAll
     public static void init() {
@@ -61,10 +62,10 @@ public abstract class BaseUITest {
     }
 
     private static void resizeToolBar() {
-        waitFor(() -> hasAnyComponent(BASE_LABEL));
+        focusCxWindow();
         Keyboard keyboard = new Keyboard(remoteRobot);
         for (int i = 0; i < 3; i++) {
-            find(BASE_LABEL).click();
+            focusCxWindow();
             if (remoteRobot.isMac()) {
                 keyboard.hotKey(KeyEvent.VK_SHIFT, KeyEvent.VK_META, KeyEvent.VK_UP);
             } else {
@@ -106,10 +107,7 @@ public abstract class BaseUITest {
         } catch (WaitForConditionTimeoutException e) {
             retries++;
             if (retries < 3) {
-                find(BASE_LABEL);
-                if (find(BASE_LABEL).isShowing()) {
-                    find(BASE_LABEL).click();
-                }
+                focusCxWindow();
             } else {
                 retries = 0;
                 throw e;
@@ -145,16 +143,16 @@ public abstract class BaseUITest {
             click(OK_BTN);
             // Ensure that start scan button and cancel scan button are visible with valid credentials
             waitFor(() -> {
-                find(BASE_LABEL).click();
+                focusCxWindow();
                 return hasAnyComponent(START_SCAN_BTN) && hasAnyComponent(CANCEL_SCAN_BTN);
             });
         } else {
             Assertions.assertFalse(hasAnyComponent(SUCCESS_CONNECTION));
             click(OK_BTN);
-            find(BASE_LABEL).click();
+            focusCxWindow();
             // Ensure that start scan button and cancel scan button are hidden with invalid credentials
             waitFor(() -> {
-                find(BASE_LABEL).click();
+                focusCxWindow();
                 return !hasAnyComponent(START_SCAN_BTN) && !hasAnyComponent(CANCEL_SCAN_BTN);
             });
         }
@@ -173,7 +171,7 @@ public abstract class BaseUITest {
 
     protected static void testFileNavigation() {
         waitFor(() -> {
-            find(BASE_LABEL).click();
+            focusCxWindow();
             findAll(LINK_LABEL).get(0).doubleClick();
             return hasAnyComponent(EDITOR);
         });
@@ -183,13 +181,13 @@ public abstract class BaseUITest {
     }
 
     protected void getResults() {
-        find(BASE_LABEL).click();
+        focusCxWindow();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
-        find(BASE_LABEL).click();
+        focusCxWindow();
         find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> {
-            find(BASE_LABEL).click();
+            focusCxWindow();
             return hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID));
         });
     }
@@ -199,7 +197,7 @@ public abstract class BaseUITest {
     }
 
     protected void waitForScanIdSelection() {
-        find(BASE_LABEL).click();
+        focusCxWindow();
         // check scan selection for the scan id
         waitFor(() -> hasAnyComponent(String.format(SCAN_ID_SELECTION, Environment.SCAN_ID, Environment.SCAN_ID)));
     }
@@ -230,12 +228,12 @@ public abstract class BaseUITest {
 
     protected void testSelectionAction(ActionButtonFixture selection, String prefix, String value) {
         waitFor(() -> {
-            find(BASE_LABEL).click();
+            focusCxWindow();
             System.out.println(selection.getTemplatePresentationText());
             return selection.isEnabled() && selection.getTemplatePresentationText().contains(prefix);
         });
         waitFor(() -> {
-            find(BASE_LABEL).click();
+            focusCxWindow();
             selection.click();
             List<JListFixture> jListFixtures = findAll(JListFixture.class, MY_LIST);
 
@@ -265,5 +263,15 @@ public abstract class BaseUITest {
             click(CLEAR_BTN);
             return false;
         });
+    }
+
+    private static void focusCxWindow() {
+        if(baseLabel != null && baseLabel.isShowing()) {
+            baseLabel.click();
+        } else {
+            waitFor(() -> hasAnyComponent(BASE_LABEL));
+            baseLabel = find(BASE_LABEL);
+            baseLabel.click();
+        }
     }
 }
