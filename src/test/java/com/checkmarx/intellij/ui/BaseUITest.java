@@ -159,14 +159,30 @@ public abstract class BaseUITest {
     }
 
     private static void openSettings() {
-        waitFor(() -> hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON));
-        if (hasAnyComponent(SETTINGS_ACTION)) {
+        waitFor(() -> {
+            boolean hasComponent = hasAnyComponent("//div[@myaction.key='SETTINGS_ACTION']");
+            boolean isShowing = find("//div[@myaction.key='SETTINGS_ACTION']").isShowing();
+            System.out.println(" ======> hasComponent: " + hasComponent);
+            System.out.println(" ======> isShowing: " + isShowing);
+
+            if(hasComponent && isShowing) {
+                find("//div[@myaction.key='SETTINGS_ACTION']").click();
+                return true;
+            }
+
+            return false;
+
+            //return (hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON)) &&;
+        });
+
+
+        /*if (hasAnyComponent(SETTINGS_ACTION)) {
             System.out.println(" ============> Click Settings action...");
             click(SETTINGS_ACTION);
         } else if (hasAnyComponent(SETTINGS_BUTTON)) {
             System.out.println(" ============> Click Settings button...");
             click(SETTINGS_BUTTON);
-        }
+        }*/
 
         waitFor(() -> {
             //find("//div[@class='Breadcrumbs']").click();
