@@ -167,7 +167,7 @@ public abstract class BaseUITest {
         }
 
         waitFor(() -> {
-            find("//div[contains(@text.key, 'title.settings')]").click();
+            find("//div[@class='Breadcrumbs']").click();
             return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
         });
     }
