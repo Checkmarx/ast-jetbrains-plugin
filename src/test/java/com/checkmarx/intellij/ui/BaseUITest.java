@@ -161,14 +161,18 @@ public abstract class BaseUITest {
     private static void openSettings() {
         waitFor(() -> hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON));
         if (hasAnyComponent(SETTINGS_ACTION)) {
+            System.out.println(" ============> Click Settings action...");
             click(SETTINGS_ACTION);
         } else if (hasAnyComponent(SETTINGS_BUTTON)) {
+            System.out.println(" ============> Click Settings button...");
             click(SETTINGS_BUTTON);
         }
 
         waitFor(() -> {
-            find("//div[@class='Breadcrumbs']").click();
-            return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
+            //find("//div[@class='Breadcrumbs']").click();
+            boolean has = hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
+            System.out.println("======== has apikey field: " + has);
+            return has;
         });
     }
 
