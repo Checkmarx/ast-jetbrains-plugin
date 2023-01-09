@@ -34,7 +34,6 @@ public abstract class BaseUITest {
     protected static ComponentFixture baseLabel;
 
     @BeforeAll
-    @Video
     public static void init() {
         if (!initialized) {
             log("Initializing the tests");
@@ -165,7 +164,6 @@ public abstract class BaseUITest {
         }*/
     }
 
-    @Video
     private static void openSettings() {
         waitFor(() -> {
             focusCxWindow();
