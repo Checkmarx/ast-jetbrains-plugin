@@ -46,6 +46,11 @@ public abstract class BaseUITest {
                 waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
                 find(CLONE_BUTTON).click();
                 trustClonedProject();
+                try {
+                    waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
+                } catch (WaitForConditionTimeoutException e) {
+                    // if exception is thrown, sync was successful, so we can keep going
+                }
             }
             // Open Checkmarx One plugin
             openCxToolWindow();
