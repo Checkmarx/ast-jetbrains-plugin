@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.ui;
 
+import com.automation.remarks.junit5.Video;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
 import com.intellij.remoterobot.fixtures.*;
@@ -33,6 +34,7 @@ public abstract class BaseUITest {
     protected static ComponentFixture baseLabel;
 
     @BeforeAll
+    @Video
     public static void init() {
         if (!initialized) {
             log("Initializing the tests");
@@ -158,6 +160,7 @@ public abstract class BaseUITest {
         }
     }
 
+    @Video
     private static void openSettings() {
         focusCxWindow();
         waitFor(() -> {
@@ -165,8 +168,9 @@ public abstract class BaseUITest {
             boolean hasComponent = hasAnyComponent("//div[@myaction.key='SETTINGS_ACTION']");
             boolean hasComponent1 = hasAnyComponent(SETTINGS_ACTION);
             boolean hasComponent2 = hasAnyComponent(SETTINGS_BUTTON);
+            boolean hasComponent3 = hasAnyComponent("//div[@text='Open Checkmarx One settings']");
 
-            if(hasComponent || hasComponent1 || hasComponent2) {
+            if(hasComponent || hasComponent1 || hasComponent2 || hasComponent3) {
                 System.out.println(" ======> Component found!");
                 System.out.println(hasComponent);
                 System.out.println(hasComponent1);
@@ -180,9 +184,13 @@ public abstract class BaseUITest {
                     find(SETTINGS_ACTION).click();
                     System.out.println(" =====> Clicked component1!");
                     return true;
-                }else {
+                }else if(hasComponent2){
                     find(SETTINGS_BUTTON).click();
                     System.out.println(" =====> Clicked component2!");
+                    return true;
+                } else {
+                    find("//div[@text='Open Checkmarx One settings']").click();
+                    System.out.println(" =====> Clicked component3!");
                     return true;
                 }
             } else {
