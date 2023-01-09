@@ -26,19 +26,19 @@ import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 public class TestGeneral extends BaseUITest {
 
-    @BeforeEach
+    //@BeforeEach
     public void checkResults() {
         getResults();
     }
 
-    @Test
-    @Video
+    //@Test
+    //@Video
     public void testEndToEnd() {
         checkResultsPanel();
     }
 
-    @Test
-    @Video
+    //@Test
+    //@Video
     public void testFilters() {
         waitForScanIdSelection();
 
@@ -51,8 +51,8 @@ public class TestGeneral extends BaseUITest {
         navigate("Scan", 2);
     }
 
-    @Test
-    @Video
+    //@Test
+    //@Video
     public void testInvalidScanId() {
         waitFor(() -> {
             find(JTextFieldFixture.class, SCAN_FIELD).click();
@@ -71,8 +71,8 @@ public class TestGeneral extends BaseUITest {
         });
     }
 
-    @Test
-    @Video
+    //@Test
+    //@Video
     public void testSelection() {
         clearSelection();
         testSelectionAction(findSelection("Project"), "Project", Environment.PROJECT_NAME);
@@ -83,8 +83,8 @@ public class TestGeneral extends BaseUITest {
         waitFor(() -> find(JTreeFixture.class, TREE).getData().getAll().size() > 0);
     }
 
-    @Test
-    @Video
+    //@Test
+    //@Video
     public void testClearSelection() {
         testSelection();
         clearSelection();

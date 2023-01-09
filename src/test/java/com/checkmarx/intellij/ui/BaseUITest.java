@@ -163,31 +163,34 @@ public abstract class BaseUITest {
         waitFor(() -> {
             focusCxWindow();
             boolean hasComponent = hasAnyComponent("//div[@myaction.key='SETTINGS_ACTION']");
-            boolean isShowing = find("//div[@myaction.key='SETTINGS_ACTION']").isShowing();
-            System.out.println(" ======> hasComponent: " + hasComponent);
-            System.out.println(" ======> isShowing: " + isShowing);
+            boolean hasComponent1 = hasAnyComponent(SETTINGS_ACTION);
+            boolean hasComponent2 = hasAnyComponent(SETTINGS_BUTTON);
 
-            if(hasComponent && isShowing) {
-                find("//div[@myaction.key='SETTINGS_ACTION']").click();
-                System.out.println(" ======> CLICKED! Open settings...");
-                return true;
+            if(hasComponent || hasComponent1 || hasComponent2) {
+                System.out.println(" ======> Component found!");
+                System.out.println(hasComponent);
+                System.out.println(hasComponent1);
+                System.out.println(hasComponent2);
+
+                if(hasComponent) {
+                    find("//div[@myaction.key='SETTINGS_ACTION']").click();
+                    System.out.println(" =====> Clicked component!");
+                    return true;
+                }else if(hasComponent1) {
+                    find(SETTINGS_ACTION).click();
+                    System.out.println(" =====> Clicked component1!");
+                    return true;
+                }else {
+                    find(SETTINGS_BUTTON).click();
+                    System.out.println(" =====> Clicked component2!");
+                    return true;
+                }
+            } else {
+                System.out.println(" COMPONENT NOT FOUND !!!");
+                return false;
             }
 
-            focusCxWindow();
-            boolean hasComponent1 = hasAnyComponent(SETTINGS_BUTTON);
-            boolean isShowing1 = find(SETTINGS_BUTTON).isShowing();
-            System.out.println(" ======> hasComponent1: " + hasComponent1);
-            System.out.println(" ======> isShowing1: " + isShowing1);
-
-            if(hasComponent1 && isShowing1) {
-                find(SETTINGS_BUTTON).click();
-                System.out.println(" ======> CLICKED! Open settings...");
-                return true;
-            }
-
-            return false;
-
-            //return (hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON)) &&;
+            //return (hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON));
         });
 
 
