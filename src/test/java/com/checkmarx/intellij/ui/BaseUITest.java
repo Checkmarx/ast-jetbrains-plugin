@@ -169,6 +169,19 @@ public abstract class BaseUITest {
 
             if(hasComponent && isShowing) {
                 find("//div[@myaction.key='SETTINGS_ACTION']").click();
+                System.out.println(" ======> CLICKED! Open settings...");
+                return true;
+            }
+
+            focusCxWindow();
+            boolean hasComponent1 = hasAnyComponent(SETTINGS_BUTTON);
+            boolean isShowing1 = find(SETTINGS_BUTTON).isShowing();
+            System.out.println(" ======> hasComponent1: " + hasComponent1);
+            System.out.println(" ======> isShowing1: " + isShowing1);
+
+            if(hasComponent1 && isShowing1) {
+                find(SETTINGS_BUTTON).click();
+                System.out.println(" ======> CLICKED! Open settings...");
                 return true;
             }
 
