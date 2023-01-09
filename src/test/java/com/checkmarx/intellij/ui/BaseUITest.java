@@ -119,9 +119,9 @@ public abstract class BaseUITest {
 
     private static void openCxToolWindow() {
         log("Opening Cx Tool Window");
-        waitFor(() -> hasAnyComponent(CHECKMARX_STRIPE_BTN));
+        waitFor(() -> hasAnyComponent("//div[@tooltiptext.key='NOTIFICATION_GROUP_NAME']"));
         if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
-            find(CHECKMARX_STRIPE_BTN).click();
+            find("//div[@tooltiptext.key='NOTIFICATION_GROUP_NAME']").click();
         }
     }
 
@@ -162,64 +162,15 @@ public abstract class BaseUITest {
 
     @Video
     private static void openSettings() {
-        focusCxWindow();
         waitFor(() -> {
             focusCxWindow();
-            boolean hasComponent = hasAnyComponent("//div[@myaction.key='SETTINGS_ACTION']");
-            boolean hasComponent1 = hasAnyComponent(SETTINGS_ACTION);
-            boolean hasComponent2 = hasAnyComponent(SETTINGS_BUTTON);
-            boolean hasComponent3 = hasAnyComponent("//div[@text='Open Checkmarx One settings']");
-            boolean hasClearBtn = hasAnyComponent(CLEAR_BTN);
-
-            System.out.println(" ==== has clear btn ===> " + hasClearBtn);
-
-            if(hasComponent || hasComponent1 || hasComponent2 || hasComponent3) {
-                System.out.println(" ======> Component found!");
-                System.out.println(hasComponent);
-                System.out.println(hasComponent1);
-                System.out.println(hasComponent2);
-
-                if(hasComponent) {
-                    find("//div[@myaction.key='SETTINGS_ACTION']").click();
-                    System.out.println(" =====> Clicked component!");
-                    return true;
-                }else if(hasComponent1) {
-                    find(SETTINGS_ACTION).click();
-                    System.out.println(" =====> Clicked component1!");
-                    return true;
-                }else if(hasComponent2){
-                    find(SETTINGS_BUTTON).click();
-                    System.out.println(" =====> Clicked component2!");
-                    return true;
-                } else {
-                    find("//div[@text='Open Checkmarx One settings']").click();
-                    System.out.println(" =====> Clicked component3!");
-                    return true;
-                }
-            } else {
-                System.out.println(" COMPONENT NOT FOUND !!!");
-                return false;
+            if (hasAnyComponent(SETTINGS_ACTION)) {
+                click(SETTINGS_ACTION);
+            } else if (hasAnyComponent(SETTINGS_BUTTON)) {
+                click(SETTINGS_BUTTON);
             }
-
-            //return (hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON));
+            return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
         });
-
-
-        /*if (hasAnyComponent(SETTINGS_ACTION)) {
-            System.out.println(" ============> Click Settings action...");
-            click(SETTINGS_ACTION);
-        } else if (hasAnyComponent(SETTINGS_BUTTON)) {
-            System.out.println(" ============> Click Settings button...");
-            click(SETTINGS_BUTTON);
-        }*/
-
-        /*waitFor(() -> {
-            //find("//div[@class='Breadcrumbs']").click();
-            boolean has = hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
-            System.out.println("======== has apikey field: " + has);
-            return has;
-        });
-        */
     }
 
     protected static void testFileNavigation() {
@@ -319,6 +270,14 @@ public abstract class BaseUITest {
     }
 
     private static void focusCxWindow() {
+        boolean cxPluginOpened = find("//div[@tooltiptext.key='NOTIFICATION_GROUP_NAME']").getData().hasText("Checkmarx");
+        System.out.println("Plugin opened: " + cxPluginOpened);
+
+        if(!cxPluginOpened) {
+            openCxToolWindow();
+            return;
+        }
+
         if(baseLabel != null && baseLabel.isShowing()) {
             baseLabel.click();
         } else {
