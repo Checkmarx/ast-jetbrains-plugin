@@ -270,7 +270,7 @@ public abstract class BaseUITest {
     }
 
     private static void focusCxWindow() {
-        boolean cxPluginOpened = find("//div[@tooltiptext.key='NOTIFICATION_GROUP_NAME']").getData().hasText("Checkmarx");
+        boolean cxPluginOpened = find(BASE_LABEL).hasText("Checkmarx");
         System.out.println("Plugin opened: " + cxPluginOpened);
 
         if(!cxPluginOpened) {
