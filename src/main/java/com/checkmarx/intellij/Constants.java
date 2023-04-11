@@ -22,7 +22,8 @@ public final class Constants {
     public static final String NOTIFICATION_GROUP_ID = "Checkmarx.Notifications";
 
     public static final String ADDITIONAL_PARAMETERS_HELP
-            = "https://checkmarx.com/resource/documents/en/34965-68643-scan.html#UUID-a0bb20d5-5182-3fb4-3da0-0e263344ffe7";
+            = "https://checkmarx.com/resource/documents/en/34965-68626-global-flags.html";
+
     public static final String INTELLIJ_HELP
             = "https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html";
 
