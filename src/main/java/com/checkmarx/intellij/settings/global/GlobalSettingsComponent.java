@@ -169,7 +169,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
         mainPanel.add(new JBLabel());
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
                       "gapleft 5, wrap");
-
         mainPanel.add(validateButton, "sizegroup bttn, gaptop 30");
         mainPanel.add(validateResult, "gapleft 5, gaptop 30");
     }

@@ -11,6 +11,7 @@ import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.NonLeafNode;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.hover.TreeHoverListener;
 import com.intellij.ui.tree.ui.DefaultTreeUI;
@@ -33,12 +34,12 @@ public class ResultsTreeFactory {
     /**
      * Get results from the CLI in a tree format.
      *
-     * @param scanId            scan id
-     * @param results           list of results
-     * @param project           context project
-     * @param groupByList       list of {@link GroupBy}
-     * @param enabledFilters    set of enabled {@link Filterable}
-     * @param latest            whether the scan id is the latest
+     * @param scanId         scan id
+     * @param results        list of results
+     * @param project        context project
+     * @param groupByList    list of {@link GroupBy}
+     * @param enabledFilters set of enabled {@link Filterable}
+     * @param latest         whether the scan id is the latest
      * @return tree with results
      */
     @NotNull
@@ -54,13 +55,13 @@ public class ResultsTreeFactory {
         Map<String, NonLeafNode> engineNodes = new HashMap<>();
         // Make sure sca type groupBy is always applied first
         groupByList.remove(SCA_TYPE);
-        groupByList.add(0,SCA_TYPE);
+        groupByList.add(0, SCA_TYPE);
         for (Result result : results.getResults()) {
             if (enabledFilters.contains(Severity.valueOf(result.getSeverity())) && enabledFilters.contains(ResultState.valueOf(result.getState()))) {
                 addResultToEngine(project,
-                                  groupByList,
-                                  engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
-                                  result, scanId);
+                        groupByList,
+                        engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
+                        result, scanId);
             }
         }
 
@@ -85,7 +86,9 @@ public class ResultsTreeFactory {
             // search for the child node
             Iterator<TreeNode> it = parent.children().asIterator();
             while (it.hasNext()) {
-                NonLeafNode newChild = (NonLeafNode) it.next();
+                TreeNode node = it.next();
+                if (!(node instanceof NonLeafNode)) continue;
+                NonLeafNode newChild = (NonLeafNode) node;
                 if (childKey.equals(newChild.getUserObject())) {
                     child = newChild;
                     break;
