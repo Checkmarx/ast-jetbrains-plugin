@@ -14,6 +14,7 @@ public class RemoteRobotUtils {
     public static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
 
     public static boolean hasAnyComponent(@Language("XPath") String xpath) {
+        System.out.println("Checking hasAnyComponent: " + xpath);
         return UtilsKt.hasAnyComponent(remoteRobot, Locators.byXpath(xpath));
     }
 
