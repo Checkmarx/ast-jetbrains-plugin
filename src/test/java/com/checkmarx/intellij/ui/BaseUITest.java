@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.ui;
 
-import com.automation.remarks.junit5.Video;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
 import com.intellij.remoterobot.fixtures.*;
@@ -137,7 +136,7 @@ public abstract class BaseUITest {
     protected static void testASTConnection(boolean validCredentials) {
         openSettings();
 
-        /*setField(Constants.FIELD_NAME_API_KEY, validCredentials ? Environment.API_KEY : "invalidAPIKey");
+        setField(Constants.FIELD_NAME_API_KEY, validCredentials ? Environment.API_KEY : "invalidAPIKey");
         setField(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS, "--debug");
 
         click(VALIDATE_BUTTON);
@@ -161,7 +160,7 @@ public abstract class BaseUITest {
                 focusCxWindow();
                 return !hasAnyComponent(START_SCAN_BTN) && !hasAnyComponent(CANCEL_SCAN_BTN);
             });
-        }*/
+        }
     }
 
     private static void openSettings() {
