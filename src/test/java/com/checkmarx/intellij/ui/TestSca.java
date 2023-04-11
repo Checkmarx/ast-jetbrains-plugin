@@ -27,7 +27,11 @@ public class TestSca extends BaseUITest {
 
         JTreeFixture tree = find(JTreeFixture.class, TREE);
 
-        List<RemoteText> scaHighNodes = tree.getData().getAll().stream().filter(t -> t.getText().startsWith("HIGH")).collect(Collectors.toList());
+        List<RemoteText> scaHighNodes = tree.getData()
+                                            .getAll()
+                                            .stream()
+                                            .filter(t -> t.getText().startsWith("HIGH"))
+                                            .collect(Collectors.toList());
 
         if (scaHighNodes.size() != 0) {
             navigate("HIGH", 4);
@@ -45,10 +49,13 @@ public class TestSca extends BaseUITest {
         });
 
         // If there is an auto remediation to the file, there must be a label starting with Upgrade to version. Otherwise, no information must be displayed
-        if(hasAnyComponent(AUTO_REMEDIATION)) {
+        if (hasAnyComponent(AUTO_REMEDIATION)) {
             waitFor(() -> {
                 tree.clickRow(dsvwRowIdx);
-                return  find(MAGIC_RESOLVE).getData().getAll().stream().anyMatch(element -> element.getText().startsWith(UPGRADE_TO_VERSION_LABEL));
+                return find(MAGIC_RESOLVE).getData()
+                                          .getAll()
+                                          .stream()
+                                          .anyMatch(element -> element.getText().startsWith(UPGRADE_TO_VERSION_LABEL));
             });
         } else {
             waitFor(() -> {
