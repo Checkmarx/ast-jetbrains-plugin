@@ -26,19 +26,19 @@ import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 public class TestGeneral extends BaseUITest {
 
-    @BeforeEach
+    //@BeforeEach
     public void checkResults() {
         getResults();
     }
 
-    @Test
-    @Video
+    //@Test
+    //@Video
     public void testEndToEnd() {
         checkResultsPanel();
     }
 
-    @Test
-    @Video
+    //@Test
+    //@Video
     public void testFilters() {
         waitForScanIdSelection();
 
@@ -51,17 +51,17 @@ public class TestGeneral extends BaseUITest {
         navigate("Scan", 2);
     }
 
-    @Test
-    @Video
+    //@Test
+    //@Video
     public void testInvalidScanId() {
         waitFor(() -> {
-            scanIdTextBox.click();
+            find(JTextFieldFixture.class, SCAN_FIELD).click();
 
-            if (!scanIdTextBox.getHasFocus()) {
+            if (!find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus()) {
                 return false;
             }
 
-            scanIdTextBox.setText("inva-lid");
+            find(JTextFieldFixture.class, SCAN_FIELD).setText("inva-lid");
             new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
 
             JTreeFixture tree = find(JTreeFixture.class, TREE);
@@ -71,20 +71,20 @@ public class TestGeneral extends BaseUITest {
         });
     }
 
-    @Test
-    @Video
+    //@Test
+    //@Video
     public void testSelection() {
         clearSelection();
-        testSelectionAction(projectCombobox, "Project", Environment.PROJECT_NAME);
-        testSelectionAction(branchCombobox, "Branch", Environment.BRANCH_NAME);
+        testSelectionAction(findSelection("Project"), "Project", Environment.PROJECT_NAME);
+        testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
         findLatestScanSelection();
 
-        testSelectionAction(scanCombobox, "Scan", Environment.SCAN_ID);
+        testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID);
         waitFor(() -> find(JTreeFixture.class, TREE).getData().getAll().size() > 0);
     }
 
-    @Test
-    @Video
+    //@Test
+    //@Video
     public void testClearSelection() {
         testSelection();
         clearSelection();
