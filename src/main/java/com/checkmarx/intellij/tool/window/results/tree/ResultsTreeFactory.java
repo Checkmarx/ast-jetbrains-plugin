@@ -85,10 +85,13 @@ public class ResultsTreeFactory {
             // search for the child node
             Iterator<TreeNode> it = parent.children().asIterator();
             while (it.hasNext()) {
-                NonLeafNode newChild = (NonLeafNode) it.next();
-                if (childKey.equals(newChild.getUserObject())) {
-                    child = newChild;
-                    break;
+                TreeNode node = it.next();
+                if (node instanceof  NonLeafNode) {
+                    NonLeafNode newChild = (NonLeafNode) node;
+                    if (childKey.equals(newChild.getUserObject())) {
+                        child = newChild;
+                        break;
+                    }
                 }
             }
             if (child == null) {
