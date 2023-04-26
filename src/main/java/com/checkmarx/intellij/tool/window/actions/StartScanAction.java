@@ -50,9 +50,8 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
     private boolean isPollingScan = false;
     private boolean scanTriggered = false;
-    @Getter
     @Setter
-    private static boolean userHasPermissionsToScan;
+    private static Boolean userHasPermissionsToScan;
     // state variable used to check if a scan is running when IDE restarts
     private boolean actionInitialized = false;
 
@@ -63,10 +62,20 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
     private static Task.Backgroundable pollScanTask = null;
 
-    public StartScanAction() throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
+    public StartScanAction() {
         super(Bundle.messagePointer(Resource.START_SCAN_ACTION));
+    }
 
-        userHasPermissionsToScan = TenantSetting.isScanAllowed();
+    public static Boolean getUserHasPermissionsToScan() {
+        if (userHasPermissionsToScan == null) {
+            try {
+                userHasPermissionsToScan = TenantSetting.isScanAllowed();
+            } catch (Exception ex) {
+                userHasPermissionsToScan = false;
+                LOGGER.error(ex);
+            }
+        }
+        return userHasPermissionsToScan;
     }
 
     /**
@@ -253,10 +262,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     public void update(@NotNull AnActionEvent e) {
         super.update(e);
 
-        if(!userHasPermissionsToScan){
-            e.getPresentation().setVisible(userHasPermissionsToScan);
-            return;
-        }
+        e.getPresentation().setVisible(getUserHasPermissionsToScan());
 
         cxToolWindowPanel = getCxToolWindowPanel(e);
         workspaceProject = e.getProject();
