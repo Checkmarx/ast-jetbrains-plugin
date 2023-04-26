@@ -4,20 +4,6 @@ on:
   push:
     tags:
       - "*"
-
-env:
-  CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
-  CX_APIKEY: ${{ secrets.CX_APIKEY }}
-  CX_TENANT: ${{ secrets.CX_TENANT }}
-  CX_TEST_REPO: ${{ secrets.CX_TEST_REPO }}
-  CX_TEST_SCAN: ${{ secrets.CX_TEST_SCAN }}
-  CX_TEST_BRANCH: ${{ secrets.CX_TEST_BRANCH }}
-  CX_TEST_PROJECT: ${{ secrets.CX_TEST_PROJECT }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  CX_NOT_MATCH_TEST_PROJECT: ${{ secrets.CX_NOT_MATCH_TEST_PROJECT }}
-  CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
-
-on:
   workflow_call:
     inputs:
       dev:
@@ -32,6 +18,19 @@ on:
         required: false
         default: true
         type: boolean
+
+env:
+  CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
+  CX_APIKEY: ${{ secrets.CX_APIKEY }}
+  CX_TENANT: ${{ secrets.CX_TENANT }}
+  CX_TEST_REPO: ${{ secrets.CX_TEST_REPO }}
+  CX_TEST_SCAN: ${{ secrets.CX_TEST_SCAN }}
+  CX_TEST_BRANCH: ${{ secrets.CX_TEST_BRANCH }}
+  CX_TEST_PROJECT: ${{ secrets.CX_TEST_PROJECT }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  CX_NOT_MATCH_TEST_PROJECT: ${{ secrets.CX_NOT_MATCH_TEST_PROJECT }}
+  CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
+
 
 jobs:
   verify:
