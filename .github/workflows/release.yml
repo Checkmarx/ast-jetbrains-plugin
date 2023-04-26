@@ -17,6 +17,22 @@ env:
   CX_NOT_MATCH_TEST_PROJECT: ${{ secrets.CX_NOT_MATCH_TEST_PROJECT }}
   CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
 
+on:
+  workflow_call:
+    inputs:
+      dev:
+        description: 'Is dev build'
+        required: false
+        default: true
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      dev:
+        description: 'Is dev build'
+        required: false
+        default: true
+        type: boolean
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -67,83 +83,83 @@ jobs:
           name: test-fails-report-integration
           path: |
             build/reports
-#   testUI:
-#     needs: [ testIntegration ]
-#     runs-on: ${{ matrix.os }}
-#     strategy:
-#       fail-fast: true
-#       max-parallel: 1
-#       matrix:
-#         include:
-#           - os: windows-latest
-#             runIde: |
-#               Set-DisplayResolution -Width 1920 -Height 1080 -Force
-#               start .\runIdeForUiTests.bat
-#             runTests: |
-#               Set-DisplayResolution -Width 1920 -Height 1080 -Force
-#               ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
-#             report-name: test-fails-report-windows
-#             report-path: build/reports
-#             idea-log: idea-windows.log
-#             curl: curl.exe
-#           - os: macos-latest
-#             runIde: |
-#               "/Library/Application Support/VMware Tools/vmware-resolutionSet" 1920 1080
-#               ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
-#             runTests: ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
-#             report-name: test-fails-report-mac
-#             report-path: build/reports
-#             idea-log: idea-mac.log
-#             curl: curl
-#     steps:
-#       # Check out current repository
-#       - name: Fetch Sources
-#         uses: actions/checkout@v3
-#       # Setup Java 11 environment for the next steps
-#       - name: Setup Java
-#         uses: actions/setup-java@v3.11.0
-#         with:
-#           distribution: zulu
-#           java-version: 11
-#       - name: Setup FFmpeg
-#         uses: FedericoCarboni/setup-ffmpeg@v1
-#         with:
-#           # Not strictly necessary, but it may prevent rate limit
-#           # errors especially on GitHub-hosted macos machines.
-#           token: ${{ secrets.GITHUB_TOKEN }}
-#       # Perform clean before testing
-#       - name: Clean
-#         run: ./gradlew clean
-#       # Run IDEA prepared for UI testing
-#       - name: Run IDE
-#         run: ${{ matrix.runIde }}
-#       # Wait for IDEA to be started
-#       - name: Health Check
-#         run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "15" --retry-connrefused "http://127.0.0.1:8580"
-#       # Run tests
-#       - name: Tests
-#         run: ${{ matrix.runTests }}
-#       - name: Move video
-#         if: ${{ failure() }}
-#         run: mv video ${{ matrix.report-path }}
-#       # Save report if tests fail
-#       - name: Save fails report
-#         if: ${{ failure() }}
-#         uses: actions/upload-artifact@v3
-#         with:
-#           name: ${{ matrix.report-name }}
-#           path: |
-#             ${{ matrix.report-path }}
-#       # Save idea log if tests fail
-#       - name: Save idea log
-#         if: ${{ failure() }}
-#         uses: actions/upload-artifact@v3
-#         with:
-#           name: ${{ matrix.idea-log }}
-#           path: |
-#             idea.log
+  #   testUI:
+  #     needs: [ testIntegration ]
+  #     runs-on: ${{ matrix.os }}
+  #     strategy:
+  #       fail-fast: true
+  #       max-parallel: 1
+  #       matrix:
+  #         include:
+  #           - os: windows-latest
+  #             runIde: |
+  #               Set-DisplayResolution -Width 1920 -Height 1080 -Force
+  #               start .\runIdeForUiTests.bat
+  #             runTests: |
+  #               Set-DisplayResolution -Width 1920 -Height 1080 -Force
+  #               ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
+  #             report-name: test-fails-report-windows
+  #             report-path: build/reports
+  #             idea-log: idea-windows.log
+  #             curl: curl.exe
+  #           - os: macos-latest
+  #             runIde: |
+  #               "/Library/Application Support/VMware Tools/vmware-resolutionSet" 1920 1080
+  #               ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
+  #             runTests: ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
+  #             report-name: test-fails-report-mac
+  #             report-path: build/reports
+  #             idea-log: idea-mac.log
+  #             curl: curl
+  #     steps:
+  #       # Check out current repository
+  #       - name: Fetch Sources
+  #         uses: actions/checkout@v3
+  #       # Setup Java 11 environment for the next steps
+  #       - name: Setup Java
+  #         uses: actions/setup-java@v3.11.0
+  #         with:
+  #           distribution: zulu
+  #           java-version: 11
+  #       - name: Setup FFmpeg
+  #         uses: FedericoCarboni/setup-ffmpeg@v1
+  #         with:
+  #           # Not strictly necessary, but it may prevent rate limit
+  #           # errors especially on GitHub-hosted macos machines.
+  #           token: ${{ secrets.GITHUB_TOKEN }}
+  #       # Perform clean before testing
+  #       - name: Clean
+  #         run: ./gradlew clean
+  #       # Run IDEA prepared for UI testing
+  #       - name: Run IDE
+  #         run: ${{ matrix.runIde }}
+  #       # Wait for IDEA to be started
+  #       - name: Health Check
+  #         run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "15" --retry-connrefused "http://127.0.0.1:8580"
+  #       # Run tests
+  #       - name: Tests
+  #         run: ${{ matrix.runTests }}
+  #       - name: Move video
+  #         if: ${{ failure() }}
+  #         run: mv video ${{ matrix.report-path }}
+  #       # Save report if tests fail
+  #       - name: Save fails report
+  #         if: ${{ failure() }}
+  #         uses: actions/upload-artifact@v3
+  #         with:
+  #           name: ${{ matrix.report-name }}
+  #           path: |
+  #             ${{ matrix.report-path }}
+  #       # Save idea log if tests fail
+  #       - name: Save idea log
+  #         if: ${{ failure() }}
+  #         uses: actions/upload-artifact@v3
+  #         with:
+  #           name: ${{ matrix.idea-log }}
+  #           path: |
+  #             idea.log
   release:
-#   needs: [ testUI ]
+    #   needs: [ testUI ]
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
@@ -173,4 +189,7 @@ jobs:
       - name: Publish Plugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        if: inputs.dev == false
         run: ./gradlew publishPlugin
+        if: inputs.dev == true
+        run: ./gradlew publishPluginDev
