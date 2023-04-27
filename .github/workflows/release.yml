@@ -191,4 +191,4 @@ jobs:
         if: inputs.dev == false
         run: ./gradlew publishPlugin
         if: inputs.dev == true
-        run: ./gradlew publishPluginDev
+        run: ./gradlew publishPlugin
