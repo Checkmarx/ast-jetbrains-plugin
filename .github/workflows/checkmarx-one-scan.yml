@@ -29,6 +29,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Test if comparison works
+        env:
+          prerelease: ${{ inputs.channels != '' && inputs.channels != null }}
+        run:
+          echo "$prerelease"
 
       - name: Setup Java
         uses: actions/setup-java@v3.11.0
