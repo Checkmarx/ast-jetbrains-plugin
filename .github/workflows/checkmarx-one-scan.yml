@@ -36,7 +36,9 @@ jobs:
       - name: Set input
         run: echo "::set-input name=inputs.channels::beta"
       - name: Set input 2
-        run: echo "::set-input name=channels::beta"
+        run: | 
+          echo "::set-input name=channels::beta"
+          echo "${{ inputs.channels }}"
       - name: Test if comparison works
         env:
           prerelease: ${{ inputs.channels != '' && inputs.channels != null }}
