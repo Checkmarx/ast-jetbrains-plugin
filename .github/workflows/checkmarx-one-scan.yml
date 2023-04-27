@@ -1,15 +1,19 @@
 name: Checkmarx One Scan
 
-on: [ pull_request, workflow_dispatch, workflow_call ]:
-      inputs:
-        tag:
-          description: 'Next release tag'
-          required: true
-          type: string
-        channels:
-          description: 'Channels to publish development releases'
-          required: false
-          type: string
+on:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+inputs:
+  tag:
+    description: 'Next release tag'
+    required: true
+    type: string
+  channels:
+    description: 'Channels to publish development releases'
+    required: false
+    type: string
+
 jobs:
   cx-scan:
     runs-on: ubuntu-latest
