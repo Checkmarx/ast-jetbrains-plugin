@@ -36,8 +36,9 @@ jobs:
       - name: Test if comparison works
         env:
           prerelease: ${{ inputs.channels != '' && inputs.channels != null }}
-        run:
+        run: |
           echo "$prerelease"
+          echo "${{ inputs.channels }}"
 
       - name: Setup Java
         uses: actions/setup-java@v3.11.0
