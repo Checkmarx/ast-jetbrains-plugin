@@ -30,9 +30,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Save state
-        run: echo "::save-state name=channels::beta"
+        run: echo "::save-state name=inputs.channels::beta"
       - name: Set output
-        run: echo "::set-output name=channels::beta"
+        run: echo "::set-output name=inputs.channels::beta"
+      - name: Set input
+        run: echo "::set-input name=inputs.channels::beta"
+      - name: Set input 2
+        run: echo "::set-input name=channels::beta"
       - name: Test if comparison works
         env:
           prerelease: ${{ inputs.channels != '' && inputs.channels != null }}
