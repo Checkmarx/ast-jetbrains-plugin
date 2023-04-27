@@ -3,16 +3,25 @@ name: Checkmarx One Scan
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Next release tag'
+        required: true
+        type: string
+      channels:
+        description: 'Channels to publish development releases'
+        required: false
+        type: string
   workflow_call:
-inputs:
-  tag:
-    description: 'Next release tag'
-    required: true
-    type: string
-  channels:
-    description: 'Channels to publish development releases'
-    required: false
-    type: string
+    inputs:
+      tag:
+        description: 'Next release tag'
+        required: true
+        type: string
+      channels:
+        description: 'Channels to publish development releases'
+        required: false
+        type: string
 
 jobs:
   cx-scan:
@@ -26,11 +35,7 @@ jobs:
         with:
           distribution: zulu
           java-version: 11
-      - name: Testing if prerelase works
-        env:
-          prerelease: ${{ inputs.channels != '' && inputs.channels != null }}
-        run: |
-          echo "prerelease: $prerelease"
+
       - name: Checkmarx One CLI Action
         uses: checkmarx/ast-github-action@main
         with:
