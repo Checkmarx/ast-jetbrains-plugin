@@ -66,13 +66,11 @@ runIdeForUiTests {
 
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
-    if (project.hasProperty("dev")) {
-        if (dev.toBoolean()) {
-
-            channels["beta"]
-        }
+    if (project.hasProperty("channels")) {
+        channels[channels.toString()]
     }
 }
+
 
 java {
     toolchain {
