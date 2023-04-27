@@ -68,12 +68,6 @@ publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
 }
 
-publishPluginDev {
-    token.set System.getenv("PUBLISH_TOKEN")
-    channels = ['beta']
-}
-
-
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(11))
