@@ -29,9 +29,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Test if comparison works
+      - name: Setting channels
         run: |
           echo "::set-output name=channels::beta"
+      - name: Test if comparison works
         env:
           prerelease: ${{ inputs.channels != '' && inputs.channels != null }}
         run:
