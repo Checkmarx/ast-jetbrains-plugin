@@ -1,11 +1,12 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "*"
   workflow_call:
     inputs:
+      tag:
+        description: 'Next release tag'
+        required: true
+        type: string
       dev:
         description: 'Is dev build'
         required: false
@@ -13,6 +14,10 @@ on:
         type: boolean
   workflow_dispatch:
     inputs:
+      tag:
+        description: 'Next release tag'
+        required: true
+        type: string
       dev:
         description: 'Is dev build'
         required: false
