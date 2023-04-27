@@ -188,7 +188,4 @@ jobs:
       - name: Publish Plugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-        if: inputs.dev == false
-        run: ./gradlew publishPlugin
-        if: inputs.dev == true
-        run: ./gradlew publishPlugin
+        run: ./gradlew publishPlugin -Pdev=${{ inputs.dev }}
