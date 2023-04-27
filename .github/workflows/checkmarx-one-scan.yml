@@ -30,6 +30,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Test if comparison works
+        run: |
+          echo "::set-output name=channels::beta"
         env:
           prerelease: ${{ inputs.channels != '' && inputs.channels != null }}
         run:
