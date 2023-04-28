@@ -110,7 +110,9 @@ jobs:
           java-version: 11
       # Set the tag in an env var
       - name: Set env
-        run: echo "RELEASE_VERSION=${{ inputs.tag }}" >> $GITHUB_ENV
+        run: | 
+          echo "RELEASE_VERSION=${{ inputs.tag }}" >> $GITHUB_ENV
+          echo "JAVA_WRAPPER_VERSION=${{ inputs.javawrapperversion }}" >> $GITHUB_ENV
       # Build plugin
       - name: Build
         env:
