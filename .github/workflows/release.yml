@@ -7,6 +7,11 @@ on:
         description: 'Next release tag'
         required: true
         type: string
+      javawrapperversion:
+        description: 'Java Wrapper Version'
+        required: true
+        type: string
+        default: '1.0.57'
       channels:
         description: 'Channels to publish development releases'
         required: false
@@ -17,6 +22,11 @@ on:
         description: 'Next release tag'
         required: true
         type: string
+      javawrapperversion:
+        description: 'Java Wrapper Version'
+        required: true
+        type: string
+        default: '1.0.57'
       channels:
         description: 'Channels to publish development releases'
         required: false
@@ -85,83 +95,8 @@ jobs:
           name: test-fails-report-integration
           path: |
             build/reports
-  #   testUI:
-  #     needs: [ testIntegration ]
-  #     runs-on: ${{ matrix.os }}
-  #     strategy:
-  #       fail-fast: true
-  #       max-parallel: 1
-  #       matrix:
-  #         include:
-  #           - os: windows-latest
-  #             runIde: |
-  #               Set-DisplayResolution -Width 1920 -Height 1080 -Force
-  #               start .\runIdeForUiTests.bat
-  #             runTests: |
-  #               Set-DisplayResolution -Width 1920 -Height 1080 -Force
-  #               ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
-  #             report-name: test-fails-report-windows
-  #             report-path: build/reports
-  #             idea-log: idea-windows.log
-  #             curl: curl.exe
-  #           - os: macos-latest
-  #             runIde: |
-  #               "/Library/Application Support/VMware Tools/vmware-resolutionSet" 1920 1080
-  #               ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
-  #             runTests: ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
-  #             report-name: test-fails-report-mac
-  #             report-path: build/reports
-  #             idea-log: idea-mac.log
-  #             curl: curl
-  #     steps:
-  #       # Check out current repository
-  #       - name: Fetch Sources
-  #         uses: actions/checkout@v3
-  #       # Setup Java 11 environment for the next steps
-  #       - name: Setup Java
-  #         uses: actions/setup-java@v3.11.0
-  #         with:
-  #           distribution: zulu
-  #           java-version: 11
-  #       - name: Setup FFmpeg
-  #         uses: FedericoCarboni/setup-ffmpeg@v1
-  #         with:
-  #           # Not strictly necessary, but it may prevent rate limit
-  #           # errors especially on GitHub-hosted macos machines.
-  #           token: ${{ secrets.GITHUB_TOKEN }}
-  #       # Perform clean before testing
-  #       - name: Clean
-  #         run: ./gradlew clean
-  #       # Run IDEA prepared for UI testing
-  #       - name: Run IDE
-  #         run: ${{ matrix.runIde }}
-  #       # Wait for IDEA to be started
-  #       - name: Health Check
-  #         run: ${{ matrix.curl }} --fail -sv --retry "15" --retry-delay "15" --retry-connrefused "http://127.0.0.1:8580"
-  #       # Run tests
-  #       - name: Tests
-  #         run: ${{ matrix.runTests }}
-  #       - name: Move video
-  #         if: ${{ failure() }}
-  #         run: mv video ${{ matrix.report-path }}
-  #       # Save report if tests fail
-  #       - name: Save fails report
-  #         if: ${{ failure() }}
-  #         uses: actions/upload-artifact@v3
-  #         with:
-  #           name: ${{ matrix.report-name }}
-  #           path: |
-  #             ${{ matrix.report-path }}
-  #       # Save idea log if tests fail
-  #       - name: Save idea log
-  #         if: ${{ failure() }}
-  #         uses: actions/upload-artifact@v3
-  #         with:
-  #           name: ${{ matrix.idea-log }}
-  #           path: |
-  #             idea.log
+
   release:
-    #   needs: [ testUI ]
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
@@ -175,7 +110,7 @@ jobs:
           java-version: 11
       # Set the tag in an env var
       - name: Set env
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+        run: echo "RELEASE_VERSION=${{ inputs.tag }}" >> $GITHUB_ENV
       # Build plugin
       - name: Build
         env:
@@ -192,4 +127,10 @@ jobs:
       - name: Publish Plugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-        run: ./gradlew publishPlugin -Pchannels=${{ inputs.channels }}
+          channels: ${{ inputs.channels }}
+        run: |
+          if [ -z "${{ inputs.channels }}" ]; then
+            ./gradlew publishPlugin
+          else
+            ./gradlew publishPlugin -Pchannels=${{ inputs.channels }}
+          fi
