@@ -188,11 +188,6 @@ jobs:
           tag_name: ${{ env.RELEASE_VERSION }}
           files: build/distributions/*
           prerelease: ${{ inputs.channels != '' && inputs.channels != null }}
-      - name: Publish Failure
-        if: ${{ inputs.channels == '' || inputs.channels == null }}
-        run: |
-          echo 'You must specify channels to publish dev releases in marketplace.'
-          exit 1
       # Publish the plugin in marketplace
       - name: Publish Plugin
         env:
