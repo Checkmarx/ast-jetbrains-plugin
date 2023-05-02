@@ -7,7 +7,7 @@ plugins {
 group 'com.checkmarx'
 version System.getenv('RELEASE_VERSION') ?: "dev"
 
-def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION') ?: "1.0.57"
+def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION') ?: "1.0.56"
 def remoteRobotVersion = '0.11.16'
 def jUnitVersion = '5.7.2'
 
