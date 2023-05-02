@@ -9,9 +9,8 @@ on:
         type: string
       javawrapperversion:
         description: 'Java Wrapper Version'
-        required: true
+        required: false
         type: string
-        default: '1.0.57'
       channels:
         description: 'Channels to publish development releases'
         required: false
@@ -26,7 +25,6 @@ on:
         description: 'Java Wrapper Version'
         required: true
         type: string
-        default: '1.0.57'
       channels:
         description: 'Channels to publish development releases'
         required: false
@@ -132,7 +130,7 @@ jobs:
           channels: ${{ inputs.channels }}
         run: |
           if [ -z "${{ inputs.channels }}" ]; then
-            ./gradlew publishPlugin
+            echo "Publishing to STABLE channel"
           else
-            ./gradlew publishPlugin -Pchannels=${{ inputs.channels }}
+            echo "Publishing to ${{ inputs.channels }} channel"
           fi
