@@ -32,7 +32,7 @@ dependencies {
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
     implementation 'com.miglayout:miglayout-swing:11.1'
 
-    if (javaWrapperVersion == "") {
+    if (javaWrapperVersion == "" || javaWrapperVersion == null) {
         implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.57'
     } else {
         implementation 'com.checkmarx.ast:ast-cli-java-wrapper:' + javaWrapperVersion
