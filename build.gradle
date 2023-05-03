@@ -7,8 +7,8 @@ plugins {
 group 'com.checkmarx'
 version System.getenv('RELEASE_VERSION') ?: "dev"
 
+def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION')
 def remoteRobotVersion = '0.11.16'
-def jUnitVersion = '5.7.2'
 
 repositories {
     mavenCentral()
@@ -23,17 +23,22 @@ repositories {
 dependencies {
     testImplementation 'com.intellij.remoterobot:remote-robot:' + remoteRobotVersion
     testImplementation 'com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:' + jUnitVersion
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
     // Video Recording
     testImplementation 'com.automation-remarks:video-recorder-junit5:2.0'
 
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:' + jUnitVersion
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.3'
 
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
     implementation 'com.miglayout:miglayout-swing:11.1'
 
-    implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.57'
-    implementation(platform("com.fasterxml.jackson:jackson-bom:2.15.0")) // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
+    if (javaWrapperVersion == "" || javaWrapperVersion == null) {
+        implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.57'
+    } else {
+        implementation 'com.checkmarx.ast:ast-cli-java-wrapper:' + javaWrapperVersion
+    }
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.15.0"))
+    // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
@@ -65,7 +70,11 @@ runIdeForUiTests {
 
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
+    if (project.hasProperty("channels")) {
+        channels[channels.toString()]
+    }
 }
+
 
 java {
     toolchain {
