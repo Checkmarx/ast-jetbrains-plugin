@@ -21,5 +21,5 @@ jobs:
     uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/release.yml@main
     with:
       tag: "2.0.0-SNAPSHOT"
-      channels: "nightly"
+      rchannels: "nightly"
     secrets: inherit
