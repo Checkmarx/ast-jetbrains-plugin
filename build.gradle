@@ -73,7 +73,6 @@ publishPlugin {
     if (project.hasProperty("channels")) {
         channels[channels.toString()]
     }
-    overwrite.set true
 }
 
 
