@@ -20,6 +20,6 @@ jobs:
     needs: delete_tag
     uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/release.yml@main
     with:
-      tag: "1.0.0-SNAPSHOT"
+      tag: "2.0.0-SNAPSHOT"
       channels: "nightly"
     secrets: inherit
