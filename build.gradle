@@ -70,8 +70,8 @@ runIdeForUiTests {
 
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
-    if (project.hasProperty("channels")) {
-        channels[channels.toString()]
+    if (project.hasProperty("rchannels")) {
+        channels = [rchannels.toString()]
     }
 }
 

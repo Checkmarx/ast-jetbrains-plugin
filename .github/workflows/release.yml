@@ -11,7 +11,7 @@ on:
         description: 'Java Wrapper Version'
         required: false
         type: string
-      channels:
+      rchannels:
         description: 'Channels to publish development releases'
         required: false
         type: string
@@ -25,7 +25,7 @@ on:
         description: 'Java Wrapper Version'
         required: false
         type: string
-      channels:
+      rchannels:
         description: 'Channels to publish development releases'
         required: false
         type: string
@@ -122,15 +122,14 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_VERSION }}
           files: build/distributions/*
-          prerelease: ${{ inputs.channels != '' && inputs.channels != null }}
+          prerelease: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
       # Publish the plugin in marketplace
       - name: Publish Plugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-          channels: ${{ inputs.channels }}
         run: |
-          if [ -z "${{ inputs.channels }}" ]; then
+          if [ -z "${{ inputs.rchannels }}" ]; then
             ./gradlew publishPlugin
           else
-            ./gradlew publishPlugin -Pchannels=${{ inputs.channels }}
+            ./gradlew publishPlugin -Prchannels=${{ inputs.rchannels }}
           fi
