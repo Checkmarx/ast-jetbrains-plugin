@@ -6,20 +6,20 @@ on:
       - main
 
 jobs:
-  delete_tag:
+  set_tag:
     runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.tagname.outputs.tag_name }}
     steps:
-      - name: Delete release
-        uses: dev-drprasad/delete-tag-and-release@v0.2.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          delete_release: true
-          tag_name: 2.0.0-SNAPSHOT
+      - name: Create tagname
+        run: echo "tag_name=2.0.$(date +%s)" >> "$GITHUB_OUTPUT"
+        id: tagname
+      - name: Print tagname
+        run: echo "created tag ${{ steps.tagname.outputs.tag_name }}"
   nightly:
-    needs: delete_tag
+    needs: set_tag
     uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/release.yml@main
     with:
-      tag: "2.0.0-SNAPSHOT"
+      tag: ${{ needs.set_tag.outputs.tag_name }}
       rchannels: "nightly"
     secrets: inherit
