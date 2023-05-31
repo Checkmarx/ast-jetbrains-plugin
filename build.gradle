@@ -37,7 +37,7 @@ dependencies {
     } else {
         implementation 'com.checkmarx.ast:ast-cli-java-wrapper:' + javaWrapperVersion
     }
-    implementation(platform("com.fasterxml.jackson:jackson-bom:2.15.1"))
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.15.2"))
     // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
 }
 
