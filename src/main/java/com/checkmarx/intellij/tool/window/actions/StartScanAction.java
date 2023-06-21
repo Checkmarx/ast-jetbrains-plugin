@@ -25,7 +25,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
-import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
@@ -119,6 +118,10 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     private boolean astProjectMatchesWorkspaceProject() {
         List<Result> results = cxToolWindowPanel.getCurrentState().getResultOutput().getResults();
         List<String> resultsFileNames = new ArrayList<>();
+
+        if(results.isEmpty()) {
+            return true;
+        }
 
         for(Result result : results) {
             if(!Optional.ofNullable(result.getData().getNodes()).orElse(Collections.emptyList()).isEmpty()){
