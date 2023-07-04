@@ -1,5 +1,5 @@
 plugins {
-    id 'io.freefair.lombok' version '8.0.1'
+    id 'io.freefair.lombok' version '8.1.0'
     id 'org.jetbrains.intellij' version '1.14.2'
     id 'java'
 }
