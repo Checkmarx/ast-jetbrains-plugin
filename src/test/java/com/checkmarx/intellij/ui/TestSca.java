@@ -14,6 +14,7 @@ import static com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode.U
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 
+// TESTS: TestSca.java
 public class TestSca extends BaseUITest {
     @Test
     @Video
