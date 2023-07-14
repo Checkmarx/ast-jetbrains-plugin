@@ -32,10 +32,10 @@ public abstract class BaseTest extends BasePlatformTestCase {
 
     protected final Project getEnvProject() {
         return Assertions.assertDoesNotThrow(() -> com.checkmarx.intellij.commands.Project.getList()
-                                                                                          .stream()
-                                                                                          .filter(p -> p.getName()
-                                                                                                        .equals(Environment.PROJECT_NAME))
-                                                                                          .findFirst()
-                                                                                          .orElseThrow());
+                .stream()
+                .filter(p -> p.getName()
+                        .equals(Environment.PROJECT_NAME))
+                .findFirst()
+                .orElseThrow());
     }
 }
