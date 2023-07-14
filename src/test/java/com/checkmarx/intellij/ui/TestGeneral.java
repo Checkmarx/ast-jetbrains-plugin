@@ -26,7 +26,7 @@ import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 public class TestGeneral extends BaseUITest {
 
-    //@BeforeEach
+    @BeforeEach
     public void checkResults() {
         getResults();
     }
