@@ -15,4 +15,5 @@ public final class Environment {
     public static final String BRANCH_NAME = System.getenv("CX_TEST_BRANCH");
     public static final String NOT_MATCH_BRANCH_NAME = System.getenv("CX_NOT_MATCH_TEST_BRANCH");
     public static final String SCAN_ID = System.getenv("CX_TEST_SCAN");
+    public static final String SCAN_ID_NOT_MATCH_PROJECT = System.getenv("CX_NOT_MATCH_TEST_SCAN_ID");
 }
