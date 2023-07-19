@@ -24,7 +24,7 @@ public class TestSca extends BaseUITest {
         navigate("Scan", 2);
         navigate("sca", 3);
         navigate("Vulnerability", 4);
-
+        log("Checking SCA results");
         JTreeFixture tree = find(JTreeFixture.class, TREE);
 
         List<RemoteText> scaHighNodes = tree.getData()

@@ -16,7 +16,7 @@ import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 public class TestTriggerScan extends BaseUITest {
 
-    //@BeforeEach
+    @BeforeEach
     public void checkResults(TestInfo info) {
         if (info.getDisplayName().equals("testScanButtonsDisabledWhenMissingProjectOrBranch")) {
             return;
@@ -25,8 +25,8 @@ public class TestTriggerScan extends BaseUITest {
         getResults();
     }
 
-    //@Test
-    //@Video
+    @Test
+    @Video
     public void testScanButtonsDisabledWhenMissingProjectOrBranch() {
         if (triggerScanNotAllowed()) return;
 
@@ -35,8 +35,8 @@ public class TestTriggerScan extends BaseUITest {
         Assertions.assertFalse(find(ActionButtonFixture.class, CANCEL_SCAN_BTN).isEnabled());
     }
 
-    //@Test
-    //@Video
+    @Test
+    @Video
     public void testCancelScan() {
         if (triggerScanNotAllowed()) return;
 
@@ -50,14 +50,14 @@ public class TestTriggerScan extends BaseUITest {
         Assertions.assertTrue(find(ActionButtonFixture.class, START_SCAN_BTN).isEnabled());
     }
 
-    //@Test
-    //@Video
+    @Test
+    @Video
     public void testTriggerScanProjectAndBranchDontMatch() {
         if (triggerScanNotAllowed()) return;
-
-        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled());
+        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
         testSelectionAction(findSelection("Project"), "Project", Environment.NOT_MATCH_PROJECT_NAME);
         testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
+        testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID_NOT_MATCH_PROJECT);
         waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled());
         findRunScanButtonAndClick();
         Assertions.assertTrue(hasAnyComponent(PROJECT_DOES_NOT_MATCH));
@@ -68,8 +68,8 @@ public class TestTriggerScan extends BaseUITest {
         Assertions.assertTrue(hasAnyComponent(BRANCH_DOES_NOT_MATCH));
     }
 
-    //@Test
-    //@Video
+    @Test
+    @Video
     public void testTriggerScanAndLoadResults() {
         if (triggerScanNotAllowed()) return;
 
