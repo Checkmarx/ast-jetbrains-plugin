@@ -58,7 +58,7 @@ public class TestTriggerScan extends BaseUITest {
         testSelectionAction(findSelection("Project"), "Project", Environment.NOT_MATCH_PROJECT_NAME);
         testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
         testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID_NOT_MATCH_PROJECT);
-        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
+        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled());
         findRunScanButtonAndClick();
         Assertions.assertTrue(hasAnyComponent(PROJECT_DOES_NOT_MATCH));
         testSelectionAction(findSelection("Project"), "Project", Environment.PROJECT_NAME);
