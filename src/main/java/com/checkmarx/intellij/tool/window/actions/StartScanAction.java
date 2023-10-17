@@ -206,7 +206,9 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
             @Override
             public void onCancel() {
                 super.onCancel();
-                pollScanExecutor.shutdown();
+                if (pollScanExecutor != null) {
+                    pollScanExecutor.shutdown();
+                }
             }
 
             @Override
