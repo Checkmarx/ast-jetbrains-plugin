@@ -27,7 +27,7 @@ dependencies {
     // Video Recording
     testImplementation 'com.automation-remarks:video-recorder-junit5:2.0'
 
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.1'
 
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
     implementation 'com.miglayout:miglayout-swing:11.2'
