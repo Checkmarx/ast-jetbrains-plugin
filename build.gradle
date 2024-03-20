@@ -21,23 +21,40 @@ repositories {
 }
 
 dependencies {
-    testImplementation 'com.intellij.remoterobot:remote-robot:' + remoteRobotVersion
-    testImplementation 'com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
-    // Video Recording
-    testImplementation 'com.automation-remarks:video-recorder-junit5:2.0'
+    testImplementation('com.intellij.remoterobot:remote-robot:' + remoteRobotVersion) {
+        exclude group: 'com.squareup.okio', module: 'okio'
+        exclude group: 'com.google.guava', module: 'guava'
+        exclude group: 'com.squareup.okhttp3', module: 'okhttp'
+    }
+    testImplementation 'com.squareup.okio:okio:3.4.0'
+    testImplementation 'com.google.guava:guava:32.0.0-android'
+    testImplementation 'com.squareup.okhttp3:okhttp:4.9.2'
 
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.1'
+    testImplementation 'com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testImplementation 'junit:junit:4.13.1'
+    // Video Recording
+    testImplementation('com.automation-remarks:video-recorder-junit5:1.8') {
+        exclude group: 'log4j', module: 'log4j'
+    }
+    testImplementation 'org.apache.logging.log4j:log4j-core:2.23.1'
+
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
 
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
-    implementation 'com.miglayout:miglayout-swing:11.2'
+    implementation 'com.miglayout:miglayout-swing:11.3'
 
     if (javaWrapperVersion == "" || javaWrapperVersion == null) {
-        implementation 'com.checkmarx.ast:ast-cli-java-wrapper:1.0.64'
+        implementation ('com.checkmarx.ast:ast-cli-java-wrapper:1.0.64'){
+            exclude group: 'junit', module: 'junit'
+        }
     } else {
-        implementation 'com.checkmarx.ast:ast-cli-java-wrapper:' + javaWrapperVersion
+        implementation ('com.checkmarx.ast:ast-cli-java-wrapper:' + javaWrapperVersion){
+            exclude group: 'junit', module: 'junit'
+        }
     }
-    implementation(platform("com.fasterxml.jackson:jackson-bom:2.16.0"))
+    testImplementation 'junit:junit:4.11-redhat-1'
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.17.0"))
     // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
 }
 
