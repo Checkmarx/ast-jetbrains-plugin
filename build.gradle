@@ -1,6 +1,6 @@
 plugins {
     id 'io.freefair.lombok' version '8.4'
-    id 'org.jetbrains.intellij' version '1.17.2'
+    id 'org.jetbrains.intellij' version '1.16.0'
     id 'java'
 }
 
@@ -22,7 +22,10 @@ repositories {
 
 dependencies {
     testImplementation 'com.intellij.remoterobot:remote-robot:' + remoteRobotVersion
-    testImplementation 'com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion
+    testImplementation('com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion){
+        exclude group: 'com.square.okio', module: 'okio'
+    }
+    testImplementation 'com.square.okio:okio:1.17.6'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
     // Video Recording
     testImplementation('com.automation-remarks:video-recorder-junit5:2.0') {
