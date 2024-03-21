@@ -25,7 +25,7 @@ dependencies {
     testImplementation('com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion){
         exclude group: 'com.square.okio', module: 'okio'
     }
-    testImplementation 'com.square.okio:okio:1.17.6'
+    testImplementation 'com.square.okio:okio:3.5.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
     // Video Recording
     testImplementation('com.automation-remarks:video-recorder-junit5:2.0') {
