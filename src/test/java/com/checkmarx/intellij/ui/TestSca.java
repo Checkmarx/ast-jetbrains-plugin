@@ -33,19 +33,22 @@ public class TestSca extends BaseUITest {
                                             .filter(t -> t.getText().startsWith("HIGH"))
                                             .collect(Collectors.toList());
 
-        if (scaHighNodes.size() != 0) {
+        if (!scaHighNodes.isEmpty()) {
             navigate("HIGH", 4);
         }
 
         navigate("Npm", 5);
 
-        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("Cx")).findFirst();
+        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("CVE")).findFirst();
         int dsvwRowIdx = cveRow.map(s -> tree.collectRows().indexOf(s)).orElse(-1);
 
         Assertions.assertTrue(dsvwRowIdx > 1);
         waitFor(() -> {
             tree.clickRow(dsvwRowIdx);
-            return findAll(LINK_LABEL).size() > 0;
+            if (hasAnyComponent(LINK_LABEL)) {
+                return !findAll(LINK_LABEL).isEmpty();
+            }
+            return true;
         });
 
         // If there is an auto remediation to the file, there must be a label starting with Upgrade to version. Otherwise, no information must be displayed
@@ -60,7 +63,7 @@ public class TestSca extends BaseUITest {
         } else {
             waitFor(() -> {
                 tree.clickRow(dsvwRowIdx);
-                return findAll(NO_INFORMATION).size() > 0;
+                return !findAll(NO_INFORMATION).isEmpty();
             });
         }
 

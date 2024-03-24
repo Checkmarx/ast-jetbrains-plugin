@@ -178,7 +178,9 @@ public abstract class BaseUITest {
     protected static void testFileNavigation() {
         waitFor(() -> {
             focusCxWindow();
-            findAll(LINK_LABEL).get(0).doubleClick();
+            if (!findAll(LINK_LABEL).isEmpty()) {
+                findAll(LINK_LABEL).get(0).doubleClick();
+            }
             return hasAnyComponent(EDITOR);
         });
         Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
@@ -215,7 +217,7 @@ public abstract class BaseUITest {
                     .stream()
                     .filter(t -> t.getText().startsWith(prefix))
                     .collect(Collectors.toList());
-            if (prefixNodes.size() == 0) {
+            if (prefixNodes.isEmpty()) {
                 return false;
             }
             prefixNodes.get(0).doubleClick();
@@ -243,7 +245,7 @@ public abstract class BaseUITest {
             selection.click();
             List<JListFixture> jListFixtures = findAll(JListFixture.class, MY_LIST);
 
-            return jListFixtures.size() == 1 && jListFixtures.get(0).findAllText().size() > 0;
+            return jListFixtures.size() == 1 && !jListFixtures.get(0).findAllText().isEmpty();
         });
         enter(value);
     }
