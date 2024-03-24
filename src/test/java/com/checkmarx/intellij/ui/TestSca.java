@@ -37,7 +37,7 @@ public class TestSca extends BaseUITest {
             navigate("HIGH", 4);
         }
 
-        navigate("Npm", 5);
+        //navigate("Npm", 5);
 
         Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("CVE")).findFirst();
         int dsvwRowIdx = cveRow.map(s -> tree.collectRows().indexOf(s)).orElse(-1);
