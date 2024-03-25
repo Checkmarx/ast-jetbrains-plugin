@@ -14,7 +14,7 @@ import org.junit.jupiter.api.TestInfo;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
-public class TestTriggerScan extends BaseUITest {
+class TestTriggerScan extends BaseUITest {
 
     @BeforeEach
     public void checkResults(TestInfo info) {
@@ -27,7 +27,7 @@ public class TestTriggerScan extends BaseUITest {
 
     @Test
     @Video
-    public void testScanButtonsDisabledWhenMissingProjectOrBranch() {
+    void testScanButtonsDisabledWhenMissingProjectOrBranch() {
         if (triggerScanNotAllowed()) return;
 
         clearSelection();
@@ -37,7 +37,7 @@ public class TestTriggerScan extends BaseUITest {
 
     @Test
     @Video
-    public void testCancelScan() {
+    void testCancelScan() {
         if (triggerScanNotAllowed()) return;
 
         waitForScanIdSelection();
@@ -52,7 +52,7 @@ public class TestTriggerScan extends BaseUITest {
 
     @Test
     @Video
-    public void testTriggerScanProjectAndBranchDontMatch() {
+    void testTriggerScanProjectAndBranchDontMatch() {
         if (triggerScanNotAllowed()) return;
         waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
         testSelectionAction(findSelection("Project"), "Project", Environment.NOT_MATCH_PROJECT_NAME);
@@ -70,7 +70,7 @@ public class TestTriggerScan extends BaseUITest {
 
     @Test
     @Video
-    public void testTriggerScanAndLoadResults() {
+    void testTriggerScanAndLoadResults() {
         if (triggerScanNotAllowed()) return;
 
         waitForScanIdSelection();
