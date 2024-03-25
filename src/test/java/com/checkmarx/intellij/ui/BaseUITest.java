@@ -176,16 +176,18 @@ public abstract class BaseUITest {
     }
 
     protected static void testFileNavigation() {
-//        waitFor(() -> {
-//            focusCxWindow();
-//            if (!findAll(LINK_LABEL).isEmpty()) {
-//                findAll(LINK_LABEL).get(0).doubleClick();
-//            }
-//            return hasAnyComponent(EDITOR);
-//        });
-//        Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
-//        //Confirming if editor is opened
-//        find(EditorFixture.class, EDITOR, waitDuration);
+        waitFor(() -> {
+            focusCxWindow();
+            List<ComponentFixture> labels = findAll(LINK_LABEL);
+            if (labels.isEmpty()) {
+                return true;
+            }
+            labels.get(0).click();
+            return hasAnyComponent(EDITOR);
+        });
+        Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
+        //Confirming if editor is opened
+        find(EditorFixture.class, EDITOR, waitDuration);
     }
 
     protected void getResults() {
