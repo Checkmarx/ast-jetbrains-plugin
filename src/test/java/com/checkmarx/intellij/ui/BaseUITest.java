@@ -193,7 +193,6 @@ public abstract class BaseUITest {
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         focusCxWindow();
         find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
-        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER,Duration.ofSeconds(1));
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> {
             focusCxWindow();
