@@ -27,6 +27,7 @@ dependencies {
     }
     testImplementation 'com.squareup.okio:okio:3.8.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
+    testImplementation 'com.squareup.okhttp3:okhttp:4.9.2'
     // Video Recording
     testImplementation('com.automation-remarks:video-recorder-junit5:2.0') {
         exclude group: 'log4j', module: 'log4j'
