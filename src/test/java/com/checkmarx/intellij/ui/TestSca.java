@@ -27,6 +27,7 @@ public class TestSca extends BaseUITest {
 
         openGroupBy();
         severity();
+        collapse();
 
         navigate("Scan", 2);
         navigate("sca", 3);
