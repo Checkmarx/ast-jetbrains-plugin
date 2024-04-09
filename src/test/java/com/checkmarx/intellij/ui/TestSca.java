@@ -25,10 +25,13 @@ public class TestSca extends BaseUITest {
         getResults();
         waitForScanIdSelection();
 
+        expand();
+        collapse();
+        severity();
+
         navigate("Scan", 2);
         navigate("sca", 3);
         navigate("Vulnerability", 4);
-        severity();
         log("Checking SCA results");
         JTreeFixture tree = find(JTreeFixture.class, TREE);
 
@@ -93,6 +96,13 @@ public class TestSca extends BaseUITest {
         waitFor(() -> {
             click(EXPAND_ACTION);
             return find(JTreeFixture.class, TREE).findAllText().size() > 1;
+        });
+    }
+
+    private void collapse() {
+        waitFor(() -> {
+            click(COLLAPSE_ACTION);
+            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
         });
     }
 
