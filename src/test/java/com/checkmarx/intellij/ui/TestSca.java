@@ -25,8 +25,7 @@ public class TestSca extends BaseUITest {
         getResults();
         waitForScanIdSelection();
 
-        expand();
-        collapse();
+        openGroupBy();
         severity();
 
         navigate("Scan", 2);
