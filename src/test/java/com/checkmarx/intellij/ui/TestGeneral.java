@@ -130,7 +130,7 @@ public class TestGeneral extends BaseUITest {
         navigate("Scan", 2);
         navigate("sast", 4);
         JTreeFixture tree = find(JTreeFixture.class, TREE);
-        Optional<String> dsvwRow = tree.collectRows().stream().filter(treeRow -> treeRow.contains("dsvw.py")).findFirst();
+        Optional<String> dsvwRow = tree.collectRows().stream().filter(treeRow -> treeRow.contains("Absolute_Path_Traversal")).findFirst();
         int dsvwRowIdx = dsvwRow.map(s -> tree.collectRows().indexOf(s)).orElse(-1);
 
         Assertions.assertTrue(dsvwRowIdx > 1);
