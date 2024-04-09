@@ -1,6 +1,8 @@
 package com.checkmarx.intellij.ui;
 
 import com.automation.remarks.junit5.Video;
+import com.checkmarx.intellij.tool.window.GroupBy;
+import com.intellij.remoterobot.fixtures.JListFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import org.junit.jupiter.api.Assertions;
@@ -11,6 +13,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode.UPGRADE_TO_VERSION_LABEL;
+import static com.checkmarx.intellij.ui.BaseUITest.enter;
+import static com.checkmarx.intellij.ui.BaseUITest.waitFor;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 
@@ -24,6 +28,7 @@ public class TestSca extends BaseUITest {
         navigate("Scan", 2);
         navigate("sca", 3);
         navigate("Vulnerability", 4);
+        severity();
         log("Checking SCA results");
         JTreeFixture tree = find(JTreeFixture.class, TREE);
 
@@ -66,4 +71,36 @@ public class TestSca extends BaseUITest {
 
         testFileNavigation();
     }
+
+    private void groupAction(String value) {
+        openGroupBy();
+        waitFor(() -> {
+            enter(value);
+            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
+        });
+    }
+
+    private void openGroupBy() {
+        expand();
+        waitFor(() -> {
+            click(GROUP_BY_ACTION);
+            List<JListFixture> myList = findAll(JListFixture.class, MY_LIST);
+            return myList.size() == 1 && myList.get(0).findAllText().size() == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
+        });
+    }
+
+    private void expand() {
+        waitFor(() -> {
+            click(EXPAND_ACTION);
+            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
+        });
+    }
+
+    private void severity() {
+        groupAction("Severity");
+    }
 }
+
+
+
+
