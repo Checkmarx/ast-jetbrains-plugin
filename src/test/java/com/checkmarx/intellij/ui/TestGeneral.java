@@ -94,20 +94,6 @@ public class TestGeneral extends BaseUITest {
         waitFor(() -> hasAnyComponent(String.format(LATEST_SCAN, Utils.formatLatest(true), Utils.formatLatest(true))));
     }
 
-    private void toggleFilter(Severity severity, boolean enabled) {
-        @Language("XPath") String xpath = filterXPath(severity);
-        waitFor(() -> {
-            click(xpath);
-            if (!hasAnyComponent(xpath)) {
-                return false;
-            }
-
-            ActionButtonFixture filter = find(ActionButtonFixture.class, xpath);
-            log(filter.popState().name());
-            return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
-        });
-    }
-
     private void checkResultsPanel() {
         waitForScanIdSelection();
         // navigate the tree for a result
@@ -225,10 +211,6 @@ public class TestGeneral extends BaseUITest {
         groupAction("Vulnerability");
     }
 
-    private void severity() {
-        groupAction("Severity");
-    }
-
     private void state() {
         groupAction("State");
     }
@@ -274,12 +256,5 @@ public class TestGeneral extends BaseUITest {
     @Language("XPath")
     public static String filterXPath(Severity filter) {
         return String.format("//div[@myicon='%s.svg']", filter.tooltipSupplier().get().toLowerCase());
-    }
-
-    private void expand() {
-        waitFor(() -> {
-            click(EXPAND_ACTION);
-            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
-        });
     }
 }

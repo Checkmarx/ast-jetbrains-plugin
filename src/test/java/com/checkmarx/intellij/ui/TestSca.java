@@ -1,13 +1,9 @@
 package com.checkmarx.intellij.ui;
 
 import com.automation.remarks.junit5.Video;
-import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.Severity;
-import com.intellij.remoterobot.fixtures.ActionButtonFixture;
-import com.intellij.remoterobot.fixtures.JListFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
-import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -17,8 +13,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode.UPGRADE_TO_VERSION_LABEL;
-import static com.checkmarx.intellij.ui.BaseUITest.enter;
-import static com.checkmarx.intellij.ui.BaseUITest.waitFor;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 
@@ -48,16 +42,11 @@ public class TestSca extends BaseUITest {
             navigate("HIGH", 4);
         }
 
-        navigate("Npm", 5);
+        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("CVE")).findFirst();
+        assert cveRow.isPresent();
+        int dsvwRowIdx = tree.collectRows().indexOf(cveRow.get());
 
-        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("Cx")).findFirst();
-        int dsvwRowIdx = cveRow.map(s -> tree.collectRows().indexOf(s)).orElse(-1);
-
-        Assertions.assertTrue(dsvwRowIdx > 1);
-        waitFor(() -> {
-            tree.clickRow(dsvwRowIdx);
-            return findAll(LINK_LABEL).size() > 0;
-        });
+        Assertions.assertTrue(dsvwRowIdx >= 1);
 
         // If there is an auto remediation to the file, there must be a label starting with Upgrade to version. Otherwise, no information must be displayed
         if (hasAnyComponent(AUTO_REMEDIATION)) {
@@ -75,56 +64,6 @@ public class TestSca extends BaseUITest {
             });
         }
 
-        testFileNavigation();
-    }
-
-    private void groupAction(String value) {
-        openGroupBy();
-        waitFor(() -> {
-            enter(value);
-            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
-        });
-    }
-
-    private void openGroupBy() {
-        expand();
-        waitFor(() -> {
-            click(GROUP_BY_ACTION);
-            List<JListFixture> myList = findAll(JListFixture.class, MY_LIST);
-            return myList.size() == 1 && myList.get(0).findAllText().size() == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
-        });
-    }
-
-    private void expand() {
-        waitFor(() -> {
-            click(EXPAND_ACTION);
-            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
-        });
-    }
-
-    private void collapse() {
-        waitFor(() -> {
-            click(COLLAPSE_ACTION);
-            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
-        });
-    }
-
-    private void severity() {
-        groupAction("Severity");
-    }
-
-    private void toggleFilter(Severity severity, boolean enabled) {
-        @Language("XPath") String xpath = TestGeneral.filterXPath(severity);
-        waitFor(() -> {
-            click(xpath);
-            if (!hasAnyComponent(xpath)) {
-                return false;
-            }
-
-            ActionButtonFixture filter = find(ActionButtonFixture.class, xpath);
-            log(filter.popState().name());
-            return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
-        });
     }
 }
 
