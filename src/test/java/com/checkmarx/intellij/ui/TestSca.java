@@ -42,11 +42,16 @@ public class TestSca extends BaseUITest {
             navigate("HIGH", 4);
         }
 
-        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("CVE")).findFirst();
-        assert cveRow.isPresent();
-        int dsvwRowIdx = tree.collectRows().indexOf(cveRow.get());
+        navigate("Maven", 2);
 
-        Assertions.assertTrue(dsvwRowIdx >= 1);
+        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("Maven")).findFirst();
+        int dsvwRowIdx = cveRow.map(s -> tree.collectRows().indexOf(s)).orElse(-1);
+
+        Assertions.assertTrue(dsvwRowIdx > 1);
+        waitFor(() -> {
+            tree.clickRow(dsvwRowIdx);
+            return findAll(LINK_LABEL).size() > 0;
+        });
 
         // If there is an auto remediation to the file, there must be a label starting with Upgrade to version. Otherwise, no information must be displayed
         if (hasAnyComponent(AUTO_REMEDIATION)) {
@@ -64,6 +69,7 @@ public class TestSca extends BaseUITest {
             });
         }
 
+        testFileNavigation();
     }
 }
 
