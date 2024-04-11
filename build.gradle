@@ -33,7 +33,7 @@ dependencies {
     implementation 'com.miglayout:miglayout-swing:11.2'
 
     if (javaWrapperVersion == "" || javaWrapperVersion == null) {
-        implementation 'com.checkmarx.ast:ast-cli-java-wrapper:2.0.7'
+        implementation 'com.checkmarx.ast:ast-cli-java-wrapper:2.0.9'
     } else {
         implementation 'com.checkmarx.ast:ast-cli-java-wrapper:' + javaWrapperVersion
     }

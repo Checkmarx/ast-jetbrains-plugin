@@ -60,7 +60,7 @@ jobs:
           export DISPLAY=:99.0
           ./gradlew test --info --tests com.checkmarx.intellij.ui*
       - name: Move video
-        if: ${{ failure() || always()}}
+        if: ${{ failure() }}
         run: mv video build/reports
       # Save report if tests fail
       - name: Save fails report
