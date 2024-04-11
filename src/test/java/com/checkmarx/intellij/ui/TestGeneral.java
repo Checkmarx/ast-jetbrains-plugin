@@ -272,7 +272,7 @@ public class TestGeneral extends BaseUITest {
     }
 
     @Language("XPath")
-    private static String filterXPath(Severity filter) {
+    public static String filterXPath(Severity filter) {
         return String.format("//div[@myicon='%s.svg']", filter.tooltipSupplier().get().toLowerCase());
     }
 

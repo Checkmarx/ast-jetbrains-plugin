@@ -2,12 +2,16 @@ package com.checkmarx.intellij.ui;
 
 import com.automation.remarks.junit5.Video;
 import com.checkmarx.intellij.tool.window.GroupBy;
+import com.checkmarx.intellij.tool.window.Severity;
+import com.intellij.remoterobot.fixtures.ActionButtonFixture;
 import com.intellij.remoterobot.fixtures.JListFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
+import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -25,9 +29,8 @@ public class TestSca extends BaseUITest {
         getResults();
         waitForScanIdSelection();
 
-        openGroupBy();
         severity();
-        collapse();
+        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, true));
 
         navigate("Scan", 2);
         navigate("sca", 3);
@@ -108,6 +111,20 @@ public class TestSca extends BaseUITest {
 
     private void severity() {
         groupAction("Severity");
+    }
+
+    private void toggleFilter(Severity severity, boolean enabled) {
+        @Language("XPath") String xpath = TestGeneral.filterXPath(severity);
+        waitFor(() -> {
+            click(xpath);
+            if (!hasAnyComponent(xpath)) {
+                return false;
+            }
+
+            ActionButtonFixture filter = find(ActionButtonFixture.class, xpath);
+            log(filter.popState().name());
+            return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
+        });
     }
 }
 
