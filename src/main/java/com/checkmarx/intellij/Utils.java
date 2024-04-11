@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
- * Class for static, common util methods.
+ * Class for static, common util methods
  */
 public final class Utils {
 
