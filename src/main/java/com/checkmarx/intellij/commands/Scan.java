@@ -2,6 +2,7 @@ package com.checkmarx.intellij.commands;
 
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import org.jetbrains.annotations.NotNull;
 
@@ -82,7 +83,7 @@ public class Scan {
         scanArguments.put("-s", sourcePath);
         scanArguments.put("--project-name", projectName);
         scanArguments.put("--branch", branchName);
-        scanArguments.put("--agent", "Jetbrains");
+        scanArguments.put("--agent", Constants.JET_BRAINS_AGENT_NAME);
 
         String additionalParameters = "--async --sast-incremental --resubmit";
 
