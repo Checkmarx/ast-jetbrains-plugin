@@ -12,6 +12,7 @@
 </div>
 <br />
 
+
 <p align="center">
   <a href="https://github.com/Checkmarx/ast-jetbrains-plugin">
     <img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/logo.png" alt="Logo" width="80" height="80" />
