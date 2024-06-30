@@ -22,4 +22,4 @@ jobs:
           cx_tenant: ${{ secrets.AST_RND_SCANS_TENANT }}
           cx_client_id: ${{ secrets.AST_RND_SCANS_CLIENT_ID }}
           cx_client_secret: ${{ secrets.AST_RND_SCANS_CLIENT_SECRET }}
-          additional_params: --tags galactica-team --file-include *.gradle,gradlew
+          additional_params: --tags phoenix --file-include *.gradle,gradlew --threshold "sca-high=1;sca-medium=1;sca-low=1"
