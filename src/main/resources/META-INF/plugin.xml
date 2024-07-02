@@ -30,8 +30,8 @@
         <notificationGroup id="Checkmarx.Notifications" displayType="BALLOON"
                            bundle="messages.CxBundle" key="NOTIFICATION_GROUP_NAME"/>
 
-        <localInspection displayName="Checkmarx One"
-                         groupName="Checkmarx One"
+        <localInspection displayName="Checkmarx AST"
+                         groupName="Checkmarx AST"
                          groupPath="Checkmarx"
                          enabledByDefault="true"
                          level="WARNING"
