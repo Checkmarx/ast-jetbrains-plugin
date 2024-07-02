@@ -9,24 +9,20 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
-import java.io.IOException;
-import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
- * Class for static, common util methods.
+ * Class for static, common util methods
  */
 public final class Utils {
 
@@ -36,18 +32,6 @@ public final class Utils {
 
     private Utils() {
         // forbid instantiation of the class
-    }
-
-    /**
-     * Compare two {@link InputStream} by their md5 digest.
-     *
-     * @param a InputStream a
-     * @param b InputStream b
-     * @return whether a and b's MD5 matches
-     * @throws IOException when reading the streams or calculating MD5 fails
-     */
-    public static boolean compareChecksum(InputStream a, InputStream b) throws IOException {
-        return Objects.equals(DigestUtils.md5Hex(a), DigestUtils.md5Hex(b));
     }
 
     /**
