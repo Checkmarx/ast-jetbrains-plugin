@@ -59,6 +59,8 @@
             <action id="Checkmarx.ResetSelection"
                     class="com.checkmarx.intellij.tool.window.actions.selection.ResetSelectionAction"/>
             <separator/>
+            <action id="Checkmarx.Critical"
+                    class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$CriticalFilter"/>
             <action id="Checkmarx.High"
                     class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$HighFilter"/>
             <action id="Checkmarx.Medium"
