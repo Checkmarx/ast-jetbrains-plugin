@@ -2,6 +2,8 @@ package com.checkmarx.intellij.ui;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
+import com.checkmarx.intellij.tool.window.GroupBy;
+import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.stepsProcessing.StepLogger;
@@ -210,18 +212,24 @@ public abstract class BaseUITest {
 
     protected void navigate(String prefix, int minExpectedSize) {
         waitFor(() -> {
-            List<RemoteText> prefixNodes = find(JTreeFixture.class, TREE).getData()
+            List<RemoteText> allNodes = find(JTreeFixture.class, TREE).getData()
                     .getAll()
                     .stream()
                     .filter(t -> t.getText().startsWith(prefix))
                     .collect(Collectors.toList());
-            if (prefixNodes.size() == 0) {
-                return false;
+
+            if (allNodes.size() == 0) {
+                return false; // No matching nodes found
             }
-            prefixNodes.get(0).doubleClick();
+
+            // Perform the action on all nodes that match the prefix
+            allNodes.forEach(node -> node.doubleClick());
+
+            // Check if the total number of nodes after action is >= minExpectedSize
             return find(JTreeFixture.class, TREE).findAllText().size() >= minExpectedSize;
         });
     }
+
 
     @NotNull
     protected static ActionButtonFixture findSelection(String s) {
@@ -288,4 +296,47 @@ public abstract class BaseUITest {
             baseLabel.click();
         }
     }
+
+    private void groupAction(String value) {
+        openGroupBy();
+        waitFor(() -> {
+            enter(value);
+            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
+        });
+    }
+
+    private void openGroupBy() {
+        expand();
+        waitFor(() -> {
+            click(GROUP_BY_ACTION);
+            List<JListFixture> myList = findAll(JListFixture.class, MY_LIST);
+            return myList.size() == 1 && myList.get(0).findAllText().size() == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
+        });
+    }
+
+    protected void expand() {
+        waitFor(() -> {
+            click(EXPAND_ACTION);
+            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
+        });
+    }
+
+    protected void severity() {
+        groupAction("Severity");
+    }
+
+    protected void toggleFilter(Severity severity, boolean enabled) {
+        @Language("XPath") String xpath = TestGeneral.filterXPath(severity);
+        waitFor(() -> {
+            click(xpath);
+            if (!hasAnyComponent(xpath)) {
+                return false;
+            }
+
+            ActionButtonFixture filter = find(ActionButtonFixture.class, xpath);
+            log(filter.popState().name());
+            return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
+        });
+    }
+
 }

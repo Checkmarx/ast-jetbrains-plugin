@@ -3,6 +3,7 @@ package com.checkmarx.intellij.commands.results;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Bundle;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Scan;
@@ -63,7 +64,7 @@ public class Results {
 
             com.checkmarx.ast.results.Results results;
             try {
-                results = CxWrapperFactory.build().results(UUID.fromString(scanId));
+                results = CxWrapperFactory.build().results(UUID.fromString(scanId), Constants.JET_BRAINS_AGENT_NAME);
             } catch (IOException | URISyntaxException | CxException | CxConfig.InvalidCLIConfigException | InterruptedException e) {
                 newState.setMessage(Bundle.message(Resource.GETTING_RESULTS_ERROR,
                                                    scanId + Utils.formatLatest(getLatest)));

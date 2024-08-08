@@ -1,11 +1,13 @@
 package com.checkmarx.intellij.ui;
 
 import com.automation.remarks.junit5.Video;
+import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -20,6 +22,9 @@ public class TestSca extends BaseUITest {
     public void testScaPanel() {
         getResults();
         waitForScanIdSelection();
+
+        severity();
+        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, true));
 
         navigate("Scan", 2);
         navigate("sca", 3);
@@ -37,9 +42,9 @@ public class TestSca extends BaseUITest {
             navigate("HIGH", 4);
         }
 
-        navigate("Npm", 5);
+        navigate("Maven", 2);
 
-        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("Cx")).findFirst();
+        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("Maven")).findFirst();
         int dsvwRowIdx = cveRow.map(s -> tree.collectRows().indexOf(s)).orElse(-1);
 
         Assertions.assertTrue(dsvwRowIdx > 1);
@@ -67,3 +72,7 @@ public class TestSca extends BaseUITest {
         testFileNavigation();
     }
 }
+
+
+
+
