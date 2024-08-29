@@ -58,6 +58,18 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
      */
     protected abstract Filterable getFilterable();
 
+    public static class CriticalFilter extends FilterBaseAction {
+
+        public CriticalFilter() {
+            super();
+        }
+
+        @Override
+        protected Filterable getFilterable() {
+            return Severity.CRITICAL;
+        }
+    }
+
     public static class HighFilter extends FilterBaseAction {
 
         public HighFilter() {
