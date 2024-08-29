@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>com.checkmarx.checkmarx-ast-jetbrains-plugin</id>
-    <name>Checkmarx One</name>
+    <name>Checkmarx AST</name>
     <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
 
     <description><![CDATA[
