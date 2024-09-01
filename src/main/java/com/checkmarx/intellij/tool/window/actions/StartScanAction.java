@@ -265,27 +265,33 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
     @Override
     public void update(@NotNull AnActionEvent e) {
-        super.update(e);
+        try {
+            super.update(e);
 
-        e.getPresentation().setVisible(getUserHasPermissionsToScan());
+            e.getPresentation().setVisible(getUserHasPermissionsToScan());
 
-        cxToolWindowPanel = getCxToolWindowPanel(e);
-        workspaceProject = e.getProject();
-        propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(workspaceProject));
-        boolean isScanRunning = StringUtils.isNotBlank(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
-        String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
-        String storedBranch = propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY);
+            cxToolWindowPanel = getCxToolWindowPanel(e);
+            workspaceProject = e.getProject();
+            propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(workspaceProject));
+            boolean isScanRunning = StringUtils.isNotBlank(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
+            String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
+            String storedBranch = propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY);
 
-        boolean projectAndBranchSelected = StringUtils.isNotBlank(storedProject) && StringUtils.isNotBlank(storedBranch);
+            boolean projectAndBranchSelected = StringUtils.isNotBlank(storedProject) && StringUtils.isNotBlank(storedBranch);
 
-        // Check if IDE was restarted and there's a scan still running
-        if(isScanRunning && !isPollingScan && !actionInitialized) {
-            pollScan(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
+            // Check if IDE was restarted and there's a scan still running
+            if (isScanRunning && !isPollingScan && !actionInitialized) {
+                pollScan(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
+            }
+
+            actionInitialized = true;
+
+            e.getPresentation().setEnabled(!isScanRunning && !isPollingScan && !scanTriggered && projectAndBranchSelected);
         }
-
-        actionInitialized = true;
-
-        e.getPresentation().setEnabled(!isScanRunning && !isPollingScan && !scanTriggered && projectAndBranchSelected);
+        catch (Exception ex) {
+            LOGGER.error(ex);
+            e.getPresentation().setEnabled(false);
+        }
     }
 
     /**
