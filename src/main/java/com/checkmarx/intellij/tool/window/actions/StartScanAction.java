@@ -15,6 +15,7 @@ import com.intellij.dvcs.repo.Repository;
 import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.*;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.diagnostic.Logger;
@@ -289,7 +290,6 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
             e.getPresentation().setEnabled(!isScanRunning && !isPollingScan && !scanTriggered && projectAndBranchSelected);
         }
         catch (Exception ex) {
-            LOGGER.error(ex);
             e.getPresentation().setEnabled(false);
         }
     }
@@ -311,4 +311,10 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     private static String msg(Resource resource, Object... params) {
         return Bundle.message(resource, params);
     }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
+    }
+
 }

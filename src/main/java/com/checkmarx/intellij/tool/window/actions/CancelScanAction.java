@@ -8,6 +8,7 @@ import com.checkmarx.intellij.commands.Scan;
 import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.diagnostic.Logger;
@@ -62,8 +63,12 @@ public class CancelScanAction extends AnAction implements CxToolWindowAction {
             e.getPresentation().setEnabled(isScanRunning);
         }
         catch (Exception ex) {
-            ex.printStackTrace();
             e.getPresentation().setEnabled(false);
         }
     }
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
+    }
+
 }

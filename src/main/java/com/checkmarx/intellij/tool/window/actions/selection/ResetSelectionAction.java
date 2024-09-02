@@ -4,6 +4,7 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.tool.window.actions.CxToolWindowAction;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import lombok.Getter;
@@ -45,4 +46,9 @@ public class ResetSelectionAction extends AnAction implements CxToolWindowAction
             cxToolWindowPanel.resetPanel();
         });
     }
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.EDT;
+    }
+
 }
