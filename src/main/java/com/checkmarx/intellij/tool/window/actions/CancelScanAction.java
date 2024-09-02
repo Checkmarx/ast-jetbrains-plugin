@@ -63,7 +63,6 @@ public class CancelScanAction extends AnAction implements CxToolWindowAction {
             e.getPresentation().setEnabled(isScanRunning);
         }
         catch (Exception ex) {
-            ex.printStackTrace();
             e.getPresentation().setEnabled(false);
         }
     }

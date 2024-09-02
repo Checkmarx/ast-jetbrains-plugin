@@ -290,7 +290,6 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
             e.getPresentation().setEnabled(!isScanRunning && !isPollingScan && !scanTriggered && projectAndBranchSelected);
         }
         catch (Exception ex) {
-            LOGGER.error(ex);
             e.getPresentation().setEnabled(false);
         }
     }
