@@ -314,7 +314,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
-        return ActionUpdateThread.BGT;
+        return ActionUpdateThread.EDT;
     }
 
 }
