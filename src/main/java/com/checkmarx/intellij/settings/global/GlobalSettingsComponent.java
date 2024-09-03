@@ -35,9 +35,8 @@ import java.util.concurrent.CompletableFuture;
 public class GlobalSettingsComponent implements SettingsComponent {
     private static final Logger LOGGER = Utils.getLogger(GlobalSettingsComponent.class);
 
-    private final static GlobalSettingsState SETTINGS_STATE = GlobalSettingsState.getInstance();
-    private final static GlobalSettingsSensitiveState SENSITIVE_SETTINGS_STATE
-            = GlobalSettingsSensitiveState.getInstance();
+    private static GlobalSettingsState SETTINGS_STATE;
+    private static GlobalSettingsSensitiveState SENSITIVE_SETTINGS_STATE;
 
     private final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
 
@@ -52,6 +51,12 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private final JBLabel validateResult = new JBLabel();
 
     public GlobalSettingsComponent() {
+        if (SETTINGS_STATE == null) {
+            SETTINGS_STATE = GlobalSettingsState.getInstance();
+        }
+        if (SENSITIVE_SETTINGS_STATE == null) {
+            SENSITIVE_SETTINGS_STATE = GlobalSettingsSensitiveState.getInstance();
+        }
         addValidateConnectionListener();
 
         setupFields();
