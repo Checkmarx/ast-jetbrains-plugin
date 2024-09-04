@@ -2,6 +2,7 @@ package com.checkmarx.intellij.tool.window.actions.group.by;
 
 import com.checkmarx.intellij.tool.window.actions.CxToolWindowAction;
 import com.checkmarx.intellij.tool.window.GroupBy;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.util.NlsActions;
@@ -32,4 +33,9 @@ public abstract class GroupByBaseAction extends ToggleAction implements CxToolWi
     }
 
     protected abstract GroupBy getGroupBy();
+
+    @Override
+    public ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.EDT;
+    }
 }
