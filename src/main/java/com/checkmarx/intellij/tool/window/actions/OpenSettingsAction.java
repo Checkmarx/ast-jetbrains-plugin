@@ -3,6 +3,7 @@ package com.checkmarx.intellij.tool.window.actions;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.options.ShowSettingsUtil;
@@ -26,5 +27,10 @@ public class OpenSettingsAction extends AnAction implements CxToolWindowAction {
     public void actionPerformed(@NotNull AnActionEvent e) {
         ShowSettingsUtil.getInstance()
                         .showSettingsDialog(e.getProject(), GlobalSettingsConfigurable.class);
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.EDT;
     }
 }

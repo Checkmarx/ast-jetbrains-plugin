@@ -6,6 +6,7 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.tool.window.actions.CxToolWindowAction;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.project.DumbAware;
@@ -83,4 +84,10 @@ public abstract class BaseSelectionGroup extends DefaultActionGroup implements D
      * @param scan overriding scan
      */
     abstract void override(Scan scan);
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.EDT;
+    }
+
 }
