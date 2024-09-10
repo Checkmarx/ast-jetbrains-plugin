@@ -62,7 +62,7 @@ intellij {
 }
 
 runPluginVerifier {
-    ideVersions = ['IC-2022.3', 'IC-2023.1', 'IC-2023.2', 'IC-2023.3', 'IC-2024.1']
+    ideVersions = ['IC-2022.3', 'IC-2023.1', 'IC-2023.1', 'IC-2023.3', 'IC-2024.1']
 }
 
 downloadRobotServerPlugin {
