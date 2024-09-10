@@ -97,6 +97,6 @@ java {
 }
 
 patchPluginXml {
-    sinceBuild = '222'
+    sinceBuild = '211.6693.111'
 }
 
