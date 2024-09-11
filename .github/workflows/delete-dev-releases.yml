@@ -22,7 +22,6 @@ jobs:
   delete:
     runs-on: ubuntu-latest
     steps:
-
       - name: Delete releases and tags
         continue-on-error: true
         uses: dev-drprasad/delete-older-releases@v0.2.1
@@ -30,5 +29,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           keep_latest: 0
-          delete_tag_pattern: "-${{inputs.tag}}"
+          delete_tag_pattern: "${{ inputs.tag }}"
           delete_tags: true
