@@ -15,6 +15,11 @@ on:
         description: 'Channels to publish development releases'
         required: false
         type: string
+      only_verify:
+        description: 'Run only verify step'
+        required: false
+        default: 'false'
+        type: boolean
   workflow_dispatch:
     inputs:
       tag:
@@ -29,6 +34,11 @@ on:
         description: 'Channels to publish development releases'
         required: false
         type: string
+      only_verify:
+        description: 'Run only verify step'
+        required: false
+        default: 'false'
+        type: boolean
 
 env:
   CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
@@ -42,7 +52,6 @@ env:
   CX_NOT_MATCH_TEST_PROJECT: ${{ secrets.CX_NOT_MATCH_TEST_PROJECT }}
   CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
   CX_NOT_MATCH_TEST_SCAN_ID: ${{ secrets.CX_NOT_MATCH_TEST_SCAN_ID }}
-
 
 jobs:
   verify:
@@ -67,8 +76,10 @@ jobs:
         with:
           name: verifier-report
           path: build/reports/pluginVerifier
+
   testIntegration:
     needs: [ verify ]
+    if: ${{ inputs.only_verify == 'false' }}
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
@@ -94,13 +105,19 @@ jobs:
           name: test-fails-report-integration
           path: |
             build/reports
+
   deleteDevReleases:
+    needs: [ testIntegration ]
+    if: ${{ inputs.only_verify == 'false' }}
     uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/delete-dev-releases.yml@main
     with:
       tag: ${{ inputs.rchannels }}
     secrets: inherit
     if: inputs.rchannels
+
   release:
+    needs: [ testIntegration ]
+    if: ${{ inputs.only_verify == 'false' }}
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
