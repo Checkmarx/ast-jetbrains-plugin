@@ -40,7 +40,7 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
 
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
-    implementation 'com.miglayout:miglayout-swing:11.3'
+    implementation 'com.miglayout:miglayout-swing:11.4.2'
 
     if (javaWrapperVersion == "" || javaWrapperVersion == null) {
         implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.0.17'){
