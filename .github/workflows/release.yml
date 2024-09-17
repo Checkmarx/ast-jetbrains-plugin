@@ -140,3 +140,13 @@ jobs:
           files: build/distributions/*
           generate_release_notes: true
           prerelease: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
+      # Publish the plugin in marketplace
+      - name: Publish Plugin
+        env:
+          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          if [ -z "${{ inputs.rchannels }}" ]; then
+            ./gradlew publishPlugin
+          else
+            ./gradlew publishPlugin -Prchannels=${{ inputs.rchannels }}
+          fi
