@@ -1,50 +1,30 @@
-name: Release
+name: Debug Disk Usage
 
+# Allows manual triggering of the workflow
 on:
   workflow_dispatch:
-    inputs:
-      javawrapperversion:
-        description: 'Java Wrapper Version'
-        required: false
-        type: string
-      rchannels:
-        description: 'Channels to publish development releases'
-        required: false
-        type: string
-
-env:
-  CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
-  CX_APIKEY: ${{ secrets.CX_APIKEY }}
-  CX_TENANT: ${{ secrets.CX_TENANT }}
-  CX_TEST_REPO: ${{ secrets.CX_TEST_REPO }}
-  CX_TEST_SCAN: ${{ secrets.CX_TEST_SCAN }}
-  CX_TEST_BRANCH: ${{ secrets.CX_TEST_BRANCH }}
-  CX_TEST_PROJECT: ${{ secrets.CX_TEST_PROJECT }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  CX_NOT_MATCH_TEST_PROJECT: ${{ secrets.CX_NOT_MATCH_TEST_PROJECT }}
-  CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
-  CX_NOT_MATCH_TEST_SCAN_ID: ${{ secrets.CX_NOT_MATCH_TEST_SCAN_ID }}
 
 jobs:
-  verify:
+  debug:
     runs-on: ubuntu-latest
+
     steps:
-      # Check out current repository
-      - name: Checkout Code
-        uses: actions/checkout@v4
-      # Setup Java 11 environment for the next steps
-      - name: Setup Java
-        uses: actions/setup-java@v3.13.0
-        with:
-          distribution: zulu
-          java-version: 11
-      # Run verifier
-      - name: Run plugin verifier
-        run: ./gradlew runPluginVerifier
-      # Upload verifier report
-      - name: Upload report
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: verifier-report
-          path: build/reports/pluginVerifier
+      # Check disk usage at the start of the job
+      - name: Show initial disk usage
+        run: df -h
+
+      # Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # List contents of _diag folder
+      - name: List contents of _diag folder
+        run: ls -lah /home/runner/runners/2.319.1/_diag/
+
+      # Print log file content
+      - name: Print log file content
+        run: cat /home/runner/runners/2.319.1/_diag/Worker_20240912-091619-utc.log
+
+      # Check disk usage at the end of the job
+      - name: Show disk usage at the end
+        run: df -h
