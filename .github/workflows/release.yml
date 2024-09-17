@@ -1,8 +1,26 @@
 name: Release
 
 on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Next release tag'
+        required: true
+        type: string
+      javawrapperversion:
+        description: 'Java Wrapper Version'
+        required: false
+        type: string
+      rchannels:
+        description: 'Channels to publish development releases'
+        required: false
+        type: string
   workflow_dispatch:
     inputs:
+      tag:
+        description: 'Next release tag'
+        required: true
+        type: string
       javawrapperversion:
         description: 'Java Wrapper Version'
         required: false
@@ -25,49 +43,23 @@ env:
   CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
   CX_NOT_MATCH_TEST_SCAN_ID: ${{ secrets.CX_NOT_MATCH_TEST_SCAN_ID }}
 
+
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      # Check disk usage before starting
-      - name: Check initial disk usage
-        run: df -h
-
-      # Check inode usage before starting
-      - name: Check initial inode usage
-        run: df -i
-
       # Check out current repository
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      # Check disk usage after checkout
-      - name: Check disk usage after checkout
-        run: df -h
-
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@v3.13.0
         with:
           distribution: zulu
           java-version: 11
-
-      # Check disk usage after setting up Java
-      - name: Check disk usage after Java setup
-        run: df -h
-
       # Run verifier
       - name: Run plugin verifier
         run: ./gradlew runPluginVerifier
-
-      # Check disk usage after running verifier
-      - name: Check disk usage after verifier
-        run: df -h
-
-      # Check inode usage after running verifier
-      - name: Check inode usage after verifier
-        run: df -i
-
       # Upload verifier report
       - name: Upload report
         uses: actions/upload-artifact@v3
@@ -75,7 +67,76 @@ jobs:
         with:
           name: verifier-report
           path: build/reports/pluginVerifier
-
-      # Final disk usage check
-      - name: Check final disk usage
-        run: df -h
+  testIntegration:
+    needs: [ verify ]
+    runs-on: ubuntu-latest
+    steps:
+      # Check out current repository
+      - name: Fetch Sources
+        uses: actions/checkout@v4
+      # Setup Java 11 environment for the next steps
+      - name: Setup Java
+        uses: actions/setup-java@v3.13.0
+        with:
+          distribution: zulu
+          java-version: 11
+      # Perform clean before testing
+      - name: Clean
+        run: ./gradlew clean
+      # Run tests
+      - name: Tests
+        run: ./gradlew test -i --tests com.checkmarx.intellij.standard*
+      # Save report if tests fail
+      - name: Save fails report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-fails-report-integration
+          path: |
+            build/reports
+  deleteDevReleases:
+    uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/delete-dev-releases.yml@main
+    with:
+      tag: ${{ inputs.rchannels }}
+    secrets: inherit
+    if: inputs.rchannels
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      # Check out current repository
+      - name: Fetch Sources
+        uses: actions/checkout@v4
+      # Setup Java 11 environment for the next steps
+      - name: Setup Java
+        uses: actions/setup-java@v3.13.0
+        with:
+          distribution: zulu
+          java-version: 11
+      # Set the tag in an env var
+      - name: Set env
+        run: |
+          echo "RELEASE_VERSION=${{ inputs.tag }}" >> $GITHUB_ENV
+          echo "JAVA_WRAPPER_VERSION=${{ inputs.javawrapperversion }}" >> $GITHUB_ENV
+      - name: Create Release Name
+        run: |
+          echo "Creating release name"
+          if [ -z "${{ inputs.rchannels }}" ]; then
+            echo "GH_RELEASE_TAG_NAME=${{ env.RELEASE_VERSION }}" >> $GITHUB_ENV
+          else
+           echo "GH_RELEASE_TAG_NAME=${{ env.RELEASE_VERSION }}-${{ inputs.rchannels }}" >> $GITHUB_ENV
+          fi
+          echo "Release name - ${{ env.GH_RELEASE_TAG_NAME }}"
+      # Build plugin
+      - name: Build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew buildPlugin --info
+      # Create the release or prerelease
+      - name: Create Release or Prerelease
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.GH_RELEASE_TAG_NAME }}
+          name: ${{ env.GH_RELEASE_TAG_NAME }}
+          files: build/distributions/*
+          generate_release_notes: true
+          prerelease: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
