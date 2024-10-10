@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.*;
+import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.commands.results.ResultGetState;
 import com.checkmarx.intellij.commands.results.Results;
@@ -22,10 +23,16 @@ import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
+import com.intellij.openapi.fileEditor.FileEditorManagerListener;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.ui.Splitter;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.SearchTextField;
 import com.intellij.ui.components.JBLabel;
@@ -49,6 +56,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.*;
 import java.util.List;
+import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
@@ -91,15 +99,17 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     // service for indexing current results
     private final ProjectResultsService projectResultsService;
 
-    /**
-     * Creates the tool window with the settings panel or the results panel
-     *
-     * @param project current project
-     */
+    private Document currentDocument;
+    private Timer timer = new Timer();
+    private TimerTask pendingTask;
+    private final AscaService ascaService;
+
+
     public CxToolWindowPanel(@NotNull Project project) {
         super(false, true);
 
         this.project = project;
+        this.ascaService = new AscaService();  // Initialize the AscaService
         this.projectResultsService = project.getService(ProjectResultsService.class);
 
         Runnable r = () -> {
@@ -111,14 +121,91 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
             }
         };
 
-        ApplicationManager.getApplication()
-                          .getMessageBus()
-                          .connect(this)
-                          .subscribe(SettingsListener.SETTINGS_APPLIED, r::run);
-        ApplicationManager.getApplication().getMessageBus().connect(this).subscribe(FilterBaseAction.FILTER_CHANGED,
-                                                                                    this::changeFilter);
+        // Establish message bus connection before subscribing
+        ApplicationManager.getApplication().getMessageBus()
+                .connect(this)
+                .subscribe(SettingsListener.SETTINGS_APPLIED, r::run);
+        ApplicationManager.getApplication().getMessageBus().connect(this)
+                .subscribe(FilterBaseAction.FILTER_CHANGED, this::changeFilter);
 
+        listenForEditorChanges();  // Add listener for active editor changes
         r.run();
+    }
+
+    /**
+     * Listens for changes in the active editor and sets a document listener
+     * on the document of the currently active editor.
+     */
+    private void listenForEditorChanges() {
+        project.getMessageBus().connect(this).subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new FileEditorManagerListener() {
+            @Override
+            public void selectionChanged(@NotNull FileEditorManagerEvent event) {
+                Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
+                if (editor != null) {
+                    Document newDocument = editor.getDocument();
+                    VirtualFile virtualFile = FileEditorManager.getInstance(project).getSelectedFiles()[0];  // Get the selected file
+
+                    // If a new document is selected, remove the listener from the old document and attach to the new one
+                    if (currentDocument != newDocument) {
+                        currentDocument = newDocument;
+                        registerDocumentListener(currentDocument, virtualFile);  // Add listener to new document
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Adds a document listener to the specified document.
+     * The listener will trigger after 2 seconds of no further changes.
+     *
+     * @param document    the document to listen to.
+     * @param virtualFile the virtual file associated with the document.
+     */
+    private void registerDocumentListener(Document document, VirtualFile virtualFile) {
+        document.addDocumentListener(new com.intellij.openapi.editor.event.DocumentListener() {
+            @Override
+            public void documentChanged(@NotNull com.intellij.openapi.editor.event.DocumentEvent event) {
+                // Cancel any previous timer task
+                if (pendingTask != null) {
+                    pendingTask.cancel();
+                }
+
+                // Create a new TimerTask to execute after 2 seconds of no further edits
+                pendingTask = new TimerTask() {
+                    @Override
+                    public void run() {
+                        runInBackground(virtualFile);  // Run the task in the background, passing the virtual file
+                    }
+                };
+
+                // Schedule the task to run after 2 seconds (2000 ms)
+                timer.schedule(pendingTask, 2000);
+            }
+        });
+    }
+
+    /**
+     * Executes the background task using a SwingWorker.
+     *
+     * @param virtualFile the file associated with the current document.
+     */
+    private void runInBackground(VirtualFile virtualFile) {
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                boolean ascaLatestVersion = false;
+                LOGGER.info("Running ASCA scan in the background for file: " + virtualFile.getPath());
+
+                ascaService.scanAsca(virtualFile, project, ascaLatestVersion, Constants.JET_BRAINS_AGENT_NAME);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                // Optional: You can update the UI here if needed once the background task is complete.
+            }
+        }.execute();
     }
 
     /**

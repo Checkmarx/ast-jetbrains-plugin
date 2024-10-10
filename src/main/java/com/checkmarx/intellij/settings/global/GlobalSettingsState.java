@@ -42,6 +42,9 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     private String additionalParameters = "";
 
     @NotNull
+    private boolean asca = false;
+
+    @NotNull
     private Set<Filterable> filters = new HashSet<>(getDefaultFilters());
 
     @Override
@@ -65,6 +68,10 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
         set.addAll(ResultState.DEFAULT_STATES);
 
         return set;
+    }
+
+    public void setAscaEnabled(boolean ascaEnabled) {
+        this.asca = ascaEnabled;
     }
 }
 
