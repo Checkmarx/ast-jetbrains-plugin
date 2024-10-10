@@ -189,7 +189,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         addField(Resource.ADDITIONAL_PARAMETERS, additionalParametersField, false, false);
         mainPanel.add(new JBLabel());
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
-                "gapleft 5, wrap");
+                "gapleft 5,gapbottom 10, wrap");
 
         // Add ASCA checkbox
         addSectionHeader(Resource.ASCA_DESCRIPTION);
