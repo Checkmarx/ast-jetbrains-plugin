@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.*;
+import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.commands.results.ResultGetState;
 import com.checkmarx.intellij.commands.results.Results;
@@ -31,6 +32,7 @@ import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.ui.Splitter;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.SearchTextField;
 import com.intellij.ui.components.JBLabel;
@@ -100,11 +102,14 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     private Document currentDocument;
     private Timer timer = new Timer();
     private TimerTask pendingTask;
+    private final AscaService ascaService;
+
 
     public CxToolWindowPanel(@NotNull Project project) {
         super(false, true);
 
         this.project = project;
+        this.ascaService = new AscaService();  // Initialize the AscaService
         this.projectResultsService = project.getService(ProjectResultsService.class);
 
         Runnable r = () -> {
@@ -127,6 +132,10 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         r.run();
     }
 
+    /**
+     * Listens for changes in the active editor and sets a document listener
+     * on the document of the currently active editor.
+     */
     private void listenForEditorChanges() {
         project.getMessageBus().connect(this).subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new FileEditorManagerListener() {
             @Override
@@ -134,21 +143,26 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
                 if (editor != null) {
                     Document newDocument = editor.getDocument();
+                    VirtualFile virtualFile = FileEditorManager.getInstance(project).getSelectedFiles()[0];  // Get the selected file
 
                     // If a new document is selected, remove the listener from the old document and attach to the new one
                     if (currentDocument != newDocument) {
-                        if (currentDocument != null) {
-                            removeDocumentListener(currentDocument);  // Remove listener from old document
-                        }
                         currentDocument = newDocument;
-                        registerDocumentListener(currentDocument);  // Add listener to new document
+                        registerDocumentListener(currentDocument, virtualFile);  // Add listener to new document
                     }
                 }
             }
         });
     }
 
-    private void registerDocumentListener(Document document) {
+    /**
+     * Adds a document listener to the specified document.
+     * The listener will trigger after 2 seconds of no further changes.
+     *
+     * @param document    the document to listen to.
+     * @param virtualFile the virtual file associated with the document.
+     */
+    private void registerDocumentListener(Document document, VirtualFile virtualFile) {
         document.addDocumentListener(new com.intellij.openapi.editor.event.DocumentListener() {
             @Override
             public void documentChanged(@NotNull com.intellij.openapi.editor.event.DocumentEvent event) {
@@ -161,7 +175,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 pendingTask = new TimerTask() {
                     @Override
                     public void run() {
-                        runInBackground();  // Run the task in the background
+                        runInBackground(virtualFile);  // Run the task in the background, passing the virtual file
                     }
                 };
 
@@ -172,26 +186,18 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     }
 
     /**
-     * Removes the document listener from the specified document.
-     * Since IntelliJ IDEA doesn't have a built-in way to remove a listener, you can prevent actions
-     * for the old document by ignoring it in the logic or use flags if needed.
-     *
-     * @param document the document to remove the listener from.
-     */
-    private void removeDocumentListener(Document document) {
-        // IntelliJ does not provide a direct way to remove listeners from a document,
-        // but we can ensure only the current document is actively processed.
-    }
-
-    /**
      * Executes the background task using a SwingWorker.
+     *
+     * @param virtualFile the file associated with the current document.
      */
-    private void runInBackground() {
+    private void runInBackground(VirtualFile virtualFile) {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
-                // Perform the task in the background
-                System.out.println("edited");
+                boolean ascaLatestVersion = false;
+                LOGGER.info("Running ASCA scan in the background for file: " + virtualFile.getPath());
+
+                ascaService.scanAsca(virtualFile, project, ascaLatestVersion, Constants.JET_BRAINS_AGENT_NAME);
                 return null;
             }
 
