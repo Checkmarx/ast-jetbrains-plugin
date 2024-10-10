@@ -186,10 +186,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
         addField(Resource.API_KEY, apiKeyField, true, true);
 
         addSectionHeader(Resource.SCAN_SECTION);
-        addField(Resource.ADDITIONAL_PARAMETERS, additionalParametersField, true, false);
+        addField(Resource.ADDITIONAL_PARAMETERS, additionalParametersField, false, false);
         mainPanel.add(new JBLabel());
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
-                "gapleft 5,gapbottom 10, wrap");
+                "gapleft 5, wrap");
 
         // Add ASCA checkbox
         addSectionHeader(Resource.ASCA_DESCRIPTION);
