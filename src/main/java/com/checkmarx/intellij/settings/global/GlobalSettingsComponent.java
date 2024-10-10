@@ -1,11 +1,13 @@
 package com.checkmarx.intellij.settings.global;
 
+import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.commands.ASCA;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.settings.SettingsComponent;
@@ -51,6 +53,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private final JButton validateButton = new JButton(Bundle.message(Resource.VALIDATE_BUTTON));
     private final JBLabel validateResult = new JBLabel();
     private final JBCheckBox ascaCheckBox = new JBCheckBox(Bundle.message(Resource.ASCA_CHECKBOX));
+    private final JBLabel ascaRunning = new JBLabel();
+
 
     public GlobalSettingsComponent() {
         if (SETTINGS_STATE == null) {
@@ -92,6 +96,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         apiKeyField.setText(SENSITIVE_SETTINGS_STATE.getApiKey());
 
         validateResult.setVisible(false);
+        ascaRunning.setVisible(false);
     }
 
     /**
@@ -153,12 +158,43 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     private void addAscaCheckBoxListener() {
         ascaCheckBox.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                System.out.println("Checkbox selected!");
-            } else {
-                System.out.println("Checkbox deselected!");
+            if (e.getStateChange() != ItemEvent.SELECTED) {
+                ascaRunning.setVisible(false);
+                LOGGER.debug("ASCA checkbox deselected.");
+                return;
             }
+
+            runAscaScanInBackground();
         });
+    }
+
+    private void runAscaScanInBackground() {
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                try {
+                    ascaRunning.setVisible(false);
+                    ScanResult ascaResults = ASCA.scanAsca("", true, Constants.JET_BRAINS_AGENT_NAME);
+                    LOGGER.info(ascaResults.getMessage());
+                    setAscaRunning(ascaResults.getMessage(), JBColor.GREEN);
+                } catch (IOException | URISyntaxException | InterruptedException ex) {
+                    LOGGER.warn(Bundle.message(Resource.ASCA_SCAN_WARNING), ex);
+                } catch (CxException | CxConfig.InvalidCLIConfigException ex) {
+                    String msg = ex.getMessage().trim();
+                    int lastLineIndex = Math.max(msg.lastIndexOf('\n'), 0);
+                    setAscaRunning(msg.substring(lastLineIndex).trim(), JBColor.RED);
+                    LOGGER.warn(Bundle.message(Resource.ASCA_SCAN_WARNING, msg.substring(lastLineIndex).trim()));
+                } finally {
+                    ascaRunning.setVisible(true);
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                LOGGER.debug("ASCA scan completed.");
+            }
+        }.execute();
     }
 
     /**
@@ -170,6 +206,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private void setValidationResult(String message, JBColor color) {
         validateResult.setText(String.format("<html>%s</html>", message));
         validateResult.setForeground(color);
+    }
+
+    private void setAscaRunning(String message, JBColor color) {
+        ascaRunning.setText(String.format("<html>%s</html>", message));
+        ascaRunning.setForeground(color);
     }
 
     /**
@@ -193,7 +234,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
         // Add ASCA checkbox
         addSectionHeader(Resource.ASCA_DESCRIPTION);
-        mainPanel.add(ascaCheckBox,"wrap");
+        mainPanel.add(ascaCheckBox);
+        mainPanel.add(ascaRunning, "gapleft 5, wrap");
 
         mainPanel.add(validateButton, "sizegroup bttn, gaptop 30");
         mainPanel.add(validateResult, "gapleft 5, gaptop 30");
