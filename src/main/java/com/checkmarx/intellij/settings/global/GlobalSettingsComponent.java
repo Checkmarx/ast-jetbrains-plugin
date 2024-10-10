@@ -16,7 +16,6 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPasswordField;
-import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.messages.MessageBus;
 import lombok.Getter;
@@ -24,6 +23,8 @@ import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Objects;
@@ -49,6 +50,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     private final JButton validateButton = new JButton(Bundle.message(Resource.VALIDATE_BUTTON));
     private final JBLabel validateResult = new JBLabel();
+    private final JBCheckBox ascaCheckBox = new JBCheckBox(Bundle.message(Resource.ASCA_CHECKBOX));
 
     public GlobalSettingsComponent() {
         if (SETTINGS_STATE == null) {
@@ -58,6 +60,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE = GlobalSettingsSensitiveState.getInstance();
         }
         addValidateConnectionListener();
+        addAscaCheckBoxListener();
 
         setupFields();
         buildGUI();
@@ -74,7 +77,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     @Override
     public void apply() {
-        SETTINGS_STATE.apply(getStateFromFields());
+        GlobalSettingsState state = getStateFromFields();
+        SETTINGS_STATE.apply(state);
         SENSITIVE_SETTINGS_STATE.apply(getSensitiveStateFromFields());
         messageBus.syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied();
     }
@@ -82,6 +86,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     @Override
     public void reset() {
         additionalParametersField.setText(SETTINGS_STATE.getAdditionalParameters());
+        ascaCheckBox.setSelected(SETTINGS_STATE.isAsca());
 
         SENSITIVE_SETTINGS_STATE.reset();
         apiKeyField.setText(SENSITIVE_SETTINGS_STATE.getApiKey());
@@ -97,6 +102,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private GlobalSettingsState getStateFromFields() {
         GlobalSettingsState state = new GlobalSettingsState();
         state.setAdditionalParameters(additionalParametersField.getText().trim());
+        state.setAsca(ascaCheckBox.isSelected());
 
         return state;
     }
@@ -127,7 +133,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             CompletableFuture.runAsync(() -> {
                 try {
                     Authentication.validateConnection(getStateFromFields(),
-                                                      getSensitiveStateFromFields());
+                            getSensitiveStateFromFields());
                     setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
                     LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
                 } catch (IOException | URISyntaxException | InterruptedException e) {
@@ -142,6 +148,16 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     validateButton.setEnabled(true);
                 }
             });
+        });
+    }
+
+    private void addAscaCheckBoxListener() {
+        ascaCheckBox.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                System.out.println("Checkbox selected!");
+            } else {
+                System.out.println("Checkbox deselected!");
+            }
         });
     }
 
@@ -164,16 +180,21 @@ public class GlobalSettingsComponent implements SettingsComponent {
         mainPanel.setLayout(new MigLayout("", "[][grow]"));
 
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.HELP_JETBRAINS),
-                      "span, growx, wrap, gapbottom 10");
+                "span, growx, wrap, gapbottom 10");
 
         addSectionHeader(Resource.CREDENTIALS_SECTION);
         addField(Resource.API_KEY, apiKeyField, true, true);
 
         addSectionHeader(Resource.SCAN_SECTION);
-        addField(Resource.ADDITIONAL_PARAMETERS, additionalParametersField, false, false);
+        addField(Resource.ADDITIONAL_PARAMETERS, additionalParametersField, true, false);
         mainPanel.add(new JBLabel());
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
-                      "gapleft 5, wrap");
+                "gapleft 5, wrap");
+
+        // Add ASCA checkbox
+        addSectionHeader(Resource.ASCA_DESCRIPTION);
+        mainPanel.add(ascaCheckBox,"wrap");
+
         mainPanel.add(validateButton, "sizegroup bttn, gaptop 30");
         mainPanel.add(validateResult, "gapleft 5, gaptop 30");
     }
@@ -181,7 +202,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private void setupFields() {
         apiKeyField.setName(Constants.FIELD_NAME_API_KEY);
         additionalParametersField.setName(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS);
+        ascaCheckBox.setName(Constants.FIELD_NAME_ASCA);
     }
+
 
     private void addSectionHeader(Resource resource) {
         validatePanel();
@@ -196,8 +219,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
             constraints += ", " + Constants.FIELD_GAP_BOTTOM;
         }
         String label = String.format(Constants.FIELD_FORMAT,
-                                     Bundle.message(resource),
-                                     required ? Constants.REQUIRED_MARK : "");
+                Bundle.message(resource),
+                required ? Constants.REQUIRED_MARK : "");
         mainPanel.add(new JBLabel(label), gapAfter ? Constants.FIELD_GAP_BOTTOM : "");
         mainPanel.add(field, constraints);
     }
