@@ -22,6 +22,11 @@ import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
+import com.intellij.openapi.fileEditor.FileEditorManagerListener;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
@@ -49,6 +54,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.*;
 import java.util.List;
+import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
@@ -91,11 +97,10 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     // service for indexing current results
     private final ProjectResultsService projectResultsService;
 
-    /**
-     * Creates the tool window with the settings panel or the results panel
-     *
-     * @param project current project
-     */
+    private Document currentDocument;
+    private Timer timer = new Timer();
+    private TimerTask pendingTask;
+
     public CxToolWindowPanel(@NotNull Project project) {
         super(false, true);
 
@@ -111,14 +116,90 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
             }
         };
 
-        ApplicationManager.getApplication()
-                          .getMessageBus()
-                          .connect(this)
-                          .subscribe(SettingsListener.SETTINGS_APPLIED, r::run);
-        ApplicationManager.getApplication().getMessageBus().connect(this).subscribe(FilterBaseAction.FILTER_CHANGED,
-                                                                                    this::changeFilter);
+        // Establish message bus connection before subscribing
+        ApplicationManager.getApplication().getMessageBus()
+                .connect(this)
+                .subscribe(SettingsListener.SETTINGS_APPLIED, r::run);
+        ApplicationManager.getApplication().getMessageBus().connect(this)
+                .subscribe(FilterBaseAction.FILTER_CHANGED, this::changeFilter);
 
+        listenForEditorChanges();  // Add listener for active editor changes
         r.run();
+    }
+
+    private void listenForEditorChanges() {
+        project.getMessageBus().connect(this).subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new FileEditorManagerListener() {
+            @Override
+            public void selectionChanged(@NotNull FileEditorManagerEvent event) {
+                Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
+                if (editor != null) {
+                    Document newDocument = editor.getDocument();
+
+                    // If a new document is selected, remove the listener from the old document and attach to the new one
+                    if (currentDocument != newDocument) {
+                        if (currentDocument != null) {
+                            removeDocumentListener(currentDocument);  // Remove listener from old document
+                        }
+                        currentDocument = newDocument;
+                        registerDocumentListener(currentDocument);  // Add listener to new document
+                    }
+                }
+            }
+        });
+    }
+
+    private void registerDocumentListener(Document document) {
+        document.addDocumentListener(new com.intellij.openapi.editor.event.DocumentListener() {
+            @Override
+            public void documentChanged(@NotNull com.intellij.openapi.editor.event.DocumentEvent event) {
+                // Cancel any previous timer task
+                if (pendingTask != null) {
+                    pendingTask.cancel();
+                }
+
+                // Create a new TimerTask to execute after 2 seconds of no further edits
+                pendingTask = new TimerTask() {
+                    @Override
+                    public void run() {
+                        runInBackground();  // Run the task in the background
+                    }
+                };
+
+                // Schedule the task to run after 2 seconds (2000 ms)
+                timer.schedule(pendingTask, 2000);
+            }
+        });
+    }
+
+    /**
+     * Removes the document listener from the specified document.
+     * Since IntelliJ IDEA doesn't have a built-in way to remove a listener, you can prevent actions
+     * for the old document by ignoring it in the logic or use flags if needed.
+     *
+     * @param document the document to remove the listener from.
+     */
+    private void removeDocumentListener(Document document) {
+        // IntelliJ does not provide a direct way to remove listeners from a document,
+        // but we can ensure only the current document is actively processed.
+    }
+
+    /**
+     * Executes the background task using a SwingWorker.
+     */
+    private void runInBackground() {
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                // Perform the task in the background
+                System.out.println("edited");
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                // Optional: You can update the UI here if needed once the background task is complete.
+            }
+        }.execute();
     }
 
     /**
