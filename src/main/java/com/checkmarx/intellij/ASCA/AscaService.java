@@ -5,13 +5,16 @@ import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.commands.ASCA;
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInspection.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.openapi.application.ApplicationManager;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,27 +39,37 @@ public class AscaService {
         if (ignoreFiles(file)) {
             return;
         }
-        try {
-            // Save the file temporarily
-            String filePath = saveTempFile(file.getName(), new String(file.contentsToByteArray()));
-            // Run the ASCA scan
-            LOGGER.info("Start ASCA scan on file: " + file.getPath());
-            ScanResult scanAscaResult = ASCA.scanAsca(filePath, ascLatestVersion, agent);
-            // Delete the temporary file
-            deleteFile(filePath);
-            LOGGER.info("File " + filePath + " deleted.");
-            // Handle errors if any
-            if (scanAscaResult.getError()!= null) {
-                LOGGER.warn("ASCA Warning: " + (Objects.nonNull(scanAscaResult.getError().getDescription()) ?
-                        scanAscaResult.getError().getDescription() : scanAscaResult.getError()));
-                return;
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                // Save the file temporarily
+                String filePath = saveTempFile(file.getName(), new String(file.contentsToByteArray()));
+
+                // Run the ASCA scan
+                LOGGER.info("Start ASCA scan on file: " + file.getPath());
+                ScanResult scanAscaResult = ASCA.scanAsca(filePath, ascLatestVersion, agent);
+
+                // Delete the temporary file
+                deleteFile(filePath);
+                LOGGER.info("File " + filePath + " deleted.");
+
+                // Handle errors if any
+                if (scanAscaResult.getError() != null) {
+                    LOGGER.warn("ASCA Warning: " + (Objects.nonNull(scanAscaResult.getError().getDescription()) ?
+                            scanAscaResult.getError().getDescription() : scanAscaResult.getError()));
+                    return;
+                }
+
+                // Log the results
+                LOGGER.info(scanAscaResult.getScanDetails().size() + " security best practice violations were found in " + file.getPath());
+
+                // Update problems on the UI thread
+                ApplicationManager.getApplication().invokeLater(() -> updateProblems(scanAscaResult, file, project));
+
+            } catch (IOException | CxConfig.InvalidCLIConfigException | URISyntaxException | CxException | InterruptedException e) {
+                LOGGER.error("Error during ASCA scan.", e);
             }
-            // Log the results
-            LOGGER.info(scanAscaResult.getScanDetails().size() + " security best practice violations were found in " + file.getPath());
-            updateProblems(scanAscaResult, file, project);
-        } catch (IOException | CxConfig.InvalidCLIConfigException | URISyntaxException | CxException | InterruptedException e) {
-            LOGGER.error("Error during ASCA scan.");
-        }
+        });
     }
 
     private boolean ignoreFiles(VirtualFile file) {
@@ -65,12 +78,24 @@ public class AscaService {
     }
 
     private void updateProblems(ScanResult scanAscaResult, VirtualFile file, Project project) {
-        PsiFile psiFile = PsiManager.getInstance(project).findFile(file);
-        if (psiFile == null) {
-            return;
-        }
+        ApplicationManager.getApplication().invokeLater(() -> {
+            PsiFile psiFile = PsiManager.getInstance(project).findFile(file);
+            if (psiFile == null) {
+                return;
+            }
 
-        InspectionManager inspectionManager = InspectionManager.getInstance(project);
+            InspectionManager inspectionManager = InspectionManager.getInstance(project);
+            List<ProblemDescriptor> problemDescriptors = getProblemDescriptors(scanAscaResult, inspectionManager, psiFile);
+
+            if (!problemDescriptors.isEmpty()) {
+                // Register or apply the problem descriptors with the inspection tool or problem view
+                LOGGER.info(problemDescriptors.size() + " problems added to the file.");
+                PsiDocumentManager.getInstance(project).commitAllDocuments();
+            }
+        });
+    }
+
+    private static @NotNull List<ProblemDescriptor> getProblemDescriptors(ScanResult scanAscaResult, InspectionManager inspectionManager, PsiFile psiFile) {
         List<ProblemDescriptor> problemDescriptors = new ArrayList<>();
 
         for (ScanDetail res : scanAscaResult.getScanDetails()) {
@@ -79,16 +104,9 @@ public class AscaService {
                     psiFile, description, true, ProblemHighlightType.GENERIC_ERROR_OR_WARNING, true);
             problemDescriptors.add(problemDescriptor);
         }
-
-        // Apply the problems to the PSI file in the UI thread
-        ApplicationManager.getApplication().invokeLater(() -> {
-            if (!problemDescriptors.isEmpty()) {
-                // This is where you'd add the problem descriptors to the IDE's problem view or a custom inspection tool
-                // For instance, you could implement an inspection that registers the problems with IntelliJ's inspection framework
-                LOGGER.info(problemDescriptors.size() + " problems added to the file.");
-            }
-        });
+        return problemDescriptors;
     }
+
 
     private String saveTempFile(String fileName, String content) {
         try {
