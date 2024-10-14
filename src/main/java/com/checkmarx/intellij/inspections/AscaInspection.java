@@ -89,6 +89,6 @@ public class AscaInspection extends LocalInspectionTool {
 
     private ScanResult performAscaScan(PsiFile file) {
         // Perform the ASCA scan here using the AscaService
-        return new AscaService().runAscaScan(file.getVirtualFile(), file.getProject(), false, Constants.JET_BRAINS_AGENT_NAME);
+        return new AscaService().runAscaScan(file.getVirtualFile(), false, Constants.JET_BRAINS_AGENT_NAME);
     }
 }

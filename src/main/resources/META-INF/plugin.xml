@@ -39,6 +39,7 @@
         <localInspection
                 implementationClass="com.checkmarx.intellij.inspections.AscaInspection"
                 displayName="ASCA"
+                shortName="ASCA"
                 groupName="ASCA"
                 groupPath="Checkmarx"
                 enabledByDefault="true"/>

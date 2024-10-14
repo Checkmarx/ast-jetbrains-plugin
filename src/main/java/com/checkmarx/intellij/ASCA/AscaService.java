@@ -5,7 +5,6 @@ import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.commands.ASCA;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.Nullable;
 
@@ -29,17 +28,16 @@ public class AscaService {
      * Runs the ASCA scan on the provided file and returns the ScanResult.
      *
      * @param file            the file to scan.
-     * @param project         the IntelliJ project context.
      * @param ascLatestVersion whether to use the latest version of the ASCA agent.
      * @param agent           the agent name to use.
      * @return the result of the ASCA scan, or null if the scan failed.
      */
     @Nullable
-    public ScanResult runAscaScan(VirtualFile file, Project project, boolean ascLatestVersion, String agent) {
+    public ScanResult runAscaScan(VirtualFile file, boolean ascLatestVersion, String agent) {
         if (ignoreFiles(file)) {
             return null;
         }
-
+        file.getName();
         try {
             // Save the file temporarily
             String filePath = saveTempFile(file.getName(), new String(file.contentsToByteArray()));
