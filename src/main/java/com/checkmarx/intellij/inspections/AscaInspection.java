@@ -85,13 +85,14 @@ public class AscaInspection extends LocalInspectionTool {
         String severity = detail.getSeverity();
 
         switch (severity) {
-            case "Critical":
-                return ProblemHighlightType.ERROR;
-            case "High":
-                return ProblemHighlightType.ERROR;  // Error for high-severity issues
-            case "Medium":
+            case Constants.ASCA_CRITICAL_SEVERITY:
+                return ProblemHighlightType.GENERIC_ERROR;
+            case Constants.ASCA_HIGH_SEVERITY:
+                return ProblemHighlightType.GENERIC_ERROR;  // Error for high-severity issues
+            case Constants.ASCA_MEDIUM_SEVERITY:
                 return ProblemHighlightType.WARNING;  // Warning for medium severity
-            case "Low":
+            case Constants.ASCA_LOW_SEVERITY:
+                return ProblemHighlightType.WEAK_WARNING;  // Weak warning for low severity
             default:
                 return ProblemHighlightType.WEAK_WARNING;  // Weak warning for low severity or unknown severity
         }

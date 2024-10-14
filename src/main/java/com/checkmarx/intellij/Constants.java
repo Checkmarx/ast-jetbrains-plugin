@@ -79,4 +79,8 @@ public final class Constants {
     public static final String SCAN_STATUS_RUNNING = "running";
     public static final String SCAN_STATUS_COMPLETED = "completed";
     public static final String JET_BRAINS_AGENT_NAME = "Jetbrains";
+    public static final String ASCA_CRITICAL_SEVERITY = "Critical";
+    public static final String ASCA_HIGH_SEVERITY = "High";
+    public static final String ASCA_MEDIUM_SEVERITY = "Medium";
+    public static final String ASCA_LOW_SEVERITY = "Low";
 }
