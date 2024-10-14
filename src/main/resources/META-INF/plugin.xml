@@ -47,8 +47,6 @@
     <applicationListeners>
         <listener class="com.checkmarx.intellij.project.ProjectListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
-        <listener class="com.checkmarx.intellij.listeners.AscaFileEditorListener"
-                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
     </applicationListeners>
 
     <actions>
