@@ -4,6 +4,7 @@ import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.codeInspection.*;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
@@ -15,59 +16,68 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AscaInspection extends LocalInspectionTool {
+    private final GlobalSettingsState settings = GlobalSettingsState.getInstance();
 
     @Override
     public ProblemDescriptor @NotNull [] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
-        // Perform the ASCA scan and retrieve the results
-        ScanResult scanResult = performAscaScan(file);
+        if (!settings.isAsca()) {
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
+        try {
+            // Perform the ASCA scan and retrieve the results
+            ScanResult scanResult = performAscaScan(file);
+            if (scanResult != null && scanResult.getScanDetails()!=null) {
+                List<ProblemDescriptor> problems = new ArrayList<>();
+                Project project = file.getProject();
+                Document document = PsiDocumentManager.getInstance(project).getDocument(file);
 
-        if (scanResult != null && scanResult.getScanDetails()!=null) {
-            List<ProblemDescriptor> problems = new ArrayList<>();
-            Project project = file.getProject();
-            Document document = PsiDocumentManager.getInstance(project).getDocument(file);
+                if (document == null) {
+                    return ProblemDescriptor.EMPTY_ARRAY;
+                }
 
-            if (document == null) {
-                return ProblemDescriptor.EMPTY_ARRAY;
-            }
+                for (ScanDetail detail : scanResult.getScanDetails()) {
+                    int lineNumber = detail.getLine();  // Assuming getLineNumber() exists
 
-            for (ScanDetail detail : scanResult.getScanDetails()) {
-                int lineNumber = detail.getLine();  // Assuming getLineNumber() exists
+                    if (lineNumber > 0 && lineNumber <= document.getLineCount()) {
+                        int startOffset = document.getLineStartOffset(lineNumber - 1);  // Convert line number to start offset
+                        int endOffset = document.getLineEndOffset(lineNumber - 1);      // Calculate end offset as the end of the line
 
-                if (lineNumber > 0 && lineNumber <= document.getLineCount()) {
-                    int startOffset = document.getLineStartOffset(lineNumber - 1);  // Convert line number to start offset
-                    int endOffset = document.getLineEndOffset(lineNumber - 1);      // Calculate end offset as the end of the line
+                        // Find the PsiElement at the start offset
+                        PsiElement elementAtLine = file.findElementAt(startOffset);
 
-                    // Find the PsiElement at the start offset
-                    PsiElement elementAtLine = file.findElementAt(startOffset);
+                        if (elementAtLine != null) {
+                            // You can further refine the end offset based on the element or the problem details
+                            endOffset = Math.min(endOffset, document.getTextLength());  // Ensure endOffset is within the document length
 
-                    if (elementAtLine != null) {
-                        // You can further refine the end offset based on the element or the problem details
-                        endOffset = Math.min(endOffset, document.getTextLength());  // Ensure endOffset is within the document length
+                            // Create a custom TextRange for highlighting a specific portion of the document
+                            TextRange problemRange = new TextRange(startOffset, endOffset);
 
-                        // Create a custom TextRange for highlighting a specific portion of the document
-                        TextRange problemRange = new TextRange(startOffset, endOffset);
-
-                        String description = detail.getRuleName() + " - " + detail.getRemediationAdvise();
-                        ProblemHighlightType highlightType = determineHighlightType(detail);
+                            String description = detail.getRuleName() + " - " + detail.getRemediationAdvise();
+                            ProblemHighlightType highlightType = determineHighlightType(detail);
 
 
-                        ProblemDescriptor problem = manager.createProblemDescriptor(
-                                file,                // The file where the problem occurs
-                                problemRange,        // The custom range of the problem
-                                description,         // The issue description
-                                highlightType,  // Highlight type
-                                isOnTheFly,          // Whether it is on-the-fly inspection
-                                (LocalQuickFix) null // Optional quick fix
-                        );
-                        problems.add(problem);
+                            ProblemDescriptor problem = manager.createProblemDescriptor(
+                                    file,                // The file where the problem occurs
+                                    problemRange,        // The custom range of the problem
+                                    description,         // The issue description
+                                    highlightType,  // Highlight type
+                                    isOnTheFly,          // Whether it is on-the-fly inspection
+                                    (LocalQuickFix) null // Optional quick fix
+                            );
+                            problems.add(problem);
+                        }
                     }
                 }
+
+                return problems.toArray(ProblemDescriptor[]::new);
             }
 
-            return problems.toArray(ProblemDescriptor[]::new);
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
+        catch (Exception e) {
+            return ProblemDescriptor.EMPTY_ARRAY;
         }
 
-        return ProblemDescriptor.EMPTY_ARRAY;
     }
 
     private ProblemHighlightType determineHighlightType(ScanDetail detail) {
@@ -89,6 +99,6 @@ public class AscaInspection extends LocalInspectionTool {
 
     private ScanResult performAscaScan(PsiFile file) {
         // Perform the ASCA scan here using the AscaService
-        return new AscaService().runAscaScan(file.getVirtualFile(), false, Constants.JET_BRAINS_AGENT_NAME);
+        return new AscaService().runAscaScan(file, file.getProject(),  false, Constants.JET_BRAINS_AGENT_NAME);
     }
 }

@@ -3,6 +3,7 @@ package com.checkmarx.intellij.settings.global;
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
@@ -173,9 +174,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
             protected Void doInBackground() {
                 try {
                     ascaRunning.setVisible(false);
-                    ScanResult ascaResults = ASCA.scanAsca("", true, Constants.JET_BRAINS_AGENT_NAME);
-                    LOGGER.info(ascaResults.getMessage());
-                    setAscaRunning(ascaResults.getMessage(), JBColor.GREEN);
+                    String ascaMsg = new AscaService().installAsca();
+                    LOGGER.info(ascaMsg);
+                    setAscaRunning(ascaMsg, JBColor.GREEN);
                 } catch (IOException | URISyntaxException | InterruptedException ex) {
                     LOGGER.warn(Bundle.message(Resource.ASCA_SCAN_WARNING), ex);
                 } catch (CxException | CxConfig.InvalidCLIConfigException ex) {
@@ -184,7 +185,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     setAscaRunning(msg.substring(lastLineIndex).trim(), JBColor.RED);
                     LOGGER.warn(Bundle.message(Resource.ASCA_SCAN_WARNING, msg.substring(lastLineIndex).trim()));
                 } finally {
-                    ascaRunning.setVisible(true);
+                    if (ascaCheckBox.isSelected()) {
+                        ascaRunning.setVisible(true);
+                    }
                 }
                 return null;
             }

@@ -5,7 +5,11 @@ import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.commands.ASCA;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -33,37 +37,58 @@ public class AscaService {
      * @return the result of the ASCA scan, or null if the scan failed.
      */
     @Nullable
-    public ScanResult runAscaScan(VirtualFile file, boolean ascLatestVersion, String agent) {
-        if (ignoreFiles(file)) {
+    public ScanResult runAscaScan(PsiFile file, Project project, boolean ascLatestVersion, String agent) {
+        // Check if the file should be ignored
+        if (ignoreFiles(file.getVirtualFile())) {
             return null;
         }
-        file.getName();
+
+        // Get the document (in-memory representation of the file) to capture unsaved changes
+        Document document = PsiDocumentManager.getInstance(project).getDocument(file);
+        String fileContent;
+
         try {
-            // Save the file temporarily
-            String filePath = saveTempFile(file.getName(), new String(file.contentsToByteArray()));
+            // If document exists, use the in-memory content (unsaved changes)
+            if (document != null) {
+                fileContent = document.getText();
+            } else {
+                // If document does not exist, use the saved content from the file on disk
+                fileContent = new String(file.getVirtualFile().contentsToByteArray());
+            }
 
-            // Run the ASCA scan
-            LOGGER.info("Start ASCA scan on file: " + file.getPath());
-            ScanResult scanResult = ASCA.scanAsca(filePath, ascLatestVersion, agent);
+            // Save the content to a temporary file
+            String tempFilePath = saveTempFile(file.getName(), fileContent);
+            if (tempFilePath == null) {
+                LOGGER.error("Failed to create temporary file for ASCA scan.");
+                return null;
+            }
 
-            // Delete the temporary file
-            deleteFile(filePath);
-            LOGGER.info("File " + filePath + " deleted.");
+            // Run the ASCA scan on the temporary file
+            LOGGER.info("Start ASCA scan on file: " + file.getVirtualFile().getPath());
+            ScanResult scanResult = ASCA.scanAsca(tempFilePath, ascLatestVersion, agent);
 
-            // Handle errors if any
+            // Clean up the temporary file
+            deleteFile(tempFilePath);
+            LOGGER.info("Temporary file " + tempFilePath + " deleted.");
+
+            // Handle scan errors if any
             if (scanResult.getError() != null) {
                 LOGGER.warn("ASCA Warning: " + (scanResult.getError().getDescription() != null ?
                         scanResult.getError().getDescription() : scanResult.getError()));
                 return null;
             }
+
+            // Log the scan details or absence of violations
             if (scanResult.getScanDetails() == null) {
-                LOGGER.info("No security best practice violations found in " + file.getPath());
-                return scanResult;
-            } else LOGGER.info(scanResult.getScanDetails().size() + " security best practice violations found in " + file.getPath());
+                LOGGER.info("No security best practice violations found in " + file.getVirtualFile().getPath());
+            } else {
+                LOGGER.info(scanResult.getScanDetails().size() + " security best practice violations found in " + file.getVirtualFile().getPath());
+            }
+
             return scanResult;
 
         } catch (IOException | CxConfig.InvalidCLIConfigException | URISyntaxException | CxException | InterruptedException e) {
-            LOGGER.error("Error during ASCA scan.", e);
+            LOGGER.warn("Error during ASCA scan:", e);
             return null;
         }
     }
@@ -101,15 +126,12 @@ public class AscaService {
     /**
      * Installs the ASCA CLI if not already installed.
      */
-    public void installAsca() {
-        try {
+    public String installAsca() throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
             ScanResult res = ASCA.installAsca();
             if (res.getError() != null) {
-                String errorMessage = "ASCA Installation Error: " + res.getError().getDescription();
-                LOGGER.error(errorMessage);
+                LOGGER.error("ASCA Installation Error: " + res.getError().getDescription());
+                return res.getError().getDescription();
             }
-        } catch (Exception e) {
-            LOGGER.error("Error during ASCA installation.", e);
-        }
+            return "AI Secure Coding Assistant started.";
     }
 }
