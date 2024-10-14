@@ -86,14 +86,14 @@ public class AscaInspection extends LocalInspectionTool {
 
         switch (severity) {
             case "Critical":
-                return ProblemHighlightType.GENERIC_ERROR;
+                return ProblemHighlightType.ERROR;
             case "High":
-                return ProblemHighlightType.GENERIC_ERROR;  // Error for high-severity issues
+                return ProblemHighlightType.ERROR;  // Error for high-severity issues
             case "Medium":
                 return ProblemHighlightType.WARNING;  // Warning for medium severity
             case "Low":
             default:
-                return ProblemHighlightType.INFORMATION;  // Weak warning for low severity or unknown severity
+                return ProblemHighlightType.WEAK_WARNING;  // Weak warning for low severity or unknown severity
         }
     }
 
