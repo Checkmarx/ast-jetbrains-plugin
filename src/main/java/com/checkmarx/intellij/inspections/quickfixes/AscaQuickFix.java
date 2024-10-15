@@ -57,7 +57,7 @@ public class AscaQuickFix implements LocalQuickFix {
                         "Code snippet with potential issue:\n%s\n\n" +
                         "Issue description:\n%s\n\n" +
                         "Provide a fix to make this code safer and more secure.",
-                problematicLine, description
+                problematicLine.trim(), description.trim()
         );
     }
 
