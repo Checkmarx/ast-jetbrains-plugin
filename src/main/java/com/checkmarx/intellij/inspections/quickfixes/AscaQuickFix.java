@@ -40,14 +40,14 @@ public class AscaQuickFix implements LocalQuickFix {
         copyToClipboard(prompt);
 
         // Show a notification to the user indicating that the prompt was copied
-        showNotification(project);
+        showNotification(project, "The fix prompt has been successfully copied to the clipboard.", NotificationType.INFORMATION);
     }
 
-    private void showNotification(Project project) {
+    private void showNotification(Project project, String message, NotificationType type) {
         ApplicationManager.getApplication().invokeLater(() -> {
             Notification notification = NotificationGroupManager.getInstance()
                     .getNotificationGroup("Checkmarx.Notifications")
-                    .createNotification("Fix prompt copied", "The fix prompt has been successfully copied to the clipboard.", NotificationType.INFORMATION);
+                    .createNotification("Fix prompt copied", message, type);
             notification.notify(project);
         });
     }
@@ -64,6 +64,11 @@ public class AscaQuickFix implements LocalQuickFix {
 
     private void copyToClipboard(String prompt) {
         StringSelection stringSelection = new StringSelection(prompt);
-        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
+        try {
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
+        }
+        catch (Exception e) {
+            showNotification(null, "Failed to copy the fix prompt to the clipboard.", NotificationType.ERROR);
+        }
     }
 }
