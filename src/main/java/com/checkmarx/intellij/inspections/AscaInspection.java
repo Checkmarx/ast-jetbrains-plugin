@@ -19,7 +19,7 @@ public class AscaInspection extends LocalInspectionTool {
     private final GlobalSettingsState settings = GlobalSettingsState.getInstance();
 
     @Override
-    public ProblemDescriptor @NotNull[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
+    public ProblemDescriptor @NotNull [] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         if (!settings.isAsca()) {
             return ProblemDescriptor.EMPTY_ARRAY;
         }
@@ -62,8 +62,7 @@ public class AscaInspection extends LocalInspectionTool {
         ProblemHighlightType highlightType = determineHighlightType(detail);
 
         return manager.createProblemDescriptor(
-                file, problemRange, description, highlightType, isOnTheFly, new AscaQuickFix(detail.getRemediationAdvise())
-        );
+                file, problemRange, description, highlightType, isOnTheFly, (LocalQuickFix) null);
     }
 
     private TextRange getTextRangeForLine(Document document, int lineNumber) {
