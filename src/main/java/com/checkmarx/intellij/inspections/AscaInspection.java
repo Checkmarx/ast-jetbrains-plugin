@@ -4,10 +4,10 @@ import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.inspections.quickfixes.AscaQuickFix;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.codeInspection.*;
 import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import org.jetbrains.annotations.NotNull;
@@ -19,87 +19,90 @@ public class AscaInspection extends LocalInspectionTool {
     private final GlobalSettingsState settings = GlobalSettingsState.getInstance();
 
     @Override
-    public ProblemDescriptor @NotNull [] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
+    public ProblemDescriptor @NotNull[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         if (!settings.isAsca()) {
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        try {
-            // Perform the ASCA scan and retrieve the results
-            ScanResult scanResult = performAscaScan(file);
-            if (scanResult != null && scanResult.getScanDetails()!=null) {
-                List<ProblemDescriptor> problems = new ArrayList<>();
-                Project project = file.getProject();
-                Document document = PsiDocumentManager.getInstance(project).getDocument(file);
 
-                if (document == null) {
-                    return ProblemDescriptor.EMPTY_ARRAY;
-                }
+        ScanResult scanResult = performAscaScan(file);
+        if (isInvalidScan(scanResult)) {
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
 
-                for (ScanDetail detail : scanResult.getScanDetails()) {
-                    int lineNumber = detail.getLine();  // Assuming getLineNumber() exists
+        Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
+        if (document == null) {
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
 
-                    if (lineNumber > 0 && lineNumber <= document.getLineCount()) {
-                        int startOffset = document.getLineStartOffset(lineNumber - 1);  // Convert line number to start offset
-                        int endOffset = document.getLineEndOffset(lineNumber - 1);      // Calculate end offset as the end of the line
+        return createProblemDescriptors(file, manager, scanResult.getScanDetails(), document, isOnTheFly);
+    }
 
-                        // Find the PsiElement at the start offset
-                        PsiElement elementAtLine = file.findElementAt(startOffset);
+    private ProblemDescriptor[] createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, List<ScanDetail> scanDetails, Document document, boolean isOnTheFly) {
+        List<ProblemDescriptor> problems = new ArrayList<>();
 
-                        if (elementAtLine != null) {
-                            // You can further refine the end offset based on the element or the problem details
-                            endOffset = Math.min(endOffset, document.getTextLength());  // Ensure endOffset is within the document length
-
-                            // Create a custom TextRange for highlighting a specific portion of the document
-                            TextRange problemRange = new TextRange(startOffset, endOffset);
-
-                            String description = detail.getRuleName() + " - " + detail.getRemediationAdvise();
-                            ProblemHighlightType highlightType = determineHighlightType(detail);
-
-
-                            ProblemDescriptor problem = manager.createProblemDescriptor(
-                                    file,                // The file where the problem occurs
-                                    problemRange,        // The custom range of the problem
-                                    description,         // The issue description
-                                    highlightType,  // Highlight type
-                                    isOnTheFly,          // Whether it is on-the-fly inspection
-                                    (LocalQuickFix) null // Optional quick fix
-                            );
-                            problems.add(problem);
-                        }
-                    }
-                }
-
-                return problems.toArray(ProblemDescriptor[]::new);
+        for (ScanDetail detail : scanDetails) {
+            int lineNumber = detail.getLine();
+            if (isLineOutOfRange(lineNumber, document)) {
+                continue;
             }
 
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
-        catch (Exception e) {
-            return ProblemDescriptor.EMPTY_ARRAY;
+            PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(lineNumber - 1));
+            if (elementAtLine != null) {
+                ProblemDescriptor problem = createProblemDescriptor(file, manager, detail, document, lineNumber, isOnTheFly);
+                problems.add(problem);
+            }
         }
 
+        return problems.toArray(ProblemDescriptor[]::new);
+    }
+
+    private ProblemDescriptor createProblemDescriptor(@NotNull PsiFile file, @NotNull InspectionManager manager, ScanDetail detail, Document document, int lineNumber, boolean isOnTheFly) {
+        TextRange problemRange = getTextRangeForLine(document, lineNumber);
+        String description = getDescriptionTemplate(detail);
+        ProblemHighlightType highlightType = determineHighlightType(detail);
+
+        return manager.createProblemDescriptor(
+                file, problemRange, description, highlightType, isOnTheFly, new AscaQuickFix(detail.getRemediationAdvise())
+        );
+    }
+
+    private TextRange getTextRangeForLine(Document document, int lineNumber) {
+        int startOffset = document.getLineStartOffset(lineNumber - 1);
+        int endOffset = Math.min(document.getLineEndOffset(lineNumber - 1), document.getTextLength());
+        return new TextRange(startOffset, endOffset);
+    }
+
+    private boolean isLineOutOfRange(int lineNumber, Document document) {
+        return lineNumber <= 0 || lineNumber > document.getLineCount();
+    }
+
+    private boolean isInvalidScan(ScanResult scanResult) {
+        return scanResult == null || scanResult.getScanDetails() == null;
     }
 
     private ProblemHighlightType determineHighlightType(ScanDetail detail) {
-        // Example logic: adjust based on severity level in ScanDetail
         String severity = detail.getSeverity();
-
         switch (severity) {
             case Constants.ASCA_CRITICAL_SEVERITY:
-                return ProblemHighlightType.GENERIC_ERROR;
             case Constants.ASCA_HIGH_SEVERITY:
-                return ProblemHighlightType.GENERIC_ERROR;  // Error for high-severity issues
+                return ProblemHighlightType.GENERIC_ERROR;
             case Constants.ASCA_MEDIUM_SEVERITY:
-                return ProblemHighlightType.WARNING;  // Warning for medium severity
+                return ProblemHighlightType.WARNING;
             case Constants.ASCA_LOW_SEVERITY:
-                return ProblemHighlightType.WEAK_WARNING;  // Weak warning for low severity
             default:
-                return ProblemHighlightType.WEAK_WARNING;  // Weak warning for low severity or unknown severity
+                return ProblemHighlightType.WEAK_WARNING;
         }
     }
 
     private ScanResult performAscaScan(PsiFile file) {
-        // Perform the ASCA scan here using the AscaService
-        return new AscaService().runAscaScan(file, file.getProject(),  false, Constants.JET_BRAINS_AGENT_NAME);
+        return new AscaService().runAscaScan(file, file.getProject(), false, Constants.JET_BRAINS_AGENT_NAME);
+    }
+
+    public @NotNull String getDescriptionTemplate(ScanDetail detail) {
+        return String.format(
+                "ASCA Issue: %s\nRemediation: %s",
+                detail.getRuleName(),
+                detail.getRemediationAdvise().replace("\n", "<br>")
+        );
     }
 }
