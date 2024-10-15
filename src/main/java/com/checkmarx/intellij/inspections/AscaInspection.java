@@ -4,7 +4,6 @@ import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.inspections.quickfixes.AscaQuickFix;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.codeInspection.*;
 import com.intellij.openapi.editor.Document;
@@ -13,10 +12,13 @@ import com.intellij.psi.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AscaInspection extends LocalInspectionTool {
     private final GlobalSettingsState settings = GlobalSettingsState.getInstance();
+    private Map<String, ProblemHighlightType> severityToHighlightMap;
 
     @Override
     public ProblemDescriptor @NotNull [] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
@@ -80,17 +82,18 @@ public class AscaInspection extends LocalInspectionTool {
     }
 
     private ProblemHighlightType determineHighlightType(ScanDetail detail) {
-        String severity = detail.getSeverity();
-        switch (severity) {
-            case Constants.ASCA_CRITICAL_SEVERITY:
-            case Constants.ASCA_HIGH_SEVERITY:
-                return ProblemHighlightType.GENERIC_ERROR;
-            case Constants.ASCA_MEDIUM_SEVERITY:
-                return ProblemHighlightType.WARNING;
-            case Constants.ASCA_LOW_SEVERITY:
-            default:
-                return ProblemHighlightType.WEAK_WARNING;
+        return getSeverityToHighlightMap().getOrDefault(detail.getSeverity(), ProblemHighlightType.WEAK_WARNING);
+    }
+
+    private Map<String, ProblemHighlightType> getSeverityToHighlightMap() {
+        if (severityToHighlightMap == null) {
+            severityToHighlightMap = new HashMap<>();
+            severityToHighlightMap.put(Constants.ASCA_CRITICAL_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
+            severityToHighlightMap.put(Constants.ASCA_HIGH_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
+            severityToHighlightMap.put(Constants.ASCA_MEDIUM_SEVERITY, ProblemHighlightType.WARNING);
+            severityToHighlightMap.put(Constants.ASCA_LOW_SEVERITY, ProblemHighlightType.WEAK_WARNING);
         }
+        return severityToHighlightMap;
     }
 
     private ScanResult performAscaScan(PsiFile file) {
@@ -99,7 +102,7 @@ public class AscaInspection extends LocalInspectionTool {
 
     public @NotNull String getDescriptionTemplate(ScanDetail detail) {
         return String.format(
-                "ASCA Issue: %s\nRemediation: %s",
+                "ASCA: %s\nRemediation advise: %s",
                 detail.getRuleName(),
                 detail.getRemediationAdvise().replace("\n", "<br>")
         );

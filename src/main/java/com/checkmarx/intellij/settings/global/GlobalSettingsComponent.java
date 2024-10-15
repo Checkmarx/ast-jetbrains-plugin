@@ -135,6 +135,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
             setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
             CompletableFuture.runAsync(() -> {
                 try {
+                    if (ascaCheckBox.isSelected()) {
+                        runAscaScanInBackground();
+                    }
                     Authentication.validateConnection(getStateFromFields(),
                             getSensitiveStateFromFields());
                     setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
