@@ -20,16 +20,28 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Service class for handling ASCA (Application Security Code Analysis) operations.
+ */
 public class AscaService {
 
     private static final String ASCA_DIR = "CxASCA";
     private static final Logger LOGGER = Logger.getInstance(AscaService.class);
 
+    /**
+     * Default constructor for AscaService.
+     */
     public AscaService() {
     }
 
     /**
      * Runs the ASCA scan on the provided file and returns the ScanResult.
+     *
+     * @param file the file to scan
+     * @param project the current project
+     * @param ascLatestVersion whether to use the latest version of ASCA
+     * @param agent the agent name
+     * @return the scan result, or null if an error occurs
      */
     @Nullable
     public ScanResult runAscaScan(PsiFile file, Project project, boolean ascLatestVersion, String agent) {
@@ -65,6 +77,10 @@ public class AscaService {
 
     /**
      * Gets the file content, either from in-memory document or from disk.
+     *
+     * @param file the file to get content from
+     * @param project the current project
+     * @return the file content as a string, or null if an error occurs
      */
     @Nullable
     private String getFileContent(PsiFile file, Project project) {
@@ -84,6 +100,9 @@ public class AscaService {
 
     /**
      * Handles the scan result, logs any errors or violations.
+     *
+     * @param file the file that was scanned
+     * @param scanResult the result of the scan
      */
     private void handleScanResult(PsiFile file, ScanResult scanResult) {
         if (scanResult == null || scanResult.getError() != null) {
@@ -105,9 +124,12 @@ public class AscaService {
         }
     }
 
-
     /**
      * Saves content to a temporary file.
+     *
+     * @param fileName the name of the file
+     * @param content the content to save
+     * @return the path to the temporary file, or null if an error occurs
      */
     @Nullable
     private String saveTempFile(String fileName, String content) {
@@ -126,6 +148,8 @@ public class AscaService {
 
     /**
      * Deletes a file by the given file path.
+     *
+     * @param filePath the path to the file to delete
      */
     private void deleteFile(String filePath) {
         try {
@@ -143,6 +167,9 @@ public class AscaService {
 
     /**
      * Determines whether the file should be ignored.
+     *
+     * @param file the file to check
+     * @return true if the file should be ignored, false otherwise
      */
     private boolean ignoreFiles(VirtualFile file) {
         return !file.isInLocalFileSystem();
@@ -150,6 +177,13 @@ public class AscaService {
 
     /**
      * Installs the ASCA CLI if not already installed.
+     *
+     * @return a message indicating the result of the installation
+     * @throws CxException if an error occurs during installation
+     * @throws CxConfig.InvalidCLIConfigException if the CLI configuration is invalid
+     * @throws IOException if an I/O error occurs
+     * @throws URISyntaxException if a URI syntax error occurs
+     * @throws InterruptedException if the installation is interrupted
      */
     public String installAsca() throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
         ScanResult res = ASCA.installAsca();
