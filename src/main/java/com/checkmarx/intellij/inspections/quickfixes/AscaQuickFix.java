@@ -52,8 +52,13 @@ public class AscaQuickFix implements LocalQuickFix {
     }
 
     private String generateFixPrompt(String problematicLine, String description) {
-        return String.format("Fix the following issue:\n\nProblematic line:\n%s\n\nDescription:\n%s",
-                problematicLine, description);
+        return String.format(
+                "Please address the following issue:\n\n" +
+                        "Code snippet with potential issue:\n%s\n\n" +
+                        "Issue description:\n%s\n\n" +
+                        "Provide a fix to make this code safer and more secure.",
+                problematicLine, description
+        );
     }
 
     private void copyToClipboard(String prompt) {
