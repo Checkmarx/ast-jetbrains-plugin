@@ -15,6 +15,7 @@ import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 
 public class AscaQuickFix implements LocalQuickFix {
+    @SafeFieldForPreview
     private final ScanDetail detail;
 
     public AscaQuickFix(ScanDetail detail) {
