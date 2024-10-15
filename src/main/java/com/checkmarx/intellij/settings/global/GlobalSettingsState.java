@@ -1,8 +1,6 @@
 package com.checkmarx.intellij.settings.global;
 
-import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
@@ -16,7 +14,6 @@ import com.intellij.util.xmlb.XmlSerializerUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,6 +37,8 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
 
     @NotNull
     private String additionalParameters = "";
+
+    private boolean asca = false;
 
     @NotNull
     private Set<Filterable> filters = new HashSet<>(getDefaultFilters());
