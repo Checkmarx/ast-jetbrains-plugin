@@ -59,7 +59,8 @@ public class AscaQuickFix implements LocalQuickFix {
         copyToClipboard(prompt);
 
         // Show a notification to the user indicating that the prompt was copied
-        showNotification(project, "The fix prompt has been successfully copied to the clipboard.", NotificationType.INFORMATION);
+        showNotification(project, "Fix prompt copied to clipboard\n" +
+                "Paste this prompt into GitHub Copilot to get a remediated code snippet.", NotificationType.INFORMATION);
     }
 
     /**
