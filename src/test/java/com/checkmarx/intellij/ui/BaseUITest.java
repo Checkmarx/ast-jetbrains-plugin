@@ -12,6 +12,7 @@ import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.apache.commons.lang3.StringUtils;
+import org.assertj.swing.fixture.JCheckBoxFixture;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
@@ -101,7 +102,7 @@ public abstract class BaseUITest {
         }
     }
 
-    private static void setField(String fieldName, String value) {
+    static void setField(String fieldName, String value) {
         log("Setting field " + fieldName);
         @Language("XPath") String fieldXpath = String.format(FIELD_NAME, fieldName);
         waitFor(() -> hasAnyComponent(fieldXpath) && find(fieldXpath).isShowing());
@@ -165,7 +166,7 @@ public abstract class BaseUITest {
         }
     }
 
-    private static void openSettings() {
+    static void openSettings() {
         waitFor(() -> {
             focusCxWindow();
             if (hasAnyComponent(SETTINGS_ACTION)) {
@@ -279,7 +280,7 @@ public abstract class BaseUITest {
         });
     }
 
-    private static void focusCxWindow() {
+    static void focusCxWindow() {
         boolean cxPluginOpened = find(BASE_LABEL).hasText("Checkmarx");
         System.out.println("Plugin opened: " + cxPluginOpened);
 

@@ -9,7 +9,6 @@ import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.codeInspection.*;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.util.text.Strings;
 import com.intellij.psi.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,6 +23,8 @@ import java.util.Map;
 public class AscaInspection extends LocalInspectionTool {
     private final GlobalSettingsState settings = GlobalSettingsState.getInstance();
     private Map<String, ProblemHighlightType> severityToHighlightMap;
+    public static String ASCA_INSPECTION_ID = "ASCA";
+
 
     /**
      * Checks the file for ASCA issues.
@@ -94,11 +95,30 @@ public class AscaInspection extends LocalInspectionTool {
      */
     private ProblemDescriptor createProblemDescriptor(@NotNull PsiFile file, @NotNull InspectionManager manager, ScanDetail detail, Document document, int lineNumber, boolean isOnTheFly) {
         TextRange problemRange = getTextRangeForLine(document, lineNumber);
-        String description = Strings.join(detail.getRuleName(), " - ", detail.getRemediationAdvise());
+        String description = formatDescription(detail.getRuleName(), detail.getRemediationAdvise());
         ProblemHighlightType highlightType = determineHighlightType(detail);
 
         return manager.createProblemDescriptor(
                 file, problemRange, description, highlightType, isOnTheFly, new AscaQuickFix(detail));
+    }
+
+    public String formatDescription(String ruleName, String remediationAdvise) {
+        return String.format(
+                "<html><b>%s</b> - %s<br><font color='gray'>%s</font></html>",
+                escapeHtml(ruleName), escapeHtml(remediationAdvise), escapeHtml(ASCA_INSPECTION_ID)
+        );
+    }
+
+    // Helper method to escape HTML special characters for safety
+    private String escapeHtml(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
     /**

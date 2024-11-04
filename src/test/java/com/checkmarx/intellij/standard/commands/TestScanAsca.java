@@ -2,6 +2,7 @@ package com.checkmarx.intellij.standard.commands;
 
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.intellij.ASCA.AscaService;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.standard.BaseTest;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
@@ -68,7 +69,7 @@ public class TestScanAsca extends BaseTest {
     public void testRunAscaScan_FileWithoutExtension_Fail() {
         PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/file");
         Project project = ProjectManager.getInstance().getDefaultProject();
-        ScanResult ascaResult = ascaService.runAscaScan(psiFile, project, true, "Jetbrains");
+        ScanResult ascaResult = ascaService.runAscaScan(psiFile, project, true, Constants.JET_BRAINS_AGENT_NAME);
 
         assert ascaResult != null;
         Assertions.assertNull(ascaResult.getScanDetails());

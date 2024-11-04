@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.inspections.quickfixes;
 
+import com.checkmarx.intellij.Constants;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
@@ -13,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
+
+import static com.checkmarx.intellij.inspections.AscaInspection.ASCA_INSPECTION_ID;
 
 /**
  * Quick fix implementation for ASCA issues.
@@ -75,11 +78,38 @@ public class AscaQuickFix implements LocalQuickFix {
         final String FIX_PROMPT_COPY_FAIL_MSG = "Fix prompt copied";
         ApplicationManager.getApplication().invokeLater(() -> {
             Notification notification = NotificationGroupManager.getInstance()
-                    .getNotificationGroup("Checkmarx.Notifications")
+                    .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
                     .createNotification(FIX_PROMPT_COPY_FAIL_MSG, message, type);
             notification.notify(project);
         });
     }
+
+    public String stripHtml(String htmlText) {
+        if (htmlText == null) {
+            return "";
+        }
+        // Remove HTML tags
+        String plainText = htmlText.replaceAll("<[^>]*>", "");
+
+        // Remove "ASCA" suffix, if it exists
+        if (plainText.endsWith(ASCA_INSPECTION_ID)) {
+            plainText = plainText.substring(0, plainText.length() - 4).trim(); // Remove "ASCA" and trim any trailing space
+        }
+
+        return unescapeHtml(plainText);
+    }
+
+    private String unescapeHtml(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replace("&amp;", "&")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&#39;", "'");
+    }
+
 
     /**
      * Generates a fix prompt based on the problematic line and description.
@@ -93,7 +123,7 @@ public class AscaQuickFix implements LocalQuickFix {
                 "Code snippet with potential issue:\n%s\n\n" +
                 "Issue description:\n%s\n\n" +
                 "Provide a fix to make this code safer and more secure.";
-        return String.format(FIX_PROMPT, problematicLine.trim(), description.trim()
+        return String.format(FIX_PROMPT, problematicLine.trim(), stripHtml(description.trim())
         );
     }
 
