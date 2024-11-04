@@ -11,7 +11,6 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 
 public class TestScanAsca extends BaseTest {
