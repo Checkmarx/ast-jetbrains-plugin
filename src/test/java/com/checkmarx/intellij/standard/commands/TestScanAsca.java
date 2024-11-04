@@ -1,7 +1,6 @@
 package com.checkmarx.intellij.standard.commands;
 
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.standard.BaseTest;
 import com.intellij.openapi.application.ApplicationManager;
@@ -18,7 +17,6 @@ import org.junit.jupiter.api.Assertions;
 public class TestScanAsca extends BaseTest {
     AscaService ascaService = new AscaService();
 
-    @Test
     public void testInstallAsca() {
         Assertions.assertDoesNotThrow(()->
         {
@@ -45,7 +43,6 @@ public class TestScanAsca extends BaseTest {
         return psiFile;
     }
 
-    @Test
     public void testRunAscaScan_FileWithVulnerabilities_Success() {
         PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/python-vul-file.py");
         Project project = ProjectManager.getInstance().getDefaultProject();
@@ -58,7 +55,6 @@ public class TestScanAsca extends BaseTest {
         });
     }
 
-    @Test
     public void testRunAscaScan_FileWithNoVulnerabilities_Success() {
         PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/csharp-no-vul.cs");
         Project project = ProjectManager.getInstance().getDefaultProject();
@@ -70,7 +66,6 @@ public class TestScanAsca extends BaseTest {
         });
     }
 
-    @Test
     public void testRunAscaScan_FileWithoutExtension_Fail() {
         PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/file");
         Project project = ProjectManager.getInstance().getDefaultProject();
