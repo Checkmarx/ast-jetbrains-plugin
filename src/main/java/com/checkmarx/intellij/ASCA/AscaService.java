@@ -4,9 +4,11 @@ import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.commands.ASCA;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.text.Strings;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
@@ -26,6 +28,7 @@ import java.nio.file.Paths;
 public class AscaService {
 
     private static final String ASCA_DIR = "CxASCA";
+    public static final String ASCA_STARTED_MSG = "AI Secure Coding Assistant started.";
     private static final Logger LOGGER = Logger.getInstance(AscaService.class);
 
     /**
@@ -82,20 +85,26 @@ public class AscaService {
      * @param project the current project
      * @return the file content as a string, or null if an error occurs
      */
-    @Nullable
     private String getFileContent(PsiFile file, Project project) {
-        Document document = PsiDocumentManager.getInstance(project).getDocument(file);
-
-        try {
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) () -> {
+            Document document = PsiDocumentManager.getInstance(project).getDocument(file);
             if (document != null) {
                 return document.getText();
-            } else {
-                return new String(file.getVirtualFile().contentsToByteArray());
             }
-        } catch (IOException e) {
-            LOGGER.warn("Failed to retrieve file content:", e);
-            return null;
-        }
+
+            VirtualFile virtualFile = file.getVirtualFile();
+            if (virtualFile == null) {
+                LOGGER.warn("Virtual file is null for the given PsiFile.");
+                return null;
+            }
+
+            try {
+                return new String(virtualFile.contentsToByteArray());
+            } catch (IOException e) {
+                LOGGER.warn("Failed to retrieve file content from virtual file:", e);
+                return null;
+            }
+        });
     }
 
     /**
@@ -191,6 +200,6 @@ public class AscaService {
             LOGGER.warn(Strings.join("ASCA installation error: ", res.getError().getDescription()));
             return res.getError().getDescription();
         }
-        return "AI Secure Coding Assistant started.";
+        return ASCA_STARTED_MSG;
     }
 }

@@ -48,6 +48,8 @@ public class AscaQuickFix implements LocalQuickFix {
      */
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
+        final String FIX_PROMPT_COPY_SUCCESS_MSG = "Fix prompt copied to clipboard.\n" +
+                "Paste this prompt into GitHub Copilot to get a remediated code snippet.";
         // Retrieve the problematic line and the description
         String problematicLine = detail.getProblematicLine();
         String description = descriptor.getDescriptionTemplate();
@@ -59,8 +61,7 @@ public class AscaQuickFix implements LocalQuickFix {
         copyToClipboard(prompt);
 
         // Show a notification to the user indicating that the prompt was copied
-        showNotification(project, "Fix prompt copied to clipboard\n" +
-                "Paste this prompt into GitHub Copilot to get a remediated code snippet.", NotificationType.INFORMATION);
+        showNotification(project,FIX_PROMPT_COPY_SUCCESS_MSG , NotificationType.INFORMATION);
     }
 
     /**
@@ -71,10 +72,11 @@ public class AscaQuickFix implements LocalQuickFix {
      * @param type the type of notification
      */
     private void showNotification(Project project, String message, NotificationType type) {
+        final String FIX_PROMPT_COPY_FAIL_MSG = "Fix prompt copied";
         ApplicationManager.getApplication().invokeLater(() -> {
             Notification notification = NotificationGroupManager.getInstance()
                     .getNotificationGroup("Checkmarx.Notifications")
-                    .createNotification("Fix prompt copied", message, type);
+                    .createNotification(FIX_PROMPT_COPY_FAIL_MSG, message, type);
             notification.notify(project);
         });
     }
@@ -87,12 +89,11 @@ public class AscaQuickFix implements LocalQuickFix {
      * @return the generated fix prompt
      */
     private String generateFixPrompt(String problematicLine, String description) {
-        return String.format(
-                "Please address the following issue:\n\n" +
-                        "Code snippet with potential issue:\n%s\n\n" +
-                        "Issue description:\n%s\n\n" +
-                        "Provide a fix to make this code safer and more secure.",
-                problematicLine.trim(), description.trim()
+        final String FIX_PROMPT = "Please address the following issue:\n\n" +
+                "Code snippet with potential issue:\n%s\n\n" +
+                "Issue description:\n%s\n\n" +
+                "Provide a fix to make this code safer and more secure.";
+        return String.format(FIX_PROMPT, problematicLine.trim(), description.trim()
         );
     }
 
@@ -107,7 +108,8 @@ public class AscaQuickFix implements LocalQuickFix {
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
         }
         catch (Exception e) {
-            showNotification(null, "Failed to copy the fix prompt to the clipboard.", NotificationType.ERROR);
+            String FAILED_COPY_FIX_PROMPT = "Failed to copy the fix prompt to the clipboard.";
+            showNotification(null, FAILED_COPY_FIX_PROMPT, NotificationType.ERROR);
         }
     }
 }
