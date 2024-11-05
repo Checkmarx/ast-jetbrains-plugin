@@ -28,7 +28,6 @@ import java.nio.file.Paths;
 public class AscaService {
 
     private static final String ASCA_DIR = "CxASCA";
-    public static final String ASCA_STARTED_MSG = "AI Secure Coding Assistant started.";
     private static final Logger LOGGER = Logger.getInstance(AscaService.class);
 
     /**
@@ -194,12 +193,12 @@ public class AscaService {
      * @throws URISyntaxException if a URI syntax error occurs
      * @throws InterruptedException if the installation is interrupted
      */
-    public String installAsca() throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
+    public boolean installAsca() throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
         ScanResult res = ASCA.installAsca();
         if (res.getError() != null) {
             LOGGER.warn(Strings.join("ASCA installation error: ", res.getError().getDescription()));
-            return res.getError().getDescription();
+            return false;
         }
-        return ASCA_STARTED_MSG;
+        return true;
     }
 }

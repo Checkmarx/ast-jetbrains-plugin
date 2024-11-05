@@ -174,9 +174,12 @@ public class GlobalSettingsComponent implements SettingsComponent {
             protected Void doInBackground() {
                 try {
                     ascaInstallationMsg.setVisible(false);
-                    String ascaMsg = new AscaService().installAsca();
-                    LOGGER.info(ascaMsg);
-                    setAscaInstallationMsg(ascaMsg, JBColor.GREEN);
+                    boolean installed = new AscaService().installAsca();
+                    if (installed) {
+                        setAscaInstallationMsg(Bundle.message(Resource.ASCA_STARTED_MSG), JBColor.GREEN);
+                    } else {
+                        setAscaInstallationMsg(Bundle.message(Resource.FAILED_INSTALL_ASCA), JBColor.RED);
+                    }
                 } catch (IOException | URISyntaxException | InterruptedException ex) {
                     LOGGER.warn(Bundle.message(Resource.ASCA_SCAN_WARNING), ex);
                     setAscaInstallationMsg(ex.getMessage(), JBColor.RED);

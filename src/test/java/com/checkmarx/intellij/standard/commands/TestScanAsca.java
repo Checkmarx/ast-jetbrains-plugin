@@ -20,8 +20,8 @@ public class TestScanAsca extends BaseTest {
     public void testInstallAsca() {
         Assertions.assertDoesNotThrow(()->
         {
-            String ascaMsg = ascaService.installAsca();
-            Assertions.assertEquals(AscaService.ASCA_STARTED_MSG, ascaMsg);
+            boolean installed = ascaService.installAsca();
+            Assertions.assertTrue(installed);
         });
     }
 

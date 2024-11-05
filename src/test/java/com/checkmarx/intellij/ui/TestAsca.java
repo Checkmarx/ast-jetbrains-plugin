@@ -1,34 +1,33 @@
 package com.checkmarx.intellij.ui;
 
-import com.checkmarx.intellij.ASCA.AscaService;
-import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Environment;
+import com.automation.remarks.junit5.Video;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.click;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.hasAnyComponent;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
-import static com.checkmarx.intellij.ui.utils.Xpath.CANCEL_SCAN_BTN;
 
-public class TestAsca extends BaseUITest{
-    public static void testASTAscaWithValidateConnections(boolean validCredentials) {
+public class TestAsca extends BaseUITest {
+    @Test
+    @Video
+    public void testClickAscaCheckbox() {
+        // Open the settings window
         openSettings();
 
-        setField(Constants.FIELD_NAME_API_KEY, validCredentials ? Environment.API_KEY : "invalidAPIKey");
-        setField(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS, "--debug");
+        // Log the presence of the ASCA checkbox
+        log("Checking for the presence of the ASCA checkbox");
 
+        // Wait for the ASCA checkbox to be present
+        waitFor(() -> hasAnyComponent(ASCA_CHECKBOX));
 
-        click(VALIDATE_BUTTON);
+        // Click the ASCA checkbox
+        click(ASCA_CHECKBOX);
 
-        waitFor(() -> !hasAnyComponent(ASCA_INSTALL_SUCCESS));
+        // Wait for the ASCA installation message to appear
+        waitFor(() -> hasAnyComponent(ASCA_INSTALL_SUCCESS));
 
-            Assertions.assertTrue(hasAnyComponent(ASCA_INSTALL_SUCCESS));
-            click(OK_BTN);
-            // Ensure that start scan button and cancel scan button are visible with valid credentials
-            waitFor(() -> {
-                focusCxWindow();
-                return hasAnyComponent(START_SCAN_BTN) && hasAnyComponent(CANCEL_SCAN_BTN);
-            });
+        // Verify that the ASCA installation message is displayed
+        Assertions.assertTrue(hasAnyComponent(ASCA_INSTALL_SUCCESS));
     }
-
 }
