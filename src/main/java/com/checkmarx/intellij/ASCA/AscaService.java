@@ -3,6 +3,7 @@ package com.checkmarx.intellij.ASCA;
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.ASCA;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -13,6 +14,7 @@ import com.intellij.openapi.util.text.Strings;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -28,7 +30,7 @@ import java.nio.file.Paths;
 public class AscaService {
 
     private static final String ASCA_DIR = "CxASCA";
-    private static final Logger LOGGER = Logger.getInstance(AscaService.class);
+    private static Logger LOGGER = Utils.getLogger(AscaService.class);
 
     /**
      * Default constructor for AscaService.
@@ -36,17 +38,25 @@ public class AscaService {
     public AscaService() {
     }
 
+    public AscaService(Logger logger) {
+        LOGGER = logger;
+    }
+
     /**
      * Runs the ASCA scan on the provided file and returns the ScanResult.
      *
-     * @param file the file to scan
-     * @param project the current project
+     * @param file             the file to scan
+     * @param project          the current project
      * @param ascLatestVersion whether to use the latest version of ASCA
-     * @param agent the agent name
+     * @param agent            the agent name
      * @return the scan result, or null if an error occurs
      */
     @Nullable
     public ScanResult runAscaScan(PsiFile file, Project project, boolean ascLatestVersion, String agent) {
+        if (file == null) {
+            return null;
+        }
+
         VirtualFile virtualFile = file.getVirtualFile();
 
         if (ignoreFiles(virtualFile)) {
@@ -80,7 +90,7 @@ public class AscaService {
     /**
      * Gets the file content, either from in-memory document or from disk.
      *
-     * @param file the file to get content from
+     * @param file    the file to get content from
      * @param project the current project
      * @return the file content as a string, or null if an error occurs
      */
@@ -109,10 +119,10 @@ public class AscaService {
     /**
      * Handles the scan result, logs any errors or violations.
      *
-     * @param file the file that was scanned
+     * @param file       the file that was scanned
      * @param scanResult the result of the scan
      */
-    private void handleScanResult(PsiFile file, ScanResult scanResult) {
+    private void handleScanResult(@NotNull PsiFile file, ScanResult scanResult) {
         if (scanResult == null || scanResult.getError() != null) {
             String errorDescription = scanResult != null ?
                     scanResult.getError().getDescription() : "Unknown error";
@@ -120,15 +130,15 @@ public class AscaService {
             return;
         }
 
-        String fileName = file.getVirtualFile().getName();
+        String fileName = file.getName();
         int violationCount = (scanResult.getScanDetails() != null) ? scanResult.getScanDetails().size() : 0;
         if (violationCount == 0) {
             LOGGER.info(String.join(" ", "No security best practice violations found in", fileName));
         } else {
             String violationMessage = violationCount == 1 ?
-                    Strings.join("1 security best practice violation found in ", file.getName()) :
+                    Strings.join("1 security best practice violation found in ", fileName) :
                     violationCount + Strings.join(" security best practice violations found in" + fileName);
-            LOGGER.info(String.join(" ", violationMessage, "in", file.getName()));
+            LOGGER.info(String.join(" ", violationMessage, "in", fileName));
         }
     }
 
@@ -136,7 +146,7 @@ public class AscaService {
      * Saves content to a temporary file.
      *
      * @param fileName the name of the file
-     * @param content the content to save
+     * @param content  the content to save
      * @return the path to the temporary file, or null if an error occurs
      */
     @Nullable
@@ -180,18 +190,18 @@ public class AscaService {
      * @return true if the file should be ignored, false otherwise
      */
     private boolean ignoreFiles(VirtualFile file) {
-        return !file.isInLocalFileSystem();
+        return file == null || !file.isInLocalFileSystem();
     }
 
     /**
      * Installs the ASCA CLI if not already installed.
      *
      * @return a message indicating the result of the installation
-     * @throws CxException if an error occurs during installation
+     * @throws CxException                        if an error occurs during installation
      * @throws CxConfig.InvalidCLIConfigException if the CLI configuration is invalid
-     * @throws IOException if an I/O error occurs
-     * @throws URISyntaxException if a URI syntax error occurs
-     * @throws InterruptedException if the installation is interrupted
+     * @throws IOException                        if an I/O error occurs
+     * @throws URISyntaxException                 if a URI syntax error occurs
+     * @throws InterruptedException               if the installation is interrupted
      */
     public boolean installAsca() throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
         ScanResult res = ASCA.installAsca();

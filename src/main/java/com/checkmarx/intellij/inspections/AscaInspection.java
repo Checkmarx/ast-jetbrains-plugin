@@ -4,12 +4,16 @@ import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.inspections.quickfixes.AscaQuickFix;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.codeInspection.*;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -21,10 +25,13 @@ import java.util.Map;
  * Inspection tool for ASCA (AI Secure Coding Assistant).
  */
 public class AscaInspection extends LocalInspectionTool {
+    @Getter
+    @Setter
+    private AscaService ascaService = new AscaService();
     private final GlobalSettingsState settings = GlobalSettingsState.getInstance();
     private Map<String, ProblemHighlightType> severityToHighlightMap;
     public static String ASCA_INSPECTION_ID = "ASCA";
-
+    private final Logger logger = Utils.getLogger(AscaInspection.class);
 
     /**
      * Checks the file for ASCA issues.
@@ -36,21 +43,27 @@ public class AscaInspection extends LocalInspectionTool {
      */
     @Override
     public ProblemDescriptor @NotNull [] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
-        if (!settings.isAsca()) {
+        try {
+            if (!settings.isAsca()) {
+                return ProblemDescriptor.EMPTY_ARRAY;
+            }
+
+            ScanResult scanResult = performAscaScan(file);
+            if (isInvalidScan(scanResult)) {
+                return ProblemDescriptor.EMPTY_ARRAY;
+            }
+
+            Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
+            if (document == null) {
+                return ProblemDescriptor.EMPTY_ARRAY;
+            }
+
+            return createProblemDescriptors(file, manager, scanResult.getScanDetails(), document, isOnTheFly);
+        }
+        catch (Exception e) {
+            logger.warn("Failed to run ASCA scan", e);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-
-        ScanResult scanResult = performAscaScan(file);
-        if (isInvalidScan(scanResult)) {
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
-
-        Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
-        if (document == null) {
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
-
-        return createProblemDescriptors(file, manager, scanResult.getScanDetails(), document, isOnTheFly);
     }
 
     /**
@@ -188,6 +201,6 @@ public class AscaInspection extends LocalInspectionTool {
      * @return the scan result
      */
     private ScanResult performAscaScan(PsiFile file) {
-        return new AscaService().runAscaScan(file, file.getProject(), false, Constants.JET_BRAINS_AGENT_NAME);
+        return ascaService.runAscaScan(file, file.getProject(), false, Constants.JET_BRAINS_AGENT_NAME);
     }
 }

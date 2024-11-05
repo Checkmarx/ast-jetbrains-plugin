@@ -1,9 +1,11 @@
 package com.checkmarx.intellij.inspections.quickfixes;
 
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Utils;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.application.ApplicationManager;
 import com.checkmarx.ast.asca.ScanDetail;
@@ -23,6 +25,8 @@ import static com.checkmarx.intellij.inspections.AscaInspection.ASCA_INSPECTION_
 public class AscaQuickFix implements LocalQuickFix {
     @SafeFieldForPreview
     private final ScanDetail detail;
+    private final Logger LOGGER = Utils.getLogger(AscaQuickFix.class);
+    private final String FAILED_COPY_FIX_PROMPT = "Failed to copy the fix prompt to the clipboard.";
 
     /**
      * Constructor for AscaQuickFix.
@@ -51,20 +55,24 @@ public class AscaQuickFix implements LocalQuickFix {
      */
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
-        final String FIX_PROMPT_COPY_SUCCESS_MSG = "Fix prompt copied to clipboard.\n" +
-                "Paste this prompt into GitHub Copilot to get a remediated code snippet.";
-        // Retrieve the problematic line and the description
-        String problematicLine = detail.getProblematicLine();
-        String description = descriptor.getDescriptionTemplate();
+        try {
+            final String FIX_PROMPT_COPY_SUCCESS_MSG = "Fix prompt copied to clipboard.\n" +
+                    "Paste this prompt into GitHub Copilot to get a remediated code snippet.";
+            // Retrieve the problematic line and the description
+            String problematicLine = detail.getProblematicLine();
+            String description = descriptor.getDescriptionTemplate();
 
-        // Generate a prompt for GPT
-        String prompt = generateFixPrompt(problematicLine, description);
+            // Generate a prompt for GPT
+            String prompt = generateFixPrompt(problematicLine, description);
 
-        // Copy the prompt to the system clipboard
-        copyToClipboard(prompt);
+            // Copy the prompt to the system clipboard
+            copyToClipboard(prompt);
 
-        // Show a notification to the user indicating that the prompt was copied
-        showNotification(project,FIX_PROMPT_COPY_SUCCESS_MSG , NotificationType.INFORMATION);
+            // Show a notification to the user indicating that the prompt was copied
+            showNotification(project, FIX_PROMPT_COPY_SUCCESS_MSG, NotificationType.INFORMATION);
+        } catch (Exception e) {
+            LOGGER.warn(FAILED_COPY_FIX_PROMPT, e);
+        }
     }
 
     /**
@@ -138,7 +146,7 @@ public class AscaQuickFix implements LocalQuickFix {
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
         }
         catch (Exception e) {
-            String FAILED_COPY_FIX_PROMPT = "Failed to copy the fix prompt to the clipboard.";
+
             showNotification(null, FAILED_COPY_FIX_PROMPT, NotificationType.ERROR);
         }
     }

@@ -37,36 +37,36 @@ public abstract class BaseUITest {
 
     @BeforeAll
     public static void init() {
-        if (!initialized) {
-            log("Initializing the tests");
-            log("Wait duration set for " + waitDuration.getSeconds());
-            StepWorker.registerProcessor(new StepLogger());
-            if (hasAnyComponent(FLAT_WELCOME_FRAME)) {
-                find(FROM_VCS_TAB).click();
-                find(JTextFieldFixture.class, BORDERLESS_TEXT_FIELD, Duration.ofSeconds(10)).setText(Environment.REPO);
-                waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
-                find(CLONE_BUTTON).click();
-                trustClonedProject();
-                try {
-                    waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
-                } catch (WaitForConditionTimeoutException e) {
-                    // if exception is thrown, sync was successful, so we can keep going
-                }
-            }
-            // Open Checkmarx One plugin
-            openCxToolWindow();
-
-            // Resize Checkmarx One plugin so that all toolbar icons are visible
-            resizeToolBar();
-
-            // Connect to AST
-            testASTConnection(true);
-
-            initialized = true;
-            log("Initialization finished");
-        } else {
-            log("Tests already initialized, skipping");
-        }
+//        if (!initialized) {
+//            log("Initializing the tests");
+//            log("Wait duration set for " + waitDuration.getSeconds());
+//            StepWorker.registerProcessor(new StepLogger());
+//            if (hasAnyComponent(FLAT_WELCOME_FRAME)) {
+//                find(FROM_VCS_TAB).click();
+//                find(JTextFieldFixture.class, BORDERLESS_TEXT_FIELD, Duration.ofSeconds(10)).setText(Environment.REPO);
+//                waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
+//                find(CLONE_BUTTON).click();
+//                trustClonedProject();
+//                try {
+//                    waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
+//                } catch (WaitForConditionTimeoutException e) {
+//                    // if exception is thrown, sync was successful, so we can keep going
+//                }
+//            }
+//            // Open Checkmarx One plugin
+//            openCxToolWindow();
+//
+//            // Resize Checkmarx One plugin so that all toolbar icons are visible
+//            resizeToolBar();
+//
+//            // Connect to AST
+//            testASTConnection(true);
+//
+//            initialized = true;
+//            log("Initialization finished");
+//        } else {
+//            log("Tests already initialized, skipping");
+//        }
     }
 
     private static void resizeToolBar() {

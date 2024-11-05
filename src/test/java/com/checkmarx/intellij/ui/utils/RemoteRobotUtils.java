@@ -2,6 +2,7 @@ package com.checkmarx.intellij.ui.utils;
 
 import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
+import com.intellij.remoterobot.fixtures.JTreeFixture;
 import com.intellij.remoterobot.search.locators.Locators;
 import com.intellij.remoterobot.utils.UtilsKt;
 import org.intellij.lang.annotations.Language;
@@ -40,5 +41,13 @@ public class RemoteRobotUtils {
 
     public static <T extends ComponentFixture> List<T> findAll(Class<T> cls, @Language("XPath") String xpath) {
         return remoteRobot.findAll(cls, Locators.byXpath(xpath));
+    }
+
+    public static List<ComponentFixture> getInspectedProblems() {
+        // Navigate to the "Problems" tool window
+        remoteRobot.find(ComponentFixture.class, Locators.byXpath("//div[@class='StripeButton' and @text='Problems']")).click();
+
+        // Retrieve the list of problems
+        return remoteRobot.findAll(ComponentFixture.class, Locators.byXpath("//div[@class='EditorNotificationPanel']"));
     }
 }
