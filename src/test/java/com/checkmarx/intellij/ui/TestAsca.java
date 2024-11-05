@@ -41,12 +41,4 @@ public class TestAsca extends BaseUITest {
         validateAscaRunning();
         click(OK_BTN);
     }
-
-    @Test
-    @Video
-    public void AscaActivated_EditFileWithVulnerabilities() {
-//        clickAscaCheckbox();
-//        click(OK_BTN);
-        getInspectedProblems();
-    }
 }
