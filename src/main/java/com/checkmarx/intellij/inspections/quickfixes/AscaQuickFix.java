@@ -44,7 +44,7 @@ public class AscaQuickFix implements LocalQuickFix {
      */
     @Override
     public @IntentionFamilyName @NotNull String getFamilyName() {
-        return "Copy fix prompt";
+        return "ASCA - Copy fix prompt";
     }
 
     /**
