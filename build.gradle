@@ -1,6 +1,6 @@
 plugins {
     id 'io.freefair.lombok' version '8.6'
-    id 'org.jetbrains.intellij' version '1.17.3'
+    id 'org.jetbrains.intellij' version '1.17.4'
     id 'java'
 }
 
@@ -43,7 +43,7 @@ dependencies {
     implementation 'com.miglayout:miglayout-swing:11.3'
 
     if (javaWrapperVersion == "" || javaWrapperVersion == null) {
-        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.1.1'){
+        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.1.2'){
             exclude group: 'junit', module: 'junit'
         }
     } else {

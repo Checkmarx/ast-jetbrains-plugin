@@ -36,6 +36,12 @@
                          enabledByDefault="true"
                          level="WARNING"
                          implementationClass="com.checkmarx.intellij.inspections.CxInspection"/>
+        <localInspection
+                displayName="ASCA"
+                groupName="ASCA"
+                groupPath="Checkmarx"
+                enabledByDefault="true"
+                implementationClass="com.checkmarx.intellij.inspections.AscaInspection"/>
     </extensions>
 
     <applicationListeners>

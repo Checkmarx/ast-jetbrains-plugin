@@ -164,4 +164,12 @@ public class Xpath {
     public static final String HAS_SELECTION = "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]";
     @Language("XPath")
     public static final String SCAN_ID_SELECTION = "//div[@class='ActionButtonWithText' and substring(@visible_text, string-length(@visible_text) - string-length('%s') + 1)  = '%s']";
+    @Language("XPath")
+    public
+    static final String ASCA_INSTALL_SUCCESS = "//div[@class='JBLabel' and @accessiblename='AI Secure Coding Assistant Engine started.']";
+    @Language("XPath")
+    public
+    static final String ASCA_CHECKBOX = "//div[@class='JBCheckBox' and @text='Scan your file as you code']";
+            ;
+
 }
