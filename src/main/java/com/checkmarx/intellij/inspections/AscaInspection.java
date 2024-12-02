@@ -144,7 +144,11 @@ public class AscaInspection extends LocalInspectionTool {
     private TextRange getTextRangeForLine(Document document, int lineNumber) {
         int startOffset = document.getLineStartOffset(lineNumber - 1);
         int endOffset = Math.min(document.getLineEndOffset(lineNumber - 1), document.getTextLength());
-        return new TextRange(startOffset, endOffset);
+
+        String lineText = document.getText(new TextRange(startOffset, endOffset));
+        int trimmedStartOffset = startOffset + (lineText.length() - lineText.stripLeading().length());
+
+        return new TextRange(trimmedStartOffset, endOffset);
     }
 
     /**
