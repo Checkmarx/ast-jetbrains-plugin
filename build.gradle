@@ -51,7 +51,7 @@ dependencies {
             exclude group: 'junit', module: 'junit'
         }
     }
-    implementation(platform("com.fasterxml.jackson:jackson-bom:2.16.1"))
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.18.2"))
     // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
 }
 
