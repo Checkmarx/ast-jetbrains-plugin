@@ -83,4 +83,6 @@ public final class Constants {
     public static final String ASCA_HIGH_SEVERITY = "High";
     public static final String ASCA_MEDIUM_SEVERITY = "Medium";
     public static final String ASCA_LOW_SEVERITY = "Low";
+
+    public static final String USE_LOCAL_BRANCH = "scan my local branch";
 }

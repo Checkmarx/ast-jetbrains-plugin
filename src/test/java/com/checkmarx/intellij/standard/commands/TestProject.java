@@ -26,7 +26,7 @@ public class TestProject extends BaseTest {
     public void testGetBranches() {
         Project project = getEnvProject();
         List<String> branches = Assertions.assertDoesNotThrow(() -> com.checkmarx.intellij.commands.Project.getBranches(
-                UUID.fromString(project.getId())));
+                UUID.fromString(project.getId()), false));
         Assertions.assertTrue(branches.size() >= 1, branches.toString());
         Assertions.assertTrue(branches.contains(Environment.BRANCH_NAME),
                               String.format("Branch: %s Branch List: %s", Environment.BRANCH_NAME, branches));
