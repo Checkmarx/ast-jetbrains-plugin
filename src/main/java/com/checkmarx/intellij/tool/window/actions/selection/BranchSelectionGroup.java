@@ -59,10 +59,9 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
         }
         if(branches.contains(activeBranch)) {
             updateActiveBranchAndFetchScans(activeBranch);
+            return activeBranch;
         }
-        else {
-            updateLocalBranch();
-        }
+        updateLocalBranch();
         return branches.get(0);
 
     }
@@ -151,7 +150,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
      * @return active branch name or null
      */
     @Nullable
-    private String getActiveBranch() {
+    public String getActiveBranch() {
         return Utils.getRootRepository(project) == null ? null : Objects.requireNonNull(Utils.getRootRepository(project)).getCurrentBranchName();
     }
 

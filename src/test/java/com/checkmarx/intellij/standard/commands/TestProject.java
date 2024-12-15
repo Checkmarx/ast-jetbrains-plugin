@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.standard.commands;
 
 import com.checkmarx.ast.project.Project;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Environment;
 import com.checkmarx.intellij.standard.BaseTest;
 import org.junit.jupiter.api.Assertions;
@@ -23,12 +24,22 @@ public class TestProject extends BaseTest {
     }
 
     @Test
-    public void testGetBranches() {
+    public void testGetBranches_WithNotSCMProject_shouldIgnoreLocalBranchValue() {
         Project project = getEnvProject();
         List<String> branches = Assertions.assertDoesNotThrow(() -> com.checkmarx.intellij.commands.Project.getBranches(
                 UUID.fromString(project.getId()), false));
         Assertions.assertTrue(branches.size() >= 1, branches.toString());
         Assertions.assertTrue(branches.contains(Environment.BRANCH_NAME),
                               String.format("Branch: %s Branch List: %s", Environment.BRANCH_NAME, branches));
+    }
+
+    @Test
+    public void testGetBranches_WithSCMProject_shouldContainLocalBranchValue() {
+        Project project = getEnvProject();
+        List<String> branches = Assertions.assertDoesNotThrow(() -> com.checkmarx.intellij.commands.Project.getBranches(
+                UUID.fromString(project.getId()), true));
+        Assertions.assertTrue(branches.size() >= 2, branches.toString());
+        Assertions.assertTrue(branches.get(0).equals(Constants.USE_LOCAL_BRANCH),
+                String.format("Branch: %s Branch List: %s", Constants.USE_LOCAL_BRANCH, branches));
     }
 }
