@@ -193,7 +193,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
      *
      * @param scanId - scan id
      */
-    private void pollScan(String scanId) {
+    public void pollScan(String scanId) {
         isPollingScan = true;
 
         pollScanTask = new Task.Backgroundable(workspaceProject, msg(Resource.SCAN_RUNNING_TITLE)) {
@@ -323,7 +323,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
         return ActionUpdateThread.BGT;
     }
 
-    private String getActiveBranch(Project project) {
+    public String getActiveBranch(Project project) {
         return Utils.getRootRepository(project) == null ? null : Objects.requireNonNull(Utils.getRootRepository(project)).getCurrentBranchName();
     }
 }
