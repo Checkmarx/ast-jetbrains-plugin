@@ -2,21 +2,15 @@ package com.checkmarx.intellij.ui;
 
 import com.automation.remarks.junit5.Video;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
-import com.intellij.remoterobot.fixtures.EditorFixture;
-import com.intellij.remoterobot.fixtures.JTreeFixture;
-import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
-import com.intellij.remoterobot.search.locators.Locator;
-import com.intellij.remoterobot.search.locators.Locators;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.awt.*;
 import java.time.Duration;
-import java.util.List;
 
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
-import static com.intellij.remoterobot.search.locators.Locators.byXpath;
 
 public class TestAsca extends BaseUITest {
 
@@ -54,27 +48,36 @@ public class TestAsca extends BaseUITest {
 @Test
 @Video
 public void testGetVul() {
-    clickAscaCheckbox();
-    click(OK_BTN);
+//oat-lessons
 
-    ComponentFixture stripeButton = find(ComponentFixture.class, "//div[contains(@tooltiptext.key, 'title.project')]", waitDuration);
+    // Attempt to find and click the project side tab button
+    ComponentFixture projectSideTabButton = find(ComponentFixture.class, "//div[contains(@tooltiptext.key, 'title.project')]", waitDuration);
     try {
-        ComponentFixture stripeButton1 = find(ComponentFixture.class, "//div[@class='JBViewport'][.//div[@class='ProjectViewTree']]", Duration.ofSeconds(1));
-        stripeButton1.click(stripeButton1.findAllText().get(0).getPoint());
+        // We assume that project side tab is open, trying to click the project view tree
+        ComponentFixture projectViewTree = find(ComponentFixture.class, "//div[@class='JBViewport'][.//div[@class='ProjectViewTree']]", Duration.ofSeconds(1));
+        Point webGoatRootDirectoryPoint = projectViewTree.findAllText().get(0).getPoint();
+        projectViewTree.click(webGoatRootDirectoryPoint);
     } catch (Exception e) {
-        stripeButton.click();
+        // If the project side tab button is not open, click the project side tab button
+        projectSideTabButton.click();
     }
 
+    // Navigate through the project directory to the specific file path
     String[] path = {"webgoat-lessons", "challenge", "src", "main", "java", "challenge5", "Assignment5"};
     for (String step : path) {
         enter(step);
     }
 
-    click("//div[@text.key='toolwindow.stripe.Problems_View']");
+    // Open the Problems view and search for a specific problem
+    click("//div[contains(@text.key, 'toolwindow.stripe.Problems_View')]");
     click("//div[@class='BaseLabel' and @text='Problems:']");
+
     enter("Unsafe SQL Query Construction");
 
+    // Wait for the problem to be detected and displayed
     waitFor(() -> hasAnyComponent("//div[contains(@mytext, 'Unsafe SQL Query Construction - Consider using prepared statements instead of concatenation when building SQL statement.')]"));
+
+    openCxToolWindow();
 }
 
     protected static void enter(String value) {
