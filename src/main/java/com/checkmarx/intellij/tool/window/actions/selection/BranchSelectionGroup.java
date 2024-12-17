@@ -129,7 +129,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
 
     private void updateActiveBranchAndFetchScans(String branchName) {
         propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY, branchName);
-        refreshScanGroup(projectId, branchName, true);
+        refreshScanGroup(projectId, branchName, false);
     }
     /**
      * Repopulate the scan selection according to the given branch
