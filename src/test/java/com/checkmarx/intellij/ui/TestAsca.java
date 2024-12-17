@@ -45,11 +45,15 @@ public class TestAsca extends BaseUITest {
         click(OK_BTN);
         validateAscaRunning();
         click(OK_BTN);
+
+        // Unclick the ASCA checkbox
+        click(ASCA_CHECKBOX);
+        click(OK_BTN);
     }
 
 @Test
 @Video
-public void testGetVul() {
+public void AscaCheckboxEnabled_EnteringFileWithVulnerabilities_AscaVulnerabilityExist() {
      // Click the ASCA checkbox to enable ASCA
     clickAscaCheckbox();
     click(OK_BTN);
@@ -78,23 +82,18 @@ public void testGetVul() {
 
     ComponentFixture problems = find(ComponentFixture.class, "//div[@class='Tree']", waitDuration);
 
-    boolean foundAscaIssue = false;
-
     waitFor(() -> {
         List<RemoteText> textList = problems.findAllText();
         return textList.stream().anyMatch(t -> t.getText().contains("ASCA"));
     });
 
-    // validate there is ASCA issue
-    for (RemoteText text : problems.findAllText()) {
-        if (text.getText().contains("ASCA")) {
-            foundAscaIssue = true;
-            break;
-        }
-    }
-    Assertions.assertTrue(foundAscaIssue);
+    Assertions.assertTrue(problems.findAllText().stream().anyMatch(t -> t.getText().contains("ASCA")));
 
     openCxToolWindow();
+
+    // Unclick the ASCA checkbox
+    click(ASCA_CHECKBOX);
+    click(OK_BTN);
 }
 
     protected static void enter(String value) {
