@@ -45,19 +45,11 @@ public class TestAsca extends BaseUITest {
         click(OK_BTN);
         validateAscaRunning();
         click(OK_BTN);
-
-        // Unclick the ASCA checkbox
-        click(ASCA_CHECKBOX);
-        click(OK_BTN);
     }
 
 @Test
 @Video
 public void AscaCheckboxEnabled_EnteringFileWithVulnerabilities_AscaVulnerabilityExist() {
-     // Click the ASCA checkbox to enable ASCA
-    clickAscaCheckbox();
-    click(OK_BTN);
-
     // Attempt to find and click the project side tab button
     ComponentFixture projectSideTabButton = find(ComponentFixture.class, "//div[contains(@tooltiptext.key, 'title.project')]", waitDuration);
     try {
@@ -90,10 +82,6 @@ public void AscaCheckboxEnabled_EnteringFileWithVulnerabilities_AscaVulnerabilit
     Assertions.assertTrue(problems.findAllText().stream().anyMatch(t -> t.getText().contains("ASCA")));
 
     openCxToolWindow();
-
-    // Unclick the ASCA checkbox
-    click(ASCA_CHECKBOX);
-    click(OK_BTN);
 }
 
     protected static void enter(String value) {
