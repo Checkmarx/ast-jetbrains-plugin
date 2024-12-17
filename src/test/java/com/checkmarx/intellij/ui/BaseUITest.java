@@ -12,7 +12,6 @@ import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.apache.commons.lang3.StringUtils;
-import org.assertj.swing.fixture.JCheckBoxFixture;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
@@ -123,7 +122,7 @@ public abstract class BaseUITest {
         }
     }
 
-    private static void openCxToolWindow() {
+    static void openCxToolWindow() {
         log("Opening Cx Tool Window");
         waitFor(() -> hasAnyComponent("//div[@tooltiptext.key='NOTIFICATION_GROUP_NAME']"));
         if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
