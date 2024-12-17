@@ -86,8 +86,7 @@ public void testGetVul() {
     });
 
     // validate there is ASCA issue
-    List<RemoteText> p = problems.findAllText();
-    for (RemoteText text : p) {
+    for (RemoteText text : problems.findAllText()) {
         if (text.getText().contains("ASCA")) {
             foundAscaIssue = true;
             break;
