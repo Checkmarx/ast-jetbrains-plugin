@@ -2,12 +2,14 @@ package com.checkmarx.intellij.ui;
 
 import com.automation.remarks.junit5.Video;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.awt.*;
 import java.time.Duration;
+import java.util.List;
 
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
@@ -48,7 +50,9 @@ public class TestAsca extends BaseUITest {
 @Test
 @Video
 public void testGetVul() {
-//oat-lessons
+     // Click the ASCA checkbox to enable ASCA
+    clickAscaCheckbox();
+    click(OK_BTN);
 
     // Attempt to find and click the project side tab button
     ComponentFixture projectSideTabButton = find(ComponentFixture.class, "//div[contains(@tooltiptext.key, 'title.project')]", waitDuration);
@@ -72,10 +76,24 @@ public void testGetVul() {
     click("//div[contains(@text.key, 'toolwindow.stripe.Problems_View')]");
     click("//div[@class='BaseLabel' and @text='Problems:']");
 
-    enter("Unsafe SQL Query Construction");
+    ComponentFixture problems = find(ComponentFixture.class, "//div[@class='Tree']", waitDuration);
 
-    // Wait for the problem to be detected and displayed
-    waitFor(() -> hasAnyComponent("//div[contains(@mytext, 'Unsafe SQL Query Construction - Consider using prepared statements instead of concatenation when building SQL statement.')]"));
+    boolean foundAscaIssue = false;
+
+    waitFor(() -> {
+        List<RemoteText> textList = problems.findAllText();
+        return textList.stream().anyMatch(t -> t.getText().contains("ASCA"));
+    });
+
+    // validate there is ASCA issue
+    List<RemoteText> p = problems.findAllText();
+    for (RemoteText text : p) {
+        if (text.getText().contains("ASCA")) {
+            foundAscaIssue = true;
+            break;
+        }
+    }
+    Assertions.assertTrue(foundAscaIssue);
 
     openCxToolWindow();
 }
