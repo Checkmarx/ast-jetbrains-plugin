@@ -43,7 +43,7 @@ dependencies {
     implementation 'com.miglayout:miglayout-swing:11.3'
 
     if (javaWrapperVersion == "" || javaWrapperVersion == null) {
-        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.1.4'){
+        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.1.5'){
             exclude group: 'junit', module: 'junit'
         }
     } else {
