@@ -53,6 +53,9 @@ dependencies {
     }
     implementation(platform("com.fasterxml.jackson:jackson-bom:2.16.1"))
     // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
+
+    testImplementation 'org.mockito:mockito-core:5.0.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.0.0' // maybe remove
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/

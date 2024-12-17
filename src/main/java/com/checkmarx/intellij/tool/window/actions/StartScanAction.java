@@ -89,6 +89,9 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
         // Case it is a git repo check for project and branch match
         if (repository != null) {
             String storedBranch = Optional.ofNullable(propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY)).orElse(StringUtils.EMPTY);
+            if(storedBranch.equals(Constants.USE_LOCAL_BRANCH)) {
+                storedBranch = getActiveBranch(workspaceProject);
+            }
             boolean matchBranch = storedBranch.equals(Objects.requireNonNull(repository).getCurrentBranchName());
             if(matchBranch && matchProject) {
                 createScan();
@@ -159,6 +162,9 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 String storedBranch = propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY);
+                if(storedBranch.equals(Constants.USE_LOCAL_BRANCH)) {
+                    storedBranch = getActiveBranch(workspaceProject);
+                }
                 String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
 
                 LOGGER.info(msg(Resource.STARTING_SCAN_IDE, storedProject, storedBranch));
@@ -187,7 +193,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
      *
      * @param scanId - scan id
      */
-    private void pollScan(String scanId) {
+    public void pollScan(String scanId) {
         isPollingScan = true;
 
         pollScanTask = new Task.Backgroundable(workspaceProject, msg(Resource.SCAN_RUNNING_TITLE)) {
@@ -260,6 +266,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     private void loadResults(com.checkmarx.ast.scan.Scan scan) {
         LOGGER.info(msg(Resource.LOAD_RESULTS, scan.getId()));
         ScanSelectionGroup scanSelectionGroup = cxToolWindowPanel.getRootGroup().getScanSelectionGroup();
+        propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY, scan.getBranch());
         scanSelectionGroup.refresh(scan.getProjectId(), scan.getBranch(), true);
     }
 
@@ -314,5 +321,9 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
         return ActionUpdateThread.BGT;
+    }
+
+    public String getActiveBranch(Project project) {
+        return Utils.getRootRepository(project) == null ? null : Objects.requireNonNull(Utils.getRootRepository(project)).getCurrentBranchName();
     }
 }
