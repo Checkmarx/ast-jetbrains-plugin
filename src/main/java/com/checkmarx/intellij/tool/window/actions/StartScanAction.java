@@ -113,41 +113,40 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
         }
     }
 
+
     /**
      * Check if project in workspace matches the selected checkmarx plugin project
      *
      * @return True if matches. False otherwise
      */
     private boolean astProjectMatchesWorkspaceProject() {
-        List<Result> results = cxToolWindowPanel.getCurrentState().getResultOutput().getResults();
-        List<String> resultsFileNames = new ArrayList<>();
+        // Get the selected project from propertiesComponent
+        String pluginProjectName = propertiesComponent.getValue("Checkmarx.SelectedProject");
 
-        if(results.isEmpty()) {
+        // Retrieve the repository object
+        Repository repository = Utils.getRootRepository(workspaceProject);
+        if (repository == null) {
+            return false;
+        }
+        // Extract the repository information (myUrls) from repository.toLogString()
+        String repositoryInfo = repository.toLogString();
+        String workspaceProjectName = null;
+
+        // Parse the repository information to find the project URL (myUrls)
+        int myUrlsIndex = repositoryInfo.indexOf("myUrls=[");
+        if (myUrlsIndex != -1) {
+            int start = myUrlsIndex + "myUrls=[".length();
+            int end = repositoryInfo.indexOf("]", start);
+            if (end != -1) {
+                String url = repositoryInfo.substring(start, end).split(",")[0];
+                workspaceProjectName = url.replaceFirst(".*://[a-zA-Z0-9.]+/", "").replaceFirst("\\.git$", "");
+            }
+        }
+        // Return true if the selected project matches the expected project name
+        if (StringUtils.isNotBlank(pluginProjectName) && pluginProjectName.equalsIgnoreCase(workspaceProjectName)) {
             return true;
         }
-
-        for(Result result : results) {
-            if(!Optional.ofNullable(result.getData().getNodes()).orElse(Collections.emptyList()).isEmpty()){
-                // Add SAST file name
-                resultsFileNames.add(result.getData().getNodes().get(0).getFileName());
-            } else if(StringUtils.isNotBlank(result.getData().getFileName())) {
-                // Add KICS file name
-                resultsFileNames.add(result.getData().getFileName());
-            }
-        }
-
-        for(String fileName : resultsFileNames) {
-            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(workspaceProject, FilenameUtils.getName(fileName),
-                            GlobalSearchScope.projectScope(workspaceProject))
-                    .stream()
-                    .filter(f -> f.getPath().contains(fileName))
-                    .collect(Collectors.toList());
-
-            if(!files.isEmpty()) {
-                return true;
-            }
-        }
-
+        // If no match, return false
         return false;
     }
 
