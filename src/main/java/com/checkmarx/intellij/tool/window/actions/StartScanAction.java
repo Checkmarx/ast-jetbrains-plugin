@@ -113,7 +113,6 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
         }
     }
 
-
     /**
      * Check if project in workspace matches the selected checkmarx plugin project
      *
@@ -122,32 +121,36 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     private boolean astProjectMatchesWorkspaceProject() {
         // Get the selected project from propertiesComponent
         String pluginProjectName = propertiesComponent.getValue("Checkmarx.SelectedProject");
+        String workspaceProjectName = getRepositoryProjectName();
 
-        // Retrieve the repository object
+        // Return true if the selected project matches the expected project name
+        return StringUtils.isNotBlank(pluginProjectName) &&
+                StringUtils.isNotBlank(workspaceProjectName) &&
+                pluginProjectName.equals(workspaceProjectName);
+    }
+
+    /**
+     * Helper method to retrieve the repository project name
+     *
+     * @return The repository project name or null if unavailable
+     */
+    private String getRepositoryProjectName() {
         Repository repository = Utils.getRootRepository(workspaceProject);
         if (repository == null) {
-            return false;
+            return null;
         }
-        // Extract the repository information (myUrls) from repository.toLogString()
-        String repositoryInfo = repository.toLogString();
-        String workspaceProjectName = null;
 
-        // Parse the repository information to find the project URL (myUrls)
+        String repositoryInfo = repository.toLogString();
         int myUrlsIndex = repositoryInfo.indexOf("myUrls=[");
         if (myUrlsIndex != -1) {
             int start = myUrlsIndex + "myUrls=[".length();
             int end = repositoryInfo.indexOf("]", start);
             if (end != -1) {
                 String url = repositoryInfo.substring(start, end).split(",")[0];
-                workspaceProjectName = url.replaceFirst(".*://[a-zA-Z0-9.]+/", "").replaceFirst("\\.git$", "");
+                return url.replaceFirst(".*://[a-zA-Z0-9.]+/", "").replaceFirst("\\.git$", "");
             }
         }
-        // Return true if the selected project matches the expected project name
-        if (StringUtils.isNotBlank(pluginProjectName) && pluginProjectName.equalsIgnoreCase(workspaceProjectName)) {
-            return true;
-        }
-        // If no match, return false
-        return false;
+        return null;
     }
 
     /**
