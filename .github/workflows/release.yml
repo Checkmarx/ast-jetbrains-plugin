@@ -89,7 +89,7 @@ jobs:
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
-        uses: aactions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: test-fails-report-integration
           path: |
