@@ -20,6 +20,23 @@ repositories {
     }
 }
 
+plugins {
+    id 'java'
+    id 'jacoco'
+}
+
+jacoco {
+    toolVersion = "0.8.12" // Specify the JaCoCo version
+}
+
+tasks.jacocoTestReport {
+    dependsOn test // Ensure tests run before generating the report
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
 dependencies {
     testImplementation 'com.intellij.remoterobot:remote-robot:' + remoteRobotVersion
     testImplementation('com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion) {
@@ -28,7 +45,7 @@ dependencies {
     testImplementation 'com.squareup.okio:okio:3.8.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
     testImplementation 'com.squareup.okhttp3:okhttp:4.9.2'
-    testImplementation 'junit:junit:4.11-redhat-1'
+    testokhttp:4.12.0okhttp:4.12.0Implementation 'junit:junit:4.11-redhat-1'
     testImplementation 'junit:junit:4.13.1'
 
     // Video Recording
