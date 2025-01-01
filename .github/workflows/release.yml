@@ -62,7 +62,7 @@ jobs:
         run: ./gradlew runPluginVerifier
       # Upload verifier report
       - name: Upload report
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 #v4
         if: always()
         with:
           name: verifier-report
@@ -89,7 +89,7 @@ jobs:
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 #v4
         with:
           name: test-fails-report-integration
           path: |
