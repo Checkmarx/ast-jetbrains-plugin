@@ -96,15 +96,18 @@ jobs:
       - name: Clean
         run: ./gradlew clean
 
-      # Run tests and generate coverage report
-      - name: Tests with Coverage
-        run: ./gradlew test jacocoTestReport -i --tests com.checkmarx.intellij.standard*
+      # Run tests
+      - name: Run Tests
+        run: ./gradlew test -i --tests com.checkmarx.intellij.standard*
+
+      # Generate coverage report
+      - name: Generate Coverage Report
+        run: ./gradlew jacocoTestReport -i
 
       # Save coverage report as an artifact
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: |
-            build/reports/jacoco/test/html/
-  
+          path: build/reports/jacoco/test/html/
+
