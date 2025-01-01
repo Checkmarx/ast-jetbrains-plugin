@@ -84,23 +84,27 @@ jobs:
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
+
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@v3.13.0
         with:
           distribution: zulu
           java-version: 11
+
       # Perform clean before testing
       - name: Clean
         run: ./gradlew clean
-      # Run tests
-      - name: Tests
-        run: ./gradlew test -i --tests com.checkmarx.intellij.standard*
-      # Save report if tests fail
-      - name: Save fails report
-        if: ${{ failure() }}
+
+      # Run tests and generate coverage report
+      - name: Tests with Coverage
+        run: ./gradlew test jacocoTestReport -i --tests com.checkmarx.intellij.standard*
+
+      # Save coverage report as an artifact
+      - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
-          name: test-fails-report-integration
+          name: coverage-report
           path: |
-            build/reports
+            build/reports/jacoco/test/html/
+  
