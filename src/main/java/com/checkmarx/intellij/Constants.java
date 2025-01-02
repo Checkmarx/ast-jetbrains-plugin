@@ -58,6 +58,8 @@ public final class Constants {
     public static final String SELECTED_SCAN_PROPERTY = "Checkmarx.SelectedScan";
     public static final String RUNNING_SCAN_ID_PROPERTY = "Checkmarx.RunningScanId";
 
+    public static final String NOT_MATCH_PROJECT_NAME_DIFF_ORGANIZATION = "Phoenix/WebGoat";
+
     public static final String SCAN_TYPE_SCA = "sca";
     public static final String SCAN_TYPE_KICS = "kics";
 

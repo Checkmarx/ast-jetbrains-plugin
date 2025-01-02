@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-
+import com.checkmarx.intellij.Constants;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
@@ -67,6 +67,21 @@ public class TestTriggerScan extends BaseUITest {
         findRunScanButtonAndClick();
         Assertions.assertTrue(hasAnyComponent(BRANCH_DOES_NOT_MATCH));
     }
+
+    @Test
+    @Video
+    public void testTriggerScanProjectWithDifferentOrganizationsDontMatch() {
+
+        if (triggerScanNotAllowed()) return;
+        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
+        testSelectionAction(findSelection("Project"), "Project", Constants.NOT_MATCH_PROJECT_NAME_DIFF_ORGANIZATION);
+        testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
+        testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID_NOT_MATCH_PROJECT);
+        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled());
+        findRunScanButtonAndClick();
+        Assertions.assertTrue(hasAnyComponent(PROJECT_DOES_NOT_MATCH));
+    }
+
 
     @Test
     @Video
