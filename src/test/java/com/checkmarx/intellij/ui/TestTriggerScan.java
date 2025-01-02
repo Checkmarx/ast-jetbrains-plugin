@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import com.checkmarx.intellij.Constants;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
