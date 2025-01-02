@@ -85,7 +85,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Repository repository = Utils.getRootRepository(workspaceProject);
-        boolean matchProject = astProjectMatchesWorkspaceProject();
+        boolean matchProject = isAstProjectMatchesWorkspaceProject();
         // Case it is a git repo check for project and branch match
         if (repository != null) {
             String storedBranch = Optional.ofNullable(propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY)).orElse(StringUtils.EMPTY);
@@ -118,14 +118,14 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
      *
      * @return True if matches. False otherwise
      */
-    private boolean astProjectMatchesWorkspaceProject() {
+    private boolean isAstProjectMatchesWorkspaceProject() {
         // Get the selected project from propertiesComponent
         String pluginProjectName = propertiesComponent.getValue("Checkmarx.SelectedProject");
         String workspaceProjectName = getRepositoryProjectName();
 
         // Return true if the selected project matches the expected project name
         return StringUtils.isNotBlank(pluginProjectName) &&
-                StringUtils.isNotBlank(workspaceProjectName) &&
+                workspaceProjectName != null &&
                 pluginProjectName.equals(workspaceProjectName);
     }
 
