@@ -22,7 +22,13 @@ repositories {
 }
 
 jacoco {
-    toolVersion = "0.8.8" // Specify the JaCoCo version
+    toolVersion = "0.8.12" // Specify the JaCoCo version
+}
+
+tasks.test {
+    useJUnitPlatform() // Ensure you're using the correct test framework
+    include "com.checkmarx.intellij.standard*" // Adjust the path to match the folder structure
+    finalizedBy jacocoTestReport
 }
 
 tasks.jacocoTestReport {

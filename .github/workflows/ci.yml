@@ -96,9 +96,11 @@ jobs:
       - name: Clean
         run: ./gradlew clean
 
-      # Run tests
-      - name: Run Tests
-        run: ./gradlew test -i --tests com.checkmarx.intellij.standard*
+      # Run tests and capture exit code
+      - name: Run Tests with coverage report
+        id: test_results
+        run: |
+          ./gradlew test --tests "com.checkmarx.intellij.standard*" jacocoTestReport || echo "TESTS_FAILED=true" >> $GITHUB_ENV
 
       # Generate coverage report
       - name: Generate Coverage Report
@@ -110,4 +112,9 @@ jobs:
         with:
           name: coverage-report
           path: build/reports/jacoco/test/html/
+
+      # Fail the pipeline if tests failed
+      - name: Fail Pipeline if Tests Failed
+        if: env.TESTS_FAILED == 'true'
+        run: exit 1
 
