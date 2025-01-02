@@ -71,11 +71,9 @@ public class TestTriggerScan extends BaseUITest {
     @Test
     @Video
     public void testTriggerScanProjectWithDifferentOrganizationsDontMatch() {
-
-        if (triggerScanNotAllowed()) return;
         waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
-        testSelectionAction(findSelection("Project"), "Project", Constants.NOT_MATCH_PROJECT_NAME_DIFF_ORGANIZATION);
-        testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
+        testSelectionAction(findSelection("Project"), "Project", "DiffOrg/WebGoat");
+        testSelectionAction(findSelection("Branch"), "Branch", Environment.NOT_MATCH_BRANCH_NAME);
         testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID_NOT_MATCH_PROJECT);
         waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled());
         findRunScanButtonAndClick();
