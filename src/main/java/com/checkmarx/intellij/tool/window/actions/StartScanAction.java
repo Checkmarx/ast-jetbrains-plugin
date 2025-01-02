@@ -85,7 +85,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Repository repository = Utils.getRootRepository(workspaceProject);
-        boolean matchProject = astProjectMatchesWorkspaceProject();
+        boolean matchProject = isAstProjectMatchesWorkspaceProject();
         // Case it is a git repo check for project and branch match
         if (repository != null) {
             String storedBranch = Optional.ofNullable(propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY)).orElse(StringUtils.EMPTY);
@@ -118,37 +118,39 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
      *
      * @return True if matches. False otherwise
      */
-    private boolean astProjectMatchesWorkspaceProject() {
-        List<Result> results = cxToolWindowPanel.getCurrentState().getResultOutput().getResults();
-        List<String> resultsFileNames = new ArrayList<>();
+    private boolean isAstProjectMatchesWorkspaceProject() {
+        // Get the selected project from propertiesComponent
+        String pluginProjectName = propertiesComponent.getValue("Checkmarx.SelectedProject");
+        String workspaceProjectName = getRepositoryProjectName();
 
-        if(results.isEmpty()) {
-            return true;
+        // Return true if the selected project matches the expected project name
+        return StringUtils.isNotBlank(pluginProjectName) &&
+                workspaceProjectName != null &&
+                pluginProjectName.equals(workspaceProjectName);
+    }
+
+    /**
+     * Helper method to retrieve the repository project name
+     *
+     * @return The repository project name or null if unavailable
+     */
+    private String getRepositoryProjectName() {
+        Repository repository = Utils.getRootRepository(workspaceProject);
+        if (repository == null) {
+            return null;
         }
 
-        for(Result result : results) {
-            if(!Optional.ofNullable(result.getData().getNodes()).orElse(Collections.emptyList()).isEmpty()){
-                // Add SAST file name
-                resultsFileNames.add(result.getData().getNodes().get(0).getFileName());
-            } else if(StringUtils.isNotBlank(result.getData().getFileName())) {
-                // Add KICS file name
-                resultsFileNames.add(result.getData().getFileName());
+        String repositoryInfo = repository.toLogString();
+        int myUrlsIndex = repositoryInfo.indexOf("myUrls=[");
+        if (myUrlsIndex != -1) {
+            int start = myUrlsIndex + "myUrls=[".length();
+            int end = repositoryInfo.indexOf("]", start);
+            if (end != -1) {
+                String url = repositoryInfo.substring(start, end).split(",")[0];
+                return url.replaceFirst(".*://[a-zA-Z0-9.]+/", "").replaceFirst("\\.git$", "");
             }
         }
-
-        for(String fileName : resultsFileNames) {
-            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(workspaceProject, FilenameUtils.getName(fileName),
-                            GlobalSearchScope.projectScope(workspaceProject))
-                    .stream()
-                    .filter(f -> f.getPath().contains(fileName))
-                    .collect(Collectors.toList());
-
-            if(!files.isEmpty()) {
-                return true;
-            }
-        }
-
-        return false;
+        return null;
     }
 
     /**
