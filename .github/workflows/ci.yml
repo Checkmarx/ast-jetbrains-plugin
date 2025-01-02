@@ -102,10 +102,6 @@ jobs:
         run: |
           ./gradlew test --tests "com.checkmarx.intellij.standard*" jacocoTestReport || echo "TESTS_FAILED=true" >> $GITHUB_ENV
 
-      # Generate coverage report
-      - name: Generate Coverage Report
-        run: ./gradlew jacocoTestReport -i
-
       # Save coverage report as an artifact
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
