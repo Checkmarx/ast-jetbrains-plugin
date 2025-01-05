@@ -22,7 +22,10 @@ repositories {
 }
 
 jacoco {
-    toolVersion = "0.8.12" // Specify the JaCoCo version
+    toolVersion = "0.8.12"
+    append = true
+    includes = ['com.checkmarx.intellij.*']
+    // Specify the JaCoCo version
 }
 
 tasks.jacocoTestReport {
