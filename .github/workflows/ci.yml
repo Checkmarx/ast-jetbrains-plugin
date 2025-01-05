@@ -89,8 +89,16 @@ jobs:
       - name: Clean
         run: ./gradlew clean
       # Run tests
-      - name: Tests
-        run: ./gradlew test -i --tests com.checkmarx.intellij.standard*
+      - name: Run Tests with coverage report
+        id: test_results
+        run: |
+          ./gradlew test --tests "com.checkmarx.intellij.standard*" jacocoTestReport
+      # Save coverage report as an artifact
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: build/reports/jacoco/test/html/
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
