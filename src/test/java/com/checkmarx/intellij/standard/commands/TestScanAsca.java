@@ -13,6 +13,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class TestScanAsca extends BaseTest {
     AscaService ascaService = new AscaService();
@@ -43,6 +44,7 @@ public class TestScanAsca extends BaseTest {
         return psiFile;
     }
 
+    @Test
     public void testRunAscaScan_FileWithVulnerabilities_Success() {
         PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/python-vul-file.py");
         Project project = ProjectManager.getInstance().getDefaultProject();
@@ -55,6 +57,7 @@ public class TestScanAsca extends BaseTest {
         });
     }
 
+    @Test
     public void testRunAscaScan_FileWithNoVulnerabilities_Success() {
         PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/csharp-no-vul.cs");
         Project project = ProjectManager.getInstance().getDefaultProject();
@@ -66,6 +69,7 @@ public class TestScanAsca extends BaseTest {
         });
     }
 
+    @Test
     public void testRunAscaScan_FileWithoutExtension_Fail() {
         PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/file");
         Project project = ProjectManager.getInstance().getDefaultProject();

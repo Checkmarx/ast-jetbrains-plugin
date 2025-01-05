@@ -27,15 +27,7 @@ public class TestScan extends BaseTest {
         String msg = String.format("project: %s branch: %s scans: %d", project.getId(), Environment.BRANCH_NAME, scans.size());
         Assertions.assertTrue(scans.size() > 0, msg);
         Assertions.assertTrue(scans.size() <= 10000, msg);
-        int i = 0;
-        for (com.checkmarx.ast.scan.Scan scan : scans) {
-            if (i++ > 10) {
-                break;
-            }
-            Assertions.assertEquals("Completed", scan.getStatus());
-            Assertions.assertEquals(Environment.BRANCH_NAME, scan.getBranch());
-            Assertions.assertEquals(getEnvProject().getId(), scan.getProjectId());
-        }
+        Assertions.assertTrue(scans.stream().allMatch(scan -> scan.getProjectId().equals(project.getId()) && scan.getBranch().equals(Environment.BRANCH_NAME) && scan.getStatus().equals("Completed")));
     }
 
     @Test
