@@ -23,9 +23,6 @@ repositories {
 
 jacoco {
     toolVersion = "0.8.12"
-    append = true
-    includes = ['com.checkmarx.intellij.*']
-    // Specify the JaCoCo version
 }
 
 tasks.jacocoTestReport {
@@ -100,6 +97,15 @@ runIdeForUiTests {
     systemProperty 'jb.privacy.policy.text', '<!--999.999-->'
     systemProperty 'jb.consents.confirmation.enabled', 'false'
 }
+
+jacocoTestReport {
+    additionalSourceDirs.setFrom(files(sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(
+            fileTree(dir: "$buildDir/classes/java/main", excludes: [])
+    )
+    executionData.setFrom(fileTree(dir: "$buildDir", includes: ["jacoco/test.exec"]))
+}
+
 
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
