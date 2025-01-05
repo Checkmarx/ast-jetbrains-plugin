@@ -1,7 +1,5 @@
 name: Checkmarx One Jetbrains Plugin CI
-
 on: [ pull_request, workflow_dispatch ]
-
 env:
   CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
   CX_APIKEY: ${{ secrets.CX_APIKEY }}
@@ -14,12 +12,9 @@ env:
   CX_NOT_MATCH_TEST_PROJECT: ${{ secrets.CX_NOT_MATCH_TEST_PROJECT }}
   CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
   CX_NOT_MATCH_TEST_SCAN_ID: ${{ secrets.CX_NOT_MATCH_TEST_SCAN_ID }}
-
-
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
-
 jobs:
   testUI:
     needs: [ testIntegration ]
@@ -84,33 +79,23 @@ jobs:
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
-
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@v3.13.0
         with:
           distribution: zulu
           java-version: 11
-
       # Perform clean before testing
       - name: Clean
         run: ./gradlew clean
-
-      # Run tests and capture exit code
-      - name: Run Tests with coverage report
-        id: test_results
-        run: |
-          ./gradlew test --tests "com.checkmarx.intellij.standard*" jacocoTestReport || echo "TESTS_FAILED=true" >> $GITHUB_ENV
-
-      # Save coverage report as an artifact
-      - name: Upload Coverage Report
+      # Run tests
+      - name: Tests
+        run: ./gradlew test -i --tests com.checkmarx.intellij.standard*
+      # Save report if tests fail
+      - name: Save fails report
+        if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: build/reports/jacoco/test/html/
-
-      # Fail the pipeline if tests failed
-      - name: Fail Pipeline if Tests Failed
-        if: env.TESTS_FAILED == 'true'
-        run: exit 1
-
+          name: test-fails-report-integration
+          path: |
+            build/reports
