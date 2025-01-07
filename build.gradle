@@ -2,6 +2,7 @@ plugins {
     id 'io.freefair.lombok' version '8.6'
     id 'org.jetbrains.intellij' version '1.17.4'
     id 'java'
+    id 'jacoco'
 }
 
 group 'com.checkmarx'
@@ -17,6 +18,18 @@ repositories {
     }
     maven {
         url = 'https://oss.sonatype.org/content/repositories/snapshots'
+    }
+}
+
+jacoco {
+    toolVersion = "0.8.7"
+}
+
+tasks.jacocoTestReport {
+    dependsOn test // Ensure tests run before generating the report
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
     }
 }
 
@@ -84,6 +97,15 @@ runIdeForUiTests {
     systemProperty 'jb.privacy.policy.text', '<!--999.999-->'
     systemProperty 'jb.consents.confirmation.enabled', 'false'
 }
+
+jacocoTestReport {
+    additionalSourceDirs.setFrom(files(sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(
+            fileTree(dir: "$buildDir/classes/java/main", excludes: [])
+    )
+    executionData.setFrom(fileTree(dir: "$buildDir", includes: ["jacoco/test.exec"]))
+}
+
 
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
