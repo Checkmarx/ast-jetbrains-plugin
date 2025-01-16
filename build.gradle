@@ -22,14 +22,15 @@ repositories {
 }
 
 jacoco {
-    toolVersion = "0.8.7"
+    toolVersion = "0.8.12"
 }
 
 tasks.jacocoTestReport {
     dependsOn test // Ensure tests run before generating the report
     reports {
-        xml.required.set(true)
-        html.required.set(true)
+        xml.required = false
+        csv.required = false
+        html.required = true
     }
 }
 
@@ -38,9 +39,9 @@ dependencies {
     testImplementation('com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion) {
         exclude group: 'com.square.okio', module: 'okio'
     }
-    testImplementation 'com.squareup.okio:okio:3.8.0'
+    testImplementation 'com.squareup.okio:okio:3.10.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
-    testImplementation 'com.squareup.okhttp3:okhttp:4.9.2'
+    testImplementation 'com.squareup.okhttp:4.12.0'
     testImplementation 'junit:junit:4.11-redhat-1'
     testImplementation 'junit:junit:4.13.1'
 
@@ -89,6 +90,10 @@ test {
     useJUnitPlatform()
     systemProperty 'uiWaitDuration', project.findProperty('uiWaitDuration') ?: 300
     testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        showExceptions true
+        showCauses true
+        showStackTraces true
         showStandardStreams = true
     }
 }
@@ -99,13 +104,13 @@ runIdeForUiTests {
 }
 
 jacocoTestReport {
-    additionalSourceDirs.setFrom(files(sourceSets.main.allSource.srcDirs))
-    classDirectories.setFrom(
-            fileTree(dir: "$buildDir/classes/java/main", excludes: [])
-    )
-    executionData.setFrom(fileTree(dir: "$buildDir", includes: ["jacoco/test.exec"]))
+    dependsOn test
+    
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
-
 
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
@@ -113,7 +118,6 @@ publishPlugin {
         channels = [rchannels.toString()]
     }
 }
-
 
 java {
     toolchain {
