@@ -92,7 +92,13 @@ jobs:
       - name: Run Tests with coverage report
         id: test_results
         run: |
-          ./gradlew test --tests "com.checkmarx.intellij.standard*" jacocoTestReport
+          ./gradlew test --tests "com.checkmarx.intellij.standard*"
+
+      - name: Generate JaCoCo Badge
+        uses: cicirello/jacoco-badge-generator@v2
+        with:
+          jacoco-csv-file: build/reports/jacoco/test/jacocoTestReport.csv
+
       # Save coverage report as an artifact
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
