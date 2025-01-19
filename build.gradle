@@ -91,9 +91,6 @@ test {
         showStandardStreams = true
     }
     jacoco {
-        reports {
-            html.required = true
-        }
         includeNoLocationClasses = true
         excludes = ["jdk.internal.*"]
     }
@@ -105,16 +102,12 @@ runIdeForUiTests {
 }
 
 jacocoTestReport {
-    dependsOn test // tests are required to run before generating the report
+    dependsOn test
     classDirectories.setFrom(instrumentCode)
     reports {
         csv.required = true
         html.required = true
     }
-}
-
-jacocoTestCoverageVerification {
-    classDirectories.setFrom(instrumentCode)
 }
 
 publishPlugin {
