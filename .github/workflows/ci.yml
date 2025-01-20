@@ -16,7 +16,7 @@ concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 jobs:
-  testUI:
+  UITests:
     needs: [ testIntegration ]
     runs-on: ubuntu-latest
     steps:
@@ -74,7 +74,7 @@ jobs:
           path: |
             idea.log
 
-  testUnit:
+  UnitTests:
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
@@ -93,7 +93,7 @@ jobs:
       - name: Run Tests with coverage report
         id: test_results
         run: |
-          ./gradlew test --tests "com.checkmarx.intellij.unit.standard*" JacocoTestReport
+          ./gradlew test --tests "com.checkmarx.intellij.unit*" JacocoTestReport
 
       - name: Generate JaCoCo Badge
         uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 #v2.11.0
@@ -115,7 +115,7 @@ jobs:
           path: |
             build/reports
 
-  testIntegration:
+  IntegrationTests:
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
