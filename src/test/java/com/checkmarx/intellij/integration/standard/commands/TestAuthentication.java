@@ -1,10 +1,10 @@
-package com.checkmarx.intellij.standard.commands;
+package com.checkmarx.intellij.integration.standard.commands;
 
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
-import com.checkmarx.intellij.standard.BaseTest;
+import com.checkmarx.intellij.integration.standard.BaseTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;

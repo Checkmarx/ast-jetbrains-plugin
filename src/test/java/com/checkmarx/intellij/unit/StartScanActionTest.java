@@ -1,5 +1,6 @@
-package com.checkmarx.intellij;
+package com.checkmarx.intellij.unit;
 
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.commands.Scan;
 import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
 import com.checkmarx.intellij.tool.window.actions.StartScanAction;

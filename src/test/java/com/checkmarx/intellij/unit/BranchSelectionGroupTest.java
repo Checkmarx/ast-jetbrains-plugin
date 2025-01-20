@@ -1,5 +1,6 @@
-package com.checkmarx.intellij;
+package com.checkmarx.intellij.unit;
 
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.tool.window.actions.selection.BranchSelectionGroup;
 import com.checkmarx.intellij.tool.window.actions.selection.ScanSelectionGroup;
 import com.intellij.openapi.project.Project;
@@ -10,6 +11,7 @@ import com.intellij.util.messages.MessageBusConnection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.lang.reflect.Field;
@@ -84,7 +86,7 @@ public class BranchSelectionGroupTest {
         List<String> branches = List.of("main", "develop");
         setBranches(branchSelectionGroup, branches);
 
-        doReturn(Constants.USE_LOCAL_BRANCH).when(branchSelectionGroup).getActiveBranch();
+        Mockito.doReturn(Constants.USE_LOCAL_BRANCH).when(branchSelectionGroup).getActiveBranch();
 
         String result = (String) setDefaultBranchMethod.invoke(branchSelectionGroup);
         assertEquals("main", result);
