@@ -254,8 +254,6 @@ class AscaServiceTest {
 
             docManagerMock.when(() -> PsiDocumentManager.getInstance(mockProject))
                     .thenReturn(mockPsiDocumentManager);
-            when(mockPsiDocumentManager.getDocument(mockPsiFile)).thenReturn(mockDocument);
-            when(mockDocument.getText()).thenReturn("test content");
 
             appManagerMock.when(ApplicationManager::getApplication)
                     .thenReturn(mockApplication);
@@ -290,8 +288,6 @@ class AscaServiceTest {
 
             docManagerMock.when(() -> PsiDocumentManager.getInstance(mockProject))
                     .thenReturn(mockPsiDocumentManager);
-            when(mockPsiDocumentManager.getDocument(mockPsiFile)).thenReturn(mockDocument);
-            when(mockDocument.getText()).thenReturn("test content");
 
             appManagerMock.when(ApplicationManager::getApplication)
                     .thenReturn(mockApplication);
