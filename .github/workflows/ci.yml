@@ -92,7 +92,7 @@ jobs:
       - name: Run Tests with coverage report
         id: test_results
         run: |
-          ./gradlew test --tests "com.checkmarx.intellij.unit*" JacocoTestReport
+          ./gradlew test --tests "com.checkmarx.intellij.unit*" JacocoTestReport -PreportName=unit-report
 
       - name: Generate JaCoCo Badge
         uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 #v2.11.0
@@ -133,7 +133,7 @@ jobs:
       - name: Run Tests with coverage report
         id: test_results
         run: |
-          ./gradlew test --tests "com.checkmarx.intellij.integration.standard*" JacocoTestReport
+          ./gradlew test --tests "com.checkmarx.intellij.integration.standard*" JacocoTestReport -PreportName=integration-report
 
       - name: Generate JaCoCo Badge
         uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 #v2.11.0

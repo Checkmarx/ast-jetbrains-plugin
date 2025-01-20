@@ -104,6 +104,12 @@ jacocoTestReport {
     reports {
         csv.required = true
         html.required = true
+
+        // Use a custom report name passed as a flag
+        def customReportName = project.hasProperty('reportName') ? project.getProperty('reportName') : 'default-report'
+
+        // Set custom names within the default Jacoco output structure
+        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/test/$customReportName/html"))
     }
 }
 
