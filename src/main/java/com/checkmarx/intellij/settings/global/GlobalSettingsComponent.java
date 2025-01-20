@@ -44,12 +44,16 @@ public class GlobalSettingsComponent implements SettingsComponent {
     @Getter
     private final JPanel mainPanel = new JPanel();
 
+    @Getter
     private final JBPasswordField apiKeyField = new JBPasswordField();
 
+    @Getter
     private final ExpandableTextField additionalParametersField = new ExpandableTextField();
 
     private final JButton validateButton = new JButton(Bundle.message(Resource.VALIDATE_BUTTON));
     private final JBLabel validateResult = new JBLabel();
+
+    @Getter
     private final JBCheckBox ascaCheckBox = new JBCheckBox(Bundle.message(Resource.ASCA_CHECKBOX));
     private final JBLabel ascaInstallationMsg = new JBLabel();
 
