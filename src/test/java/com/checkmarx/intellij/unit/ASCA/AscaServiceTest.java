@@ -2,7 +2,7 @@ package com.checkmarx.intellij.unit.ASCA;
 
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.ast.asca.Error;
-import com.checkmarx.ast.wrapper.CxConfig;
+import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.commands.ASCA;
@@ -26,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -233,6 +234,148 @@ class AscaServiceTest {
             // Assert
             assertFalse(result);
             verify(mockLogger).warn(contains("ASCA installation error:"));
+        }
+    }
+
+    @Test
+    void handleScanResult_WithError_LogsWarning() throws Exception {
+        // Arrange
+        Error error = mock(Error.class);
+        when(error.getDescription()).thenReturn("Test error description");
+        when(mockScanResult.getError()).thenReturn(error);
+        when(mockPsiFile.getName()).thenReturn("test.java");
+        when(mockPsiFile.getVirtualFile()).thenReturn(mockVirtualFile);
+        when(mockVirtualFile.isInLocalFileSystem()).thenReturn(true);
+        when(mockVirtualFile.getPath()).thenReturn("/test/path/test.java");
+
+        try (MockedStatic<PsiDocumentManager> docManagerMock = mockStatic(PsiDocumentManager.class);
+             MockedStatic<ApplicationManager> appManagerMock = mockStatic(ApplicationManager.class);
+             MockedStatic<ASCA> ascaMock = mockStatic(ASCA.class)) {
+
+            docManagerMock.when(() -> PsiDocumentManager.getInstance(mockProject))
+                    .thenReturn(mockPsiDocumentManager);
+            when(mockPsiDocumentManager.getDocument(mockPsiFile)).thenReturn(mockDocument);
+            when(mockDocument.getText()).thenReturn("test content");
+
+            appManagerMock.when(ApplicationManager::getApplication)
+                    .thenReturn(mockApplication);
+            @SuppressWarnings("unchecked")
+            Computable<String> anyComputable = any(Computable.class);
+            when(mockApplication.runReadAction(anyComputable)).thenReturn("test content");
+
+            ascaMock.when(() -> ASCA.scanAsca(anyString(), eq(true), eq("test-agent")))
+                    .thenReturn(mockScanResult);
+
+            // Act
+            ascaService.runAscaScan(mockPsiFile, mockProject, true, "test-agent");
+
+            // Assert
+            verify(mockLogger).warn(eq("ASCA scan error: Test error description"));
+        }
+    }
+
+    @Test
+    void handleScanResult_WithViolations_LogsInfo() throws Exception {
+        // Arrange
+        when(mockScanResult.getError()).thenReturn(null);
+        when(mockScanResult.getScanDetails()).thenReturn(Collections.singletonList(mock(ScanDetail.class)));
+        when(mockPsiFile.getName()).thenReturn("test.java");
+        when(mockPsiFile.getVirtualFile()).thenReturn(mockVirtualFile);
+        when(mockVirtualFile.isInLocalFileSystem()).thenReturn(true);
+        when(mockVirtualFile.getPath()).thenReturn("/test/path/test.java");
+
+        try (MockedStatic<PsiDocumentManager> docManagerMock = mockStatic(PsiDocumentManager.class);
+             MockedStatic<ApplicationManager> appManagerMock = mockStatic(ApplicationManager.class);
+             MockedStatic<ASCA> ascaMock = mockStatic(ASCA.class)) {
+
+            docManagerMock.when(() -> PsiDocumentManager.getInstance(mockProject))
+                    .thenReturn(mockPsiDocumentManager);
+            when(mockPsiDocumentManager.getDocument(mockPsiFile)).thenReturn(mockDocument);
+            when(mockDocument.getText()).thenReturn("test content");
+
+            appManagerMock.when(ApplicationManager::getApplication)
+                    .thenReturn(mockApplication);
+            @SuppressWarnings("unchecked")
+            Computable<String> anyComputable = any(Computable.class);
+            when(mockApplication.runReadAction(anyComputable)).thenReturn("test content");
+
+            ascaMock.when(() -> ASCA.scanAsca(anyString(), eq(true), eq("test-agent")))
+                    .thenReturn(mockScanResult);
+
+            // Act
+            ascaService.runAscaScan(mockPsiFile, mockProject, true, "test-agent");
+
+            // Assert
+            verify(mockLogger).info(eq("1 security best practice violation found in test.java in test.java"));
+        }
+    }
+
+    @Test
+    void handleScanResult_WithMultipleViolations_LogsInfo() throws Exception {
+        // Arrange
+        when(mockScanResult.getError()).thenReturn(null);
+        when(mockScanResult.getScanDetails()).thenReturn(Arrays.asList(
+            mock(ScanDetail.class),
+            mock(ScanDetail.class)
+        ));
+        when(mockPsiFile.getName()).thenReturn("test.java");
+        when(mockPsiFile.getVirtualFile()).thenReturn(mockVirtualFile);
+        when(mockVirtualFile.isInLocalFileSystem()).thenReturn(true);
+        when(mockVirtualFile.getPath()).thenReturn("/test/path/test.java");
+
+        try (MockedStatic<PsiDocumentManager> docManagerMock = mockStatic(PsiDocumentManager.class);
+             MockedStatic<ApplicationManager> appManagerMock = mockStatic(ApplicationManager.class);
+             MockedStatic<ASCA> ascaMock = mockStatic(ASCA.class)) {
+
+            docManagerMock.when(() -> PsiDocumentManager.getInstance(mockProject))
+                    .thenReturn(mockPsiDocumentManager);
+
+            appManagerMock.when(ApplicationManager::getApplication)
+                    .thenReturn(mockApplication);
+            @SuppressWarnings("unchecked")
+            Computable<String> anyComputable = any(Computable.class);
+            when(mockApplication.runReadAction(anyComputable)).thenReturn("test content");
+
+            ascaMock.when(() -> ASCA.scanAsca(anyString(), eq(true), eq("test-agent")))
+                    .thenReturn(mockScanResult);
+
+            // Act
+            ascaService.runAscaScan(mockPsiFile, mockProject, true, "test-agent");
+
+            // Assert
+            verify(mockLogger).info(eq("2 security best practice violations found intest.java in test.java"));
+        }
+    }
+
+    @Test
+    void handleScanResult_WithNullScanResult_LogsWarning() throws Exception {
+        // Arrange
+        when(mockPsiFile.getName()).thenReturn("test.java");
+        when(mockPsiFile.getVirtualFile()).thenReturn(mockVirtualFile);
+        when(mockVirtualFile.isInLocalFileSystem()).thenReturn(true);
+        when(mockVirtualFile.getPath()).thenReturn("/test/path/test.java");
+
+        try (MockedStatic<PsiDocumentManager> docManagerMock = mockStatic(PsiDocumentManager.class);
+             MockedStatic<ApplicationManager> appManagerMock = mockStatic(ApplicationManager.class);
+             MockedStatic<ASCA> ascaMock = mockStatic(ASCA.class)) {
+
+            docManagerMock.when(() -> PsiDocumentManager.getInstance(mockProject))
+                    .thenReturn(mockPsiDocumentManager);
+
+            appManagerMock.when(ApplicationManager::getApplication)
+                    .thenReturn(mockApplication);
+            @SuppressWarnings("unchecked")
+            Computable<String> anyComputable = any(Computable.class);
+            when(mockApplication.runReadAction(anyComputable)).thenReturn("test content");
+
+            ascaMock.when(() -> ASCA.scanAsca(anyString(), eq(true), eq("test-agent")))
+                    .thenReturn(null);
+
+            // Act
+            ascaService.runAscaScan(mockPsiFile, mockProject, true, "test-agent");
+
+            // Assert
+            verify(mockLogger).warn(eq("ASCA scan error: Unknown error"));
         }
     }
 }
