@@ -46,7 +46,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithVulnerabilities_Success() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/python-vul-file.py");
+        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/integration/standard/data/python-vul-file.py");
         Project project = ProjectManager.getInstance().getDefaultProject();
 
         Assertions.assertDoesNotThrow(() -> {
@@ -59,7 +59,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithNoVulnerabilities_Success() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/csharp-no-vul.cs");
+        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/integration/standard/data/csharp-no-vul.cs");
         Project project = ProjectManager.getInstance().getDefaultProject();
 
         Assertions.assertDoesNotThrow(() -> {
@@ -71,7 +71,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithoutExtension_Fail() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/file");
+        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/integration/standard/data/file");
         Project project = ProjectManager.getInstance().getDefaultProject();
         ScanResult ascaResult = ascaService.runAscaScan(psiFile, project, true, Constants.JET_BRAINS_AGENT_NAME);
 
