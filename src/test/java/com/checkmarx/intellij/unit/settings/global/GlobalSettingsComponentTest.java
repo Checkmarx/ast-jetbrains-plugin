@@ -24,8 +24,10 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.awt.Font;
+import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,16 +40,10 @@ class GlobalSettingsComponentTest {
     private MessageBus mockMessageBus;
 
     @Mock
-    private MessageBusConnection mockConnection;
-
-    @Mock
     private GlobalSettingsState mockSettingsState;
 
     @Mock
     private GlobalSettingsSensitiveState mockSensitiveState;
-
-    @Mock
-    private SettingsListener mockSettingsListener;
 
     @Mock
     private EditorColorsManager mockEditorColorsManager;
@@ -67,31 +63,42 @@ class GlobalSettingsComponentTest {
     private MockedStatic<PasswordSafe> passwordSafeMock;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        // Mock static methods
         appManagerMock = mockStatic(ApplicationManager.class);
         settingsStateMock = mockStatic(GlobalSettingsState.class);
         sensitiveMock = mockStatic(GlobalSettingsSensitiveState.class);
         editorColorsMock = mockStatic(EditorColorsManager.class);
         passwordSafeMock = mockStatic(PasswordSafe.class);
 
+        // Configure static mocks
         appManagerMock.when(ApplicationManager::getApplication).thenReturn(mockApplication);
-        when(mockApplication.getMessageBus()).thenReturn(mockMessageBus);
-
         settingsStateMock.when(GlobalSettingsState::getInstance).thenReturn(mockSettingsState);
         sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitiveState);
         passwordSafeMock.when(PasswordSafe::getInstance).thenReturn(mockPasswordSafe);
-
-        // Mock EditorColorsManager and font
         editorColorsMock.when(EditorColorsManager::getInstance).thenReturn(mockEditorColorsManager);
-        when(mockEditorColorsManager.getGlobalScheme()).thenReturn(mockEditorColorsScheme);
-        Font mockFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
-        when(mockEditorColorsScheme.getFont(any(EditorFontType.class))).thenReturn(mockFont);
 
+        // Configure instance mocks
+        when(mockApplication.getMessageBus()).thenReturn(mockMessageBus);
+        when(mockEditorColorsManager.getGlobalScheme()).thenReturn(mockEditorColorsScheme);
+        when(mockEditorColorsScheme.getFont(any(EditorFontType.class)))
+            .thenReturn(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+
+        // Initialize static fields using reflection
+        setStaticField(GlobalSettingsComponent.class, "SETTINGS_STATE", mockSettingsState);
+        setStaticField(GlobalSettingsComponent.class, "SENSITIVE_SETTINGS_STATE", mockSensitiveState);
+
+        // Create component after all mocks are set up
         component = new GlobalSettingsComponent();
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws Exception {
+        // Reset static fields
+        setStaticField(GlobalSettingsComponent.class, "SETTINGS_STATE", null);
+        setStaticField(GlobalSettingsComponent.class, "SENSITIVE_SETTINGS_STATE", null);
+
+        // Close static mocks
         appManagerMock.close();
         settingsStateMock.close();
         sensitiveMock.close();
@@ -99,13 +106,21 @@ class GlobalSettingsComponentTest {
         passwordSafeMock.close();
     }
 
+    private void setStaticField(Class<?> targetClass, String fieldName, Object value) throws Exception {
+        Field field = targetClass.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(null, value);
+    }
+
     @Test
     void isModified_WithModifiedAdditionalParameters_ReturnsTrue() {
         // Arrange
+        when(mockSettingsState.getAdditionalParameters()).thenReturn("");
         component.reset();
 
         // Set text to additionalParametersField
         component.getAdditionalParametersField().setText("modified");
+        
         // Act
         boolean result = component.isModified();
 
@@ -127,6 +142,7 @@ class GlobalSettingsComponentTest {
         // Act
         component.reset();
 
+        // Assert
         JBPasswordField apiKeyField = component.getApiKeyField();
         ExpandableTextField additionalParamsField = component.getAdditionalParametersField();
         JBCheckBox ascaCheckbox = component.getAscaCheckBox();
