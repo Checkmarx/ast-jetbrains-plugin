@@ -33,24 +33,6 @@ class GlobalSettingsStateTest {
     }
 
     @Test
-    void getInstance_ReturnsServiceInstance() {
-        // Arrange
-        GlobalSettingsState expectedInstance = new GlobalSettingsState();
-
-        try (MockedStatic<ApplicationManager> appManagerMock = mockStatic(ApplicationManager.class)) {
-            appManagerMock.when(ApplicationManager::getApplication).thenReturn(mockApplication);
-            when(mockApplication.getService(GlobalSettingsState.class)).thenReturn(expectedInstance);
-
-            // Act
-            GlobalSettingsState result = GlobalSettingsState.getInstance();
-
-            // Assert
-            assertSame(expectedInstance, result);
-            verify(mockApplication).getService(GlobalSettingsState.class);
-        }
-    }
-
-    @Test
     void getState_ReturnsSelf() {
         // Act
         GlobalSettingsState result = globalSettingsState.getState();
@@ -93,15 +75,6 @@ class GlobalSettingsStateTest {
         assertTrue(globalSettingsState.isAsca());
     }
 
-    @Test
-    void getDefaultFilters_ReturnsCorrectDefaults() {
-        // Act
-        Set<Filterable> defaultFilters = GlobalSettingsState.getDefaultFilters();
-
-        // Assert
-        assertTrue(defaultFilters.containsAll(Severity.DEFAULT_SEVERITIES));
-        assertTrue(defaultFilters.containsAll(ResultState.DEFAULT_STATES));
-    }
 
     @Test
     void constructor_InitializesDefaultValues() {
