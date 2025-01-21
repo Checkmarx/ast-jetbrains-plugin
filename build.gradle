@@ -35,6 +35,7 @@ dependencies {
     testImplementation 'com.squareup.okhttp3:okhttp:4.12.0'
     testImplementation 'junit:junit:4.11-redhat-1'
     testImplementation 'junit:junit:4.13.1'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.15.2'
 
     // Video Recording
     testImplementation('com.automation-remarks:video-recorder-junit5:2.0') {
