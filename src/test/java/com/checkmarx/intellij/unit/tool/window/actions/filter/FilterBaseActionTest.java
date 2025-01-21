@@ -37,16 +37,14 @@ class FilterBaseActionTest {
     @Mock
     private FilterBaseAction.FilterChanged mockFilterChanged;
     @Mock
-    private MessageBusConnection mockConnection;
+    private MockedStatic<ApplicationManager> mockedApplicationManager;
+    @Mock
+    private MockedStatic<GlobalSettingsState> mockedGlobalSettingsState;
 
     private TestFilterAction filterAction;
-    private MockedStatic<ApplicationManager> mockedApplicationManager;
-    private MockedStatic<GlobalSettingsState> mockedGlobalSettingsState;
 
     @BeforeEach
     void setUp() {
-        mockedApplicationManager = mockStatic(ApplicationManager.class);
-        mockedGlobalSettingsState = mockStatic(GlobalSettingsState.class);
         
         when(ApplicationManager.getApplication()).thenReturn(mockApplication);
         when(mockApplication.getMessageBus()).thenReturn(mockMessageBus);
