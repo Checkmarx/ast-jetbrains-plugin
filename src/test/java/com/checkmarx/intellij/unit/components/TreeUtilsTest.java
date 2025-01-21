@@ -1,5 +1,6 @@
-package com.checkmarx.intellij.components;
+package com.checkmarx.intellij.unit.components;
 
+import com.checkmarx.intellij.components.TreeUtils;
 import com.intellij.ui.treeStructure.Tree;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
