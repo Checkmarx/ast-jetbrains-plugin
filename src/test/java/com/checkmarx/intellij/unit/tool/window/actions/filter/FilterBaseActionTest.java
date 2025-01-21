@@ -35,19 +35,20 @@ class FilterBaseActionTest {
     private GlobalSettingsState mockGlobalSettings;
     @Mock
     private FilterBaseAction.FilterChanged mockFilterChanged;
-    @Mock
     private MockedStatic<ApplicationManager> mockedApplicationManager;
-    @Mock
     private MockedStatic<GlobalSettingsState> mockedGlobalSettingsState;
 
     private TestFilterAction filterAction;
 
     @BeforeEach
     void setUp() {
-        
-        when(ApplicationManager.getApplication()).thenReturn(mockApplication);
+        mockedApplicationManager = mockStatic(ApplicationManager.class);
+        mockedGlobalSettingsState = mockStatic(GlobalSettingsState.class);
+
+        mockedApplicationManager.when(ApplicationManager::getApplication).thenReturn(mockApplication);
         when(mockApplication.getMessageBus()).thenReturn(mockMessageBus);
-        when(GlobalSettingsState.getInstance()).thenReturn(mockGlobalSettings);
+
+        mockedGlobalSettingsState.when(GlobalSettingsState::getInstance).thenReturn(mockGlobalSettings);
 
         filterAction = new TestFilterAction();
     }
@@ -60,15 +61,17 @@ class FilterBaseActionTest {
 
     @Test
     void isSelected_WhenFilterInGlobalSettings_ReturnsTrue() {
-        when(mockGlobalSettings.getFilters()).thenReturn(new HashSet<>());
-        when(mockGlobalSettings.getFilters()).thenReturn(new HashSet<>(java.util.Arrays.asList(Severity.HIGH)));
+        HashSet<Filterable> filters = new HashSet<>();
+        filters.add(Severity.HIGH);
+        when(mockGlobalSettings.getFilters()).thenReturn(filters);
+
         assertTrue(filterAction.isSelected(mockEvent));
     }
 
     @Test
     void isSelected_WhenFilterNotInGlobalSettings_ReturnsFalse() {
         when(mockGlobalSettings.getFilters()).thenReturn(new HashSet<>());
-        when(mockGlobalSettings.getFilters()).thenReturn(new HashSet<>());
+
         assertFalse(filterAction.isSelected(mockEvent));
     }
 
@@ -77,19 +80,22 @@ class FilterBaseActionTest {
         when(mockMessageBus.syncPublisher(FilterBaseAction.FILTER_CHANGED)).thenReturn(mockFilterChanged);
         HashSet<Filterable> filters = new HashSet<>();
         when(mockGlobalSettings.getFilters()).thenReturn(filters);
+
         filterAction.setSelected(mockEvent, true);
+
         verify(mockFilterChanged).filterChanged();
         assertTrue(filters.contains(Severity.HIGH));
     }
 
     @Test
     void setSelected_WhenFalse_RemovesFilterFromGlobalSettings() {
-        when(mockGlobalSettings.getFilters()).thenReturn(new HashSet<>());
-        when(mockMessageBus.syncPublisher(FilterBaseAction.FILTER_CHANGED)).thenReturn(mockFilterChanged);
         HashSet<Filterable> filters = new HashSet<>();
         filters.add(Severity.HIGH);
         when(mockGlobalSettings.getFilters()).thenReturn(filters);
+        when(mockMessageBus.syncPublisher(FilterBaseAction.FILTER_CHANGED)).thenReturn(mockFilterChanged);
+
         filterAction.setSelected(mockEvent, false);
+
         verify(mockFilterChanged).filterChanged();
         assertFalse(filters.contains(Severity.HIGH));
     }
@@ -104,6 +110,7 @@ class FilterBaseActionTest {
     void getActionUpdateThread_ReturnsEDT() {
         assertEquals(ActionUpdateThread.EDT, filterAction.getActionUpdateThread());
     }
+
 
     private static class TestFilterAction extends FilterBaseAction {
         @Override
