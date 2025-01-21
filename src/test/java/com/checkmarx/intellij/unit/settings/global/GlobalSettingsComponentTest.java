@@ -54,11 +54,11 @@ class GlobalSettingsComponentTest {
 
     private GlobalSettingsComponent component;
 
-    private static MockedStatic<ApplicationManager> appManagerMock;
-    private static MockedStatic<GlobalSettingsState> settingsStateMock;
-    private static MockedStatic<GlobalSettingsSensitiveState> sensitiveMock;
-    private static MockedStatic<EditorColorsManager> editorColorsMock;
-    private static MockedStatic<PasswordSafe> passwordSafeMock;
+    private MockedStatic<ApplicationManager> appManagerMock;
+    private MockedStatic<GlobalSettingsState> settingsStateMock;
+    private MockedStatic<GlobalSettingsSensitiveState> sensitiveMock;
+    private MockedStatic<EditorColorsManager> editorColorsMock;
+    private MockedStatic<PasswordSafe> passwordSafeMock;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -69,7 +69,18 @@ class GlobalSettingsComponentTest {
             .thenReturn(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
         // Mock static methods
-        mockStaticMethods();
+        appManagerMock = mockStatic(ApplicationManager.class);
+        settingsStateMock = mockStatic(GlobalSettingsState.class);
+        sensitiveMock = mockStatic(GlobalSettingsSensitiveState.class);
+        editorColorsMock = mockStatic(EditorColorsManager.class);
+        passwordSafeMock = mockStatic(PasswordSafe.class);
+
+        // Configure static mocks
+        appManagerMock.when(ApplicationManager::getApplication).thenReturn(mockApplication);
+        settingsStateMock.when(GlobalSettingsState::getInstance).thenReturn(mockSettingsState);
+        sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitiveState);
+        editorColorsMock.when(EditorColorsManager::getInstance).thenReturn(mockEditorColorsManager);
+        passwordSafeMock.when(PasswordSafe::getInstance).thenReturn(mockPasswordSafe);
 
         // Initialize static fields using reflection
         setStaticField(GlobalSettingsComponent.class, "SETTINGS_STATE", mockSettingsState);
@@ -79,28 +90,28 @@ class GlobalSettingsComponentTest {
         component = new GlobalSettingsComponent();
     }
 
-    private void mockStaticMethods() {
-        if (appManagerMock == null) {
-            appManagerMock = mockStatic(ApplicationManager.class);
-            settingsStateMock = mockStatic(GlobalSettingsState.class);
-            sensitiveMock = mockStatic(GlobalSettingsSensitiveState.class);
-            editorColorsMock = mockStatic(EditorColorsManager.class);
-            passwordSafeMock = mockStatic(PasswordSafe.class);
-
-            // Configure static mocks
-            appManagerMock.when(ApplicationManager::getApplication).thenReturn(mockApplication);
-            settingsStateMock.when(GlobalSettingsState::getInstance).thenReturn(mockSettingsState);
-            sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitiveState);
-            editorColorsMock.when(EditorColorsManager::getInstance).thenReturn(mockEditorColorsManager);
-            passwordSafeMock.when(PasswordSafe::getInstance).thenReturn(mockPasswordSafe);
-        }
-    }
-
     @AfterEach
     void tearDown() throws Exception {
         // Reset static fields
         setStaticField(GlobalSettingsComponent.class, "SETTINGS_STATE", null);
         setStaticField(GlobalSettingsComponent.class, "SENSITIVE_SETTINGS_STATE", null);
+
+        // Close static mocks
+        if (appManagerMock != null) {
+            appManagerMock.close();
+        }
+        if (settingsStateMock != null) {
+            settingsStateMock.close();
+        }
+        if (sensitiveMock != null) {
+            sensitiveMock.close();
+        }
+        if (editorColorsMock != null) {
+            editorColorsMock.close();
+        }
+        if (passwordSafeMock != null) {
+            passwordSafeMock.close();
+        }
     }
 
     private void setStaticField(Class<?> targetClass, String fieldName, Object value) throws Exception {
