@@ -133,7 +133,6 @@ class GlobalSettingsComponentTest {
         when(mockSensitiveState.getApiKey()).thenReturn(apiKey);
         when(mockPasswordSafe.getPassword(any(CredentialAttributes.class))).thenReturn(apiKey);
 
-        // Act
         component.reset();
 
         // Assert
