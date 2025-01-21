@@ -3,6 +3,7 @@ package com.checkmarx.intellij.unit.settings.global;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
+import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
@@ -63,9 +64,9 @@ class GlobalSettingsComponentTest {
     @BeforeEach
     void setUp() throws Exception {
         // Configure instance mocks
-        when(mockApplication.getMessageBus()).thenReturn(mockMessageBus);
-        when(mockEditorColorsManager.getGlobalScheme()).thenReturn(mockEditorColorsScheme);
-        when(mockEditorColorsScheme.getFont(any(EditorFontType.class)))
+        lenient().when(mockApplication.getMessageBus()).thenReturn(mockMessageBus);
+        lenient().when(mockEditorColorsManager.getGlobalScheme()).thenReturn(mockEditorColorsScheme);
+        lenient().when(mockEditorColorsScheme.getFont(any(EditorFontType.class)))
             .thenReturn(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
         // Mock static methods
@@ -130,6 +131,7 @@ class GlobalSettingsComponentTest {
         when(mockSettingsState.getAdditionalParameters()).thenReturn(additionalParams);
         when(mockSettingsState.isAsca()).thenReturn(ascaEnabled);
         when(mockSensitiveState.getApiKey()).thenReturn(apiKey);
+        when(mockPasswordSafe.getPassword(any(CredentialAttributes.class))).thenReturn(apiKey);
 
         // Act
         component.reset();
