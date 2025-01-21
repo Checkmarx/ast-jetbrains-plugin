@@ -16,7 +16,7 @@ concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 jobs:
-  UITests:
+  testUI:
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
@@ -73,7 +73,7 @@ jobs:
           path: |
             idea.log
 
-  UnitTests:
+  testUnit:
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
@@ -114,7 +114,7 @@ jobs:
           path: |
             build/reports
 
-  IntegrationTests:
+  testIntegration:
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
