@@ -99,14 +99,26 @@ runIdeForUiTests {
     systemProperty 'jb.consents.confirmation.enabled', 'false'
 }
 
+def jacocoTask = project.hasProperty('jacocoTask') ? project.jacocoTask : "unit"
+
 jacocoTestReport {
     dependsOn test
     classDirectories.setFrom(instrumentCode)
+
+    if (jacocoTask == "integration") {
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, include: 'com/checkmarx/intellij/commands/**')
+            }))
+        }
+    }
+
     reports {
         csv.required = true
         html.required = true
     }
 }
+
 
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
