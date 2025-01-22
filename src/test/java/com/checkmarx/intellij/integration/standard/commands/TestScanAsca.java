@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 public class TestScanAsca extends BaseTest {
     AscaService ascaService = new AscaService();
 
+    @Test
     public void testInstallAsca() {
         Assertions.assertDoesNotThrow(()->
         {
