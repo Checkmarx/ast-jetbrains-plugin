@@ -5,6 +5,7 @@ import com.checkmarx.ast.learnMore.LearnMore;
 import com.checkmarx.ast.learnMore.Sample;
 import com.checkmarx.ast.results.result.Data;
 import com.checkmarx.ast.results.result.Node;
+import com.checkmarx.ast.results.result.PackageData;
 import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.ast.results.result.VulnerabilityDetails;
 import com.checkmarx.ast.wrapper.CxException;
@@ -56,6 +57,8 @@ class ResultNodeTest {
     private CodeBashing mockCodeBashing;
     @Mock
     private VulnerabilityDetails mockVulnDetails;
+    @Mock
+    private PackageData mockPackageData;
 
     private static final String SCAN_ID = "test-scan-id";
     private static final String QUERY_NAME = "Test Query";
@@ -330,5 +333,114 @@ class ResultNodeTest {
             // Verify
             mockedUtils.verify(() -> Utils.notify(eq(mockProject), anyString(), any(NotificationType.class)));
         }
+    }
+
+    @Test
+    void buildResultPanel_WithNodes_CreatesAttackVectorPanel() {
+        // Setup
+        when(mockNode.getFileName()).thenReturn(FILE_NAME);
+        when(mockNode.getLine()).thenReturn(LINE_NUMBER);
+        when(mockResultData.getNodes()).thenReturn(Collections.singletonList(mockNode));
+        when(mockResult.getType()).thenReturn("SAST");
+        when(mockResult.getSeverity()).thenReturn(Severity.HIGH.name());
+
+        
+        resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+        
+        // Execute
+        JPanel panel = resultNode.buildResultPanel(() -> {}, () -> {});
+        
+        // Verify
+        assertNotNull(panel);
+        assertTrue(panel.getComponent(0) instanceof com.intellij.ui.OnePixelSplitter);
+    }
+
+    @Test
+    void buildResultPanel_WithPackageData_CreatesPackageDataPanel() {
+        // Setup
+        when(mockResultData.getNodes()).thenReturn(Collections.emptyList());
+        when(mockPackageData.getType()).thenReturn("test-type");
+        when(mockPackageData.getUrl()).thenReturn("https://test.url");
+        when(mockResultData.getPackageData()).thenReturn(Collections.singletonList(mockPackageData));
+        when(mockResult.getType()).thenReturn("SAST");
+        when(mockResult.getId()).thenReturn(RESULT_ID);
+        when(mockResult.getSeverity()).thenReturn(Severity.HIGH.name());
+
+        resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+
+        // Execute
+        JPanel panel = resultNode.buildResultPanel(() -> {}, () -> {});
+
+        // Verify
+        assertNotNull(panel);
+        assertTrue(panel.getComponent(0) instanceof com.intellij.ui.OnePixelSplitter);
+    }
+
+    @Test
+    void buildResultPanel_WithFileName_CreatesVulnerabilityLocationPanel() {
+        // Setup
+        when(mockResultData.getNodes()).thenReturn(Collections.emptyList());
+        when(mockResultData.getPackageData()).thenReturn(Collections.emptyList());
+        when(mockResultData.getFileName()).thenReturn(FILE_NAME);
+        when(mockResultData.getLine()).thenReturn(LINE_NUMBER);
+        when(mockResult.getType()).thenReturn("SAST");
+        when(mockResult.getSeverity()).thenReturn(Severity.HIGH.name());
+        when(mockResult.getId()).thenReturn(RESULT_ID);
+
+        resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+        
+        // Execute
+        JPanel panel = resultNode.buildResultPanel(() -> {}, () -> {});
+        
+        // Verify
+        assertNotNull(panel);
+        assertTrue(panel.getComponent(0) instanceof com.intellij.ui.OnePixelSplitter);
+    }
+
+    @Test
+    void buildResultPanel_WithScaType_CreatesScaPanel() {
+        // Setup
+        when(mockResult.getType()).thenReturn(Constants.SCAN_TYPE_SCA);
+        when(mockVulnDetails.getCveName()).thenReturn("CVE-2023-1234");
+        when(mockVulnDetails.getCvssScore()).thenReturn(7.5);
+        when(mockResult.getVulnerabilityDetails()).thenReturn(mockVulnDetails);
+        when(mockResult.getSeverity()).thenReturn("HIGH");
+        when(mockResultData.getPackageIdentifier()).thenReturn("test-package:1.0.0");
+        when(mockResult.getId()).thenReturn(RESULT_ID);
+
+        resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+        
+        // Execute
+        JPanel panel = resultNode.buildResultPanel(() -> {}, () -> {});
+        
+        // Verify
+        assertNotNull(panel);
+        assertTrue(panel.getLayout() instanceof net.miginfocom.swing.MigLayout);
+        
+        // Verify header components
+        JPanel headerPanel = (JPanel) panel.getComponent(0);
+        JLabel titleLabel = (JLabel) headerPanel.getComponent(0);
+        assertTrue(titleLabel.getText().contains("test-package:1.0.0"));
+        assertEquals(Severity.HIGH.getIcon(), titleLabel.getIcon());
+    }
+
+    @Test
+    void buildResultPanel_WithMinimalData_CreatesBasicPanel() {
+        // Setup
+        when(mockResultData.getNodes()).thenReturn(Collections.emptyList());
+        when(mockResultData.getPackageData()).thenReturn(Collections.emptyList());
+        when(mockResultData.getFileName()).thenReturn("");
+        when(mockResult.getType()).thenReturn("SAST");
+        when(mockResult.getId()).thenReturn(RESULT_ID);
+        when(mockResult.getSeverity()).thenReturn("HIGH");
+
+        resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+        
+        // Execute
+        JPanel panel = resultNode.buildResultPanel(() -> {}, () -> {});
+        
+        // Verify
+        assertNotNull(panel);
+        assertTrue(panel.getComponent(0) instanceof com.intellij.ui.OnePixelSplitter);
     }
 }
