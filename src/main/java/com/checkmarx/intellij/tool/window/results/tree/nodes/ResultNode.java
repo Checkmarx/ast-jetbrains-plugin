@@ -1045,7 +1045,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             }
     }
 
-    private void generateLearnMore(@NotNull LearnMore learnMore, JPanel panel) {
+    public void generateLearnMore(@NotNull LearnMore learnMore, JPanel panel) {
         JLabel riskTitle = new JLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel(Bundle.message(Resource.RISK)).getText()));
         panel.add(riskTitle, "span, growx");
 
