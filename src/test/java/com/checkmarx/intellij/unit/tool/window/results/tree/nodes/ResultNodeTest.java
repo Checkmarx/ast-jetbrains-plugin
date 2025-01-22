@@ -1,14 +1,22 @@
 package com.checkmarx.intellij.unit.tool.window.results.tree.nodes;
 
+import com.checkmarx.ast.codebashing.CodeBashing;
 import com.checkmarx.ast.learnMore.LearnMore;
+import com.checkmarx.ast.learnMore.Sample;
 import com.checkmarx.ast.results.result.Data;
 import com.checkmarx.ast.results.result.Node;
-import com.checkmarx.ast.results.result.PackageData;
 import com.checkmarx.ast.results.result.Result;
+import com.checkmarx.ast.results.result.VulnerabilityDetails;
+import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.Bundle;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
+import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBLabel;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +27,10 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.File;
+import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,7 +38,6 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ResultNodeTest {
-
     @Mock
     private Project mockProject;
     @Mock
@@ -38,6 +48,14 @@ class ResultNodeTest {
     private Node mockNode;
     @Mock
     private LearnMore mockLearnMore;
+    @Mock
+    private Sample mockSample;
+    @Mock
+    private CxWrapper mockWrapper;
+    @Mock
+    private CodeBashing mockCodeBashing;
+    @Mock
+    private VulnerabilityDetails mockVulnDetails;
 
     private static final String SCAN_ID = "test-scan-id";
     private static final String QUERY_NAME = "Test Query";
@@ -46,6 +64,12 @@ class ResultNodeTest {
     private static final String RESULT_ID = "TEST-001";
     private static final String TEST_RISK = "Test Risk Description";
     private static final String TEST_CAUSE = "Test Cause Description";
+    private static final String TEST_LANGUAGE = "Java";
+    private static final String TEST_CWE = "CWE-79";
+    private static final String TEST_CODE = "public class Test { }";
+    private static final String TEST_TITLE = "Test Sample";
+    private static final String TEST_PROG_LANGUAGE = "Java";
+    private static final String TEST_CODEBASHING_PATH = "https://codebashing.test/path";
 
     private ResultNode resultNode;
 
@@ -199,5 +223,112 @@ class ResultNodeTest {
         Icon icon = resultNode.getIcon();
         assertNotNull(icon);
         assertEquals(Severity.HIGH.getIcon(), icon);
+    }
+
+    @Test
+    void generateCodeSamples_WithSamples_CreatesSamplePanels() {
+        // Setup
+        when(mockSample.getTitle()).thenReturn(TEST_TITLE);
+        when(mockSample.getProgLanguage()).thenReturn(TEST_PROG_LANGUAGE);
+        when(mockSample.getCode()).thenReturn(TEST_CODE);
+        when(mockLearnMore.getSamples()).thenReturn(Arrays.asList(mockSample));
+
+        resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+        JPanel panel = new JPanel();
+
+        // Execute
+        resultNode.generateCodeSamples(mockLearnMore, panel);
+
+        // Verify
+        assertEquals(2, panel.getComponentCount()); // Title label and code editor
+        assertTrue(panel.getComponent(0) instanceof JBLabel);
+        assertTrue(panel.getComponent(1) instanceof JEditorPane);
+        
+        JBLabel titleLabel = (JBLabel) panel.getComponent(0);
+        JEditorPane codeEditor = (JEditorPane) panel.getComponent(1);
+        
+        assertTrue(titleLabel.getText().contains(TEST_TITLE));
+        assertTrue(titleLabel.getText().contains(TEST_PROG_LANGUAGE));
+        assertEquals(TEST_CODE, codeEditor.getText());
+        assertFalse(codeEditor.isEditable());
+    }
+
+    @Test
+    void generateCodeSamples_WithoutSamples_ShowsNoExamplesMessage() {
+        // Setup
+        when(mockLearnMore.getSamples()).thenReturn(Collections.emptyList());
+
+        resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+        JPanel panel = new JPanel();
+
+        // Execute
+        resultNode.generateCodeSamples(mockLearnMore, panel);
+
+        // Verify
+        assertEquals(1, panel.getComponentCount());
+        assertTrue(panel.getComponent(0) instanceof JBLabel);
+        JBLabel messageLabel = (JBLabel) panel.getComponent(0);
+        assertTrue(messageLabel.getText().contains(Resource.NO_REMEDIATION_EXAMPLES.toString()));
+    }
+
+    @Test
+    void openCodebashingLink_Success_OpensInBrowser() throws Exception {
+        // Setup
+        try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class);
+             MockedStatic<Desktop> mockedDesktop = mockStatic(Desktop.class)) {
+            
+            Desktop mockDesktop = mock(Desktop.class);
+            when(mockVulnDetails.getCweId()).thenReturn(TEST_CWE);
+            when(mockResult.getVulnerabilityDetails()).thenReturn(mockVulnDetails);
+            when(mockResultData.getLanguageName()).thenReturn(TEST_LANGUAGE);
+            when(mockResultData.getQueryName()).thenReturn(QUERY_NAME);
+            
+            mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            mockedDesktop.when(Desktop::getDesktop).thenReturn(mockDesktop);
+            
+            when(mockWrapper.codeBashingList(TEST_CWE, TEST_LANGUAGE, QUERY_NAME))
+                .thenReturn(Collections.singletonList(mockCodeBashing));
+            when(mockCodeBashing.getPath()).thenReturn(TEST_CODEBASHING_PATH);
+
+            resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+
+            // Execute
+            resultNode.openCodebashingLink();
+
+            // Verify
+            verify(mockDesktop).browse(new URI(TEST_CODEBASHING_PATH));
+        }
+    }
+
+    @Test
+    void openCodebashingLink_NoLicense_ShowsNotification() throws Exception {
+        // Setup
+        try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class);
+             MockedStatic<Utils> mockedUtils = mockStatic(Utils.class);
+             MockedStatic<Bundle> mockedBundle = mockStatic(Bundle.class)) {
+            
+            CxException licenseError = mock(CxException.class);
+            when(licenseError.getExitCode()).thenReturn(Constants.LICENSE_NOT_FOUND_EXIT_CODE);
+            
+            when(mockVulnDetails.getCweId()).thenReturn(TEST_CWE);
+            when(mockResult.getVulnerabilityDetails()).thenReturn(mockVulnDetails);
+            when(mockResultData.getLanguageName()).thenReturn(TEST_LANGUAGE);
+            when(mockResultData.getQueryName()).thenReturn(QUERY_NAME);
+            
+            mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            when(mockWrapper.codeBashingList(TEST_CWE, TEST_LANGUAGE, QUERY_NAME))
+                .thenThrow(licenseError);
+
+            mockedBundle.when(() -> Bundle.message(Resource.CODEBASHING_NO_LICENSE)).thenReturn("No license");
+            mockedBundle.when(() -> Bundle.message(Resource.CODEBASHING_LINK)).thenReturn("link");
+
+            resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+
+            // Execute
+            resultNode.openCodebashingLink();
+
+            // Verify
+            mockedUtils.verify(() -> Utils.notify(eq(mockProject), anyString(), any(NotificationType.class)));
+        }
     }
 }

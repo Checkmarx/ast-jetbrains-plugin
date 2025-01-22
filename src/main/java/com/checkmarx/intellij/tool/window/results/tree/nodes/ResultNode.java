@@ -1012,7 +1012,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         component.repaint();
     }
 
-    private void openCodebashingLink() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException {
+    public void openCodebashingLink() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException {
         try {
             CodeBashing response = CxWrapperFactory.build().codeBashingList(
                     result.getVulnerabilityDetails().getCweId(),
@@ -1077,7 +1077,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         }
     }
 
-    private void generateCodeSamples(@NotNull LearnMore learnMore, JPanel panel) {
+    public void generateCodeSamples(@NotNull LearnMore learnMore, JPanel panel) {
         List<Sample> samples = learnMore.getSamples();
         if(samples.size()>0){
             for (Sample sample : samples) {
