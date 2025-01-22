@@ -713,21 +713,6 @@ public class ResultNode extends DefaultMutableTreeNode {
         return panel;
     }
 
-    private void updateAttackVectorPanel(Runnable runnableUpdater, @NotNull Project project, @NotNull List<Node> nodes, JPanel panel, JLabel bflHint, Integer bfl) {
-        panel.removeAll();
-        addHeader(panel, Resource.NODES);
-
-        if(bfl >= 0) {
-            bflHint.setText(Bundle.message(Resource.BFL_HINT));
-            bflHint.setIcon(CxIcons.CHECKMARX_13_COLOR);
-            panel.add(bflHint, "span, growx, wrap");
-        } else {
-            panel.remove(bflHint);
-        }
-        generateAttackVectorNodes(project, nodes, panel, bfl);
-        runnableUpdater.run();
-    }
-
     private void generateAttackVectorNodes(@NotNull Project project, @NotNull List<Node> nodes, JPanel panel, Integer bfl) {
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
@@ -742,12 +727,6 @@ public class ResultNode extends DefaultMutableTreeNode {
 
             BoldLabel label = new BoldLabel(labelContent,SwingConstants.LEFT);
             label.setOpaque(true);
-
-//            if(i == bfl) {
-//                label.setIcon(CxIcons.CHECKMARX_13_COLOR);
-//            } else {
-//                label.setIcon(EmptyIcon.ICON_13);
-//            }
 
             CxLinkLabel link = new CxLinkLabel(capToLen(node.getFileName()),
                     mouseEvent -> navigate(project, fileNode));
