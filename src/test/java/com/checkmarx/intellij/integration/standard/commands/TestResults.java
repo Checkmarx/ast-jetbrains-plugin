@@ -30,4 +30,19 @@ public class TestResults extends BaseTest {
         Assertions.assertEquals(Environment.SCAN_ID, results.getScanId());
         Assertions.assertDoesNotThrow(() -> UUID.fromString(results.getScanId()));
     }
+
+    @Test
+    public void testGetResults_LatestScan() {
+        // Test with "" as scan ID which will be interpeted as latest scan
+        CompletableFuture<ResultGetState> getFuture = Results.getResults("");
+        ResultGetState results = Assertions.assertDoesNotThrow((ThrowingSupplier<ResultGetState>) getFuture::get);
+        
+        String errorMsg = "Message: " + results.getMessage();
+        
+        Assertions.assertNotEquals(results.getMessage(), Bundle.message(Resource.LATEST_SCAN_ERROR), errorMsg);
+        
+        Assertions.assertNotEquals(results.getMessage(), Bundle.message(Resource.GETTING_RESULTS_ERROR), errorMsg);
+
+        Assertions.assertNotNull(results);
+    }
 }
