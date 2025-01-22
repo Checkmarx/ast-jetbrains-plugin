@@ -112,16 +112,6 @@ jacocoTestReport {
                         exclude: 'com/checkmarx/intellij/commands/results/obj')
             }))
         }
-    } else {
-        afterEvaluate {
-            classDirectories.setFrom(files(classDirectories.files.collect {
-                fileTree(dir: it, exclude: [
-                        '**/get*.class',     // Exclude getters
-                        '**/set*.class',     // Exclude setters
-                        '**/toString*.class' // Exclude toString methods
-                ])
-            }))
-        }
     }
 
     reports {
