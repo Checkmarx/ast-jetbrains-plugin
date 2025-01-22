@@ -48,7 +48,6 @@ public class TestResults extends BaseTest {
 
     @Test
     public void testGetResults_NotExistingScanID_throwException() {
-        // Test with "" as scan ID which will be interpeted as latest scan
         CompletableFuture<ResultGetState> getFuture = Results.getResults("not-existing-scan-id");
         Assertions.assertThrows(Exception.class, getFuture::get);
     }
