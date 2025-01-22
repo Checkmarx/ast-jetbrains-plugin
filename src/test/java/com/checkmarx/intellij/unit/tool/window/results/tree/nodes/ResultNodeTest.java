@@ -37,8 +37,6 @@ class ResultNodeTest {
     @Mock
     private Node mockNode;
     @Mock
-    private PackageData mockPackageData;
-    @Mock
     private LearnMore mockLearnMore;
 
     private static final String SCAN_ID = "test-scan-id";
