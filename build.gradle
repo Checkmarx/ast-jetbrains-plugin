@@ -108,11 +108,8 @@ jacocoTestReport {
     if (jacocoTask == "integration") {
         afterEvaluate {
             classDirectories.setFrom(files(classDirectories.files.collect {
-                fileTree(dir: it, include: 'com/checkmarx/intellij/commands/**', exclude: [
-                        '**/get*.class',     // Exclude getters
-                        '**/set*.class',     // Exclude setters
-                        '**/toString*.class' // Exclude toString methods
-                ])
+                fileTree(dir: it, include: 'com/checkmarx/intellij/commands/**',
+                        exclude: 'com/checkmarx/intellij/commands/results/obj')
             }))
         }
     } else {

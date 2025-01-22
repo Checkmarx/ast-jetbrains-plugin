@@ -3,7 +3,7 @@ package com.checkmarx.intellij.integration.standard.commands;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.Resource;
-import com.checkmarx.intellij.commands.results.ResultGetState;
+import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.integration.standard.BaseTest;
 import org.junit.jupiter.api.Assertions;

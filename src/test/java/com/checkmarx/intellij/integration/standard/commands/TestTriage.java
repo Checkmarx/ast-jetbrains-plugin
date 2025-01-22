@@ -5,7 +5,7 @@ import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.ast.wrapper.CxConstants;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.integration.Environment;
-import com.checkmarx.intellij.commands.results.ResultGetState;
+import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.integration.standard.BaseTest;
 import org.junit.jupiter.api.Assertions;

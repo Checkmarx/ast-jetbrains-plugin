@@ -1,5 +1,6 @@
-package com.checkmarx.intellij.commands.results;
+package com.checkmarx.intellij.commands.results.obj;
 
+import com.checkmarx.intellij.commands.results.Results;
 import lombok.Data;
 
 /**
