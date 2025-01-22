@@ -443,4 +443,38 @@ class ResultNodeTest {
         assertNotNull(panel);
         assertTrue(panel.getComponent(0) instanceof com.intellij.ui.OnePixelSplitter);
     }
+
+    @Test
+    void buildResultPanel_WithScaTypeAndHtmlDescription_CreatesScaPanel() {
+        // Setup
+        when(mockResult.getType()).thenReturn(Constants.SCAN_TYPE_SCA);
+        when(mockVulnDetails.getCveName()).thenReturn("CVE-2023-1234");
+        when(mockVulnDetails.getCvssScore()).thenReturn(7.5);
+        when(mockResult.getVulnerabilityDetails()).thenReturn(mockVulnDetails);
+        when(mockResult.getSeverity()).thenReturn("HIGH");
+        when(mockResultData.getPackageIdentifier()).thenReturn("test-package:1.0.0");
+        when(mockResult.getId()).thenReturn(RESULT_ID);
+        when(mockResult.getDescriptionHTML()).thenReturn("Test Description");
+        when(mockResultData.getRecommendedVersion()).thenReturn("1.0.1");
+        when(mockPackageData.getType()).thenReturn("test-type");
+        when(mockPackageData.getUrl()).thenReturn("https://test.url");
+        when(mockResultData.getPackageData()).thenReturn(Collections.singletonList(mockPackageData));
+
+        resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+
+        // Execute
+        JPanel panel = resultNode.buildResultPanel(() -> {}, () -> {});
+
+        // Verify
+        assertNotNull(panel);
+        assertTrue(panel.getLayout() instanceof net.miginfocom.swing.MigLayout);
+
+        // Verify header components
+        JPanel headerPanel = (JPanel) panel.getComponent(0);
+        JLabel titleLabel = (JLabel) headerPanel.getComponent(0);
+        assertTrue(titleLabel.getText().contains("test-package:1.0.0"));
+        assertEquals(Severity.HIGH.getIcon(), titleLabel.getIcon());
+    }
+
+
 }
