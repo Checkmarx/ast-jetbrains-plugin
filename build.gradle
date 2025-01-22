@@ -108,7 +108,21 @@ jacocoTestReport {
     if (jacocoTask == "integration") {
         afterEvaluate {
             classDirectories.setFrom(files(classDirectories.files.collect {
-                fileTree(dir: it, include: 'com/checkmarx/intellij/commands/**')
+                fileTree(dir: it, include: 'com/checkmarx/intellij/commands/**', exclude: [
+                        '**/get*.class',     // Exclude getters
+                        '**/set*.class',     // Exclude setters
+                        '**/toString*.class' // Exclude toString methods
+                ])
+            }))
+        }
+    } else {
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: [
+                        '**/get*.class',     // Exclude getters
+                        '**/set*.class',     // Exclude setters
+                        '**/toString*.class' // Exclude toString methods
+                ])
             }))
         }
     }
@@ -118,6 +132,7 @@ jacocoTestReport {
         html.required = true
     }
 }
+
 
 
 publishPlugin {
