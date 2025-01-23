@@ -1,7 +1,7 @@
-package com.checkmarx.intellij.standard;
+package com.checkmarx.intellij.integration.standard;
 
 import com.checkmarx.ast.project.Project;
-import com.checkmarx.intellij.Environment;
+import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;

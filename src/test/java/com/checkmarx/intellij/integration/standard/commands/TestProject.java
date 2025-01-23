@@ -1,9 +1,9 @@
-package com.checkmarx.intellij.standard.commands;
+package com.checkmarx.intellij.integration.standard.commands;
 
 import com.checkmarx.ast.project.Project;
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Environment;
-import com.checkmarx.intellij.standard.BaseTest;
+import com.checkmarx.intellij.integration.Environment;
+import com.checkmarx.intellij.integration.standard.BaseTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

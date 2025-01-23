@@ -7,6 +7,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Scan;
+import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
 import org.apache.commons.lang3.StringUtils;

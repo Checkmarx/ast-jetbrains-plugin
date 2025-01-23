@@ -27,8 +27,8 @@ public abstract class BaseSelectionGroup extends DefaultActionGroup implements D
     protected final Project project;
     protected final PropertiesComponent propertiesComponent;
 
-    @Getter(AccessLevel.PROTECTED)
-    @Setter(AccessLevel.PACKAGE)
+    @Getter(AccessLevel.PUBLIC)
+    @Setter(AccessLevel.PUBLIC)
     private boolean enabled = true;
 
     public BaseSelectionGroup(Project project) {
@@ -83,7 +83,7 @@ public abstract class BaseSelectionGroup extends DefaultActionGroup implements D
      *
      * @param scan overriding scan
      */
-    abstract void override(Scan scan);
+    protected abstract void override(Scan scan);
 
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {

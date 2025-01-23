@@ -55,7 +55,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
     }
 
     @Override
-    void override(com.checkmarx.ast.scan.Scan scan) {
+    protected void override(com.checkmarx.ast.scan.Scan scan) {
         propertiesComponent.setValue(Constants.SELECTED_SCAN_PROPERTY, formatScan(scan, false));
     }
 

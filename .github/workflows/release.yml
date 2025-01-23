@@ -85,7 +85,7 @@ jobs:
         run: ./gradlew clean
       # Run tests
       - name: Tests
-        run: ./gradlew test -i --tests com.checkmarx.intellij.standard*
+        run: ./gradlew test -i --tests com.checkmarx.intellij.integration.standard*
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}

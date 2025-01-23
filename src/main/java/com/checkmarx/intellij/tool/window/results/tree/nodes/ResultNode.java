@@ -713,21 +713,6 @@ public class ResultNode extends DefaultMutableTreeNode {
         return panel;
     }
 
-    private void updateAttackVectorPanel(Runnable runnableUpdater, @NotNull Project project, @NotNull List<Node> nodes, JPanel panel, JLabel bflHint, Integer bfl) {
-        panel.removeAll();
-        addHeader(panel, Resource.NODES);
-
-        if(bfl >= 0) {
-            bflHint.setText(Bundle.message(Resource.BFL_HINT));
-            bflHint.setIcon(CxIcons.CHECKMARX_13_COLOR);
-            panel.add(bflHint, "span, growx, wrap");
-        } else {
-            panel.remove(bflHint);
-        }
-        generateAttackVectorNodes(project, nodes, panel, bfl);
-        runnableUpdater.run();
-    }
-
     private void generateAttackVectorNodes(@NotNull Project project, @NotNull List<Node> nodes, JPanel panel, Integer bfl) {
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
@@ -742,12 +727,6 @@ public class ResultNode extends DefaultMutableTreeNode {
 
             BoldLabel label = new BoldLabel(labelContent,SwingConstants.LEFT);
             label.setOpaque(true);
-
-//            if(i == bfl) {
-//                label.setIcon(CxIcons.CHECKMARX_13_COLOR);
-//            } else {
-//                label.setIcon(EmptyIcon.ICON_13);
-//            }
 
             CxLinkLabel link = new CxLinkLabel(capToLen(node.getFileName()),
                     mouseEvent -> navigate(project, fileNode));
@@ -1012,7 +991,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         component.repaint();
     }
 
-    private void openCodebashingLink() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException {
+    public void openCodebashingLink() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException {
         try {
             CodeBashing response = CxWrapperFactory.build().codeBashingList(
                     result.getVulnerabilityDetails().getCweId(),
@@ -1045,7 +1024,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             }
     }
 
-    private void generateLearnMore(@NotNull LearnMore learnMore, JPanel panel) {
+    public void generateLearnMore(@NotNull LearnMore learnMore, JPanel panel) {
         JLabel riskTitle = new JLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel(Bundle.message(Resource.RISK)).getText()));
         panel.add(riskTitle, "span, growx");
 
@@ -1077,7 +1056,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         }
     }
 
-    private void generateCodeSamples(@NotNull LearnMore learnMore, JPanel panel) {
+    public void generateCodeSamples(@NotNull LearnMore learnMore, JPanel panel) {
         List<Sample> samples = learnMore.getSamples();
         if(samples.size()>0){
             for (Sample sample : samples) {

@@ -35,6 +35,7 @@ dependencies {
     testImplementation 'com.squareup.okhttp3:okhttp:4.12.0'
     testImplementation 'junit:junit:4.11-redhat-1'
     testImplementation 'junit:junit:4.13.1'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.15.2'
 
     // Video Recording
     testImplementation('com.automation-remarks:video-recorder-junit5:2.0') {
@@ -98,14 +99,28 @@ runIdeForUiTests {
     systemProperty 'jb.consents.confirmation.enabled', 'false'
 }
 
+def jacocoTask = project.hasProperty('jacocoTask') ? project.jacocoTask : "unit"
+
 jacocoTestReport {
     dependsOn test
     classDirectories.setFrom(instrumentCode)
+
+    if (jacocoTask == "integration") {
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, include: 'com/checkmarx/intellij/commands/**',
+                        exclude: 'com/checkmarx/intellij/commands/results/obj')
+            }))
+        }
+    }
+
     reports {
         csv.required = true
         html.required = true
     }
 }
+
+
 
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")

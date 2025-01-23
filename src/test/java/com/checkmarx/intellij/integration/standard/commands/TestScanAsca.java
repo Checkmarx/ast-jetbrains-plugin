@@ -1,9 +1,9 @@
-package com.checkmarx.intellij.standard.commands;
+package com.checkmarx.intellij.integration.standard.commands;
 
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.standard.BaseTest;
+import com.checkmarx.intellij.integration.standard.BaseTest;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 public class TestScanAsca extends BaseTest {
     AscaService ascaService = new AscaService();
 
+    @Test
     public void testInstallAsca() {
         Assertions.assertDoesNotThrow(()->
         {
@@ -46,7 +47,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithVulnerabilities_Success() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/python-vul-file.py");
+        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/integration/standard/data/python-vul-file.py");
         Project project = ProjectManager.getInstance().getDefaultProject();
 
         Assertions.assertDoesNotThrow(() -> {
@@ -59,7 +60,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithNoVulnerabilities_Success() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/csharp-no-vul.cs");
+        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/integration/standard/data/csharp-no-vul.cs");
         Project project = ProjectManager.getInstance().getDefaultProject();
 
         Assertions.assertDoesNotThrow(() -> {
@@ -71,7 +72,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithoutExtension_Fail() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/standard/data/file");
+        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/integration/standard/data/file");
         Project project = ProjectManager.getInstance().getDefaultProject();
         ScanResult ascaResult = ascaService.runAscaScan(psiFile, project, true, Constants.JET_BRAINS_AGENT_NAME);
 

@@ -84,7 +84,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
     }
 
     @Override
-    void override(Scan scan) {
+    protected void override(Scan scan) {
         propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY, scan.getBranch());
         scanSelectionGroup.override(scan);
     }

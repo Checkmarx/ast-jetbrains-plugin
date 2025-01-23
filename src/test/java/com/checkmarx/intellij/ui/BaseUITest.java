@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.ui;
 
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Environment;
+import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.*;

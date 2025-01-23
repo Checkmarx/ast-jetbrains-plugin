@@ -1,4 +1,4 @@
-package com.checkmarx.intellij;
+package com.checkmarx.intellij.integration;
 
 public final class Environment {
 

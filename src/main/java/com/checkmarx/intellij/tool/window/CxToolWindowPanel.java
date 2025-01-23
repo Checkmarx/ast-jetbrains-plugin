@@ -1,9 +1,8 @@
 package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.*;
-import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.commands.TenantSetting;
-import com.checkmarx.intellij.commands.results.ResultGetState;
+import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.project.ProjectResultsService;

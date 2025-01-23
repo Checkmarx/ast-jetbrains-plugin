@@ -1,13 +1,13 @@
-package com.checkmarx.intellij.standard.commands;
+package com.checkmarx.intellij.integration.standard.commands;
 
 import com.checkmarx.ast.project.Project;
 import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.ast.wrapper.CxConstants;
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Environment;
-import com.checkmarx.intellij.commands.results.ResultGetState;
+import com.checkmarx.intellij.integration.Environment;
+import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.commands.results.Results;
-import com.checkmarx.intellij.standard.BaseTest;
+import com.checkmarx.intellij.integration.standard.BaseTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.ThrowingSupplier;
