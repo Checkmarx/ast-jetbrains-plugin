@@ -137,7 +137,9 @@ jobs:
         run: ./gradlew buildPlugin --info
 
       - name: Extract CLI version
-        run: ./extract_cli_version.sh
+        run: |
+          chmod +x ./../scripts/extract_cli_version.sh
+          ./../scripts/extract_cli_version.sh
 
       # Create the release or prerelease
       - name: Create Release or Prerelease
