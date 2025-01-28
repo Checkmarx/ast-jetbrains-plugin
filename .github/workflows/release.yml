@@ -173,7 +173,7 @@ jobs:
           fi
 
   notify:
-    if: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
+    if: ${{ (inputs.rchannels != '' && inputs.rchannels != null) || inputs.rchannels == 'test-notify' }}
     needs: release
     uses: Checkmarx/plugins-release-workflow/.github/workflows/release-notify.yml@main
     with:
