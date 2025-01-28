@@ -129,6 +129,8 @@ jobs:
            echo "GH_RELEASE_TAG_NAME=${{ env.RELEASE_VERSION }}-${{ inputs.rchannels }}" >> $GITHUB_ENV
           fi
           echo "Release name - ${{ env.GH_RELEASE_TAG_NAME }}"
+          echo "::set-output name=TAG_NAME::${{ env.GH_RELEASE_TAG_NAME }}"
+
       # Build plugin
       - name: Build
         env:
@@ -169,9 +171,7 @@ jobs:
           echo "CLI_VERSION=$CLI_VERSION" >> $GITHUB_ENV
           echo "::set-output name=CLI_VERSION::$CLI_VERSION"
           
-          # Echo the CLI version for debugging purposes
-          echo "CLI version: $CLI_VERSION"
-      
+          # Echo the CLI version for debugging purposes      
       
 
       # Create the release or prerelease
