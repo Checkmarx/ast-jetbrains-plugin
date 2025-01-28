@@ -129,7 +129,6 @@ jobs:
            echo "GH_RELEASE_TAG_NAME=${{ env.RELEASE_VERSION }}-${{ inputs.rchannels }}" >> $GITHUB_ENV
           fi
           echo "Release name - ${{ env.GH_RELEASE_TAG_NAME }}"
-          echo "TAG_NAME=${{ env.GH_RELEASE_TAG_NAME }}" >> $GITHUB_OUTPUT
 
       # Build plugin
       - name: Build
@@ -183,6 +182,13 @@ jobs:
           files: build/distributions/*
           generate_release_notes: true
           prerelease: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
+
+      - name: Echo CLI version and tag name to outputs
+        id: set_tag_name
+        run: |
+          echo "::set-output name=TAG_NAME::${{ env.GH_RELEASE_TAG_NAME }}"
+          echo "::set-output name=CLI_VERSION::${{ env.CLI_VERSION }}"
+
       # Publish the plugin in marketplace
       - name: Publish Plugin
         env:
