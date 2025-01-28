@@ -129,7 +129,7 @@ jobs:
            echo "GH_RELEASE_TAG_NAME=${{ env.RELEASE_VERSION }}-${{ inputs.rchannels }}" >> $GITHUB_ENV
           fi
           echo "Release name - ${{ env.GH_RELEASE_TAG_NAME }}"
-          echo "::set-output name=TAG_NAME::${{ env.GH_RELEASE_TAG_NAME }}"
+          echo "TAG_NAME=${{ env.GH_RELEASE_TAG_NAME }}" >> $GITHUB_OUTPUT
 
       # Build plugin
       - name: Build
@@ -169,7 +169,7 @@ jobs:
 
           # Export CLI version as an environment variable
           echo "CLI_VERSION=$CLI_VERSION" >> $GITHUB_ENV
-          echo "::set-output name=CLI_VERSION::$CLI_VERSION"
+          echo "CLI_VERSION=${{ env.CLI_VERSION }}" >> $GITHUB_OUTPUT
           
           # Echo the CLI version for debugging purposes      
       
