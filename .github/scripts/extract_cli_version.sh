@@ -1,6 +1,14 @@
 #!/bin/bash
 
-echo "Starting CLI version extraction..."
+# Check if a parameter is provided
+if [ -z "$1" ]; then
+    echo "Error: No binary name provided. Usage: $0 <binary_name>"
+    exit 1
+fi
+
+BINARY_NAME=$1
+
+echo "Starting CLI version extraction for binary: $BINARY_NAME..."
 
 # Find the correct JAR file in Gradle cache (excluding javadoc JARs)
 JAR_PATH=$(find ~/.gradle -type f -name "ast-cli-java-wrapper-*.jar" ! -name "*-javadoc.jar" | head -n 1)
@@ -16,22 +24,22 @@ echo "Found JAR at: $JAR_PATH"
 TEMP_DIR=$(mktemp -d)
 echo "Using temporary directory: $TEMP_DIR"
 
-unzip -j "$JAR_PATH" "cx-linux" -d "$TEMP_DIR"
+unzip -j "$JAR_PATH" "$BINARY_NAME" -d "$TEMP_DIR"
 if [ $? -ne 0 ]; then
-    echo "Error: Failed to unzip cx-linux from the JAR."
+    echo "Error: Failed to unzip $BINARY_NAME from the JAR."
     exit 1
 fi
 
-if [ ! -f "$TEMP_DIR/cx-linux" ]; then
-    echo "Error: cx-linux not found inside the JAR."
+if [ ! -f "$TEMP_DIR/$BINARY_NAME" ]; then
+    echo "Error: $BINARY_NAME not found inside the JAR."
     ls -la "$TEMP_DIR"
     exit 1
 fi
 
-chmod +x "$TEMP_DIR/cx-linux"
+chmod +x "$TEMP_DIR/$BINARY_NAME"
 
 # Extract the CLI version
-CLI_VERSION=$("$TEMP_DIR/cx-linux" version | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+')
+CLI_VERSION=$("$TEMP_DIR/$BINARY_NAME" version | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+')
 
 if [ -z "$CLI_VERSION" ]; then
     echo "Error: CLI_VERSION is not set or is empty."
@@ -43,4 +51,4 @@ echo "CLI version being packed is $CLI_VERSION"
 # Export CLI version as an environment variable
 echo "CLI_VERSION=$CLI_VERSION" >> $GITHUB_ENV
 
-echo "CLI version extraction completed successfully."
+echo "CLI version extraction for $BINARY_NAME completed successfully."

@@ -139,7 +139,7 @@ jobs:
       - name: Extract CLI version
         run: |
           chmod +x ./.github/scripts/extract_cli_version.sh
-          ./.github/scripts/extract_cli_version.sh
+          ./.github/scripts/extract_cli_version.sh cx-linux
 
       # Create the release or prerelease
       - name: Create Release or Prerelease
