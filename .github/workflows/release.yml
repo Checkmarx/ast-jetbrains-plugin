@@ -137,13 +137,9 @@ jobs:
         run: ./gradlew buildPlugin --info
 
       - name: Extract CLI version
-        id: extract_cli_version
         run: |
           chmod +x ./.github/scripts/extract_cli_version.sh
-          ls -la
           ./.github/scripts/extract_cli_version.sh
-          echo "::set-output name=CLI_VERSION::${{ env.CLI_VERSION }}"
-          
 
       # Create the release or prerelease
       - name: Create Release or Prerelease
@@ -159,6 +155,11 @@ jobs:
         id: set_tag_name
         run: |
           echo "::set-output name=TAG_NAME::${{ env.GH_RELEASE_TAG_NAME }}"
+
+      - name: Echo CLI version to outputs
+        id: extract_cli_version
+        run: |
+          echo "::set-output name=CLI_VERSION::${{ env.CLI_VERSION }}"
 
       # Publish the plugin in marketplace
       - name: Publish Plugin
