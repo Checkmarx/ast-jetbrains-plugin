@@ -95,7 +95,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
      * @param projectId selected project
      * @param inherit   whether to inherit the branch
      */
-    void refresh(String projectId, boolean inherit) {
+    public void refresh(String projectId, boolean inherit) {
         setEnabled(false);
         removeAll();
         this.projectId = projectId;

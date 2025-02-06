@@ -21,6 +21,7 @@ public class RootGroup extends DefaultActionGroup implements DumbAware, CxToolWi
     private final Project project;
     @Getter
     private final ScanSelectionGroup scanSelectionGroup;
+    @Getter
     private final BranchSelectionGroup branchSelectionGroup;
     private final ProjectSelectionGroup projectSelectionGroup;
     private final ResetSelectionAction resetSelectionAction;
