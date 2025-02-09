@@ -174,7 +174,9 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
                 com.checkmarx.ast.scan.Scan scan = Scan.scanCreate(Paths.get(Objects.requireNonNull(workspaceProject.getBasePath())).toString(), storedProject, storedBranch);
 
+
                 LOGGER.info(msg(Resource.SCAN_CREATED_IDE, scan.getId(), scan.getStatus()));
+                refreshBranchSelection(scan);
 
                 propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, scan.getId());
                 ActivityTracker.getInstance().inc();
@@ -264,7 +266,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
                     if(scan.getStatus().toLowerCase(Locale.ROOT).equals(Constants.SCAN_STATUS_COMPLETED)) {
                         Utils.notifyScan(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()), msg(Resource.SCAN_FINISHED_LOAD_RESULTS), workspaceProject, () -> loadResults(scan), NotificationType.INFORMATION, msg(Resource.LOAD_CX_RESULTS));
-                        refreshBranchSelection(scan);
+
                     }
                 }
             } catch (IOException | URISyntaxException | InterruptedException | CxConfig.InvalidCLIConfigException | CxException e) {
