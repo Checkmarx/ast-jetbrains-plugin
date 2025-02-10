@@ -10,6 +10,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Scan;
 import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
+import com.checkmarx.intellij.tool.window.actions.selection.BranchSelectionGroup;
 import com.checkmarx.intellij.tool.window.actions.selection.ScanSelectionGroup;
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.ide.ActivityTracker;
@@ -173,7 +174,9 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
                 com.checkmarx.ast.scan.Scan scan = Scan.scanCreate(Paths.get(Objects.requireNonNull(workspaceProject.getBasePath())).toString(), storedProject, storedBranch);
 
+
                 LOGGER.info(msg(Resource.SCAN_CREATED_IDE, scan.getId(), scan.getStatus()));
+                refreshBranchSelection(scan);
 
                 propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, scan.getId());
                 ActivityTracker.getInstance().inc();
@@ -189,6 +192,17 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
         ProgressManager.getInstance().run(creatingScanTask);
     }
+
+    private void refreshBranchSelection(com.checkmarx.ast.scan.Scan scan) {
+        BranchSelectionGroup branchSelectionGroup = cxToolWindowPanel.getRootGroup().getBranchSelectionGroup();
+        if (branchSelectionGroup != null) {
+            branchSelectionGroup.refresh(scan.getProjectId(), false);
+        } else {
+            LOGGER.warn("Unable to refresh branches: No branch selection available");
+        }
+    }
+
+
 
     /**
      * Create a backgroundable task which polls a scan to verify its status.
@@ -252,6 +266,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
                     if(scan.getStatus().toLowerCase(Locale.ROOT).equals(Constants.SCAN_STATUS_COMPLETED)) {
                         Utils.notifyScan(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()), msg(Resource.SCAN_FINISHED_LOAD_RESULTS), workspaceProject, () -> loadResults(scan), NotificationType.INFORMATION, msg(Resource.LOAD_CX_RESULTS));
+
                     }
                 }
             } catch (IOException | URISyntaxException | InterruptedException | CxConfig.InvalidCLIConfigException | CxException e) {
