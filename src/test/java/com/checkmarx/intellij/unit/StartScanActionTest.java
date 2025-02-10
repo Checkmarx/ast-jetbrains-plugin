@@ -36,6 +36,14 @@ public class StartScanActionTest {
     private PropertiesComponent mockPropertiesComponent;
 
     @Mock
+    private com.checkmarx.intellij.tool.window.actions.selection.RootGroup mockRootGroup;
+
+
+    @Mock
+    private com.checkmarx.intellij.tool.window.actions.selection.BranchSelectionGroup mockBranchSelectionGroup;
+
+
+    @Mock
     private CxToolWindowPanel mockCxToolWindowPanel;
 
     @InjectMocks
@@ -48,6 +56,10 @@ public class StartScanActionTest {
         setPrivateField(startScanAction, "workspaceProject", mockProject);
         setPrivateField(startScanAction, "propertiesComponent", mockPropertiesComponent);
         setPrivateField(startScanAction, "cxToolWindowPanel", mockCxToolWindowPanel);
+
+        when(mockCxToolWindowPanel.getRootGroup()).thenReturn(mockRootGroup);
+        when(mockRootGroup.getBranchSelectionGroup()).thenReturn(mockBranchSelectionGroup);
+
     }
 
     private void setPrivateField(Object target, String fieldName, Object value) throws Exception {
