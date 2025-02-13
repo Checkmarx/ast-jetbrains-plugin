@@ -3,6 +3,7 @@ package com.checkmarx.intellij.unit.commands;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +30,7 @@ class TenantSettingTest {
     }
 
     @Test
-    void isScanAllowed_ReturnsTrue() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void isScanAllowed_ReturnsTrue() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
@@ -45,7 +46,7 @@ class TenantSettingTest {
     }
 
     @Test
-    void isScanAllowed_ReturnsFalse() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void isScanAllowed_ReturnsFalse() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
@@ -61,7 +62,7 @@ class TenantSettingTest {
     }
 
     @Test
-    void isScanAllowed_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void isScanAllowed_ThrowsException() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);

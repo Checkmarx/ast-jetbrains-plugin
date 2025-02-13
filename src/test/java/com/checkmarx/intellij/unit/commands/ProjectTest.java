@@ -5,6 +5,7 @@ import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,7 @@ class ProjectTest {
     }
 
     @Test
-    void getList_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getList_Success() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         List<Project> expectedProjects = Arrays.asList(mock(Project.class), mock(Project.class));
         
@@ -54,7 +55,7 @@ class ProjectTest {
     }
 
     @Test
-    void getList_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getList_ThrowsException() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
@@ -68,7 +69,7 @@ class ProjectTest {
     }
 
     @Test
-    void getBranches_Success_NonSCMProject() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getBranches_Success_NonSCMProject() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         List<String> expectedBranches = Arrays.asList("main", "develop");
@@ -88,7 +89,7 @@ class ProjectTest {
     }
 
     @Test
-    void getBranches_Success_SCMProject() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getBranches_Success_SCMProject() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         List<String> branches = new ArrayList<>(Arrays.asList("main", "develop"));
@@ -110,7 +111,7 @@ class ProjectTest {
     }
 
     @Test
-    void getBranches_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getBranches_ThrowsException() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {

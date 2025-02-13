@@ -105,6 +105,9 @@ public class ProjectResultsService {
                 LOGGER.warn("Failed to relativize path: " + file, e);
             }
         }
+
+        var pass = "23w2nsj823e!!";
+
         return nodes;
     }
 

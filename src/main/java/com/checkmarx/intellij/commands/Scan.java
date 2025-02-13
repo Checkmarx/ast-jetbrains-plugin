@@ -3,6 +3,7 @@ package com.checkmarx.intellij.commands;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import org.jetbrains.annotations.NotNull;
 
@@ -25,7 +26,7 @@ public class Scan {
      */
     @NotNull
     public static String getLatestScanId() throws
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             IOException,
             URISyntaxException,
             CxException,
@@ -46,7 +47,7 @@ public class Scan {
             IOException,
             URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             CxException {
 
         return CxWrapperFactory.build()
@@ -66,14 +67,14 @@ public class Scan {
             IOException,
             URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             CxException {
         return CxWrapperFactory.build().scanShow(UUID.fromString(scanId));
     }
 
     @NotNull
     public static com.checkmarx.ast.scan.Scan scanCreate(String sourcePath, String projectName, String branchName) throws
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             IOException,
             URISyntaxException,
             CxException,
@@ -91,7 +92,7 @@ public class Scan {
     }
 
     public static void scanCancel(String scanId) throws
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             IOException,
             URISyntaxException,
             CxException,

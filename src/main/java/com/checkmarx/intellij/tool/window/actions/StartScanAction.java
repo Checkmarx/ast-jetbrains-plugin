@@ -5,6 +5,7 @@ import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Scan;
@@ -269,7 +270,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
                     }
                 }
-            } catch (IOException | URISyntaxException | InterruptedException | CxConfig.InvalidCLIConfigException | CxException e) {
+            } catch (IOException | URISyntaxException | InterruptedException | InvalidCLIConfigException | CxException e) {
                 LOGGER.error(msg(Resource.ERROR_POLLING_SCAN, e.getMessage()), e);
             }
         };

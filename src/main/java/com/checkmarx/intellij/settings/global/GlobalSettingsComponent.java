@@ -5,6 +5,7 @@ import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.ASCA.AscaService;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
@@ -149,7 +150,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 } catch (IOException | URISyntaxException | InterruptedException e) {
                     setValidationResult(Bundle.message(Resource.VALIDATE_ERROR), JBColor.RED);
                     LOGGER.error(Bundle.message(Resource.VALIDATE_ERROR), e);
-                } catch (CxException | CxConfig.InvalidCLIConfigException e) {
+                } catch (CxException | InvalidCLIConfigException e) {
                     String msg = e.getMessage().trim();
                     int lastLineIndex = Math.max(msg.lastIndexOf('\n'), 0);
                     setValidationResult(msg.substring(lastLineIndex).trim(), JBColor.RED);
@@ -187,7 +188,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 } catch (IOException | URISyntaxException | InterruptedException ex) {
                     LOGGER.warn(Bundle.message(Resource.ASCA_SCAN_WARNING), ex);
                     setAscaInstallationMsg(ex.getMessage(), JBColor.RED);
-                } catch (CxException | CxConfig.InvalidCLIConfigException ex) {
+                } catch (CxException | InvalidCLIConfigException ex) {
                     String msg = ex.getMessage().trim();
                     int lastLineIndex = Math.max(msg.lastIndexOf('\n'), 0);
                     setAscaInstallationMsg(msg.substring(lastLineIndex).trim(), JBColor.RED);

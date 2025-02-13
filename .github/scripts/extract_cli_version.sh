@@ -49,6 +49,6 @@ fi
 echo "CLI version being packed is $CLI_VERSION"
 
 # Export CLI version as an environment variable
-echo "CLI_VERSION=$CLI_VERSION" >> $GITHUB_ENV
-
+`echo "CLI_VERSION=$CLI_VERSION" >> $GITHUB_ENV
+`
 echo "CLI version extraction for $BINARY_NAME completed successfully."

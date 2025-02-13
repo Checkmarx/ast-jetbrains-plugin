@@ -2,6 +2,7 @@ package com.checkmarx.intellij.commands;
 
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
@@ -30,7 +31,7 @@ public class Authentication {
             IOException,
             URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             CxException {
 
         return CxWrapperFactory.build(state, sensitiveState).authValidate();

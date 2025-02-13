@@ -2,6 +2,7 @@ package com.checkmarx.intellij.commands;
 
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import lombok.NonNull;
 
@@ -20,7 +21,7 @@ public class Triage {
             IOException,
             URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             CxException {
 
         return CxWrapperFactory.build().triageShow(projectId, similarityId, scanType);
@@ -31,7 +32,7 @@ public class Triage {
             IOException,
             URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             CxException {
 
         CxWrapperFactory.build().triageUpdate(projectId, similarityId, scanType, state, comment, severity);

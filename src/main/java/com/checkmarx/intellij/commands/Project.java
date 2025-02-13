@@ -3,6 +3,7 @@ package com.checkmarx.intellij.commands;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import lombok.NonNull;
@@ -22,7 +23,7 @@ public class Project {
             IOException,
             URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             CxException {
 
         return CxWrapperFactory.build().projectList("limit=10000");
@@ -33,7 +34,7 @@ public class Project {
             IOException,
             URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             CxException {
 
         List<String> branches = CxWrapperFactory.build().projectBranches(projectId, "");
