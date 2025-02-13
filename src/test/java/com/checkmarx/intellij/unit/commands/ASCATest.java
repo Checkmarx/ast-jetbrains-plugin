@@ -5,6 +5,7 @@ import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.commands.ASCA;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +38,7 @@ class ASCATest {
     }
 
     @Test
-    void scanAsca_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void scanAsca_Success() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         String testPath = "/test/path";
         boolean ascaLatestVersion = true;
@@ -58,7 +59,7 @@ class ASCATest {
     }
 
     @Test
-    void scanAsca_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void scanAsca_ThrowsException() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         String testPath = "/test/path";
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
@@ -74,7 +75,7 @@ class ASCATest {
     }
 
     @Test
-    void installAsca_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void installAsca_Success() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
@@ -91,7 +92,7 @@ class ASCATest {
     }
 
     @Test
-    void installAsca_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void installAsca_ThrowsException() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);

@@ -4,6 +4,7 @@ import com.checkmarx.ast.predicate.Predicate;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.commands.Triage;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +39,7 @@ class TriageTest {
     }
 
     @Test
-    void triageShow_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void triageShow_Success() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         String similarityId = "test-similarity-id";
@@ -60,7 +61,7 @@ class TriageTest {
     }
 
     @Test
-    void triageShow_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void triageShow_ThrowsException() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         String similarityId = "test-similarity-id";
@@ -78,7 +79,7 @@ class TriageTest {
     }
 
     @Test
-    void triageUpdate_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void triageUpdate_Success() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         String similarityId = "test-similarity-id";
@@ -100,7 +101,7 @@ class TriageTest {
     }
 
     @Test
-    void triageUpdate_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void triageUpdate_ThrowsException() throws InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         String similarityId = "test-similarity-id";

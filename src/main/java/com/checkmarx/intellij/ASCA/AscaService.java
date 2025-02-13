@@ -3,6 +3,7 @@ package com.checkmarx.intellij.ASCA;
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.ASCA;
 import com.intellij.openapi.application.ApplicationManager;
@@ -56,7 +57,6 @@ public class AscaService {
         if (file == null) {
             return null;
         }
-
         VirtualFile virtualFile = file.getVirtualFile();
 
         if (ignoreFiles(virtualFile)) {
@@ -198,12 +198,12 @@ public class AscaService {
      *
      * @return a message indicating the result of the installation
      * @throws CxException                        if an error occurs during installation
-     * @throws CxConfig.InvalidCLIConfigException if the CLI configuration is invalid
+     * @throws InvalidCLIConfigException if the CLI configuration is invalid
      * @throws IOException                        if an I/O error occurs
      * @throws URISyntaxException                 if a URI syntax error occurs
      * @throws InterruptedException               if the installation is interrupted
      */
-    public boolean installAsca() throws CxException, CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
+    public boolean installAsca() throws CxException, InvalidCLIConfigException, IOException, URISyntaxException, InterruptedException {
         ScanResult res = ASCA.installAsca();
         if (res.getError() != null) {
             LOGGER.warn(Strings.join("ASCA installation error: ", res.getError().getDescription()));

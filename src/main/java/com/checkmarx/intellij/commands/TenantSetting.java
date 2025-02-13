@@ -2,6 +2,7 @@ package com.checkmarx.intellij.commands;
 
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,7 +21,7 @@ public class TenantSetting {
      */
     @NotNull
     public static boolean isScanAllowed() throws
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             IOException,
             URISyntaxException,
             CxException,

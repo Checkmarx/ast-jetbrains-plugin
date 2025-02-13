@@ -4,6 +4,7 @@ import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Exceptions.InvalidCLIConfigException;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 
 import java.io.IOException;
@@ -12,7 +13,7 @@ import java.net.URISyntaxException;
 public class ASCA {
     public static ScanResult scanAsca(String path, boolean ascaLatestVersion, String agent)
             throws
-            CxConfig.InvalidCLIConfigException,
+            InvalidCLIConfigException,
             IOException,
             URISyntaxException,
             CxException,
@@ -21,7 +22,7 @@ public class ASCA {
     }
 
     public static ScanResult installAsca()
-            throws CxConfig.InvalidCLIConfigException,
+            throws InvalidCLIConfigException,
             IOException,
             URISyntaxException,
             CxException,
