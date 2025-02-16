@@ -39,7 +39,7 @@ class ScanTest {
     }
 
     @Test
-    void getLatestScanId_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getLatestScanId_Success() throws IOException, CxException, InterruptedException {
         // Arrange
         List<Scan> scans = Arrays.asList(mockScan);
         String expectedScanId = "test-scan-id";
@@ -61,7 +61,7 @@ class ScanTest {
     }
 
     @Test
-    void getList_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getList_Success() throws IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         String projectId = "test-project";
         String branch = "main";
@@ -83,7 +83,7 @@ class ScanTest {
     }
 
     @Test
-    void scanShow_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void scanShow_Success() throws IOException, URISyntaxException, CxException, InterruptedException {
         // Arrange
         String scanId = UUID.randomUUID().toString();
         
@@ -102,7 +102,7 @@ class ScanTest {
     }
 
     @Test
-    void scanCreate_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void scanCreate_Success() throws IOException, CxException, InterruptedException {
         // Arrange
         String sourcePath = "/test/path";
         String projectName = "test-project";
@@ -128,7 +128,7 @@ class ScanTest {
     }
 
     @Test
-    void scanCancel_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void scanCancel_Success() throws IOException, CxException, InterruptedException {
         // Arrange
         String scanId = "test-scan-id";
         
@@ -145,7 +145,7 @@ class ScanTest {
     }
 
     @Test
-    void scanCancel_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void scanCancel_ThrowsException() throws IOException, CxException, InterruptedException {
         // Arrange
         String scanId = "test-scan-id";
         

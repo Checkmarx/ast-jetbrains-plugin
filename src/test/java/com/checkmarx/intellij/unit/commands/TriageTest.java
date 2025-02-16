@@ -38,7 +38,7 @@ class TriageTest {
     }
 
     @Test
-    void triageShow_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void triageShow_Success() throws IOException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         String similarityId = "test-similarity-id";
@@ -60,7 +60,7 @@ class TriageTest {
     }
 
     @Test
-    void triageShow_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void triageShow_ThrowsException() throws IOException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         String similarityId = "test-similarity-id";
@@ -78,7 +78,7 @@ class TriageTest {
     }
 
     @Test
-    void triageUpdate_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void triageUpdate_Success() throws IOException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         String similarityId = "test-similarity-id";
@@ -100,7 +100,7 @@ class TriageTest {
     }
 
     @Test
-    void triageUpdate_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void triageUpdate_ThrowsException() throws IOException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         String similarityId = "test-similarity-id";

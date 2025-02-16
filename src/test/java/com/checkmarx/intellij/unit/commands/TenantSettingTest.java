@@ -29,7 +29,7 @@ class TenantSettingTest {
     }
 
     @Test
-    void isScanAllowed_ReturnsTrue() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void isScanAllowed_ReturnsTrue() throws IOException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
@@ -45,7 +45,7 @@ class TenantSettingTest {
     }
 
     @Test
-    void isScanAllowed_ReturnsFalse() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void isScanAllowed_ReturnsFalse() throws IOException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
@@ -61,7 +61,7 @@ class TenantSettingTest {
     }
 
     @Test
-    void isScanAllowed_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void isScanAllowed_ThrowsException() throws IOException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);

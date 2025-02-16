@@ -149,7 +149,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 } catch (IOException | URISyntaxException | InterruptedException e) {
                     setValidationResult(Bundle.message(Resource.VALIDATE_ERROR), JBColor.RED);
                     LOGGER.error(Bundle.message(Resource.VALIDATE_ERROR), e);
-                } catch (CxException | CxConfig.InvalidCLIConfigException e) {
+                } catch (CxException e) {
                     String msg = e.getMessage().trim();
                     int lastLineIndex = Math.max(msg.lastIndexOf('\n'), 0);
                     setValidationResult(msg.substring(lastLineIndex).trim(), JBColor.RED);
@@ -187,7 +187,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 } catch (IOException | URISyntaxException | InterruptedException ex) {
                     LOGGER.warn(Bundle.message(Resource.ASCA_SCAN_WARNING), ex);
                     setAscaInstallationMsg(ex.getMessage(), JBColor.RED);
-                } catch (CxException | CxConfig.InvalidCLIConfigException ex) {
+                } catch (CxException ex) {
                     String msg = ex.getMessage().trim();
                     int lastLineIndex = Math.max(msg.lastIndexOf('\n'), 0);
                     setAscaInstallationMsg(msg.substring(lastLineIndex).trim(), JBColor.RED);
