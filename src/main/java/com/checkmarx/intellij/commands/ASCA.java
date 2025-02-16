@@ -12,18 +12,14 @@ import java.net.URISyntaxException;
 public class ASCA {
     public static ScanResult scanAsca(String path, boolean ascaLatestVersion, String agent)
             throws
-            CxConfig.InvalidCLIConfigException,
             IOException,
-            URISyntaxException,
             CxException,
             InterruptedException {
         return CxWrapperFactory.build().ScanAsca(path, ascaLatestVersion, agent);
     }
 
     public static ScanResult installAsca()
-            throws CxConfig.InvalidCLIConfigException,
-            IOException,
-            URISyntaxException,
+            throws IOException,
             CxException,
             InterruptedException {
         return CxWrapperFactory.build().ScanAsca("",true, Constants.JET_BRAINS_AGENT_NAME);

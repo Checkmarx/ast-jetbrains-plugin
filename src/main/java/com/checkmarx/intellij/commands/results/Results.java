@@ -48,7 +48,7 @@ public class Results {
                 try {
                     scanId = Scan.getLatestScanId();
                     newState.setLatest(true);
-                } catch (CxException | CxConfig.InvalidCLIConfigException e) {
+                } catch (CxException e) {
                     newState.setMessage(e.getMessage());
                     LOGGER.warn(e);
                     return newState;
@@ -66,7 +66,7 @@ public class Results {
             com.checkmarx.ast.results.Results results;
             try {
                 results = CxWrapperFactory.build().results(UUID.fromString(scanId), Constants.JET_BRAINS_AGENT_NAME);
-            } catch (IOException | URISyntaxException | CxException | CxConfig.InvalidCLIConfigException | InterruptedException e) {
+            } catch (IOException | CxException | InterruptedException e) {
                 newState.setMessage(Bundle.message(Resource.GETTING_RESULTS_ERROR,
                                                    scanId + Utils.formatLatest(getLatest)));
                 LOGGER.warn(newState.getMessage(), e);

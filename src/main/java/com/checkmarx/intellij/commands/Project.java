@@ -20,9 +20,7 @@ public class Project {
     public static List<com.checkmarx.ast.project.Project> getList()
             throws
             IOException,
-            URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
             CxException {
 
         return CxWrapperFactory.build().projectList("limit=10000");
@@ -31,9 +29,7 @@ public class Project {
     public static List<String> getBranches(@NonNull UUID projectId, boolean isSCMProject)
             throws
             IOException,
-            URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
             CxException {
 
         List<String> branches = CxWrapperFactory.build().projectBranches(projectId, "");

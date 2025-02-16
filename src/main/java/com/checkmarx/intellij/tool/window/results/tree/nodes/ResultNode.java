@@ -434,8 +434,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                                         .scaRemediation(locationFullPaths.toString(),
                                                         head.getName(),
                                                         result.getData().getRecommendedVersion());
-                    } catch (CxException | InterruptedException | IOException | URISyntaxException |
-                             CxConfig.InvalidCLIConfigException ex) {
+                    } catch (CxException | InterruptedException | IOException ex) {
                         error = true;
                         Utils.notify(project,
                                      Bundle.message(Resource.AUTO_REMEDIATION_FAIL,
@@ -895,8 +894,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                                             result.getData().getPackageIdentifier(),
                                             result.getData().getRecommendedVersion()),
                              NotificationType.INFORMATION);
-            } catch (CxException | IOException | InterruptedException | URISyntaxException |
-                     CxConfig.InvalidCLIConfigException ex) {
+            } catch (CxException | IOException | InterruptedException ex) {
                 Utils.notify(project,
                              Bundle.message(Resource.AUTO_REMEDIATION_FAIL,
                                             result.getData().getPackageIdentifier(),
@@ -956,9 +954,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
 
     private String getProjectId() throws
-            CxConfig.InvalidCLIConfigException,
             IOException,
-            URISyntaxException,
             CxException,
             InterruptedException {
         Scan scan = CxWrapperFactory.build().scanShow(UUID.fromString(scanId));
@@ -966,9 +962,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     private int getBFL() throws
-            CxConfig.InvalidCLIConfigException,
             IOException,
-            URISyntaxException,
             CxException,
             InterruptedException {
 
@@ -991,7 +985,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         component.repaint();
     }
 
-    public void openCodebashingLink() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException {
+    public void openCodebashingLink() throws IOException, URISyntaxException {
         try {
             CodeBashing response = CxWrapperFactory.build().codeBashingList(
                     result.getVulnerabilityDetails().getCweId(),

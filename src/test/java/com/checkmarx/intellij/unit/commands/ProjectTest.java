@@ -35,7 +35,7 @@ class ProjectTest {
     }
 
     @Test
-    void getList_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getList_Success() throws CxException, IOException, InterruptedException {
         // Arrange
         List<Project> expectedProjects = Arrays.asList(mock(Project.class), mock(Project.class));
         
@@ -54,7 +54,7 @@ class ProjectTest {
     }
 
     @Test
-    void getList_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getList_ThrowsException() throws IOException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
@@ -68,7 +68,7 @@ class ProjectTest {
     }
 
     @Test
-    void getBranches_Success_NonSCMProject() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getBranches_Success_NonSCMProject() throws IOException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         List<String> expectedBranches = Arrays.asList("main", "develop");
@@ -88,7 +88,7 @@ class ProjectTest {
     }
 
     @Test
-    void getBranches_Success_SCMProject() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getBranches_Success_SCMProject() throws IOException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         List<String> branches = new ArrayList<>(Arrays.asList("main", "develop"));
@@ -110,7 +110,7 @@ class ProjectTest {
     }
 
     @Test
-    void getBranches_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void getBranches_ThrowsException() throws IOException, CxException, InterruptedException {
         // Arrange
         UUID projectId = UUID.randomUUID();
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {

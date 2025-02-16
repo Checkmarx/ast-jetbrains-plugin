@@ -269,7 +269,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
                     }
                 }
-            } catch (IOException | URISyntaxException | InterruptedException | CxConfig.InvalidCLIConfigException | CxException e) {
+            } catch (IOException | URISyntaxException | InterruptedException | CxException e) {
                 LOGGER.error(msg(Resource.ERROR_POLLING_SCAN, e.getMessage()), e);
             }
         };

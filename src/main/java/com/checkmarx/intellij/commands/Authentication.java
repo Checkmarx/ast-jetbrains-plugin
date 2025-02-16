@@ -30,7 +30,6 @@ public class Authentication {
             IOException,
             URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
             CxException {
 
         return CxWrapperFactory.build(state, sensitiveState).authValidate();

@@ -37,7 +37,7 @@ class ASCATest {
     }
 
     @Test
-    void scanAsca_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void scanAsca_Success() throws IOException, CxException, InterruptedException {
         // Arrange
         String testPath = "/test/path";
         boolean ascaLatestVersion = true;
@@ -58,7 +58,7 @@ class ASCATest {
     }
 
     @Test
-    void scanAsca_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void scanAsca_ThrowsException() throws IOException, CxException, InterruptedException {
         // Arrange
         String testPath = "/test/path";
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
@@ -74,7 +74,7 @@ class ASCATest {
     }
 
     @Test
-    void installAsca_Success() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void installAsca_Success() throws IOException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
@@ -91,7 +91,7 @@ class ASCATest {
     }
 
     @Test
-    void installAsca_ThrowsException() throws CxConfig.InvalidCLIConfigException, IOException, URISyntaxException, CxException, InterruptedException {
+    void installAsca_ThrowsException() throws IOException, CxException, InterruptedException {
         // Arrange
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
