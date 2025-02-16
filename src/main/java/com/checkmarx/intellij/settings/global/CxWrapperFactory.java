@@ -21,7 +21,7 @@ public class CxWrapperFactory {
             throws CxException, IOException {
         final CxConfig.CxConfigBuilder builder = CxConfig.builder();
         builder.apiKey(sensitiveState.getApiKey());
-        builder.additionalParameters("--debug " + state.getAdditionalParameters());
+        builder.additionalParameters(state.getAdditionalParameters());
 
         return new CxWrapper(builder.build());
     }

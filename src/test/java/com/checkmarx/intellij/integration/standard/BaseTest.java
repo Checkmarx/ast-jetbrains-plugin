@@ -17,7 +17,6 @@ public abstract class BaseTest extends BasePlatformTestCase {
         GlobalSettingsState state = GlobalSettingsState.getInstance();
         GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
         sensitiveState.setApiKey(System.getenv("CX_APIKEY"));
-        state.setAdditionalParameters("--debug");
     }
 
     @AfterEach
