@@ -3,19 +3,21 @@ package com.checkmarx.intellij.tool.window.results.tree.nodes;
 import com.checkmarx.ast.codebashing.CodeBashing;
 import com.checkmarx.ast.learnMore.LearnMore;
 import com.checkmarx.ast.learnMore.Sample;
+import com.checkmarx.ast.predicate.CustomState;
 import com.checkmarx.ast.predicate.Predicate;
 import com.checkmarx.ast.results.result.DependencyPath;
 import com.checkmarx.ast.results.result.Node;
 import com.checkmarx.ast.results.result.PackageData;
 import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.ast.scan.Scan;
-import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxConstants;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.components.PaneUtils;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
+import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.icons.AllIcons;
@@ -61,10 +63,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.*;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -79,7 +79,7 @@ import static com.checkmarx.intellij.Constants.DEFAULT_COLUMN;
 @Getter
 @EqualsAndHashCode(callSuper = true)
 public class ResultNode extends DefaultMutableTreeNode {
-
+    public static List<CustomState> cs = null;
     private static final Logger LOGGER = Utils.getLogger(ResultNode.class);
 
     private final String label;
@@ -96,6 +96,16 @@ public class ResultNode extends DefaultMutableTreeNode {
         PROPOSED_NOT_EXPLOITABLE,
         CONFIRMED,
         URGENT
+    }
+
+    public static class SastStateEnum {
+        List<CustomState> cs = null;
+        public SastStateEnum(List<CustomState> cs) {
+            this.cs = cs;
+        }
+        public List<String> getStates() {
+            return cs.stream().map(CustomState::getName).collect(Collectors.toList());
+        }
     }
 
     public static final String UPGRADE_TO_VERSION_LABEL = "Upgrade to version: ";
@@ -502,9 +512,22 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel triageForm = new JPanel(new MigLayout("fillx"));
         JButton updateButton = new JButton();
         updateButton.setText("Update");
+        final ComboBox<String> stateComboBox;
+        if(result.getType().equals(CxConstants.SAST)){
+            try {
+                if (cs == null){
+                    cs = CxWrapperFactory.build(GlobalSettingsState.getInstance(), GlobalSettingsSensitiveState.getInstance()).triageGetStates(false);
+                }
+            } catch (Exception ignore){
 
-        //Constructing selection of State combobox
-        final ComboBox<StateEnum> stateComboBox = new ComboBox<>(StateEnum.values());
+            }
+            //Constructing selection of State combobox
+            stateComboBox = new ComboBox<>(new SastStateEnum(cs).getStates().toArray(new String[0]));
+        }
+        else {
+            stateComboBox = new ComboBox<>(Arrays.stream(StateEnum.values()).map(Enum::name).toArray(String[]::new));
+        }
+
         stateComboBox.setEditable(true);
         stateComboBox.setSelectedItem(result.getState());
         stateComboBox.setEnabled(triageEnabled);

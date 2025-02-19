@@ -75,25 +75,11 @@
                     class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$LowFilter"/>
             <action id="Checkmarx.Info"
                     class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$InfoFilter"/>
-            <group id="Checkmarx.State"
+            <group id="Checkmarx.DynamicFilters"
+                   class="com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup"
                    icon="AllIcons.General.Filter"
                    popup="true"
-                   class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByActionGroup">
-                <action id="Checkmarx.Confirmed"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$ConfirmedFilter"/>
-                <action id="Checkmarx.UrgentFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$UrgentFilter"/>
-                <action id="Checkmarx.ToVerifyFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$ToVerifyFilter"/>
-                <action id="Checkmarx.NotExploitableFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$NotExploitableFilter"/>
-                <action id="Checkmarx.ProposedNotExploitableFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$ProposedNotExploitableFilter"/>
-                <action id="Checkmarx.IgnoredFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$IgnoredFilter"/>
-                <action id="Checkmarx.NotIgnoredFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$NotIgnoredFilter"/>
-            </group>
+                   text="Dynamic Filters"/>
             <separator/>
             <group id="Checkmarx.GroupBy"
                    icon="AllIcons.Actions.GroupBy"

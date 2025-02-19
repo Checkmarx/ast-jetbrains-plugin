@@ -1,16 +1,20 @@
 package com.checkmarx.intellij.tool.window.actions.filter;
 
+import com.checkmarx.ast.predicate.CustomState;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
-import com.checkmarx.intellij.tool.window.ResultState;
+import com.checkmarx.intellij.tool.window.CustomResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.CxToolWindowAction;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.util.text.Strings;
 import com.intellij.util.messages.MessageBus;
 import com.intellij.util.messages.Topic;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Collections;
 
 /**
  * Base class for severity filters.
@@ -22,10 +26,18 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
     public static final Topic<FilterChanged> FILTER_CHANGED = Topic.create("Filter Changed", FilterChanged.class);
 
     private final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
-    private final Filterable filterable = getFilterable();
+    protected final Filterable filterable;
 
     public FilterBaseAction() {
         super();
+        filterable = getFilterable();
+        getTemplatePresentation().setText(filterable.tooltipSupplier());
+        getTemplatePresentation().setIcon(filterable.getIcon());
+    }
+
+    public FilterBaseAction(Filterable filterable) {
+        super();
+        this.filterable = filterable;
         getTemplatePresentation().setText(filterable.tooltipSupplier());
         getTemplatePresentation().setIcon(filterable.getIcon());
     }
@@ -119,87 +131,18 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
         }
     }
 
-    public static class ConfirmedFilter extends FilterBaseAction {
-
-        public ConfirmedFilter() {
-            super();
+    public static class CustomStateFilter extends FilterBaseAction {
+        public CustomStateFilter(CustomState customState) {
+            super(new CustomResultState(customState.getName()));
         }
 
         @Override
         protected Filterable getFilterable() {
-            return ResultState.CONFIRMED;
-        }
-    }
-
-    public static class UrgentFilter extends FilterBaseAction {
-
-        public UrgentFilter() {
-            super();
+            return filterable;
         }
 
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.URGENT;
-        }
-    }
-
-    public static class ToVerifyFilter extends FilterBaseAction {
-
-        public ToVerifyFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.TO_VERIFY;
-        }
-    }
-
-    public static class NotExploitableFilter extends FilterBaseAction {
-
-        public NotExploitableFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.NOT_EXPLOITABLE;
-        }
-    }
-
-    public static class ProposedNotExploitableFilter extends FilterBaseAction {
-
-        public ProposedNotExploitableFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.PROPOSED_NOT_EXPLOITABLE;
-        }
-    }
-
-    public static class IgnoredFilter extends FilterBaseAction {
-
-        public IgnoredFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.IGNORED;
-        }
-    }
-
-    public static class NotIgnoredFilter extends FilterBaseAction {
-
-        public NotIgnoredFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.NOT_IGNORED;
+        public Filterable getFilterable1() {
+            return filterable;
         }
     }
 

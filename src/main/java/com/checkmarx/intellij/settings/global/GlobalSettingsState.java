@@ -2,8 +2,9 @@ package com.checkmarx.intellij.settings.global;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
+import com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup;
+import com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * State object for not sensitive global settings for the plugin.
@@ -41,7 +43,7 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     private boolean asca = false;
 
     @NotNull
-    private Set<Filterable> filters = new HashSet<>(getDefaultFilters());
+    private Set<Filterable> filters = getDefaultFilters();
 
     @Override
     public @Nullable GlobalSettingsState getState() {
@@ -61,7 +63,7 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
         Set<Filterable> set = new HashSet<>();
 
         set.addAll(Severity.DEFAULT_SEVERITIES);
-        set.addAll(ResultState.DEFAULT_STATES);
+        set.addAll(DynamicFilterActionGroup.DEFAULT_STATES);
 
         return set;
     }

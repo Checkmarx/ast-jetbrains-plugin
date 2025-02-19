@@ -5,6 +5,7 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -140,6 +141,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
     private void refreshScanGroup(String projectId, String branch, boolean autoSelectLatest) {
         scanSelectionGroup.refresh(projectId, branch, autoSelectLatest);
         refreshPanel(project);
+        ResultNode.cs = null;
     }
 
     /**

@@ -5,13 +5,12 @@ import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.tool.window.CustomResultState;
 import com.checkmarx.intellij.tool.window.GroupBy;
-import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.NonLeafNode;
 import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.hover.TreeHoverListener;
 import com.intellij.ui.tree.ui.DefaultTreeUI;
@@ -23,7 +22,6 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.util.*;
 
-import static com.checkmarx.intellij.tool.window.GroupBy.PACKAGE;
 import static com.checkmarx.intellij.tool.window.GroupBy.SCA_TYPE;
 
 /**
@@ -57,7 +55,14 @@ public class ResultsTreeFactory {
         groupByList.remove(SCA_TYPE);
         groupByList.add(0, SCA_TYPE);
         for (Result result : results.getResults()) {
-            if (enabledFilters.contains(Severity.valueOf(result.getSeverity())) && enabledFilters.contains(ResultState.valueOf(result.getState()))) {
+
+            if (enabledFilters.contains(Severity.valueOf(result.getSeverity())) && enabledFilters.stream().anyMatch(f->{
+                if (f instanceof CustomResultState){
+                   return f.tooltipSupplier().get().equals(result.getState());
+                } else {
+                    return false;
+                }
+            })) {
                 addResultToEngine(project,
                         groupByList,
                         engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
