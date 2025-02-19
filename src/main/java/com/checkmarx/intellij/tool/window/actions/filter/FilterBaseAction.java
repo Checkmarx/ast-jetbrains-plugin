@@ -9,14 +9,10 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.util.text.Strings;
 import com.intellij.util.messages.MessageBus;
 import com.intellij.util.messages.Topic;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -38,10 +34,10 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
         getTemplatePresentation().setIcon(filterable.getIcon());
     }
 
-    public FilterBaseAction(Filterable filterable) {
+    public FilterBaseAction(CustomResultState filterable) {
         super();
         this.filterable = filterable;
-        getTemplatePresentation().setText(filterable.tooltipSupplier());
+        getTemplatePresentation().setText(filterable.getName());
         getTemplatePresentation().setIcon(filterable.getIcon());
     }
 
@@ -151,16 +147,16 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
     }
 
     public static class CustomStateFilter extends FilterBaseAction {
-        public CustomStateFilter(CustomState customState) {
-            super(new CustomResultState(customState.getName()));
+        public CustomStateFilter(String name) {
+            super(new CustomResultState(name));
+        }
+
+        public CustomStateFilter(String label, String name) {
+            super(new CustomResultState(label, name));
         }
 
         @Override
         protected Filterable getFilterable() {
-            return filterable;
-        }
-
-        public Filterable getFilterable1() {
             return filterable;
         }
     }
