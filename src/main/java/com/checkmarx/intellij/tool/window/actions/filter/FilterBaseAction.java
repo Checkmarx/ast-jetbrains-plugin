@@ -70,7 +70,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
         if (state) {
             if (filterable instanceof CustomResultState && filters.stream().noneMatch(f -> f instanceof CustomResultState && ((CustomResultState) f).getLabel().equals(((CustomResultState) filterable).getLabel()))) {
                 filters.add(filterable);
-            } else {
+            } else if (!(filterable instanceof CustomResultState)) {
                 filters.add(filterable);
             }
         } else {
