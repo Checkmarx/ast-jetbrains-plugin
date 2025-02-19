@@ -78,8 +78,7 @@
             <group id="Checkmarx.DynamicFilters"
                    class="com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup"
                    icon="AllIcons.General.Filter"
-                   popup="true"
-                   text="Dynamic Filters"/>
+                   popup="true"/>
             <separator/>
             <group id="Checkmarx.GroupBy"
                    icon="AllIcons.Actions.GroupBy"
