@@ -17,7 +17,7 @@ public class DynamicFilterActionGroup extends ActionGroup {
 
     @Getter
     static List<FilterBaseAction.CustomStateFilter> customStates = new ArrayList<>();
-    public static final Set<Filterable> DEFAULT_STATES = Set.of(new CustomResultState("Confirmed"),
+    public static final Set<Filterable> DEFAULT_STATES = Set.of(new CustomResultState("CONFIRMED"),
             new CustomResultState("TO_VERIFY"),
             new CustomResultState("URGENT"),
             new CustomResultState("NOT_EXPLOITABLE"),

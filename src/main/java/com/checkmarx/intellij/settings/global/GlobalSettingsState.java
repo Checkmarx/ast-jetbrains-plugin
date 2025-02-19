@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,6 +42,13 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     private String additionalParameters = "";
 
     private boolean asca = false;
+
+    public @NotNull Set<Filterable> getFilters() {
+        if (filters.isEmpty() || filters.stream().allMatch(Objects::isNull)) {
+            filters = getDefaultFilters();
+        }
+        return filters;
+    }
 
     @NotNull
     private Set<Filterable> filters = getDefaultFilters();

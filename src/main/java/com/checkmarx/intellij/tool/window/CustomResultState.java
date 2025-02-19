@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
+import gnu.trove.Equality;
 import lombok.Getter;
 
 import java.util.function.Supplier;
@@ -17,5 +18,4 @@ public class CustomResultState implements Filterable {
     public Supplier<String> tooltipSupplier() {
         return this::getLabel;
     }
-
 }

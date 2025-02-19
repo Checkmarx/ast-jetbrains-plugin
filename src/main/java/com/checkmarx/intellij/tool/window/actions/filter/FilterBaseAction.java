@@ -15,6 +15,9 @@ import com.intellij.util.messages.Topic;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Base class for severity filters.
@@ -48,6 +51,11 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
      */
     @Override
     public final boolean isSelected(@NotNull AnActionEvent e) {
+        Set<Filterable> filters = GlobalSettingsState.getInstance().getFilters();
+        if (filterable instanceof CustomResultState) {
+            return filters.stream()
+                    .anyMatch(f -> f instanceof CustomResultState && ((CustomResultState) f).getLabel().equals(((CustomResultState) filterable).getLabel()));
+        }
         return GlobalSettingsState.getInstance().getFilters().contains(filterable);
     }
 
@@ -58,10 +66,21 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
      */
     @Override
     public final void setSelected(@NotNull AnActionEvent e, boolean state) {
+        Set<Filterable> filters = GlobalSettingsState.getInstance().getFilters();
         if (state) {
-            GlobalSettingsState.getInstance().getFilters().add(filterable);
+            if (filterable instanceof CustomResultState && filters.stream().noneMatch(f -> f instanceof CustomResultState && ((CustomResultState) f).getLabel().equals(((CustomResultState) filterable).getLabel()))) {
+                filters.add(filterable);
+            } else {
+                filters.add(filterable);
+            }
         } else {
-            GlobalSettingsState.getInstance().getFilters().remove(filterable);
+            filters.removeIf((f)->{
+                if (f instanceof CustomResultState){
+                    return ((CustomResultState) f).getLabel().equals(((CustomResultState) filterable).getLabel());
+                } else {
+                    return false;
+                }
+            });
         }
         messageBus.syncPublisher(FILTER_CHANGED).filterChanged();
     }
