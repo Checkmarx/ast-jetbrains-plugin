@@ -71,10 +71,10 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
             }
         } else {
             filters.removeIf((f)->{
-                if (f instanceof CustomResultState){
+                if (filterable instanceof CustomResultState){
                     return ((CustomResultState) f).getLabel().equals(((CustomResultState) filterable).getLabel());
                 } else {
-                    return false;
+                    return f.equals(filterable);
                 }
             });
         }
