@@ -62,6 +62,5 @@ public interface CxToolWindowAction extends DumbAware {
      */
     default void refreshPanel(@NotNull Project project) {
         Optional.ofNullable(getCxToolWindowPanel(project)).ifPresent(CxToolWindowPanel::refreshPanel);
-        ResultNode.SastStateEnum.refreshStates();
     }
 }

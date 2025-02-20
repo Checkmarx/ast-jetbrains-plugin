@@ -37,7 +37,7 @@ public class DynamicFilterActionGroup extends ActionGroup {
             .map(CustomResultState::getLabel)
             .collect(Collectors.toUnmodifiableSet());
 
-    private List<CustomStateFilter> customStateFilters;
+    private static List<CustomStateFilter> customStateFilters;
 
     @Override
     public AnAction @NotNull [] getChildren(@NotNull AnActionEvent e) {
@@ -48,13 +48,28 @@ public class DynamicFilterActionGroup extends ActionGroup {
         return customStateFilters.toArray(new CustomStateFilter[0]);
     }
 
+    public static List<String> getStatesNameList(){
+        if (customStateFilters == null) {
+            customStateFilters = buildCustomStateFilters();
+        }
+        List<String> stateNameList = new ArrayList<>();
+        for (CustomStateFilter customStateFilter : customStateFilters) {
+            stateNameList.add(customStateFilter.getFilterable().getFilterValue());
+        }
+        return stateNameList;
+    }
+
+    public static void resetCustomStateFilters() {
+        customStateFilters = buildCustomStateFilters();
+    }
+
     /**
      * Builds a list of CustomStateFilter actions, including:
      *  - A filter for each DEFAULT_STATE
      *  - Filters for any "custom" states returned by the triageGetStates call,
      *    excluding those already in DEFAULT_STATES by label.
      */
-    private List<CustomStateFilter> buildCustomStateFilters() {
+    private static List<CustomStateFilter> buildCustomStateFilters() {
         List<CustomStateFilter> filters = new ArrayList<>();
 
         // 1. Add default states as filters

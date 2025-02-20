@@ -13,10 +13,6 @@ public class CustomStateFilter extends FilterBaseAction {
         super(customResultState);
     }
 
-    public CustomStateFilter(String label, String name) {
-        super(new CustomResultState(label, name));
-    }
-
     @Override
     protected Filterable getFilterable() {
         return filterable;
