@@ -9,8 +9,8 @@ import java.util.Set;
 
 public class CustomStateFilter extends FilterBaseAction {
 
-    public CustomStateFilter(String name) {
-        super(new CustomResultState(name));
+    public CustomStateFilter(CustomResultState customResultState) {
+        super(customResultState);
     }
 
     public CustomStateFilter(String label, String name) {
