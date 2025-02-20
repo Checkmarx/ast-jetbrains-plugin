@@ -23,22 +23,22 @@ public class DynamicFilterActionGroup extends ActionGroup {
             new CustomResultState("IGNORED", "Ignored"),
             new CustomResultState("NOT_IGNORED", "Not Ignored"));
 
-    private List<FilterBaseAction.CustomStateFilter> customStateFilters;
+    private List<CustomStateFilter> customStateFilters;
 
     @Override
     public AnAction @NotNull [] getChildren(@NotNull AnActionEvent e) {
         if (customStateFilters == null) {
             customStateFilters = buildCustomStateFilters();
         }
-        return customStateFilters.toArray(new FilterBaseAction.CustomStateFilter[0]);
+        return customStateFilters.toArray(new CustomStateFilter[0]);
     }
 
-    private List<FilterBaseAction.CustomStateFilter> buildCustomStateFilters() {
-        List<FilterBaseAction.CustomStateFilter> filters = new ArrayList<>();
+    private List<CustomStateFilter> buildCustomStateFilters() {
+        List<CustomStateFilter> filters = new ArrayList<>();
 
         // Add default states as filters.
         DEFAULT_STATES.forEach(state ->
-                filters.add(new FilterBaseAction.CustomStateFilter(state.getLabel(), state.getName()))
+                filters.add(new CustomStateFilter(state.getLabel(), state.getName()))
         );
 
         try {
@@ -51,7 +51,7 @@ public class DynamicFilterActionGroup extends ActionGroup {
             customStates.stream()
                     .filter(customState -> DEFAULT_STATES.stream()
                             .noneMatch(defaultState -> defaultState.getLabel().equals(customState.getName())))
-                    .map(state -> new FilterBaseAction.CustomStateFilter(state.getName()))
+                    .map(state -> new CustomStateFilter(state.getName()))
                     .forEach(filters::add);
         } catch (Exception ex) {
             // TODO: Log the exception appropriately.

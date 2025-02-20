@@ -24,7 +24,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
 
     public static final Topic<FilterChanged> FILTER_CHANGED = Topic.create("Filter Changed", FilterChanged.class);
 
-    private final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
+    protected final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
     protected final Filterable filterable;
 
     public FilterBaseAction() {
@@ -46,13 +46,9 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
      * Checks global settings for selection
      */
     @Override
-    public final boolean isSelected(@NotNull AnActionEvent e) {
+    public boolean isSelected(@NotNull AnActionEvent e) {
         Set<Filterable> filters = GlobalSettingsState.getInstance().getFilters();
-        if (filterable instanceof CustomResultState) {
-            return filters.stream()
-                    .anyMatch(f -> f instanceof CustomResultState && ((CustomResultState) f).getLabel().equals(((CustomResultState) filterable).getLabel()));
-        }
-        return GlobalSettingsState.getInstance().getFilters().contains(filterable);
+        return filters.contains(filterable);
     }
 
     /**
@@ -61,22 +57,11 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
      * All subscribing tool windows will redraw the results tree with the new filters.
      */
     @Override
-    public final void setSelected(@NotNull AnActionEvent e, boolean state) {
-        Set<Filterable> filters = GlobalSettingsState.getInstance().getFilters();
+    public void setSelected(@NotNull AnActionEvent e, boolean state) {
         if (state) {
-            if (filterable instanceof CustomResultState && filters.stream().noneMatch(f -> f instanceof CustomResultState && ((CustomResultState) f).getLabel().equals(((CustomResultState) filterable).getLabel()))) {
-                filters.add(filterable);
-            } else if (!(filterable instanceof CustomResultState)) {
-                filters.add(filterable);
-            }
+            GlobalSettingsState.getInstance().getFilters().add(filterable);
         } else {
-            filters.removeIf((f)->{
-                if (filterable instanceof CustomResultState){
-                    return ((CustomResultState) f).getLabel().equals(((CustomResultState) filterable).getLabel());
-                } else {
-                    return f.equals(filterable);
-                }
-            });
+            GlobalSettingsState.getInstance().getFilters().remove(filterable);
         }
         messageBus.syncPublisher(FILTER_CHANGED).filterChanged();
     }
@@ -143,21 +128,6 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
         @Override
         protected Filterable getFilterable() {
             return Severity.INFO;
-        }
-    }
-
-    public static class CustomStateFilter extends FilterBaseAction {
-        public CustomStateFilter(String name) {
-            super(new CustomResultState(name));
-        }
-
-        public CustomStateFilter(String label, String name) {
-            super(new CustomResultState(label, name));
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return filterable;
         }
     }
 
