@@ -77,8 +77,8 @@ public class DynamicFilterActionGroup extends ActionGroup {
                     .map(label -> new CustomStateFilter(new CustomResultState(label)))
                     .forEach(filters::add);
 
-        } catch (Exception ex) {
-            // TODO: Log the exception properly; falling back to default filters only
+        } catch (Exception ignored) {
+            // If we can't get custom states, just continue with defaults
         }
 
         return filters;
