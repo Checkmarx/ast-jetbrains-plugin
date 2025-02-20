@@ -28,6 +28,11 @@ public class CustomResultState implements Filterable, Comparable<CustomResultSta
         return this::getLabel;
     }
 
+    @Override
+    public String getFilterValue() {
+        return tooltipSupplier().get();
+    }
+
     public static CustomResultState valueOf(String label) {
         Set<Filterable> filters = GlobalSettingsState.getInstance().getFilters();
         return (CustomResultState) filters.stream()

@@ -21,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.tool.window.GroupBy.SCA_TYPE;
 
@@ -54,21 +55,23 @@ public class ResultsTreeFactory {
         // Make sure sca type groupBy is always applied first
         groupByList.remove(SCA_TYPE);
         groupByList.add(0, SCA_TYPE);
-        for (Result result : results.getResults()) {
 
-            if (enabledFilters.contains(Severity.valueOf(result.getSeverity())) && enabledFilters.stream().anyMatch(f->{
-                if (f instanceof CustomResultState){
-                   return f.tooltipSupplier().get().equals(result.getState());
-                } else {
-                    return false;
-                }
-            })) {
-                addResultToEngine(project,
+        // Collect all enabled filter values into a single set
+        Set<String> enabledFilterValues = enabledFilters.stream()
+                .map(Filterable::getFilterValue)
+                .collect(Collectors.toSet());
+
+        // Stream over results and filter
+        results.getResults().stream()
+                .filter(result -> enabledFilterValues.contains(result.getSeverity())
+                        && enabledFilterValues.contains(result.getState()))
+                .forEach(result -> addResultToEngine(
+                        project,
                         groupByList,
                         engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
-                        result, scanId);
-            }
-        }
+                        result,
+                        scanId
+                ));
 
         for (DefaultMutableTreeNode node : engineNodes.values()) {
             ((DefaultMutableTreeNode) tree.getModel().getRoot()).add(node);
