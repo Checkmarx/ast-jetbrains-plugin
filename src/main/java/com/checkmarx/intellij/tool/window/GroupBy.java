@@ -65,7 +65,7 @@ public enum GroupBy {
             return Comparator.comparing(Severity::valueOf);
         }
         if (this == STATE) {
-            return Comparator.comparing(ResultState::valueOf);
+            return Comparator.comparing(CustomResultState::valueOf);
         }
         if (this == VULNERABILITY_TYPE_NAME) {
             return String::compareTo;
