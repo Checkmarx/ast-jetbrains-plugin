@@ -2,6 +2,7 @@ package com.checkmarx.intellij.tool.window.actions;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
+import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -61,5 +62,6 @@ public interface CxToolWindowAction extends DumbAware {
      */
     default void refreshPanel(@NotNull Project project) {
         Optional.ofNullable(getCxToolWindowPanel(project)).ifPresent(CxToolWindowPanel::refreshPanel);
+        ResultNode.SastStateEnum.refreshStates();
     }
 }

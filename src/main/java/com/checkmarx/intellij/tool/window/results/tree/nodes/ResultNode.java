@@ -20,6 +20,7 @@ import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
+import com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup;
 import com.intellij.icons.AllIcons;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -68,6 +69,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.checkmarx.intellij.Constants.DEFAULT_COLUMN;
 
@@ -99,12 +101,21 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     public static class SastStateEnum {
-        List<CustomState> cs = null;
-        public SastStateEnum(List<CustomState> cs) {
-            this.cs = cs;
-        }
-        public List<String> getStates() {
+        static List<CustomState> cs;
+
+        public static List<String> getStates() {
+            try {
+                if (cs == null) {
+                    cs = CxWrapperFactory.build(GlobalSettingsState.getInstance(), GlobalSettingsSensitiveState.getInstance()).triageGetStates(false);
+                }
+            } catch (Exception ignore) {
+                return Stream.of(StateEnum.values()).map(Enum::name).collect(Collectors.toList());
+            }
             return cs.stream().map(CustomState::getName).collect(Collectors.toList());
+        }
+
+        public static void refreshStates() {
+            cs = null;
         }
     }
 
@@ -125,13 +136,13 @@ public class ResultNode extends DefaultMutableTreeNode {
         this.packageData = Optional.ofNullable(this.result.getData().getPackageData()).orElse(Collections.emptyList());
 
         String labelBuilder = (result.getData().getQueryName() != null
-                               ? result.getData().getQueryName()
-                               : result.getId());
+                ? result.getData().getQueryName()
+                : result.getId());
         int nodeCount = nodes.size();
         if (nodeCount > 0) {
             Node node = result.getData()
-                              .getNodes()
-                              .get(0);
+                    .getNodes()
+                    .get(0);
             labelBuilder += String.format(" (%s:%d)", new File(node.getFileName()).getName(), node.getLine());
         }
         this.label = labelBuilder;
@@ -159,12 +170,12 @@ public class ResultNode extends DefaultMutableTreeNode {
             secondPanel = buildPackageDataPanel(packageData);
         } else if (StringUtils.isNotBlank(result.getData().getFileName())) {
             secondPanel = buildVulnerabilityLocation(project,
-                                                     result.getData().getFileName(),
-                                                     result.getData().getLine(),
-                                                     DEFAULT_COLUMN);
+                    result.getData().getFileName(),
+                    result.getData().getLine(),
+                    DEFAULT_COLUMN);
         }
 
-        if(!result.getType().equals(Constants.SCAN_TYPE_SCA)){
+        if (!result.getType().equals(Constants.SCAN_TYPE_SCA)) {
             OnePixelSplitter splitter = new OnePixelSplitter();
             splitter.setFirstComponent(PaneUtils.inVerticalScrollPane(details));
             splitter.setSecondComponent(PaneUtils.inVerticalScrollPane(secondPanel));
@@ -176,7 +187,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     }
 
     @NotNull
-    private  JPanel buildScaPanel(Result result, @NotNull Runnable runnableDraw, Runnable runnableUpdater) {
+    private JPanel buildScaPanel(Result result, @NotNull Runnable runnableDraw, Runnable runnableUpdater) {
         String type = "Vulnerability";
         String cveName = result.getVulnerabilityDetails().getCveName() != null ? result.getVulnerabilityDetails().getCveName() : result.getVulnerabilityDetails().getCweId();
         String score = Double.toString(result.getVulnerabilityDetails().getCvssScore());
@@ -208,7 +219,8 @@ public class ResultNode extends DefaultMutableTreeNode {
         drawSCAAboutVulnerability(result, scaBody);
 
         //Vulnerability Path
-        drawSCAVulnerabilityPath(result, scaBody);;
+        drawSCAVulnerabilityPath(result, scaBody);
+        ;
 
         //References
         drawSCAReferences(result, scaBody);
@@ -303,7 +315,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         JLabel aboutVulnerability = new JLabel(Bundle.message(Resource.ABOUT_VULNERABILITY));
         aboutVulnerability.setBorder(JBUI.Borders.empty(0, 10, 20, 0));
-        if(result.getData().getScaPackageData() != null && StringUtils.isNotBlank(result.getData().getScaPackageData().getFixLink())) {
+        if (result.getData().getScaPackageData() != null && StringUtils.isNotBlank(result.getData().getScaPackageData().getFixLink())) {
             aboutVulnerability.setIcon(CxIcons.ABOUT);
             aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
             aboutVulnerability.addMouseListener(new MouseAdapter() {
@@ -313,7 +325,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                     Desktop.getDesktop().browse(new URI(result.getData().getScaPackageData().getFixLink()));
                 }
             });
-        }else{
+        } else {
             aboutVulnerability.setIcon(CxIcons.ABOUT);
             aboutVulnerability.setText(Bundle.message(Resource.ABOUT_VULNERABILITY));
             aboutVulnerability.setEnabled(false);
@@ -335,19 +347,19 @@ public class ResultNode extends DefaultMutableTreeNode {
         vulnerabilitiesPanel.setBorder(JBUI.Borders.empty(0, 10, 20, 0));
         vulnerabilitiesPanel.setLayout(new BoxLayout(vulnerabilitiesPanel, BoxLayout.Y_AXIS));
 
-        if(dependencyPaths != null) {
-            for(int i = 0; i < dependencyPaths.size(); i++) {
+        if (dependencyPaths != null) {
+            for (int i = 0; i < dependencyPaths.size(); i++) {
                 StringBuilder vulnerabilities = new StringBuilder();
-                for(int j = 0; j < dependencyPaths.get(i).size(); j++) {
+                for (int j = 0; j < dependencyPaths.get(i).size(); j++) {
                     vulnerabilities.append(dependencyPaths.get(i).get(j).getName());
-                    if(j != dependencyPaths.get(i).size()-1) {
+                    if (j != dependencyPaths.get(i).size() - 1) {
                         vulnerabilities.append(" -> ");
                     }
                 }
                 JPanel locs = new JPanel(new MigLayout("fillx"));
 
-                if(dependencyPaths.get(i).get(0).getLocations() != null && dependencyPaths.get(i).get(0).getLocations().size() != 0){
-                    for(int r=0; r < dependencyPaths.get(i).get(0).getLocations().size(); r++){
+                if (dependencyPaths.get(i).get(0).getLocations() != null && dependencyPaths.get(i).get(0).getLocations().size() != 0) {
+                    for (int r = 0; r < dependencyPaths.get(i).get(0).getLocations().size(); r++) {
                         FileNode fileNode = FileNode.builder().fileName(dependencyPaths.get(i).get(0).getLocations().get(r)).line(0).column(0).build();
 
                         CxLinkLabel locations = new CxLinkLabel(dependencyPaths.get(i).get(0).getLocations().get(r), mouseEvent -> navigate(project, fileNode));
@@ -386,11 +398,11 @@ public class ResultNode extends DefaultMutableTreeNode {
         int g = JBColor.BLUE.getGreen();
         int b = JBColor.BLUE.getBlue();
         String hex = String.format("#%02x%02x%02x", r, g, b);
-        if(result.getData().getScaPackageData() != null && result.getData().getPackageData() != null) {
+        if (result.getData().getScaPackageData() != null && result.getData().getPackageData() != null) {
             for (int i = 0; i < result.getData().getPackageData().size(); i++) {
                 PackageData packageData = result.getData().getPackageData().get(i);
                 JLabel packageName;
-                if(StringUtils.isNotBlank(packageData.getUrl())) {
+                if (StringUtils.isNotBlank(packageData.getUrl())) {
                     packageName = new JLabel(String.format(Constants.HTML_FONT_BLUE_FORMAT, hex, result.getData().getPackageData().get(i).getType()));
                     packageName.setCursor(new Cursor(Cursor.HAND_CURSOR));
                     packageName.addMouseListener(new MouseAdapter() {
@@ -429,38 +441,38 @@ public class ResultNode extends DefaultMutableTreeNode {
                 return;
             }
             List<List<DependencyPath>> dependencyPaths = result.getData()
-                                                               .getScaPackageData()
-                                                               .getDependencyPaths();
+                    .getScaPackageData()
+                    .getDependencyPaths();
             boolean error = false;
             for (List<DependencyPath> dependencyPath : dependencyPaths) {
                 DependencyPath head = dependencyPath.get(0);
                 if (head.isSupportsQuickFix()) {
                     StringBuilder locationFullPaths = new StringBuilder();
                     head.getLocations()
-                        .forEach(l -> locationFullPaths.append(Paths.get(baseDir, l)).append(","));
+                            .forEach(l -> locationFullPaths.append(Paths.get(baseDir, l)).append(","));
                     locationFullPaths.deleteCharAt(locationFullPaths.length() - 1);
                     try {
                         CxWrapperFactory.build()
-                                        .scaRemediation(locationFullPaths.toString(),
-                                                        head.getName(),
-                                                        result.getData().getRecommendedVersion());
+                                .scaRemediation(locationFullPaths.toString(),
+                                        head.getName(),
+                                        result.getData().getRecommendedVersion());
                     } catch (CxException | InterruptedException | IOException ex) {
                         error = true;
                         Utils.notify(project,
-                                     Bundle.message(Resource.AUTO_REMEDIATION_FAIL,
-                                                    result.getData().getPackageIdentifier(),
-                                                    locationFullPaths),
-                                     NotificationType.WARNING);
+                                Bundle.message(Resource.AUTO_REMEDIATION_FAIL,
+                                        result.getData().getPackageIdentifier(),
+                                        locationFullPaths),
+                                NotificationType.WARNING);
                         LOGGER.warn(ex);
                     }
                 }
             }
             if (!error) {
                 Utils.notify(project,
-                             Bundle.message(Resource.AUTO_REMEDIATION_OK,
-                                            result.getData().getPackageIdentifier(),
-                                            result.getData().getRecommendedVersion()),
-                             NotificationType.INFORMATION);
+                        Bundle.message(Resource.AUTO_REMEDIATION_OK,
+                                result.getData().getPackageIdentifier(),
+                                result.getData().getRecommendedVersion()),
+                        NotificationType.INFORMATION);
             }
         }).thenAcceptAsync((reply) -> ApplicationManager.getApplication().invokeLater(() -> {
             remediation.setEnabled(true);
@@ -470,7 +482,7 @@ public class ResultNode extends DefaultMutableTreeNode {
     /**
      * Create a section title in the panel
      *
-     * @param scaBody - body panel
+     * @param scaBody  - body panel
      * @param resource - message recourse
      */
     private void addSectionTitle(JPanel scaBody, Resource resource) {
@@ -512,21 +524,8 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel triageForm = new JPanel(new MigLayout("fillx"));
         JButton updateButton = new JButton();
         updateButton.setText("Update");
-        final ComboBox<String> stateComboBox;
-        if(result.getType().equals(CxConstants.SAST)){
-            try {
-                if (cs == null){
-                    cs = CxWrapperFactory.build(GlobalSettingsState.getInstance(), GlobalSettingsSensitiveState.getInstance()).triageGetStates(false);
-                }
-            } catch (Exception ignore){
-
-            }
-            //Constructing selection of State combobox
-            stateComboBox = new ComboBox<>(new SastStateEnum(cs).getStates().toArray(new String[0]));
-        }
-        else {
-            stateComboBox = new ComboBox<>(Arrays.stream(StateEnum.values()).map(Enum::name).toArray(String[]::new));
-        }
+        final ComboBox<String> stateComboBox = (result.getType().equals(CxConstants.SAST)) ? new ComboBox<>(SastStateEnum.getStates().toArray(new String[0]))
+                : new ComboBox<>(Arrays.stream(StateEnum.values()).map(Enum::name).toArray(String[]::new));;
 
         stateComboBox.setEditable(true);
         stateComboBox.setSelectedItem(result.getState());
@@ -543,25 +542,25 @@ public class ResultNode extends DefaultMutableTreeNode {
         commentText = new JTextField(Bundle.message(Resource.COMMENT_PLACEHOLDER));
         commentText.setForeground(JBColor.GRAY);
         commentText.addFocusListener(new FocusListener() {
-        private boolean userEdited = false;
+            private boolean userEdited = false;
 
-        @Override
-        public void focusGained(FocusEvent e) {
-            if (commentText.getText().equals(Bundle.message(Resource.COMMENT_PLACEHOLDER)) && !userEdited) {
-                userEdited = true;
-                commentText.setText("");
-                commentText.setForeground(JBColor.BLACK);
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (commentText.getText().equals(Bundle.message(Resource.COMMENT_PLACEHOLDER)) && !userEdited) {
+                    userEdited = true;
+                    commentText.setText("");
+                    commentText.setForeground(JBColor.BLACK);
+                }
             }
-        }
 
-        @Override
-        public void focusLost(FocusEvent e) {
-            if (commentText.getText().isEmpty()) {
-                userEdited = false;
-                commentText.setForeground(JBColor.GRAY);
-                commentText.setText(Bundle.message(Resource.COMMENT_PLACEHOLDER));
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (commentText.getText().isEmpty()) {
+                    userEdited = false;
+                    commentText.setForeground(JBColor.GRAY);
+                    commentText.setText(Bundle.message(Resource.COMMENT_PLACEHOLDER));
+                }
             }
-        }
         });
         //Button action
         updateButton.addActionListener(e -> {
@@ -570,10 +569,10 @@ public class ResultNode extends DefaultMutableTreeNode {
             Object selectedSeverity = severityComboBox.getSelectedItem();
             if (selectedState == null || selectedSeverity == null) {
                 Utils.getLogger(ResultNode.class)
-                     .info("found null value when triaging, aborting. state "
-                          + selectedState
-                          + " severity "
-                          + selectedSeverity);
+                        .info("found null value when triaging, aborting. state "
+                                + selectedState
+                                + " severity "
+                                + selectedSeverity);
                 return;
             }
             String newState = selectedState.toString();
@@ -608,7 +607,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         triageForm.add(severityComboBox, "growx");
         triageForm.add(stateComboBox, "growx");
-        if(triageEnabled){
+        if (triageEnabled) {
             triageForm.add(updateButton, "growx, wrap");
             triageForm.add(commentText, "span, growx");
         }
@@ -623,17 +622,17 @@ public class ResultNode extends DefaultMutableTreeNode {
         if (StringUtils.isNotBlank(description)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
             descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)),
-                                 "wrap, gapbottom 5");
+                    "wrap, gapbottom 5");
         }
         if (StringUtils.isNotBlank(result.getData().getValue()) && StringUtils.isNotBlank(result.getData()
-                                                                                                .getExpectedValue())) {
+                .getExpectedValue())) {
 
             descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
-                                                           Bundle.message(Resource.ACTUAL_VALUE),
-                                                           result.getData().getValue())), "span, growx, wrap");
+                    Bundle.message(Resource.ACTUAL_VALUE),
+                    result.getData().getValue())), "span, growx, wrap");
             descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
-                                                           Bundle.message(Resource.EXPECTED_VALUE),
-                                                           result.getData().getExpectedValue())), "span, growx, wrap");
+                    Bundle.message(Resource.EXPECTED_VALUE),
+                    result.getData().getExpectedValue())), "span, growx, wrap");
         }
         tabbedPane.add(Bundle.message(Resource.DESCRIPTION), descriptionPanel);
 
@@ -668,8 +667,8 @@ public class ResultNode extends DefaultMutableTreeNode {
 
     private void createChangesPanels(JPanel triageChanges, Predicate predicate) {
         JLabel firstLabel = new JLabel(String.format("<html><b>%s</b> | %s</html>",
-                                                     boldLabel(predicate.getCreatedBy()).getText(),
-                                                     Utils.dateParser(predicate.getCreatedAt())));
+                boldLabel(predicate.getCreatedBy()).getText(),
+                Utils.dateParser(predicate.getCreatedAt())));
         triageChanges.add(firstLabel, "span, wrap");
 
         JLabel severityLabel = new JLabel(String.format("<html>%s</html>", predicate.getSeverity()));
@@ -724,8 +723,8 @@ public class ResultNode extends DefaultMutableTreeNode {
             return Collections.emptyList();
         }).thenAccept(learnMoreList -> ApplicationManager.getApplication().invokeLater(() -> {
             for (LearnMore learnMore : learnMoreList) {
-                generateLearnMore(learnMore,learnMorePanel);
-                generateCodeSamples(learnMore,codeSamplesPanel);
+                generateLearnMore(learnMore, learnMorePanel);
+                generateCodeSamples(learnMore, codeSamplesPanel);
             }
             runnableUpdater.run();
         }));
@@ -747,7 +746,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
             String labelContent = String.format(Constants.NODE_FORMAT, i + 1, node.getName());
 
-            BoldLabel label = new BoldLabel(labelContent,SwingConstants.LEFT);
+            BoldLabel label = new BoldLabel(labelContent, SwingConstants.LEFT);
             label.setOpaque(true);
 
             CxLinkLabel link = new CxLinkLabel(capToLen(node.getFileName()),
@@ -787,8 +786,8 @@ public class ResultNode extends DefaultMutableTreeNode {
         addHeader(panel, Resource.PACKAGE_DATA);
         for (PackageData pkg : packageData) {
             String labelContent = String.format(Constants.NODE_FORMAT,
-                                                pkg.getType(),
-                                                "");
+                    pkg.getType(),
+                    "");
             BoldLabel label = new BoldLabel(labelContent);
             label.setOpaque(true);
             JComponent link = CxLinkLabel.buildDocLinkLabel(pkg.getUrl(), pkg.getUrl());
@@ -870,15 +869,15 @@ public class ResultNode extends DefaultMutableTreeNode {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     handleFileRemediationClick(buttonPanel,
-                                               icon,
-                                               dependencyPath.getLocations().get(r),
-                                               result,
-                                               result.getData()
-                                                     .getScaPackageData()
-                                                     .getDependencyPaths()
-                                                     .get(i)
-                                                     .get(0)
-                                                     .getName());
+                            icon,
+                            dependencyPath.getLocations().get(r),
+                            result,
+                            result.getData()
+                                    .getScaPackageData()
+                                    .getDependencyPaths()
+                                    .get(i)
+                                    .get(0)
+                                    .getName());
                 }
             };
             buttonPanel.add(icon);
@@ -909,20 +908,20 @@ public class ResultNode extends DefaultMutableTreeNode {
             }
             try {
                 CxWrapperFactory.build()
-                                .scaRemediation(Paths.get(baseDir, location).toString(),
-                                                name,
-                                                result.getData().getRecommendedVersion());
+                        .scaRemediation(Paths.get(baseDir, location).toString(),
+                                name,
+                                result.getData().getRecommendedVersion());
                 Utils.notify(project,
-                             Bundle.message(Resource.AUTO_REMEDIATION_OK,
-                                            result.getData().getPackageIdentifier(),
-                                            result.getData().getRecommendedVersion()),
-                             NotificationType.INFORMATION);
+                        Bundle.message(Resource.AUTO_REMEDIATION_OK,
+                                result.getData().getPackageIdentifier(),
+                                result.getData().getRecommendedVersion()),
+                        NotificationType.INFORMATION);
             } catch (CxException | IOException | InterruptedException ex) {
                 Utils.notify(project,
-                             Bundle.message(Resource.AUTO_REMEDIATION_FAIL,
-                                            result.getData().getPackageIdentifier(),
-                                            location),
-                             NotificationType.WARNING);
+                        Bundle.message(Resource.AUTO_REMEDIATION_FAIL,
+                                result.getData().getPackageIdentifier(),
+                                location),
+                        NotificationType.WARNING);
                 LOGGER.warn(ex);
             }
         }).thenAcceptAsync((reply) -> ApplicationManager.getApplication().invokeLater(() -> {
@@ -949,26 +948,26 @@ public class ResultNode extends DefaultMutableTreeNode {
         String fileName = fileNode.getFileName();
         Utils.runAsyncReadAction(() -> {
             List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(project, FilenameUtils.getName(fileName),
-                                                                          GlobalSearchScope.projectScope(project))
-                                                   .stream()
-                                                   .filter(f -> f.getPath().contains(fileName))
-                                                   .collect(Collectors.toList());
+                            GlobalSearchScope.projectScope(project))
+                    .stream()
+                    .filter(f -> f.getPath().contains(fileName))
+                    .collect(Collectors.toList());
             if (files.isEmpty()) {
                 Utils.notify(project,
-                             Bundle.message(Resource.MISSING_FILE, fileName),
-                             NotificationType.WARNING);
+                        Bundle.message(Resource.MISSING_FILE, fileName),
+                        NotificationType.WARNING);
             } else {
                 if (files.size() > 1) {
                     Utils.notify(project,
-                                 Bundle.message(Resource.MULTIPLE_FILES, fileName),
-                                 NotificationType.WARNING);
+                            Bundle.message(Resource.MULTIPLE_FILES, fileName),
+                            NotificationType.WARNING);
                 }
                 for (VirtualFile file : files) {
 
                     OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(project,
-                                                                                   file,
-                                                                                   fileNode.getLine() - 1,
-                                                                                   fileNode.getColumn() - 1);
+                            file,
+                            fileNode.getLine() - 1,
+                            fileNode.getColumn() - 1);
                     ApplicationManager.getApplication().invokeLater(() -> openFileDescriptor.navigate(true));
                 }
             }
@@ -990,21 +989,21 @@ public class ResultNode extends DefaultMutableTreeNode {
             InterruptedException {
 
         return CxWrapperFactory.build()
-                               .getResultsBfl(UUID.fromString(scanId), result.getData().getQueryId(), getNodes());
+                .getResultsBfl(UUID.fromString(scanId), result.getData().getQueryId(), getNodes());
     }
 
     @NotNull
     private static String capToLen(String fileName) {
         return fileName.length() > Constants.FILE_PATH_MAX_LEN
-               ? Constants.COLLAPSE_CRUMB + fileName.substring(fileName.length() - Constants.FILE_PATH_MAX_LEN
-                                                               + Constants.COLLAPSE_CRUMB.length())
-               : fileName;
+                ? Constants.COLLAPSE_CRUMB + fileName.substring(fileName.length() - Constants.FILE_PATH_MAX_LEN
+                + Constants.COLLAPSE_CRUMB.length())
+                : fileName;
     }
 
     private static void toggleHover(JComponent component, boolean hover) {
         component.setBackground(hover
-                                ? JBUI.CurrentTheme.List.Hover.background(true)
-                                : JBUI.CurrentTheme.List.BACKGROUND);
+                ? JBUI.CurrentTheme.List.Hover.background(true)
+                : JBUI.CurrentTheme.List.BACKGROUND);
         component.repaint();
     }
 
@@ -1017,28 +1016,28 @@ public class ResultNode extends DefaultMutableTreeNode {
 
             Desktop.getDesktop().browse(new URI(response.getPath()));
 
-            } catch (CxException error) {
-                if (error.getExitCode() == Constants.LICENSE_NOT_FOUND_EXIT_CODE) {
-                    Utils.notify(project,
-                            String.format("<html>%s <a href=%s>%s</a> </html>",
-                                    Bundle.message(Resource.CODEBASHING_NO_LICENSE),
-                                    Bundle.message(Resource.CODEBASHING_LINK),
-                                    Bundle.message(Resource.CODEBASHING_LINK)),
-                            NotificationType.WARNING
-                    );
-                } else if (error.getExitCode() == Constants.LESSON_NOT_FOUND_EXIT_CODE) {
-                    Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
-                    Utils.notify(project,
-                            Bundle.message(Resource.CODEBASHING_NO_LESSON),
-                            NotificationType.WARNING
-                    );
-                } else {
-                    Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
-                }
-
-            } catch (InterruptedException error) {
+        } catch (CxException error) {
+            if (error.getExitCode() == Constants.LICENSE_NOT_FOUND_EXIT_CODE) {
+                Utils.notify(project,
+                        String.format("<html>%s <a href=%s>%s</a> </html>",
+                                Bundle.message(Resource.CODEBASHING_NO_LICENSE),
+                                Bundle.message(Resource.CODEBASHING_LINK),
+                                Bundle.message(Resource.CODEBASHING_LINK)),
+                        NotificationType.WARNING
+                );
+            } else if (error.getExitCode() == Constants.LESSON_NOT_FOUND_EXIT_CODE) {
+                Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+                Utils.notify(project,
+                        Bundle.message(Resource.CODEBASHING_NO_LESSON),
+                        NotificationType.WARNING
+                );
+            } else {
                 Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
             }
+
+        } catch (InterruptedException error) {
+            Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
+        }
     }
 
     public void generateLearnMore(@NotNull LearnMore learnMore, JPanel panel) {
@@ -1048,7 +1047,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         String risk = learnMore.getRisk();
         if (StringUtils.isNotBlank(risk)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, risk.replaceAll("\n","<br/>"))),
+            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, risk.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
         }
 
@@ -1058,7 +1057,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         String cause = learnMore.getCause();
         if (StringUtils.isNotBlank(cause)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, cause.replaceAll("\n","<br/>"))),
+            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, cause.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
         }
 
@@ -1068,27 +1067,26 @@ public class ResultNode extends DefaultMutableTreeNode {
         String recommendations = learnMore.getGeneralRecommendations();
         if (StringUtils.isNotBlank(cause)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, recommendations.replaceAll("\n","<br/>"))),
+            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, recommendations.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
         }
     }
 
     public void generateCodeSamples(@NotNull LearnMore learnMore, JPanel panel) {
         List<Sample> samples = learnMore.getSamples();
-        if(samples.size()>0){
+        if (samples.size() > 0) {
             for (Sample sample : samples) {
                 String title = sample.getTitle();
                 panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, title + Constants.REMEDIATION_EXAMPLES_USING + sample.getProgLanguage())),
-                    "wrap, gapbottom 3, gapleft 0");
+                        "wrap, gapbottom 3, gapleft 0");
                 JEditorPane editor = new JEditorPane();
                 editor.setEditable(false);
-                editor.setMinimumSize(new Dimension(418,30));
+                editor.setMinimumSize(new Dimension(418, 30));
                 editor.setText(sample.getCode());
                 editor.setMargin(new Insets(10, 10, 10, 10));
-                panel.add(editor,"wrap, gapbottom 3, gapleft 0");
+                panel.add(editor, "wrap, gapbottom 3, gapleft 0");
             }
-        }
-        else{
+        } else {
             panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, Resource.NO_REMEDIATION_EXAMPLES)),
                     "wrap, gapbottom 3, gapleft 0");
         }
