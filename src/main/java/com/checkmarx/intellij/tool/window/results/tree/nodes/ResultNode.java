@@ -81,7 +81,6 @@ import static com.checkmarx.intellij.Constants.DEFAULT_COLUMN;
 @Getter
 @EqualsAndHashCode(callSuper = true)
 public class ResultNode extends DefaultMutableTreeNode {
-    public static List<CustomState> cs = null;
     private static final Logger LOGGER = Utils.getLogger(ResultNode.class);
 
     private final String label;

@@ -141,7 +141,6 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
     private void refreshScanGroup(String projectId, String branch, boolean autoSelectLatest) {
         scanSelectionGroup.refresh(projectId, branch, autoSelectLatest);
         refreshPanel(project);
-        ResultNode.cs = null;
     }
 
     /**
