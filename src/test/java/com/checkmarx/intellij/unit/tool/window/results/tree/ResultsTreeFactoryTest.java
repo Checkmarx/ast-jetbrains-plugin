@@ -3,8 +3,8 @@ package com.checkmarx.intellij.unit.tool.window.results.tree;
 import com.checkmarx.ast.results.Results;
 import com.checkmarx.ast.results.result.Data;
 import com.checkmarx.ast.results.result.Result;
+import com.checkmarx.intellij.tool.window.CustomResultState;
 import com.checkmarx.intellij.tool.window.GroupBy;
-import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.checkmarx.intellij.tool.window.results.tree.ResultsTreeFactory;
@@ -51,7 +51,7 @@ class ResultsTreeFactoryTest {
 
         enabledFilters = new HashSet<>();
         enabledFilters.add(Severity.HIGH);
-        enabledFilters.add(ResultState.TO_VERIFY);
+        enabledFilters.add(new CustomResultState("TO_VERIFY", "To Verify"));
 
         // Set up default mock result
         when(mockResult.getSeverity()).thenReturn("HIGH");

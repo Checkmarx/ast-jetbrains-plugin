@@ -1,5 +1,7 @@
 package com.checkmarx.intellij.tool.window.actions.filter;
 
+import org.jetbrains.annotations.NotNull;
+
 import javax.swing.*;
 import java.util.function.Supplier;
 
