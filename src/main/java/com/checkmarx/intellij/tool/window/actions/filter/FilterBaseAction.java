@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.tool.window.actions.filter;
 
-import com.checkmarx.ast.predicate.CustomState;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.tool.window.CustomResultState;
 import com.checkmarx.intellij.tool.window.Severity;

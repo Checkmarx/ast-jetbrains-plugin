@@ -4,7 +4,6 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup;
-import com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
@@ -21,7 +20,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * State object for not sensitive global settings for the plugin.
