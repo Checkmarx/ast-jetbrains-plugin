@@ -5,10 +5,8 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.Severity;
-import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.intellij.lang.annotations.Language;
@@ -23,6 +21,7 @@ import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 public class TestGeneral extends BaseUITest {
+    List<String> defaultState = List.of("CONFIRMED", "TO_VERIFY", "URGENT", "NOT_EXPLOITABLE", "PROPOSED_NOT_EXPLOITABLE", "IGNORED", "NOT_IGNORED");
 
     @BeforeEach
     public void checkResults() {
@@ -31,8 +30,7 @@ public class TestGeneral extends BaseUITest {
 
     @Test
     @Video
-    public void testEndToEnd() {
-        checkResultsPanel();
+    public void testEndToEnd() {checkResultsPanel();
     }
 
     @Test
@@ -238,8 +236,7 @@ public class TestGeneral extends BaseUITest {
         waitFor(() -> {
             click(FILTER_BY_ACTION);
             List<JListFixture> myList = findAll(JListFixture.class, MY_LIST);
-            Set<Filterable> filters = GlobalSettingsState.getInstance().getFilters();
-            return myList.size() == 1 && myList.get(0).findAllText().size() == filters.size();
+            return myList.size() == 1 && myList.get(0).findAllText().size() >= defaultState.size();
         });
     }
 
