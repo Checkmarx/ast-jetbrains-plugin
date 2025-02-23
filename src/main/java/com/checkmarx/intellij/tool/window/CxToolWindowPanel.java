@@ -6,6 +6,7 @@ import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.project.ProjectResultsService;
+import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
@@ -327,7 +328,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         updateDisplay();
 
         // reset custom filters
-        DynamicFilterActionGroup.refreshCustomStateFilters();
+        StateService.refreshCustomStateFilters();
 
         // updates to variables wrapped in an invokeLater call so the Swing EDT performs the update
         // in a single threaded manner

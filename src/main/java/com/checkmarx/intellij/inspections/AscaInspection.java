@@ -2,7 +2,7 @@ package com.checkmarx.intellij.inspections;
 
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.intellij.ASCA.AscaService;
+import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.inspections.quickfixes.AscaQuickFix;

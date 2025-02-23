@@ -14,6 +14,7 @@ import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.components.PaneUtils;
+import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
@@ -500,7 +501,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel triageForm = new JPanel(new MigLayout("fillx"));
         JButton updateButton = new JButton();
         updateButton.setText("Update");
-        final ComboBox<String> stateComboBox = (result.getType().equals(CxConstants.SAST)) ? new ComboBox<>(DynamicFilterActionGroup.getStatesNameListForSastTriage().toArray(new String[0]))
+        final ComboBox<String> stateComboBox = (result.getType().equals(CxConstants.SAST)) ? new ComboBox<>(StateService.getStatesNameListForSastTriage().toArray(new String[0]))
                 : new ComboBox<>(Arrays.stream(StateEnum.values()).map(Enum::name).toArray(String[]::new));;
 
         stateComboBox.setEditable(true);

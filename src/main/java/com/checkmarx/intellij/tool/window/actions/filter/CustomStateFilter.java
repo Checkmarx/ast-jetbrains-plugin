@@ -14,7 +14,7 @@ public class CustomStateFilter extends FilterBaseAction {
     }
 
     @Override
-    protected Filterable getFilterable() {
+    public Filterable getFilterable() {
         return filterable;
     }
 

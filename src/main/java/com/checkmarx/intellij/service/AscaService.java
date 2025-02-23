@@ -1,7 +1,6 @@
-package com.checkmarx.intellij.ASCA;
+package com.checkmarx.intellij.service;
 
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.ASCA;
