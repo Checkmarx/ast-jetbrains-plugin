@@ -3,7 +3,6 @@ package com.checkmarx.intellij.tool.window.results.tree.nodes;
 import com.checkmarx.ast.codebashing.CodeBashing;
 import com.checkmarx.ast.learnMore.LearnMore;
 import com.checkmarx.ast.learnMore.Sample;
-import com.checkmarx.ast.predicate.CustomState;
 import com.checkmarx.ast.predicate.Predicate;
 import com.checkmarx.ast.results.result.DependencyPath;
 import com.checkmarx.ast.results.result.Node;
@@ -16,8 +15,6 @@ import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.components.PaneUtils;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
-import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
-import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup;
@@ -69,7 +66,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.checkmarx.intellij.Constants.DEFAULT_COLUMN;
 
@@ -504,7 +500,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel triageForm = new JPanel(new MigLayout("fillx"));
         JButton updateButton = new JButton();
         updateButton.setText("Update");
-        final ComboBox<String> stateComboBox = (result.getType().equals(CxConstants.SAST)) ? new ComboBox<>(DynamicFilterActionGroup.getStatesNameList().toArray(new String[0]))
+        final ComboBox<String> stateComboBox = (result.getType().equals(CxConstants.SAST)) ? new ComboBox<>(DynamicFilterActionGroup.getStatesNameListForSastTriage().toArray(new String[0]))
                 : new ComboBox<>(Arrays.stream(StateEnum.values()).map(Enum::name).toArray(String[]::new));;
 
         stateComboBox.setEditable(true);

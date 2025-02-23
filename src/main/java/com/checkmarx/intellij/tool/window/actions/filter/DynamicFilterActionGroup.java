@@ -16,24 +16,28 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DynamicFilterActionGroup extends ActionGroup {
+    static String IGNORE_LABEL = "IGNORED";
+    static String NOT_IGNORE_LABEL = "NOT_IGNORED";
+    public static String NOT_EXPLOITABLE_LABEL = "NOT_EXPLOITABLE";
+    public static String PROPOSED_NOT_EXPLOITABLE_LABEL = "PROPOSED_NOT_EXPLOITABLE";
 
     /**
      * Default states always present in the filter list.
      */
-    public static final Set<CustomResultState> DEFAULT_STATES = Set.of(
+    public static final Set<CustomResultState> STATES = Set.of(
             new CustomResultState("CONFIRMED", "Confirmed"),
             new CustomResultState("TO_VERIFY", "To Verify"),
             new CustomResultState("URGENT", "Urgent"),
-            new CustomResultState("NOT_EXPLOITABLE", "Not Exploitable"),
-            new CustomResultState("PROPOSED_NOT_EXPLOITABLE", "Proposed Not Exploitable"),
-            new CustomResultState("IGNORED", "Ignored"),
-            new CustomResultState("NOT_IGNORED", "Not Ignored")
+            new CustomResultState(NOT_EXPLOITABLE_LABEL, "Not Exploitable"),
+            new CustomResultState(PROPOSED_NOT_EXPLOITABLE_LABEL, "Proposed Not Exploitable"),
+            new CustomResultState(IGNORE_LABEL, "Ignored"),
+            new CustomResultState(NOT_IGNORE_LABEL, "Not Ignored")
     );
 
     /**
      * For quick membership checks, collect just the labels from DEFAULT_STATES.
      */
-    private static final Set<String> DEFAULT_LABELS = DEFAULT_STATES.stream()
+    private static final Set<String> DEFAULT_LABELS = STATES.stream()
             .map(CustomResultState::getLabel)
             .collect(Collectors.toUnmodifiableSet());
 
@@ -48,7 +52,7 @@ public class DynamicFilterActionGroup extends ActionGroup {
         return customStateFilters.toArray(new CustomStateFilter[0]);
     }
 
-    public static List<String> getStatesNameList(){
+    public static List<String> getStatesNameListForSastTriage(){
         if (customStateFilters == null) {
             customStateFilters = buildCustomStateFilters();
         }
@@ -56,10 +60,13 @@ public class DynamicFilterActionGroup extends ActionGroup {
         for (CustomStateFilter customStateFilter : customStateFilters) {
             stateNameList.add(customStateFilter.getFilterable().getFilterValue());
         }
-        return stateNameList;
+
+        // Remove SCA states from the list
+        return stateNameList.stream().filter(s -> !s.equals(IGNORE_LABEL) && !s.equals(NOT_IGNORE_LABEL))
+                .collect(Collectors.toList());
     }
 
-    public static void resetCustomStateFilters() {
+    public static void refreshCustomStateFilters() {
         customStateFilters = buildCustomStateFilters();
     }
 
@@ -73,8 +80,8 @@ public class DynamicFilterActionGroup extends ActionGroup {
         List<CustomStateFilter> filters = new ArrayList<>();
 
         // 1. Add default states as filters
-        for (CustomResultState defaultState : DEFAULT_STATES) {
-            filters.add(new CustomStateFilter(new CustomResultState(defaultState.getLabel(), defaultState.getName())));
+        for (CustomResultState state : STATES) {
+            filters.add(new CustomStateFilter(new CustomResultState(state.getLabel(), state.getName())));
         }
 
         // 2. Attempt to retrieve additional states

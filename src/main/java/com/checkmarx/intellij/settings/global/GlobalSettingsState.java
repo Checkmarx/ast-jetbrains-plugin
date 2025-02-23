@@ -20,6 +20,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup.NOT_EXPLOITABLE_LABEL;
+import static com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup.PROPOSED_NOT_EXPLOITABLE_LABEL;
 
 /**
  * State object for not sensitive global settings for the plugin.
@@ -69,7 +73,11 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
         Set<Filterable> set = new HashSet<>();
 
         set.addAll(Severity.DEFAULT_SEVERITIES);
-        set.addAll(DynamicFilterActionGroup.DEFAULT_STATES);
+
+        // Add all states except NOT_EXPLOITABLE and PROPOSED_NOT_EXPLOITABLE
+        set.addAll(DynamicFilterActionGroup.STATES.stream()
+                .filter(s -> !s.getLabel().equals(NOT_EXPLOITABLE_LABEL) && !s.getLabel().equals(PROPOSED_NOT_EXPLOITABLE_LABEL))
+                .collect(Collectors.toSet()));
 
         return set;
     }

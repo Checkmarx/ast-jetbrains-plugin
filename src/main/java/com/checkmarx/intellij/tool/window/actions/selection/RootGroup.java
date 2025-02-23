@@ -2,7 +2,6 @@ package com.checkmarx.intellij.tool.window.actions.selection;
 
 import com.checkmarx.intellij.commands.Scan;
 import com.checkmarx.intellij.tool.window.actions.CxToolWindowAction;
-import com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
@@ -75,7 +74,6 @@ public class RootGroup extends DefaultActionGroup implements DumbAware, CxToolWi
 
 
     public void reset() {
-        DynamicFilterActionGroup.resetCustomStateFilters();
         projectSelectionGroup.clear();
         branchSelectionGroup.clear();
         scanSelectionGroup.clear();

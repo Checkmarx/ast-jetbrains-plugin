@@ -11,6 +11,7 @@ import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.tool.window.actions.StartScanAction;
+import com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup;
 import com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction;
 import com.checkmarx.intellij.tool.window.actions.selection.ResetSelectionAction;
 import com.checkmarx.intellij.tool.window.actions.selection.RootGroup;
@@ -324,6 +325,9 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         currentState.setMessage(Bundle.message(Resource.GETTING_RESULTS));
         updateDisplay();
+
+        // reset custom filters
+        DynamicFilterActionGroup.refreshCustomStateFilters();
 
         // updates to variables wrapped in an invokeLater call so the Swing EDT performs the update
         // in a single threaded manner
