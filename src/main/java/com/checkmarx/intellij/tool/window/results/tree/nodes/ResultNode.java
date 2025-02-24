@@ -501,7 +501,8 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel triageForm = new JPanel(new MigLayout("fillx"));
         JButton updateButton = new JButton();
         updateButton.setText("Update");
-        final ComboBox<String> stateComboBox = (result.getType().equals(CxConstants.SAST)) ? new ComboBox<>(StateService.getStatesNameListForSastTriage().toArray(new String[0]))
+        StateService stateService = StateService.getInstance();
+        final ComboBox<String> stateComboBox = (result.getType().equals(CxConstants.SAST)) ? new ComboBox<>(stateService.getStatesNameListForSastTriage().toArray(new String[0]))
                 : new ComboBox<>(Arrays.stream(StateEnum.values()).map(Enum::name).toArray(String[]::new));;
 
         stateComboBox.setEditable(true);

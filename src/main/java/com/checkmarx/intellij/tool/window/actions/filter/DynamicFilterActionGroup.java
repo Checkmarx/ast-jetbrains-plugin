@@ -8,8 +8,14 @@ import org.jetbrains.annotations.NotNull;
 
 public class DynamicFilterActionGroup extends ActionGroup {
 
+    private final StateService stateService;
+
+    public DynamicFilterActionGroup() {
+        stateService = StateService.getInstance();
+    }
+
     @Override
     public AnAction @NotNull [] getChildren(@NotNull AnActionEvent e) {
-        return StateService.getCustomStateFilters().toArray(new CustomStateFilter[0]);
+        return stateService.getCustomStateFilters().toArray(new CustomStateFilter[0]);
     }
 }

@@ -5,63 +5,64 @@ import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.tool.window.CustomResultState;
+import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.filter.CustomStateFilter;
+import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
+import lombok.Getter;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.checkmarx.intellij.Constants.*;
+
 public class StateService {
-    public static final String IGNORE_LABEL = "IGNORED";
-    public static final String NOT_IGNORE_LABEL = "NOT_IGNORED";
-    public static final String NOT_EXPLOITABLE_LABEL = "NOT_EXPLOITABLE";
-    public static final String PROPOSED_NOT_EXPLOITABLE_LABEL = "PROPOSED_NOT_EXPLOITABLE";
+    @Getter
+    private final Set<CustomResultState> states;
+    @Getter
+    private final Set<String> defaultLabels;
+    private List<CustomStateFilter> customStateFilters;
 
-    /**
-     * Default states always present in the filter list.
-     */
-    public static final Set<CustomResultState> STATES = Set.of(
-            new CustomResultState("CONFIRMED", "Confirmed"),
-            new CustomResultState("TO_VERIFY", "To Verify"),
-            new CustomResultState("URGENT", "Urgent"),
-            new CustomResultState(NOT_EXPLOITABLE_LABEL, "Not Exploitable"),
-            new CustomResultState(PROPOSED_NOT_EXPLOITABLE_LABEL, "Proposed Not Exploitable"),
-            new CustomResultState(IGNORE_LABEL, "Ignored"),
-            new CustomResultState(NOT_IGNORE_LABEL, "Not Ignored")
-    );
+    // Private constructor prevents instantiation from other classes.
+    private StateService() {
+        this.states = Set.of(
+                new CustomResultState("CONFIRMED", "Confirmed"),
+                new CustomResultState("TO_VERIFY", "To Verify"),
+                new CustomResultState("URGENT", "Urgent"),
+                new CustomResultState(NOT_EXPLOITABLE_LABEL, "Not Exploitable"),
+                new CustomResultState(PROPOSED_NOT_EXPLOITABLE_LABEL, "Proposed Not Exploitable"),
+                new CustomResultState(IGNORE_LABEL, "Ignored"),
+                new CustomResultState(NOT_IGNORE_LABEL, "Not Ignored")
+        );
+        this.defaultLabels = states.stream()
+                .map(CustomResultState::getLabel)
+                .collect(Collectors.toUnmodifiableSet());
+    }
 
-    /**
-     * For quick membership checks, collect just the labels from STATES.
-     */
-    private static final Set<String> DEFAULT_LABELS = STATES.stream()
-            .map(CustomResultState::getLabel)
-            .collect(Collectors.toUnmodifiableSet());
+    // Eagerly create the singleton instance.
+    private static final StateService INSTANCE = new StateService();
 
-    private static List<CustomStateFilter> customStateFilters;
+    // Public accessor for the singleton instance.
+    public static StateService getInstance() {
+        return INSTANCE;
+    }
 
-    public static List<CustomStateFilter> getCustomStateFilters() {
+    public List<CustomStateFilter> getCustomStateFilters() {
         if (customStateFilters == null) {
             customStateFilters = buildCustomStateFilters();
         }
         return customStateFilters;
     }
 
-    public static List<String> getStatesNameListForSastTriage() {
-        if (customStateFilters == null) {
-            customStateFilters = buildCustomStateFilters();
-        }
-        List<String> stateNameList = new ArrayList<>();
-        for (CustomStateFilter filter : customStateFilters) {
-            stateNameList.add(filter.getFilterable().getFilterValue());
-        }
-        // Remove SCA states from the list
-        return stateNameList.stream()
+    public List<String> getStatesNameListForSastTriage() {
+        return getCustomStateFilters().stream()
+                .map(filter -> filter.getFilterable().getFilterValue())
                 .filter(s -> !s.equals(IGNORE_LABEL) && !s.equals(NOT_IGNORE_LABEL))
                 .collect(Collectors.toList());
     }
 
-    public static void refreshCustomStateFilters() {
+    public void refreshCustomStateFilters() {
         customStateFilters = buildCustomStateFilters();
     }
 
@@ -71,15 +72,11 @@ public class StateService {
      *  - Filters for any "custom" states returned by the triageGetStates call,
      *    excluding those already present in the default states.
      */
-    private static List<CustomStateFilter> buildCustomStateFilters() {
-        List<CustomStateFilter> filters = new ArrayList<>();
+    private List<CustomStateFilter> buildCustomStateFilters() {
+        List<CustomStateFilter> filters = states.stream()
+                .map(state -> new CustomStateFilter(new CustomResultState(state.getLabel(), state.getName())))
+                .collect(Collectors.toList());
 
-        // 1. Add default state filters.
-        for (CustomResultState state : STATES) {
-            filters.add(new CustomStateFilter(new CustomResultState(state.getLabel(), state.getName())));
-        }
-
-        // 2. Attempt to retrieve additional custom states.
         try {
             var cxWrapper = CxWrapperFactory.build(
                     GlobalSettingsState.getInstance(),
@@ -87,16 +84,26 @@ public class StateService {
             );
             var customStates = cxWrapper.triageGetStates(false);
 
-            // Only add states that do not match any default label.
             customStates.stream()
                     .map(CustomState::getName)
-                    .filter(label -> !DEFAULT_LABELS.contains(label))
+                    .filter(label -> !defaultLabels.contains(label))
                     .map(label -> new CustomStateFilter(new CustomResultState(label)))
                     .forEach(filters::add);
         } catch (Exception ignored) {
             // If custom states cannot be retrieved, continue with default filters.
         }
 
+        return filters;
+    }
+
+    public Set<Filterable> getDefaultFilters() {
+        Set<Filterable> filters = new HashSet<>(Severity.DEFAULT_SEVERITIES);
+        filters.addAll(
+                states.stream()
+                        .filter(s -> !s.getLabel().equals(NOT_EXPLOITABLE_LABEL)
+                                && !s.getLabel().equals(PROPOSED_NOT_EXPLOITABLE_LABEL))
+                        .collect(Collectors.toSet())
+        );
         return filters;
     }
 }
