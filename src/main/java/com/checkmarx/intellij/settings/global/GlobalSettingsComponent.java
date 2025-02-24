@@ -1,8 +1,7 @@
 package com.checkmarx.intellij.settings.global;
 
-import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.ASCA.AscaService;
+import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;

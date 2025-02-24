@@ -1,23 +1,20 @@
 package com.checkmarx.intellij.unit.settings.global;
 
+import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
-import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.openapi.application.Application;
-import com.intellij.openapi.application.ApplicationManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GlobalSettingsStateTest {
@@ -79,8 +76,9 @@ class GlobalSettingsStateTest {
     @Test
     void constructor_InitializesDefaultValues() {
         // Assert
+        StateService stateService = StateService.getInstance();
         assertEquals("", globalSettingsState.getAdditionalParameters());
         assertFalse(globalSettingsState.isAsca());
-        assertEquals(GlobalSettingsState.getDefaultFilters(), globalSettingsState.getFilters());
+        assertEquals(stateService.getDefaultFilters(), globalSettingsState.getFilters());
     }
 } 

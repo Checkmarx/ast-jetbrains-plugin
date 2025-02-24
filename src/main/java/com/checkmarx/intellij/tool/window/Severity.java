@@ -33,6 +33,11 @@ public enum Severity implements Filterable {
         return this::toString;
     }
 
+    @Override
+    public String getFilterValue() {
+        return this.name();
+    }
+
     public static Severity fromID(String id) {
         if (id.startsWith("Checkmarx.")) {
             return Severity.valueOf(id.substring(id.indexOf('.') + 1).toUpperCase());

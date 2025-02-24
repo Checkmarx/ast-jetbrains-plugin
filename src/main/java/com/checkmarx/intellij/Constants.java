@@ -84,5 +84,10 @@ public final class Constants {
     public static final String ASCA_MEDIUM_SEVERITY = "Medium";
     public static final String ASCA_LOW_SEVERITY = "Low";
 
+    public static final String IGNORE_LABEL = "IGNORED";
+    public static final String NOT_IGNORE_LABEL = "NOT_IGNORED";
+    public static final String NOT_EXPLOITABLE_LABEL = "NOT_EXPLOITABLE";
+    public static final String PROPOSED_NOT_EXPLOITABLE_LABEL = "PROPOSED_NOT_EXPLOITABLE";
+
     public static final String USE_LOCAL_BRANCH = "scan my local branch";
 }

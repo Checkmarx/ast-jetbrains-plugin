@@ -4,7 +4,7 @@ import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.ast.asca.Error;
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.ASCA.AscaService;
+import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.commands.ASCA;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
@@ -23,7 +23,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Arrays;

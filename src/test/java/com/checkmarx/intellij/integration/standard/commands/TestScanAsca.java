@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.integration.standard.commands;
 
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.intellij.ASCA.AscaService;
+import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.integration.standard.BaseTest;
 import com.intellij.openapi.application.ApplicationManager;
