@@ -7,7 +7,7 @@ permissions:
 jobs:
   dependabot-merge:
     runs-on: ubuntu-latest
-    if: contains(github.head_ref, 'feature/update_cli')
+    if: contains(github.head_ref, 'other/update_java_wrapper')
     steps:
       - name: Enable auto-merge for Dependabot PRs
         env:
