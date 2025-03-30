@@ -82,7 +82,7 @@ All the procedures to set the JetBrains plugin up can be found [here](https://ch
 
 ## Usage
 
-To see how you can use our tool, please refer to the [Documentation](https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html)
+To see how you can use ur tool, please refer to the [Documentation](https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html)
 
 
 ## Contribution
