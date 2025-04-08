@@ -45,6 +45,9 @@ public class TestAsca extends BaseUITest {
         click(OK_BTN);
         validateAscaRunning();
         click(OK_BTN);
+        if (hasAnyComponent(OK_BTN)) {
+            click(OK_BTN);
+        }
     }
 
     @Test
