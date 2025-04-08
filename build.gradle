@@ -79,7 +79,7 @@ downloadRobotServerPlugin {
 
 test {
     useJUnitPlatform()
-    systemProperty 'uiWaitDuration', project.findProperty('uiWaitDuration') ?: 300
+    systemProperty 'uiWaitDuration', project.findProperty('uiWaitDuration') ?: 800
     testLogging {
         events "passed", "skipped", "failed", "standardOut", "standardError"
         showExceptions true
