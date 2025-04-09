@@ -87,6 +87,9 @@ public class TestTriggerScan extends BaseUITest {
         testSelectionAction(findSelection("Project"), "Project", "DiffOrg/WebGoat");
         testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
         testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID_NOT_MATCH_PROJECT);
+        testSelectionAction(findSelection("Project"), "Project", Environment.PROJECT_NAME);
+        testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
+        testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID);
         waitForScanIdSelection();
         findRunScanButtonAndClick();
         JTreeFixture treeBeforeScan = find(JTreeFixture.class, TREE);
