@@ -84,7 +84,9 @@ public class TestTriggerScan extends BaseUITest {
     @Video
     public void testTriggerScanAndLoadResults() {
         if (triggerScanNotAllowed()) return;
-        clearSelection();
+        testSelectionAction(findSelection("Project"), "Project", "DiffOrg/WebGoat");
+        testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
+        testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID_NOT_MATCH_PROJECT);
         waitForScanIdSelection();
         findRunScanButtonAndClick();
         JTreeFixture treeBeforeScan = find(JTreeFixture.class, TREE);
