@@ -84,7 +84,7 @@ public class TestTriggerScan extends BaseUITest {
     @Video
     public void testTriggerScanAndLoadResults() {
         if (triggerScanNotAllowed()) return;
-
+        clearSelection();
         waitForScanIdSelection();
         findRunScanButtonAndClick();
         JTreeFixture treeBeforeScan = find(JTreeFixture.class, TREE);
