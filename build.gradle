@@ -49,7 +49,7 @@ dependencies {
     implementation 'com.miglayout:miglayout-swing:11.3'
 
     if (javaWrapperVersion == "" || javaWrapperVersion == null) {
-        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.2.1'){
+        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.4.3'){
             exclude group: 'junit', module: 'junit'
         }
     } else {
@@ -59,7 +59,6 @@ dependencies {
     }
     implementation(platform("com.fasterxml.jackson:jackson-bom:2.16.1"))
     // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
-
     testImplementation 'org.mockito:mockito-core:5.0.0'
     testImplementation 'org.mockito:mockito-junit-jupiter:5.0.0' // maybe remove
 }
@@ -80,7 +79,7 @@ downloadRobotServerPlugin {
 
 test {
     useJUnitPlatform()
-    systemProperty 'uiWaitDuration', project.findProperty('uiWaitDuration') ?: 300
+    systemProperty 'uiWaitDuration', project.findProperty('uiWaitDuration') ?: 800
     testLogging {
         events "passed", "skipped", "failed", "standardOut", "standardError"
         showExceptions true
