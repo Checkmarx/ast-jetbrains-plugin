@@ -176,10 +176,11 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
 
                 LOGGER.info(msg(Resource.SCAN_CREATED_IDE, scan.getId(), scan.getStatus()));
-                refreshBranchSelection(scan);
+
 
                 propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, scan.getId());
                 ActivityTracker.getInstance().inc();
+                refreshBranchSelection(scan);
                 pollScan(scan.getId());
             }
 
@@ -196,7 +197,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
     private void refreshBranchSelection(com.checkmarx.ast.scan.Scan scan) {
         BranchSelectionGroup branchSelectionGroup = cxToolWindowPanel.getRootGroup().getBranchSelectionGroup();
         if (branchSelectionGroup != null) {
-            branchSelectionGroup.refresh(scan.getProjectId(), true);
+            branchSelectionGroup.refresh(scan.getProjectId(), false);
         } else {
             LOGGER.warn("Unable to refresh branches: No branch selection available");
         }
