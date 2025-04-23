@@ -193,6 +193,8 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
         ProgressManager.getInstance().run(creatingScanTask);
     }
 
+
+    
     private void refreshBranchSelection(com.checkmarx.ast.scan.Scan scan) {
         BranchSelectionGroup branchSelectionGroup = cxToolWindowPanel.getRootGroup().getBranchSelectionGroup();
         if (branchSelectionGroup != null) {
