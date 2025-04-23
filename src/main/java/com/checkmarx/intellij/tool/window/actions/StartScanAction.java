@@ -177,11 +177,10 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
                 LOGGER.info(msg(Resource.SCAN_CREATED_IDE, scan.getId(), scan.getStatus()));
 
-
                 propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, scan.getId());
                 ActivityTracker.getInstance().inc();
-                refreshBranchSelection(scan);
                 pollScan(scan.getId());
+                refreshBranchSelection(scan);
             }
 
             @Override
