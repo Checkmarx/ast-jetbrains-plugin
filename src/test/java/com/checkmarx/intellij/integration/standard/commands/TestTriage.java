@@ -41,8 +41,8 @@ public class TestTriage extends BaseTest {
         ResultGetState results = Assertions.assertDoesNotThrow((ThrowingSupplier<ResultGetState>) getFuture::get);
         Result result = results.getResultOutput().getResults().stream().filter(res -> res.getType().equalsIgnoreCase(CxConstants.SAST)).findFirst().get();
         Assertions.assertDoesNotThrow(() -> triageUpdate(
-                UUID.fromString(project.getId()), result.getSimilarityId(), result.getType(), result.getState().equals(Constants.SCAN_STATE_CONFIRMED) ? Constants.SCAN_STATE_TO_VERIFY : Constants.SCAN_STATE_CONFIRMED, "",
-                result.getSeverity().equals(Constants.SCAN_SEVERITY_HIGH) ? Constants.SCAN_SEVERITY_LOW : Constants.SCAN_SEVERITY_HIGH));
+                UUID.fromString(project.getId()), result.getSimilarityId(), result.getType(), result.getState().equalsIgnoreCase(Constants.SCAN_STATE_CONFIRMED) ? Constants.SCAN_STATE_TO_VERIFY : Constants.SCAN_STATE_CONFIRMED, "",
+                result.getSeverity().equalsIgnoreCase(Constants.SCAN_SEVERITY_HIGH) ? Constants.SCAN_SEVERITY_LOW : Constants.SCAN_SEVERITY_HIGH));
     }
 
     @Test
