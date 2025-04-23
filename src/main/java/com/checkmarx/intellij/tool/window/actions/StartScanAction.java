@@ -148,6 +148,8 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
             }
         }
 
+
+
         return false;
     }
 
