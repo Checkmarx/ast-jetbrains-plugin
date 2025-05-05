@@ -123,3 +123,4 @@ Find more integrations from our team [here](https://github.com/Checkmarx/ci-cd-i
 [license-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/blob/main/LICENSE
 [install-shield]: https://img.shields.io/jetbrains/plugin/d/17672-checkmarx-ast
 [install-url]: https://plugins.jetbrains.com/plugin/17672-checkmarx-ast
+
