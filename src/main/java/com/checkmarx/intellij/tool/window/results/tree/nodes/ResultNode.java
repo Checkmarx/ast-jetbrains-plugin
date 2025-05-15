@@ -1048,6 +1048,27 @@ public class ResultNode extends DefaultMutableTreeNode {
             panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, recommendations.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
         }
+
+        JBLabel cweLinkTitle = new JBLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel("CWE Link").getText()));
+        panel.add(cweLinkTitle, "span, growx");
+
+        String linkdetails = "https://cwe.mitre.org/data/definitions/" + result.getVulnerabilityDetails().getCweId() + ".html";
+
+        if (StringUtils.isNotBlank(linkdetails)) {
+            JBLabel cweLinkLabel = new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, linkdetails.replaceAll("\n", "<br/>")));
+            cweLinkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            cweLinkLabel.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    try {
+                        Desktop.getDesktop().browse(new URI(linkdetails));
+                    } catch (IOException | URISyntaxException ex) {
+                        LOGGER.error("Failed to open CWE link", ex);
+                    }
+                }
+            });
+            panel.add(cweLinkLabel, "wrap, gapbottom 3, gapleft 0");
+        }
     }
 
     public void generateCodeSamples(@NotNull LearnMore learnMore, JPanel panel) {

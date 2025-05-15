@@ -476,5 +476,31 @@ class ResultNodeTest {
         assertEquals(Severity.HIGH.getIcon(), titleLabel.getIcon());
     }
 
+    @Test
+    void generateLearnMore_WithCweLink_PrintsCweLinkToConsole() {
+        try (MockedStatic<Bundle> mockedBundle = mockStatic(Bundle.class)) {
+            // Setup
+            when(mockLearnMore.getRisk()).thenReturn(TEST_RISK);
+            when(mockLearnMore.getCause()).thenReturn(TEST_CAUSE);
+            when(mockLearnMore.getGeneralRecommendations()).thenReturn("General Recommendation");
+            when(mockResult.getVulnerabilityDetails()).thenReturn(mockVulnDetails);
+            when(mockVulnDetails.getCweId()).thenReturn(TEST_CWE);
+
+            mockedBundle.when(() -> Bundle.message(Resource.RISK)).thenReturn("Risk");
+            mockedBundle.when(() -> Bundle.message(Resource.CAUSE)).thenReturn("Cause");
+            mockedBundle.when(() -> Bundle.message(Resource.GENERAL_RECOMMENDATIONS)).thenReturn("Recommendations");
+
+            resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+            JPanel panel = new JPanel();
+
+            // Execute
+            resultNode.generateLearnMore(mockLearnMore, panel);
+
+            // Verify
+            JBLabel cweLinkLabel = (JBLabel) panel.getComponent(6);
+            System.out.println("CWE Link: " + cweLinkLabel.getText());
+        }
+    }
+
 
 }
