@@ -125,7 +125,9 @@ class ResultNodeTest {
             // Setup
             when(mockLearnMore.getRisk()).thenReturn(TEST_RISK);
             when(mockLearnMore.getCause()).thenReturn(TEST_CAUSE);
-            when(mockLearnMore.getGeneralRecommendations()).thenReturn("Genral Recommendation 1\nGeneral Recommendation 2");
+            when(mockLearnMore.getGeneralRecommendations()).thenReturn("General Recommendation 1\nGeneral Recommendation 2");
+            when(mockResult.getVulnerabilityDetails()).thenReturn(mockVulnDetails);
+            when(mockVulnDetails.getCweId()).thenReturn("79");
             mockedBundle.when(() -> Bundle.message(Resource.RISK)).thenReturn("Risk");
             mockedBundle.when(() -> Bundle.message(Resource.CAUSE)).thenReturn("Cause");
             mockedBundle.when(() -> Bundle.message(Resource.GENERAL_RECOMMENDATIONS)).thenReturn("Recommendations");
@@ -137,12 +139,15 @@ class ResultNodeTest {
             resultNode.generateLearnMore(mockLearnMore, panel);
 
             // Verify
-            assertEquals(6, panel.getComponentCount()); // Risk title, risk content, cause title, cause content, recommendations title
-            assertTrue(panel.getComponent(0) instanceof JLabel);
-            assertTrue(panel.getComponent(1) instanceof JBLabel);
-            assertTrue(panel.getComponent(2) instanceof JLabel);
-            assertTrue(panel.getComponent(3) instanceof JBLabel);
-            assertTrue(panel.getComponent(4) instanceof JLabel);
+            assertEquals(8, panel.getComponentCount()); // Adjusted to 8
+            assertTrue(panel.getComponent(0) instanceof JLabel); // Risk title
+            assertTrue(panel.getComponent(1) instanceof JBLabel); // Risk content
+            assertTrue(panel.getComponent(2) instanceof JLabel); // Cause title
+            assertTrue(panel.getComponent(3) instanceof JBLabel); // Cause content
+            assertTrue(panel.getComponent(4) instanceof JLabel); // Recommendations title
+            assertTrue(panel.getComponent(5) instanceof JLabel); // CWE Link title
+            assertTrue(panel.getComponent(6) instanceof JBLabel); // CWE Link label
+            assertTrue(panel.getComponent(7) instanceof JBLabel); // Verify the new component
         }
     }
 
@@ -152,6 +157,8 @@ class ResultNodeTest {
             // Setup
             when(mockLearnMore.getRisk()).thenReturn("");
             when(mockLearnMore.getCause()).thenReturn("");
+            when(mockResult.getVulnerabilityDetails()).thenReturn(mockVulnDetails);
+            when(mockVulnDetails.getCweId()).thenReturn("79");
             mockedBundle.when(() -> Bundle.message(Resource.RISK)).thenReturn("Risk");
             mockedBundle.when(() -> Bundle.message(Resource.CAUSE)).thenReturn("Cause");
             mockedBundle.when(() -> Bundle.message(Resource.GENERAL_RECOMMENDATIONS)).thenReturn("Recommendations");
@@ -163,10 +170,14 @@ class ResultNodeTest {
             resultNode.generateLearnMore(mockLearnMore, panel);
 
             // Verify
-            assertEquals(3, panel.getComponentCount()); // Only titles, no content
+            assertEquals(5, panel.getComponentCount()); // Titles and CWE link
             assertTrue(panel.getComponent(0) instanceof JLabel); // Risk title
             assertTrue(panel.getComponent(1) instanceof JLabel); // Cause title
             assertTrue(panel.getComponent(2) instanceof JLabel); // Recommendations title
+            assertTrue(panel.getComponent(3) instanceof JLabel); // CWE Link title
+            assertTrue(panel.getComponent(4) instanceof JBLabel); // CWE Link label
+            JBLabel cweLinkLabel = (JBLabel) panel.getComponent(4);
+            assertEquals("<html>https://cwe.mitre.org/data/definitions/79.html</html>", cweLinkLabel.getText());
         }
     }
 
@@ -188,7 +199,7 @@ class ResultNodeTest {
             resultNode.generateLearnMore(mockLearnMore, panel);
 
             // Verify
-            assertEquals(6, panel.getComponentCount());
+            assertEquals(7, panel.getComponentCount());
             JBLabel riskContent = (JBLabel) panel.getComponent(1);
             JBLabel causeContent = (JBLabel) panel.getComponent(3);
             assertEquals(riskContent.getText(), ("<html>Line 1<br/>Line 2</html>"));
@@ -475,32 +486,5 @@ class ResultNodeTest {
         assertTrue(titleLabel.getText().contains("test-package:1.0.0"));
         assertEquals(Severity.HIGH.getIcon(), titleLabel.getIcon());
     }
-
-    @Test
-    void generateLearnMore_WithCweLink_PrintsCweLinkToConsole() {
-        try (MockedStatic<Bundle> mockedBundle = mockStatic(Bundle.class)) {
-            // Setup
-            when(mockLearnMore.getRisk()).thenReturn(TEST_RISK);
-            when(mockLearnMore.getCause()).thenReturn(TEST_CAUSE);
-            when(mockLearnMore.getGeneralRecommendations()).thenReturn("General Recommendation");
-            when(mockResult.getVulnerabilityDetails()).thenReturn(mockVulnDetails);
-            when(mockVulnDetails.getCweId()).thenReturn(TEST_CWE);
-
-            mockedBundle.when(() -> Bundle.message(Resource.RISK)).thenReturn("Risk");
-            mockedBundle.when(() -> Bundle.message(Resource.CAUSE)).thenReturn("Cause");
-            mockedBundle.when(() -> Bundle.message(Resource.GENERAL_RECOMMENDATIONS)).thenReturn("Recommendations");
-
-            resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
-            JPanel panel = new JPanel();
-
-            // Execute
-            resultNode.generateLearnMore(mockLearnMore, panel);
-
-            // Verify
-            JBLabel cweLinkLabel = (JBLabel) panel.getComponent(6);
-            System.out.println("CWE Link: " + cweLinkLabel.getText());
-        }
-    }
-
 
 }

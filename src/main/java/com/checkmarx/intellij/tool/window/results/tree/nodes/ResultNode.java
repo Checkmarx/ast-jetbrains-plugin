@@ -4,10 +4,7 @@ import com.checkmarx.ast.codebashing.CodeBashing;
 import com.checkmarx.ast.learnMore.LearnMore;
 import com.checkmarx.ast.learnMore.Sample;
 import com.checkmarx.ast.predicate.Predicate;
-import com.checkmarx.ast.results.result.DependencyPath;
-import com.checkmarx.ast.results.result.Node;
-import com.checkmarx.ast.results.result.PackageData;
-import com.checkmarx.ast.results.result.Result;
+import com.checkmarx.ast.results.result.*;
 import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.ast.wrapper.CxConstants;
 import com.checkmarx.ast.wrapper.CxException;
@@ -1052,9 +1049,9 @@ public class ResultNode extends DefaultMutableTreeNode {
         JBLabel cweLinkTitle = new JBLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel("CWE Link").getText()));
         panel.add(cweLinkTitle, "span, growx");
 
-        String linkdetails = "https://cwe.mitre.org/data/definitions/" + result.getVulnerabilityDetails().getCweId() + ".html";
-
-        if (StringUtils.isNotBlank(linkdetails)) {
+        VulnerabilityDetails vulnerabilityDetails = result.getVulnerabilityDetails();
+        if (vulnerabilityDetails != null && StringUtils.isNotBlank(vulnerabilityDetails.getCweId())) {
+            String linkdetails = "https://cwe.mitre.org/data/definitions/" + vulnerabilityDetails.getCweId() + ".html";
             JBLabel cweLinkLabel = new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, linkdetails.replaceAll("\n", "<br/>")));
             cweLinkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
             cweLinkLabel.addMouseListener(new MouseAdapter() {
@@ -1068,6 +1065,8 @@ public class ResultNode extends DefaultMutableTreeNode {
                 }
             });
             panel.add(cweLinkLabel, "wrap, gapbottom 3, gapleft 0");
+        } else {
+
         }
     }
 
