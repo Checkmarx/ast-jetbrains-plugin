@@ -4,10 +4,7 @@ import com.checkmarx.ast.codebashing.CodeBashing;
 import com.checkmarx.ast.learnMore.LearnMore;
 import com.checkmarx.ast.learnMore.Sample;
 import com.checkmarx.ast.predicate.Predicate;
-import com.checkmarx.ast.results.result.DependencyPath;
-import com.checkmarx.ast.results.result.Node;
-import com.checkmarx.ast.results.result.PackageData;
-import com.checkmarx.ast.results.result.Result;
+import com.checkmarx.ast.results.result.*;
 import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.ast.wrapper.CxConstants;
 import com.checkmarx.ast.wrapper.CxException;
@@ -1047,6 +1044,29 @@ public class ResultNode extends DefaultMutableTreeNode {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
             panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, recommendations.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
+        }
+
+        JBLabel cweLinkTitle = new JBLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel("CWE Link").getText()));
+        panel.add(cweLinkTitle, "span, growx");
+
+        VulnerabilityDetails vulnerabilityDetails = result.getVulnerabilityDetails();
+        if (vulnerabilityDetails != null && StringUtils.isNotBlank(vulnerabilityDetails.getCweId())) {
+            String linkdetails = "https://cwe.mitre.org/data/definitions/" + vulnerabilityDetails.getCweId() + ".html";
+            JBLabel cweLinkLabel = new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, linkdetails.replaceAll("\n", "<br/>")));
+            cweLinkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            cweLinkLabel.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    try {
+                        Desktop.getDesktop().browse(new URI(linkdetails));
+                    } catch (IOException | URISyntaxException ex) {
+                        LOGGER.error("Failed to open CWE link", ex);
+                    }
+                }
+            });
+            panel.add(cweLinkLabel, "wrap, gapbottom 3, gapleft 0");
+        } else {
+
         }
     }
 
