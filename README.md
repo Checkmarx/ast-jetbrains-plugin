@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/banner.png">
+<img src="/banner.png">
 <br />
 <div align="center">
 
@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://github.com/Checkmarx/ast-jetbrains-plugin">
-    <img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/logo.png" alt="Logo" width="80" height="80" />
+    <img src="/logo.png" alt="Logo" width="80" height="80" />
   </a>
 
 <h3 align="center">CHECKMARX-ONE-JETBRAINS-PLUGIN</h3>
@@ -61,22 +61,52 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-You can view the vulnerabilities that were identified in your source code and navigate directly to the vulnerable code in the editor. 
-This plugin provides easy integration with JetBrains and is compatible with all JetBrains IDE products 
-(e.g. IntelliJ IDEA, PyCharm, WebStorm etc.).
+Checkmarx continues to spearhead the shift-left approach to AppSec by bringing our powerful AppSec tools into your IDE. This empowers developers to identify vulnerabilities and remediate them **as they code**. The Checkmarx One (AST) JetBrains plugin integrates seamlessly into your IDE, enabling you to access the full functionality of your Checkmarx One account (SAST, SCA, IaC Security) directly from your IDE.
+
+You can run new scans, or import results from scans run in your Checkmarx One account. Checkmarx provides detailed info about each vulnerability, including remediation recommendations and examples of effective remediation. The plugin enables you to navigate from a vulnerability to the relevant source code, so that you can easily zero-in on the problematic code and start working on remediation.
+
+This plugin provides easy integration with JetBrains and is compatible with all JetBrains IDE products (e.g., IntelliJ IDEA, PyCharm, WebStorm etc.).
 
 <!-- GETTING STARTED -->
 ## Getting Started
- 
 
 ### Prerequisites
 
-- You have a Checkmarx One account, and you have an [API Key](https://checkmarx.com/resource/documents/en/34965-68618-generating-an-api-key.html).
+-   Access the full power of Checkmarx One (SAST, SCA, and IaC Security) directly from your IDE.
+
+-   Run a new scan from your IDE even before committing the code, or import scan results from your Checkmarx One account.
+-   Rescan an existing branch from your IDE or create a new branch in Checkmarx One for the local branch in your workspace.
+
+-   Provides actionable results including remediation recommendations. Navigate from results panel directly to the highlighted vulnerable code in the editor and get right down to work on the remediation.
+
+-   Group and filter results
+
+-   Triage results (by adjusting the severity and state and adding comments) directly from the JetBrains console (currently supported for SAST and IaC Security)
+
+-   Apply Auto Remediation to automatically remediate open source vulnerabilities, by updating to a non-vulnerable package version.
+
+-   Links to Codebashing lessons
+
+-   AI Secure Coding Assistant (ASCA) - A lightweight scan engine that runs in the background while you work, enabling developers to identify and remediate secure coding best practice violations  **as they code**.
+
+### Prerequisites
+
+-   You are running IntelliJ version 2022.2+ or another JetBrains IDE that is based on a supported version of IntelliJ.
+
+-   You have an **API key** for your Checkmarx One account. To create an
+    API key, see [Generating an API Key](https://checkmarx.com/resource/documents/en/34965-68618-generating-an-api-key.html).
+> The following are the minimum required  [roles](https://docs.checkmarx.com/en/34965-68603-managing-roles.html "Managing Roles")  for running an end-to-end flow of scanning a project and viewing results via the CLI or plugins:
+> -   CxOne composite role  `ast-scanner`
+> -   CxOne role  `view-policy-management`
+> -   IAM role  `default-roles`
 
 ### Setting Up
 
 
-All the procedures to set the JetBrains plugin up can be found [here](https://checkmarx.com/resource/documents/en/34965-68734-installing-the-checkmarx-one-jetbrains-plugin.html).
+-   Verify that all prerequisites are in place.
+
+-   Install the **Checkmarx One** plugin and configure the settings as
+    described [here](https://checkmarx.com/resource/documents/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-plugin.html).
 
 
 
@@ -96,6 +126,9 @@ We appreciate feedback and contribution to the JETBRAINS PLUGIN! Before you get 
 ## License
 Distributed under the [Apache 2.0](LICENSE). See `LICENSE` for more information.
 
+<!-- FEEDBACK -->
+## Feedback
+We’d love to hear your feedback! If you come across a bug or have a feature request, please let us know by submitting an issue in [GitHub Issues](https://github.com/Checkmarx/ast-jetbrains-plugin/issues).
 
 <!-- CONTACT -->
 ## Contact
@@ -105,7 +138,6 @@ Checkmarx - Checkmarx One Integrations Team
 Project Link: [https://github.com/Checkmarx/ast-jetbrains-plugin](https://github.com/Checkmarx/ast-jetbrains-plugin)
 
 Find more integrations from our team [here](https://github.com/Checkmarx/ci-cd-integrations#checkmarx-ast-integrations)
-
 
 © 2022 Checkmarx Ltd. All Rights Reserved.
 
