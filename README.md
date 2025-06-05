@@ -1,4 +1,4 @@
-<img src="/banner.png">
+<img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/PluginBanner.jpg">
 <br />
 <div align="center">
 
@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://github.com/Checkmarx/ast-jetbrains-plugin">
-    <img src="/logo.png" alt="Logo" width="80" height="80" />
+    <img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/PluginLogo.jpg" alt="Logo" width="80" height="80" />
   </a>
 
 <h3 align="center">CHECKMARX-ONE-JETBRAINS-PLUGIN</h3>
