@@ -47,6 +47,7 @@ dependencies {
 
     // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
     implementation 'com.miglayout:miglayout-swing:11.3'
+    implementation 'org.apache.commons:commons-text:1.10.0'
 
     if (javaWrapperVersion == "" || javaWrapperVersion == null) {
         implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.2.1'){

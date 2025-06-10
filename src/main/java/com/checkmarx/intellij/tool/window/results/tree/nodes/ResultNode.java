@@ -15,7 +15,7 @@ import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
-import com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup;
+import org.apache.commons.text.StringEscapeUtils;
 import com.intellij.icons.AllIcons;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -1046,27 +1046,39 @@ public class ResultNode extends DefaultMutableTreeNode {
                     "wrap, gapbottom 3, gapleft 0");
         }
 
+        //[AST-96753] Add CWE link to the learn more section
         JBLabel cweLinkTitle = new JBLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel("CWE Link").getText()));
         panel.add(cweLinkTitle, "span, growx");
 
         VulnerabilityDetails vulnerabilityDetails = result.getVulnerabilityDetails();
         if (vulnerabilityDetails != null && StringUtils.isNotBlank(vulnerabilityDetails.getCweId())) {
-            String linkdetails = "https://cwe.mitre.org/data/definitions/" + vulnerabilityDetails.getCweId() + ".html";
-            JBLabel cweLinkLabel = new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, linkdetails.replaceAll("\n", "<br/>")));
+            String cweId = vulnerabilityDetails.getCweId();
+            String linkUrl = "https://cwe.mitre.org/data/definitions/" + cweId + ".html";
+            String linkText = "CWE-" + cweId;
+            JBLabel cweLinkLabel = new JBLabel(linkText);
             cweLinkLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            cweLinkLabel.setForeground(JBColor.BLUE);
+
             cweLinkLabel.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     try {
-                        Desktop.getDesktop().browse(new URI(linkdetails));
+                        Desktop.getDesktop().browse(new URI(linkUrl));
+                        cweLinkLabel.setForeground(JBColor.GRAY); // Mark as visited
                     } catch (IOException | URISyntaxException ex) {
                         LOGGER.error("Failed to open CWE link", ex);
                     }
                 }
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    cweLinkLabel.setForeground(JBColor.ORANGE); // Hover color
+                }
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    cweLinkLabel.setForeground(JBColor.BLUE); // Default color
+                }
             });
             panel.add(cweLinkLabel, "wrap, gapbottom 3, gapleft 0");
-        } else {
-
         }
     }
 
