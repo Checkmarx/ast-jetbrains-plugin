@@ -70,6 +70,7 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 <!-- GETTING STARTED -->
 ## Getting Started
 
+
 ### Key Features
 
 -   Access the full power of Checkmarx One (SAST, SCA, and IaC Security) directly from your IDE.
