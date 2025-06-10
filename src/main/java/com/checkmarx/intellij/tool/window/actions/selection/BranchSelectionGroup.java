@@ -80,6 +80,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
                 branches = com.checkmarx.intellij.commands.Project.getBranches(UUID.fromString(projectId));
             } catch (Exception e) {
                 LOGGER.warn(e);
+                LOGGER.error(Resource.CANNOT_FIND_BRANCH + e.getMessage());
             }
             return Optional.ofNullable(branches).orElse(Collections.emptyList());
         }).thenAccept((List<String> branches) -> ApplicationManager.getApplication().invokeLater(() -> {
