@@ -89,7 +89,7 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 
 -   AI Secure Coding Assistant (ASCA) - A lightweight scan engine that runs in the background while you work, enabling developers to identify and remediate secure coding best practice violations  **as they code**.
 
-### Prerequisites
+## Prerequisites
 
 -   You are running IntelliJ version 2022.2+ or another JetBrains IDE that is based on a supported version of IntelliJ.
 
@@ -100,7 +100,7 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 > -   CxOne role  `view-policy-management`
 > -   IAM role  `default-roles`
 
-### Setting Up
+## Setting Up
 
 
 -   Verify that all prerequisites are in place.
@@ -138,6 +138,7 @@ Checkmarx - Checkmarx One Integrations Team
 Project Link: [https://github.com/Checkmarx/ast-jetbrains-plugin](https://github.com/Checkmarx/ast-jetbrains-plugin)
 
 Find more integrations from our team [here](https://github.com/Checkmarx/ci-cd-integrations#checkmarx-ast-integrations)
+
 
 © 2022 Checkmarx Ltd. All Rights Reserved.
 
