@@ -176,8 +176,9 @@ class ResultNodeTest {
             assertTrue(panel.getComponent(2) instanceof JLabel); // Recommendations title
             assertTrue(panel.getComponent(3) instanceof JLabel); // CWE Link title
             assertTrue(panel.getComponent(4) instanceof JBLabel); // CWE Link label
+
             JBLabel cweLinkLabel = (JBLabel) panel.getComponent(4);
-            assertEquals("<html><a href='#'>CWE-79</a></html>", cweLinkLabel.getText());
+            assertEquals("CWE-79", cweLinkLabel.getText());
         }
     }
 
