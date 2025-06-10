@@ -15,7 +15,6 @@ import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
-import org.apache.commons.text.StringEscapeUtils;
 import com.intellij.icons.AllIcons;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
