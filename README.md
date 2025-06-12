@@ -39,14 +39,12 @@
 <details>
   <summary>Table of Contents</summary>
   <ol>
-    <li>
-      <a href="#Overview">Overview</a>
-    </li>
+    <li><a href="#Overview">Overview</a></li>
     <li><a href="#key-features">Key Features</a></li>
     <li><a href="#prerequisites">Prerequisites</a></li>
     <li><a href="#initial Setup">Initial Setup</a></li>
     <li><a href="#usage">Usage</a></li>
-    <li><a href="#Contribution">Contributing</a></li>
+    <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
     <li><a href="#feedback">Feedback</a></li>
