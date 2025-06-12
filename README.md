@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://github.com/Checkmarx/ast-jetbrains-plugin">
-    <img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/PluginLogo.jpg" alt="Logo" width="80" height="80" />
+    <img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/cx-icon-logo.svg" alt="Logo" width="80" height="80" />
   </a>
 
 <h3 align="center">CHECKMARX-ONE-JETBRAINS-PLUGIN</h3>
@@ -40,26 +40,23 @@
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#about-the-project">About The Project</a>
+      <a href="#Overview">Overview</a>
     </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#setting-up">Setting Up</a></li>
-      </ul>
-    </li>
+    <li><a href="#key-features">Key Features</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#initial Setup">Initial Setup</a></li>
     <li><a href="#usage">Usage</a></li>
-    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#Contribution">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
+    <li><a href="#feedback">Feedback</a></li>
   </ol>
 </details>
 
 
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
+<!-- Overview -->
+## Overview
 
 Checkmarx continues to spearhead the shift-left approach to AppSec by bringing our powerful AppSec tools into your IDE. This empowers developers to identify vulnerabilities and remediate them **as they code**. The Checkmarx One (AST) JetBrains plugin integrates seamlessly into your IDE, enabling you to access the full functionality of your Checkmarx One account (SAST, SCA, IaC Security) directly from your IDE.
 
@@ -67,9 +64,7 @@ You can run new scans, or import results from scans run in your Checkmarx One ac
 
 This plugin provides easy integration with JetBrains and is compatible with all JetBrains IDE products (e.g., IntelliJ IDEA, PyCharm, WebStorm etc.).
 
-<!-- GETTING STARTED -->
-## Getting Started
-
+<!-- Key Features -->
 ## Key Features
 
 -   Access the full power of Checkmarx One (SAST, SCA, and IaC Security) directly from your IDE.
@@ -89,6 +84,7 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 
 -   AI Secure Coding Assistant (ASCA) - A lightweight scan engine that runs in the background while you work, enabling developers to identify and remediate secure coding best practice violations  **as they code**.
 
+<!-- Prerequisites -->
 ## Prerequisites
 
 -   You are running IntelliJ version 2022.2+ or another JetBrains IDE that is based on a supported version of IntelliJ.
@@ -100,7 +96,8 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 > -   CxOne role  `view-policy-management`
 > -   IAM role  `default-roles`
 
-## Setting Up
+<!-- Initial Setup -->
+## Initial Setup
 
 
 -   Verify that all prerequisites are in place.
@@ -108,13 +105,12 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 -   Install the **Checkmarx One** plugin and configure the settings as
     described [here](https://checkmarx.com/resource/documents/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-plugin.html).
 
-
-
+<!-- Usage -->
 ## Usage
 
 To see how you can use our tool, please refer to the [Documentation](https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html)
 
-
+<!-- Contribution -->
 ## Contribution
 
 We appreciate feedback and contribution to the JETBRAINS PLUGIN! Before you get started, please see the following:
@@ -125,10 +121,6 @@ We appreciate feedback and contribution to the JETBRAINS PLUGIN! Before you get 
 <!-- LICENSE -->
 ## License
 Distributed under the [Apache 2.0](LICENSE). See `LICENSE` for more information.
-
-<!-- FEEDBACK -->
-## Feedback
-We’d love to hear your feedback! If you come across a bug or have a feature request, please let us know by submitting an issue in [GitHub Issues](https://github.com/Checkmarx/ast-jetbrains-plugin/issues).
 
 <!-- CONTACT -->
 ## Contact
@@ -141,6 +133,10 @@ Find more integrations from our team [here](https://github.com/Checkmarx/ci-cd-i
 
 
 © 2022 Checkmarx Ltd. All Rights Reserved.
+
+<!-- FEEDBACK -->
+## Feedback
+We’d love to hear your feedback! If you come across a bug or have a feature request, please let us know by submitting an issue in [GitHub Issues](https://github.com/Checkmarx/ast-jetbrains-plugin/issues).
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
