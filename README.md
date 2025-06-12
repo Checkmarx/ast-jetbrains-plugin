@@ -108,7 +108,6 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 
 To see how you can use our tool, please refer to the [Documentation](https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html)
 
-<!-- Contribution -->
 ## Contribution
 
 We appreciate feedback and contribution to the JETBRAINS PLUGIN! Before you get started, please see the following:
@@ -119,6 +118,7 @@ We appreciate feedback and contribution to the JETBRAINS PLUGIN! Before you get 
 <!-- LICENSE -->
 ## License
 Distributed under the [Apache 2.0](LICENSE). See `LICENSE` for more information.
+
 
 <!-- CONTACT -->
 ## Contact
