@@ -13,8 +13,12 @@ import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -133,5 +137,29 @@ public final class Utils {
             }
         }
         return repository;
+    }
+
+    /**
+     * Generating Code verifier for PKCE
+     * Used 32 random bytes (per spec recommendation).
+     *
+     * @return Generated ~43 characters code verifier string
+     */
+    public static String generateCodeVerifier() {
+        byte[] codeVerifier = new byte[32];
+        new SecureRandom().nextBytes(codeVerifier);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
+    }
+
+    /**
+     * Generating code challenge for original code verifier
+     *
+     * @param codeVerifier - Generated code verifier
+     * @return Generated hash of code verifier using SHA256
+     */
+    public static String generateCodeChallenge(String codeVerifier) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance(Constants.AuthConstants.ALGO_SHA256);
+        byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
     }
 }
