@@ -106,7 +106,7 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 <!-- Usage -->
 ## Usage
 
-To see how you can use our tool, please refer to the [Documentation](https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html)
+To see how you can use ur tool, please refer to the [Documentation](https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html)
 
 
 ## Contribution
