@@ -151,3 +151,4 @@ We’d love to hear your feedback! If you come across a bug or have a feature re
 [license-url]: https://github.com/Checkmarx/ast-jetbrains-plugin/blob/main/LICENSE
 [install-shield]: https://img.shields.io/jetbrains/plugin/d/17672-checkmarx-ast
 [install-url]: https://plugins.jetbrains.com/plugin/17672-checkmarx-ast
+
