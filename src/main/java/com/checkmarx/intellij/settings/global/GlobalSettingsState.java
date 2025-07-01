@@ -10,6 +10,7 @@ import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.xmlb.XmlSerializerUtil;
+import com.intellij.util.xmlb.annotations.Attribute;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -34,11 +35,20 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     public static GlobalSettingsState getInstance() {
         return ApplicationManager.getApplication().getService(GlobalSettingsState.class);
     }
+    private String validationMessage = "";
 
     @NotNull
     private String additionalParameters = "";
 
     private boolean asca = false;
+    private boolean useApiKey = false;
+    public boolean isUseApiKey() {
+        return useApiKey;
+    }
+
+    public void setUseApiKey(boolean useApiKey) {
+        this.useApiKey = useApiKey;
+    }
 
     public @NotNull Set<Filterable> getFilters() {
         if (filters.isEmpty() || filters.stream().allMatch(Objects::isNull)) {
@@ -63,5 +73,15 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     public void apply(@NotNull GlobalSettingsState state) {
         loadState(state);
     }
-}
+
+    @Attribute("authenticated")
+    private boolean authenticated = false;
+
+    public boolean isAuthenticated() {
+        return authenticated;
+    }
+
+    public void setAuthenticated(boolean authenticated) {
+        this.authenticated = authenticated;
+    }}
 
