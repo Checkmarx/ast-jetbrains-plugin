@@ -1,7 +1,9 @@
 package com.checkmarx.intellij.service;
 
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.helper.OAuthCallbackServer;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
@@ -11,7 +13,6 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
-import com.intellij.openapi.ui.Messages;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.JSONObject;
 import net.minidev.json.parser.JSONParser;
@@ -75,7 +76,7 @@ public class AuthService {
             boolean confirmed = openConfirmation(cxOneAuthEndpoint);
             if (!confirmed) {
                 log.warn("OAuth: Authentication is cancelled by user.");
-                Utils.showAuthNotification(Constants.AuthConstants.AUTH_FAILED_TITLE, "Authentication is cancelled.",
+                Utils.showNotification(Constants.AuthConstants.AUTH_FAILED_TITLE, "Authentication is cancelled.",
                         NotificationType.WARNING, project);
                 return false;
             }
@@ -152,8 +153,8 @@ public class AuthService {
      * Display notification on notification area on successful authentication
      */
     public void showSuccessMessage() {
-        Utils.showAuthNotification("Authentication Success.",
-                "You have successfully connected to the Checkmarx One server.",
+        Utils.showNotification("Authentication Success.",
+                Bundle.message(Resource.SUCCESS_CONNECTED_TO_CHECKMARX),
                 NotificationType.INFORMATION,
                 project);
     }
@@ -162,7 +163,7 @@ public class AuthService {
      * Display notification on notification area on failure authentication
      */
     public void showErrorMessage(String errorMsg) {
-        Utils.showAuthNotification("Authentication Failed.",
+        Utils.showNotification("Authentication Failed.",
                 errorMsg,
                 NotificationType.ERROR,
                 project);

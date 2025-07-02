@@ -211,9 +211,17 @@ public final class Utils {
         return null;
     }
 
-    public static void showAuthNotification(String title, String content, NotificationType type, Project project) {
+    /**
+     * Display simple ballon notification in notification area
+     *
+     * @param title   - Title for notification
+     * @param content - Message to display as notification
+     * @param type    - Notification type e.g., WARNING, ERROR, INFO etc.
+     * @param project - Current project instance
+     */
+    public static void showNotification(String title, String content, NotificationType type, Project project) {
         NotificationGroupManager.getInstance()
-                .getNotificationGroup("authGroup")
+                .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
                 .createNotification(title,
                         content,
                         type)

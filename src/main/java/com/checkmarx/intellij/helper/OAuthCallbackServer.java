@@ -124,6 +124,24 @@ public class OAuthCallbackServer {
         }
 
         /**
+         * Validating received state parameter and getting auth code from the response
+         *
+         * @param query - response query string from authorization endpoint
+         * @return auth code
+         */
+        String validateStateAndGetCode(String query) {
+            final String paramState = extractParam(query, "state");
+            if (!state.equals(paramState)) {
+                log.error("OAuth: State parameter is invalid.");
+                throw new IllegalStateException("Invalid authentication");
+            }
+            String code = extractParam(query, "code");
+            log.info("OAuth: Auth code received successfully.");
+            log.debug("OAuth: Received auth code:{}", code);
+            return code;
+        }
+
+        /**
          * Extracting the specific URL parameters.
          *
          * @param query - complete received uri from OAuth
@@ -155,24 +173,6 @@ public class OAuthCallbackServer {
             } catch (Exception exception) {
                 log.error("OAuth: Exception occurred while sending response to user. Root Cause:{}", exception.getMessage());
             }
-        }
-
-        /**
-         * Validating received state parameter and getting auth code from the response
-         *
-         * @param query - response query string from authorization endpoint
-         * @return auth code
-         */
-        String validateStateAndGetCode(String query) {
-            final String paramState = extractParam(query, "state");
-            if (!state.equals(paramState)) {
-                log.error("OAuth: State parameter is invalid.");
-                throw new IllegalStateException("Invalid authentication");
-            }
-            String code = extractParam(query, "code");
-            log.info("OAuth: Auth code received successfully.");
-            log.debug("OAuth: Received auth code:{}", code);
-            return code;
         }
     }
 
