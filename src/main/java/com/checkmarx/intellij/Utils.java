@@ -6,11 +6,11 @@ import com.intellij.notification.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -145,13 +145,13 @@ public final class Utils {
      * @return Generated ~43 characters code verifier string
      */
     public static String generateCodeVerifier() {
-        try{
+        try {
             byte[] codeVerifier = new byte[32];
             new SecureRandom().nextBytes(codeVerifier);
             return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
-        }catch (Exception exception){
+        } catch (Exception exception) {
             LOGGER.error("OAuth: Exception occur while generating code verifier. Root Cause:{}"
-                    ,exception.getMessage());
+                    , exception.getMessage());
             return null;
         }
     }
@@ -162,7 +162,7 @@ public final class Utils {
      * @param codeVerifier - Generated code verifier
      * @return Generated hash of code verifier using SHA256
      */
-    public static String generateCodeChallenge(String codeVerifier){
+    public static String generateCodeChallenge(String codeVerifier) {
         try {
             MessageDigest digest = MessageDigest.getInstance(Constants.AuthConstants.ALGO_SHA256);
             byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
@@ -175,26 +175,40 @@ public final class Utils {
     }
 
     /**
-     * Load HTML page and send in the response as a success message
-     * @param resourcePath - file path which you want to load
-     * @return html string
+     * Open Confirmation dialog box for the user
+     *
+     * @param message       - message to display in confirmation dialog
+     * @param title         - title for confirmation dialog
+     * @param yesButtonText - yes button text for (e.g., ok)
+     * @param noButtonText  - no button text (e.g., cancel)
+     * @return true if user clicked on yes otherwise false
      */
-    public static String loadAuthSuccessHtml(String resourcePath) throws IOException {
-        InputStream input = Utils.class.getClassLoader().getResourceAsStream(resourcePath);
-        if (input == null) {
-            //add fallback method
-            return "<html><body><h2>⚠ Error: HTML file not found.</h2></body></html>";
-        }
-        return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+    public static boolean openConfirmation(String message, String title, String yesButtonText, String noButtonText) {
+        return Messages.showYesNoDialog(
+                message,
+                title,
+                yesButtonText,
+                noButtonText,
+                Messages.getQuestionIcon()
+        ) == Messages.YES;
     }
 
-    public static String loadAuthErrorHtml(String resourcePath) throws IOException {
-        InputStream input = Utils.class.getClassLoader().getResourceAsStream(resourcePath);
-        if (input == null) {
-            //add fallback method
-            return "<html><body><h2>⚠ Error: HTML file not found.</h2></body></html>";
+    /**
+     * Load a file from the provided resource path and return a file content as a string
+     *
+     * @param resourcePath - file path which you want to load
+     * @return string - file content
+     */
+    public static String getFileContentFromResource(String resourcePath) {
+        try {
+            InputStream input = Utils.class.getClassLoader().getResourceAsStream(resourcePath);
+            if (input != null) {
+                return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } catch (Exception exception) {
+            LOGGER.error("Load Resource: Unble to load file from the path:{}. Root Cause:{}", resourcePath, exception.getMessage());
         }
-        return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        return null;
     }
 
     public static void showAuthNotification(String title, String content, NotificationType type, Project project) {

@@ -141,13 +141,11 @@ public class AuthService {
      * @return true if user agrees otherwise false
      */
     private boolean openConfirmation(String authUrl) {
-        return Messages.showYesNoDialog(
-                "Checkmarx plugin wants to open your default browser for login. \n \n" + authUrl,
+        String message = "Checkmarx plugin wants to open your default browser for login. \n \n" + authUrl;
+        return Utils.openConfirmation(message,
                 "OAuth Authentication Required",
-                "Open",   // Yes button text
-                "Cancel",    // No button text
-                Messages.getQuestionIcon()
-        ) == Messages.YES;
+                "Continue",
+                "Cancel");
     }
 
     /**

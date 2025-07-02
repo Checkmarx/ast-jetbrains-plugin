@@ -8,6 +8,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -108,12 +109,12 @@ public class OAuthCallbackServer {
             if (query != null && query.contains("state")) {
                 if (query.contains("code=")) {
                     String code = validateStateAndGetCode(query);
-                    String htmlString = Utils.loadAuthSuccessHtml("auth/auth-success.html");
+                    String htmlString = loadAuthSuccessHtml();
                     sendResponse(exchange, htmlString, 200);
                     authCodeFuture.complete(code);
                 } else {
                     String error = extractParam(query, "error");
-                    String htmlString = Utils.loadAuthErrorHtml("auth/auth-error.html");
+                    String htmlString = loadAuthErrorHtml();
                     htmlString = htmlString.replace("ERROR_MESSAGE", error);
                     sendResponse(exchange, htmlString, 400);
                     authCodeFuture.completeExceptionally(new RuntimeException("OAuth2: Received Error: " + error));
@@ -174,4 +175,31 @@ public class OAuthCallbackServer {
             return code;
         }
     }
+
+    /**
+     * Load HTML page and send in the response as a success message
+     *
+     * @return html string
+     */
+    private String loadAuthSuccessHtml() {
+        String responseContent = Utils.getFileContentFromResource("auth/auth-success.html");
+        if (responseContent != null && !responseContent.isBlank()) {
+            return responseContent;
+        }
+        return "<html><body><h2>⚠ Error: HTML file not found.</h2></body></html>";
+    }
+
+    /**
+     * Load HTML page and send in the response as a error message
+     *
+     * @return html string
+     */
+    private String loadAuthErrorHtml() throws IOException {
+        String responseContent = Utils.getFileContentFromResource("auth/auth-error.html");
+        if (responseContent != null && !responseContent.isBlank()) {
+            return responseContent;
+        }
+        return "<html><body><h2>⚠ Error: HTML file not found.</h2></body></html>";
+    }
+
 }
