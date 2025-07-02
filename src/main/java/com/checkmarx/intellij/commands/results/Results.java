@@ -15,11 +15,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 /**
  * Handle results related operations with the CLI wrapper
@@ -69,7 +67,8 @@ public class Results {
             try {
                 results = CxWrapperFactory.build().results(UUID.fromString(scanId), Constants.JET_BRAINS_AGENT_NAME);
             } catch (IOException | CxException | InterruptedException e) {
-                newState.setMessage(getMessageFromException(e.getMessage(), 2));
+                newState.setMessage(Bundle.message(Resource.GETTING_RESULTS_ERROR,
+                                                   scanId + Utils.formatLatest(getLatest)));
                 LOGGER.warn(newState.getMessage(), e);
                 newState.setScanId(null);
                 newState.setScanIdFieldValue(null);
@@ -85,12 +84,5 @@ public class Results {
 
             return newState;
         });
-    }
-
-    private static String getMessageFromException(String text, int count) {
-        return text == null || text.trim().isEmpty() ? "" :
-                Arrays.stream(text.split("\\r?\\n"))
-                        .skip(Math.max(0, text.split("\\r?\\n").length - count))
-                        .findFirst().orElse("");
     }
 }
