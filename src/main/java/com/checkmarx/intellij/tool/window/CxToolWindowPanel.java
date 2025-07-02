@@ -451,11 +451,19 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         @Override
         public void keyReleased(KeyEvent e) {
             if (e.getExtendedKeyCode() == KeyEvent.VK_ENTER) {
+                String scanIdValue = scanIdField.getText().trim();
+                if(scanIdValue.isEmpty()) {
+                    resetResultWindow();
+                    return;
+                }
                 triggerDrawResultsTree(scanIdField.getText().trim(), true);
             }
         }
     }
-
+    private void resetResultWindow() {
+        currentState.setMessage(null);
+        scanTreeSplitter.setSecondComponent(simplePanel());
+    }
     public interface CxRefreshHandler {
         void refresh();
     }
