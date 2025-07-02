@@ -47,6 +47,7 @@ public class AuthService {
     private static final int MIN_PORT = 49152;
     private static final int MAX_PORT = 65535;
     private static final int MAX_RETRIES = 3;
+    public static final int RETRY_DELAY_MS = 1000;
     private final Project project = ProjectManager.getInstance().getDefaultProject();
     private OAuthCallbackServer server;
 
@@ -54,7 +55,7 @@ public class AuthService {
      * Authenticate user using OAuth2.0 Authorization Code with PKCE (Proof Key for Code Exchange) grant flow
      *
      * @param cxOneBaseUrl - Checkmarx One base URL provided by the user.
-     * @param cxOneTenant  - Checkmarx One tenant URL provided by the user.
+     * @param cxOneTenant  - Checkmarx One-tenant URL provided by the user.
      * @return boolean value tells whether authentication success or not
      */
     public boolean authenticate(final String cxOneBaseUrl, final String cxOneTenant) {
@@ -117,10 +118,16 @@ public class AuthService {
                     java.awt.Desktop.getDesktop().browse(new URI(authURL));
                     CompletableFuture<String> future = server.waitForAuthCode();
                     String code = future.get(Constants.AuthConstants.TIME_OUT_SECONDS, TimeUnit.SECONDS);
-                    exchangeCodeForToken(tokenEndpoint, code, codeVerifier, redirectUrl);
-                    log.info("OAuth: Authentication process completed successfully.");
-                    showSuccessMessage();
-                    isAuthenticated.set(true);
+                    String refreshToken = exchangeCodeForToken(tokenEndpoint, code, codeVerifier, redirectUrl);
+                    if (refreshToken != null && !refreshToken.isEmpty()) {
+                        saveToken(refreshToken);
+                        log.info("OAuth: Authentication process completed successfully.");
+                        showSuccessMessage();
+                        isAuthenticated.set(true);
+                    } else {
+                        showErrorMessage("Authentication Failed: Something went wrong please try again.");
+                        isAuthenticated.set(false);
+                    }
                 } catch (TimeoutException timeoutException) {
                     showErrorMessage("Authentication timed out, Please try again.");
                 } catch (Exception exception) {
@@ -253,7 +260,7 @@ public class AuthService {
             }
             log.warn("OAuth: No available port found in attempt:{} Retrying after delay..", attempt);
             try {
-                Thread.sleep(Constants.AuthConstants.RETRY_DELAY_MS);
+                Thread.sleep(RETRY_DELAY_MS);
             } catch (InterruptedException e) {
                 log.debug("OAuth: Exception occurred while delaying after attempt:{}", attempt);
             }
@@ -282,51 +289,72 @@ public class AuthService {
      * Exchange Authorization Code for Tokens,
      * This method will be used to call the token endpoint to get the OAuth token
      * by using the auth code received from the authorization endpoint.
+     * <p>
+     * If any error occurs while getting token, it will retry for a specified max retry attempt
      *
      * @param code         - auth code received from authorization
      * @param codeVerifier - original code verifier for PKCE
      * @param redirectUri  - redirect uri, which was used for authorization code
-     * @throws CxException - if error occurred during exchanging auth code for token
+     * @return string refresh token
      */
-    public void exchangeCodeForToken(String tokenEndpoint, String code, String codeVerifier, String redirectUri) throws CxException {
+    public String exchangeCodeForToken(String tokenEndpoint, String code, String codeVerifier, String redirectUri) {
         try {
-            String requestBody = "grant_type=authorization_code" +
-                    "&code=" + code +
-                    "&redirect_uri=" + redirectUri +
-                    "&client_id=" + Constants.AuthConstants.IDE_CLIENT_ID +
-                    "&code_verifier=" + codeVerifier;
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(tokenEndpoint))
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .build();
-
-            HttpClient client = HttpClient.newHttpClient();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            log.debug("OAuth: Received token response:{}", response);
-            log.info("OAuth: Token response status code:{}", response.statusCode());
-
-            if (response.statusCode() == 200) {
-                saveToken(getRefreshToken(response.body()));
-                return;
-            }
-            throw new CxException(500, "Something went wrong, Please try again.");
-        } catch (IOException | InterruptedException e) {
-            throw new CxException(500, "Unable to connect with CxOne platform for authentication ");
+            return Utils.executeWithRetry(() -> {
+                try {
+                    return callTokenEndpoint(tokenEndpoint, code, codeVerifier, redirectUri);
+                } catch (IOException | CxException | InterruptedException e) {
+                    throw new RuntimeException(e); // wrap checked in unchecked to satisfy Supplier
+                }
+            }, MAX_RETRIES, RETRY_DELAY_MS);
         } catch (Exception exception) {
-            throw new CxException(500, exception.getMessage());
+            log.error("OAuth: Failed after retries:{} ", exception.getMessage());
+            return null;
         }
     }
 
+
     /**
-     * Parse json response string into JSON object and getting refresh token
+     * This method will be used to call the token endpoint to get the OAuth token
+     * by using the auth code received from the authorization endpoint.
+     *
+     * @param code         - auth code received from authorization
+     * @param codeVerifier - original code verifier for PKCE
+     * @param redirectUri  - redirect uri, which was used for authorization code
+     * @return string refresh token
+     * @throws CxException - if error occurred during exchanging auth code for token
+     */
+    public String callTokenEndpoint(String tokenEndpoint, String code, String codeVerifier, String redirectUri) throws CxException, IOException, InterruptedException {
+        String requestBody = "grant_type=authorization_code" +
+                "&code=" + code +
+                "&redirect_uri=" + redirectUri +
+                "&client_id=" + Constants.AuthConstants.IDE_CLIENT_ID +
+                "&code_verifier=" + codeVerifier;
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(tokenEndpoint))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        log.debug("OAuth: Received token response:{}", response);
+        log.info("OAuth: Token response status code:{}", response.statusCode());
+
+        if (response.statusCode() == 200) {
+            return extractRefreshToken(response.body());
+        }
+        throw new CxException(response.statusCode(), "Something went wrong, Please try again.");
+    }
+
+    /**
+     * Parse JSON response string into JSON object and getting refresh token
      *
      * @param jsonString - token response body as json string
      * @return String - refresh token
      */
-    private String getRefreshToken(String jsonString) {
+    private String extractRefreshToken(String jsonString) {
         try {
             JSONParser parser = new JSONParser(JSONParser.MODE_PERMISSIVE);
             JSONObject jsonObject = (JSONObject) parser.parse(jsonString);
@@ -338,6 +366,7 @@ public class AuthService {
 
     /**
      * Store refresh token in secure storage
+     *
      * @param refreshToken - Received refresh token from the response
      */
     private void saveToken(final String refreshToken) {
@@ -345,5 +374,12 @@ public class AuthService {
         GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
         sensitiveState.setApiKey(refreshToken);
         sensitiveState.apply(sensitiveState);
+    }
+
+    public boolean logout() {
+        log.debug("OAuth: Clearing token from secure storage.");
+        GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
+        sensitiveState.clear();
+        return true;
     }
 }

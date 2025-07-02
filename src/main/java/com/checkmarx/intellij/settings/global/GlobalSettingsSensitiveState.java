@@ -80,4 +80,12 @@ public class GlobalSettingsSensitiveState {
         }
         return null;
     }
+
+
+    /**
+     * Clearing the api key or refresh token from password storage
+     */
+    public void clear() {
+        PasswordSafe.getInstance().set(apiKeyAttr, null);
+    }
 }

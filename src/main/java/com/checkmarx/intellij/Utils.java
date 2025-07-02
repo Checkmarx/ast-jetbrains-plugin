@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -206,7 +207,7 @@ public final class Utils {
                 return new String(input.readAllBytes(), StandardCharsets.UTF_8);
             }
         } catch (Exception exception) {
-            LOGGER.error("Load Resource: Unble to load file from the path:{}. Root Cause:{}", resourcePath, exception.getMessage());
+            LOGGER.error("Load Resource: Unable to load file from the path:{}. Root Cause:{}", resourcePath, exception.getMessage());
         }
         return null;
     }
@@ -226,5 +227,42 @@ public final class Utils {
                         content,
                         type)
                 .notify(project);
+    }
+
+    /**
+     * Executing action with specified max retry attempts.
+     * Before going for the every next retry attempt, it will increase delay time by specified delay milliseconds
+     *
+     * @param action             - {@link Supplier} object which contains the action to execute
+     * @param maxRetries         - maximum number of retry attempts
+     * @param initialDelayMillis - dealy in milliseconds for a fist attempt
+     * @return action result
+     * @throws Exception after all attempts if action result not received
+     * @apiNote For every next retry attempt delay will be increase by attempt * initialDelayMillis
+     */
+    public static <T> T executeWithRetry(Supplier<T> action, int maxRetries, long initialDelayMillis) throws Exception {
+        Exception lastException = null;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                return action.get();
+            } catch (Exception exception) {
+                lastException = exception;
+
+                if (attempt == maxRetries) break;
+
+                long delay = attempt * initialDelayMillis;
+                LOGGER.info(String.format("Retry: Attempt:%d failed:%s. Retrying in:%d ms.", attempt, exception.getMessage(), delay));
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    LOGGER.debug("Retry: Exception occurred while delaying after attempt:{}", attempt);
+                }
+            }
+        }
+        if (lastException != null) {
+            throw lastException;
+        }
+        throw new IllegalStateException("Unexpected: No exception captured during retries.");
     }
 }
