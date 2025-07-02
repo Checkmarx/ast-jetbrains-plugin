@@ -8,6 +8,7 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
+import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.intellij.openapi.application.ApplicationManager;

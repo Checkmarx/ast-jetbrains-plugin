@@ -29,6 +29,7 @@
 
         <notificationGroup id="Checkmarx.Notifications" displayType="BALLOON"
                            bundle="messages.CxBundle" key="NOTIFICATION_GROUP_NAME"/>
+        <notificationGroup id="authGroup" displayType="BALLOON" key="auth.success" isLogByDefault="true"/>
 
         <localInspection displayName="Checkmarx AST"
                          groupName="Checkmarx AST"

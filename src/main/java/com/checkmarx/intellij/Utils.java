@@ -2,10 +2,7 @@ package com.checkmarx.intellij;
 
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationAction;
-import com.intellij.notification.NotificationListener;
-import com.intellij.notification.NotificationType;
+import com.intellij.notification.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -13,6 +10,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -146,20 +145,64 @@ public final class Utils {
      * @return Generated ~43 characters code verifier string
      */
     public static String generateCodeVerifier() {
-        byte[] codeVerifier = new byte[32];
-        new SecureRandom().nextBytes(codeVerifier);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
+        try{
+            byte[] codeVerifier = new byte[32];
+            new SecureRandom().nextBytes(codeVerifier);
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
+        }catch (Exception exception){
+            LOGGER.error("OAuth: Exception occur while generating code verifier. Root Cause:{}"
+                    ,exception.getMessage());
+            return null;
+        }
     }
 
     /**
-     * Generating code challenge for original code verifier
+     * Generating code challenge for original code verifier using SHA-256
      *
      * @param codeVerifier - Generated code verifier
      * @return Generated hash of code verifier using SHA256
      */
-    public static String generateCodeChallenge(String codeVerifier) throws Exception {
-        MessageDigest digest = MessageDigest.getInstance(Constants.AuthConstants.ALGO_SHA256);
-        byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+    public static String generateCodeChallenge(String codeVerifier){
+        try {
+            MessageDigest digest = MessageDigest.getInstance(Constants.AuthConstants.ALGO_SHA256);
+            byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (Exception exception) {
+            LOGGER.error("OAuth: Exception occur while generating code challenge. Root Cause:{}"
+                    , exception.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Load HTML page and send in the response as a success message
+     * @param resourcePath - file path which you want to load
+     * @return html string
+     */
+    public static String loadAuthSuccessHtml(String resourcePath) throws IOException {
+        InputStream input = Utils.class.getClassLoader().getResourceAsStream(resourcePath);
+        if (input == null) {
+            //add fallback method
+            return "<html><body><h2>⚠ Error: HTML file not found.</h2></body></html>";
+        }
+        return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    public static String loadAuthErrorHtml(String resourcePath) throws IOException {
+        InputStream input = Utils.class.getClassLoader().getResourceAsStream(resourcePath);
+        if (input == null) {
+            //add fallback method
+            return "<html><body><h2>⚠ Error: HTML file not found.</h2></body></html>";
+        }
+        return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    public static void showAuthNotification(String title, String content, NotificationType type, Project project) {
+        NotificationGroupManager.getInstance()
+                .getNotificationGroup("authGroup")
+                .createNotification(title,
+                        content,
+                        type)
+                .notify(project);
     }
 }
