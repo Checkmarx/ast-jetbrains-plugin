@@ -4,6 +4,7 @@ import com.checkmarx.intellij.Utils;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -28,9 +29,12 @@ public class OAuthCallbackServer {
     private ScheduledExecutorService scheduler;
     private final CompletableFuture<String> authCodeFuture = new CompletableFuture<>();
     private final String callbackURL;
+    @Setter
+    private String state;
 
     /**
      * Construct the constructor with the required parameters
+     *
      * @param callbackURL - OAuth callback url
      */
     public OAuthCallbackServer(String callbackURL) {
@@ -64,9 +68,9 @@ public class OAuthCallbackServer {
                     stop();
                 }
             }, timeoutSeconds, TimeUnit.SECONDS);
-        }catch (Exception exception) {
+        } catch (Exception exception) {
             log.error("OAuth: Unable to start the local callback Https Server. Root Cause:{}", exception.getMessage());
-            throw new IOException("A required port:"+port+" is currently in use. Please try again shortly.");
+            throw new IOException("A required port:" + port + " is currently in use. Please try again shortly.");
         }
     }
 
@@ -101,11 +105,9 @@ public class OAuthCallbackServer {
             URI uri = exchange.getRequestURI();
             String query = uri.getQuery();
 
-            if (query != null) {
+            if (query != null && query.contains("state")) {
                 if (query.contains("code=")) {
-                    String code = extractParam(query, "code");
-                    log.info("OAuth: Auth code received successfully.");
-                    log.debug("OAuth: Received auth code:{}", code);
+                    String code = validateStateAndGetCode(query);
                     String htmlString = Utils.loadAuthSuccessHtml("auth/auth-success.html");
                     sendResponse(exchange, htmlString, 200);
                     authCodeFuture.complete(code);
@@ -152,6 +154,24 @@ public class OAuthCallbackServer {
             } catch (Exception exception) {
                 log.error("OAuth: Exception occurred while sending response to user. Root Cause:{}", exception.getMessage());
             }
+        }
+
+        /**
+         * Validating received state parameter and getting auth code from the response
+         *
+         * @param query - response query string from authorization endpoint
+         * @return auth code
+         */
+        String validateStateAndGetCode(String query) {
+            final String paramState = extractParam(query, "state");
+            if (!state.equals(paramState)) {
+                log.error("OAuth: State parameter is invalid.");
+                throw new IllegalStateException("Invalid authentication");
+            }
+            String code = extractParam(query, "code");
+            log.info("OAuth: Auth code received successfully.");
+            log.debug("OAuth: Received auth code:{}", code);
+            return code;
         }
     }
 }

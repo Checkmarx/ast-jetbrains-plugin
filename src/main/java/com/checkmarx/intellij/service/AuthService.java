@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.service;
 
+import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.helper.OAuthCallbackServer;
@@ -17,8 +18,14 @@ import net.minidev.json.parser.JSONParser;
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.HashSet;
@@ -27,6 +34,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * AuthService class responsible to handle the authentication and authorization mechanism
@@ -61,9 +69,8 @@ public class AuthService {
             int port = findAvailablePort();
             String redirectUrl = "http://localhost:" + port + Constants.AuthConstants.CALLBACK_PATH;
             String cxOneAuthEndpoint = getCxOneAuthEndpoint(cxOneBaseUrl, cxOneTenant);
-
-            String authURL = buildCxOneOAuthAuthorizationUrl(cxOneAuthEndpoint, redirectUrl, codeChallenge);
-            log.debug("OAuth: OAuth2.0 Authorization URL:{}", authURL);
+            String cxOneTokenEndpoint = getCxOneTokenEndpoint(cxOneBaseUrl, cxOneTenant);
+            log.debug("OAuth: CxOne Auth Endpoint:{} and CxOne Token Endpoint:{}", cxOneAuthEndpoint, cxOneTokenEndpoint);
 
             boolean confirmed = openConfirmation(cxOneAuthEndpoint);
             if (!confirmed) {
@@ -72,9 +79,10 @@ public class AuthService {
                         NotificationType.WARNING, project);
                 return false;
             }
-            String tokenEndpoint = getCxOneTokenEndpoint(cxOneBaseUrl, cxOneTenant);
-            log.debug("OAuth: OAuth2.0 Token URL:{}", authURL);
-            return processAuthentication(port, codeVerifier, authURL, tokenEndpoint, redirectUrl);
+            server = new OAuthCallbackServer(Constants.AuthConstants.CALLBACK_PATH); // initialize the server object
+            String authURL = buildCxOneOAuthAuthorizationUrl(cxOneAuthEndpoint, redirectUrl, codeChallenge);
+            log.debug("OAuth: OAuth2.0 Authorization URL:{}", authURL);
+            return processAuthentication(port, codeVerifier, authURL, cxOneTokenEndpoint, redirectUrl);
         } catch (Exception exception) {
             log.error("OAuth: Exception occurred while authenticating using oauth2. Root Cause:{}",
                     exception.getMessage());
@@ -88,22 +96,21 @@ public class AuthService {
      * Once authentication is completed or failed, progress indicator will be closed
      * and success or error notification will be shown to the user.
      *
-     * @param port - Port number for callback server (Http Server)
-     * @param codeVerifier - Original code verifier for PKCE
-     * @param authURL - CxOne Authorization (OAuth) endpoint with required parameters
+     * @param port          - Port number for callback server (Http Server)
+     * @param codeVerifier  - Original code verifier for PKCE
+     * @param authURL       - CxOne Authorization (OAuth) endpoint with required parameters
      * @param tokenEndpoint - CxOne Token endpoint with required parameters
-     * @param redirectUrl - Callback URL where auth code will be received
+     * @param redirectUrl   - Callback URL where auth code will be received
      * @return true if auth success otherwise false
      */
     private boolean processAuthentication(int port, String codeVerifier, String authURL, String tokenEndpoint, String redirectUrl) {
-        final boolean[] isAuthenticated = {false};
+        AtomicBoolean isAuthenticated = new AtomicBoolean(false);
         ProgressManager.getInstance().run(new Task.Backgroundable(project, "Authenticating with checkmarx one...", false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
                 indicator.setText("Waiting for authentication in browser...");
                 try {
-                    server = new OAuthCallbackServer(Constants.AuthConstants.CALLBACK_PATH);
                     server.start(Constants.AuthConstants.TIME_OUT_SECONDS, port);
                     // Launch in browser
                     java.awt.Desktop.getDesktop().browse(new URI(authURL));
@@ -112,7 +119,7 @@ public class AuthService {
                     exchangeCodeForToken(tokenEndpoint, code, codeVerifier, redirectUrl);
                     log.info("OAuth: Authentication process completed successfully.");
                     showSuccessMessage();
-                    isAuthenticated[0] = true;
+                    isAuthenticated.set(true);
                 } catch (TimeoutException timeoutException) {
                     showErrorMessage("Authentication timed out, Please try again.");
                 } catch (Exception exception) {
@@ -123,11 +130,13 @@ public class AuthService {
                 }
             }
         });
-        return isAuthenticated[0];
+        log.info("OAuth: Authentication process success status:{}.", isAuthenticated.get());
+        return isAuthenticated.get();
     }
 
     /**
      * Open the confirmation dialog for the user before redirect to browser for authentication.
+     *
      * @param authUrl - CxOne auth endpoint without required parameters
      * @return true if user agrees otherwise false
      */
@@ -171,14 +180,17 @@ public class AuthService {
      */
     private String buildCxOneOAuthAuthorizationUrl(String authEndpoint, String redirectUri,
                                                    String codeChallenge) throws URISyntaxException {
+        String state = UUID.randomUUID().toString();
         URIBuilder uriBuilder = new URIBuilder(authEndpoint);
         uriBuilder.addParameter("response_type", Constants.AuthConstants.RESP_TYPE_CODE);
         uriBuilder.addParameter("client_id", Constants.AuthConstants.IDE_CLIENT_ID);
         uriBuilder.addParameter("redirect_uri", encodeUrl(redirectUri));
         uriBuilder.addParameter("scope", Constants.AuthConstants.SCOPE);
-        uriBuilder.addParameter("state", UUID.randomUUID().toString());
+        uriBuilder.addParameter("state", state);
         uriBuilder.addParameter("code_challenge", codeChallenge);
         uriBuilder.addParameter("code_challenge_method", Constants.AuthConstants.CODE_CHALLENGE_METHOD);
+
+        server.setState(state);
 
         URI authUri = uriBuilder.build();
         return authUri.toString();
@@ -214,51 +226,6 @@ public class AuthService {
      */
     private String getCxOneTokenEndpoint(final String baseUrl, final String tenant) {
         return baseUrl + "/auth/realms/" + tenant + "/protocol/openid-connect/token";
-    }
-
-    /**
-     * Exchange Authorization Code for Tokens
-     *
-     * @param code
-     * @param codeVerifier
-     * @param redirectUri
-     * @throws IOException
-     */
-
-    public void exchangeCodeForToken(String tokenEndpoint, String code, String codeVerifier, String redirectUri) throws IOException, MalformedURLException, ProtocolException {
-        String data = "grant_type=authorization_code" +
-                "&code=" + code +
-                "&redirect_uri=" + redirectUri +
-                "&client_id=" + Constants.AuthConstants.IDE_CLIENT_ID +
-                "&code_verifier=" + codeVerifier;
-
-        URL url = new URL(tokenEndpoint);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setDoOutput(true);
-        conn.setRequestMethod("POST");
-        conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(data.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        InputStream is = conn.getResponseCode() == 200 ? conn.getInputStream() : conn.getErrorStream();
-        String response = new BufferedReader(new InputStreamReader(is))
-                .lines().reduce("", (acc, line) -> acc + line + "\n");
-        saveToken(getRefreshToken(response));
-    }
-
-    // Parse and store access/refresh token securely
-    private String getRefreshToken(String jsonString) {
-        try {
-            JSONParser parser = new JSONParser(JSONParser.MODE_PERMISSIVE);
-            JSONObject jsonObject = (JSONObject) parser.parse(jsonString);
-            return jsonObject.getAsString("refresh_token");
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     /**
@@ -312,8 +279,72 @@ public class AuthService {
         }
     }
 
+    /**
+     * Exchange Authorization Code for Tokens,
+     * This method will be used to call the token endpoint to get the OAuth token
+     * by using the auth code received from the authorization endpoint.
+     *
+     * @param code         - auth code received from authorization
+     * @param codeVerifier - original code verifier for PKCE
+     * @param redirectUri  - redirect uri, which was used for authorization code
+     * @throws CxException - if error occurred during exchanging auth code for token
+     */
+    public void exchangeCodeForToken(String tokenEndpoint, String code, String codeVerifier, String redirectUri) throws CxException {
+        try {
+            String requestBody = "grant_type=authorization_code" +
+                    "&code=" + code +
+                    "&redirect_uri=" + redirectUri +
+                    "&client_id=" + Constants.AuthConstants.IDE_CLIENT_ID +
+                    "&code_verifier=" + codeVerifier;
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(tokenEndpoint))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            log.debug("OAuth: Received token response:{}", response);
+            log.info("OAuth: Token response status code:{}", response.statusCode());
+
+            if (response.statusCode() == 200) {
+                saveToken(getRefreshToken(response.body()));
+                return;
+            }
+            throw new CxException(500, "Something went wrong, Please try again.");
+        } catch (IOException | InterruptedException e) {
+            throw new CxException(500, "Unable to connect with CxOne platform for authentication ");
+        } catch (Exception exception) {
+            throw new CxException(500, exception.getMessage());
+        }
+    }
+
+    /**
+     * Parse json response string into JSON object and getting refresh token
+     *
+     * @param jsonString - token response body as json string
+     * @return String - refresh token
+     */
+    private String getRefreshToken(String jsonString) {
+        try {
+            JSONParser parser = new JSONParser(JSONParser.MODE_PERMISSIVE);
+            JSONObject jsonObject = (JSONObject) parser.parse(jsonString);
+            return jsonObject.getAsString("refresh_token");
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Store refresh token in secure storage
+     * @param refreshToken - Received refresh token from the response
+     */
     private void saveToken(final String refreshToken) {
+        log.debug("OAuth: Saving token in secure storage");
         GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
         sensitiveState.setApiKey(refreshToken);
+        sensitiveState.apply(sensitiveState);
     }
 }

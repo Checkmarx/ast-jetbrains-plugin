@@ -20,6 +20,7 @@ import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.messages.MessageBus;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
@@ -29,10 +30,12 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Component for the actual drawing of the global settings.
  */
+@Slf4j
 public class GlobalSettingsComponent implements SettingsComponent {
     private static final Logger LOGGER = Utils.getLogger(GlobalSettingsComponent.class);
 
@@ -131,7 +134,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
      * Add listener to trigger validation of settings through the CLI.
      */
     private void addValidateConnectionListener() {
-
+        AtomicBoolean isAuthValid = new AtomicBoolean(false);
         // Validation button workflow
         validateButton.addActionListener(event -> {
             validateButton.setEnabled(false);
@@ -146,19 +149,27 @@ public class GlobalSettingsComponent implements SettingsComponent {
                             getSensitiveStateFromFields());
                     setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
                     LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
+                    isAuthValid.set(true);
                 } catch (IOException | URISyntaxException | InterruptedException e) {
                     setValidationResult(Bundle.message(Resource.VALIDATE_ERROR), JBColor.RED);
                     LOGGER.error(Bundle.message(Resource.VALIDATE_ERROR), e);
+                    isAuthValid.set(false);
                 } catch (CxException e) {
                     String msg = e.getMessage().trim();
                     int lastLineIndex = Math.max(msg.lastIndexOf('\n'), 0);
                     setValidationResult(msg.substring(lastLineIndex).trim(), JBColor.RED);
                     LOGGER.warn(Bundle.message(Resource.VALIDATE_FAIL, e.getMessage()));
+                    isAuthValid.set(false);
                 } finally {
                     validateButton.setEnabled(true);
                 }
             });
         });
+
+        if (!isAuthValid.get()){
+            boolean authResult = new AuthService().authenticate("https://eu.iam.checkmarx.net","cx_seg");
+            log.info("OAuth: Authentication result:{}", authResult);
+        }
     }
 
     private void addAscaCheckBoxListener() {
