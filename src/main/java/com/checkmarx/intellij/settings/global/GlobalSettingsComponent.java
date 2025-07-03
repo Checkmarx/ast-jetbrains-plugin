@@ -8,6 +8,7 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
+import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.intellij.notification.*;
@@ -182,38 +183,44 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     }
                 });
             } else {
-                if (baseUrlField.getText().trim().isEmpty() || tenantField.getText().trim().isEmpty()) {
-                    setValidationResult(Bundle.message(Resource.MISSING_FIELD, "Base URL or Tenant"), JBColor.RED);
-                    connectButton.setEnabled(true);
-                    return;
-                }
-                int result = Messages.showOkCancelDialog(
-                        "You will be redirected to OAuth login in your default browser. Are you sure you want to continue?",
-                        "Continue to OAuth Login",
-                        "Continue", "Cancel", Messages.getQuestionIcon()
-                );
-                if (result == Messages.OK) {
-                    String oauthUrl = baseUrlField.getText().trim() + "/oauth/authorize?tenant=" + tenantField.getText().trim();
-                    BrowserUtil.browse(oauthUrl);
-
-                    Notification notification = NotificationGroupManager.getInstance()
-                            .getNotificationGroup("Checkmarx.Notifications")
-                            .createNotification("Redirecting to browser for OAuth login...", NotificationType.INFORMATION);
-                    Notifications.Bus.notify(notification);
-
-                    SwingUtilities.invokeLater(() -> {
-                        sessionConnected = true;
-                        setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
-                        logoutButton.setEnabled(true);
-                        connectButton.setEnabled(false);
-                        setFieldsEditable(false);
-                        SETTINGS_STATE.setAuthenticated(true); // also persist
-                    });
-                } else {
-                    connectButton.setEnabled(true);
-                }
+                // Proceed for OAuth authentication
+                proceedOAuthAuthentication();
             }
         });
+    }
+
+    private void proceedOAuthAuthentication() {
+        if (baseUrlField.getText().trim().isEmpty() || tenantField.getText().trim().isEmpty()) {
+            setValidationResult(Bundle.message(Resource.MISSING_FIELD, "Base URL or Tenant"), JBColor.RED);
+            connectButton.setEnabled(true);
+            return;
+        }
+        int result = Messages.showOkCancelDialog(
+                "You will be redirected to OAuth login in your default browser. Are you sure you want to continue?",
+                "Continue to OAuth Login",
+                "Continue", "Cancel", Messages.getQuestionIcon()
+        );
+        if (result == Messages.OK) {
+            boolean authResult = new AuthService().authenticate(baseUrlField.getText().trim(), tenantField.getText().trim());
+            LOGGER.info("OAuth: Authentication result:"+authResult);
+
+            if (authResult) {
+                //success
+                return;
+            }
+            //failed
+
+            SwingUtilities.invokeLater(() -> {
+                sessionConnected = true;
+                setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
+                logoutButton.setEnabled(true);
+                connectButton.setEnabled(false);
+                setFieldsEditable(false);
+                SETTINGS_STATE.setAuthenticated(true); // also persist
+            });
+        } else {
+            connectButton.setEnabled(true);
+        }
     }
 
     private void handleConnectionFailure(Exception e) {

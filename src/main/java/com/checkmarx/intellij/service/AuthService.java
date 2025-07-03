@@ -190,7 +190,7 @@ public class AuthService {
         URIBuilder uriBuilder = new URIBuilder(authEndpoint);
         uriBuilder.addParameter("response_type", Constants.AuthConstants.RESP_TYPE_CODE);
         uriBuilder.addParameter("client_id", Constants.AuthConstants.IDE_CLIENT_ID);
-        uriBuilder.addParameter("redirect_uri", encodeUrl(redirectUri));
+        uriBuilder.addParameter("redirect_uri", redirectUri);
         uriBuilder.addParameter("scope", Constants.AuthConstants.SCOPE);
         uriBuilder.addParameter("state", state);
         uriBuilder.addParameter("code_challenge", codeChallenge);
