@@ -7,9 +7,10 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.helper.OAuthCallbackServer;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
@@ -23,11 +24,9 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.Set;
@@ -35,7 +34,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * AuthService class responsible to handle the authentication and authorization mechanism
@@ -47,7 +46,8 @@ public class AuthService {
     private static final int MIN_PORT = 49152;
     private static final int MAX_PORT = 65535;
     private static final int MAX_RETRIES = 3;
-    public static final int RETRY_DELAY_MS = 1000;
+    private static final int RETRY_DELAY_MS = 1000;
+    private static final String CALLBACK_PATH = "/checkmarx1/callback";
     private final Project project = ProjectManager.getInstance().getDefaultProject();
     private OAuthCallbackServer server;
 
@@ -56,9 +56,8 @@ public class AuthService {
      *
      * @param cxOneBaseUrl - Checkmarx One base URL provided by the user.
      * @param cxOneTenant  - Checkmarx One-tenant URL provided by the user.
-     * @return boolean value tells whether authentication success or not
      */
-    public boolean authenticate(final String cxOneBaseUrl, final String cxOneTenant) {
+    public void authenticate(final String cxOneBaseUrl, final String cxOneTenant, Consumer<String> onAuthComplete) {
         try {
             log.info("OAuth: Authentication started with provided base URL:{} and Tenant:{}", cxOneBaseUrl, cxOneTenant);
             String codeVerifier = Utils.generateCodeVerifier();
@@ -66,29 +65,22 @@ public class AuthService {
 
             if (codeVerifier == null || codeChallenge == null) {
                 log.error("OAuth: Code Verifier or Code Challenge is null.");
-                return false;
+                return;
             }
-            int port = findAvailablePort();
-            String redirectUrl = "http://localhost:" + port + Constants.AuthConstants.CALLBACK_PATH;
-            String cxOneAuthEndpoint = getCxOneAuthEndpoint(cxOneBaseUrl, cxOneTenant);
-            String cxOneTokenEndpoint = getCxOneTokenEndpoint(cxOneBaseUrl, cxOneTenant);
-            log.debug("OAuth: CxOne Auth Endpoint:{} and CxOne Token Endpoint:{}", cxOneAuthEndpoint, cxOneTokenEndpoint);
-
-            boolean confirmed = openConfirmation(cxOneAuthEndpoint);
-            if (!confirmed) {
-                log.warn("OAuth: Authentication is cancelled by user.");
-                Utils.showNotification(Constants.AuthConstants.AUTH_FAILED_TITLE, "Authentication is cancelled.",
-                        NotificationType.WARNING, project);
-                return false;
-            }
-            server = new OAuthCallbackServer(Constants.AuthConstants.CALLBACK_PATH); // initialize the server object
-            String authURL = buildCxOneOAuthAuthorizationUrl(cxOneAuthEndpoint, redirectUrl, codeChallenge);
-            log.debug("OAuth: OAuth2.0 Authorization URL:{}", authURL);
-            return processAuthentication(port, codeVerifier, authURL, cxOneTokenEndpoint, redirectUrl);
+            new Task.Backgroundable(project, Bundle.message(Resource.CONNECTING_TO_CHECKMARX), false) {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                    indicator.setIndeterminate(true);
+                    indicator.setText(Bundle.message(Resource.WAITING_FOR_AUTHENTICATION));
+                    server = new OAuthCallbackServer(CALLBACK_PATH); // initialize the server object
+                    processAuthentication(codeVerifier, codeChallenge, cxOneBaseUrl, cxOneTenant, onAuthComplete);
+                }
+            }.queue();
+            log.info("OAuth: Authentication process success status:{}.", onAuthComplete.toString());
         } catch (Exception exception) {
             log.error("OAuth: Exception occurred while authenticating using oauth2. Root Cause:{}",
                     exception.getMessage());
-            return false;
+            returnValue(onAuthComplete, "Error:"+exception.getMessage());
         }
     }
 
@@ -98,62 +90,59 @@ public class AuthService {
      * Once authentication is completed or failed, progress indicator will be closed
      * and success or error notification will be shown to the user.
      *
-     * @param port          - Port number for callback server (Http Server)
      * @param codeVerifier  - Original code verifier for PKCE
-     * @param authURL       - CxOne Authorization (OAuth) endpoint with required parameters
-     * @param tokenEndpoint - CxOne Token endpoint with required parameters
-     * @param redirectUrl   - Callback URL where auth code will be received
-     * @return true if auth success otherwise false
+     * @param codeChallenge - Generated code challenge from code verifier using SHA-256
+     * @param cxOneBaseUrl  - Checkmarx One base URL provided by the user.
+     * @param cxOneTenant   - Checkmarx One-tenant URL provided by the user.
      */
-    private boolean processAuthentication(int port, String codeVerifier, String authURL, String tokenEndpoint, String redirectUrl) {
-        AtomicBoolean isAuthenticated = new AtomicBoolean(false);
-        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Authenticating with checkmarx one...", false) {
-            @Override
-            public void run(@NotNull ProgressIndicator indicator) {
-                indicator.setIndeterminate(true);
-                indicator.setText("Waiting for authentication in browser...");
+    private void processAuthentication(String codeVerifier, String codeChallenge,
+                                       String cxOneBaseUrl, String cxOneTenant, Consumer<String> onAuthComplete) {
+        try {
+            String cxOneAuthEndpoint = getCxOneAuthEndpoint(cxOneBaseUrl, cxOneTenant);
+            String cxOneTokenEndpoint = getCxOneTokenEndpoint(cxOneBaseUrl, cxOneTenant);
+            int port = findAvailablePort();
+            String redirectUrl = "http://localhost:" + port + CALLBACK_PATH;
+            String authorizationUrl = buildCxOneOAuthAuthorizationUrl(cxOneAuthEndpoint, redirectUrl, codeChallenge);
+
+            log.debug("OAuth: OAuth2.0 Authorization URL:{}", authorizationUrl);
+            server.start(Constants.AuthConstants.TIME_OUT_SECONDS, port);
+
+            ApplicationManager.getApplication().invokeLater(() -> {
                 try {
-                    server.start(Constants.AuthConstants.TIME_OUT_SECONDS, port);
-                    // Launch in browser
-                    java.awt.Desktop.getDesktop().browse(new URI(authURL));
-                    CompletableFuture<String> future = server.waitForAuthCode();
-                    String code = future.get(Constants.AuthConstants.TIME_OUT_SECONDS, TimeUnit.SECONDS);
-                    String refreshToken = exchangeCodeForToken(tokenEndpoint, code, codeVerifier, redirectUrl);
-                    if (refreshToken != null && !refreshToken.isEmpty()) {
-                        saveToken(refreshToken);
-                        log.info("OAuth: Authentication process completed successfully.");
-                        showSuccessMessage();
-                        isAuthenticated.set(true);
-                    } else {
-                        showErrorMessage("Authentication Failed: Something went wrong please try again.");
-                        isAuthenticated.set(false);
-                    }
-                } catch (TimeoutException timeoutException) {
-                    showErrorMessage("Authentication timed out, Please try again.");
+                    BrowserUtil.browse(new URI(authorizationUrl));  // Launch browser for authentication.
                 } catch (Exception exception) {
-                    log.error("OAuth: Exception occurred while authentication process. Root Cause:{} ", exception.getMessage());
-                    showErrorMessage("Authentication Failed: " + exception.getMessage());
-                } finally {
-                    server.stop();
+                    log.error("OAuth: Exception occurred while opening the browser. Root Cause:{}", exception.getMessage());
+                    onAuthComplete.accept("ERROR:"+exception.getMessage());
                 }
+            });
+            CompletableFuture<String> future = server.waitForAuthCode();
+            String code = future.get(Constants.AuthConstants.TIME_OUT_SECONDS, TimeUnit.SECONDS);
+
+            String refreshToken = exchangeCodeForToken(cxOneTokenEndpoint, code, codeVerifier, redirectUrl);
+            if (refreshToken == null || refreshToken.isEmpty()) {
+                showErrorMessage("Authentication Failed: Something went wrong please try again.");
+                returnValue(onAuthComplete, "Error:Authentication Failed: Something went wrong please try again.");
+                return;
             }
-        });
-        log.info("OAuth: Authentication process success status:{}.", isAuthenticated.get());
-        return isAuthenticated.get();
+            //Return token
+            returnValue(onAuthComplete, refreshToken);
+            saveToken(refreshToken);
+            log.info("OAuth: Authentication process completed successfully.");
+            showSuccessMessage();
+        } catch (TimeoutException timeoutException) {
+            showErrorMessage("Authentication timed out, Please try again.");
+            returnValue(onAuthComplete, "ERROR: Authentication timed out, Please try again.");
+        } catch (Exception exception) {
+            log.error("OAuth: Exception occurred while authentication process. Root Cause:{} ", exception.getMessage());
+            showErrorMessage("Authentication Failed: " + exception.getMessage());
+            returnValue(onAuthComplete, "ERROR: "+exception.getMessage());
+        } finally {
+            server.stop();
+        }
     }
 
-    /**
-     * Open the confirmation dialog for the user before redirect to browser for authentication.
-     *
-     * @param authUrl - CxOne auth endpoint without required parameters
-     * @return true if user agrees otherwise false
-     */
-    private boolean openConfirmation(String authUrl) {
-        String message = "Checkmarx plugin wants to open your default browser for login. \n \n" + authUrl;
-        return Utils.openConfirmation(message,
-                "OAuth Authentication Required",
-                "Continue",
-                "Cancel");
+    private void returnValue(Consumer<String> onAuthComplete, String value) {
+        ApplicationManager.getApplication().invokeLater(() -> onAuthComplete.accept(value));
     }
 
     /**
@@ -200,16 +189,6 @@ public class AuthService {
 
         URI authUri = uriBuilder.build();
         return authUri.toString();
-    }
-
-    /**
-     * Encoding url with url encoder
-     *
-     * @param url - original url
-     * @return encoded url
-     */
-    private String encodeUrl(String url) {
-        return URLEncoder.encode(url, StandardCharsets.UTF_8);
     }
 
     /**
@@ -374,12 +353,5 @@ public class AuthService {
         GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
         sensitiveState.setApiKey(refreshToken);
         sensitiveState.apply(sensitiveState);
-    }
-
-    public boolean logout() {
-        log.debug("OAuth: Clearing token from secure storage.");
-        GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
-        sensitiveState.clear();
-        return true;
     }
 }

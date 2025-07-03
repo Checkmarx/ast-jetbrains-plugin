@@ -101,9 +101,7 @@ public final class Constants {
         public static final String SCOPE = "openid offline_access";
         public static final String RESP_TYPE_CODE = "code";
         public static final String CODE_CHALLENGE_METHOD = "S256";
-        public static final String CALLBACK_PATH = "/checkmarx1/callback";
         public static final int TIME_OUT_SECONDS = 60;
-        public static final String AUTH_FAILED_TITLE = "Authentication Failed";
     }
 
 

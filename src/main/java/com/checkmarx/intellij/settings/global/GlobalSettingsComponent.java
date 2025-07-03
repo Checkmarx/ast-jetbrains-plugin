@@ -11,7 +11,6 @@ import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
-import com.intellij.notification.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.DocumentAdapter;
@@ -22,7 +21,6 @@ import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.messages.MessageBus;
 import com.intellij.openapi.ui.Messages; // <-- Added
-import com.intellij.ide.BrowserUtil;      // <-- Added
 import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;	// <-- Added
@@ -201,26 +199,38 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 "Continue", "Cancel", Messages.getQuestionIcon()
         );
         if (result == Messages.OK) {
-            boolean authResult = new AuthService().authenticate(baseUrlField.getText().trim(), tenantField.getText().trim());
-            LOGGER.info("OAuth: Authentication result:"+authResult);
-
-            if (authResult) {
-                //success
-                return;
-            }
-            //failed
-
-            SwingUtilities.invokeLater(() -> {
-                sessionConnected = true;
-                setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
-                logoutButton.setEnabled(true);
-                connectButton.setEnabled(false);
-                setFieldsEditable(false);
-                SETTINGS_STATE.setAuthenticated(true); // also persist
+            new AuthService().authenticate(baseUrlField.getText().trim(), tenantField.getText().trim(), authResult -> {
+                LOGGER.info("OAuth: Authentication Result:"+authResult);
+                if (authResult.startsWith("ERROR:")) {
+                    handleOAuthFailed(authResult);
+                } else {
+                    handleOAuthSuccess(authResult);
+                }
             });
         } else {
             connectButton.setEnabled(true);
         }
+    }
+
+    private void handleOAuthSuccess(String refreshToken){
+        LOGGER.info("Success:");
+        SwingUtilities.invokeLater(() -> {
+            sessionConnected = true;
+            setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
+            logoutButton.setEnabled(true);
+            connectButton.setEnabled(false);
+            setFieldsEditable(false);
+            SETTINGS_STATE.setAuthenticated(true); // also persist
+        });
+    }
+
+    private void handleOAuthFailed(String error){
+        LOGGER.info("Failed:");
+        SwingUtilities.invokeLater(() -> {
+            sessionConnected = false;
+            setValidationResult(error, JBColor.RED);
+            connectButton.setEnabled(true);
+        });
     }
 
     private void handleConnectionFailure(Exception e) {
