@@ -69,7 +69,7 @@ public class Xpath {
     static final String FLAT_WELCOME_FRAME = "//div[@class='FlatWelcomeFrame']";
     @Language("XPath")
     public
-    static final String FROM_VCS_TAB = "//div[@defaulticon='fromVCSTab.svg']";
+    static final String FROM_VCS_TAB = "//div[@visible_text='Get from VCS']";
     @Language("XPath")
     public
     static final String BORDERLESS_TEXT_FIELD = "//div[@class='BorderlessTextField']";
