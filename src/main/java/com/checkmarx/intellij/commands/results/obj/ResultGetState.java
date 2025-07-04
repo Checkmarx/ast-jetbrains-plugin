@@ -8,7 +8,7 @@ import lombok.Data;
  * Has scan id of the results, the results, a tree built from the results and a component for displaying them
  */
 @Data
-public class ResultGetState {
+public class    ResultGetState {
     private String scanId;
     private String scanIdFieldValue;
     private boolean latest;

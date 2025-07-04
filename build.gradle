@@ -138,4 +138,3 @@ java {
 patchPluginXml {
     sinceBuild = '222'
 }
-
