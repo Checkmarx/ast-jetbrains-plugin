@@ -199,7 +199,7 @@ public abstract class BaseUITest {
             return hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID));
         });
     }
-
+// test base ui
     private static boolean hasSelection(String s) {
         return hasAnyComponent(String.format(HAS_SELECTION, s));
     }
