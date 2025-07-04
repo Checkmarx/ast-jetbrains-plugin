@@ -96,12 +96,14 @@ public final class Constants {
      */
     public static final class AuthConstants{
 
-        public static final String IDE_CLIENT_ID = "ide-integration";
+        public static final String OAUTH_IDE_CLIENT_ID = "ide-integration";
         public static final String ALGO_SHA256 = "SHA-256";
         public static final String SCOPE = "openid offline_access";
         public static final String RESP_TYPE_CODE = "code";
         public static final String CODE_CHALLENGE_METHOD = "S256";
         public static final int TIME_OUT_SECONDS = 60;
+        public static final String TOKEN = "TOKEN";
+        public static final String REFRESH_TOKEN = "refresh_token";
     }
 
 

@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.helper;
 
+import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Utils;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -8,7 +9,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -26,12 +26,12 @@ import java.util.concurrent.*;
 @Slf4j
 public class OAuthCallbackServer {
 
-    private HttpServer server;
-    private ScheduledExecutorService scheduler;
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final CompletableFuture<String> authCodeFuture = new CompletableFuture<>();
     private final String callbackURL;
     @Setter
     private String state;
+    private HttpServer server;
 
     /**
      * Construct the constructor with the required parameters
@@ -48,9 +48,9 @@ public class OAuthCallbackServer {
      *
      * @param timeoutSeconds - Callback server authentication time-out time
      * @param port           - Port number for callback server
-     * @throws IOException - if port number is already in use throw exception
+     * @throws CxException - if port number is already in use throw exception
      */
-    public void start(int timeoutSeconds, int port) throws IOException {
+    public void start(int timeoutSeconds, int port) throws CxException {
         try {
             server = HttpServer.create(new InetSocketAddress(port), 0);
             server.createContext(callbackURL, new OAuthCallbackHandler());
@@ -59,19 +59,22 @@ public class OAuthCallbackServer {
 
             log.info("OAuth: Callback server started successfully. http://localhost:{}/{}", port, callbackURL);
 
-            // Dynamic timeout support
-            scheduler = Executors.newSingleThreadScheduledExecutor();
+            // Dynamic timeout support, stops itself and completes the CompletableFuture exceptionally after the timeout.
             scheduler.schedule(() -> {
-                if (!authCodeFuture.isDone()) {
-                    authCodeFuture.completeExceptionally(
-                            new TimeoutException("Authentication timed out after " + timeoutSeconds + " seconds."));
-                    log.error("OAuth: Stopping local server due to authentication time out:{} seconds ", timeoutSeconds);
-                    stop();
+                try {
+                    if (!authCodeFuture.isDone()) {
+                        authCodeFuture.completeExceptionally(
+                                new TimeoutException("Authentication timed out after " + timeoutSeconds + " seconds."));
+                        log.error("OAuth: Stopping local server due to authentication time out:{} seconds ", timeoutSeconds);
+                        stop();
+                    }
+                }catch (Exception exception){
+                    log.error("OAuth: Exception occurred during scheduled timeout handling. Root Cause:{}", exception.getMessage());
                 }
             }, timeoutSeconds, TimeUnit.SECONDS);
         } catch (Exception exception) {
             log.error("OAuth: Unable to start the local callback Https Server. Root Cause:{}", exception.getMessage());
-            throw new IOException("A required port:" + port + " is currently in use. Please try again shortly.");
+            throw new CxException(500, "A required port:" + port + " is currently in use. Please try again shortly.");
         }
     }
 
@@ -81,8 +84,9 @@ public class OAuthCallbackServer {
     public void stop() {
         if (server != null) {
             server.stop(0);
+            server = null;
         }
-        if (scheduler != null && !scheduler.isShutdown()) {
+        if (!scheduler.isShutdown()) {
             scheduler.shutdownNow();
         }
         log.info("OAuth: Callback server stopped successfully.");
@@ -102,7 +106,7 @@ public class OAuthCallbackServer {
      */
     private class OAuthCallbackHandler implements HttpHandler {
         @Override
-        public void handle(HttpExchange exchange) throws IOException {
+        public void handle(HttpExchange exchange)  {
             URI uri = exchange.getRequestURI();
             String query = uri.getQuery();
 
@@ -194,7 +198,7 @@ public class OAuthCallbackServer {
      *
      * @return html string
      */
-    private String loadAuthErrorHtml() throws IOException {
+    private String loadAuthErrorHtml()  {
         String responseContent = Utils.getFileContentFromResource("auth/auth-error.html");
         if (responseContent != null && !responseContent.isBlank()) {
             return responseContent;

@@ -7,6 +7,9 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.helper.OAuthCallbackServer;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -17,6 +20,7 @@ import com.intellij.openapi.project.ProjectManager;
 import lombok.extern.slf4j.Slf4j;
 import net.minidev.json.JSONObject;
 import net.minidev.json.parser.JSONParser;
+import net.minidev.json.parser.ParseException;
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,31 +61,34 @@ public class AuthService {
      * @param cxOneBaseUrl - Checkmarx One base URL provided by the user.
      * @param cxOneTenant  - Checkmarx One-tenant URL provided by the user.
      */
-    public void authenticate(final String cxOneBaseUrl, final String cxOneTenant, Consumer<String> onAuthComplete) {
+    public void authenticate(final String cxOneBaseUrl, final String cxOneTenant, Consumer<String> authResult) {
+        log.info("OAuth: Authentication started with provided base URL:{} and Tenant:{}", cxOneBaseUrl, cxOneTenant);
         try {
-            log.info("OAuth: Authentication started with provided base URL:{} and Tenant:{}", cxOneBaseUrl, cxOneTenant);
             String codeVerifier = Utils.generateCodeVerifier();
             String codeChallenge = Utils.generateCodeChallenge(codeVerifier);
 
             if (codeVerifier == null || codeChallenge == null) {
                 log.error("OAuth: Code Verifier or Code Challenge is null.");
+                setAuthResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
                 return;
             }
+            //Starts a background task with progress indicator without blocking the UI
             new Task.Backgroundable(project, Bundle.message(Resource.CONNECTING_TO_CHECKMARX), false) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
                     indicator.setIndeterminate(true);
                     indicator.setText(Bundle.message(Resource.WAITING_FOR_AUTHENTICATION));
                     server = new OAuthCallbackServer(CALLBACK_PATH); // initialize the server object
-                    processAuthentication(codeVerifier, codeChallenge, cxOneBaseUrl, cxOneTenant, onAuthComplete);
+                    processAuthentication(codeVerifier, codeChallenge, cxOneBaseUrl, cxOneTenant, authResult);
                 }
             }.queue();
-            log.info("OAuth: Authentication process success status:{}.", onAuthComplete.toString());
         } catch (Exception exception) {
             log.error("OAuth: Exception occurred while authenticating using oauth2. Root Cause:{}",
                     exception.getMessage());
-            returnValue(onAuthComplete, "Error:"+exception.getMessage());
+            setAuthResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
+            notifyError(Bundle.message(Resource.VALIDATE_ERROR));
         }
+        log.info("OAuth: Authentication process success status:{}.", authResult.toString());
     }
 
     /**
@@ -95,13 +102,18 @@ public class AuthService {
      * @param cxOneBaseUrl  - Checkmarx One base URL provided by the user.
      * @param cxOneTenant   - Checkmarx One-tenant URL provided by the user.
      */
-    private void processAuthentication(String codeVerifier, String codeChallenge,
-                                       String cxOneBaseUrl, String cxOneTenant, Consumer<String> onAuthComplete) {
+    private void processAuthentication(String codeVerifier, String codeChallenge, String cxOneBaseUrl,
+                                       String cxOneTenant, Consumer<String> authResult) {
         try {
-            String cxOneAuthEndpoint = getCxOneAuthEndpoint(cxOneBaseUrl, cxOneTenant);
+            String cxOneAuthEndpoint  = getCxOneAuthEndpoint(cxOneBaseUrl, cxOneTenant);
             String cxOneTokenEndpoint = getCxOneTokenEndpoint(cxOneBaseUrl, cxOneTenant);
             int port = findAvailablePort();
-            String redirectUrl = "http://localhost:" + port + CALLBACK_PATH;
+            if (port == 0){
+                setAuthResult(authResult, Bundle.message(Resource.ERROR_PORT_NOT_AVAILABLE));
+                notifyError(Bundle.message(Resource.ERROR_PORT_NOT_AVAILABLE));
+                return;
+            }
+            String redirectUrl      = "http://localhost:" + port + CALLBACK_PATH;
             String authorizationUrl = buildCxOneOAuthAuthorizationUrl(cxOneAuthEndpoint, redirectUrl, codeChallenge);
 
             log.debug("OAuth: OAuth2.0 Authorization URL:{}", authorizationUrl);
@@ -112,84 +124,46 @@ public class AuthService {
                     BrowserUtil.browse(new URI(authorizationUrl));  // Launch browser for authentication.
                 } catch (Exception exception) {
                     log.error("OAuth: Exception occurred while opening the browser. Root Cause:{}", exception.getMessage());
-                    onAuthComplete.accept("ERROR:"+exception.getMessage());
+                    setAuthResult(authResult, Bundle.message(Resource.ERROR_OPENING_BROWSER));
                 }
             });
             CompletableFuture<String> future = server.waitForAuthCode();
-            String code = future.get(Constants.AuthConstants.TIME_OUT_SECONDS, TimeUnit.SECONDS);
+            String authCode = future.get(Constants.AuthConstants.TIME_OUT_SECONDS, TimeUnit.SECONDS); //as a fail-safe to prevent long hangs in extreme edge cases
 
-            String refreshToken = exchangeCodeForToken(cxOneTokenEndpoint, code, codeVerifier, redirectUrl);
-            if (refreshToken == null || refreshToken.isEmpty()) {
-                showErrorMessage("Authentication Failed: Something went wrong please try again.");
-                returnValue(onAuthComplete, "Error:Authentication Failed: Something went wrong please try again.");
+            String refreshToken = exchangeCodeForToken(cxOneTokenEndpoint, authCode, codeVerifier, redirectUrl);
+            if (refreshToken == null || refreshToken.isEmpty()){
+                log.error("OAuth: Not able to get refresh token. Refresh token is null.");
+                setAuthResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
+                notifyError(Bundle.message(Resource.VALIDATE_ERROR));
                 return;
             }
-            //Return token
-            returnValue(onAuthComplete, refreshToken);
-            saveToken(refreshToken);
+            setAuthResult(authResult, Constants.AuthConstants.TOKEN +":"+refreshToken); //Return token
+            saveToken(refreshToken); // Save refresh token in storage
             log.info("OAuth: Authentication process completed successfully.");
-            showSuccessMessage();
+            notifySuccess();
         } catch (TimeoutException timeoutException) {
-            showErrorMessage("Authentication timed out, Please try again.");
-            returnValue(onAuthComplete, "ERROR: Authentication timed out, Please try again.");
+            log.error("OAuth: Timeout occurred while authentication process. Root Cause:{} ", timeoutException.getMessage());
+            setAuthResult(authResult, Bundle.message(Resource.ERROR_AUTHENTICATION_TIME_OUT));
+            notifyError(Bundle.message(Resource.ERROR_AUTHENTICATION_TIME_OUT));
         } catch (Exception exception) {
-            log.error("OAuth: Exception occurred while authentication process. Root Cause:{} ", exception.getMessage());
-            showErrorMessage("Authentication Failed: " + exception.getMessage());
-            returnValue(onAuthComplete, "ERROR: "+exception.getMessage());
+            log.error("OAuth: Exception occurred during authentication process. Root Cause:{} ", exception.getMessage());
+            setAuthResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
+            notifyError(Bundle.message(Resource.VALIDATE_ERROR));
         } finally {
+            log.info("OAuth: Finally stopping callback server.");
             server.stop();
         }
     }
 
-    private void returnValue(Consumer<String> onAuthComplete, String value) {
-        ApplicationManager.getApplication().invokeLater(() -> onAuthComplete.accept(value));
-    }
-
     /**
-     * Display notification on notification area on successful authentication
+     * Setting an authentication result for consumer
+     * @param authResult - Consumer<String> object which will used by UI to get the auth result
+     * @param value - String value to set in consumer
      */
-    public void showSuccessMessage() {
-        Utils.showNotification("Authentication Success.",
-                Bundle.message(Resource.SUCCESS_CONNECTED_TO_CHECKMARX),
-                NotificationType.INFORMATION,
-                project);
+    private void setAuthResult(Consumer<String> authResult, String value) {
+        ApplicationManager.getApplication().invokeLater(() -> authResult.accept(value));
     }
 
-    /**
-     * Display notification on notification area on failure authentication
-     */
-    public void showErrorMessage(String errorMsg) {
-        Utils.showNotification("Authentication Failed.",
-                errorMsg,
-                NotificationType.ERROR,
-                project);
-    }
-
-    /**
-     * Building Checkmarx One OAuth authorization URL with all required parameters as per a standard
-     *
-     * @param authEndpoint  - CxOne authorization endpoint
-     * @param redirectUri   - local server redirects url to listen to response from oauth server
-     * @param codeChallenge - Generated code challenge using SHA-256 for PKCE
-     * @return CxOne OAuth authorization URL with all required parameters
-     */
-    private String buildCxOneOAuthAuthorizationUrl(String authEndpoint, String redirectUri,
-                                                   String codeChallenge) throws URISyntaxException {
-        String state = UUID.randomUUID().toString();
-        URIBuilder uriBuilder = new URIBuilder(authEndpoint);
-        uriBuilder.addParameter("response_type", Constants.AuthConstants.RESP_TYPE_CODE);
-        uriBuilder.addParameter("client_id", Constants.AuthConstants.IDE_CLIENT_ID);
-        uriBuilder.addParameter("redirect_uri", redirectUri);
-        uriBuilder.addParameter("scope", Constants.AuthConstants.SCOPE);
-        uriBuilder.addParameter("state", state);
-        uriBuilder.addParameter("code_challenge", codeChallenge);
-        uriBuilder.addParameter("code_challenge_method", Constants.AuthConstants.CODE_CHALLENGE_METHOD);
-
-        server.setState(state);
-
-        URI authUri = uriBuilder.build();
-        return authUri.toString();
-    }
 
     /**
      * Building CxOne authorization endpoint using base url and tenant.
@@ -214,38 +188,78 @@ public class AuthService {
     }
 
     /**
-     * Finds the first available port in the dynamic/private port range.
-     * This method will find the available random port within a range
+     * Building Checkmarx One OAuth authorization URL with all required parameters as per a standard
      *
-     * @return an available port number
-     * @throws IOException if no available port is found
+     * @param authEndpoint  - CxOne authorization endpoint
+     * @param redirectUri   - local server redirects url to listen to response from oauth server
+     * @param codeChallenge - Generated code challenge using SHA-256 for PKCE
+     * @return CxOne OAuth authorization URL with all required parameters
      */
-    public int findAvailablePort() throws IOException {
+    private String buildCxOneOAuthAuthorizationUrl(String authEndpoint, String redirectUri,
+                                                   String codeChallenge) throws URISyntaxException {
+        String state = UUID.randomUUID().toString();
+        URIBuilder uriBuilder = new URIBuilder(authEndpoint);
+        uriBuilder.addParameter("response_type", Constants.AuthConstants.RESP_TYPE_CODE);
+        uriBuilder.addParameter("client_id", Constants.AuthConstants.OAUTH_IDE_CLIENT_ID);
+        uriBuilder.addParameter("redirect_uri", redirectUri);
+        uriBuilder.addParameter("scope", Constants.AuthConstants.SCOPE);
+        uriBuilder.addParameter("state", state);
+        uriBuilder.addParameter("code_challenge", codeChallenge);
+        uriBuilder.addParameter("code_challenge_method", Constants.AuthConstants.CODE_CHALLENGE_METHOD);
+
+        server.setState(state);
+
+        URI authUri = uriBuilder.build();
+        return authUri.toString();
+    }
+
+
+    /**
+     * Finds the available port in the dynamic/private port range with retiring.
+     *
+     * @return an available port number if found else 0
+     */
+    private int findAvailablePort() {
         SecureRandom random = new SecureRandom();
         int range = MAX_PORT - MIN_PORT + 1;
-        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            log.debug("OAuth: Attempt:{} to find an available port.", attempt);
-            Set<Integer> triedPorts = new HashSet<>();
-            while (triedPorts.size() < range) {
-                int port = MIN_PORT + random.nextInt(range);
-
-                if (triedPorts.contains(port)) continue;
-                triedPorts.add(port);
-
-                if (isPortAvailable(port)) {
-                    log.info("OAuth: Found available port:{} on attempt:{} ", port, attempt);
-                    return port;
+        try {
+            return Utils.executeWithRetry(() -> {
+                try {
+                    return findPort(range, random);
+                } catch (CxException cxException) {
+                    throw new RuntimeException(cxException);
                 }
-            }
-            log.warn("OAuth: No available port found in attempt:{} Retrying after delay..", attempt);
-            try {
-                Thread.sleep(RETRY_DELAY_MS);
-            } catch (InterruptedException e) {
-                log.debug("OAuth: Exception occurred while delaying after attempt:{}", attempt);
+            }, MAX_RETRIES, RETRY_DELAY_MS);
+        } catch (Exception exception) {
+            log.error("OAuth: Unable to find available port after retries. Root Cause:{}", exception.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * This method will get the random port within dynamic/private port range using secure random,
+     * and check whether the port is available or not.
+     *
+     * @param range  - Max range for port number
+     * @param random - SecureRandom object to get random number
+     * @return available port number else 0
+     * @throws CxException if port isn't found as available within range
+     */
+    public int findPort(int range, SecureRandom random) throws CxException {
+        Set<Integer> triedPorts = new HashSet<>();
+        while (triedPorts.size() < range) {
+            int port = MIN_PORT + random.nextInt(range);
+
+            if (triedPorts.contains(port)) continue;
+            triedPorts.add(port);
+
+            if (isPortAvailable(port)) {
+                log.info("OAuth: Found available port:{}", port);
+                return port;
             }
         }
-        log.error("OAuth: No available port found in the dynamic/private range: {} to {}", MIN_PORT, MAX_PORT);
-        throw new IOException("A required port in the range " + MIN_PORT + "–" + MAX_PORT + " is currently in use. Please try again shortly.");
+        log.warn("OAuth: No available port found in the dynamic/private range: {} to {}", MIN_PORT, MAX_PORT);
+        throw new CxException(500, "A required port in the range " + MIN_PORT + "–" + MAX_PORT + " is currently in use.");
     }
 
     /**
@@ -276,7 +290,7 @@ public class AuthService {
      * @param redirectUri  - redirect uri, which was used for authorization code
      * @return string refresh token
      */
-    public String exchangeCodeForToken(String tokenEndpoint, String code, String codeVerifier, String redirectUri) {
+    public String exchangeCodeForToken(String tokenEndpoint, String code, String codeVerifier, String redirectUri) throws CxException {
         try {
             return Utils.executeWithRetry(() -> {
                 try {
@@ -286,8 +300,8 @@ public class AuthService {
                 }
             }, MAX_RETRIES, RETRY_DELAY_MS);
         } catch (Exception exception) {
-            log.error("OAuth: Failed after retries:{} ", exception.getMessage());
-            return null;
+            log.error("OAuth: Failed to get OAuth token after retries. Root Cause:{} ", exception.getMessage());
+            throw new CxException(500, exception.getMessage());
         }
     }
 
@@ -306,7 +320,7 @@ public class AuthService {
         String requestBody = "grant_type=authorization_code" +
                 "&code=" + code +
                 "&redirect_uri=" + redirectUri +
-                "&client_id=" + Constants.AuthConstants.IDE_CLIENT_ID +
+                "&client_id=" + Constants.AuthConstants.OAUTH_IDE_CLIENT_ID +
                 "&code_verifier=" + codeVerifier;
 
         HttpRequest request = HttpRequest.newBuilder()
@@ -319,12 +333,16 @@ public class AuthService {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         log.debug("OAuth: Received token response:{}", response);
-        log.info("OAuth: Token response status code:{}", response.statusCode());
-
-        if (response.statusCode() == 200) {
-            return extractRefreshToken(response.body());
+        if (response != null) {
+            log.info("OAuth: Token response status code:{}", response.statusCode());
+            if (response.statusCode() == 200) {
+                return extractRefreshToken(response.body());
+            }
+            log.error("OAuth: Received error response from token endpoint:{}", response);
+            return null;
         }
-        throw new CxException(response.statusCode(), "Something went wrong, Please try again.");
+        log.error("OAuth: Received null response from the token endpoint.");
+        throw new CxException(500, "Error while exchanging auth code for token, Please try again.");
     }
 
     /**
@@ -334,13 +352,21 @@ public class AuthService {
      * @return String - refresh token
      */
     private String extractRefreshToken(String jsonString) {
+        String refreshToken = null;
         try {
-            JSONParser parser = new JSONParser(JSONParser.MODE_PERMISSIVE);
-            JSONObject jsonObject = (JSONObject) parser.parse(jsonString);
-            return jsonObject.getAsString("refresh_token");
-        } catch (Exception e) {
-            return null;
+            JSONObject jsonObject = (JSONObject) new JSONParser(JSONParser.MODE_PERMISSIVE).parse(jsonString);
+            refreshToken = jsonObject.getAsString(Constants.AuthConstants.REFRESH_TOKEN);
+        } catch (ParseException parseException) {
+            try {
+                JsonNode rootNode = new ObjectMapper().readTree(jsonString);
+                if (rootNode.has(Constants.AuthConstants.REFRESH_TOKEN))
+                    refreshToken = rootNode.get(Constants.AuthConstants.REFRESH_TOKEN).asText();
+            } catch (JsonProcessingException exception) {
+                log.error("OAuth: Unable to extract refresh token from the response. Error:{}", exception.getMessage());
+            }
         }
+        log.debug("OAuth: Received Refresh Token:{} ", refreshToken);
+        return refreshToken;
     }
 
     /**
@@ -349,9 +375,30 @@ public class AuthService {
      * @param refreshToken - Received refresh token from the response
      */
     private void saveToken(final String refreshToken) {
-        log.debug("OAuth: Saving token in secure storage");
+        log.info("OAuth: Saving token in secure storage");
         GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
         sensitiveState.setApiKey(refreshToken);
         sensitiveState.apply(sensitiveState);
+        log.info("OAuth: Token saved successfully.");
+    }
+
+    /**
+     * Display notification on notification area on successful authentication
+     */
+    public void notifySuccess() {
+        Utils.showNotification(Bundle.message(Resource.SUCCESS_AUTHENTICATION_TITLE),
+                Bundle.message(Resource.VALIDATE_SUCCESS),
+                NotificationType.INFORMATION,
+                project);
+    }
+
+    /**
+     * Display notification on notification area on failure authentication
+     */
+    public void notifyError(String errorMsg) {
+        Utils.showNotification(Bundle.message(Resource.ERROR_AUTHENTICATION_TITLE),
+                errorMsg,
+                NotificationType.ERROR,
+                project);
     }
 }

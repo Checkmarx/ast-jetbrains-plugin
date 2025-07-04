@@ -199,12 +199,13 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 "Continue", "Cancel", Messages.getQuestionIcon()
         );
         if (result == Messages.OK) {
+            // Authenticate user with OAuth flow
             new AuthService().authenticate(baseUrlField.getText().trim(), tenantField.getText().trim(), authResult -> {
                 LOGGER.info("OAuth: Authentication Result:"+authResult);
-                if (authResult.startsWith("ERROR:")) {
-                    handleOAuthFailed(authResult);
+                if (authResult.startsWith(Constants.AuthConstants.TOKEN)) {
+                    handleOAuthSuccess(authResult.split(":")[1]); // extracting token
                 } else {
-                    handleOAuthSuccess(authResult);
+                    handleOAuthFailed(authResult);
                 }
             });
         } else {
@@ -213,19 +214,17 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     private void handleOAuthSuccess(String refreshToken){
-        LOGGER.info("Success:");
         SwingUtilities.invokeLater(() -> {
             sessionConnected = true;
             setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
             logoutButton.setEnabled(true);
             connectButton.setEnabled(false);
             setFieldsEditable(false);
-            SETTINGS_STATE.setAuthenticated(true); // also persist
+            SETTINGS_STATE.setAuthenticated(true);// also persist
         });
     }
 
     private void handleOAuthFailed(String error){
-        LOGGER.info("Failed:");
         SwingUtilities.invokeLater(() -> {
             sessionConnected = false;
             setValidationResult(error, JBColor.RED);

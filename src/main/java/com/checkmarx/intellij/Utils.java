@@ -263,6 +263,7 @@ public final class Utils {
         if (lastException != null) {
             throw lastException;
         }
+        LOGGER.error("Retry: Unexpected exception occurred during retries.");
         throw new IllegalStateException("Unexpected: No exception captured during retries.");
     }
 }
