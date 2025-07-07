@@ -97,6 +97,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         state.setValidationMessage(validateResult.getText());
         state.setAuthenticated(SETTINGS_STATE.isAuthenticated()); // Persist authentication state
         SETTINGS_STATE.apply(state);
+
         SENSITIVE_SETTINGS_STATE.apply(getSensitiveStateFromFields());
         messageBus.syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied();
     }
@@ -187,6 +188,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
         });
     }
 
+    /**
+     * Proceed for authentication using OAUth
+     */
     private void proceedOAuthAuthentication() {
         if (baseUrlField.getText().trim().isEmpty() || tenantField.getText().trim().isEmpty()) {
             setValidationResult(Bundle.message(Resource.MISSING_FIELD, "Base URL or Tenant"), JBColor.RED);
@@ -201,11 +205,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
         if (result == Messages.OK) {
             // Authenticate user with OAuth flow
             new AuthService().authenticate(baseUrlField.getText().trim(), tenantField.getText().trim(), authResult -> {
-                LOGGER.info("OAuth: Authentication Result:"+authResult);
                 if (authResult.startsWith(Constants.AuthConstants.TOKEN)) {
                     handleOAuthSuccess(authResult.split(":")[1]); // extracting token
                 } else {
-                    handleOAuthFailed(authResult);
+                    handleOAuthFailure(authResult);
                 }
             });
         } else {
@@ -213,18 +216,25 @@ public class GlobalSettingsComponent implements SettingsComponent {
         }
     }
 
+    /**
+     * Handle post-authentication success state
+     */
     private void handleOAuthSuccess(String refreshToken){
         SwingUtilities.invokeLater(() -> {
-            sessionConnected = true;
             setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
             logoutButton.setEnabled(true);
             connectButton.setEnabled(false);
             setFieldsEditable(false);
+            sessionConnected = true;
             SETTINGS_STATE.setAuthenticated(true);// also persist
+            SENSITIVE_SETTINGS_STATE.setApiKey(refreshToken);
         });
     }
 
-    private void handleOAuthFailed(String error){
+    /**
+     * Handle post-authentication failure state
+     */
+    private void handleOAuthFailure(String error){
         SwingUtilities.invokeLater(() -> {
             sessionConnected = false;
             setValidationResult(error, JBColor.RED);
