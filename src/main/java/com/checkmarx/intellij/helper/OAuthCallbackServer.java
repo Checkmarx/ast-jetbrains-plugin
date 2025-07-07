@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.helper;
 
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -8,7 +9,6 @@ import com.sun.net.httpserver.HttpServer;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -110,16 +110,15 @@ public class OAuthCallbackServer {
             URI uri = exchange.getRequestURI();
             String query = uri.getQuery();
 
-            if (query != null && query.contains("state")) {
-                if (query.contains("code=")) {
+            if (query != null && query.contains(Constants.AuthConstants.STATE)) {
+                if (query.contains(Constants.AuthConstants.CODE)) {
                     String code = validateStateAndGetCode(query);
                     String htmlString = loadAuthSuccessHtml();
                     sendResponse(exchange, htmlString, 200);
                     authCodeFuture.complete(code);
                 } else {
                     String error = extractParam(query, "error");
-                    String htmlString = loadAuthErrorHtml();
-                    htmlString = htmlString.replace("ERROR_MESSAGE", error);
+                    String htmlString = loadAuthErrorHtml(error);
                     sendResponse(exchange, htmlString, 400);
                     authCodeFuture.completeExceptionally(new RuntimeException("OAuth2: Received Error: " + error));
                 }
@@ -134,12 +133,12 @@ public class OAuthCallbackServer {
          * @return auth code
          */
         String validateStateAndGetCode(String query) {
-            final String paramState = extractParam(query, "state");
+            final String paramState = extractParam(query, Constants.AuthConstants.STATE);
             if (!state.equals(paramState)) {
                 log.error("OAuth: State parameter is invalid.");
                 throw new IllegalStateException("Invalid authentication");
             }
-            String code = extractParam(query, "code");
+            String code = extractParam(query, Constants.AuthConstants.CODE);
             log.info("OAuth: Auth code received successfully.");
             log.debug("OAuth: Received auth code:{}", code);
             return code;
@@ -190,7 +189,7 @@ public class OAuthCallbackServer {
         if (responseContent != null && !responseContent.isBlank()) {
             return responseContent;
         }
-        return "<html><body><h2>⚠ Error: HTML file not found.</h2></body></html>";
+        return successHtmlResponse();
     }
 
     /**
@@ -198,12 +197,186 @@ public class OAuthCallbackServer {
      *
      * @return html string
      */
-    private String loadAuthErrorHtml()  {
+    private String loadAuthErrorHtml(String error)  {
         String responseContent = Utils.getFileContentFromResource("auth/auth-error.html");
         if (responseContent != null && !responseContent.isBlank()) {
-            return responseContent;
+            return responseContent.replace("ERROR_MESSAGE", error);
         }
-        return "<html><body><h2>⚠ Error: HTML file not found.</h2></body></html>";
+        return errorHtmlResponse(error);
     }
 
+
+    private String successHtmlResponse(){
+        String str = "";
+        str += " <!DOCTYPE html>";
+        str += "      <html lang=\"en\">";
+        str += "      <head>";
+        str += "          <meta charset=\"UTF-8\">";
+        str += "          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+        str += "          <title>Login Success - Checkmarx</title>";
+        str += "          <style>";
+        str += "              body {";
+        str += "                  font-family: Arial, sans-serif;";
+        str += "                  background-color: rgba(0, 0, 0, 0.5);";
+        str += "                  margin: 0;";
+        str += "                  display: flex;";
+        str += "                  justify-content: center;";
+        str += "                  align-items: center;";
+        str += "                  min-height: 100vh;";
+        str += "              }";
+        str += "              .modal {";
+        str += "                  background: white;";
+        str += "                  padding: 2rem;";
+        str += "                  border-radius: 8px;";
+        str += "                  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);";
+        str += "                  width: 90%;";
+        str += "                  max-width: 500px;";
+        str += "                  text-align: center;";
+        str += "              }";
+        str += "              .close-button {";
+        str += "                  float: right;";
+        str += "                  font-size: 24px;";
+        str += "                  color: #666;";
+        str += "                  cursor: pointer;";
+        str += "                  border: none;";
+        str += "                  background: none;";
+        str += "                  padding: 0;";
+        str += "                  margin: -1rem -1rem 0 0;";
+        str += "              }";
+        str += "              h1 {";
+        str += "                  color: #333;";
+        str += "                  font-size: 24px;";
+        str += "                  margin: 1rem 0;";
+        str += "              }";
+        str += "              .icon-container {";
+        str += "                  margin: 2rem 0;";
+        str += "              }";
+        str += "              .icon {";
+        str += "                  display: flex;";
+        str += "                  justify-content: center;";
+        str += "                  align-items: center;";
+        str += "                  gap: 10px;";
+        str += "              }";
+        str += "              .folder {";
+        str += "                  color: #6B4EFF;";
+        str += "                  font-size: 48px;";
+        str += "              }";
+        str += "              .file {";
+        str += "                  color: #6B4EFF;";
+        str += "                  font-size: 48px;";
+        str += "              }";
+        str += "              .message {";
+        str += "                  color: #666;";
+        str += "                  margin: 1rem 0 2rem 0;";
+        str += "              }";
+        str += "              .success-note {";
+        str += "                  color: #4F5CD1;";
+        str += "                  font-size: 16px;";
+        str += "                  margin: 2rem 0;";
+        str += "              }";
+        str += "              .wave-line {";
+        str += "                  color: #6B4EFF;";
+        str += "                  font-size: 24px;";
+        str += "                  margin: 0 10px;";
+        str += "              }";
+        str += "          </style>";
+        str += "      </head>";
+        str += "      <body>";
+        str += "          <div class=\"modal\">";
+        str += "              <h1>You're All Set with Checkmarx!</h1>";
+        str += "              <div class=\"icon-container\">";
+        str += "                  <div class=\"icon\">";
+        str += "                      <span class=\"folder\">📁</span>";
+        str += "                      <span class=\"wave-line\">〰️〰️〰️</span>";
+        str += "                      <span class=\"file\">📄</span>";
+        str += "                  </div>";
+        str += "              </div>";
+        str += "              <p class=\"message\">You're Connected to Checkmarx!</p>";
+        str += "              <p class=\"message\">You can close this window</p>";
+        str += "          </div>";
+        str += "      </body>";
+        str += "      </html>";
+        return str;
+    }
+
+    private String errorHtmlResponse(String error){
+        String str = "";
+        str += "<!DOCTYPE html>";
+        str += "      <html lang=\"en\">";
+        str += "      <head>";
+        str += "          <meta charset=\"UTF-8\">";
+        str += "          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+        str += "          <title>Login Failed - Checkmarx</title>";
+        str += "          <style>";
+        str += "              body {";
+        str += "                  font-family: Arial, sans-serif;";
+        str += "                  background-color: rgba(0, 0, 0, 0.5);";
+        str += "                  margin: 0;";
+        str += "                  display: flex;";
+        str += "                  justify-content: center;";
+        str += "                  align-items: center;";
+        str += "                  min-height: 100vh;";
+        str += "              }";
+        str += "              .modal {";
+        str += "                  background: white;";
+        str += "                  padding: 2rem;";
+        str += "                  border-radius: 8px;";
+        str += "                  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);";
+        str += "                  width: 90%;";
+        str += "                  max-width: 500px;";
+        str += "                  text-align: center;";
+        str += "              }";
+        str += "              .close-button {";
+        str += "                  float: right;";
+        str += "                  font-size: 24px;";
+        str += "                  color: #666;";
+        str += "                  cursor: pointer;";
+        str += "                  border: none;";
+        str += "                  background: none;";
+        str += "                  padding: 0;";
+        str += "                  margin: -1rem -1rem 0 0;";
+        str += "              }";
+        str += "              h1 {";
+        str += "                  color: #333;";
+        str += "                  font-size: 24px;";
+        str += "                  margin: 1rem 0;";
+        str += "              }";
+        str += "              .icon-container {";
+        str += "                  margin: 2rem 0;";
+        str += "              }";
+        str += "              .error-icon {";
+        str += "                  font-size: 48px;";
+        str += "                  color: #FF4D4F;";
+        str += "              }";
+        str += "              .message {";
+        str += "                  color: #666;";
+        str += "                  margin: 1rem 0 2rem 0;";
+        str += "              }";
+        str += "              .close-btn {";
+        str += "                  background-color: #4F5CD1;";
+        str += "                  color: white;";
+        str += "                  border: none;";
+        str += "                  padding: 12px 40px;";
+        str += "                  border-radius: 4px;";
+        str += "                  font-size: 16px;";
+        str += "                  cursor: pointer;";
+        str += "                  transition: background-color 0.3s;";
+        str += "              }";
+        str += "              .close-btn:hover {";
+        str += "                  background-color: #3F4BB1;";
+        str += "              }";
+        str += "          </style>";
+        str += "      </head>";
+        str += "      <body>";
+        str += "          <div class=\"modal\">";
+        str += "              <h1>Authentication Failed</h1>";
+        str += "              <div class=\"icon-container\">";
+        str += "                  <span class=\"error-icon\">❌</span>";
+        str += "              </div>";
+        str += "              <p class=\"message\">"+error+"</p>";
+        str += "          </div>";
+        str += "      </body>";
+        str += "      </html>";
+        return str;
+    }
 }

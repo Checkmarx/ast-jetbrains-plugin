@@ -42,7 +42,7 @@ import java.util.function.Consumer;
 
 /**
  * AuthService class responsible to handle the authentication and authorization mechanism
- * Handle OAuth-based authentication
+ * using OAuth PKCE flow
  */
 @Slf4j
 public class AuthService {
@@ -88,7 +88,6 @@ public class AuthService {
             setAuthResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
             notifyError(Bundle.message(Resource.VALIDATE_ERROR));
         }
-        log.info("OAuth: Authentication process success status:{}.", authResult.toString());
     }
 
     /**
@@ -199,7 +198,7 @@ public class AuthService {
                                                    String codeChallenge) throws URISyntaxException {
         String state = UUID.randomUUID().toString();
         URIBuilder uriBuilder = new URIBuilder(authEndpoint);
-        uriBuilder.addParameter("response_type", Constants.AuthConstants.RESP_TYPE_CODE);
+        uriBuilder.addParameter("response_type", Constants.AuthConstants.CODE);
         uriBuilder.addParameter("client_id", Constants.AuthConstants.OAUTH_IDE_CLIENT_ID);
         uriBuilder.addParameter("redirect_uri", redirectUri);
         uriBuilder.addParameter("scope", Constants.AuthConstants.SCOPE);
