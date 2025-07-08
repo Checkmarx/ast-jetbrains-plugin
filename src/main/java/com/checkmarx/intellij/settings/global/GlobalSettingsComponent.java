@@ -116,7 +116,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         ascaCheckBox.setSelected(SETTINGS_STATE.isAsca());
         apiKeyField.setText(SENSITIVE_SETTINGS_STATE.getApiKey());
 
-        boolean useApiKey = SETTINGS_STATE.isUseApiKey();
+        boolean useApiKey = SETTINGS_STATE.isApiKeyEnabled();
         apiKeyRadio.setSelected(useApiKey);
         oauthRadio.setSelected(!useApiKey);
 
@@ -145,7 +145,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         GlobalSettingsState state = new GlobalSettingsState();
         state.setAdditionalParameters(additionalParametersField.getText().trim());
         state.setAsca(ascaCheckBox.isSelected());
-        state.setUseApiKey(apiKeyRadio.isSelected());
+        state.setApiKeyEnabled(apiKeyRadio.isSelected());
         return state;
     }
 
@@ -227,7 +227,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             setFieldsEditable(false);
             sessionConnected = true;
             SETTINGS_STATE.setAuthenticated(true);// also persist
-            SENSITIVE_SETTINGS_STATE.setApiKey(refreshToken);
+            SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshToken);
         });
     }
 
@@ -396,7 +396,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         logoutButton.setEnabled(false);
         baseUrlLabel.setText(String.format(Constants.FIELD_FORMAT, "Checkmarx One base URL:", Constants.REQUIRED_MARK));
         tenantLabel.setText(String.format(Constants.FIELD_FORMAT, "Tenant name:", Constants.REQUIRED_MARK));
-        boolean useApiKey = SETTINGS_STATE.isUseApiKey();
+        boolean useApiKey = SETTINGS_STATE.isApiKeyEnabled();
         apiKeyRadio.setSelected(useApiKey);
         oauthRadio.setSelected(!useApiKey);
     }
@@ -462,6 +462,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             setFieldsEditable(true);
             updateConnectButtonState();
             SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+            SENSITIVE_SETTINGS_STATE.deleteSecret(Constants.REFRESH_TOKEN_CREDENTIALS_KEY);
         });
     }
 

@@ -32,8 +32,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.SecureRandom;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +48,7 @@ public class AuthService {
     private static final int MIN_PORT = 49152;
     private static final int MAX_PORT = 65535;
     private static final int MAX_RETRIES = 3;
+    private static final int MAX_PORT_ATTEMPTS = 10;
     private static final int RETRY_DELAY_MS = 1000;
     private static final String CALLBACK_PATH = "/checkmarx1/callback";
     private final Project project = ProjectManager.getInstance().getDefaultProject();
@@ -104,15 +103,15 @@ public class AuthService {
     private void processAuthentication(String codeVerifier, String codeChallenge, String cxOneBaseUrl,
                                        String cxOneTenant, Consumer<String> authResult) {
         try {
-            String cxOneAuthEndpoint  = getCxOneAuthEndpoint(cxOneBaseUrl, cxOneTenant);
+            String cxOneAuthEndpoint = getCxOneAuthEndpoint(cxOneBaseUrl, cxOneTenant);
             String cxOneTokenEndpoint = getCxOneTokenEndpoint(cxOneBaseUrl, cxOneTenant);
             int port = findAvailablePort();
-            if (port == 0){
+            if (port == 0) {
                 setAuthResult(authResult, Bundle.message(Resource.ERROR_PORT_NOT_AVAILABLE));
                 notifyError(Bundle.message(Resource.ERROR_PORT_NOT_AVAILABLE));
                 return;
             }
-            String redirectUrl      = "http://localhost:" + port + CALLBACK_PATH;
+            String redirectUrl = "http://localhost:" + port + CALLBACK_PATH;
             String authorizationUrl = buildCxOneOAuthAuthorizationUrl(cxOneAuthEndpoint, redirectUrl, codeChallenge);
 
             log.debug("OAuth: OAuth2.0 Authorization URL:{}", authorizationUrl);
@@ -130,13 +129,13 @@ public class AuthService {
             String authCode = future.get(Constants.AuthConstants.TIME_OUT_SECONDS, TimeUnit.SECONDS); //as a fail-safe to prevent long hangs in extreme edge cases
 
             String refreshToken = exchangeCodeForToken(cxOneTokenEndpoint, authCode, codeVerifier, redirectUrl);
-            if (refreshToken == null || refreshToken.isEmpty()){
+            if (refreshToken == null || refreshToken.isEmpty()) {
                 log.error("OAuth: Not able to get refresh token. Refresh token is null.");
                 setAuthResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
                 notifyError(Bundle.message(Resource.VALIDATE_ERROR));
                 return;
             }
-            setAuthResult(authResult, Constants.AuthConstants.TOKEN +":"+refreshToken); //Return token
+            setAuthResult(authResult, Constants.AuthConstants.TOKEN + ":" + refreshToken); //Return token
             saveToken(refreshToken); // Save refresh token in storage
             log.info("OAuth: Authentication process completed successfully.");
             notifySuccess();
@@ -156,8 +155,9 @@ public class AuthService {
 
     /**
      * Setting an authentication result for consumer
+     *
      * @param authResult - Consumer<String> object which will used by UI to get the auth result
-     * @param value - String value to set in consumer
+     * @param value      - String value to set in consumer
      */
     private void setAuthResult(Consumer<String> authResult, String value) {
         ApplicationManager.getApplication().invokeLater(() -> authResult.accept(value));
@@ -212,53 +212,28 @@ public class AuthService {
         return authUri.toString();
     }
 
-
     /**
-     * Finds the available port in the dynamic/private port range with retiring.
+     * This method will get the random port within dynamic/private port range using secure random,
+     * and check whether the port is available or not.
      *
      * @return an available port number if found else 0
      */
     private int findAvailablePort() {
         SecureRandom random = new SecureRandom();
         int range = MAX_PORT - MIN_PORT + 1;
-        try {
-            return Utils.executeWithRetry(() -> {
-                try {
-                    return findPort(range, random);
-                } catch (CxException cxException) {
-                    throw new RuntimeException(cxException);
+        for (int attempt = 1; attempt <= MAX_PORT_ATTEMPTS; attempt++) {
+            try {
+                int port = MIN_PORT + random.nextInt(range);
+                if (isPortAvailable(port)) {
+                    log.info("OAuth: Found available port:{}, on attempt:{}", port, attempt);
+                    return port;
                 }
-            }, MAX_RETRIES, RETRY_DELAY_MS);
-        } catch (Exception exception) {
-            log.error("OAuth: Unable to find available port after retries. Root Cause:{}", exception.getMessage());
-            return 0;
-        }
-    }
-
-    /**
-     * This method will get the random port within dynamic/private port range using secure random,
-     * and check whether the port is available or not.
-     *
-     * @param range  - Max range for port number
-     * @param random - SecureRandom object to get random number
-     * @return available port number else 0
-     * @throws CxException if port isn't found as available within range
-     */
-    public int findPort(int range, SecureRandom random) throws CxException {
-        Set<Integer> triedPorts = new HashSet<>();
-        while (triedPorts.size() < range) {
-            int port = MIN_PORT + random.nextInt(range);
-
-            if (triedPorts.contains(port)) continue;
-            triedPorts.add(port);
-
-            if (isPortAvailable(port)) {
-                log.info("OAuth: Found available port:{}", port);
-                return port;
+            } catch (Exception exception) {
+                log.error("OAuth: Exception occurred while finding available port on attempt:{}. Root Cause:{}", attempt, exception.getMessage());
             }
         }
-        log.warn("OAuth: No available port found in the dynamic/private range: {} to {}", MIN_PORT, MAX_PORT);
-        throw new CxException(500, "A required port in the range " + MIN_PORT + "–" + MAX_PORT + " is currently in use.");
+        log.error("OAuth: No available port found in the dynamic/private range: {} to {}", MIN_PORT, MAX_PORT);
+        return 0;
     }
 
     /**
@@ -376,8 +351,8 @@ public class AuthService {
     private void saveToken(final String refreshToken) {
         log.info("OAuth: Saving token in secure storage");
         GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
-        sensitiveState.setApiKey(refreshToken);
-        sensitiveState.apply(sensitiveState);
+        sensitiveState.setRefreshToken(refreshToken);
+        sensitiveState.saveRefreshToken(refreshToken);
         log.info("OAuth: Token saved successfully.");
     }
 

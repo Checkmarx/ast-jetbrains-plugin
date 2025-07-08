@@ -18,8 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * State object for sensitive plugin global settings.
- * Currently, only stores the API Key.
+ * GlobalSettingsSensitiveState class responsible to store secrets, e.g., API key in secure storage.
  */
 @Getter
 @Setter
@@ -27,6 +26,8 @@ import org.jetbrains.annotations.NotNull;
 public class GlobalSettingsSensitiveState {
 
     private static final Logger LOGGER = Utils.getLogger(GlobalSettingsSensitiveState.class);
+
+    private static final String NAMESPACE = GlobalSettingsSensitiveState.class.getSimpleName();
 
     public static GlobalSettingsSensitiveState getInstance() {
         return ApplicationManager.getApplication().getService(GlobalSettingsSensitiveState.class);
@@ -36,7 +37,10 @@ public class GlobalSettingsSensitiveState {
             CredentialAttributesKt.generateServiceName(GlobalSettingsSensitiveState.class.getSimpleName(),
                                                        Constants.API_KEY_CREDENTIALS_KEY)
     );
+
     private String apiKey;
+
+    private String refreshToken;
 
     public GlobalSettingsSensitiveState() {
         reset();
@@ -81,11 +85,49 @@ public class GlobalSettingsSensitiveState {
         return null;
     }
 
+    /**
+     * Common method to generate unique credential attributes
+     *
+     * @param keyName - Unique key name of your secret which you want to store
+     * @return CredentialAttributes
+     */
+    public static CredentialAttributes getCredentialAttributes(final String keyName) {
+        return new CredentialAttributes(CredentialAttributesKt.generateServiceName(NAMESPACE, keyName));
+    }
 
     /**
-     * Clearing the api key or refresh token from password storage
+     * Common method to save secret in secure storage using key name
+     * @param keyName - Unique specific key name which value you want to save
      */
-    public void clear() {
-        PasswordSafe.getInstance().set(apiKeyAttr, null);
+
+    public void saveSecret(@NotNull final String keyName, final String secret) {
+        CredentialAttributes credentialAttributes = getCredentialAttributes(keyName);
+        PasswordSafe.getInstance().set(credentialAttributes,  new Credentials(keyName, secret));
+    }
+
+    /**
+     * Common method to load secret from secure storage using key name
+     * @param keyName - Unique specific key name which value you want to retrieve
+     * @return Secret
+     */
+    public String loadSecret(@NotNull final String keyName) {
+        Credentials credentials = PasswordSafe.getInstance().get(getCredentialAttributes(keyName));
+        return credentials != null ? credentials.getPasswordAsString() : null;
+    }
+
+    /**
+     * Common method to delete secret using key name
+     * @param keyName - Unique specific key name which value you want to delete
+     */
+    public void deleteSecret(@NotNull final String keyName) {
+        PasswordSafe.getInstance().set(getCredentialAttributes(keyName), null);
+    }
+
+    /**
+     * Save refresh token
+     * @param refreshToken - refresh token value
+     */
+    public void saveRefreshToken(final String refreshToken){
+        saveSecret(Constants.REFRESH_TOKEN_CREDENTIALS_KEY, refreshToken);
     }
 }

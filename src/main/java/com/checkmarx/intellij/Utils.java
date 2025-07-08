@@ -1,5 +1,7 @@
 package com.checkmarx.intellij;
 
+import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.notification.*;
@@ -7,6 +9,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 /**
  * Class for static, common util methods
  */
+@Slf4j
 public final class Utils {
 
     private static final Logger LOGGER = getLogger(Utils.class);
@@ -265,5 +269,25 @@ public final class Utils {
         }
         LOGGER.error("Retry: Unexpected exception occurred during retries.");
         throw new IllegalStateException("Unexpected: No exception captured during retries.");
+    }
+
+
+    /**
+     * Getting secrets from secure storage based on current login state
+     *
+     * @param state          GlobalSettingsState object which holds the current setting state
+     * @param sensitiveState GlobalSettingsSensitiveState object which used to get the secrets
+     * @return String secret
+     */
+    public static String getSecret(GlobalSettingsState state, GlobalSettingsSensitiveState sensitiveState) {
+        if (state != null && !state.isApiKeyEnabled()) {
+            String refreshToken =  sensitiveState.loadSecret(Constants.REFRESH_TOKEN_CREDENTIALS_KEY);;
+            LOGGER.info("Refresh Token: "+ refreshToken);
+            return refreshToken;
+        }
+        if (sensitiveState != null) return sensitiveState.getApiKey();
+
+        LOGGER.info("Secret: No secret found, GlobalSettingsSensitiveState is null.");
+        return null;
     }
 }
