@@ -42,6 +42,7 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     private String additionalParameters = "";
 
     private boolean asca = false;
+    private boolean useApiKey = false;
 
     private boolean apiKeyEnabled = false;
 
@@ -71,5 +72,12 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     public void apply(@NotNull GlobalSettingsState state) {
         loadState(state);
     }
+
+    @Attribute("authenticated")
+    private boolean authenticated = false;
+
+    @Attribute("lastValidationSuccess")
+    private boolean lastValidationSuccess = true;
+}
 }
 
