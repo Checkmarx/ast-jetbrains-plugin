@@ -21,7 +21,11 @@ import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.messages.MessageBus;
 import com.intellij.openapi.ui.Messages; // <-- Added
+<<<<<<< Updated upstream
 import com.intellij.ide.BrowserUtil;      // <-- Added
+=======
+import com.checkmarx.intellij.util.CheckmarxValidator;  // <-- Added
+>>>>>>> Stashed changes
 import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;	// <-- Added
@@ -54,7 +58,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private final ExpandableTextField tenantField = new ExpandableTextField();
     private final JRadioButton apiKeyRadio = new JRadioButton("API Key");
     private final JButton logoutButton = new JButton("Log out");
-    private final JBLabel oauthLabel = new JBLabel("Login using Checkmarx One credentials");
+    private final JBLabel oauthLabel = new JBLabel("(Login using Checkmarx One credentials)");
     private final JBLabel baseUrlLabel = new JBLabel();
     private final JBLabel tenantLabel = new JBLabel();
 
@@ -86,16 +90,49 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     @Override
     public boolean isModified() {
-        if (!Objects.equals(SENSITIVE_SETTINGS_STATE, getSensitiveStateFromFields())) {
+        if (SETTINGS_STATE == null) {
+            SETTINGS_STATE = GlobalSettingsState.getInstance();
+        }
+        if (SENSITIVE_SETTINGS_STATE == null) {
+            SENSITIVE_SETTINGS_STATE = GlobalSettingsSensitiveState.getInstance();
+        }
+
+        // Check only editable values
+        if (!additionalParametersField.getText().trim().equals(SETTINGS_STATE.getAdditionalParameters())) {
             return true;
         }
-        return !Objects.equals(SETTINGS_STATE, getStateFromFields());
+
+        if (ascaCheckBox.isSelected() != SETTINGS_STATE.isAsca()) {
+            return true;
+        }
+
+        if (apiKeyRadio.isSelected() != SETTINGS_STATE.isUseApiKey()) {
+            return true;
+        }
+
+        if (!String.valueOf(apiKeyField.getPassword()).equals(SENSITIVE_SETTINGS_STATE.getApiKey())) {
+            return true;
+        }
+
+        return false;
     }
 
     @Override
     public void apply() {
+        if (!isModified()) {
+            return; // Skip if nothing changed
+        }
         GlobalSettingsState state = getStateFromFields();
-        state.setValidationMessage(validateResult.getText());
+
+        // Only persist validation message if it's a success (green)
+        if (validateResult.getForeground().equals(JBColor.GREEN)) {
+            state.setValidationMessage(validateResult.getText());
+            state.setLastValidationSuccess(true);
+        } else {
+            state.setValidationMessage(""); // Clear red error message
+            state.setLastValidationSuccess(false);
+        }
+
         state.setAuthenticated(SETTINGS_STATE.isAuthenticated()); // Persist authentication state
         SETTINGS_STATE.apply(state);
         SENSITIVE_SETTINGS_STATE.apply(getSensitiveStateFromFields());
@@ -123,22 +160,28 @@ public class GlobalSettingsComponent implements SettingsComponent {
         baseUrlField.setEnabled(!useApiKey);
         tenantField.setEnabled(!useApiKey);
         apiKeyField.setEnabled(useApiKey);
-        oauthLabel.setVisible(!useApiKey);
 
         updateFieldLabels();
         ascaInstallationMsg.setVisible(false);
 
-        // Restore validation message
+        // Restore validation message only if it was a success (green)
         String validationMessage = SETTINGS_STATE.getValidationMessage();
-        validateResult.setText(validationMessage);
-        validateResult.setForeground(JBColor.GREEN);
-        validateResult.setVisible(validationMessage != null && !validationMessage.isEmpty());
+        if (SETTINGS_STATE.isLastValidationSuccess() && validationMessage != null && !validationMessage.isEmpty()) {
+            validateResult.setText(validationMessage);
+            validateResult.setForeground(JBColor.GREEN);
+            validateResult.setVisible(true);
+        } else {
+            validateResult.setVisible(false); // Hide red error messages on reopen
+        }
 
         // Restore button states
         boolean isAuthenticated = SETTINGS_STATE.isAuthenticated();
         connectButton.setEnabled(!isAuthenticated);
         logoutButton.setEnabled(isAuthenticated);
         setFieldsEditable(!isAuthenticated);
+
+        // Ensure the connect button state is updated
+        updateConnectButtonState();
     }
 
     private GlobalSettingsState getStateFromFields() {
@@ -182,6 +225,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     }
                 });
             } else {
+<<<<<<< Updated upstream
                 if (baseUrlField.getText().trim().isEmpty() || tenantField.getText().trim().isEmpty()) {
                     setValidationResult(Bundle.message(Resource.MISSING_FIELD, "Base URL or Tenant"), JBColor.RED);
                     connectButton.setEnabled(true);
@@ -195,6 +239,53 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 if (result == Messages.OK) {
                     String oauthUrl = baseUrlField.getText().trim() + "/oauth/authorize?tenant=" + tenantField.getText().trim();
                     BrowserUtil.browse(oauthUrl);
+=======
+                // Proceed for OAuth authentication
+                proceedOAuthAuthentication();
+            }
+        });
+    }
+
+    /**
+     * Proceed for authentication using OAUth
+     */
+    private void proceedOAuthAuthentication() {
+        String baseUrl = baseUrlField.getText().trim();
+        String tenant = tenantField.getText().trim();
+
+        connectButton.setEnabled(false); // Disable button during validation
+
+        CheckmarxValidator.validateConnection(baseUrl, tenant).thenAccept(result -> {
+            SwingUtilities.invokeLater(() -> {
+                if (!result.isValid) {
+                    // Validation failed – show error message
+                    setValidationResult(result.error, JBColor.RED);
+                    connectButton.setEnabled(true);
+                } else {
+                    // Show OAuth confirmation dialog
+                    int userChoice = Messages.showOkCancelDialog(
+                            "You will be redirected to OAuth login in your default browser. Are you sure you want to continue?",
+                            "Continue to OAuth Login",
+                            "Continue", "Cancel", Messages.getQuestionIcon()
+                    );
+
+                    if (userChoice == Messages.OK) {
+                        // Start OAuth authentication
+                        new AuthService().authenticate(baseUrl, tenant, authResult -> {
+                            if (authResult.startsWith(Constants.AuthConstants.TOKEN)) {
+                                handleOAuthSuccess(authResult.split(":")[1]); // Extract token
+                            } else {
+                                handleOAuthFailure(authResult);
+                            }
+                        });
+                    } else {
+                        connectButton.setEnabled(true);
+                    }
+                }
+            });
+        });
+    }
+>>>>>>> Stashed changes
 
                     Notification notification = NotificationGroupManager.getInstance()
                             .getNotificationGroup("Checkmarx.Notifications")
@@ -282,9 +373,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
         mainPanel.setLayout(new MigLayout("", "[][grow]", ""));
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.HELP_JETBRAINS),
                 "span, growx, wrap, gapbottom 10");
-        addSectionHeader(Resource.CREDENTIALS_SECTION, true);
-        mainPanel.add(oauthRadio , "wrap");
-        mainPanel.add(oauthLabel, "span 2, wrap");
+        addSectionHeader(Resource.CREDENTIALS_SECTION, false);
+        mainPanel.add(oauthRadio, "split 2, span");
+        mainPanel.add(oauthLabel, "gapleft 5, wrap");
         mainPanel.add(baseUrlLabel);
         mainPanel.add(baseUrlField, "growx, wrap");
         mainPanel.add(tenantLabel);
@@ -297,17 +388,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
             baseUrlField.setEnabled(selected);
             tenantField.setEnabled(selected);
             apiKeyField.setEnabled(!selected);
-            oauthLabel.setVisible(selected);
-            updateFieldLabels();
-            updateConnectButtonState();
-        });
-
-        apiKeyRadio.addItemListener(e -> {
-            boolean selected = apiKeyRadio.isSelected();
-            apiKeyField.setEnabled(selected);
-            baseUrlField.setEnabled(!selected);
-            tenantField.setEnabled(!selected);
-            oauthLabel.setVisible(!selected);
             updateFieldLabels();
             updateConnectButtonState();
         });
@@ -329,7 +409,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     private void setupFields() {
         apiKeyField.setName(Constants.FIELD_NAME_API_KEY);
-        oauthLabel.setForeground(JBColor.GRAY);
         baseUrlField.setName("baseUrlField");
         tenantField.setName("tenantField");
         oauthRadio.setName("oauthRadio");
@@ -365,7 +444,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
         ascaCheckBox.setName(Constants.FIELD_NAME_ASCA);
         baseUrlField.setEnabled(true);
         tenantField.setEnabled(true);
-        oauthLabel.setVisible(true);
         apiKeyField.setEnabled(false);
         logoutButton.setEnabled(false);
         baseUrlLabel.setText(String.format(Constants.FIELD_FORMAT, "Checkmarx One base URL:", Constants.REQUIRED_MARK));
@@ -417,25 +495,39 @@ public class GlobalSettingsComponent implements SettingsComponent {
             boolean isApiKeyNotEmpty = !String.valueOf(apiKeyField.getPassword()).trim().isEmpty();
             enabled = isApiKeyNotEmpty;
         }
-
+        // Disable connect button if user is authenticated
+        if (SETTINGS_STATE.isAuthenticated()) {
+            enabled = false;
+        }
         connectButton.setEnabled(enabled);
     }
 
     private void addLogoutListener() {
         logoutButton.addActionListener(e -> {
-            sessionConnected = false;
-            baseUrlField.setText("");
-            tenantField.setText("");
-            apiKeyField.setText("");
-            oauthRadio.setSelected(true);
-            validateResult.setText(Bundle.message(Resource.LOGOUT_SUCCESS));
-            validateResult.setForeground(JBColor.GREEN);
-            validateResult.setVisible(true);
-            connectButton.setEnabled(true);
-            logoutButton.setEnabled(false);
-            setFieldsEditable(true);
-            updateConnectButtonState();
-            SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+            int userChoice = Messages.showYesNoDialog(
+                    "Are you sure you want to log out?",
+                    "Confirm Logout",
+                    "Yes",  // Yes button
+                    "Cancel",  // Cancel button
+                    Messages.getQuestionIcon()
+            );
+
+            if (userChoice == Messages.YES) {
+                sessionConnected = false;
+                baseUrlField.setText("");
+                tenantField.setText("");
+                apiKeyField.setText("");
+                oauthRadio.setSelected(true);
+                validateResult.setText(Bundle.message(Resource.LOGOUT_SUCCESS));
+                validateResult.setForeground(JBColor.GREEN);
+                validateResult.setVisible(true);
+                connectButton.setEnabled(true);
+                logoutButton.setEnabled(false);
+                setFieldsEditable(true);
+                updateConnectButtonState();
+                SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+            }
+            // else: Do nothing (user clicked Cancel)
         });
     }
 

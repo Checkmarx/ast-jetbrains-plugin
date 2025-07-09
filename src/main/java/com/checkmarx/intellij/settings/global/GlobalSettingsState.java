@@ -42,13 +42,6 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
 
     private boolean asca = false;
     private boolean useApiKey = false;
-    public boolean isUseApiKey() {
-        return useApiKey;
-    }
-
-    public void setUseApiKey(boolean useApiKey) {
-        this.useApiKey = useApiKey;
-    }
 
     public @NotNull Set<Filterable> getFilters() {
         if (filters.isEmpty() || filters.stream().allMatch(Objects::isNull)) {
@@ -77,11 +70,7 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @Attribute("authenticated")
     private boolean authenticated = false;
 
-    public boolean isAuthenticated() {
-        return authenticated;
-    }
-
-    public void setAuthenticated(boolean authenticated) {
-        this.authenticated = authenticated;
-    }}
+    @Attribute("lastValidationSuccess")
+    private boolean lastValidationSuccess = true;
+}
 
