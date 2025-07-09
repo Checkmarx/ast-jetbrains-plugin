@@ -1,18 +1,21 @@
 package com.checkmarx.intellij.settings.global;
 
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
+import com.checkmarx.intellij.service.AscaService;
+import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
-import com.intellij.notification.*;
+import com.checkmarx.intellij.util.CheckmarxValidator;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBCheckBox;
@@ -20,24 +23,17 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.messages.MessageBus;
-import com.intellij.openapi.ui.Messages; // <-- Added
-<<<<<<< Updated upstream
-import com.intellij.ide.BrowserUtil;      // <-- Added
-=======
-import com.checkmarx.intellij.util.CheckmarxValidator;  // <-- Added
->>>>>>> Stashed changes
 import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
-import org.jetbrains.annotations.NotNull;	// <-- Added
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import javax.swing.event.DocumentEvent;
 
 public class GlobalSettingsComponent implements SettingsComponent {
     private static final Logger LOGGER = Utils.getLogger(GlobalSettingsComponent.class);
@@ -225,22 +221,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     }
                 });
             } else {
-<<<<<<< Updated upstream
                 if (baseUrlField.getText().trim().isEmpty() || tenantField.getText().trim().isEmpty()) {
                     setValidationResult(Bundle.message(Resource.MISSING_FIELD, "Base URL or Tenant"), JBColor.RED);
                     connectButton.setEnabled(true);
                     return;
                 }
-                int result = Messages.showOkCancelDialog(
-                        "You will be redirected to OAuth login in your default browser. Are you sure you want to continue?",
-                        "Continue to OAuth Login",
-                        "Continue", "Cancel", Messages.getQuestionIcon()
-                );
-                if (result == Messages.OK) {
-                    String oauthUrl = baseUrlField.getText().trim() + "/oauth/authorize?tenant=" + tenantField.getText().trim();
-                    BrowserUtil.browse(oauthUrl);
-=======
-                // Proceed for OAuth authentication
                 proceedOAuthAuthentication();
             }
         });
@@ -285,25 +270,30 @@ public class GlobalSettingsComponent implements SettingsComponent {
             });
         });
     }
->>>>>>> Stashed changes
 
-                    Notification notification = NotificationGroupManager.getInstance()
-                            .getNotificationGroup("Checkmarx.Notifications")
-                            .createNotification("Redirecting to browser for OAuth login...", NotificationType.INFORMATION);
-                    Notifications.Bus.notify(notification);
+    /**
+     * Handle post-authentication success state
+     */
+    private void handleOAuthSuccess(String refreshToken) {
+        SwingUtilities.invokeLater(() -> {
+            setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
+            logoutButton.setEnabled(true);
+            connectButton.setEnabled(false);
+            setFieldsEditable(false);
+            sessionConnected = true;
+            SETTINGS_STATE.setAuthenticated(true);// also persist
+            SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshToken);
+        });
+    }
 
-                    SwingUtilities.invokeLater(() -> {
-                        sessionConnected = true;
-                        setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
-                        logoutButton.setEnabled(true);
-                        connectButton.setEnabled(false);
-                        setFieldsEditable(false);
-                        SETTINGS_STATE.setAuthenticated(true); // also persist
-                    });
-                } else {
-                    connectButton.setEnabled(true);
-                }
-            }
+    /**
+     * Handle post-authentication failure state
+     */
+    private void handleOAuthFailure(String error) {
+        SwingUtilities.invokeLater(() -> {
+            sessionConnected = false;
+            setValidationResult(error, JBColor.RED);
+            connectButton.setEnabled(true);
         });
     }
 
@@ -352,6 +342,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 }
                 return null;
             }
+
             @Override
             protected void done() {
                 LOGGER.debug("ASCA scan completed.");
@@ -574,6 +565,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     public boolean isValid() {
         return SENSITIVE_SETTINGS_STATE.isValid();
     }
+
     private void setFieldsEditable(boolean editable) {
         baseUrlField.setEnabled(editable && oauthRadio.isSelected());
         tenantField.setEnabled(editable && oauthRadio.isSelected());
