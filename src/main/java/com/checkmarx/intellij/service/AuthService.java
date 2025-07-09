@@ -11,7 +11,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.ide.BrowserUtil;
-import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
@@ -33,7 +32,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.SecureRandom;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
@@ -47,9 +46,10 @@ public class AuthService {
 
     private static final int MIN_PORT = 49152;
     private static final int MAX_PORT = 65535;
-    private static final int MAX_RETRIES = 3;
     private static final int MAX_PORT_ATTEMPTS = 10;
     private static final int RETRY_DELAY_MS = 1000;
+    private static final int MAX_RETRIES = 3;
+    private static final int TIME_OUT_SECONDS = 120;
     private static final String CALLBACK_PATH = "/checkmarx1/callback";
     private final Project project = ProjectManager.getInstance().getDefaultProject();
     private OAuthCallbackServer server;
@@ -85,7 +85,6 @@ public class AuthService {
             log.error("OAuth: Exception occurred while authenticating using oauth2. Root Cause:{}",
                     exception.getMessage());
             setAuthResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
-            notifyError(Bundle.message(Resource.VALIDATE_ERROR));
         }
     }
 
@@ -108,45 +107,35 @@ public class AuthService {
             int port = findAvailablePort();
             if (port == 0) {
                 setAuthResult(authResult, Bundle.message(Resource.ERROR_PORT_NOT_AVAILABLE));
-                notifyError(Bundle.message(Resource.ERROR_PORT_NOT_AVAILABLE));
                 return;
             }
             String redirectUrl = "http://localhost:" + port + CALLBACK_PATH;
             String authorizationUrl = buildCxOneOAuthAuthorizationUrl(cxOneAuthEndpoint, redirectUrl, codeChallenge);
 
             log.debug("OAuth: OAuth2.0 Authorization URL:{}", authorizationUrl);
-            server.start(Constants.AuthConstants.TIME_OUT_SECONDS, port);
+            server.start(TIME_OUT_SECONDS, port);
 
-            ApplicationManager.getApplication().invokeLater(() -> {
-                try {
-                    BrowserUtil.browse(new URI(authorizationUrl));  // Launch browser for authentication.
-                } catch (Exception exception) {
-                    log.error("OAuth: Exception occurred while opening the browser. Root Cause:{}", exception.getMessage());
-                    setAuthResult(authResult, Bundle.message(Resource.ERROR_OPENING_BROWSER));
-                }
-            });
-            CompletableFuture<String> future = server.waitForAuthCode();
-            String authCode = future.get(Constants.AuthConstants.TIME_OUT_SECONDS, TimeUnit.SECONDS); //as a fail-safe to prevent long hangs in extreme edge cases
+            openDefaultBrowser(authorizationUrl);
 
+            String authCode = server.waitForAuthCode().get(TIME_OUT_SECONDS, TimeUnit.SECONDS);
             String refreshToken = exchangeCodeForToken(cxOneTokenEndpoint, authCode, codeVerifier, redirectUrl);
             if (refreshToken == null || refreshToken.isEmpty()) {
                 log.error("OAuth: Not able to get refresh token. Refresh token is null.");
                 setAuthResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
-                notifyError(Bundle.message(Resource.VALIDATE_ERROR));
                 return;
             }
-            setAuthResult(authResult, Constants.AuthConstants.TOKEN + ":" + refreshToken); //Return token
             saveToken(refreshToken); // Save refresh token in storage
+            setAuthResult(authResult, Constants.AuthConstants.TOKEN + ":" + refreshToken); //Return token
             log.info("OAuth: Authentication process completed successfully.");
-            notifySuccess();
-        } catch (TimeoutException timeoutException) {
-            log.error("OAuth: Timeout occurred while authentication process. Root Cause:{} ", timeoutException.getMessage());
+        } catch (ExecutionException | TimeoutException timeoutException) {
+            log.error("OAuth: Time out exception occurred. Auth code not received within authentication timeout");
             setAuthResult(authResult, Bundle.message(Resource.ERROR_AUTHENTICATION_TIME_OUT));
-            notifyError(Bundle.message(Resource.ERROR_AUTHENTICATION_TIME_OUT));
+        } catch (CxException cxException) {
+            log.error("OAuth: Custom exception thrown. Root Cause:{} ", cxException.getMessage());
+            setAuthResult(authResult, cxException.getMessage());
         } catch (Exception exception) {
             log.error("OAuth: Exception occurred during authentication process. Root Cause:{} ", exception.getMessage());
             setAuthResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
-            notifyError(Bundle.message(Resource.VALIDATE_ERROR));
         } finally {
             log.info("OAuth: Finally stopping callback server.");
             server.stop();
@@ -253,6 +242,21 @@ public class AuthService {
     }
 
     /**
+     * Opening the default browser from the user system with specified URL
+     *
+     * @param url - URL to open in browser
+     */
+    private void openDefaultBrowser(final String url) {
+        ApplicationManager.getApplication().invokeLater(() -> {
+            try {
+                BrowserUtil.browse(new URI(url)); // Launch browser for authentication.
+            } catch (Exception exception) {
+                log.error("OAuth: Exception occurred while opening the browser. Root Cause:{}", exception.getMessage());
+            }
+        });
+    }
+
+    /**
      * Exchange Authorization Code for Tokens,
      * This method will be used to call the token endpoint to get the OAuth token
      * by using the auth code received from the authorization endpoint.
@@ -312,11 +316,11 @@ public class AuthService {
             if (response.statusCode() == 200) {
                 return extractRefreshToken(response.body());
             }
-            log.error("OAuth: Received error response from token endpoint:{}", response);
+            log.error("OAuth: Received error response from token endpoint:{}", response.body());
             return null;
         }
         log.error("OAuth: Received null response from the token endpoint.");
-        throw new CxException(500, "Error while exchanging auth code for token, Please try again.");
+        throw new CxException(500, "Something went wrong, Please try again.");
     }
 
     /**
@@ -354,25 +358,5 @@ public class AuthService {
         sensitiveState.setRefreshToken(refreshToken);
         sensitiveState.saveRefreshToken(refreshToken);
         log.info("OAuth: Token saved successfully.");
-    }
-
-    /**
-     * Display notification on notification area on successful authentication
-     */
-    public void notifySuccess() {
-        Utils.showNotification(Bundle.message(Resource.SUCCESS_AUTHENTICATION_TITLE),
-                Bundle.message(Resource.VALIDATE_SUCCESS),
-                NotificationType.INFORMATION,
-                project);
-    }
-
-    /**
-     * Display notification on notification area on failure authentication
-     */
-    public void notifyError(String errorMsg) {
-        Utils.showNotification(Bundle.message(Resource.ERROR_AUTHENTICATION_TITLE),
-                errorMsg,
-                NotificationType.ERROR,
-                project);
     }
 }

@@ -104,7 +104,6 @@ public final class Constants {
         public static final String REFRESH_TOKEN = "refresh_token";
         public static final String STATE = "state";
         public static final String CODE_CHALLENGE_METHOD = "S256";
-        public static final int TIME_OUT_SECONDS = 120;
         public static final String TOKEN = "TOKEN";
     }
 

@@ -12,9 +12,11 @@ import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.util.CheckmarxValidator;
-import com.intellij.ide.BrowserUtil;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
@@ -42,6 +44,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private static GlobalSettingsSensitiveState SENSITIVE_SETTINGS_STATE;
 
     private final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
+    private final Project project = ProjectManager.getInstance().getDefaultProject();
 
     @Getter
     private final JPanel mainPanel = new JPanel();
@@ -283,6 +286,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             sessionConnected = true;
             SETTINGS_STATE.setAuthenticated(true);// also persist
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshToken);
+            notifyAuthSuccess();
         });
     }
 
@@ -294,6 +298,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             sessionConnected = false;
             setValidationResult(error, JBColor.RED);
             connectButton.setEnabled(true);
+            notifyAuthError(error);
         });
     }
 
@@ -573,5 +578,29 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
         oauthRadio.setEnabled(editable);
         apiKeyRadio.setEnabled(editable);
+    }
+
+    /**
+     * Display notification on notification area on successful authentication
+     */
+    public void notifyAuthSuccess() {
+        ApplicationManager.getApplication().invokeLater(() ->
+                Utils.showNotification(Bundle.message(Resource.SUCCESS_AUTHENTICATION_TITLE),
+                        Bundle.message(Resource.VALIDATE_SUCCESS),
+                        NotificationType.INFORMATION,
+                        project)
+        );
+    }
+
+    /**
+     * Display notification on notification area on failure authentication
+     */
+    public void notifyAuthError(String errorMsg) {
+        ApplicationManager.getApplication().invokeLater(() ->
+                Utils.showNotification(Bundle.message(Resource.ERROR_AUTHENTICATION_TITLE),
+                        errorMsg,
+                        NotificationType.ERROR,
+                        project)
+        );
     }
 }

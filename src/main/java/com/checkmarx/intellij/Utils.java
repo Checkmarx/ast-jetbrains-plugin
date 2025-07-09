@@ -1,5 +1,6 @@
 package com.checkmarx.intellij;
 
+import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.dvcs.repo.Repository;
@@ -268,7 +269,7 @@ public final class Utils {
             throw lastException;
         }
         LOGGER.error("Retry: Unexpected exception occurred during retries.");
-        throw new IllegalStateException("Unexpected: No exception captured during retries.");
+        throw new CxException(500, "Something went wrong, Please try again.");
     }
 
 
@@ -280,9 +281,9 @@ public final class Utils {
      * @return String secret
      */
     public static String getSecret(GlobalSettingsState state, GlobalSettingsSensitiveState sensitiveState) {
-        if (state != null && !state.isApiKeyEnabled()) {
-            String refreshToken =  sensitiveState.loadSecret(Constants.REFRESH_TOKEN_CREDENTIALS_KEY);;
-            LOGGER.info("Refresh Token: "+ refreshToken);
+        if (state != null && !state.isUseApiKey()) {
+            String refreshToken = sensitiveState.loadSecret(Constants.REFRESH_TOKEN_CREDENTIALS_KEY);
+            LOGGER.info("Refresh Token: " + refreshToken);
             return refreshToken;
         }
         if (sensitiveState != null) return sensitiveState.getApiKey();

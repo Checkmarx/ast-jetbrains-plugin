@@ -1,7 +1,9 @@
 package com.checkmarx.intellij.helper;
 
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -64,8 +66,8 @@ public class OAuthCallbackServer {
                 try {
                     if (!authCodeFuture.isDone()) {
                         authCodeFuture.completeExceptionally(
-                                new TimeoutException("Authentication timed out after " + timeoutSeconds + " seconds."));
-                        log.error("OAuth: Stopping local server due to authentication time out:{} seconds ", timeoutSeconds);
+                                new TimeoutException("Auth code not received within a authentication time seconds:"+ timeoutSeconds));
+                        log.warn("OAuth: Stopping local server due to authentication timeout :{} seconds ", timeoutSeconds);
                         stop();
                     }
                 }catch (Exception exception){
@@ -74,7 +76,7 @@ public class OAuthCallbackServer {
             }, timeoutSeconds, TimeUnit.SECONDS);
         } catch (Exception exception) {
             log.error("OAuth: Unable to start the local callback Https Server. Root Cause:{}", exception.getMessage());
-            throw new CxException(500, "A required port:" + port + " is currently in use. Please try again shortly.");
+            throw new CxException(500, Bundle.message(Resource.ERROR_PORT_NOT_AVAILABLE));
         }
     }
 
@@ -85,11 +87,11 @@ public class OAuthCallbackServer {
         if (server != null) {
             server.stop(0);
             server = null;
+            log.info("OAuth: Callback server stopped successfully.");
         }
         if (!scheduler.isShutdown()) {
             scheduler.shutdownNow();
         }
-        log.info("OAuth: Callback server stopped successfully.");
     }
 
     /**
@@ -118,6 +120,7 @@ public class OAuthCallbackServer {
                     authCodeFuture.complete(code);
                 } else {
                     String error = extractParam(query, "error");
+                    log.error("OAuth: Received error from authorization endpoint. Error:{}", error);
                     String htmlString = loadAuthErrorHtml(error);
                     sendResponse(exchange, htmlString, 400);
                     authCodeFuture.completeExceptionally(new RuntimeException("OAuth2: Received Error: " + error));
