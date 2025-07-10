@@ -130,4 +130,11 @@ public class GlobalSettingsSensitiveState {
     public void saveRefreshToken(final String refreshToken){
         saveSecret(Constants.REFRESH_TOKEN_CREDENTIALS_KEY, refreshToken);
     }
+
+    /**
+     * Delete refresh token from the storage
+     */
+    public void deleteRefreshToken(){
+        deleteSecret(Constants.REFRESH_TOKEN_CREDENTIALS_KEY);
+    }
 }

@@ -522,6 +522,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 setFieldsEditable(true);
                 updateConnectButtonState();
                 SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+                if (!SETTINGS_STATE.isUseApiKey()) {
+                    SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
+                }
             }
             // else: Do nothing (user clicked Cancel)
         });
