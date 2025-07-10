@@ -132,12 +132,12 @@ public class AuthService {
             setAuthResult(authResult, Bundle.message(Resource.ERROR_AUTHENTICATION_TIME_OUT));
         } catch (CxException cxException) {
             log.error("OAuth: Custom exception thrown. Root Cause:{} ", cxException.getMessage());
-            setAuthResult(authResult, cxException.getMessage());
+            setAuthResult(authResult, cxException.getMessage().split(":")[1]);
         } catch (Exception exception) {
             log.error("OAuth: Exception occurred during authentication process. Root Cause:{} ", exception.getMessage());
             setAuthResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
         } finally {
-            log.info("OAuth: Finally stopping callback server.");
+            log.debug("OAuth: Finally stopping callback server.");
             server.stop();
         }
     }
@@ -273,13 +273,13 @@ public class AuthService {
             return Utils.executeWithRetry(() -> {
                 try {
                     return callTokenEndpoint(tokenEndpoint, code, codeVerifier, redirectUri);
-                } catch (IOException | CxException | InterruptedException e) {
+                } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e); // wrap checked in unchecked to satisfy Supplier
                 }
             }, MAX_RETRIES, RETRY_DELAY_MS);
         } catch (Exception exception) {
             log.error("OAuth: Failed to get OAuth token after retries. Root Cause:{} ", exception.getMessage());
-            throw new CxException(500, exception.getMessage());
+            throw new CxException(500, "Something went wrong, Please try again.");
         }
     }
 
@@ -292,35 +292,48 @@ public class AuthService {
      * @param codeVerifier - original code verifier for PKCE
      * @param redirectUri  - redirect uri, which was used for authorization code
      * @return string refresh token
-     * @throws CxException - if error occurred during exchanging auth code for token
+     * @throws IOException - if error occurred during exchanging auth code for token
      */
-    public String callTokenEndpoint(String tokenEndpoint, String code, String codeVerifier, String redirectUri) throws CxException, IOException, InterruptedException {
+    public String callTokenEndpoint(String tokenEndpoint, String code, String codeVerifier, String redirectUri) throws  IOException, InterruptedException {
+        String refreshToken = null;
+        int redirectAttempt = 1;
+
         String requestBody = "grant_type=authorization_code" +
                 "&code=" + code +
                 "&redirect_uri=" + redirectUri +
                 "&client_id=" + Constants.AuthConstants.OAUTH_IDE_CLIENT_ID +
                 "&code_verifier=" + codeVerifier;
+        do {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(tokenEndpoint))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(tokenEndpoint))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
+            HttpClient client = HttpClient.newHttpClient();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        HttpClient client = HttpClient.newHttpClient();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-        log.debug("OAuth: Received token response:{}", response);
-        if (response != null) {
-            log.info("OAuth: Token response status code:{}", response.statusCode());
-            if (response.statusCode() == 200) {
-                return extractRefreshToken(response.body());
+            log.debug("OAuth: Received token response:{}", response);
+            if (response != null) {
+                log.info("OAuth: Token response status code:{}", response.statusCode());
+                if (response.statusCode() == 200) {
+                    refreshToken = extractRefreshToken(response.body());
+                } else if (response.statusCode() == 308) {
+                    log.info("OAuth: Received permanent redirect, getting new token endpoint from header location. Attempt:{}", redirectAttempt);
+                    /*
+                     * If user provided only base url then, CxOne send permanent redirect response.
+                     * As token base url should be iam, we need to get new token endpoint from the
+                     * received response header and use this new endpoint to get the token.
+                     */
+                    if (response.headers() != null && (response.headers().map() != null && !response.headers().map().isEmpty())
+                            && response.headers().map().containsKey(Constants.AuthConstants.LOCATION)) {
+                        tokenEndpoint = response.headers().map().get(Constants.AuthConstants.LOCATION).get(0);
+                    }
+                }
             }
-            log.error("OAuth: Received error response from token endpoint:{}", response.body());
-            return null;
-        }
-        log.error("OAuth: Received null response from the token endpoint.");
-        throw new CxException(500, "Something went wrong, Please try again.");
+            redirectAttempt++;
+        } while (refreshToken == null && redirectAttempt <= MAX_RETRIES);
+        return refreshToken;
     }
 
     /**
@@ -335,6 +348,7 @@ public class AuthService {
             JSONObject jsonObject = (JSONObject) new JSONParser(JSONParser.MODE_PERMISSIVE).parse(jsonString);
             refreshToken = jsonObject.getAsString(Constants.AuthConstants.REFRESH_TOKEN);
         } catch (ParseException parseException) {
+            log.warn("OAuth: Exception occurred while parsing token response using minidev. Retrying with object mapper. Root Cause:{}", parseException.getMessage());
             try {
                 JsonNode rootNode = new ObjectMapper().readTree(jsonString);
                 if (rootNode.has(Constants.AuthConstants.REFRESH_TOKEN))

@@ -105,6 +105,9 @@ public final class Constants {
         public static final String STATE = "state";
         public static final String CODE_CHALLENGE_METHOD = "S256";
         public static final String TOKEN = "TOKEN";
+        public static final String AUTH_SUCCESS_HTML_FILE_PATH = "auth/auth-success.html";
+        public static final String AUTH_ERROR_HTML_FILE_PATH = "auth/auth-error.html";
+        public static final String LOCATION = "location";
     }
 
 

@@ -138,7 +138,7 @@ public class OAuthCallbackServer {
         String validateStateAndGetCode(String query) {
             final String paramState = extractParam(query, Constants.AuthConstants.STATE);
             if (!state.equals(paramState)) {
-                log.error("OAuth: State parameter is invalid.");
+                log.error("OAuth: Received state parameter is invalid.");
                 throw new IllegalStateException("Invalid authentication");
             }
             String code = extractParam(query, Constants.AuthConstants.CODE);
@@ -188,7 +188,7 @@ public class OAuthCallbackServer {
      * @return html string
      */
     private String loadAuthSuccessHtml() {
-        String responseContent = Utils.getFileContentFromResource("auth/auth-success.html");
+        String responseContent = Utils.getFileContentFromResource(Constants.AuthConstants.AUTH_SUCCESS_HTML_FILE_PATH);
         if (responseContent != null && !responseContent.isBlank()) {
             return responseContent;
         }
@@ -201,14 +201,17 @@ public class OAuthCallbackServer {
      * @return html string
      */
     private String loadAuthErrorHtml(String error)  {
-        String responseContent = Utils.getFileContentFromResource("auth/auth-error.html");
+        String responseContent = Utils.getFileContentFromResource(Constants.AuthConstants.AUTH_ERROR_HTML_FILE_PATH);
         if (responseContent != null && !responseContent.isBlank()) {
             return responseContent.replace("ERROR_MESSAGE", error);
         }
         return errorHtmlResponse(error);
     }
 
-
+    /**
+     * Backup method to build auth success html page
+     * @return html string
+     */
     private String successHtmlResponse(){
         String str = "";
         str += " <!DOCTYPE html>";
@@ -302,6 +305,10 @@ public class OAuthCallbackServer {
         return str;
     }
 
+    /**
+     * Backup method to build auth failure html page
+     * @return html string
+     */
     private String errorHtmlResponse(String error){
         String str = "";
         str += "<!DOCTYPE html>";
