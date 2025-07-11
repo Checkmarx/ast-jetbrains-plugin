@@ -17,9 +17,6 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import lombok.extern.slf4j.Slf4j;
-import net.minidev.json.JSONObject;
-import net.minidev.json.parser.JSONParser;
-import net.minidev.json.parser.ParseException;
 import org.apache.http.client.utils.URIBuilder;
 import org.jetbrains.annotations.NotNull;
 
@@ -31,6 +28,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -295,7 +293,6 @@ public class AuthService {
      * @throws IOException - if error occurred during exchanging auth code for token
      */
     public String callTokenEndpoint(String tokenEndpoint, String code, String codeVerifier, String redirectUri) throws  IOException, InterruptedException {
-        String refreshToken = null;
         int redirectAttempt = 1;
 
         String requestBody = "grant_type=authorization_code" +
@@ -317,7 +314,7 @@ public class AuthService {
             if (response != null) {
                 log.info("OAuth: Token response status code:{}", response.statusCode());
                 if (response.statusCode() == 200) {
-                    refreshToken = extractRefreshToken(response.body());
+                    return extractRefreshToken(response.body());
                 } else if (response.statusCode() == 308) {
                     log.info("OAuth: Received permanent redirect, getting new token endpoint from header location. Attempt:{}", redirectAttempt);
                     /*
@@ -332,8 +329,8 @@ public class AuthService {
                 }
             }
             redirectAttempt++;
-        } while (refreshToken == null && redirectAttempt <= MAX_RETRIES);
-        return refreshToken;
+        } while (redirectAttempt <= MAX_RETRIES);
+        return null;
     }
 
     /**
@@ -343,22 +340,45 @@ public class AuthService {
      * @return String - refresh token
      */
     private String extractRefreshToken(String jsonString) {
-        String refreshToken = null;
         try {
-            JSONObject jsonObject = (JSONObject) new JSONParser(JSONParser.MODE_PERMISSIVE).parse(jsonString);
-            refreshToken = jsonObject.getAsString(Constants.AuthConstants.REFRESH_TOKEN);
-        } catch (ParseException parseException) {
-            log.warn("OAuth: Exception occurred while parsing token response using minidev. Retrying with object mapper. Root Cause:{}", parseException.getMessage());
-            try {
-                JsonNode rootNode = new ObjectMapper().readTree(jsonString);
-                if (rootNode.has(Constants.AuthConstants.REFRESH_TOKEN))
-                    refreshToken = rootNode.get(Constants.AuthConstants.REFRESH_TOKEN).asText();
-            } catch (JsonProcessingException exception) {
-                log.error("OAuth: Unable to extract refresh token from the response. Error:{}", exception.getMessage());
-            }
+            JsonNode rootNode = new ObjectMapper().readTree(jsonString);
+            if (rootNode.has(Constants.AuthConstants.REFRESH_TOKEN))
+               return rootNode.get(Constants.AuthConstants.REFRESH_TOKEN).asText();
+        } catch (JsonProcessingException exception) {
+            log.warn("OAuth: Unable to extract refresh token using from the response using JsonNode. Error:{}", exception.getMessage());
+            return extractRefreshTokenUsingStream(jsonString);
         }
-        log.debug("OAuth: Received Refresh Token:{} ", refreshToken);
-        return refreshToken;
+        log.warn("OAuth: Refresh token not found in the response.");
+        return null;
+    }
+
+    /**
+     * Extracting refresh token from received json response from the token endpoint.
+     *
+     * @param tokenResponse - token response body
+     * @return refresh token
+     */
+    private String extractRefreshTokenUsingStream(String tokenResponse) {
+        try {
+            log.warn("OAuth: Retrying to extract token from the response..");
+            return Arrays.stream(tokenResponse.split(",\\s*"))
+                    .map(String::trim)
+                    .filter(s -> s.startsWith("\"refresh_token\"")
+                            || s.startsWith(Constants.AuthConstants.REFRESH_TOKEN))
+                    .map(s -> {
+                        int colonIndex = s.indexOf(':');
+                        if (colonIndex == -1) return null;
+
+                        String token = s.substring(colonIndex + 1).trim();
+                        if (token.startsWith("\"") && token.endsWith("\"")) {
+                            token = token.substring(1, token.length() - 1);
+                        }
+                        return token;
+                    }).filter(token -> token != null && !token.isEmpty()).findFirst().orElse(null);
+        } catch (Exception exception) {
+            log.error("OAuth: Exception occurred while extracting refresh token using java. Root Cause:{}", exception.getMessage());
+            return null;
+        }
     }
 
     /**

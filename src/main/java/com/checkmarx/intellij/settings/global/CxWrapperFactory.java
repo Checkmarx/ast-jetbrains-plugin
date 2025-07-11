@@ -3,7 +3,6 @@ package com.checkmarx.intellij.settings.global;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
-import com.checkmarx.intellij.Utils;
 
 import java.io.IOException;
 

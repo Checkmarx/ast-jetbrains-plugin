@@ -10,6 +10,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.intellij.lang.annotations.Language;
 
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -212,8 +213,9 @@ public class OAuthCallbackServer {
      * Backup method to build auth success html page
      * @return html string
      */
+    @Language("HTML")
     private String successHtmlResponse(){
-        String str = "";
+        @Language("HTML") String str = "";
         str += " <!DOCTYPE html>";
         str += "      <html lang=\"en\">";
         str += "      <head>";
@@ -309,8 +311,9 @@ public class OAuthCallbackServer {
      * Backup method to build auth failure html page
      * @return html string
      */
+    @Language("HTML")
     private String errorHtmlResponse(String error){
-        String str = "";
+        @Language("HTML") String str = "";
         str += "<!DOCTYPE html>";
         str += "      <html lang=\"en\">";
         str += "      <head>";
