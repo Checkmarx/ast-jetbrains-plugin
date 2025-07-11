@@ -1,18 +1,23 @@
 package com.checkmarx.intellij.settings.global;
 
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
+import com.checkmarx.intellij.service.AscaService;
+import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
-import com.intellij.notification.*;
+import com.checkmarx.intellij.util.CheckmarxValidator;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBCheckBox;
@@ -20,24 +25,18 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.messages.MessageBus;
-import com.intellij.openapi.ui.Messages; // <-- Added
-<<<<<<< Updated upstream
-import com.intellij.ide.BrowserUtil;      // <-- Added
-=======
-import com.checkmarx.intellij.util.CheckmarxValidator;  // <-- Added
->>>>>>> Stashed changes
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import net.miginfocom.swing.MigLayout;
-import org.jetbrains.annotations.NotNull;	// <-- Added
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import javax.swing.event.DocumentEvent;
 
 public class GlobalSettingsComponent implements SettingsComponent {
     private static final Logger LOGGER = Utils.getLogger(GlobalSettingsComponent.class);
@@ -111,11 +110,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             return true;
         }
 
-        if (!String.valueOf(apiKeyField.getPassword()).equals(SENSITIVE_SETTINGS_STATE.getApiKey())) {
-            return true;
-        }
-
-        return false;
+        return !String.valueOf(apiKeyField.getPassword()).equals(SENSITIVE_SETTINGS_STATE.getApiKey());
     }
 
     @Override
@@ -220,6 +215,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                             connectButton.setEnabled(false);
                             setFieldsEditable(false);
                             SETTINGS_STATE.setAuthenticated(true);
+                            apply(); // Persist the state immediately
                         });
                         LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
                     } catch (Exception e) {
@@ -227,12 +223,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     }
                 });
             } else {
-<<<<<<< Updated upstream
-                if (baseUrlField.getText().trim().isEmpty() || tenantField.getText().trim().isEmpty()) {
-                    setValidationResult(Bundle.message(Resource.MISSING_FIELD, "Base URL or Tenant"), JBColor.RED);
-                    connectButton.setEnabled(true);
-                    return;
-                }
+                // Proceed for OAuth authentication
                 proceedOAuthAuthentication();
             }
         });
@@ -290,6 +281,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             sessionConnected = true;
             SETTINGS_STATE.setAuthenticated(true);// also persist
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshToken);
+            apply();
             notifyAuthSuccess();
         });
     }
@@ -409,6 +401,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     private void setupFields() {
         apiKeyField.setName(Constants.FIELD_NAME_API_KEY);
+        oauthLabel.setForeground(JBColor.GRAY);
         baseUrlField.setName("baseUrlField");
         tenantField.setName("tenantField");
         oauthRadio.setName("oauthRadio");
@@ -492,8 +485,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             enabled = isBaseUrlValid && isBaseUrlNotEmpty && isTenantNotEmpty;
         } else if (apiKeyRadio.isSelected()) {
             // Check for API Key conditions
-            boolean isApiKeyNotEmpty = !String.valueOf(apiKeyField.getPassword()).trim().isEmpty();
-            enabled = isApiKeyNotEmpty;
+            enabled = !String.valueOf(apiKeyField.getPassword()).trim().isEmpty();
         }
         // Disable connect button if user is authenticated
         if (SETTINGS_STATE.isAuthenticated()) {
@@ -511,12 +503,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     "Cancel",  // Cancel button
                     Messages.getQuestionIcon()
             );
-
             if (userChoice == Messages.YES) {
                 sessionConnected = false;
                 baseUrlField.setText("");
                 tenantField.setText("");
-                apiKeyField.setText("");
+                // apiKeyField.setText(""); // Commented as we are not clearing the stored API key
                 oauthRadio.setSelected(true);
                 validateResult.setText(Bundle.message(Resource.LOGOUT_SUCCESS));
                 validateResult.setForeground(JBColor.GREEN);
@@ -529,6 +520,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 if (!SETTINGS_STATE.isUseApiKey()) { // if oauth login is enabled
                     SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
                 }
+                apply();
                 notifyLogout();
             }
             // else: Do nothing (user clicked Cancel)
@@ -576,7 +568,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     public boolean isValid() {
-        return SENSITIVE_SETTINGS_STATE.isValid(SETTINGS_STATE);
+        return SETTINGS_STATE.isAuthenticated() && SENSITIVE_SETTINGS_STATE.isValid(SETTINGS_STATE);
     }
 
     private void setFieldsEditable(boolean editable) {
@@ -591,7 +583,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     /**
      * Display notification on notification area on successful logout
      */
-    private void notifyLogout(){
+    private void notifyLogout() {
         ApplicationManager.getApplication().invokeLater(() ->
                 Utils.showNotification(Bundle.message(Resource.LOGOUT_SUCCESS_TITLE),
                         Bundle.message(Resource.LOGOUT_SUCCESS),
