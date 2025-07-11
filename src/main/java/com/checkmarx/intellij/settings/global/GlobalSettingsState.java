@@ -60,6 +60,9 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @NotNull
     private Set<Filterable> filters = stateService.getDefaultFilters();
 
+    private String baseUrl = "";
+    private String tenant = "";
+
     @Override
     public @Nullable GlobalSettingsState getState() {
         return this;

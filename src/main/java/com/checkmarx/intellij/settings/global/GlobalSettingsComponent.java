@@ -26,7 +26,6 @@ import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.messages.MessageBus;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 
@@ -115,10 +114,12 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     @Override
     public void apply() {
-        if (!isModified()) {
-            return; // Skip if nothing changed
-        }
+        // Always persist auth state
         GlobalSettingsState state = getStateFromFields();
+        state.setAuthenticated(SETTINGS_STATE.isAuthenticated());
+
+        state.setBaseUrl(baseUrlField.getText().trim());
+        state.setTenant(tenantField.getText().trim());
 
         // Only persist validation message if it's a success (green)
         if (validateResult.getForeground().equals(JBColor.GREEN)) {
@@ -129,9 +130,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
             state.setLastValidationSuccess(false);
         }
 
-        state.setAuthenticated(SETTINGS_STATE.isAuthenticated()); // Persist authentication state
         SETTINGS_STATE.apply(state);
-        SENSITIVE_SETTINGS_STATE.apply(SETTINGS_STATE, getSensitiveStateFromFields());
+        SENSITIVE_SETTINGS_STATE.apply(state, getSensitiveStateFromFields());
         messageBus.syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied();
     }
 
@@ -148,6 +148,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
         additionalParametersField.setText(SETTINGS_STATE.getAdditionalParameters());
         ascaCheckBox.setSelected(SETTINGS_STATE.isAsca());
         apiKeyField.setText(SENSITIVE_SETTINGS_STATE.getApiKey());
+        baseUrlField.setText(SETTINGS_STATE.getBaseUrl());
+        tenantField.setText(SETTINGS_STATE.getTenant());
 
         boolean useApiKey = SETTINGS_STATE.isUseApiKey();
         apiKeyRadio.setSelected(useApiKey);
@@ -401,7 +403,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     private void setupFields() {
         apiKeyField.setName(Constants.FIELD_NAME_API_KEY);
-        oauthLabel.setForeground(JBColor.GRAY);
         baseUrlField.setName("baseUrlField");
         tenantField.setName("tenantField");
         oauthRadio.setName("oauthRadio");
@@ -432,15 +433,39 @@ public class GlobalSettingsComponent implements SettingsComponent {
             }
         });
 
+        //  Listener to update state when switching to OAuth
+        oauthRadio.addItemListener(e -> {
+            boolean selected = oauthRadio.isSelected();
+            baseUrlField.setEnabled(selected);
+            tenantField.setEnabled(selected);
+            apiKeyField.setEnabled(!selected);
+            updateFieldLabels();
+            updateConnectButtonState(); // ensure correct button state
+        });
+
+        // ✅ 🔁 Listener to update state when switching to API Key
+        apiKeyRadio.addItemListener(e -> {
+            boolean selected = apiKeyRadio.isSelected();
+            baseUrlField.setEnabled(!selected);
+            tenantField.setEnabled(!selected);
+            apiKeyField.setEnabled(selected);
+            updateFieldLabels();
+            updateConnectButtonState(); // FIX: enable Connect if API key is populated
+        });
+
         logoutButton.setName("logoutButton");
         additionalParametersField.setName(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS);
         ascaCheckBox.setName(Constants.FIELD_NAME_ASCA);
+
+        // Set initial field states
         baseUrlField.setEnabled(true);
         tenantField.setEnabled(true);
         apiKeyField.setEnabled(false);
         logoutButton.setEnabled(false);
+
         baseUrlLabel.setText(String.format(Constants.FIELD_FORMAT, "Checkmarx One base URL:", Constants.REQUIRED_MARK));
         tenantLabel.setText(String.format(Constants.FIELD_FORMAT, "Tenant name:", Constants.REQUIRED_MARK));
+
         boolean useApiKey = SETTINGS_STATE.isUseApiKey();
         apiKeyRadio.setSelected(useApiKey);
         oauthRadio.setSelected(!useApiKey);
@@ -505,8 +530,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
             );
             if (userChoice == Messages.YES) {
                 sessionConnected = false;
-                baseUrlField.setText("");
-                tenantField.setText("");
+                // baseUrlField.setText("");    // Commented as we are not clearing the stored baseURL
+                // tenantField.setText(""); // Commented as we are not clearing the stored tenant name
                 // apiKeyField.setText(""); // Commented as we are not clearing the stored API key
                 oauthRadio.setSelected(true);
                 validateResult.setText(Bundle.message(Resource.LOGOUT_SUCCESS));
@@ -522,6 +547,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 }
                 apply();
                 notifyLogout();
+                updateConnectButtonState(); // Ensure the Connect button state is updated
             }
             // else: Do nothing (user clicked Cancel)
         });
