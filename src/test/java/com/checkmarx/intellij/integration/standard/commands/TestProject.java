@@ -18,7 +18,7 @@ public class TestProject extends BaseTest {
         List<com.checkmarx.ast.project.Project> projects
                 = Assertions.assertDoesNotThrow(com.checkmarx.intellij.commands.Project::getList);
         Assertions.assertTrue(projects.size() > 0);
-        Assertions.assertTrue(projects.size() <= 20000);
+        Assertions.assertTrue(projects.size() <= 200000);
         Assertions.assertEquals(1, projects.stream()
                                            .filter(p -> p.getName().equals(project.getName())).count());
     }
