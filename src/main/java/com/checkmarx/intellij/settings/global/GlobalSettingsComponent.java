@@ -134,7 +134,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
         state.setAuthenticated(SETTINGS_STATE.isAuthenticated()); // Persist authentication state
         SETTINGS_STATE.apply(state);
-        SENSITIVE_SETTINGS_STATE.apply(getSensitiveStateFromFields());
+        SENSITIVE_SETTINGS_STATE.apply(SETTINGS_STATE, getSensitiveStateFromFields());
         messageBus.syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied();
     }
 
@@ -194,6 +194,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private GlobalSettingsSensitiveState getSensitiveStateFromFields() {
         GlobalSettingsSensitiveState state = new GlobalSettingsSensitiveState();
         state.setApiKey(String.valueOf(apiKeyField.getPassword()));
+        state.setRefreshToken(SENSITIVE_SETTINGS_STATE.getRefreshToken());
         return state;
     }
 
@@ -522,9 +523,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 setFieldsEditable(true);
                 updateConnectButtonState();
                 SETTINGS_STATE.setAuthenticated(false); // Update authentication state
-                if (!SETTINGS_STATE.isUseApiKey()) {
+                if (!SETTINGS_STATE.isUseApiKey()) { // if oauth login is enabled
                     SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
                 }
+                notifyLogout();
             }
             // else: Do nothing (user clicked Cancel)
         });
@@ -571,7 +573,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     public boolean isValid() {
-        return SENSITIVE_SETTINGS_STATE.isValid();
+        return SENSITIVE_SETTINGS_STATE.isValid(SETTINGS_STATE);
     }
 
     private void setFieldsEditable(boolean editable) {
@@ -584,9 +586,21 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     /**
+     * Display notification on notification area on successful logout
+     */
+    private void notifyLogout(){
+        ApplicationManager.getApplication().invokeLater(() ->
+                Utils.showNotification(Bundle.message(Resource.LOGOUT_SUCCESS_TITLE),
+                        Bundle.message(Resource.LOGOUT_SUCCESS),
+                        NotificationType.INFORMATION,
+                        project)
+        );
+    }
+
+    /**
      * Display notification on notification area on successful authentication
      */
-    public void notifyAuthSuccess() {
+    private void notifyAuthSuccess() {
         ApplicationManager.getApplication().invokeLater(() ->
                 Utils.showNotification(Bundle.message(Resource.SUCCESS_AUTHENTICATION_TITLE),
                         Bundle.message(Resource.VALIDATE_SUCCESS),
@@ -598,7 +612,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     /**
      * Display notification on notification area on failure authentication
      */
-    public void notifyAuthError(String errorMsg) {
+    private void notifyAuthError(String errorMsg) {
         ApplicationManager.getApplication().invokeLater(() ->
                 Utils.showNotification(Bundle.message(Resource.ERROR_AUTHENTICATION_TITLE),
                         errorMsg,

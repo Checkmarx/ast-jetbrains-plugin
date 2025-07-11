@@ -282,8 +282,8 @@ public final class Utils {
      */
     public static String getSecret(GlobalSettingsState state, GlobalSettingsSensitiveState sensitiveState) {
         if (state != null && !state.isUseApiKey()) {
-            String refreshToken = sensitiveState.loadSecret(Constants.REFRESH_TOKEN_CREDENTIALS_KEY);
-            LOGGER.info("Refresh Token: " + refreshToken);
+            String refreshToken = sensitiveState.loadRefreshToken();
+            log.info("utils Refresh Token: " + refreshToken);
             return refreshToken;
         }
         if (sensitiveState != null) return sensitiveState.getApiKey();

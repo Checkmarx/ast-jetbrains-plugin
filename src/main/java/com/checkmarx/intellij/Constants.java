@@ -44,9 +44,6 @@ public final class Constants {
     public static final String INPUT_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
     public static final String OUTPUT_DATE_FORMAT = "dd/MM/yyyy HH:mm:ss";
 
-    public static final String API_KEY_CREDENTIALS_KEY = "APIKey";
-    public static final String REFRESH_TOKEN_CREDENTIALS_KEY= "RefreshToken";
-
     public static final String GLOBAL_SETTINGS_STATE_NAME = "Checkmarx One";
     public static final String GLOBAL_SETTINGS_STATE_FILE = "cx_global_settings.xml";
 

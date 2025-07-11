@@ -20,9 +20,9 @@ public class CxWrapperFactory {
             throws CxException, IOException {
         final CxConfig.CxConfigBuilder builder = CxConfig.builder();
 
-        builder.apiKey(Utils.getSecret(state, sensitiveState)); // getting secrets based on login state
+        //builder.apiKey(Utils.getSecret(state, sensitiveState)); // getting secrets based on login state
         builder.additionalParameters(state.getAdditionalParameters());
-
+        builder.clientSecret(Utils.getSecret(state, sensitiveState));
         return new CxWrapper(builder.build());
     }
 }
