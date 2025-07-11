@@ -443,7 +443,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             updateConnectButtonState(); // ensure correct button state
         });
 
-        // ✅ 🔁 Listener to update state when switching to API Key
+        // Listener to update state when switching to API Key
         apiKeyRadio.addItemListener(e -> {
             boolean selected = apiKeyRadio.isSelected();
             baseUrlField.setEnabled(!selected);
