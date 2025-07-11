@@ -1,23 +1,18 @@
 package com.checkmarx.intellij.settings.global;
 
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
-import com.checkmarx.intellij.service.AscaService;
-import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
-import com.checkmarx.intellij.util.CheckmarxValidator;
-import com.intellij.notification.NotificationType;
+import com.intellij.notification.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBCheckBox;
@@ -25,17 +20,24 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.messages.MessageBus;
+import com.intellij.openapi.ui.Messages; // <-- Added
+<<<<<<< Updated upstream
+import com.intellij.ide.BrowserUtil;      // <-- Added
+=======
+import com.checkmarx.intellij.util.CheckmarxValidator;  // <-- Added
+>>>>>>> Stashed changes
 import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.NotNull;	// <-- Added
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import javax.swing.event.DocumentEvent;
 
 public class GlobalSettingsComponent implements SettingsComponent {
     private static final Logger LOGGER = Utils.getLogger(GlobalSettingsComponent.class);
@@ -225,6 +227,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     }
                 });
             } else {
+<<<<<<< Updated upstream
                 if (baseUrlField.getText().trim().isEmpty() || tenantField.getText().trim().isEmpty()) {
                     setValidationResult(Bundle.message(Resource.MISSING_FIELD, "Base URL or Tenant"), JBColor.RED);
                     connectButton.setEnabled(true);
