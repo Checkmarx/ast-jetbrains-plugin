@@ -41,7 +41,7 @@ class ProjectTest {
         
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
-            when(mockWrapper.projectList("limit=200000")).thenReturn(expectedProjects);
+            when(mockWrapper.projectList("limit=50000")).thenReturn(expectedProjects);
 
             // Act
             List<Project> result = com.checkmarx.intellij.commands.Project.getList();
@@ -49,7 +49,7 @@ class ProjectTest {
             // Assert
             assertNotNull(result);
             assertEquals(expectedProjects, result);
-            verify(mockWrapper).projectList("limit=200000");
+            verify(mockWrapper).projectList("limit=50000");
         }
     }
 
