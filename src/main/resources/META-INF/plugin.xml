@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>com.checkmarx.checkmarx-ast-jetbrains-plugin</id>
-    <name>Checkmarx One</name>
+    <name>Checkmarx AST</name>
     <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
 
     <description><![CDATA[
@@ -36,6 +36,12 @@
                          enabledByDefault="true"
                          level="WARNING"
                          implementationClass="com.checkmarx.intellij.inspections.CxInspection"/>
+        <localInspection
+                displayName="ASCA"
+                groupName="ASCA"
+                groupPath="Checkmarx"
+                enabledByDefault="true"
+                implementationClass="com.checkmarx.intellij.inspections.AscaInspection"/>
     </extensions>
 
     <applicationListeners>
@@ -59,6 +65,8 @@
             <action id="Checkmarx.ResetSelection"
                     class="com.checkmarx.intellij.tool.window.actions.selection.ResetSelectionAction"/>
             <separator/>
+            <action id="Checkmarx.Critical"
+                    class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$CriticalFilter"/>
             <action id="Checkmarx.High"
                     class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$HighFilter"/>
             <action id="Checkmarx.Medium"
@@ -67,25 +75,10 @@
                     class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$LowFilter"/>
             <action id="Checkmarx.Info"
                     class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$InfoFilter"/>
-            <group id="Checkmarx.State"
+            <group id="Checkmarx.DynamicFilters"
+                   class="com.checkmarx.intellij.tool.window.actions.filter.DynamicFilterActionGroup"
                    icon="AllIcons.General.Filter"
-                   popup="true"
-                   class="com.checkmarx.intellij.tool.window.actions.group.by.GroupByActionGroup">
-                <action id="Checkmarx.Confirmed"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$ConfirmedFilter"/>
-                <action id="Checkmarx.UrgentFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$UrgentFilter"/>
-                <action id="Checkmarx.ToVerifyFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$ToVerifyFilter"/>
-                <action id="Checkmarx.NotExploitableFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$NotExploitableFilter"/>
-                <action id="Checkmarx.ProposedNotExploitableFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$ProposedNotExploitableFilter"/>
-                <action id="Checkmarx.IgnoredFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$IgnoredFilter"/>
-                <action id="Checkmarx.NotIgnoredFilter"
-                        class="com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction$NotIgnoredFilter"/>
-            </group>
+                   popup="true"/>
             <separator/>
             <group id="Checkmarx.GroupBy"
                    icon="AllIcons.Actions.GroupBy"

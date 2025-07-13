@@ -62,7 +62,7 @@ jobs:
         run: ./gradlew runPluginVerifier
       # Upload verifier report
       - name: Upload report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 #v4
         if: always()
         with:
           name: verifier-report
@@ -85,11 +85,11 @@ jobs:
         run: ./gradlew clean
       # Run tests
       - name: Tests
-        run: ./gradlew test -i --tests com.checkmarx.intellij.standard*
+        run: ./gradlew test -i --tests com.checkmarx.intellij.integration.standard*
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 #v4
         with:
           name: test-fails-report-integration
           path: |
@@ -102,6 +102,9 @@ jobs:
     if: inputs.rchannels
   release:
     runs-on: ubuntu-latest
+    outputs:
+      TAG_NAME: ${{ steps.set_outputs.outputs.TAG_NAME }}
+      CLI_VERSION: ${{ steps.set_outputs.outputs.CLI_VERSION }}
     steps:
       # Check out current repository
       - name: Fetch Sources
@@ -126,20 +129,34 @@ jobs:
            echo "GH_RELEASE_TAG_NAME=${{ env.RELEASE_VERSION }}-${{ inputs.rchannels }}" >> $GITHUB_ENV
           fi
           echo "Release name - ${{ env.GH_RELEASE_TAG_NAME }}"
+
       # Build plugin
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew buildPlugin --info
+
+      - name: Extract CLI version
+        run: |
+          chmod +x ./.github/scripts/extract_cli_version.sh
+          ./.github/scripts/extract_cli_version.sh cx-linux
+
       # Create the release or prerelease
       - name: Create Release or Prerelease
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 #v1
         with:
           tag_name: ${{ env.GH_RELEASE_TAG_NAME }}
           name: ${{ env.GH_RELEASE_TAG_NAME }}
           files: build/distributions/*
           generate_release_notes: true
           prerelease: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
+
+      - name: Echo CLI version and tag name to outputs
+        id: set_outputs
+        run: |
+          echo "::set-output name=TAG_NAME::${{ env.GH_RELEASE_TAG_NAME }}"
+          echo "::set-output name=CLI_VERSION::${{ env.CLI_VERSION }}"
+
       # Publish the plugin in marketplace
       - name: Publish Plugin
         env:
@@ -150,3 +167,16 @@ jobs:
           else
             ./gradlew publishPlugin -Prchannels=${{ inputs.rchannels }}
           fi
+
+  notify:
+    if: ${{ inputs.rchannels == '' || inputs.rchannels == null }}
+    needs: release
+    uses: Checkmarx/plugins-release-workflow/.github/workflows/release-notify.yml@main
+    with:
+      product_name: JetBrains Plugin
+      release_version: ${{ needs.release.outputs.TAG_NAME }}
+      cli_release_version: ${{ needs.release.outputs.CLI_VERSION }}
+      release_author: "Phoenix Team"
+      release_url: https://github.com/Checkmarx/ast-jetbrains-plugin/releases/tag/${{ needs.release.outputs.TAG_NAME }}
+      jira_product_name: JetBrains
+    secrets: inherit

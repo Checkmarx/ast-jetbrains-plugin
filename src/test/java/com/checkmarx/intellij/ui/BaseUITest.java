@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.ui;
 
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Environment;
+import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.*;
@@ -101,7 +101,7 @@ public abstract class BaseUITest {
         }
     }
 
-    private static void setField(String fieldName, String value) {
+    static void setField(String fieldName, String value) {
         log("Setting field " + fieldName);
         @Language("XPath") String fieldXpath = String.format(FIELD_NAME, fieldName);
         waitFor(() -> hasAnyComponent(fieldXpath) && find(fieldXpath).isShowing());
@@ -122,7 +122,7 @@ public abstract class BaseUITest {
         }
     }
 
-    private static void openCxToolWindow() {
+    static void openCxToolWindow() {
         log("Opening Cx Tool Window");
         waitFor(() -> hasAnyComponent("//div[@tooltiptext.key='NOTIFICATION_GROUP_NAME']"));
         if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
@@ -165,7 +165,7 @@ public abstract class BaseUITest {
         }
     }
 
-    private static void openSettings() {
+    static void openSettings() {
         waitFor(() -> {
             focusCxWindow();
             if (hasAnyComponent(SETTINGS_ACTION)) {
@@ -279,7 +279,7 @@ public abstract class BaseUITest {
         });
     }
 
-    private static void focusCxWindow() {
+    static void focusCxWindow() {
         boolean cxPluginOpened = find(BASE_LABEL).hasText("Checkmarx");
         System.out.println("Plugin opened: " + cxPluginOpened);
 

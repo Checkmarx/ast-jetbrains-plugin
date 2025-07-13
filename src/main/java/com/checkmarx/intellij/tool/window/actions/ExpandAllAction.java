@@ -3,6 +3,7 @@ package com.checkmarx.intellij.tool.window.actions;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import org.jetbrains.annotations.NotNull;
@@ -27,5 +28,10 @@ public class ExpandAllAction extends AnAction implements CxToolWindowAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Optional.ofNullable(getCxToolWindowPanel(e)).ifPresent(CxToolWindowPanel::expandAll);
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.EDT;
     }
 }

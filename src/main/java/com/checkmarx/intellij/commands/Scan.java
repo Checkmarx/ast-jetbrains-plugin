@@ -25,9 +25,7 @@ public class Scan {
      */
     @NotNull
     public static String getLatestScanId() throws
-            CxConfig.InvalidCLIConfigException,
             IOException,
-            URISyntaxException,
             CxException,
             InterruptedException {
         return CxWrapperFactory.build().scanList().get(0).getId();
@@ -46,7 +44,6 @@ public class Scan {
             IOException,
             URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
             CxException {
 
         return CxWrapperFactory.build()
@@ -66,16 +63,13 @@ public class Scan {
             IOException,
             URISyntaxException,
             InterruptedException,
-            CxConfig.InvalidCLIConfigException,
             CxException {
         return CxWrapperFactory.build().scanShow(UUID.fromString(scanId));
     }
 
     @NotNull
     public static com.checkmarx.ast.scan.Scan scanCreate(String sourcePath, String projectName, String branchName) throws
-            CxConfig.InvalidCLIConfigException,
             IOException,
-            URISyntaxException,
             CxException,
             InterruptedException {
 
@@ -91,9 +85,7 @@ public class Scan {
     }
 
     public static void scanCancel(String scanId) throws
-            CxConfig.InvalidCLIConfigException,
             IOException,
-            URISyntaxException,
             CxException,
             InterruptedException {
 

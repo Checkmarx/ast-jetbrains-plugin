@@ -2,10 +2,11 @@ package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.commands.TenantSetting;
-import com.checkmarx.intellij.commands.results.ResultGetState;
+import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.project.ProjectResultsService;
+import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
@@ -91,11 +92,6 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     // service for indexing current results
     private final ProjectResultsService projectResultsService;
 
-    /**
-     * Creates the tool window with the settings panel or the results panel
-     *
-     * @param project current project
-     */
     public CxToolWindowPanel(@NotNull Project project) {
         super(false, true);
 
@@ -111,15 +107,16 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
             }
         };
 
-        ApplicationManager.getApplication()
-                          .getMessageBus()
-                          .connect(this)
-                          .subscribe(SettingsListener.SETTINGS_APPLIED, r::run);
-        ApplicationManager.getApplication().getMessageBus().connect(this).subscribe(FilterBaseAction.FILTER_CHANGED,
-                                                                                    this::changeFilter);
+        // Establish message bus connection before subscribing
+        ApplicationManager.getApplication().getMessageBus()
+                .connect(this)
+                .subscribe(SettingsListener.SETTINGS_APPLIED, r::run);
+        ApplicationManager.getApplication().getMessageBus().connect(this)
+                .subscribe(FilterBaseAction.FILTER_CHANGED, this::changeFilter);
 
         r.run();
     }
+
 
     /**
      * Creates the main panel UI for results.
@@ -328,6 +325,9 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         currentState.setMessage(Bundle.message(Resource.GETTING_RESULTS));
         updateDisplay();
+
+        // reset custom filters
+        StateService.getInstance().refreshCustomStateFilters();
 
         // updates to variables wrapped in an invokeLater call so the Swing EDT performs the update
         // in a single threaded manner

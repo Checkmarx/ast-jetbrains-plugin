@@ -41,13 +41,38 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
     @Override
     protected @NotNull String getTitle() {
         if (getChildrenCount() == 0) {
-            return Bundle.message(Resource.BRANCH_SELECT_PREFIX) + ": " + (isEnabled() ? NONE_SELECTED : "...");
+            return Bundle.message(Resource.BRANCH_SELECT_PREFIX) + ": " + (isEnabled() ? setDefaultBranch() : "...");
         }
         String storedBranch = propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY);
         return Bundle.message(Resource.BRANCH_SELECT_PREFIX)
                + ": "
-               + (StringUtils.isBlank(storedBranch) ? NONE_SELECTED : storedBranch);
+               + (StringUtils.isBlank(storedBranch) ? setDefaultBranch() : storedBranch);
     }
+
+    private String setDefaultBranch() {
+        if(branches == null || branches.isEmpty())  {
+            return NONE_SELECTED;
+        }
+        String activeBranch = getActiveBranch();
+        if(activeBranch == null) {
+            return NONE_SELECTED;
+        }
+        if(branches.contains(activeBranch)) {
+            updateActiveBranchAndFetchScans(activeBranch);
+            return activeBranch;
+        }
+        updateLocalBranch();
+        return branches.get(0);
+
+    }
+
+    private void updateLocalBranch() {
+        propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY, Constants.USE_LOCAL_BRANCH);
+        scanSelectionGroup.clear();
+        setEnabled(true);
+        refreshPanel(project);
+    }
+
 
     @Override
     protected void clear() {
@@ -59,7 +84,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
     }
 
     @Override
-    void override(Scan scan) {
+    protected void override(Scan scan) {
         propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY, scan.getBranch());
         scanSelectionGroup.override(scan);
     }
@@ -70,14 +95,15 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
      * @param projectId selected project
      * @param inherit   whether to inherit the branch
      */
-    void refresh(String projectId, boolean inherit) {
+    public void refresh(String projectId, boolean inherit) {
         setEnabled(false);
         removeAll();
         this.projectId = projectId;
         CompletableFuture.supplyAsync(() -> {
             List<String> branches = null;
             try {
-                branches = com.checkmarx.intellij.commands.Project.getBranches(UUID.fromString(projectId));
+                boolean isSCMProject = Utils.getRootRepository(project) != null;
+                branches = com.checkmarx.intellij.commands.Project.getBranches(UUID.fromString(projectId), isSCMProject);
             } catch (Exception e) {
                 LOGGER.warn(e);
                 LOGGER.error(Resource.CANNOT_FIND_BRANCH + e.getMessage());
@@ -87,18 +113,24 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
             this.branches = branches;
             String storedBranch = propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY);
             String activeBranch = getActiveBranch();
+            branches.forEach(branch -> add(new Action(projectId, branch)));
             for (String branch : branches) {
-                add(new Action(projectId, branch));
-                if (inherit && storedBranch == null && Objects.equals(branch, activeBranch)) {
-                    propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY, branch);
-                    refreshScanGroup(projectId, branch, false);
-                } else if (branch.equals(storedBranch)) {
+                if(Objects.equals(branch, activeBranch)) {
+                    updateActiveBranchAndFetchScans(branch);
+                    break;
+                }
+                else if (branch.equals(storedBranch) && !branch.equals(Constants.USE_LOCAL_BRANCH)) {
                     refreshScanGroup(projectId, branch, false);
                 }
             }
             setEnabled(true);
             refreshPanel(project);
         }));
+    }
+
+    private void updateActiveBranchAndFetchScans(String branchName) {
+        propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY, branchName);
+        refreshScanGroup(projectId, branchName, false);
     }
     /**
      * Repopulate the scan selection according to the given branch
@@ -119,7 +151,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
      * @return active branch name or null
      */
     @Nullable
-    private String getActiveBranch() {
+    public String getActiveBranch() {
         return Utils.getRootRepository(project) == null ? null : Objects.requireNonNull(Utils.getRootRepository(project)).getCurrentBranchName();
     }
 
@@ -141,7 +173,12 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
             String branch = getTemplatePresentation().getText();
             propertiesComponent.setValue(Constants.SELECTED_BRANCH_PROPERTY, branch);
             scanSelectionGroup.clear();
-            refreshScanGroup(projectId, branch, true);
+            if(!branch.equals(Constants.USE_LOCAL_BRANCH)) {
+                refreshScanGroup(projectId, branch, true);
+            }
+            else {
+                refreshPanel(project);
+            }
         }
     }
 

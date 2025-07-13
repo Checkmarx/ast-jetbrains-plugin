@@ -14,13 +14,14 @@ import java.util.function.Supplier;
  */
 @Getter
 public enum Severity implements Filterable {
+    CRITICAL(CxIcons.CRITICAL),
     HIGH(CxIcons.HIGH),
     MEDIUM(CxIcons.MEDIUM),
     LOW(CxIcons.LOW),
     INFO(CxIcons.INFO),
     ;
 
-    public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(HIGH, MEDIUM);
+    public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(CRITICAL, HIGH, MEDIUM);
 
     private final Icon icon;
 
@@ -30,6 +31,11 @@ public enum Severity implements Filterable {
 
     public Supplier<String> tooltipSupplier() {
         return this::toString;
+    }
+
+    @Override
+    public String getFilterValue() {
+        return this.name();
     }
 
     public static Severity fromID(String id) {

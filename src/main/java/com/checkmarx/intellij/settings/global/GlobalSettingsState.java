@@ -1,11 +1,8 @@
 package com.checkmarx.intellij.settings.global;
 
-import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.tool.window.ResultState;
-import com.checkmarx.intellij.tool.window.Severity;
+import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
@@ -16,11 +13,10 @@ import com.intellij.util.xmlb.XmlSerializerUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -33,6 +29,7 @@ import java.util.Set;
 public class GlobalSettingsState implements PersistentStateComponent<GlobalSettingsState> {
 
     private static final Logger LOGGER = Utils.getLogger(GlobalSettingsState.class);
+    private StateService stateService = StateService.getInstance();
 
     public static GlobalSettingsState getInstance() {
         return ApplicationManager.getApplication().getService(GlobalSettingsState.class);
@@ -41,8 +38,17 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @NotNull
     private String additionalParameters = "";
 
+    private boolean asca = false;
+
+    public @NotNull Set<Filterable> getFilters() {
+        if (filters.isEmpty() || filters.stream().allMatch(Objects::isNull)) {
+            filters = stateService.getDefaultFilters();
+        }
+        return filters;
+    }
+
     @NotNull
-    private Set<Filterable> filters = new HashSet<>(getDefaultFilters());
+    private Set<Filterable> filters = stateService.getDefaultFilters();
 
     @Override
     public @Nullable GlobalSettingsState getState() {
@@ -56,15 +62,6 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
 
     public void apply(@NotNull GlobalSettingsState state) {
         loadState(state);
-    }
-
-    public static Set<Filterable> getDefaultFilters() {
-        Set<Filterable> set = new HashSet<>();
-
-        set.addAll(Severity.DEFAULT_SEVERITIES);
-        set.addAll(ResultState.DEFAULT_STATES);
-
-        return set;
     }
 }
 

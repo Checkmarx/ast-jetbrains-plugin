@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 /**
  * Service for indexing results of a scan in a given project
@@ -100,7 +101,8 @@ public class ProjectResultsService {
                         nodes = nodesForLine;
                     }
                 }
-            } catch (IllegalArgumentException ignored) {
+            } catch (IllegalArgumentException e) {
+                LOGGER.warn("Failed to relativize path: " + file, e);
             }
         }
         return nodes;

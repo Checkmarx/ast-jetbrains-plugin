@@ -2,7 +2,7 @@ package com.checkmarx.intellij.ui;
 
 import com.automation.remarks.junit5.Video;
 import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Environment;
+import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.Resource;
 import com.intellij.remoterobot.fixtures.ActionButtonFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
@@ -67,6 +66,19 @@ public class TestTriggerScan extends BaseUITest {
         findRunScanButtonAndClick();
         Assertions.assertTrue(hasAnyComponent(BRANCH_DOES_NOT_MATCH));
     }
+
+    @Test
+    @Video
+    public void testTriggerScanProjectWithDifferentOrganizationsDontMatch() {
+        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
+        testSelectionAction(findSelection("Project"), "Project", "DiffOrg/WebGoat");
+        testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
+        testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID_NOT_MATCH_PROJECT);
+        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled());
+        findRunScanButtonAndClick();
+        Assertions.assertTrue(hasAnyComponent(PROJECT_DOES_NOT_MATCH));
+    }
+
 
     @Test
     @Video

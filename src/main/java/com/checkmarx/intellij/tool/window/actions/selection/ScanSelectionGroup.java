@@ -55,7 +55,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
     }
 
     @Override
-    void override(com.checkmarx.ast.scan.Scan scan) {
+    protected void override(com.checkmarx.ast.scan.Scan scan) {
         propertiesComponent.setValue(Constants.SELECTED_SCAN_PROPERTY, formatScan(scan, false));
     }
 
@@ -73,7 +73,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
                 return StringUtils.isBlank(projectId) || StringUtils.isBlank(branch)
                        ? Collections.emptyList()
                        : Scan.getList(projectId, branch);
-            } catch (IOException | URISyntaxException | InterruptedException | CxConfig.InvalidCLIConfigException | CxException e) {
+            } catch (IOException | URISyntaxException | InterruptedException | CxException e) {
                 LOGGER.warn(e);
                 return Collections.emptyList();
             }
@@ -86,7 +86,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
                         add(new Action(scan.getId(), formatScan(scan, false)));
                     }
                 }
-                if (scans.size() != 0 && selectLatestScan) {
+                if (!scans.isEmpty() && selectLatestScan) {
                     select(scans.get(0).getId(), formatScan(scans.get(0), true));
                 }
                 setEnabled(true);

@@ -10,4 +10,5 @@ public interface Filterable {
     }
 
     Supplier<String> tooltipSupplier();
+    String getFilterValue();
 }

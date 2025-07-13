@@ -51,6 +51,7 @@ public final class Constants {
 
     public static final String FIELD_NAME_API_KEY = "apiKey";
     public static final String FIELD_NAME_ADDITIONAL_PARAMETERS = "additionalParameters";
+    public static final String FIELD_NAME_ASCA = "ascaCheckBox";
 
     public static final String SELECTED_PROJECT_PROPERTY = "Checkmarx.SelectedProject";
     public static final String SELECTED_BRANCH_PROPERTY = "Checkmarx.SelectedBranch";
@@ -78,4 +79,15 @@ public final class Constants {
     public static final String SCAN_STATUS_RUNNING = "running";
     public static final String SCAN_STATUS_COMPLETED = "completed";
     public static final String JET_BRAINS_AGENT_NAME = "Jetbrains";
+    public static final String ASCA_CRITICAL_SEVERITY = "Critical";
+    public static final String ASCA_HIGH_SEVERITY = "High";
+    public static final String ASCA_MEDIUM_SEVERITY = "Medium";
+    public static final String ASCA_LOW_SEVERITY = "Low";
+
+    public static final String IGNORE_LABEL = "IGNORED";
+    public static final String NOT_IGNORE_LABEL = "NOT_IGNORED";
+    public static final String NOT_EXPLOITABLE_LABEL = "NOT_EXPLOITABLE";
+    public static final String PROPOSED_NOT_EXPLOITABLE_LABEL = "PROPOSED_NOT_EXPLOITABLE";
+
+    public static final String USE_LOCAL_BRANCH = "scan my local branch";
 }

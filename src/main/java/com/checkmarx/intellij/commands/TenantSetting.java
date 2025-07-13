@@ -20,9 +20,7 @@ public class TenantSetting {
      */
     @NotNull
     public static boolean isScanAllowed() throws
-            CxConfig.InvalidCLIConfigException,
             IOException,
-            URISyntaxException,
             CxException,
             InterruptedException {
         return CxWrapperFactory.build().ideScansEnabled();

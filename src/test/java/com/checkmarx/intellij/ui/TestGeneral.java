@@ -2,11 +2,10 @@ package com.checkmarx.intellij.ui;
 
 import com.automation.remarks.junit5.Video;
 import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Environment;
+import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.tool.window.GroupBy;
-import com.checkmarx.intellij.tool.window.ResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.utils.Keyboard;
@@ -16,15 +15,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.awt.event.KeyEvent;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 public class TestGeneral extends BaseUITest {
+    List<String> defaultState = List.of("CONFIRMED", "TO_VERIFY", "URGENT", "NOT_EXPLOITABLE", "PROPOSED_NOT_EXPLOITABLE", "IGNORED", "NOT_IGNORED");
 
     @BeforeEach
     public void checkResults() {
@@ -33,8 +30,7 @@ public class TestGeneral extends BaseUITest {
 
     @Test
     @Video
-    public void testEndToEnd() {
-        checkResultsPanel();
+    public void testEndToEnd() {checkResultsPanel();
     }
 
     @Test
@@ -240,7 +236,7 @@ public class TestGeneral extends BaseUITest {
         waitFor(() -> {
             click(FILTER_BY_ACTION);
             List<JListFixture> myList = findAll(JListFixture.class, MY_LIST);
-            return myList.size() == 1 && myList.get(0).findAllText().size() == ResultState.values().length;
+            return myList.size() == 1 && myList.get(0).findAllText().size() >= defaultState.size();
         });
     }
 

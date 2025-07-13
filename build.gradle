@@ -1,14 +1,15 @@
 plugins {
     id 'io.freefair.lombok' version '8.6'
-    id 'org.jetbrains.intellij' version '1.17.3'
+    id 'org.jetbrains.intellij' version '1.17.4'
     id 'java'
+    id 'jacoco'
 }
 
 group 'com.checkmarx'
 version System.getenv('RELEASE_VERSION') ?: "dev"
 
 def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION')
-def remoteRobotVersion = '0.11.16'
+def remoteRobotVersion = '0.11.23'
 
 repositories {
     mavenCentral()
@@ -20,6 +21,10 @@ repositories {
     }
 }
 
+jacoco {
+    toolVersion = "0.8.12"
+}
+
 dependencies {
     testImplementation 'com.intellij.remoterobot:remote-robot:' + remoteRobotVersion
     testImplementation('com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion) {
@@ -27,9 +32,10 @@ dependencies {
     }
     testImplementation 'com.squareup.okio:okio:3.8.0'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
-    testImplementation 'com.squareup.okhttp3:okhttp:4.9.2'
+    testImplementation 'com.squareup.okhttp3:okhttp:4.12.0'
     testImplementation 'junit:junit:4.11-redhat-1'
     testImplementation 'junit:junit:4.13.1'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.15.2'
 
     // Video Recording
     testImplementation('com.automation-remarks:video-recorder-junit5:2.0') {
@@ -43,7 +49,7 @@ dependencies {
     implementation 'com.miglayout:miglayout-swing:11.3'
 
     if (javaWrapperVersion == "" || javaWrapperVersion == null) {
-        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.0.14'){
+        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.2.1'){
             exclude group: 'junit', module: 'junit'
         }
     } else {
@@ -53,6 +59,9 @@ dependencies {
     }
     implementation(platform("com.fasterxml.jackson:jackson-bom:2.16.1"))
     // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
+
+    testImplementation 'org.mockito:mockito-core:5.0.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.0.0' // maybe remove
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
@@ -62,7 +71,7 @@ intellij {
 }
 
 runPluginVerifier {
-    ideVersions = ['IC-2021.1.1', 'IC-2021.2', 'IC-2021.3', 'IC-2022.1', 'IC-2022.2']
+    ideVersions = ['IC-2023.1', 'IC-2023.2', 'IC-2023.3', 'IC-2024.1']
 }
 
 downloadRobotServerPlugin {
@@ -73,7 +82,15 @@ test {
     useJUnitPlatform()
     systemProperty 'uiWaitDuration', project.findProperty('uiWaitDuration') ?: 300
     testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        showExceptions true
+        showCauses true
+        showStackTraces true
         showStandardStreams = true
+    }
+    jacoco {
+        includeNoLocationClasses = true
+        excludes = ["jdk.internal.*"]
     }
 }
 
@@ -82,13 +99,35 @@ runIdeForUiTests {
     systemProperty 'jb.consents.confirmation.enabled', 'false'
 }
 
+def jacocoTask = project.hasProperty('jacocoTask') ? project.jacocoTask : "unit"
+
+jacocoTestReport {
+    dependsOn test
+    classDirectories.setFrom(instrumentCode)
+
+    if (jacocoTask == "integration") {
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, include: 'com/checkmarx/intellij/commands/**',
+                        exclude: 'com/checkmarx/intellij/commands/results/obj')
+            }))
+        }
+    }
+
+    reports {
+        csv.required = true
+        html.required = true
+    }
+}
+
+
+
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
     if (project.hasProperty("rchannels")) {
         channels = [rchannels.toString()]
     }
 }
-
 
 java {
     toolchain {
@@ -97,6 +136,6 @@ java {
 }
 
 patchPluginXml {
-    sinceBuild = '211.6693.111'
+    sinceBuild = '222'
 }
 

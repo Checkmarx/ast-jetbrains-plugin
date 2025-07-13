@@ -1,15 +1,18 @@
 package com.checkmarx.intellij.tool.window.actions.filter;
 
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
-import com.checkmarx.intellij.tool.window.ResultState;
+import com.checkmarx.intellij.tool.window.CustomResultState;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.CxToolWindowAction;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.util.messages.MessageBus;
 import com.intellij.util.messages.Topic;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Set;
 
 /**
  * Base class for severity filters.
@@ -20,12 +23,20 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
 
     public static final Topic<FilterChanged> FILTER_CHANGED = Topic.create("Filter Changed", FilterChanged.class);
 
-    private final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
-    private final Filterable filterable = getFilterable();
+    protected final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
+    protected final Filterable filterable;
 
     public FilterBaseAction() {
         super();
+        filterable = getFilterable();
         getTemplatePresentation().setText(filterable.tooltipSupplier());
+        getTemplatePresentation().setIcon(filterable.getIcon());
+    }
+
+    public FilterBaseAction(CustomResultState filterable) {
+        super();
+        this.filterable = filterable;
+        getTemplatePresentation().setText(filterable.getName());
         getTemplatePresentation().setIcon(filterable.getIcon());
     }
 
@@ -34,8 +45,9 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
      * Checks global settings for selection
      */
     @Override
-    public final boolean isSelected(@NotNull AnActionEvent e) {
-        return GlobalSettingsState.getInstance().getFilters().contains(filterable);
+    public boolean isSelected(@NotNull AnActionEvent e) {
+        Set<Filterable> filters = GlobalSettingsState.getInstance().getFilters();
+        return filters.contains(filterable);
     }
 
     /**
@@ -44,7 +56,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
      * All subscribing tool windows will redraw the results tree with the new filters.
      */
     @Override
-    public final void setSelected(@NotNull AnActionEvent e, boolean state) {
+    public void setSelected(@NotNull AnActionEvent e, boolean state) {
         if (state) {
             GlobalSettingsState.getInstance().getFilters().add(filterable);
         } else {
@@ -57,6 +69,18 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
      * @return severity for the extending filter
      */
     protected abstract Filterable getFilterable();
+
+    public static class CriticalFilter extends FilterBaseAction {
+
+        public CriticalFilter() {
+            super();
+        }
+
+        @Override
+        protected Filterable getFilterable() {
+            return Severity.CRITICAL;
+        }
+    }
 
     public static class HighFilter extends FilterBaseAction {
 
@@ -106,90 +130,6 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
         }
     }
 
-    public static class ConfirmedFilter extends FilterBaseAction {
-
-        public ConfirmedFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.CONFIRMED;
-        }
-    }
-
-    public static class UrgentFilter extends FilterBaseAction {
-
-        public UrgentFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.URGENT;
-        }
-    }
-
-    public static class ToVerifyFilter extends FilterBaseAction {
-
-        public ToVerifyFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.TO_VERIFY;
-        }
-    }
-
-    public static class NotExploitableFilter extends FilterBaseAction {
-
-        public NotExploitableFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.NOT_EXPLOITABLE;
-        }
-    }
-
-    public static class ProposedNotExploitableFilter extends FilterBaseAction {
-
-        public ProposedNotExploitableFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.PROPOSED_NOT_EXPLOITABLE;
-        }
-    }
-
-    public static class IgnoredFilter extends FilterBaseAction {
-
-        public IgnoredFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.IGNORED;
-        }
-    }
-
-    public static class NotIgnoredFilter extends FilterBaseAction {
-
-        public NotIgnoredFilter() {
-            super();
-        }
-
-        @Override
-        protected Filterable getFilterable() {
-            return ResultState.NOT_IGNORED;
-        }
-    }
-
     /**
      * Interface for topic {@link FilterBaseAction#FILTER_CHANGED}.
      */
@@ -198,5 +138,10 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
          * Method called when a filter is clicked.
          */
         void filterChanged();
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.EDT;
     }
 }

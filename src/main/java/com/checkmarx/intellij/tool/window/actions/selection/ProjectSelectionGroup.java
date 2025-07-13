@@ -53,7 +53,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
     }
 
     @Override
-    void override(Scan scan) {
+    protected void override(Scan scan) {
         select(byId.get(scan.getProjectId()));
         branchSelectionGroup.override(scan);
     }
