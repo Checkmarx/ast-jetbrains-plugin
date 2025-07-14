@@ -47,7 +47,7 @@ public class Scan {
             CxException {
 
         return CxWrapperFactory.build()
-                               .scanList(String.format("project-id=%s,branch=%s,limit=50000,statuses=Completed",
+                               .scanList(String.format("project-id=%s,branch=%s,limit=10000,statuses=Completed",
                                                        projectId,
                                                        branch));
     }

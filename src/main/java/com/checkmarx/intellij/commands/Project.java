@@ -23,7 +23,7 @@ public class Project {
             InterruptedException,
             CxException {
 
-        return CxWrapperFactory.build().projectList("limit=50000");
+        return CxWrapperFactory.build().projectList("limit=10000");
     }
 
     public static List<String> getBranches(@NonNull UUID projectId, boolean isSCMProject)
