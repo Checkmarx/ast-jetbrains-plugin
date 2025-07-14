@@ -177,9 +177,16 @@ public class GlobalSettingsComponent implements SettingsComponent {
         connectButton.setEnabled(!isAuthenticated);
         logoutButton.setEnabled(isAuthenticated);
         setFieldsEditable(!isAuthenticated);
-
-        // Ensure the connect button state is updated
-        updateConnectButtonState();
+        updateConnectButtonState(); // Ensured the connect button state is updated
+        SwingUtilities.invokeLater(() -> {
+            if (SETTINGS_STATE.isAuthenticated()) {
+                logoutButton.requestFocusInWindow();
+            } else if (SETTINGS_STATE.isUseApiKey()) {
+                apiKeyField.requestFocusInWindow();
+            } else {
+                baseUrlField.requestFocusInWindow();
+            }
+        });
     }
 
     private GlobalSettingsState getStateFromFields() {
@@ -201,6 +208,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         connectButton.addActionListener(event -> {
             connectButton.setEnabled(false);
             validateResult.setVisible(true);
+            validateResult.requestFocusInWindow();
             setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
 
             if (apiKeyRadio.isSelected()) {
@@ -218,6 +226,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                             setFieldsEditable(false);
                             SETTINGS_STATE.setAuthenticated(true);
                             apply(); // Persist the state immediately
+                            logoutButton.requestFocusInWindow();
                         });
                         LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
                     } catch (Exception e) {
@@ -285,6 +294,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshToken);
             apply();
             notifyAuthSuccess();
+            logoutButton.requestFocusInWindow();     // Set focus to logout button
         });
     }
 
@@ -378,12 +388,20 @@ public class GlobalSettingsComponent implements SettingsComponent {
         mainPanel.add(apiKeyField, "growx, wrap");
 
         oauthRadio.addItemListener(e -> {
-            boolean selected = oauthRadio.isSelected();
-            baseUrlField.setEnabled(selected);
-            tenantField.setEnabled(selected);
-            apiKeyField.setEnabled(!selected);
-            updateFieldLabels();
-            updateConnectButtonState();
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                setFieldsEditable(true);
+                updateFieldLabels();
+                updateConnectButtonState();
+                SwingUtilities.invokeLater(() -> baseUrlField.requestFocusInWindow());
+            }
+        });
+        apiKeyRadio.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                setFieldsEditable(true);
+                updateFieldLabels();
+                updateConnectButtonState();
+                SwingUtilities.invokeLater(() -> apiKeyField.requestFocusInWindow());
+            }
         });
 
         mainPanel.add(connectButton, "gaptop 10");
@@ -433,24 +451,24 @@ public class GlobalSettingsComponent implements SettingsComponent {
             }
         });
 
-        //  Listener to update state when switching to OAuth
+        // Listener to update state when switching to OAuth
         oauthRadio.addItemListener(e -> {
-            boolean selected = oauthRadio.isSelected();
-            baseUrlField.setEnabled(selected);
-            tenantField.setEnabled(selected);
-            apiKeyField.setEnabled(!selected);
-            updateFieldLabels();
-            updateConnectButtonState(); // ensure correct button state
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                setFieldsEditable(true);
+                updateFieldLabels();
+                updateConnectButtonState();
+                SwingUtilities.invokeLater(() -> baseUrlField.requestFocusInWindow());
+            }
         });
 
-        // Listener to update state when switching to API Key
+// Listener to update state when switching to API Key
         apiKeyRadio.addItemListener(e -> {
-            boolean selected = apiKeyRadio.isSelected();
-            baseUrlField.setEnabled(!selected);
-            tenantField.setEnabled(!selected);
-            apiKeyField.setEnabled(selected);
-            updateFieldLabels();
-            updateConnectButtonState(); // FIX: enable Connect if API key is populated
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                setFieldsEditable(true);
+                updateFieldLabels();
+                updateConnectButtonState();
+                SwingUtilities.invokeLater(() -> apiKeyField.requestFocusInWindow());
+            }
         });
 
         logoutButton.setName("logoutButton");
@@ -462,9 +480,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
         tenantField.setEnabled(true);
         apiKeyField.setEnabled(false);
         logoutButton.setEnabled(false);
-
-        baseUrlLabel.setText(String.format(Constants.FIELD_FORMAT, "Checkmarx One base URL:", Constants.REQUIRED_MARK));
-        tenantLabel.setText(String.format(Constants.FIELD_FORMAT, "Tenant name:", Constants.REQUIRED_MARK));
+        baseUrlLabel.setText(String.format(Constants.FIELD_FORMAT, "Checkmarx One Base URL", Constants.REQUIRED_MARK));
+        tenantLabel.setText(String.format(Constants.FIELD_FORMAT, "Tenant Name", Constants.REQUIRED_MARK));
 
         boolean useApiKey = SETTINGS_STATE.isUseApiKey();
         apiKeyRadio.setSelected(useApiKey);
@@ -530,9 +547,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
             );
             if (userChoice == Messages.YES) {
                 sessionConnected = false;
-               // baseUrlField.setText("");    // Commented as we are not clearing the stored baseURL
-                //tenantField.setText(""); // Commented as we are not clearing the stored tenant name
-                // apiKeyField.setText(""); // Commented as we are not clearing the stored API key
+                // baseUrlField.setText("");    // Commented as we are not clearing the stored baseURL
+                // tenantField.setText("");     // Commented as we are not clearing the stored tenant name
+                // apiKeyField.setText("");     // Commented as we are not clearing the stored API key
                 oauthRadio.setSelected(true);
                 validateResult.setText(Bundle.message(Resource.LOGOUT_SUCCESS));
                 validateResult.setForeground(JBColor.GREEN);
@@ -577,12 +594,12 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     private void updateFieldLabels() {
         if (oauthRadio.isSelected()) {
-            baseUrlLabel.setText(String.format(Constants.FIELD_FORMAT, "Checkmarx One base URL:", Constants.REQUIRED_MARK));
-            tenantLabel.setText(String.format(Constants.FIELD_FORMAT, "Tenant name:", Constants.REQUIRED_MARK));
+            baseUrlLabel.setText(String.format(Constants.FIELD_FORMAT, "Checkmarx One Base URL", Constants.REQUIRED_MARK));
+            tenantLabel.setText(String.format(Constants.FIELD_FORMAT, "Tenant Name", Constants.REQUIRED_MARK));
             apiKeyRadio.setText("API Key");
         } else {
-            baseUrlLabel.setText("Checkmarx One base URL:");
-            tenantLabel.setText("Tenant name:");
+            baseUrlLabel.setText("Checkmarx One Base URL");
+            tenantLabel.setText("Tenant Name");
             apiKeyRadio.setText(String.format(Constants.FIELD_FORMAT, "API Key", Constants.REQUIRED_MARK));
         }
     }
@@ -598,12 +615,34 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     private void setFieldsEditable(boolean editable) {
-        baseUrlField.setEnabled(editable && oauthRadio.isSelected());
-        tenantField.setEnabled(editable && oauthRadio.isSelected());
-        apiKeyField.setEnabled(editable && apiKeyRadio.isSelected());
+        boolean oauthSelected = oauthRadio.isSelected();
+        boolean apiKeySelected = apiKeyRadio.isSelected();
 
+        // Enable/disable input fields
+        baseUrlField.setEnabled(editable && oauthSelected);
+        tenantField.setEnabled(editable && oauthSelected);
+        apiKeyField.setEnabled(editable && apiKeySelected);
+
+        // Always keep radio buttons enabled
         oauthRadio.setEnabled(editable);
         apiKeyRadio.setEnabled(editable);
+
+        // System default colors
+        Color enabledColor = UIManager.getColor("Label.foreground");
+        Color disabledColor = UIManager.getColor("Label.disabledForeground");
+
+        // Simulate label fading manually
+        oauthRadio.setForeground((editable && oauthRadio.isSelected()) ? enabledColor : disabledColor);
+        oauthLabel.setForeground((editable && oauthSelected) ? enabledColor : disabledColor);
+        baseUrlLabel.setForeground((editable && oauthSelected) ? enabledColor : disabledColor);
+        tenantLabel.setForeground((editable && oauthSelected) ? enabledColor : disabledColor);
+        apiKeyRadio.setForeground((editable && apiKeySelected) ? enabledColor : disabledColor);
+
+        // Repaint to ensure update
+        baseUrlLabel.repaint();
+        tenantLabel.repaint();
+        oauthLabel.repaint();
+        apiKeyRadio.repaint();
     }
 
     /**

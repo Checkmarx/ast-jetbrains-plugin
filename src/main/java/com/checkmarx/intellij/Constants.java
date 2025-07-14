@@ -38,7 +38,7 @@ public final class Constants {
     public static final String NODE_FORMAT = "%s | %s";
     public static final String FILE_FORMAT = "%s:%d (%s)";
     public static final String SUMMARY_FORMAT = "%s | %s | %s | %s";
-    public static final String FIELD_FORMAT = "<html>%s%s</html>";
+    public static final String FIELD_FORMAT = "<html>%s%s:</html>";
     public static final String REQUIRED_MARK = "<span style=\"color:#ff0000\">*</span>";
     public static final String VALUE_FORMAT = "<html><b>%s</b>: %s</html>";
     public static final String INPUT_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
