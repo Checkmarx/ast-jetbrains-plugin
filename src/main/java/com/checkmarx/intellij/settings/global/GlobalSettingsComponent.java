@@ -530,8 +530,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
             );
             if (userChoice == Messages.YES) {
                 sessionConnected = false;
-                baseUrlField.setText("");    // Commented as we are not clearing the stored baseURL
-                tenantField.setText(""); // Commented as we are not clearing the stored tenant name
+               // baseUrlField.setText("");    // Commented as we are not clearing the stored baseURL
+                //tenantField.setText(""); // Commented as we are not clearing the stored tenant name
                 // apiKeyField.setText(""); // Commented as we are not clearing the stored API key
                 oauthRadio.setSelected(true);
                 validateResult.setText(Bundle.message(Resource.LOGOUT_SUCCESS));
