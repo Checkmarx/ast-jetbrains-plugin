@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/banner.png">
+<img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/PluginBanner.jpg">
 <br />
 <div align="center">
 
@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://github.com/Checkmarx/ast-jetbrains-plugin">
-    <img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/logo.png" alt="Logo" width="80" height="80" />
+    <img src="https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/cx_x_icon.png" alt="Logo" width="80" height="80" />
   </a>
 
 <h3 align="center">CHECKMARX-ONE-JETBRAINS-PLUGIN</h3>
@@ -39,47 +39,71 @@
 <details>
   <summary>Table of Contents</summary>
   <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#setting-up">Setting Up</a></li>
-      </ul>
-    </li>
+    <li><a href="#Overview">Overview</a></li>
+    <li><a href="#key-features">Key Features</a></li>
+    <li><a href="#prerequisites">Prerequisites</a></li>
+    <li><a href="#initial Setup">Initial Setup</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
+    <li><a href="#feedback">Feedback</a></li>
   </ol>
 </details>
 
 
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
+<!-- Overview -->
+## Overview
 
-You can view the vulnerabilities that were identified in your source code and navigate directly to the vulnerable code in the editor. 
-This plugin provides easy integration with JetBrains and is compatible with all JetBrains IDE products 
-(e.g. IntelliJ IDEA, PyCharm, WebStorm etc.).
+Checkmarx continues to spearhead the shift-left approach to AppSec by bringing our powerful AppSec tools into your IDE. This empowers developers to identify vulnerabilities and remediate them **as they code**. The Checkmarx One (AST) JetBrains plugin integrates seamlessly into your IDE, enabling you to access the full functionality of your Checkmarx One account (SAST, SCA, IaC Security) directly from your IDE.
 
-<!-- GETTING STARTED -->
-## Getting Started
- 
+You can run new scans, or import results from scans run in your Checkmarx One account. Checkmarx provides detailed info about each vulnerability, including remediation recommendations and examples of effective remediation. The plugin enables you to navigate from a vulnerability to the relevant source code, so that you can easily zero-in on the problematic code and start working on remediation.
 
-### Prerequisites
+This plugin provides easy integration with JetBrains and is compatible with all JetBrains IDE products (e.g., IntelliJ IDEA, PyCharm, WebStorm etc.).
 
-- You have a Checkmarx One account, and you have an [API Key](https://checkmarx.com/resource/documents/en/34965-68618-generating-an-api-key.html).
+<!-- Key Features -->
+## Key Features
 
-### Setting Up
+-   Access the full power of Checkmarx One (SAST, SCA, and IaC Security) directly from your IDE.
+
+-   Run a new scan from your IDE even before committing the code, or import scan results from your Checkmarx One account.
+-   Rescan an existing branch from your IDE or create a new branch in Checkmarx One for the local branch in your workspace.
+
+-   Provides actionable results including remediation recommendations. Navigate from results panel directly to the highlighted vulnerable code in the editor and get right down to work on the remediation.
+
+-   Group and filter results
+
+-   Triage results (by adjusting the severity and state and adding comments) directly from the JetBrains console (currently supported for SAST and IaC Security)
+
+-   Apply Auto Remediation to automatically remediate open source vulnerabilities, by updating to a non-vulnerable package version.
+
+-   Links to Codebashing lessons
+
+-   AI Secure Coding Assistant (ASCA) - A lightweight scan engine that runs in the background while you work, enabling developers to identify and remediate secure coding best practice violations  **as they code**.
+
+<!-- Prerequisites -->
+## Prerequisites
+
+-   You are running IntelliJ version 2022.2+ or another JetBrains IDE that is based on a supported version of IntelliJ.
+
+-   You have an **API key** for your Checkmarx One account. To create an
+    API key, see [Generating an API Key](https://checkmarx.com/resource/documents/en/34965-68618-generating-an-api-key.html).
+> The following are the minimum required  [roles](https://docs.checkmarx.com/en/34965-68603-managing-roles.html "Managing Roles")  for running an end-to-end flow of scanning a project and viewing results via the CLI or plugins:
+> -   CxOne composite role  `ast-scanner`
+> -   CxOne role  `view-policy-management`
+> -   IAM role  `default-roles`
+
+<!-- Initial Setup -->
+## Initial Setup
 
 
-All the procedures to set the JetBrains plugin up can be found [here](https://checkmarx.com/resource/documents/en/34965-68734-installing-the-checkmarx-one-jetbrains-plugin.html).
+-   Verify that all prerequisites are in place.
 
+-   Install the **Checkmarx One** plugin and configure the settings as
+    described [here](https://checkmarx.com/resource/documents/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-plugin.html).
 
-
+<!-- Usage -->
 ## Usage
 
 To see how you can use our tool, please refer to the [Documentation](https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html)
@@ -108,6 +132,10 @@ Find more integrations from our team [here](https://github.com/Checkmarx/ci-cd-i
 
 
 © 2022 Checkmarx Ltd. All Rights Reserved.
+
+<!-- FEEDBACK -->
+## Feedback
+We’d love to hear your feedback! If you come across a bug or have a feature request, please let us know by submitting an issue in [GitHub Issues](https://github.com/Checkmarx/ast-jetbrains-plugin/issues).
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
