@@ -391,6 +391,6 @@ public class AuthService {
         GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
         sensitiveState.setRefreshToken(refreshToken);
         sensitiveState.saveRefreshToken(refreshToken);
-        log.info("OAuth: Token saved successfully. {}", refreshToken);
+        log.info("OAuth: Token saved successfully.");
     }
 }
