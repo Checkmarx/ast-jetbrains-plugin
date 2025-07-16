@@ -154,6 +154,7 @@ public class GlobalSettingsSensitiveState {
      */
     public void deleteRefreshToken() {
         deleteSecret(REFRESH_TOKEN_CREDENTIALS_KEY);
+        refreshToken = null;
     }
 
     /**

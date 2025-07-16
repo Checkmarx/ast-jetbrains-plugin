@@ -130,7 +130,7 @@ public class AuthService {
             setAuthResult(authResult, Bundle.message(Resource.ERROR_AUTHENTICATION_TIME_OUT));
         } catch (CxException cxException) {
             log.error("OAuth: Custom exception thrown. Root Cause:{} ", cxException.getMessage());
-            setAuthResult(authResult, cxException.getMessage().split(":")[1]);
+            setAuthResult(authResult, cxException.getMessage());
         } catch (Exception exception) {
             log.error("OAuth: Exception occurred during authentication process. Root Cause:{} ", exception.getMessage());
             setAuthResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
