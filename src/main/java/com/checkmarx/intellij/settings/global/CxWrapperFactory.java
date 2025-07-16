@@ -3,10 +3,8 @@ package com.checkmarx.intellij.settings.global;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 
 /**
  * Builds wrapper objects according to the current configuration.
@@ -20,9 +18,13 @@ public class CxWrapperFactory {
     public static CxWrapper build(GlobalSettingsState state, GlobalSettingsSensitiveState sensitiveState)
             throws CxException, IOException {
         final CxConfig.CxConfigBuilder builder = CxConfig.builder();
-        builder.apiKey(sensitiveState.getApiKey());
-        builder.additionalParameters(state.getAdditionalParameters());
 
+        if (state.isUseApiKey()){
+            builder.apiKey(sensitiveState.getApiKey());
+        }else {
+            builder.clientSecret(sensitiveState.loadRefreshToken());
+        }
+        builder.additionalParameters(state.getAdditionalParameters());
         return new CxWrapper(builder.build());
     }
 }

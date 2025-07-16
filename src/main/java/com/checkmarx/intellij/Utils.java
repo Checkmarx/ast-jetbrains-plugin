@@ -1,29 +1,38 @@
 package com.checkmarx.intellij;
 
+import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationAction;
-import com.intellij.notification.NotificationListener;
-import com.intellij.notification.NotificationType;
+import com.intellij.notification.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
  * Class for static, common util methods
  */
+@Slf4j
 public final class Utils {
 
     private static final Logger LOGGER = getLogger(Utils.class);
@@ -133,5 +142,133 @@ public final class Utils {
             }
         }
         return repository;
+    }
+
+    /**
+     * Generating Code verifier for PKCE
+     * Used 32 random bytes (per spec recommendation).
+     *
+     * @return Generated ~43 characters code verifier string
+     */
+    public static String generateCodeVerifier() {
+        try {
+            byte[] codeVerifier = new byte[32];
+            new SecureRandom().nextBytes(codeVerifier);
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
+        } catch (Exception exception) {
+            LOGGER.error("OAuth: Exception occur while generating code verifier. Root Cause:{}"
+                    , exception.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Generating code challenge for original code verifier using SHA-256
+     *
+     * @param codeVerifier - Generated code verifier
+     * @return Generated hash of code verifier using SHA256
+     */
+    public static String generateCodeChallenge(String codeVerifier) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance(Constants.AuthConstants.ALGO_SHA256);
+            byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (Exception exception) {
+            LOGGER.error("OAuth: Exception occur while generating code challenge. Root Cause:{}"
+                    , exception.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Open Confirmation dialog box for the user
+     *
+     * @param message       - message to display in confirmation dialog
+     * @param title         - title for confirmation dialog
+     * @param yesButtonText - yes button text for (e.g., ok)
+     * @param noButtonText  - no button text (e.g., cancel)
+     * @return true if user clicked on yes otherwise false
+     */
+    public static boolean openConfirmation(String message, String title, String yesButtonText, String noButtonText) {
+        return Messages.showYesNoDialog(
+                message,
+                title,
+                yesButtonText,
+                noButtonText,
+                Messages.getQuestionIcon()
+        ) == Messages.YES;
+    }
+
+    /**
+     * Load a file from the provided resource path and return a file content as a string
+     *
+     * @param resourcePath - file path which you want to load
+     * @return string - file content
+     */
+    public static String getFileContentFromResource(String resourcePath) {
+        try {
+            InputStream input = Utils.class.getClassLoader().getResourceAsStream(resourcePath);
+            if (input != null) {
+                return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        } catch (Exception exception) {
+            LOGGER.error("Load Resource: Unable to load file from the path:{}. Root Cause:{}", resourcePath, exception.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Display simple ballon notification in notification area
+     *
+     * @param title   - Title for notification
+     * @param content - Message to display as notification
+     * @param type    - Notification type e.g., WARNING, ERROR, INFO etc.
+     * @param project - Current project instance
+     */
+    public static void showNotification(String title, String content, NotificationType type, Project project) {
+        NotificationGroupManager.getInstance()
+                .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
+                .createNotification(title,
+                        content,
+                        type)
+                .notify(project);
+    }
+
+    /**
+     * Executing action with specified max retry attempts.
+     * Before going for the every next retry attempt, it will increase delay time by specified delay milliseconds
+     *
+     * @param action             - {@link Supplier} object which contains the action to execute
+     * @param maxRetries         - maximum number of retry attempts
+     * @param initialDelayMillis - dealy in milliseconds for a fist attempt
+     * @return action result
+     * @throws Exception after all attempts if action result not received
+     * @apiNote For every next retry attempt delay will be increase by attempt * initialDelayMillis
+     */
+    public static <T> T executeWithRetry(Supplier<T> action, int maxRetries, long initialDelayMillis) throws Exception {
+        Exception lastException = null;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                return action.get();
+            } catch (Exception exception) {
+                lastException = exception;
+
+                if (attempt == maxRetries) break;
+
+                long delay = attempt * initialDelayMillis;
+                LOGGER.info(String.format("Retry: Attempt:%d failed:%s. Retrying in:%d ms.", attempt, exception.getMessage(), delay));
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    LOGGER.debug("Retry: Exception occurred while delaying after attempt:{}", attempt);
+                }
+            }
+        }
+        if (lastException != null) {
+            throw lastException;
+        }
+        LOGGER.error("Retry: Unexpected exception occurred during retries.");
+        throw new CxException(500, "Something went wrong, Please try again.");
     }
 }
