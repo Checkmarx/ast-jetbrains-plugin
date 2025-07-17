@@ -3,6 +3,7 @@ package com.checkmarx.intellij.settings.global;
 import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
+import com.checkmarx.intellij.Constants;
 
 import java.io.IOException;
 
@@ -22,7 +23,8 @@ public class CxWrapperFactory {
         if (state.isUseApiKey()){
             builder.apiKey(sensitiveState.getApiKey());
         }else {
-            builder.clientSecret(sensitiveState.loadRefreshToken());
+            builder.apiKey(sensitiveState.getRefreshToken());
+            builder.clientId(Constants.AuthConstants.OAUTH_IDE_CLIENT_ID);
         }
         builder.additionalParameters(state.getAdditionalParameters());
         return new CxWrapper(builder.build());
