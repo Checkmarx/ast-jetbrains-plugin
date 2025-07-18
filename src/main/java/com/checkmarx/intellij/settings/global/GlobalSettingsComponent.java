@@ -190,7 +190,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 logoutButton.setEnabled(true);
                 connectButton.setEnabled(false);
                 setFieldsEditable(false);
-                notifyAuthSuccess(); // Show success notification again
             });
         }
         if (isValidating) {
@@ -265,21 +264,29 @@ public class GlobalSettingsComponent implements SettingsComponent {
      * Proceed for authentication using OAUth
      */
     private void proceedOAuthAuthentication() {
+        if (!validateBaseUrl()) {
+            return; // Abort if UI validation fails
+        }
+
         String baseUrl = baseUrlField.getText().trim().replaceAll("/+$", "");
         String tenant = tenantField.getText().trim();
 
-        connectButton.setEnabled(false); // Disable button during validation
+        if (tenant.isEmpty()) {
+            setValidationResult("Tenant name cannot be empty", JBColor.RED);
+            connectButton.setEnabled(false);
+            return;
+        }
+
+        connectButton.setEnabled(false);
 
         CheckmarxValidator.validateConnection(baseUrl, tenant).thenAccept(result -> {
             SwingUtilities.invokeLater(() -> {
                 if (!result.isValid) {
-                    // Validation failed – show error message
                     setValidationResult(result.error, JBColor.RED);
                     connectButton.setEnabled(true);
                     SETTINGS_STATE.setValidationInProgress(false);
                     apply();
                 } else {
-                    // Show OAuth confirmation dialog
                     int userChoice = Messages.showOkCancelDialog(
                             "You will be redirected to OAuth login in your default browser. Are you sure you want to continue?",
                             "Continue to OAuth Login",
@@ -287,7 +294,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     );
 
                     if (userChoice == Messages.OK) {
-                        // Start OAuth authentication
                         setFieldsEditable(false);
                         setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
                         SETTINGS_STATE.setValidationInProgress(true);
@@ -295,14 +301,14 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
                         new AuthService().authenticate(baseUrl, tenant, authResult -> {
                             if (authResult.startsWith(Constants.AuthConstants.TOKEN)) {
-                                handleOAuthSuccess(authResult.split(":")[1]); // Extract token
+                                handleOAuthSuccess(authResult.split(":")[1]);
                             } else {
                                 handleOAuthFailure(authResult);
                             }
                         });
                     } else {
                         connectButton.setEnabled(true);
-                        validateResult.setVisible(false);  // Hide validating message if user cancels
+                        validateResult.setVisible(false);
                         SETTINGS_STATE.setValidationInProgress(false);
                         apply();
                     }
@@ -530,22 +536,29 @@ public class GlobalSettingsComponent implements SettingsComponent {
         oauthRadio.setSelected(!useApiKey);
     }
 
-    private void validateBaseUrl() {
-        String baseUrl = baseUrlField.getText().trim().replaceAll("/+$", "");
-        if (baseUrl.isEmpty()) {
-            setValidationResult("", JBColor.GREEN); // Clear the message if the field is empty
-            connectButton.setEnabled(false); // Disable the button
-            return;
+    private boolean validateBaseUrl() {
+        String rawInput = baseUrlField.getText().trim();
+
+        if (rawInput.matches(".*/{2,}$")) {
+            setValidationResult("Invalid base URL", JBColor.RED);
+            connectButton.setEnabled(false);
+            return false;
         }
 
-        boolean isValid = isValidUrl(baseUrl);
-        if (!isValid) {
-            setValidationResult("Invalid URL format", JBColor.RED); // Show error for invalid URL
-            connectButton.setEnabled(false); // Disable the button
-        } else {
-            setValidationResult("", JBColor.GREEN); // Clear the error message for valid URL
-            updateConnectButtonState();
+        if (rawInput.isEmpty()) {
+            setValidationResult("", JBColor.GREEN);
+            connectButton.setEnabled(false);
+            return false;
         }
+
+        if (!isValidUrl(rawInput)) {
+            setValidationResult("Invalid URL format", JBColor.RED);
+            connectButton.setEnabled(false);
+            return false;
+        }
+
+        setValidationResult("", JBColor.GREEN);
+        return true;
     }
 
     // Helper method for URL validation
