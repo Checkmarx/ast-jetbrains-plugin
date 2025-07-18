@@ -18,6 +18,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBCheckBox;
@@ -42,7 +43,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     private static GlobalSettingsState SETTINGS_STATE;
     private static GlobalSettingsSensitiveState SENSITIVE_SETTINGS_STATE;
-
     private final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
     private final Project project = ProjectManager.getInstance().getDefaultProject();
 
@@ -53,8 +53,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private final JBPasswordField apiKeyField = new JBPasswordField();
     private final ButtonGroup authGroup = new ButtonGroup();
     private final JRadioButton oauthRadio = new JRadioButton("OAuth");
-    private final ExpandableTextField baseUrlField = new ExpandableTextField();
-    private final ExpandableTextField tenantField = new ExpandableTextField();
+    private final JTextField baseUrlField = new JTextField();
+    private final JTextField tenantField = new JTextField();
     private final JRadioButton apiKeyRadio = new JRadioButton("API Key");
     private final JButton logoutButton = new JButton("Log out");
     private final JBLabel oauthLabel = new JBLabel("(Login using Checkmarx One credentials)");
@@ -117,6 +117,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         // Always persist auth state
         GlobalSettingsState state = getStateFromFields();
         state.setAuthenticated(SETTINGS_STATE.isAuthenticated());
+        state.setValidationInProgress(SETTINGS_STATE.isValidationInProgress());
 
         state.setBaseUrl(baseUrlField.getText().trim());
         state.setTenant(tenantField.getText().trim());
@@ -144,7 +145,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE = GlobalSettingsSensitiveState.getInstance();
         }
 
-        // Restore fields from persistent state
         additionalParametersField.setText(SETTINGS_STATE.getAdditionalParameters());
         ascaCheckBox.setSelected(SETTINGS_STATE.isAsca());
         apiKeyField.setText(SENSITIVE_SETTINGS_STATE.getApiKey());
@@ -162,26 +162,47 @@ public class GlobalSettingsComponent implements SettingsComponent {
         updateFieldLabels();
         ascaInstallationMsg.setVisible(false);
 
-        // Restore validation message only if it was a success (green)
-        String validationMessage = SETTINGS_STATE.getValidationMessage();
-        if (SETTINGS_STATE.isLastValidationSuccess() && validationMessage != null && !validationMessage.isEmpty()) {
-            validateResult.setText(validationMessage);
-            validateResult.setForeground(JBColor.GREEN);
+        // Restore validation UI
+        if (SETTINGS_STATE.isValidationInProgress()) {
+            setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
             validateResult.setVisible(true);
         } else {
-            validateResult.setVisible(false); // Hide red error messages on reopen
+            String validationMessage = SETTINGS_STATE.getValidationMessage();
+            if (SETTINGS_STATE.isLastValidationSuccess() && validationMessage != null && !validationMessage.isEmpty()) {
+                setValidationResult(validationMessage, JBColor.GREEN);
+                validateResult.setVisible(true);
+            } else if (validationMessage != null && !validationMessage.isEmpty()) {
+                setValidationResult(validationMessage, JBColor.RED);
+                validateResult.setVisible(true);
+            } else {
+                validateResult.setVisible(false);
+            }
         }
 
-        // Restore button states
         boolean isAuthenticated = SETTINGS_STATE.isAuthenticated();
-        connectButton.setEnabled(!isAuthenticated);
-        logoutButton.setEnabled(isAuthenticated);
-        setFieldsEditable(!isAuthenticated);
-        updateConnectButtonState(); // Ensured the connect button state is updated
+        boolean isValidating = SETTINGS_STATE.isValidationInProgress();
+
+        if (isAuthenticated && !isValidating) {
+            // OAuth succeeded asynchronously → refresh state dynamically
+            SwingUtilities.invokeLater(() -> {
+                setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
+                validateResult.setVisible(true);
+                logoutButton.setEnabled(true);
+                connectButton.setEnabled(false);
+                setFieldsEditable(false);
+                notifyAuthSuccess(); // Show success notification again
+            });
+        }
+        if (isValidating) {
+            setFieldsEditable(false); // Lock UI while validating
+            connectButton.setEnabled(false);
+            logoutButton.setEnabled(false);
+        }
+
         SwingUtilities.invokeLater(() -> {
-            if (SETTINGS_STATE.isAuthenticated()) {
+            if (isAuthenticated) {
                 logoutButton.requestFocusInWindow();
-            } else if (SETTINGS_STATE.isUseApiKey()) {
+            } else if (useApiKey) {
                 apiKeyField.requestFocusInWindow();
             } else {
                 baseUrlField.requestFocusInWindow();
@@ -244,7 +265,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
      * Proceed for authentication using OAUth
      */
     private void proceedOAuthAuthentication() {
-        String baseUrl = baseUrlField.getText().trim();
+        String baseUrl = baseUrlField.getText().trim().replaceAll("/+$", "");
         String tenant = tenantField.getText().trim();
 
         connectButton.setEnabled(false); // Disable button during validation
@@ -255,6 +276,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     // Validation failed – show error message
                     setValidationResult(result.error, JBColor.RED);
                     connectButton.setEnabled(true);
+                    SETTINGS_STATE.setValidationInProgress(false);
+                    apply();
                 } else {
                     // Show OAuth confirmation dialog
                     int userChoice = Messages.showOkCancelDialog(
@@ -265,6 +288,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
                     if (userChoice == Messages.OK) {
                         // Start OAuth authentication
+                        setFieldsEditable(false);
+                        setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
+                        SETTINGS_STATE.setValidationInProgress(true);
+                        apply();
+
                         new AuthService().authenticate(baseUrl, tenant, authResult -> {
                             if (authResult.startsWith(Constants.AuthConstants.TOKEN)) {
                                 handleOAuthSuccess(authResult.split(":")[1]); // Extract token
@@ -274,6 +302,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         });
                     } else {
                         connectButton.setEnabled(true);
+                        validateResult.setVisible(false);  // Hide validating message if user cancels
+                        SETTINGS_STATE.setValidationInProgress(false);
+                        apply();
                     }
                 }
             });
@@ -285,16 +316,20 @@ public class GlobalSettingsComponent implements SettingsComponent {
      */
     private void handleOAuthSuccess(String refreshToken) {
         SwingUtilities.invokeLater(() -> {
+            sessionConnected = true;
+
             setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
+            validateResult.setVisible(true);
+
             logoutButton.setEnabled(true);
             connectButton.setEnabled(false);
             setFieldsEditable(false);
-            sessionConnected = true;
-            SETTINGS_STATE.setAuthenticated(true);// also persist
+
+            SETTINGS_STATE.setAuthenticated(true);
+            SETTINGS_STATE.setValidationInProgress(false);
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshToken);
             apply();
-            notifyAuthSuccess();
-            logoutButton.requestFocusInWindow();     // Set focus to logout button
+            notifyAuthSuccess(); // Even if panel is not showing now
         });
     }
 
@@ -304,8 +339,15 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private void handleOAuthFailure(String error) {
         SwingUtilities.invokeLater(() -> {
             sessionConnected = false;
+            SETTINGS_STATE.setValidationInProgress(false);
+
             setValidationResult(error, JBColor.RED);
+            validateResult.setVisible(true);
+
             connectButton.setEnabled(true);
+            setFieldsEditable(true);
+
+            apply();
             notifyAuthError(error);
         });
     }
@@ -451,7 +493,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             }
         });
 
-        // Listener to update state when switching to OAuth
+    // Listener to update state when switching to OAuth
         oauthRadio.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 setFieldsEditable(true);
@@ -461,7 +503,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             }
         });
 
-// Listener to update state when switching to API Key
+    // Listener to update state when switching to API Key
         apiKeyRadio.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 setFieldsEditable(true);
@@ -489,7 +531,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     private void validateBaseUrl() {
-        String baseUrl = baseUrlField.getText().trim();
+        String baseUrl = baseUrlField.getText().trim().replaceAll("/+$", "");
         if (baseUrl.isEmpty()) {
             setValidationResult("", JBColor.GREEN); // Clear the message if the field is empty
             connectButton.setEnabled(false); // Disable the button
@@ -506,7 +548,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         }
     }
 
-    // Helper method for URL validation (similar to JS isURL)
+    // Helper method for URL validation
     private boolean isValidUrl(String url) {
         try {
             new java.net.URL(url);
@@ -520,17 +562,15 @@ public class GlobalSettingsComponent implements SettingsComponent {
         boolean enabled = false;
 
         if (oauthRadio.isSelected()) {
-            // Check for OAuth conditions
             boolean isBaseUrlValid = isValidUrl(baseUrlField.getText().trim());
             boolean isBaseUrlNotEmpty = !baseUrlField.getText().trim().isEmpty();
             boolean isTenantNotEmpty = !tenantField.getText().trim().isEmpty();
             enabled = isBaseUrlValid && isBaseUrlNotEmpty && isTenantNotEmpty;
         } else if (apiKeyRadio.isSelected()) {
-            // Check for API Key conditions
             enabled = !String.valueOf(apiKeyField.getPassword()).trim().isEmpty();
         }
-        // Disable connect button if user is authenticated
-        if (SETTINGS_STATE.isAuthenticated()) {
+
+        if (SETTINGS_STATE.isAuthenticated() || SETTINGS_STATE.isValidationInProgress()) {
             enabled = false;
         }
         connectButton.setEnabled(enabled);
@@ -547,9 +587,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
             );
             if (userChoice == Messages.YES) {
                 sessionConnected = false;
-                // baseUrlField.setText("");    // Commented as we are not clearing the stored baseURL
-                // tenantField.setText("");     // Commented as we are not clearing the stored tenant name
-                // apiKeyField.setText("");     // Commented as we are not clearing the stored API key
                 oauthRadio.setSelected(true);
                 validateResult.setText(Bundle.message(Resource.LOGOUT_SUCCESS));
                 validateResult.setForeground(JBColor.GREEN);
@@ -611,6 +648,13 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     public boolean isValid() {
+        if (SETTINGS_STATE.isAuthenticated() && StringUtil.isEmpty(SENSITIVE_SETTINGS_STATE.getApiKey())
+                && StringUtil.isEmpty(SENSITIVE_SETTINGS_STATE.getRefreshToken())){
+            //This condition handles if the user is authenticated but no sensitive data is present (due to explicitly clearing it form storage)
+            SETTINGS_STATE.setAuthenticated(false);
+            SETTINGS_STATE.setValidationMessage("");
+            return false;
+        }
         return SETTINGS_STATE.isAuthenticated() && SENSITIVE_SETTINGS_STATE.isValid(SETTINGS_STATE);
     }
 

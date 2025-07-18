@@ -63,6 +63,17 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     private String baseUrl = "";
     private String tenant = "";
 
+    @Attribute("validationInProgress")
+    private boolean validationInProgress = false;
+
+    public boolean isValidationInProgress() {
+        return validationInProgress;
+    }
+
+    public void setValidationInProgress(boolean validationInProgress) {
+        this.validationInProgress = validationInProgress;
+    }
+
     @Override
     public @Nullable GlobalSettingsState getState() {
         return this;
