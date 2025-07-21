@@ -106,6 +106,7 @@ public final class Constants {
         public static final String AUTH_SUCCESS_HTML_FILE_PATH = "auth/auth-success.html";
         public static final String AUTH_ERROR_HTML_FILE_PATH = "auth/auth-error.html";
         public static final String LOCATION = "location";
+        public static final int TIME_OUT_SECONDS = 120;
     }
 
 

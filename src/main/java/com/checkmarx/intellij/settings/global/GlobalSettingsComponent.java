@@ -28,6 +28,7 @@ import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.messages.MessageBus;
 import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -36,6 +37,8 @@ import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -120,6 +123,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         state.setAuthenticated(SETTINGS_STATE.isAuthenticated());
         state.setValidationInProgress(SETTINGS_STATE.isValidationInProgress());
         state.setRefreshTokenExpiry(SETTINGS_STATE.getRefreshTokenExpiry());
+        state.setValidationExpiry(SETTINGS_STATE.getValidationExpiry());
 
         state.setBaseUrl(baseUrlField.getText().trim());
         state.setTenant(tenantField.getText().trim());
@@ -146,45 +150,29 @@ public class GlobalSettingsComponent implements SettingsComponent {
         if (SENSITIVE_SETTINGS_STATE == null) {
             SENSITIVE_SETTINGS_STATE = GlobalSettingsSensitiveState.getInstance();
         }
-
-        additionalParametersField.setText(SETTINGS_STATE.getAdditionalParameters());
-        ascaCheckBox.setSelected(SETTINGS_STATE.isAsca());
-        apiKeyField.setText(SENSITIVE_SETTINGS_STATE.getApiKey());
-        baseUrlField.setText(SETTINGS_STATE.getBaseUrl());
-        tenantField.setText(SETTINGS_STATE.getTenant());
-
-        boolean useApiKey = SETTINGS_STATE.isUseApiKey();
-        apiKeyRadio.setSelected(useApiKey);
-        oauthRadio.setSelected(!useApiKey);
-
-        baseUrlField.setEnabled(!useApiKey);
-        tenantField.setEnabled(!useApiKey);
-        apiKeyField.setEnabled(useApiKey);
-
-        updateFieldLabels();
-        ascaInstallationMsg.setVisible(false);
-
-        // Restore validation UI
-        if (SETTINGS_STATE.isValidationInProgress()) {
-            setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
-            validateResult.setVisible(true);
-        } else {
-            String validationMessage = SETTINGS_STATE.getValidationMessage();
-            if (SETTINGS_STATE.isLastValidationSuccess() && validationMessage != null && !validationMessage.isEmpty()) {
-                setValidationResult(validationMessage, JBColor.GREEN);
-                validateResult.setVisible(true);
-            } else if (validationMessage != null && !validationMessage.isEmpty()) {
-                setValidationResult(validationMessage, JBColor.RED);
-                validateResult.setVisible(true);
-            } else {
-                validateResult.setVisible(false);
-            }
-        }
-
-        boolean isAuthenticated = SETTINGS_STATE.isAuthenticated();
         boolean isValidating = SETTINGS_STATE.isValidationInProgress();
+        boolean useApiKey = SETTINGS_STATE.isUseApiKey();
 
-        if (isAuthenticated && !isValidating) {
+        setInputFields();
+
+        // Not authenticated, authentication in progress
+        if (!isValid() && isValidating && !isValidateTimeExpired()){
+            setValidationResult();
+            setFieldsEditable(false); // Lock UI while validating
+            connectButton.setEnabled(false);
+            logoutButton.setEnabled(false);
+        } else if (!isValid()){
+            SETTINGS_STATE.setValidationInProgress(false);
+            setLogoutState();
+        } else { // Authenticated
+            apiKeyRadio.setSelected(useApiKey);
+            oauthRadio.setSelected(!useApiKey);
+            baseUrlField.setEnabled(!useApiKey);
+            tenantField.setEnabled(!useApiKey);
+            apiKeyField.setEnabled(useApiKey);
+
+            updateFieldLabels();
+            setValidationResult();
             // OAuth succeeded asynchronously → refresh state dynamically
             SwingUtilities.invokeLater(() -> {
                 setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
@@ -193,17 +181,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 connectButton.setEnabled(false);
                 setFieldsEditable(false);
             });
+            logoutButton.requestFocusInWindow();
         }
-        if (isValidating) {
-            setFieldsEditable(false); // Lock UI while validating
-            connectButton.setEnabled(false);
-            logoutButton.setEnabled(false);
-        }
-
+        ascaInstallationMsg.setVisible(false);
         SwingUtilities.invokeLater(() -> {
-            if (isAuthenticated) {
-                logoutButton.requestFocusInWindow();
-            } else if (useApiKey) {
+            if (useApiKey) {
                 apiKeyField.requestFocusInWindow();
             } else {
                 baseUrlField.requestFocusInWindow();
@@ -211,12 +193,31 @@ public class GlobalSettingsComponent implements SettingsComponent {
         });
     }
 
+    // Getting existing saved inpute details from the setting state.
     private void setInputFields() {
         additionalParametersField.setText(SETTINGS_STATE.getAdditionalParameters());
         ascaCheckBox.setSelected(SETTINGS_STATE.isAsca());
         apiKeyField.setText(SENSITIVE_SETTINGS_STATE.getApiKey());
         baseUrlField.setText(SETTINGS_STATE.getBaseUrl());
         tenantField.setText(SETTINGS_STATE.getTenant());
+    }
+    //Setting validation result to UI
+    private void setValidationResult(){
+        // Restore validation UI
+        if (SETTINGS_STATE.isValidationInProgress()) {
+            setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
+            validateResult.setVisible(true);
+        } else {
+            if (SETTINGS_STATE.isLastValidationSuccess() && !StringUtils.isBlank(SETTINGS_STATE.getValidationMessage())) {
+                setValidationResult(SETTINGS_STATE.getValidationMessage(), JBColor.GREEN);
+                validateResult.setVisible(true);
+            } else if (!StringUtils.isBlank(SETTINGS_STATE.getValidationMessage())) {
+                setValidationResult(SETTINGS_STATE.getValidationMessage(), JBColor.RED);
+                validateResult.setVisible(true);
+            } else {
+                validateResult.setVisible(false);
+            }
+        }
     }
 
     private GlobalSettingsState getStateFromFields() {
@@ -277,7 +278,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
         if (!validateBaseUrl()) {
             return; // Abort if UI validation fails
         }
-
         String baseUrl = baseUrlField.getText().trim().replaceAll("/+$", "");
         String tenant = tenantField.getText().trim();
 
@@ -286,9 +286,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             connectButton.setEnabled(false);
             return;
         }
-
         connectButton.setEnabled(false);
-
         CheckmarxValidator.validateConnection(baseUrl, tenant).thenAccept(result -> {
             SwingUtilities.invokeLater(() -> {
                 if (!result.isValid) {
@@ -310,6 +308,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         setFieldsEditable(false);
                         setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
                         SETTINGS_STATE.setValidationInProgress(true);
+                        SETTINGS_STATE.setValidationExpiry(getValidationExpiry());
                         apply();
 
                         new AuthService().authenticate(baseUrl, tenant, authResult -> {
@@ -346,6 +345,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
             SETTINGS_STATE.setAuthenticated(true);
             SETTINGS_STATE.setValidationInProgress(false);
+            SETTINGS_STATE.setValidationExpiry(null);
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
             apply();
@@ -360,6 +360,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
         SwingUtilities.invokeLater(() -> {
             sessionConnected = false;
             SETTINGS_STATE.setValidationInProgress(false);
+            SETTINGS_STATE.setValidationExpiry(null);
+            SETTINGS_STATE.setAuthenticated(false);
 
             setValidationResult(error, JBColor.RED);
             validateResult.setVisible(true);
@@ -620,6 +622,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         });
     }
 
+    // Setting state on log out.
     private void setLogoutState() {
         sessionConnected = false;
         oauthRadio.setSelected(true);
@@ -684,11 +687,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
             //This condition handles if the user is authenticated but no sensitive data is present (due to explicitly clearing it form storage)
             SETTINGS_STATE.setAuthenticated(false);
             SETTINGS_STATE.setValidationMessage("");
-            return false;
-        }else if(SETTINGS_STATE.isAuthenticated() && SENSITIVE_SETTINGS_STATE.isTokenExpired(SETTINGS_STATE.getRefreshTokenExpiry())){
-            LOGGER.warn("AUTH NOT VALID.");
-            setInputFields();
-            setLogoutState();
             return false;
         }
         return SETTINGS_STATE.isAuthenticated() && SENSITIVE_SETTINGS_STATE.isValid(SETTINGS_STATE);
@@ -759,5 +757,26 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         NotificationType.ERROR,
                         project)
         );
+    }
+
+    /**
+     * Getting login validation timeout datetime
+     * @return timestamp
+     */
+    private String getValidationExpiry(){
+        long timeoutSeconds = Constants.AuthConstants.TIME_OUT_SECONDS+5L;
+        return Utils.convertToLocalDateTime(timeoutSeconds, ZoneId.systemDefault()).toString();
+    }
+
+
+    /**
+     * Checking if authentication validation time expired
+     * @return true, if validation time is exceeded than current time otherwise false.
+     */
+    private boolean isValidateTimeExpired(){
+        if(!StringUtils.isBlank(SETTINGS_STATE.getValidationExpiry())){
+            return LocalDateTime.parse(SETTINGS_STATE.getValidationExpiry()).isBefore(LocalDateTime.now());
+        }
+        return false;
     }
 }

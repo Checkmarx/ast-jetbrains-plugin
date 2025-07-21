@@ -52,6 +52,8 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
 
     private String refreshTokenExpiry;
 
+    private String validationExpiry;
+
     public @NotNull Set<Filterable> getFilters() {
         if (filters.isEmpty() || filters.stream().allMatch(Objects::isNull)) {
             filters = stateService.getDefaultFilters();

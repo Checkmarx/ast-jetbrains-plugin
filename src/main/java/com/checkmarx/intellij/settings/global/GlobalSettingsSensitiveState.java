@@ -109,7 +109,7 @@ public class GlobalSettingsSensitiveState {
     public boolean isTokenExpired(String tokenExpiryString){
         if (!StringUtils.isBlank(tokenExpiryString)){
             boolean isExpired = LocalDateTime.parse(tokenExpiryString).isBefore(LocalDateTime.now());
-            LOGGER.warn("Token Expired: "+isExpired);
+            LOGGER.warn("Refresh Token Expired: "+isExpired);
             return isExpired;
         }
         return false;

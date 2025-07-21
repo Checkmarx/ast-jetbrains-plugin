@@ -50,7 +50,6 @@ public class AuthService {
     private static final int MAX_PORT_ATTEMPTS = 10;
     private static final int RETRY_DELAY_MS = 1000;
     private static final int MAX_RETRIES = 3;
-    private static final int TIME_OUT_SECONDS = 120;
     private static final String CALLBACK_PATH = "/checkmarx1/callback";
     private final Project project = ProjectManager.getInstance().getDefaultProject();
     private OAuthCallbackServer server;
@@ -114,11 +113,11 @@ public class AuthService {
             String authorizationUrl = buildCxOneOAuthAuthorizationUrl(cxOneAuthEndpoint, redirectUrl, codeChallenge);
 
             log.debug("OAuth: OAuth2.0 Authorization URL:{}", authorizationUrl);
-            server.start(TIME_OUT_SECONDS, port);
+            server.start(Constants.AuthConstants.TIME_OUT_SECONDS, port);
 
             openDefaultBrowser(authorizationUrl);
 
-            String authCode = server.waitForAuthCode().get(TIME_OUT_SECONDS, TimeUnit.SECONDS);
+            String authCode = server.waitForAuthCode().get(Constants.AuthConstants.TIME_OUT_SECONDS, TimeUnit.SECONDS);
             Map<String, Object> refreshTokenDetails = exchangeCodeForToken(cxOneTokenEndpoint, authCode, codeVerifier, redirectUrl);
             if (refreshTokenDetails == null || refreshTokenDetails.isEmpty()) {
                 log.error("OAuth: Not able to get refresh token. Refresh token is null.");
