@@ -432,8 +432,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
         mainPanel.add(baseUrlField, "growx, wrap");
         mainPanel.add(tenantLabel);
         mainPanel.add(tenantField, "growx, wrap");
-        mainPanel.add(apiKeyRadio);
-        mainPanel.add(apiKeyField, "growx, wrap");
+        mainPanel.add(apiKeyRadio, "aligny top");
+        mainPanel.add(apiKeyField, "growx, wrap, aligny top");
 
         oauthRadio.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
