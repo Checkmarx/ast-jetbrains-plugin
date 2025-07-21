@@ -16,6 +16,8 @@ import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.LocalDateTime;
+
 /**
  * GlobalSettingsSensitiveState class responsible to store secrets, e.g., API key in secure storage.
  */
@@ -92,11 +94,25 @@ public class GlobalSettingsSensitiveState {
     private String validate(@NotNull GlobalSettingsState settingsState, @NotNull GlobalSettingsSensitiveState sensitiveState) {
         if (settingsState.isUseApiKey() && StringUtils.isBlank(sensitiveState.getApiKey())) {
             return Bundle.missingFieldMessage(Resource.API_KEY);
-        }
-        if (!settingsState.isUseApiKey() && StringUtils.isBlank(sensitiveState.getRefreshToken())) {
+        } else if (!settingsState.isUseApiKey() && (StringUtils.isBlank(sensitiveState.getRefreshToken())
+                || isTokenExpired(settingsState.getRefreshTokenExpiry()))) {
             return Bundle.missingFieldMessage(Resource.REFRESH_TOKEN);
         }
         return null;
+    }
+
+    /**
+     * Checking refresh token expiry
+     * @param tokenExpiryString - Expiry date of refresh token
+     * @return true, if the refresh token is expired otherwise false
+     */
+    public boolean isTokenExpired(String tokenExpiryString){
+        if (!StringUtils.isBlank(tokenExpiryString)){
+            boolean isExpired = LocalDateTime.parse(tokenExpiryString).isBefore(LocalDateTime.now());
+            LOGGER.warn("Token Expired: "+isExpired);
+            return isExpired;
+        }
+        return false;
     }
 
     /**
@@ -155,12 +171,5 @@ public class GlobalSettingsSensitiveState {
     public void deleteRefreshToken() {
         deleteSecret(REFRESH_TOKEN_CREDENTIALS_KEY);
         refreshToken = null;
-    }
-
-    /**
-     * Load refresh token from the storage
-     */
-    public String loadRefreshToken() {
-        return loadSecret(REFRESH_TOKEN_CREDENTIALS_KEY);
     }
 }

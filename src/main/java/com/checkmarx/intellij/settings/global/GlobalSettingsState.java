@@ -50,6 +50,8 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @Attribute("lastValidationSuccess")
     private boolean lastValidationSuccess = true;
 
+    private String refreshTokenExpiry;
+
     public @NotNull Set<Filterable> getFilters() {
         if (filters.isEmpty() || filters.stream().allMatch(Objects::isNull)) {
             filters = stateService.getDefaultFilters();
@@ -65,14 +67,6 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
 
     @Attribute("validationInProgress")
     private boolean validationInProgress = false;
-
-    public boolean isValidationInProgress() {
-        return validationInProgress;
-    }
-
-    public void setValidationInProgress(boolean validationInProgress) {
-        this.validationInProgress = validationInProgress;
-    }
 
     @Override
     public @Nullable GlobalSettingsState getState() {

@@ -21,6 +21,9 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.Date;
@@ -270,5 +273,17 @@ public final class Utils {
         }
         LOGGER.error("Retry: Unexpected exception occurred during retries.");
         throw new CxException(500, "Something went wrong, Please try again.");
+    }
+
+    /**
+     * Adding duration in seconds to the current date
+     * @param duration - seconds to be added in current date time
+     * @return updated LocalDateTime
+     */
+    public static LocalDateTime convertToLocalDateTime(Long duration, ZoneId zoneId){
+        return Instant.now()
+                .plusSeconds(duration)
+                .atZone(zoneId)
+                .toLocalDateTime();
     }
 }
