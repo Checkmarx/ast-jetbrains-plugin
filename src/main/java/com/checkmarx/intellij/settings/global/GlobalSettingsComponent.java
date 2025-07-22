@@ -120,22 +120,16 @@ public class GlobalSettingsComponent implements SettingsComponent {
     public void apply() {
         // Always persist auth state
         GlobalSettingsState state = getStateFromFields();
+
         state.setAuthenticated(SETTINGS_STATE.isAuthenticated());
         state.setValidationInProgress(SETTINGS_STATE.isValidationInProgress());
         state.setRefreshTokenExpiry(SETTINGS_STATE.getRefreshTokenExpiry());
         state.setValidationExpiry(SETTINGS_STATE.getValidationExpiry());
+        state.setValidationMessage(SETTINGS_STATE.getValidationMessage());
+        state.setLastValidationSuccess(SETTINGS_STATE.isLastValidationSuccess());
 
         state.setBaseUrl(baseUrlField.getText().trim());
         state.setTenant(tenantField.getText().trim());
-
-        // Only persist validation message if it's a success (green)
-        if (validateResult.getForeground().equals(JBColor.GREEN)) {
-            state.setValidationMessage(validateResult.getText());
-            state.setLastValidationSuccess(true);
-        } else {
-            state.setValidationMessage(""); // Clear red error message
-            state.setLastValidationSuccess(false);
-        }
 
         SETTINGS_STATE.apply(state);
         SENSITIVE_SETTINGS_STATE.apply(state, getSensitiveStateFromFields());
@@ -162,7 +156,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             setFieldsEditable(false); // Lock UI while validating
             connectButton.setEnabled(false);
             logoutButton.setEnabled(false);
-        } else if (!isAuthValid){ // Not authenticated
+        } else if (!isAuthValid){ // Not authenticated (token expired, new authentication, logout)
             SETTINGS_STATE.setValidationInProgress(false);
             setValidationResult();
             setSessionExpired();
@@ -175,14 +169,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
             updateFieldLabels();
             setValidationResult();
-            // OAuth succeeded asynchronously → refresh state dynamically
-            SwingUtilities.invokeLater(() -> {
-                setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
-                validateResult.setVisible(true);
-                logoutButton.setEnabled(true);
-                connectButton.setEnabled(false);
-                setFieldsEditable(false);
-            });
+            setFieldsEditable(false);
             logoutButton.requestFocusInWindow();
         }
         ascaInstallationMsg.setVisible(false);
@@ -210,10 +197,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
             setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
             validateResult.setVisible(true);
         } else {
-            if (SETTINGS_STATE.isLastValidationSuccess() && !StringUtils.isBlank(SETTINGS_STATE.getValidationMessage())) {
+            if (SETTINGS_STATE.isLastValidationSuccess() && !StringUtils.isBlank(SETTINGS_STATE.getValidationMessage())) { // success message
                 setValidationResult(SETTINGS_STATE.getValidationMessage(), JBColor.GREEN);
                 validateResult.setVisible(true);
-            } else if (!StringUtils.isBlank(SETTINGS_STATE.getValidationMessage())) {
+            } else if (!StringUtils.isBlank(SETTINGS_STATE.getValidationMessage())) { // Error messages
                 setValidationResult(SETTINGS_STATE.getValidationMessage(), JBColor.RED);
                 validateResult.setVisible(true);
             } else {
@@ -243,6 +230,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             validateResult.setVisible(true);
             validateResult.requestFocusInWindow();
             setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
+            setInvalidAuthState("");
 
             if (apiKeyRadio.isSelected()) {
                 CompletableFuture.runAsync(() -> {
@@ -348,6 +336,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SETTINGS_STATE.setAuthenticated(true);
             SETTINGS_STATE.setValidationInProgress(false);
             SETTINGS_STATE.setValidationExpiry(null);
+            SETTINGS_STATE.setLastValidationSuccess(true);
+            SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
             apply();
@@ -636,6 +626,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
         setFieldsEditable(true);
         updateConnectButtonState();
         SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+        SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.LOGOUT_SUCCESS));
+        SETTINGS_STATE.setLastValidationSuccess(true);
         if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
             SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
         }
