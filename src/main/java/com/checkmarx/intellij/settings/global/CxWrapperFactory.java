@@ -4,6 +4,7 @@ import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Utils;
 
 import java.io.IOException;
 
@@ -20,9 +21,12 @@ public class CxWrapperFactory {
             throws CxException, IOException {
         final CxConfig.CxConfigBuilder builder = CxConfig.builder();
 
-        if (state.isUseApiKey()){
+        if (state.isApiKeyEnabled()) {
             builder.apiKey(sensitiveState.getApiKey());
-        }else {
+        } else {
+            if (sensitiveState.isTokenExpired(state.getRefreshTokenExpiry())) {
+                Utils.notifySessionExpired();
+            }
             builder.apiKey(sensitiveState.getRefreshToken());
             builder.clientId(Constants.AuthConstants.OAUTH_IDE_CLIENT_ID);
         }

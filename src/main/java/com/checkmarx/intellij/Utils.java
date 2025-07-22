@@ -9,6 +9,7 @@ import com.intellij.notification.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
@@ -41,6 +42,8 @@ public final class Utils {
     private static final Logger LOGGER = getLogger(Utils.class);
     private static final SimpleDateFormat input = new SimpleDateFormat(Constants.INPUT_DATE_FORMAT);
     private static final SimpleDateFormat output = new SimpleDateFormat(Constants.OUTPUT_DATE_FORMAT);
+
+    private static final Project CX_PROJECT = ProjectManager.getInstance().getDefaultProject();
 
     private Utils() {
         // forbid instantiation of the class
@@ -286,4 +289,17 @@ public final class Utils {
                 .atZone(zoneId)
                 .toLocalDateTime();
     }
+
+    /**
+     * Notify on user session expired.
+     */
+    public static void notifySessionExpired() {
+        ApplicationManager.getApplication().invokeLater(() ->
+                Utils.showNotification(Bundle.message(Resource.ERROR_AUTHENTICATION_TITLE),
+                        Bundle.message(Resource.ERROR_SESSION_EXPIRED),
+                        NotificationType.ERROR,
+                        CX_PROJECT)
+        );
+    }
+
 }

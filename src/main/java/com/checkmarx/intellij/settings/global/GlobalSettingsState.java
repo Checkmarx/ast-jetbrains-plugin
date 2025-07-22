@@ -42,7 +42,7 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     private String additionalParameters = "";
 
     private boolean asca = false;
-    private boolean useApiKey = false;
+    private boolean isApiKeyEnabled = false;
 
     @Attribute("authenticated")
     private boolean authenticated = false;

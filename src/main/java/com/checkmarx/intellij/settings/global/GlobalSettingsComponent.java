@@ -109,7 +109,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             return true;
         }
 
-        if (apiKeyRadio.isSelected() != SETTINGS_STATE.isUseApiKey()) {
+        if (apiKeyRadio.isSelected() != SETTINGS_STATE.isApiKeyEnabled()) {
             return true;
         }
 
@@ -151,19 +151,21 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE = GlobalSettingsSensitiveState.getInstance();
         }
         boolean isValidating = SETTINGS_STATE.isValidationInProgress();
-        boolean useApiKey = SETTINGS_STATE.isUseApiKey();
+        boolean useApiKey = SETTINGS_STATE.isApiKeyEnabled();
+        boolean isAuthValid = isValid();
 
         setInputFields();
 
         // Not authenticated, authentication in progress
-        if (!isValid() && isValidating && !isValidateTimeExpired()){
+        if (!isAuthValid && isValidating && !isValidateTimeExpired()){
             setValidationResult();
             setFieldsEditable(false); // Lock UI while validating
             connectButton.setEnabled(false);
             logoutButton.setEnabled(false);
-        } else if (!isValid()){
+        } else if (!isAuthValid){ // Not authenticated
             SETTINGS_STATE.setValidationInProgress(false);
-            setLogoutState();
+            setValidationResult();
+            setSessionExpired();
         } else { // Authenticated
             apiKeyRadio.setSelected(useApiKey);
             oauthRadio.setSelected(!useApiKey);
@@ -224,7 +226,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         GlobalSettingsState state = new GlobalSettingsState();
         state.setAdditionalParameters(additionalParametersField.getText().trim());
         state.setAsca(ascaCheckBox.isSelected());
-        state.setUseApiKey(apiKeyRadio.isSelected());
+        state.setApiKeyEnabled(apiKeyRadio.isSelected());
         return state;
     }
 
@@ -547,7 +549,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         baseUrlLabel.setText(String.format(Constants.FIELD_FORMAT, "Checkmarx One Base URL", Constants.REQUIRED_MARK));
         tenantLabel.setText(String.format(Constants.FIELD_FORMAT, "Tenant Name", Constants.REQUIRED_MARK));
 
-        boolean useApiKey = SETTINGS_STATE.isUseApiKey();
+        boolean useApiKey = SETTINGS_STATE.isApiKeyEnabled();
         apiKeyRadio.setSelected(useApiKey);
         oauthRadio.setSelected(!useApiKey);
     }
@@ -634,12 +636,29 @@ public class GlobalSettingsComponent implements SettingsComponent {
         setFieldsEditable(true);
         updateConnectButtonState();
         SETTINGS_STATE.setAuthenticated(false); // Update authentication state
-        if (!SETTINGS_STATE.isUseApiKey()) { // if oauth login is enabled
+        if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
             SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
         }
         apply();
         updateConnectButtonState(); // Ensure the Connect button state is updated
     }
+
+    // Setting state after session expired.
+    private void setSessionExpired() {
+        sessionConnected = false;
+        oauthRadio.setSelected(true);
+        connectButton.setEnabled(true);
+        logoutButton.setEnabled(false);
+        setFieldsEditable(true);
+        updateConnectButtonState();
+        SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+        if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
+            SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
+        }
+        apply();
+        updateConnectButtonState(); // Ensure the Connect button state is updated
+    }
+
 
     private void addSectionHeader(Resource resource, boolean required) {
         validatePanel();
@@ -681,15 +700,32 @@ public class GlobalSettingsComponent implements SettingsComponent {
         }
     }
 
+    /**
+     * Checking if user has valid authentication state and credentials
+     * @return true, if authentication is valid otherwise false
+     */
     public boolean isValid() {
         if (SETTINGS_STATE.isAuthenticated() && StringUtil.isEmpty(SENSITIVE_SETTINGS_STATE.getApiKey())
                 && StringUtil.isEmpty(SENSITIVE_SETTINGS_STATE.getRefreshToken())){
             //This condition handles if the user is authenticated but no sensitive data is present (due to explicitly clearing it form storage)
-            SETTINGS_STATE.setAuthenticated(false);
-            SETTINGS_STATE.setValidationMessage("");
+            setInvalidAuthState("");
+            return false;
+        } else if (SETTINGS_STATE.isAuthenticated() && !SETTINGS_STATE.isApiKeyEnabled() &&
+                SENSITIVE_SETTINGS_STATE.isTokenExpired(SETTINGS_STATE.getRefreshTokenExpiry())){
+            setInvalidAuthState(Bundle.message(Resource.ERROR_SESSION_EXPIRED));
             return false;
         }
         return SETTINGS_STATE.isAuthenticated() && SENSITIVE_SETTINGS_STATE.isValid(SETTINGS_STATE);
+    }
+
+    /**
+     * Setting invalid authentication state
+     * @param message - message to display on UI
+     */
+    private void setInvalidAuthState(String message){
+        SETTINGS_STATE.setValidationMessage(message);
+        SETTINGS_STATE.setLastValidationSuccess(false);
+        SETTINGS_STATE.setAuthenticated(false);
     }
 
     private void setFieldsEditable(boolean editable) {
