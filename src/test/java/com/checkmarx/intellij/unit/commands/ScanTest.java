@@ -67,7 +67,7 @@ class ScanTest {
         String branch = "main";
         List<Scan> expectedScans = Arrays.asList(mockScan);
         String expectedFilter = "project-id=test-project,branch=main,limit=10000,statuses=Completed";
-        
+
         try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
             mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
             when(mockWrapper.scanList(expectedFilter)).thenReturn(expectedScans);
