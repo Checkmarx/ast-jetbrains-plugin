@@ -185,7 +185,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         });
     }
 
-    // Getting existing saved inpute details from the setting state.
+    // Getting existing saved input details from the setting state.
     private void setInputFields() {
         additionalParametersField.setText(SETTINGS_STATE.getAdditionalParameters());
         ascaCheckBox.setSelected(SETTINGS_STATE.isAsca());
