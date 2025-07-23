@@ -1,8 +1,7 @@
 package com.checkmarx.intellij;
 
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
-import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.settings.SettingsListener;
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.notification.*;
@@ -11,6 +10,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.util.messages.MessageBus;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.Nullable;
@@ -44,6 +44,7 @@ public final class Utils {
     private static final SimpleDateFormat output = new SimpleDateFormat(Constants.OUTPUT_DATE_FORMAT);
 
     private static final Project CX_PROJECT = ProjectManager.getInstance().getDefaultProject();
+    private static final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
 
     private Utils() {
         // forbid instantiation of the class
@@ -280,10 +281,11 @@ public final class Utils {
 
     /**
      * Adding duration in seconds to the current date
+     *
      * @param duration - seconds to be added in current date time
      * @return updated LocalDateTime
      */
-    public static LocalDateTime convertToLocalDateTime(Long duration, ZoneId zoneId){
+    public static LocalDateTime convertToLocalDateTime(Long duration, ZoneId zoneId) {
         return Instant.now()
                 .plusSeconds(duration)
                 .atZone(zoneId)
@@ -291,7 +293,7 @@ public final class Utils {
     }
 
     /**
-     * Notify on user session expired.
+     * Notify on user session expired and publish new state
      */
     public static void notifySessionExpired() {
         ApplicationManager.getApplication().invokeLater(() ->
@@ -299,6 +301,9 @@ public final class Utils {
                         Bundle.message(Resource.ERROR_SESSION_EXPIRED),
                         NotificationType.ERROR,
                         CX_PROJECT)
+        );
+        ApplicationManager.getApplication().invokeLater(() ->
+                messageBus.syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied()
         );
     }
 
