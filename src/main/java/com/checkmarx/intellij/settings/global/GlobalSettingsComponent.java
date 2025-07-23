@@ -173,6 +173,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             updateFieldLabels();
             setValidationResult();
             setFieldsEditable(false);
+            logoutButton.setEnabled(true);
             logoutButton.requestFocusInWindow();
         }
         ascaInstallationMsg.setVisible(false);
