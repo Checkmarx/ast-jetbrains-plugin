@@ -295,7 +295,7 @@ public final class Utils {
      */
     public static void notifySessionExpired() {
         ApplicationManager.getApplication().invokeLater(() ->
-                Utils.showNotification(Bundle.message(Resource.ERROR_AUTHENTICATION_TITLE),
+                Utils.showNotification(Bundle.message(Resource.SESSION_EXPIRED_TITLE),
                         Bundle.message(Resource.ERROR_SESSION_EXPIRED),
                         NotificationType.ERROR,
                         CX_PROJECT)

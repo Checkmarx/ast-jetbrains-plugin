@@ -128,8 +128,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
         state.setValidationMessage(SETTINGS_STATE.getValidationMessage());
         state.setLastValidationSuccess(SETTINGS_STATE.isLastValidationSuccess());
 
-        state.setBaseUrl(baseUrlField.getText().trim());
-        state.setTenant(tenantField.getText().trim());
+        String baseUrl = baseUrlField.getText();
+        String tenant = tenantField.getText();
+
+        state.setBaseUrl(!StringUtils.isBlank(baseUrl) ? baseUrl.trim(): SETTINGS_STATE.getBaseUrl());
+        state.setTenant(!StringUtils.isBlank(tenant) ? tenant.trim(): SETTINGS_STATE.getTenant());
 
         SETTINGS_STATE.apply(state);
         SENSITIVE_SETTINGS_STATE.apply(state, getSensitiveStateFromFields());
@@ -219,7 +222,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     private GlobalSettingsSensitiveState getSensitiveStateFromFields() {
         GlobalSettingsSensitiveState state = new GlobalSettingsSensitiveState();
-        state.setApiKey(String.valueOf(apiKeyField.getPassword()));
+        char[] apiKey = apiKeyField.getPassword();
+        state.setApiKey(apiKey != null ? String.valueOf(apiKey) : SENSITIVE_SETTINGS_STATE.getApiKey());
         state.setRefreshToken(SENSITIVE_SETTINGS_STATE.getRefreshToken());
         return state;
     }
