@@ -43,8 +43,22 @@ public final class Utils {
     private static final SimpleDateFormat input = new SimpleDateFormat(Constants.INPUT_DATE_FORMAT);
     private static final SimpleDateFormat output = new SimpleDateFormat(Constants.OUTPUT_DATE_FORMAT);
 
-    private static final Project CX_PROJECT = ProjectManager.getInstance().getDefaultProject();
-    private static final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
+    private static Project cxProject;
+    private static MessageBus messageBus;
+
+    private static Project getCxProject() {
+        if (cxProject == null && ApplicationManager.getApplication() != null) {
+            cxProject = ProjectManager.getInstance().getDefaultProject();
+        }
+        return cxProject;
+    }
+
+    private static MessageBus getMessageBus() {
+        if (messageBus == null && ApplicationManager.getApplication() != null) {
+            messageBus = ApplicationManager.getApplication().getMessageBus();
+        }
+        return messageBus;
+    }
 
     private Utils() {
         // forbid instantiation of the class
@@ -300,10 +314,10 @@ public final class Utils {
                 Utils.showNotification(Bundle.message(Resource.SESSION_EXPIRED_TITLE),
                         Bundle.message(Resource.ERROR_SESSION_EXPIRED),
                         NotificationType.ERROR,
-                        CX_PROJECT)
+                        getCxProject())
         );
         ApplicationManager.getApplication().invokeLater(() ->
-                messageBus.syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied()
+                getMessageBus().syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied()
         );
     }
 
