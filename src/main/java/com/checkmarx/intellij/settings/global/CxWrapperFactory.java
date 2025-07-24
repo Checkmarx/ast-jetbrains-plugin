@@ -21,8 +21,9 @@ public class CxWrapperFactory {
             throws CxException, IOException {
         final CxConfig.CxConfigBuilder builder = CxConfig.builder();
 
-        if (isCredentialExpired(state, sensitiveState)) {
-            return null;
+        if(isCredentialExpired(state, sensitiveState)){
+            Utils.notifySessionExpired();
+            return new CxWrapper(builder.build());
         }
         if (state.isApiKeyEnabled()) {
             builder.apiKey(sensitiveState.getApiKey());
@@ -46,10 +47,6 @@ public class CxWrapperFactory {
     private static boolean isCredentialExpired(GlobalSettingsState state, GlobalSettingsSensitiveState sensitiveState) {
         if (state.isApiKeyEnabled()) {
             return false;
-        } else if (sensitiveState.isTokenExpired(state.getRefreshTokenExpiry())) {
-            Utils.notifySessionExpired();
-            return true;
-        }
-        return false;
+        } else return sensitiveState.isTokenExpired(state.getRefreshTokenExpiry());
     }
 }

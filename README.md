@@ -87,8 +87,9 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 
 -   You are running IntelliJ version 2022.2+ or another JetBrains IDE that is based on a supported version of IntelliJ.
 
--   You have an **API key** for your Checkmarx One account. To create an
+-   You have an API key or user credentials to authenticate with Checkmarx One account via an API key or OAuth, To create an
     API key, see [Generating an API Key](https://checkmarx.com/resource/documents/en/34965-68618-generating-an-api-key.html).
+
 > The following are the minimum required  [roles](https://docs.checkmarx.com/en/34965-68603-managing-roles.html "Managing Roles")  for running an end-to-end flow of scanning a project and viewing results via the CLI or plugins:
 > -   CxOne composite role  `ast-scanner`
 > -   CxOne role  `view-policy-management`
@@ -101,12 +102,12 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 -   Verify that all prerequisites are in place.
 
 -   Install the **Checkmarx One** plugin and configure the settings as
-    described [here](https://checkmarx.com/resource/documents/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-plugin.html).
+    described [here](https://docs.checkmarx.com/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-pluging-68734.html).
 
 <!-- Usage -->
 ## Usage
 
-To see how you can use our tool, please refer to the [Documentation](https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html)
+To see how you can use our tool, please refer to the [Documentation](https://docs.checkmarx.com/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-pluging.html)
 
 
 ## Contribution
