@@ -251,6 +251,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
                             connectButton.setEnabled(false);
                             setFieldsEditable(false);
                             SETTINGS_STATE.setAuthenticated(true);
+                            SETTINGS_STATE.setLastValidationSuccess(true);
+                            SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
                             apply(); // Persist the state immediately
                             logoutButton.requestFocusInWindow();
                         });
