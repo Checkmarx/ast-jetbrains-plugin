@@ -5,11 +5,11 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import org.intellij.lang.annotations.Language;
 
 import java.io.OutputStream;
@@ -26,11 +26,12 @@ import java.util.concurrent.*;
  * <p>
  * {@link HttpServer}
  */
-@Slf4j
+
 public class OAuthCallbackServer {
 
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    private final CompletableFuture<String> authCodeFuture = new CompletableFuture<>();
+    private static final Logger LOGGER = Utils.getLogger(OAuthCallbackServer.class);
+    private final ScheduledExecutorService scheduler;
+    private final CompletableFuture<String> authCodeFuture;
     private final String callbackURL;
     @Setter
     private String state;
@@ -43,6 +44,8 @@ public class OAuthCallbackServer {
      */
     public OAuthCallbackServer(String callbackURL) {
         this.callbackURL = callbackURL;
+        this.scheduler = Executors.newSingleThreadScheduledExecutor();
+        this.authCodeFuture = new CompletableFuture<>();
     }
 
     /**
@@ -60,23 +63,21 @@ public class OAuthCallbackServer {
             server.setExecutor(null);
             server.start();
 
-            log.info("OAuth: Callback server started successfully. http://localhost:{}/{}", port, callbackURL);
-
             // Dynamic timeout support, stops itself and completes the CompletableFuture exceptionally after the timeout.
             scheduler.schedule(() -> {
                 try {
                     if (!authCodeFuture.isDone()) {
                         authCodeFuture.completeExceptionally(
-                                new TimeoutException("Auth code not received within a authentication time seconds:"+ timeoutSeconds));
-                        log.warn("OAuth: Stopping local server due to authentication timeout :{} seconds ", timeoutSeconds);
+                                new TimeoutException("Auth code not received within a authentication time seconds:" + timeoutSeconds));
+                        LOGGER.warn(String.format("OAuth: Stopping local server due to authentication timeout :%d seconds ", timeoutSeconds));
                         stop();
                     }
-                }catch (Exception exception){
-                    log.error("OAuth: Exception occurred during scheduled timeout handling. Root Cause:{}", exception.getMessage());
+                } catch (Exception exception) {
+                    LOGGER.error("OAuth: Exception occurred during scheduled timeout handling. Root Cause:{}", exception.getMessage());
                 }
             }, timeoutSeconds, TimeUnit.SECONDS);
         } catch (Exception exception) {
-            log.error("OAuth: Unable to start the local callback Https Server. Root Cause:{}", exception.getMessage());
+            LOGGER.error("OAuth: Unable to start the local callback Https Server. Root Cause:{}", exception.getMessage());
             throw new CxException(500, Bundle.message(Resource.ERROR_PORT_NOT_AVAILABLE));
         }
     }
@@ -88,7 +89,6 @@ public class OAuthCallbackServer {
         if (server != null) {
             server.stop(0);
             server = null;
-            log.info("OAuth: Callback server stopped successfully.");
         }
         if (!scheduler.isShutdown()) {
             scheduler.shutdownNow();
@@ -109,7 +109,7 @@ public class OAuthCallbackServer {
      */
     private class OAuthCallbackHandler implements HttpHandler {
         @Override
-        public void handle(HttpExchange exchange)  {
+        public void handle(HttpExchange exchange) {
             URI uri = exchange.getRequestURI();
             String query = uri.getQuery();
 
@@ -121,7 +121,7 @@ public class OAuthCallbackServer {
                     authCodeFuture.complete(code);
                 } else {
                     String error = extractParam(query, "error");
-                    log.error("OAuth: Received error from authorization endpoint. Error:{}", error);
+                    LOGGER.error("OAuth: Received error from authorization endpoint. Error:{}", error);
                     String htmlString = loadAuthErrorHtml(error);
                     sendResponse(exchange, htmlString, 400);
                     authCodeFuture.completeExceptionally(new RuntimeException("OAuth2: Received Error: " + error));
@@ -139,13 +139,10 @@ public class OAuthCallbackServer {
         String validateStateAndGetCode(String query) {
             final String paramState = extractParam(query, Constants.AuthConstants.STATE);
             if (!state.equals(paramState)) {
-                log.error("OAuth: Received state parameter is invalid.");
+                LOGGER.error("OAuth: Received state parameter is invalid.");
                 throw new IllegalStateException("Invalid authentication");
             }
-            String code = extractParam(query, Constants.AuthConstants.CODE);
-            log.info("OAuth: Auth code received successfully.");
-            log.debug("OAuth: Received auth code:{}", code);
-            return code;
+            return extractParam(query, Constants.AuthConstants.CODE);
         }
 
         /**
@@ -178,7 +175,7 @@ public class OAuthCallbackServer {
                 os.write(respString.getBytes());
                 os.close();
             } catch (Exception exception) {
-                log.error("OAuth: Exception occurred while sending response to user. Root Cause:{}", exception.getMessage());
+                LOGGER.error("OAuth: Exception occurred while sending response to user. Root Cause:{}", exception.getMessage());
             }
         }
     }
@@ -201,7 +198,7 @@ public class OAuthCallbackServer {
      *
      * @return html string
      */
-    private String loadAuthErrorHtml(String error)  {
+    private String loadAuthErrorHtml(String error) {
         String responseContent = Utils.getFileContentFromResource(Constants.AuthConstants.AUTH_ERROR_HTML_FILE_PATH);
         if (responseContent != null && !responseContent.isBlank()) {
             return responseContent.replace("ERROR_MESSAGE", error);
@@ -211,10 +208,11 @@ public class OAuthCallbackServer {
 
     /**
      * Backup method to build auth success html page
+     *
      * @return html string
      */
     @Language("HTML")
-    private String successHtmlResponse(){
+    private String successHtmlResponse() {
         @Language("HTML") String str = "";
         str += " <!DOCTYPE html>";
         str += "      <html lang=\"en\">";
@@ -309,10 +307,11 @@ public class OAuthCallbackServer {
 
     /**
      * Backup method to build auth failure html page
+     *
      * @return html string
      */
     @Language("HTML")
-    private String errorHtmlResponse(String error){
+    private String errorHtmlResponse(String error) {
         @Language("HTML") String str = "";
         str += "<!DOCTYPE html>";
         str += "      <html lang=\"en\">";
@@ -386,7 +385,7 @@ public class OAuthCallbackServer {
         str += "              <div class=\"icon-container\">";
         str += "                  <span class=\"error-icon\">❌</span>";
         str += "              </div>";
-        str += "              <p class=\"message\">"+error+"</p>";
+        str += "              <p class=\"message\">" + error + "</p>";
         str += "          </div>";
         str += "      </body>";
         str += "      </html>";

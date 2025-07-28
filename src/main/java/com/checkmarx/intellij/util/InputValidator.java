@@ -4,12 +4,13 @@ import com.intellij.openapi.diagnostic.Logger;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.concurrent.CompletableFuture;
 
-public class CheckmarxValidator {
+public class InputValidator {
 
-    private static final Logger LOGGER = Logger.getInstance(CheckmarxValidator.class);
+    private static final Logger LOGGER = Logger.getInstance(InputValidator.class);
 
     public static CompletableFuture<ValidationResult> validateConnection(String baseUri, String tenant) {
         return CompletableFuture.supplyAsync(() -> {
@@ -62,11 +63,11 @@ public class CheckmarxValidator {
         }
     }
 
-    private static boolean isValidUrl(String url) {
+    public static boolean isValidUrl(String url) {
         try {
             new URL(url);
             return true;
-        } catch (Exception e) {
+        } catch (MalformedURLException e) {
             return false;
         }
     }

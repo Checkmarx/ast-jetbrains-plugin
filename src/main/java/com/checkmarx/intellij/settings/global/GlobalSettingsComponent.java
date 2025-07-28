@@ -11,7 +11,7 @@ import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
-import com.checkmarx.intellij.util.CheckmarxValidator;
+import com.checkmarx.intellij.util.InputValidator;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -36,6 +36,7 @@ import javax.swing.event.DocumentEvent;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -284,7 +285,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             return;
         }
         connectButton.setEnabled(false);
-        CheckmarxValidator.validateConnection(baseUrl, tenant).thenAccept(result -> {
+        InputValidator.validateConnection(baseUrl, tenant).thenAccept(result -> {
             SwingUtilities.invokeLater(() -> {
                 if (!result.isValid) {
                     // Validation failed – show error message
@@ -308,7 +309,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         SETTINGS_STATE.setValidationExpiry(getValidationExpiry());
                         apply();
 
-                        new AuthService().authenticate(baseUrl, tenant, authResult -> {
+                        new AuthService(project).authenticate(baseUrl, tenant, authResult -> {
                             if (authResult.containsKey(Constants.AuthConstants.REFRESH_TOKEN)) {
                                 handleOAuthSuccess(authResult); // Extract token
                             } else {
@@ -566,7 +567,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             return false;
         }
 
-        if (!isValidUrl(rawInput)) {
+        if (!InputValidator.isValidUrl(rawInput)) {
             setValidationResult("Invalid URL format", JBColor.RED);
             connectButton.setEnabled(false);
             return false;
@@ -576,21 +577,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
         return true;
     }
 
-    // Helper method for URL validation
-    private boolean isValidUrl(String url) {
-        try {
-            new java.net.URL(url);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
     private void updateConnectButtonState() {
         boolean enabled = false;
 
         if (oauthRadio.isSelected()) {
-            boolean isBaseUrlValid = isValidUrl(baseUrlField.getText().trim());
+            boolean isBaseUrlValid = InputValidator.isValidUrl(baseUrlField.getText().trim());
             boolean isBaseUrlNotEmpty = !baseUrlField.getText().trim().isEmpty();
             boolean isTenantNotEmpty = !tenantField.getText().trim().isEmpty();
             enabled = isBaseUrlValid && isBaseUrlNotEmpty && isTenantNotEmpty;

@@ -11,7 +11,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.util.messages.MessageBus;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,7 +35,6 @@ import java.util.stream.Collectors;
 /**
  * Class for static, common util methods
  */
-@Slf4j
 public final class Utils {
 
     private static final Logger LOGGER = getLogger(Utils.class);
@@ -177,7 +175,7 @@ public final class Utils {
             new SecureRandom().nextBytes(codeVerifier);
             return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
         } catch (Exception exception) {
-            LOGGER.error("OAuth: Exception occur while generating code verifier. Root Cause:{}"
+            LOGGER.error("OAuth: Exception occurred while generating code verifier. Root Cause:{}"
                     , exception.getMessage());
             return null;
         }
@@ -195,7 +193,7 @@ public final class Utils {
             byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
             return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
         } catch (Exception exception) {
-            LOGGER.error("OAuth: Exception occur while generating code challenge. Root Cause:{}"
+            LOGGER.error("OAuth: Exception occurred while generating code challenge. Root Cause:{}"
                     , exception.getMessage());
             return null;
         }
@@ -267,7 +265,7 @@ public final class Utils {
      * @apiNote For every next retry attempt delay will be increase by attempt * initialDelayMillis
      */
     public static <T> T executeWithRetry(Supplier<T> action, int maxRetries, long initialDelayMillis) throws Exception {
-        Exception lastException = null;
+        Exception lastException = new CxException(500, "Something went wrong, Please try again.");
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 return action.get();
@@ -286,11 +284,7 @@ public final class Utils {
                 }
             }
         }
-        if (lastException != null) {
-            throw lastException;
-        }
-        LOGGER.error("Retry: Unexpected exception occurred during retries.");
-        throw new CxException(500, "Something went wrong, Please try again.");
+        throw lastException;
     }
 
     /**
