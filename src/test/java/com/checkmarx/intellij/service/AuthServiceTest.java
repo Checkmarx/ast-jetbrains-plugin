@@ -7,7 +7,6 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.helper.OAuthCallbackServer;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
 import com.intellij.openapi.project.Project;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,7 +32,6 @@ import static org.mockito.Mockito.*;
  * AuthServiceTest class responsible to execute unit cases for {@link AuthService}
  */
 @ExtendWith(MockitoExtension.class)
-@Slf4j
 public class AuthServiceTest {
 
     @Mock
@@ -184,6 +182,7 @@ public class AuthServiceTest {
         verify(authService.server).start(anyInt(), eq(5000));
         verify(authService.server).stop();
     }*/
+
     /**
      * Success test, getting valid token
      *
@@ -302,10 +301,10 @@ public class AuthServiceTest {
         return "{\"refresh_expires_in\":604800,\"refresh_token\":\"" + MOCK_REFRESH + "\"}";
     }
 
-    private String getAuthorizationEndPoint(){
-        return AUTH_ENDPOINT+"?response_type=code&client_id=ide-integration" +
+    private String getAuthorizationEndPoint() {
+        return AUTH_ENDPOINT + "?response_type=code&client_id=ide-integration" +
                 "&redirect_uri=http%3A%2F%2Flocalhost%3A5000%2Fcheckmarx1%2Fcallback&scope=openid+offline_access" +
-                "&state=d19e1546-f2c2-4da6-8d0d-6b92b7ec7717&code_challenge="+CODE_CHALLENGE+"&code_challenge_method=S256";
+                "&state=d19e1546-f2c2-4da6-8d0d-6b92b7ec7717&code_challenge=" + CODE_CHALLENGE + "&code_challenge_method=S256";
     }
 }
 
