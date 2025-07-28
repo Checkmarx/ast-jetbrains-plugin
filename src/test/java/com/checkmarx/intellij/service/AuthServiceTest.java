@@ -63,7 +63,7 @@ public class AuthServiceTest {
     private static final String CODE_VERIFIER = "verifier";
     private static final String CODE_CHALLENGE = "challenge";
     private static final String REDIRECT_URI = "http://localhost:5000/checkmarx1/callback";
-    private static final String TOKEN = "eyJhbGciOiJIUzUxMiIsInR5cCIgOiA.iSldUIiwia2lkIiA6ICIxNmFkYTA.yNS02YWY0LTQ3YjgtOTc5Ni1hZj";
+    private static final String MOCK_REFRESH = "eyJhbGciOiJIUzUxMiIsInR5cCIgOiA.iSldUIiwia2lkIiA6ICIxNmFkYTA.yNS02YWY0LTQ3YjgtOTc5Ni1hZj";
 
     @BeforeEach
     protected void setUp() throws Exception {
@@ -198,7 +198,7 @@ public class AuthServiceTest {
             when(mockHttpClient.send(any(), any())).thenReturn(mockResponse);
             Map<String, Object> result = authService.callTokenEndpoint(TOKEN_ENDPOINT, AUTH_CODE, CODE_VERIFIER, REDIRECT_URI);
             assertNotNull(result);
-            assertEquals(TOKEN, result.get(Constants.AuthConstants.REFRESH_TOKEN));
+            assertEquals(MOCK_REFRESH, result.get(Constants.AuthConstants.REFRESH_TOKEN));
         }
     }
 
@@ -224,7 +224,7 @@ public class AuthServiceTest {
                     .thenReturn(mockResponse)
                     .thenReturn(successResponse);
             Map<String, Object> result = authService.callTokenEndpoint(TOKEN_ENDPOINT, AUTH_CODE, CODE_VERIFIER, REDIRECT_URI);
-            assertEquals(TOKEN, result.get(Constants.AuthConstants.REFRESH_TOKEN));
+            assertEquals(MOCK_REFRESH, result.get(Constants.AuthConstants.REFRESH_TOKEN));
         }
     }
 
@@ -263,7 +263,7 @@ public class AuthServiceTest {
     @Test
     void testExtractRefreshTokenDetails_validJson_success() {
         Map<String, Object> result = authService.extractRefreshTokenDetails(getJsonResponse());
-        assertEquals(TOKEN, result.get(Constants.AuthConstants.REFRESH_TOKEN));
+        assertEquals(MOCK_REFRESH, result.get(Constants.AuthConstants.REFRESH_TOKEN));
         assertNotNull(result.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY));
     }
 
@@ -275,19 +275,19 @@ public class AuthServiceTest {
         GlobalSettingsSensitiveState mockState = mock(GlobalSettingsSensitiveState.class);
         try (MockedStatic<GlobalSettingsSensitiveState> mockedStatic = mockStatic(GlobalSettingsSensitiveState.class)) {
             mockedStatic.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockState);
-            doNothing().when(mockState).setRefreshToken(TOKEN);
-            doNothing().when(mockState).saveRefreshToken(TOKEN);
+            doNothing().when(mockState).setRefreshToken(MOCK_REFRESH);
+            doNothing().when(mockState).saveRefreshToken(MOCK_REFRESH);
 
-            authService.saveToken(TOKEN);
+            authService.saveToken(MOCK_REFRESH);
 
-            verify(mockState).setRefreshToken(TOKEN);
-            verify(mockState).saveRefreshToken(TOKEN);
+            verify(mockState).setRefreshToken(MOCK_REFRESH);
+            verify(mockState).saveRefreshToken(MOCK_REFRESH);
         }
     }
 
     private Map<String, Object> getTokenMap() {
         Map<String, Object> tokenMap = new HashMap<>();
-        tokenMap.put(Constants.AuthConstants.REFRESH_TOKEN, TOKEN);
+        tokenMap.put(Constants.AuthConstants.REFRESH_TOKEN, MOCK_REFRESH);
         tokenMap.put(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY, "604800");
         return tokenMap;
     }
@@ -299,7 +299,7 @@ public class AuthServiceTest {
     }
 
     private String getJsonResponse() {
-        return "{\"refresh_expires_in\":604800,\"refresh_token\":\"" + TOKEN + "\"}";
+        return "{\"refresh_expires_in\":604800,\"refresh_token\":\"" + MOCK_REFRESH + "\"}";
     }
 
     private String getAuthorizationEndPoint(){
