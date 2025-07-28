@@ -77,7 +77,7 @@ public class OAuthCallbackServer {
                 }
             }, timeoutSeconds, TimeUnit.SECONDS);
         } catch (Exception exception) {
-            LOGGER.error("OAuth: Unable to start the local callback Https Server. Root Cause:{}", exception.getMessage());
+            LOGGER.error("OAuth: Unable to start the local callback Http Server. Root Cause:{}", exception.getMessage());
             throw new CxException(500, Bundle.message(Resource.ERROR_PORT_NOT_AVAILABLE));
         }
     }

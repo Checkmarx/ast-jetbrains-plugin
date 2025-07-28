@@ -70,7 +70,7 @@ public class AuthService {
             String codeChallenge = Utils.generateCodeChallenge(codeVerifier);
 
             if (codeVerifier == null || codeChallenge == null) {
-                LOGGER.warn("OAuth: Code Verifier or Code Challenge is null.");
+                LOGGER.warn("OAuth: Unable to generate code Verifier or code challenge.");
                 setAuthErrorResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
                 return;
             }
@@ -323,9 +323,10 @@ public class AuthService {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response != null) {
+                LOGGER.debug("OAuth: Received response statusCode:{}", response.statusCode());
                 if (response.statusCode() == 200) {
                     return extractRefreshTokenDetails(response.body());
-                } else if (response.statusCode() == 308) {
+                } else if (response.statusCode() > 300 && response.statusCode() < 400) {
                     LOGGER.warn(String.format("OAuth: Received permanent redirect, getting new token endpoint from header location. Attempt:%d", redirectAttempt));
                     /*
                      * If user provided only base url then, CxOne send permanent redirect response.
