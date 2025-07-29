@@ -66,6 +66,7 @@ public class AuthService {
      */
     public void authenticate(final String cxOneBaseUrl, final String cxOneTenant, Consumer<Map<String, Object>> authResult) {
         try {
+            LOGGER.info(String.format("OAuth: Authentication started with base URL:%s and tenant:%s", cxOneBaseUrl, cxOneTenant));
             String codeVerifier = Utils.generateCodeVerifier();
             String codeChallenge = Utils.generateCodeChallenge(codeVerifier);
 
@@ -127,6 +128,7 @@ public class AuthService {
             }
             saveToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString()); // Save refresh token in storage
             setAuthSuccessResult(authResult, refreshTokenDetails); //Return token
+            LOGGER.info("OAuth: Authentication completed successfully.");
         } catch (ExecutionException | TimeoutException timeoutException) {
             LOGGER.warn("OAuth: Time out exception occurred. Auth code not received within authentication timeout");
             setAuthErrorResult(authResult, Bundle.message(Resource.ERROR_AUTHENTICATION_TIME_OUT));
@@ -324,7 +326,7 @@ public class AuthService {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response != null) {
-                LOGGER.debug("OAuth: Received response statusCode:{}", response.statusCode());
+                LOGGER.info(String.format("OAuth: Received response statusCode:%s", response.statusCode()));
                 if (response.statusCode() == 200) {
                     return extractRefreshTokenDetails(response.body());
                 } else if (response.statusCode() > 300 && response.statusCode() < 400) {

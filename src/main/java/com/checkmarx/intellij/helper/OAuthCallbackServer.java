@@ -73,11 +73,13 @@ public class OAuthCallbackServer {
                         stop();
                     }
                 } catch (Exception exception) {
-                    LOGGER.error("OAuth: Exception occurred during scheduled timeout handling. Root Cause:{}", exception.getMessage());
+                    LOGGER.warn(String.format("OAuth: Exception occurred during scheduled timeout handling. Root Cause:%s",
+                            exception.getMessage()));
                 }
             }, timeoutSeconds, TimeUnit.SECONDS);
         } catch (Exception exception) {
-            LOGGER.error("OAuth: Unable to start the local callback Http Server. Root Cause:{}", exception.getMessage());
+            LOGGER.warn(String.format("OAuth: Unable to start the local callback Http Server. Root Cause:%S",
+                    exception.getMessage()));
             throw new CxException(500, Bundle.message(Resource.ERROR_PORT_NOT_AVAILABLE));
         }
     }
@@ -89,6 +91,7 @@ public class OAuthCallbackServer {
         if (server != null) {
             server.stop(0);
             server = null;
+            LOGGER.info("OAuth:Server stopped successfully.");
         }
         if (!scheduler.isShutdown()) {
             scheduler.shutdownNow();
@@ -121,7 +124,7 @@ public class OAuthCallbackServer {
                     authCodeFuture.complete(code);
                 } else {
                     String error = extractParam(query, "error");
-                    LOGGER.error("OAuth: Received error from authorization endpoint. Error:{}", error);
+                    LOGGER.warn(String.format("OAuth: Received error from authorization endpoint. Error:%s", error));
                     String htmlString = loadAuthErrorHtml(error);
                     sendResponse(exchange, htmlString, 400);
                     authCodeFuture.completeExceptionally(new RuntimeException("OAuth2: Received Error: " + error));
@@ -139,7 +142,7 @@ public class OAuthCallbackServer {
         String validateStateAndGetCode(String query) {
             final String paramState = extractParam(query, Constants.AuthConstants.STATE);
             if (!state.equals(paramState)) {
-                LOGGER.error("OAuth: Received state parameter is invalid.");
+                LOGGER.warn("OAuth: Received state parameter is invalid.");
                 throw new IllegalStateException("Invalid authentication");
             }
             return extractParam(query, Constants.AuthConstants.CODE);
@@ -175,7 +178,8 @@ public class OAuthCallbackServer {
                 os.write(respString.getBytes());
                 os.close();
             } catch (Exception exception) {
-                LOGGER.error("OAuth: Exception occurred while sending response to user. Root Cause:{}", exception.getMessage());
+                LOGGER.warn(String.format("OAuth: Exception occurred while sending response to user. Root Cause:%s",
+                        exception.getMessage()));
             }
         }
     }
