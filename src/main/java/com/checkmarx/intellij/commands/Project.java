@@ -26,6 +26,14 @@ public class Project {
         return CxWrapperFactory.build().projectList("limit=10000");
     }
 
+    public static List<com.checkmarx.ast.project.Project> getList(String filter)
+            throws
+            IOException,
+            InterruptedException,
+            CxException {
+        return CxWrapperFactory.build().projectList("name="+filter);
+    }
+
     public static List<String> getBranches(@NonNull UUID projectId, boolean isSCMProject)
             throws
             IOException,

@@ -7,14 +7,25 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.Presentation;
+import com.intellij.openapi.actionSystem.ex.CustomComponentAction;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
+import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.SearchTextField;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.intellij.ui.SearchTextField;
+import com.intellij.openapi.actionSystem.Presentation;
 
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -22,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Action group for selecting a project in the UI.
@@ -71,6 +83,11 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
 
     private void populate(boolean inherit) {
         setEnabled(false);
+        removeAll();
+        byId.clear();
+
+        // Add search action first
+        add(new SearchAction());
         CompletableFuture.supplyAsync((Supplier<List<com.checkmarx.ast.project.Project>>) () -> {
             try {
                 return com.checkmarx.intellij.commands.Project.getList();
@@ -81,8 +98,14 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
         }).thenAccept((projectList) -> ApplicationManager.getApplication().invokeLater(() -> {
             String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
             for (com.checkmarx.ast.project.Project p : projectList) {
-                add(new Action(p));
                 byId.put(p.getId(), p);
+            }
+
+            refreshProjectListWithFilter(""); // Initially show all
+
+            updateProjectListUI(projectList);
+
+            for (com.checkmarx.ast.project.Project p : projectList) {
                 if (inherit && storedProject == null && matchProject(p)) {
                     propertiesComponent.setValue(Constants.SELECTED_PROJECT_PROPERTY, p.getName());
                     refreshBranchGroup(p, true);
@@ -110,8 +133,8 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
         }
         String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
         return Bundle.message(Resource.PROJECT_SELECT_PREFIX)
-               + ": "
-               + (StringUtils.isBlank(storedProject) ? NONE_SELECTED : storedProject);
+                + ": "
+                + (StringUtils.isBlank(storedProject) ? NONE_SELECTED : storedProject);
     }
 
     /**
@@ -130,7 +153,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
 
     private boolean matchProject(com.checkmarx.ast.project.Project astProject) {
         return astProject.getName().equals(project.getName()) ||
-               (Utils.getRootRepository(project) != null && Objects.requireNonNull(Utils.getRootRepository(project)).getPresentableUrl().endsWith(astProject.getName()));
+                (Utils.getRootRepository(project) != null && Objects.requireNonNull(Utils.getRootRepository(project)).getPresentableUrl().endsWith(astProject.getName()));
     }
 
     /**
@@ -149,7 +172,6 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
     private class Action extends AnAction implements DumbAware {
 
         private final com.checkmarx.ast.project.Project project;
-
         public Action(com.checkmarx.ast.project.Project project) {
             super(project.getName());
             getTemplatePresentation().setText(project::getName, false);
@@ -161,4 +183,60 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
             select(project);
         }
     }
+
+    private class SearchAction extends AnAction implements DumbAware {
+
+        public SearchAction() {
+            super("🔍 Search Projects");
+        }
+
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            String filterText = com.intellij.openapi.ui.Messages.showInputDialog(
+                    project,
+                    "Enter project name to search:",
+                    "Search Projects",
+                    null
+            );
+            if (filterText != null) {
+                refreshProjectListWithFilter(filterText.trim().toLowerCase());
+            }
+        }
+    }
+    private void refreshProjectListWithFilter(String filterText) {
+        // Keep search action on top
+        removeAll();
+        add(new SearchAction());
+        String lowercaseFilter = filterText.toLowerCase();
+        // Filter the map of projects
+        List<com.checkmarx.ast.project.Project> filteredProjects = byId.values().stream()
+                .filter(p -> p.getName().toLowerCase().contains(lowercaseFilter))
+                .collect(Collectors.toList());
+
+        if (filteredProjects.isEmpty()) {
+            // No match found, try fetching from server
+            try {
+                updateProjectListUI(com.checkmarx.intellij.commands.Project.getList(lowercaseFilter));
+            } catch (Exception e) {
+                LOGGER.warn(e);
+            }
+        } else {
+            // Update UI actions
+            updateProjectListUI(filteredProjects);
+        }
+        refreshPanel(project);
+    }
+
+    private void updateProjectListUI(List<com.checkmarx.ast.project.Project> projects) {
+
+        for (com.checkmarx.ast.project.Project project : projects) {
+            add(new Action(project));
+        }
+
+    }
+
 }
+
+
+
+
