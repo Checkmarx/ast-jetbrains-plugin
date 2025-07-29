@@ -171,8 +171,9 @@ public final class Utils {
      */
     public static String generateCodeVerifier() {
         try {
+            SecureRandom secureRandom = SecureRandom.getInstance("DRBG");
             byte[] codeVerifier = new byte[32];
-            new SecureRandom().nextBytes(codeVerifier);
+            secureRandom.nextBytes(codeVerifier);
             return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
         } catch (Exception exception) {
             LOGGER.error("OAuth: Exception occurred while generating code verifier. Root Cause:{}"
