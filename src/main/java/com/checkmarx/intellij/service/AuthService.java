@@ -85,8 +85,8 @@ public class AuthService {
                 }
             }.queue();
         } catch (Exception exception) {
-            LOGGER.error("OAuth: Exception occurred while authenticating using oauth2. Root Cause:{}",
-                    exception.getMessage());
+            LOGGER.warn(String.format("OAuth: Exception occurred while authenticating using oauth2. Root Cause:%s",
+                    exception.getMessage()));
             setAuthErrorResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
         }
     }
@@ -128,13 +128,13 @@ public class AuthService {
             saveToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString()); // Save refresh token in storage
             setAuthSuccessResult(authResult, refreshTokenDetails); //Return token
         } catch (ExecutionException | TimeoutException timeoutException) {
-            LOGGER.error("OAuth: Time out exception occurred. Auth code not received within authentication timeout");
+            LOGGER.warn("OAuth: Time out exception occurred. Auth code not received within authentication timeout");
             setAuthErrorResult(authResult, Bundle.message(Resource.ERROR_AUTHENTICATION_TIME_OUT));
         } catch (CxException cxException) {
-            LOGGER.error("OAuth: Custom exception thrown. Root Cause:{} ", cxException.getMessage());
+            LOGGER.warn(String.format("OAuth: Custom exception thrown. Root Cause:%s ", cxException.getMessage()));
             setAuthErrorResult(authResult, cxException.getMessage());
         } catch (Exception exception) {
-            LOGGER.error("OAuth: Exception occurred during authentication process. Root Cause:{} ", exception.getMessage());
+            LOGGER.warn(String.format("OAuth: Exception occurred during authentication process. Root Cause:%s ", exception.getMessage()));
             setAuthErrorResult(authResult, Bundle.message(Resource.VALIDATE_ERROR));
         } finally {
             LOGGER.warn("OAuth: Finally stopping callback server.");
@@ -261,7 +261,7 @@ public class AuthService {
             try {
                 BrowserUtil.browse(new URI(url)); // Launch browser for authentication.
             } catch (Exception exception) {
-                LOGGER.error("OAuth: Exception occurred while opening the browser. Root Cause:{}", exception.getMessage());
+                LOGGER.warn(String.format("OAuth: Exception occurred while opening the browser. Root Cause:%s", exception.getMessage()));
             }
         });
     }
@@ -288,7 +288,8 @@ public class AuthService {
                 }
             }, MAX_RETRIES, RETRY_DELAY_MS);
         } catch (Exception exception) {
-            LOGGER.error("OAuth: Failed to get OAuth token after retries. Root Cause:{} ", exception.getMessage());
+            LOGGER.warn(String.format("OAuth: Failed to get OAuth token after retries. Root Cause:%s ",
+                    exception.getMessage()));
             return Collections.emptyMap();
         }
     }
@@ -360,7 +361,8 @@ public class AuthService {
                 tokenDetails.put(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY, getRefreshTokenExpiry(Long.parseLong(expirySeconds)));
             }
         } catch (JsonProcessingException exception) {
-            LOGGER.error("OAuth: Unable to extract refresh token using from the response using JsonNode. Error:{}", exception.getMessage());
+            LOGGER.warn(String.format("OAuth: Unable to extract refresh token using from the response using JsonNode. Error:%s",
+                    exception.getMessage()));
         }
         return tokenDetails;
     }

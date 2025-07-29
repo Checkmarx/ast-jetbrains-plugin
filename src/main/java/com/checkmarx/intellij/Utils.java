@@ -176,8 +176,8 @@ public final class Utils {
             secureRandom.nextBytes(codeVerifier);
             return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
         } catch (Exception exception) {
-            LOGGER.error("OAuth: Exception occurred while generating code verifier. Root Cause:{}"
-                    , exception.getMessage());
+            LOGGER.warn(String.format("OAuth: Exception occurred while generating code verifier. Root Cause:%s"
+                    , exception.getMessage()));
             return null;
         }
     }
@@ -194,8 +194,8 @@ public final class Utils {
             byte[] hash = digest.digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
             return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
         } catch (Exception exception) {
-            LOGGER.error("OAuth: Exception occurred while generating code challenge. Root Cause:{}"
-                    , exception.getMessage());
+            LOGGER.warn(String.format("OAuth: Exception occurred while generating code challenge. Root Cause:%s"
+                    , exception.getMessage()));
             return null;
         }
     }
@@ -232,7 +232,8 @@ public final class Utils {
                 return new String(input.readAllBytes(), StandardCharsets.UTF_8);
             }
         } catch (Exception exception) {
-            LOGGER.error("Load Resource: Unable to load file from the path:{}. Root Cause:{}", resourcePath, exception.getMessage());
+            LOGGER.warn(String.format("Load Resource: Unable to load file from the path:%s. Root Cause:%s",
+                    resourcePath, exception.getMessage()));
         }
         return null;
     }
