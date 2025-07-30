@@ -30,7 +30,7 @@ public class Xpath {
     static final String CHANGES_COMMENT = "//div[@accessiblename='%s' and @class='JLabel' and @text='<html>%s</html>']";
     @Language("XPath")
     public
-    static final String VALIDATE_BUTTON = "//div[@class='JButton' and @text='Validate connection']";
+    static final String CONNECT_BUTTON = "//div[@class='JButton' and @text='Connect to Checkmarx']";
     @Language("XPath")
     public
     static final String STATE_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='TO_VERIFY']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='URGENT']]//div[@class='BasicArrowButton']";
@@ -167,6 +167,15 @@ public class Xpath {
     @Language("XPath")
     public
     static final String ASCA_INSTALL_SUCCESS = "//div[@class='JBLabel' and @accessiblename='AI Secure Coding Assistant Engine started.']";
+    @Language("XPath")
+    public
+    static final String LOGOUT_BUTTON = "//div[@text='Log out']";
+    @Language("XPath")
+    public
+    static final String LOGOUT_CONFIRM_YES = "//div[@text='Yes']";
+    @Language("XPath")
+    public
+    static final String API_KEY_RADIO = "//div[@text='API Key' or @visible_text='API Key']";
     @Language("XPath")
     public
     static final String ASCA_CHECKBOX = "//div[@class='JBCheckBox' and @text='Scan your file as you code']";
