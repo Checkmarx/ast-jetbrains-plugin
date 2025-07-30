@@ -171,7 +171,7 @@ public final class Utils {
      */
     public static String generateCodeVerifier() {
         try {
-            SecureRandom secureRandom = SecureRandom.getInstance("DRBG");
+            SecureRandom secureRandom = getSecureRandom();
             byte[] codeVerifier = new byte[32];
             secureRandom.nextBytes(codeVerifier);
             return Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifier);
@@ -179,6 +179,23 @@ public final class Utils {
             LOGGER.warn(String.format("OAuth: Exception occurred while generating code verifier. Root Cause:%s"
                     , exception.getMessage()));
             return null;
+        }
+    }
+
+    /**
+     * Getting {@link SecureRandom} object using specific algorithm, if specified algorithm
+     * not available the generating default SecureRandom object
+     *
+     * @return SecureRandom
+     */
+    private static SecureRandom getSecureRandom() {
+        try {
+            return SecureRandom.getInstance("DRBG");
+        } catch (Exception exception) {
+            LOGGER.warn(String.format("OAuth: Exception occurred while getting SecureRandom with DRBG. Root Cause:%s" +
+                            " Now getting default SecureRandom"
+                    , exception.getMessage()));
+            return new SecureRandom();
         }
     }
 

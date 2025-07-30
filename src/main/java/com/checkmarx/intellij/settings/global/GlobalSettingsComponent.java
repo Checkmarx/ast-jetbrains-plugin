@@ -36,7 +36,6 @@ import javax.swing.event.DocumentEvent;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -132,8 +131,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
         String baseUrl = baseUrlField.getText();
         String tenant = tenantField.getText();
 
-        state.setBaseUrl(!StringUtils.isBlank(baseUrl) ? baseUrl.trim(): SETTINGS_STATE.getBaseUrl());
-        state.setTenant(!StringUtils.isBlank(tenant) ? tenant.trim(): SETTINGS_STATE.getTenant());
+        state.setBaseUrl(!StringUtils.isBlank(baseUrl) ? baseUrl.trim() : SETTINGS_STATE.getBaseUrl());
+        state.setTenant(!StringUtils.isBlank(tenant) ? tenant.trim() : SETTINGS_STATE.getTenant());
 
         SETTINGS_STATE.apply(state);
         SENSITIVE_SETTINGS_STATE.apply(state, getSensitiveStateFromFields());
@@ -155,12 +154,12 @@ public class GlobalSettingsComponent implements SettingsComponent {
         setInputFields();
 
         // Not authenticated, authentication in progress
-        if (!isAuthValid && isValidating && !isValidateTimeExpired()){
+        if (!isAuthValid && isValidating && !isValidateTimeExpired()) {
             setValidationResult();
             setFieldsEditable(false); // Lock UI while validating
             connectButton.setEnabled(false);
             logoutButton.setEnabled(false);
-        } else if (!isAuthValid){ // Not authenticated (token expired, new authentication, logout)
+        } else if (!isAuthValid) { // Not authenticated (token expired, new authentication, logout)
             SETTINGS_STATE.setValidationInProgress(false);
             setValidationResult();
             setSessionExpired();
@@ -195,8 +194,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
         baseUrlField.setText(SETTINGS_STATE.getBaseUrl());
         tenantField.setText(SETTINGS_STATE.getTenant());
     }
+
     //Setting validation result to UI
-    private void setValidationResult(){
+    private void setValidationResult() {
         // Restore validation UI
         if (SETTINGS_STATE.isValidationInProgress()) {
             setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
@@ -515,7 +515,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             }
         });
 
-    // Listener to update state when switching to OAuth
+        // Listener to update state when switching to OAuth
         oauthRadio.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 setFieldsEditable(true);
@@ -525,7 +525,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             }
         });
 
-    // Listener to update state when switching to API Key
+        // Listener to update state when switching to API Key
         apiKeyRadio.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 setFieldsEditable(true);
@@ -692,16 +692,17 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     /**
      * Checking if user has valid authentication state and credentials
+     *
      * @return true, if authentication is valid otherwise false
      */
     public boolean isValid() {
         if (SETTINGS_STATE.isAuthenticated() && StringUtil.isEmpty(SENSITIVE_SETTINGS_STATE.getApiKey())
-                && StringUtil.isEmpty(SENSITIVE_SETTINGS_STATE.getRefreshToken())){
+                && StringUtil.isEmpty(SENSITIVE_SETTINGS_STATE.getRefreshToken())) {
             //This condition handles if the user is authenticated but no sensitive data is present (due to explicitly clearing it form storage)
             setInvalidAuthState("");
             return false;
         } else if (SETTINGS_STATE.isAuthenticated() && !SETTINGS_STATE.isApiKeyEnabled() &&
-                SENSITIVE_SETTINGS_STATE.isTokenExpired(SETTINGS_STATE.getRefreshTokenExpiry())){
+                SENSITIVE_SETTINGS_STATE.isTokenExpired(SETTINGS_STATE.getRefreshTokenExpiry())) {
             setInvalidAuthState(Bundle.message(Resource.ERROR_SESSION_EXPIRED));
             return false;
         }
@@ -710,9 +711,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     /**
      * Setting invalid authentication state
+     *
      * @param message - message to display on UI
      */
-    private void setInvalidAuthState(String message){
+    private void setInvalidAuthState(String message) {
         SETTINGS_STATE.setValidationMessage(message);
         SETTINGS_STATE.setLastValidationSuccess(false);
         SETTINGS_STATE.setAuthenticated(false);
@@ -787,20 +789,22 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     /**
      * Getting login validation timeout datetime
+     *
      * @return timestamp
      */
-    private String getValidationExpiry(){
-        long timeoutSeconds = Constants.AuthConstants.TIME_OUT_SECONDS+5L;
+    private String getValidationExpiry() {
+        long timeoutSeconds = Constants.AuthConstants.TIME_OUT_SECONDS + 5L;
         return Utils.convertToLocalDateTime(timeoutSeconds, ZoneId.systemDefault()).toString();
     }
 
 
     /**
      * Checking if authentication validation time expired
+     *
      * @return true, if validation time is exceeded than current time otherwise false.
      */
-    private boolean isValidateTimeExpired(){
-        if(!StringUtils.isBlank(SETTINGS_STATE.getValidationExpiry())){
+    private boolean isValidateTimeExpired() {
+        if (!StringUtils.isBlank(SETTINGS_STATE.getValidationExpiry())) {
             return LocalDateTime.parse(SETTINGS_STATE.getValidationExpiry()).isBefore(LocalDateTime.now());
         }
         return false;

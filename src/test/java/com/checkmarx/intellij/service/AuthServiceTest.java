@@ -6,6 +6,7 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.helper.OAuthCallbackServer;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.util.HttpClientUtils;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -192,8 +193,8 @@ public class AuthServiceTest {
     void testCallTokenEndpoint_success200() throws Exception {
         when(mockResponse.statusCode()).thenReturn(200);
         when(mockResponse.body()).thenReturn(getJsonResponse());
-        try (MockedStatic<HttpClient> clientStatic = mockStatic(HttpClient.class)) {
-            clientStatic.when(HttpClient::newHttpClient).thenReturn(mockHttpClient);
+        try (MockedStatic<HttpClientUtils> clientStatic = mockStatic(HttpClientUtils.class)) {
+            clientStatic.when(() -> HttpClientUtils.createHttpClient(TOKEN_ENDPOINT)).thenReturn(mockHttpClient);
             when(mockHttpClient.send(any(), any())).thenReturn(mockResponse);
             Map<String, Object> result = authService.callTokenEndpoint(TOKEN_ENDPOINT, AUTH_CODE, CODE_VERIFIER, REDIRECT_URI);
             assertNotNull(result);
@@ -217,8 +218,8 @@ public class AuthServiceTest {
         when(successResponse.statusCode()).thenReturn(200);
         when(successResponse.body()).thenReturn(getJsonResponse());
 
-        try (MockedStatic<HttpClient> clientStatic = mockStatic(HttpClient.class)) {
-            clientStatic.when(HttpClient::newHttpClient).thenReturn(mockHttpClient);
+        try (MockedStatic<HttpClientUtils> clientStatic = mockStatic(HttpClientUtils.class)) {
+            clientStatic.when(() -> HttpClientUtils.createHttpClient(TOKEN_ENDPOINT)).thenReturn(mockHttpClient);
             when(mockHttpClient.send(any(), any()))
                     .thenReturn(mockResponse)
                     .thenReturn(successResponse);
@@ -235,8 +236,8 @@ public class AuthServiceTest {
     @Test
     void testCallTokenEndpoint_allRetriesFail_returnsNull() throws Exception {
         when(mockResponse.statusCode()).thenReturn(500);
-        try (MockedStatic<HttpClient> clientStatic = mockStatic(HttpClient.class)) {
-            clientStatic.when(HttpClient::newHttpClient).thenReturn(mockHttpClient);
+        try (MockedStatic<HttpClientUtils> clientStatic = mockStatic(HttpClientUtils.class)) {
+            clientStatic.when(() -> HttpClientUtils.createHttpClient(TOKEN_ENDPOINT)).thenReturn(mockHttpClient);
             when(mockHttpClient.send(any(), any())).thenReturn(mockResponse);
             Map<String, Object> result = authService.callTokenEndpoint(TOKEN_ENDPOINT, AUTH_CODE, CODE_VERIFIER, REDIRECT_URI);
             assertNull(result);
