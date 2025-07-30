@@ -7,6 +7,7 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.helper.OAuthCallbackServer;
 import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.util.HttpClientUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -315,7 +316,7 @@ public class AuthService {
                 "&redirect_uri=" + redirectUri +
                 "&client_id=" + Constants.AuthConstants.OAUTH_IDE_CLIENT_ID +
                 "&code_verifier=" + codeVerifier;
-        HttpClient client = HttpClient.newHttpClient();
+        HttpClient client = HttpClientUtils.createHttpClient(tokenEndpoint);
         do {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(tokenEndpoint))
