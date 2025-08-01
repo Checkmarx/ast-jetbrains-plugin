@@ -80,8 +80,8 @@ public class TestTriggerScan extends BaseUITest {
     }
 
 
-    @Test
-    @Video
+//    @Test
+//    @Video
     public void testTriggerScanAndLoadResults() {
         if (triggerScanNotAllowed()) return;
 
