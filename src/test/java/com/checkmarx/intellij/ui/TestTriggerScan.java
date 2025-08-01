@@ -34,8 +34,8 @@ public class TestTriggerScan extends BaseUITest {
         Assertions.assertFalse(find(ActionButtonFixture.class, CANCEL_SCAN_BTN).isEnabled());
     }
 
-//    @Test
-//    @Video
+    @Test
+    @Video
     public void testCancelScan() {
         if (triggerScanNotAllowed()) return;
 
@@ -67,8 +67,8 @@ public class TestTriggerScan extends BaseUITest {
         Assertions.assertTrue(hasAnyComponent(BRANCH_DOES_NOT_MATCH));
     }
 
-//    @Test
-//    @Video
+    @Test
+    @Video
     public void testTriggerScanProjectWithDifferentOrganizationsDontMatch() {
         waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
         testSelectionAction(findSelection("Project"), "Project", "DiffOrg/WebGoat");
