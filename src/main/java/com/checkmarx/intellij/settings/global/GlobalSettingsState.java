@@ -1,14 +1,12 @@
 package com.checkmarx.intellij.settings.global;
 
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import com.intellij.util.xmlb.annotations.Attribute;
 import lombok.EqualsAndHashCode;
@@ -29,7 +27,6 @@ import java.util.Set;
 @State(name = Constants.GLOBAL_SETTINGS_STATE_NAME, storages = @Storage(Constants.GLOBAL_SETTINGS_STATE_FILE))
 public class GlobalSettingsState implements PersistentStateComponent<GlobalSettingsState> {
 
-    private static final Logger LOGGER = Utils.getLogger(GlobalSettingsState.class);
     private StateService stateService = StateService.getInstance();
 
     public static GlobalSettingsState getInstance() {

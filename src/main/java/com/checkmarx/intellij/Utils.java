@@ -24,9 +24,7 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Base64;
-import java.util.Comparator;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -332,6 +330,17 @@ public final class Utils {
         ApplicationManager.getApplication().invokeLater(() ->
                 getMessageBus().syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied()
         );
+    }
+
+    /**
+     * Checking the requested filter is enabled or not by the user
+     *
+     * @param enabledFilterValues Set<String> which contains enabled filters values
+     * @param filterValue         - Label of filter {@link com.checkmarx.intellij.service.StateService}
+     * @return true if requester filter is present in enabledFilterValues otherwise false
+     */
+    public static boolean isFilterEnabled(Set<String> enabledFilterValues, String filterValue) {
+        return enabledFilterValues != null && !enabledFilterValues.isEmpty() && enabledFilterValues.contains(filterValue);
     }
 
 }

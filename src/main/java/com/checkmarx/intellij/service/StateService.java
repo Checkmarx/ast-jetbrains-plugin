@@ -33,7 +33,9 @@ public class StateService {
                 new CustomResultState(NOT_EXPLOITABLE_LABEL, "Not Exploitable"),
                 new CustomResultState(PROPOSED_NOT_EXPLOITABLE_LABEL, "Proposed Not Exploitable"),
                 new CustomResultState(IGNORE_LABEL, "Ignored"),
-                new CustomResultState(NOT_IGNORE_LABEL, "Not Ignored")
+                new CustomResultState(NOT_IGNORE_LABEL, "Not Ignored"),
+                new CustomResultState(SCA_HIDE_DEV_TEST_DEPENDENCIES, "SCA Hide Dev && Test Dependencies")
+
         );
         this.defaultLabels = states.stream()
                 .map(CustomResultState::getLabel)

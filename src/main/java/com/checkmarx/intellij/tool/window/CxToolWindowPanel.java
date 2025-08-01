@@ -2,8 +2,8 @@ package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.commands.TenantSetting;
-import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.commands.results.Results;
+import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.project.ProjectResultsService;
 import com.checkmarx.intellij.service.StateService;
@@ -129,8 +129,8 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         ResetSelectionAction resetSelectionAction = (ResetSelectionAction) mainToolbar.getActions()
                 .stream()
                 .filter(a -> a instanceof ResetSelectionAction)
-                                                                                      .findFirst()
-                                                                                      .orElse(null);
+                .findFirst()
+                .orElse(null);
 
         // update scan buttons visibility based on tenant settings
         CompletableFuture.supplyAsync(() -> {
@@ -183,7 +183,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         JButton comp = new JButton(Bundle.message(Resource.OPEN_SETTINGS_BUTTON));
         comp.addActionListener(e -> ShowSettingsUtil.getInstance()
-                                                    .showSettingsDialog(project, GlobalSettingsConfigurable.class));
+                .showSettingsDialog(project, GlobalSettingsConfigurable.class));
 
         constraints = new GridConstraints();
         constraints.setRow(1);
@@ -304,7 +304,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     private void triggerDrawResultsTree(String scanIdValue, boolean overrideSelections) {
 
         if (!Utils.validThread() || getResultsInProgress || Objects.equals(scanIdValue,
-                                                                           currentState.getScanIdFieldValue())) {
+                currentState.getScanIdFieldValue())) {
             return;
         }
 
@@ -332,18 +332,18 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         // updates to variables wrapped in an invokeLater call so the Swing EDT performs the update
         // in a single threaded manner
         Results.getResults(scanIdValue)
-               .thenAcceptAsync((newState) -> ApplicationManager.getApplication().invokeLater(() -> {
-                   currentState = newState;
-                   if (overrideSelections) {
-                       // don't enable rootGroup immediately, override is async and will enable when done
-                       rootGroup.override(currentState.getScanId());
-                   } else {
-                       // re-enable selections
-                       rootGroup.setEnabled(true);
-                   }
-                   getResultsInProgress = false;
-                   updateDisplay();
-               }));
+                .thenAcceptAsync((newState) -> ApplicationManager.getApplication().invokeLater(() -> {
+                    currentState = newState;
+                    if (overrideSelections) {
+                        // don't enable rootGroup immediately, override is async and will enable when done
+                        rootGroup.override(currentState.getScanId());
+                    } else {
+                        // re-enable selections
+                        rootGroup.setEnabled(true);
+                    }
+                    getResultsInProgress = false;
+                    updateDisplay();
+                }));
     }
 
     /**
@@ -373,11 +373,11 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         }
 
         currentTree = ResultsTreeFactory.buildResultsTree(currentState.getScanId(),
-                                                          currentState.getResultOutput(),
-                                                          project,
-                                                          groupByList,
-                                                          GlobalSettingsState.getInstance().getFilters(),
-                                                          currentState.isLatest());
+                currentState.getResultOutput(),
+                project,
+                groupByList,
+                GlobalSettingsState.getInstance().getFilters(),
+                currentState.isLatest());
         currentTree.addTreeSelectionListener(new OnSelectShowDetail());
         scanTreeSplitter.setSecondComponent(TreeUtils.treePanel(currentTree));
     }
@@ -428,7 +428,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     @NotNull
     private static ActionToolbar getActionToolbar(ActionGroup group, boolean horizontal) {
         ActionToolbar toolbar = ActionManager.getInstance()
-                                             .createActionToolbar(Constants.TOOL_WINDOW_ID, group, horizontal);
+                .createActionToolbar(Constants.TOOL_WINDOW_ID, group, horizontal);
         toolbar.setTargetComponent(toolbar.getComponent());
         return toolbar;
     }
@@ -452,7 +452,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         public void keyReleased(KeyEvent e) {
             if (e.getExtendedKeyCode() == KeyEvent.VK_ENTER) {
                 String scanIdValue = scanIdField.getText().trim();
-                if(scanIdValue.isEmpty()) {
+                if (scanIdValue.isEmpty()) {
                     resetResultWindow();
                     return;
                 }
@@ -460,10 +460,12 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
             }
         }
     }
+
     private void resetResultWindow() {
         currentState.setMessage(null);
         scanTreeSplitter.setSecondComponent(simplePanel());
     }
+
     public interface CxRefreshHandler {
         void refresh();
     }
