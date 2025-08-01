@@ -10,6 +10,7 @@ import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.xmlb.XmlSerializerUtil;
+import com.intellij.util.xmlb.annotations.Attribute;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,10 +36,23 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
         return ApplicationManager.getApplication().getService(GlobalSettingsState.class);
     }
 
+    private String validationMessage = "";
+
     @NotNull
     private String additionalParameters = "";
 
     private boolean asca = false;
+    private boolean isApiKeyEnabled = false;
+
+    @Attribute("authenticated")
+    private boolean authenticated = false;
+
+    @Attribute("lastValidationSuccess")
+    private boolean lastValidationSuccess = true;
+
+    private String refreshTokenExpiry;
+
+    private String validationExpiry;
 
     public @NotNull Set<Filterable> getFilters() {
         if (filters.isEmpty() || filters.stream().allMatch(Objects::isNull)) {
@@ -49,6 +63,12 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
 
     @NotNull
     private Set<Filterable> filters = stateService.getDefaultFilters();
+
+    private String baseUrl = "";
+    private String tenant = "";
+
+    @Attribute("validationInProgress")
+    private boolean validationInProgress = false;
 
     @Override
     public @Nullable GlobalSettingsState getState() {

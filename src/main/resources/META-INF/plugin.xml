@@ -4,9 +4,15 @@
     <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
 
     <description><![CDATA[
-    Checkmarx Jetbrains plugin allows retrieving scan results from Checkmarx AST.
-    Full user's manual can be found <a href="https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html">here</a>.
+    The Checkmarx One JetBrains plugin enables you to import results from a Checkmarx One scan directly into your IDE and run new scans from the IDE.<br>
+    Full user's manual can be found <a href="https://docs.checkmarx.com/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-pluging.html">here</a>.
     ]]></description>
+
+    <change-notes><![CDATA[
+      <b>Added OAuth2 login support for seamless authentication.</b>
+        <ul><li>Users can now log in via OAuth2 using their Checkmarx One account credential. This provides a smoother and more secure user experience.</li></ul>
+        <b>Note:</b> Starting from plugin version 2.2.4, authentication can be done either via API key or OAuth2 login.
+    ]]></change-notes>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
          on how to target different products -->
@@ -28,7 +34,7 @@
                     factoryClass="com.checkmarx.intellij.tool.window.CxToolWindowFactory"/>
 
         <notificationGroup id="Checkmarx.Notifications" displayType="BALLOON"
-                           bundle="messages.CxBundle" key="NOTIFICATION_GROUP_NAME"/>
+                           bundle="messages.CxBundle" key="NOTIFICATION_GROUP_NAME" isLogByDefault="true"/>
 
         <localInspection displayName="Checkmarx AST"
                          groupName="Checkmarx AST"

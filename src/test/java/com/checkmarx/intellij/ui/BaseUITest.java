@@ -138,30 +138,42 @@ public abstract class BaseUITest {
     protected static void testASTConnection(boolean validCredentials) {
         openSettings();
 
-        setField(Constants.FIELD_NAME_API_KEY, validCredentials ? Environment.API_KEY : "invalidAPIKey");
+        //Logout if already authenticated
+        if (hasAnyComponent(LOGOUT_BUTTON)) {
+            log("Detected previous authentication. Logging out.");
+            click(LOGOUT_BUTTON);
+
+            if (hasAnyComponent(LOGOUT_CONFIRM_YES)) {
+                click(LOGOUT_CONFIRM_YES);
+            }
+
+            waitFor(() -> hasAnyComponent(API_KEY_RADIO));
+        }
+
+        //Select API Key radio
+        waitFor(() -> hasAnyComponent(API_KEY_RADIO));
+        find(API_KEY_RADIO).click();
+
+        // Set API key
+        String apiKey = validCredentials ? Environment.API_KEY : "invalid-api-key";
+        setField(Constants.FIELD_NAME_API_KEY, apiKey);
+
+        // Set additional parameter
         setField(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS, "--debug");
 
-        click(VALIDATE_BUTTON);
-
+        // Attempt connection
+        click(CONNECT_BUTTON);
         waitFor(() -> !hasAnyComponent(VALIDATING_CONNECTION));
 
+        // Expect success or expect failure
         if (validCredentials) {
             Assertions.assertTrue(hasAnyComponent(SUCCESS_CONNECTION));
             click(OK_BTN);
-            // Ensure that start scan button and cancel scan button are visible with valid credentials
-            waitFor(() -> {
-                focusCxWindow();
-                return hasAnyComponent(START_SCAN_BTN) && hasAnyComponent(CANCEL_SCAN_BTN);
-            });
+            waitFor(() -> hasAnyComponent(START_SCAN_BTN) && hasAnyComponent(CANCEL_SCAN_BTN));
         } else {
             Assertions.assertFalse(hasAnyComponent(SUCCESS_CONNECTION));
             click(OK_BTN);
-            focusCxWindow();
-            // Ensure that start scan button and cancel scan button are hidden with invalid credentials
-            waitFor(() -> {
-                focusCxWindow();
-                return !hasAnyComponent(START_SCAN_BTN) && !hasAnyComponent(CANCEL_SCAN_BTN);
-            });
+            waitFor(() -> !hasAnyComponent(START_SCAN_BTN) && !hasAnyComponent(CANCEL_SCAN_BTN));
         }
     }
 

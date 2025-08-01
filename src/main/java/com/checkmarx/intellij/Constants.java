@@ -38,13 +38,11 @@ public final class Constants {
     public static final String NODE_FORMAT = "%s | %s";
     public static final String FILE_FORMAT = "%s:%d (%s)";
     public static final String SUMMARY_FORMAT = "%s | %s | %s | %s";
-    public static final String FIELD_FORMAT = "<html>%s%s</html>";
+    public static final String FIELD_FORMAT = "<html>%s%s:</html>";
     public static final String REQUIRED_MARK = "<span style=\"color:#ff0000\">*</span>";
     public static final String VALUE_FORMAT = "<html><b>%s</b>: %s</html>";
     public static final String INPUT_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
     public static final String OUTPUT_DATE_FORMAT = "dd/MM/yyyy HH:mm:ss";
-
-    public static final String API_KEY_CREDENTIALS_KEY = "APIKey";
 
     public static final String GLOBAL_SETTINGS_STATE_NAME = "Checkmarx One";
     public static final String GLOBAL_SETTINGS_STATE_FILE = "cx_global_settings.xml";
@@ -90,4 +88,26 @@ public final class Constants {
     public static final String PROPOSED_NOT_EXPLOITABLE_LABEL = "PROPOSED_NOT_EXPLOITABLE";
 
     public static final String USE_LOCAL_BRANCH = "scan my local branch";
+
+    /**
+     * Inner static final class, to maintain the constants used in authentication.
+     */
+    public static final class AuthConstants{
+
+        public static final String OAUTH_IDE_CLIENT_ID = "ide-integration";
+        public static final String ALGO_SHA256 = "SHA-256";
+        public static final String SCOPE = "openid offline_access";
+        public static final String CODE = "code";
+        public static final String REFRESH_TOKEN = "refresh_token";
+        public static final String REFRESH_TOKEN_EXPIRY = "refresh_expires_in";
+        public static final String STATE = "state";
+        public static final String CODE_CHALLENGE_METHOD = "S256";
+        public static final String ERROR = "error";
+        public static final String AUTH_SUCCESS_HTML_FILE_PATH = "auth/auth-success.html";
+        public static final String AUTH_ERROR_HTML_FILE_PATH = "auth/auth-error.html";
+        public static final String LOCATION = "location";
+        public static final int TIME_OUT_SECONDS = 120;
+    }
+
+
 }

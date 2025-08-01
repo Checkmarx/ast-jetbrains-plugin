@@ -44,6 +44,7 @@ public class TestAuthentication extends BaseTest {
      */
     @Test
     public void testFailAPIKey() {
+        state.setApiKeyEnabled(true);
         sensitiveState.setApiKey("invalid_key");
         Assertions.assertThrows(CxException.class, () -> Authentication.validateConnection(state, sensitiveState));
     }
