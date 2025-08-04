@@ -10,7 +10,10 @@
 
     <change-notes><![CDATA[
       <b>Added OAuth2 login support for seamless authentication.</b>
-        <ul><li>Users can now log in via OAuth2 using their Checkmarx One account credential. This provides a smoother and more secure user experience.</li></ul>
+        <ul>
+            <li>Users can now log in via OAuth2 using their Checkmarx One account credential. This provides a smoother and more secure user experience.</li>
+            <li>Users can exclude development and test dependencies from SCA vulnerability scan results by applying the 'Hide Dev & Test Dependencies' filter.</li>
+        </ul>
         <b>Note:</b> Starting from plugin version 2.2.4, authentication can be done either via API key or OAuth2 login.
     ]]></change-notes>
 
