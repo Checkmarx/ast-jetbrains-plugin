@@ -10,10 +10,9 @@ import com.checkmarx.intellij.tool.window.actions.filter.CustomStateFilter;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import lombok.Getter;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.checkmarx.intellij.Constants.*;
 
@@ -26,7 +25,8 @@ public class StateService {
 
     // Private constructor prevents instantiation from other classes.
     private StateService() {
-        this.states = Set.of(
+       // Keeping natural order
+        this.states = Stream.of(
                 new CustomResultState(CONFIRMED, "Confirmed"),
                 new CustomResultState(IGNORE_LABEL, "Ignored"),
                 new CustomResultState(NOT_EXPLOITABLE_LABEL, "Not Exploitable"),
@@ -35,10 +35,12 @@ public class StateService {
                 new CustomResultState(SCA_HIDE_DEV_TEST_DEPENDENCIES, "SCA Hide Dev && Test Dependencies"),
                 new CustomResultState(TO_VERIFY, "To Verify"),
                 new CustomResultState(URGENT, "Urgent")
-        );
+        ).sorted(Comparator.comparing(CustomResultState::getLabel)).collect(Collectors.toCollection(LinkedHashSet::new));
+
         this.defaultLabels = states.stream()
                 .map(CustomResultState::getLabel)
                 .collect(Collectors.toUnmodifiableSet());
+
     }
 
     // Eagerly create the singleton instance.
@@ -69,9 +71,9 @@ public class StateService {
 
     /**
      * Builds a list of CustomStateFilter actions, including:
-     *  - A filter for each default state.
-     *  - Filters for any "custom" states returned by the triageGetStates call,
-     *    excluding those already present in the default states.
+     * - A filter for each default state.
+     * - Filters for any "custom" states returned by the triageGetStates call,
+     * excluding those already present in the default states.
      */
     private List<CustomStateFilter> buildCustomStateFilters() {
         List<CustomStateFilter> filters = states.stream()
