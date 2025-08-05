@@ -62,7 +62,7 @@ public class AuthServiceTest {
     private static final String CODE_VERIFIER = "verifier";
     private static final String CODE_CHALLENGE = "challenge";
     private static final String REDIRECT_URI = "http://localhost:5000/checkmarx1/callback";
-    private static final String MOCK_REFRESH = "eyJhbGciOiJIUzUxMiIsInR5cCIgOiA.iSldUIiwia2lkIiA6ICIxNmFkYTA.yNS02YWY0LTQ3YjgtOTc5Ni1hZj";
+    private static final String MOCK_REFRESH = "test-refresh";
 
     @BeforeEach
     protected void setUp() throws Exception {

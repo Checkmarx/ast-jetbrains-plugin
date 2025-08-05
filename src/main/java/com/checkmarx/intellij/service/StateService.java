@@ -104,7 +104,8 @@ public class StateService {
         filters.addAll(
                 states.stream()
                         .filter(s -> !s.getLabel().equals(NOT_EXPLOITABLE_LABEL)
-                                && !s.getLabel().equals(PROPOSED_NOT_EXPLOITABLE_LABEL))
+                                && !s.getLabel().equals(PROPOSED_NOT_EXPLOITABLE_LABEL)
+                        && !s.getLabel().equals(SCA_HIDE_DEV_TEST_DEPENDENCIES)) // excluding from default filter
                         .collect(Collectors.toSet())
         );
         return filters;
