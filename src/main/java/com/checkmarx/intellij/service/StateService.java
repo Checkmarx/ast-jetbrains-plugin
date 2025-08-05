@@ -27,15 +27,14 @@ public class StateService {
     // Private constructor prevents instantiation from other classes.
     private StateService() {
         this.states = Set.of(
-                new CustomResultState("CONFIRMED", "Confirmed"),
-                new CustomResultState("TO_VERIFY", "To Verify"),
-                new CustomResultState("URGENT", "Urgent"),
-                new CustomResultState(NOT_EXPLOITABLE_LABEL, "Not Exploitable"),
-                new CustomResultState(PROPOSED_NOT_EXPLOITABLE_LABEL, "Proposed Not Exploitable"),
+                new CustomResultState(CONFIRMED, "Confirmed"),
                 new CustomResultState(IGNORE_LABEL, "Ignored"),
+                new CustomResultState(NOT_EXPLOITABLE_LABEL, "Not Exploitable"),
                 new CustomResultState(NOT_IGNORE_LABEL, "Not Ignored"),
-                new CustomResultState(SCA_HIDE_DEV_TEST_DEPENDENCIES, "SCA Hide Dev && Test Dependencies")
-
+                new CustomResultState(PROPOSED_NOT_EXPLOITABLE_LABEL, "Proposed Not Exploitable"),
+                new CustomResultState(SCA_HIDE_DEV_TEST_DEPENDENCIES, "SCA Hide Dev && Test Dependencies"),
+                new CustomResultState(TO_VERIFY, "To Verify"),
+                new CustomResultState(URGENT, "Urgent")
         );
         this.defaultLabels = states.stream()
                 .map(CustomResultState::getLabel)
