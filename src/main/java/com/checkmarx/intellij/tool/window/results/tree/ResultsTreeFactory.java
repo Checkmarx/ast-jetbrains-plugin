@@ -2,7 +2,9 @@ package com.checkmarx.intellij.tool.window.results.tree;
 
 import com.checkmarx.ast.results.Results;
 import com.checkmarx.ast.results.result.Result;
+import com.checkmarx.ast.results.result.ScaPackageData;
 import com.checkmarx.intellij.Bundle;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.tool.window.GroupBy;
@@ -59,23 +61,45 @@ public class ResultsTreeFactory {
                 .map(Filterable::getFilterValue)
                 .collect(Collectors.toSet());
 
+        boolean isSCAHideDevTestDependencyEnabled = Utils.isFilterEnabled(enabledFilterValues, Constants.SCA_HIDE_DEV_TEST_DEPENDENCIES);
+
         // Stream over results and filter
         results.getResults().stream()
                 .filter(result -> enabledFilterValues.contains(result.getSeverity())
                         && enabledFilterValues.contains(result.getState()))
-                .forEach(result -> addResultToEngine(
-                        project,
-                        groupByList,
-                        engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
-                        result,
-                        scanId
-                ));
-
+                .forEach(result -> {
+                    /*
+                     * If a result is for SCA - dev or test dependency, and SCA Hide Dev & Test Dependency filter is enabled,
+                     * then ignore a result to add in the engine
+                     */
+                    if (!isDevTestDependency(result, isSCAHideDevTestDependencyEnabled)) {
+                                addResultToEngine(project, groupByList,
+                                        engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
+                                        result, scanId);
+                            }
+                        }
+                );
         for (DefaultMutableTreeNode node : engineNodes.values()) {
             ((DefaultMutableTreeNode) tree.getModel().getRoot()).add(node);
         }
-
         return tree;
+    }
+
+    /**
+     * This method is used to check if SCA Hide Dev & Test Dependency filter is enabled.
+     * If filter is enabled and a result type is SCA, then extract a sca package details from the result
+     * and check if vulnerability for dev or test dependency.
+     *
+     * @param result                            {@link Result} contains a scan result
+     * @param isSCAHideDevTestDependencyEnabled boolean value which tells SCA Hide Dev & Test Dependency filter enabled or not
+     * @return true if SCA Hide Dev & Test Dependency filter is enabled and a result is for SCA and belongs to dev or test dependency, otherwise false
+     */
+    private static boolean isDevTestDependency(Result result, boolean isSCAHideDevTestDependencyEnabled) {
+        if (isSCAHideDevTestDependencyEnabled && result != null && result.getType().equalsIgnoreCase(Constants.SCAN_TYPE_SCA)) {
+            ScaPackageData scaPackageData = result.getData() != null ? result.getData().getScaPackageData() : null;
+            return (scaPackageData != null && (scaPackageData.isDevelopmentDependency() || scaPackageData.isTestDependency()));
+        }
+        return false;
     }
 
     private static void addResultToEngine(Project project,

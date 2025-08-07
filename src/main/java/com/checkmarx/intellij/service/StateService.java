@@ -10,10 +10,9 @@ import com.checkmarx.intellij.tool.window.actions.filter.CustomStateFilter;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import lombok.Getter;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.checkmarx.intellij.Constants.*;
 
@@ -26,18 +25,22 @@ public class StateService {
 
     // Private constructor prevents instantiation from other classes.
     private StateService() {
-        this.states = Set.of(
-                new CustomResultState("CONFIRMED", "Confirmed"),
-                new CustomResultState("TO_VERIFY", "To Verify"),
-                new CustomResultState("URGENT", "Urgent"),
-                new CustomResultState(NOT_EXPLOITABLE_LABEL, "Not Exploitable"),
-                new CustomResultState(PROPOSED_NOT_EXPLOITABLE_LABEL, "Proposed Not Exploitable"),
+       // Keeping natural order
+        this.states = Stream.of(
+                new CustomResultState(CONFIRMED, "Confirmed"),
                 new CustomResultState(IGNORE_LABEL, "Ignored"),
-                new CustomResultState(NOT_IGNORE_LABEL, "Not Ignored")
-        );
+                new CustomResultState(NOT_EXPLOITABLE_LABEL, "Not Exploitable"),
+                new CustomResultState(NOT_IGNORE_LABEL, "Not Ignored"),
+                new CustomResultState(PROPOSED_NOT_EXPLOITABLE_LABEL, "Proposed Not Exploitable"),
+                new CustomResultState(SCA_HIDE_DEV_TEST_DEPENDENCIES, "SCA Hide Dev && Test Dependencies"),
+                new CustomResultState(TO_VERIFY, "To Verify"),
+                new CustomResultState(URGENT, "Urgent")
+        ).sorted(Comparator.comparing(CustomResultState::getLabel)).collect(Collectors.toCollection(LinkedHashSet::new));
+
         this.defaultLabels = states.stream()
                 .map(CustomResultState::getLabel)
                 .collect(Collectors.toUnmodifiableSet());
+
     }
 
     // Eagerly create the singleton instance.
@@ -58,7 +61,8 @@ public class StateService {
     public List<String> getStatesNameListForSastTriage() {
         return getCustomStateFilters().stream()
                 .map(filter -> filter.getFilterable().getFilterValue())
-                .filter(s -> !s.equals(IGNORE_LABEL) && !s.equals(NOT_IGNORE_LABEL))
+                .filter(s -> !s.equals(IGNORE_LABEL) && !s.equals(NOT_IGNORE_LABEL)
+                        && !s.equals(SCA_HIDE_DEV_TEST_DEPENDENCIES)) // exclude from the triage
                 .collect(Collectors.toList());
     }
 
@@ -68,9 +72,9 @@ public class StateService {
 
     /**
      * Builds a list of CustomStateFilter actions, including:
-     *  - A filter for each default state.
-     *  - Filters for any "custom" states returned by the triageGetStates call,
-     *    excluding those already present in the default states.
+     * - A filter for each default state.
+     * - Filters for any "custom" states returned by the triageGetStates call,
+     * excluding those already present in the default states.
      */
     private List<CustomStateFilter> buildCustomStateFilters() {
         List<CustomStateFilter> filters = states.stream()
@@ -101,7 +105,8 @@ public class StateService {
         filters.addAll(
                 states.stream()
                         .filter(s -> !s.getLabel().equals(NOT_EXPLOITABLE_LABEL)
-                                && !s.getLabel().equals(PROPOSED_NOT_EXPLOITABLE_LABEL))
+                                && !s.getLabel().equals(PROPOSED_NOT_EXPLOITABLE_LABEL)
+                        && !s.getLabel().equals(SCA_HIDE_DEV_TEST_DEPENDENCIES)) // excluding from default filter
                         .collect(Collectors.toSet())
         );
         return filters;
