@@ -61,7 +61,8 @@ public class StateService {
     public List<String> getStatesNameListForSastTriage() {
         return getCustomStateFilters().stream()
                 .map(filter -> filter.getFilterable().getFilterValue())
-                .filter(s -> !s.equals(IGNORE_LABEL) && !s.equals(NOT_IGNORE_LABEL))
+                .filter(s -> !s.equals(IGNORE_LABEL) && !s.equals(NOT_IGNORE_LABEL)
+                        && !s.equals(SCA_HIDE_DEV_TEST_DEPENDENCIES)) // exclude from the triage
                 .collect(Collectors.toList());
     }
 
