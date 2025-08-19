@@ -12,7 +12,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.BranchChangeListener;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -46,7 +45,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
         String storedBranch = propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY);
         return Bundle.message(Resource.BRANCH_SELECT_PREFIX)
                + ": "
-               + (StringUtils.isBlank(storedBranch) ? setDefaultBranch() : storedBranch);
+               + (Utils.isBlank(storedBranch) ? setDefaultBranch() : storedBranch);
     }
 
     private String setDefaultBranch() {

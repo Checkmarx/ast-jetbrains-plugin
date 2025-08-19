@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.ui;
 
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.Severity;
@@ -11,7 +12,6 @@ import com.intellij.remoterobot.stepsProcessing.StepWorker;
 import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
-import org.apache.commons.lang3.StringUtils;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
@@ -275,7 +275,7 @@ public abstract class BaseUITest {
                     && hasAnyComponent(NO_BRANCH_SELECTED)
                     && hasAnyComponent(NO_SCAN_SELECTED)
                     && !hasAnyComponent(TREE)
-                    && StringUtils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
+                    && Utils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
                 log("clear selection done");
                 return true;
             }

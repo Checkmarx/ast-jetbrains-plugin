@@ -13,7 +13,6 @@ import com.intellij.util.xmlb.XmlSerializerUtil;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDateTime;
@@ -92,9 +91,9 @@ public class GlobalSettingsSensitiveState {
      * @return error message if secret not present in secure storage, otherwise null
      */
     private String validate(@NotNull GlobalSettingsState settingsState, @NotNull GlobalSettingsSensitiveState sensitiveState) {
-        if (settingsState.isApiKeyEnabled() && StringUtils.isBlank(sensitiveState.getApiKey())) {
+        if (settingsState.isApiKeyEnabled() && Utils.isBlank(sensitiveState.getApiKey())) {
             return Bundle.missingFieldMessage(Resource.API_KEY);
-        } else if (!settingsState.isApiKeyEnabled() && (StringUtils.isBlank(sensitiveState.getRefreshToken())
+        } else if (!settingsState.isApiKeyEnabled() && (Utils.isBlank(sensitiveState.getRefreshToken())
                 || isTokenExpired(settingsState.getRefreshTokenExpiry()))) {
             return Bundle.missingFieldMessage(Resource.REFRESH_TOKEN);
         }
@@ -107,7 +106,7 @@ public class GlobalSettingsSensitiveState {
      * @return true, if the refresh token is expired otherwise false
      */
     public boolean isTokenExpired(String tokenExpiryString){
-        if (!StringUtils.isBlank(tokenExpiryString)){
+        if (!Utils.isBlank(tokenExpiryString)){
             boolean isExpired = LocalDateTime.parse(tokenExpiryString).isBefore(LocalDateTime.now());
             LOGGER.warn("Refresh Token Expired: "+isExpired);
             return isExpired;
