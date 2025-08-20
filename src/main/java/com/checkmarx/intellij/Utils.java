@@ -118,7 +118,6 @@ public final class Utils {
         NotificationGroupManager.getInstance()
                 .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
                 .createNotification(content, type)
-                .setListener(NotificationListener.URL_OPENING_LISTENER)
                 .notify(project);
     }
 
