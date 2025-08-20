@@ -920,11 +920,15 @@ public class ResultNode extends DefaultMutableTreeNode {
     private static void navigate(@NotNull Project project, @NotNull FileNode fileNode) {
         String fileName = fileNode.getFileName();
         Utils.runAsyncReadAction(() -> {
-            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(project, FilenameUtils.getName(fileName),
-                            GlobalSearchScope.projectScope(project))
+            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(
+                            FilenameUtils.getName(fileName),
+                            true, // case-sensitive search
+                            GlobalSearchScope.projectScope(project)
+                    )
                     .stream()
                     .filter(f -> f.getPath().contains(fileName))
                     .collect(Collectors.toList());
+
             if (files.isEmpty()) {
                 Utils.notify(project,
                         Bundle.message(Resource.MISSING_FILE, fileName),
@@ -936,11 +940,12 @@ public class ResultNode extends DefaultMutableTreeNode {
                             NotificationType.WARNING);
                 }
                 for (VirtualFile file : files) {
-
-                    OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(project,
+                    OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(
+                            project,
                             file,
                             fileNode.getLine() - 1,
-                            fileNode.getColumn() - 1);
+                            fileNode.getColumn() - 1
+                    );
                     ApplicationManager.getApplication().invokeLater(() -> openFileDescriptor.navigate(true));
                 }
             }
