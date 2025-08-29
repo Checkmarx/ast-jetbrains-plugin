@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
  */
 public final class Utils {
 
+    public static final String EMPTY = "";
     private static final Logger LOGGER = getLogger(Utils.class);
     private static final SimpleDateFormat input = new SimpleDateFormat(Constants.INPUT_DATE_FORMAT);
     private static final SimpleDateFormat output = new SimpleDateFormat(Constants.OUTPUT_DATE_FORMAT);
@@ -114,24 +115,16 @@ public final class Utils {
     }
 
     public static void notify(Project project, String content, NotificationType type) {
-        new Notification(Constants.NOTIFICATION_GROUP_ID,
-                null,
-                null,
-                null,
-                content,
-                type,
-                NotificationListener.URL_OPENING_LISTENER)
+        NotificationGroupManager.getInstance()
+                .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
+                .createNotification(content, type)
                 .notify(project);
     }
 
     public static void notifyScan(String title, String message, Project project, Runnable func, NotificationType notificationType, String actionText) {
-        Notification notification = new Notification(Constants.NOTIFICATION_GROUP_ID,
-                null,
-                title,
-                null,
-                message,
-                notificationType,
-                null);
+        Notification notification = NotificationGroupManager.getInstance()
+                .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
+                .createNotification(title, message, notificationType);
 
         if (func != null) {
             notification.addAction(NotificationAction.createSimple(actionText, func));
@@ -342,4 +335,30 @@ public final class Utils {
     public static boolean isFilterEnabled(Set<String> enabledFilterValues, String filterValue) {
         return enabledFilterValues != null && !enabledFilterValues.isEmpty() && enabledFilterValues.contains(filterValue);
     }
+
+    public static boolean isNotBlank(String str) {
+        return !isBlank(str);
+    }
+
+    public static int length(CharSequence cs) {
+        if (cs == null)
+            return 0;
+        else
+            return cs.length();
+    }
+
+    public static boolean isBlank(CharSequence cs) {
+        int strLen = length(cs);
+        if (strLen == 0) {
+            return true;
+        } else {
+            for(int i = 0; i < strLen; ++i) {
+                if (!Character.isWhitespace(cs.charAt(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
 }

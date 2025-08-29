@@ -39,7 +39,6 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import net.miginfocom.swing.MigLayout;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
@@ -141,7 +140,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             secondPanel = buildAttackVectorPanel(runnableUpdater, project, nodes);
         } else if (packageData.size() > 0) {
             secondPanel = buildPackageDataPanel(packageData);
-        } else if (StringUtils.isNotBlank(result.getData().getFileName())) {
+        } else if (Utils.isNotBlank(result.getData().getFileName())) {
             secondPanel = buildVulnerabilityLocation(project,
                     result.getData().getFileName(),
                     result.getData().getLine(),
@@ -212,7 +211,7 @@ public class ResultNode extends DefaultMutableTreeNode {
      */
     private void drawSCADescription(JPanel scaBody) {
         String description = result.getDescriptionHTML();
-        if (StringUtils.isNotBlank(description)) {
+        if (Utils.isNotBlank(description)) {
             HTMLEditorKit kit = new HTMLEditorKit();
             StyleSheet styleSheet = kit.getStyleSheet();
             styleSheet.addRule("p {margin: 0}");
@@ -255,7 +254,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         JLabel remediation = new JLabel();
         remediation.setBorder(JBUI.Borders.empty(0, 10, 20, 0));
-        if (StringUtils.isNotBlank(result.getData().getRecommendedVersion())) {
+        if (Utils.isNotBlank(result.getData().getRecommendedVersion())) {
             remediation.setIcon(AllIcons.Diff.MagicResolve);
             remediation.setToolTipText(Bundle.message(Resource.AUTO_REMEDIATION_TOOLTIP));
             remediation.setText(String.format(Constants.HTML_FONT_YELLOW_FORMAT, hex, UPGRADE_TO_VERSION_LABEL + result.getData().getRecommendedVersion()));
@@ -288,7 +287,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         JLabel aboutVulnerability = new JLabel(Bundle.message(Resource.ABOUT_VULNERABILITY));
         aboutVulnerability.setBorder(JBUI.Borders.empty(0, 10, 20, 0));
-        if (result.getData().getScaPackageData() != null && StringUtils.isNotBlank(result.getData().getScaPackageData().getFixLink())) {
+        if (result.getData().getScaPackageData() != null && Utils.isNotBlank(result.getData().getScaPackageData().getFixLink())) {
             aboutVulnerability.setIcon(CxIcons.ABOUT);
             aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
             aboutVulnerability.addMouseListener(new MouseAdapter() {
@@ -375,7 +374,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             for (int i = 0; i < result.getData().getPackageData().size(); i++) {
                 PackageData packageData = result.getData().getPackageData().get(i);
                 JLabel packageName;
-                if (StringUtils.isNotBlank(packageData.getUrl())) {
+                if (Utils.isNotBlank(packageData.getUrl())) {
                     packageName = new JLabel(String.format(Constants.HTML_FONT_BLUE_FORMAT, hex, result.getData().getPackageData().get(i).getType()));
                     packageName.setCursor(new Cursor(Cursor.HAND_CURSOR));
                     packageName.addMouseListener(new MouseAdapter() {
@@ -410,7 +409,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                 return;
             }
             String baseDir = projectDir.getCanonicalPath();
-            if (StringUtils.isBlank(baseDir)) {
+            if (Utils.isBlank(baseDir)) {
                 return;
             }
             List<List<DependencyPath>> dependencyPaths = result.getData()
@@ -593,12 +592,12 @@ public class ResultNode extends DefaultMutableTreeNode {
         descriptionPanel.setLayout(new MigLayout("fillx"));
 
         String description = result.getDescription();
-        if (StringUtils.isNotBlank(description)) {
+        if (Utils.isNotBlank(description)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
             descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)),
                     "wrap, gapbottom 5");
         }
-        if (StringUtils.isNotBlank(result.getData().getValue()) && StringUtils.isNotBlank(result.getData()
+        if (Utils.isNotBlank(result.getData().getValue()) && Utils.isNotBlank(result.getData()
                 .getExpectedValue())) {
 
             descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
@@ -877,7 +876,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                 return;
             }
             String baseDir = projectDir.getCanonicalPath();
-            if (StringUtils.isBlank(baseDir)) {
+            if (Utils.isBlank(baseDir)) {
                 return;
             }
             try {
@@ -921,11 +920,14 @@ public class ResultNode extends DefaultMutableTreeNode {
     private static void navigate(@NotNull Project project, @NotNull FileNode fileNode) {
         String fileName = fileNode.getFileName();
         Utils.runAsyncReadAction(() -> {
-            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(project, FilenameUtils.getName(fileName),
-                            GlobalSearchScope.projectScope(project))
+            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(
+                            FilenameUtils.getName(fileName),
+                            GlobalSearchScope.projectScope(project)
+                    )
                     .stream()
                     .filter(f -> f.getPath().contains(fileName))
                     .collect(Collectors.toList());
+
             if (files.isEmpty()) {
                 Utils.notify(project,
                         Bundle.message(Resource.MISSING_FILE, fileName),
@@ -937,11 +939,12 @@ public class ResultNode extends DefaultMutableTreeNode {
                             NotificationType.WARNING);
                 }
                 for (VirtualFile file : files) {
-
-                    OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(project,
+                    OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(
+                            project,
                             file,
                             fileNode.getLine() - 1,
-                            fileNode.getColumn() - 1);
+                            fileNode.getColumn() - 1
+                    );
                     ApplicationManager.getApplication().invokeLater(() -> openFileDescriptor.navigate(true));
                 }
             }
@@ -1019,7 +1022,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(riskTitle, "span, growx");
 
         String risk = learnMore.getRisk();
-        if (StringUtils.isNotBlank(risk)) {
+        if (Utils.isNotBlank(risk)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
             panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, risk.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
@@ -1029,7 +1032,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(causeTitle, "span, growx");
 
         String cause = learnMore.getCause();
-        if (StringUtils.isNotBlank(cause)) {
+        if (Utils.isNotBlank(cause)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
             panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, cause.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
@@ -1039,7 +1042,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(recommendationsTitle, "span, growx");
 
         String recommendations = learnMore.getGeneralRecommendations();
-        if (StringUtils.isNotBlank(cause)) {
+        if (Utils.isNotBlank(cause)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
             panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, recommendations.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
@@ -1050,7 +1053,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(cweLinkTitle, "span, growx");
 
         VulnerabilityDetails vulnerabilityDetails = result.getVulnerabilityDetails();
-        if (vulnerabilityDetails != null && StringUtils.isNotBlank(vulnerabilityDetails.getCweId())) {
+        if (vulnerabilityDetails != null && Utils.isNotBlank(vulnerabilityDetails.getCweId())) {
             String cweId = vulnerabilityDetails.getCweId();
             String linkUrl = "https://cwe.mitre.org/data/definitions/" + cweId + ".html";
             String linkText = "CWE-" + cweId;

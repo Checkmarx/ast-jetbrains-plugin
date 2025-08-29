@@ -3,9 +3,7 @@ package com.checkmarx.intellij.util;
 import com.intellij.openapi.diagnostic.Logger;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.*;
 import java.util.concurrent.CompletableFuture;
 
 public class InputValidator {
@@ -45,7 +43,7 @@ public class InputValidator {
 
     private static boolean checkUrlExists(String urlStr, boolean isTenantCheck) {
         try {
-            URL url = new URL(urlStr);
+            URL url = new URI(urlStr).toURL();  // used URI instead of deprecated constructor
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(5000);
@@ -57,17 +55,20 @@ public class InputValidator {
             }
             return responseCode < 400;
 
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException | IllegalArgumentException e) {
             LOGGER.warn("Failed to reach URL: " + urlStr, e);
             return false;
         }
     }
 
     public static boolean isValidUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return false;
+        }
         try {
-            new URL(url);
-            return true;
-        } catch (MalformedURLException e) {
+            URI uri = new URI(url.trim());
+            return uri.isAbsolute() && uri.getHost() != null;
+        } catch (URISyntaxException e) {
             return false;
         }
     }

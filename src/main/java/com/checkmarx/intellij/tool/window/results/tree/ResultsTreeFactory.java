@@ -15,7 +15,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.ui.hover.TreeHoverListener;
 import com.intellij.ui.tree.ui.DefaultTreeUI;
 import com.intellij.ui.treeStructure.Tree;
-import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -110,7 +109,7 @@ public class ResultsTreeFactory {
         for (GroupBy groupBy : groupByList) {
             NonLeafNode child = null;
             String childKey = groupBy.getFunction().apply(result);
-            if (StringUtils.isBlank(childKey)) {
+            if (Utils.isBlank(childKey)) {
                 continue;
             }
             // search for the child node
