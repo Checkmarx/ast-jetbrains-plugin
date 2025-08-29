@@ -922,7 +922,6 @@ public class ResultNode extends DefaultMutableTreeNode {
         Utils.runAsyncReadAction(() -> {
             List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(
                             FilenameUtils.getName(fileName),
-                            true, // case-sensitive search
                             GlobalSearchScope.projectScope(project)
                     )
                     .stream()
