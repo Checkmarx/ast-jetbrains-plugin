@@ -58,6 +58,7 @@ public final class Constants {
 
     public static final String SCAN_TYPE_SCA = "sca";
     public static final String SCAN_TYPE_KICS = "kics";
+    public static final String SCAN_TYPE_SCS = "scs";
 
     public static final String SCAN_STATE_CONFIRMED = "confirmed";
     public static final String SCAN_STATE_TO_VERIFY = "to_verify";

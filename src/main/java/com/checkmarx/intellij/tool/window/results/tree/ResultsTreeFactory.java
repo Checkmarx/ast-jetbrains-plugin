@@ -67,13 +67,14 @@ public class ResultsTreeFactory {
                 .filter(result -> enabledFilterValues.contains(result.getSeverity())
                         && enabledFilterValues.contains(result.getState()))
                 .forEach(result -> {
-                    /*
-                     * If a result is for SCA - dev or test dependency, and SCA Hide Dev & Test Dependency filter is enabled,
-                     * then ignore a result to add in the engine
-                     */
                     if (!isDevTestDependency(result, isSCAHideDevTestDependencyEnabled)) {
+                        //Map "scs" to "secret detection" for engine display
+                        String engineType = result.getType();
+                        if (Constants.SCAN_TYPE_SCS.equals(engineType)) {
+                            engineType = Bundle.message(Resource.SECRET_DETECTION);
+                        }
                                 addResultToEngine(project, groupByList,
-                                        engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
+                                        engineNodes.computeIfAbsent(engineType, NonLeafNode::new),
                                         result, scanId);
                             }
                         }

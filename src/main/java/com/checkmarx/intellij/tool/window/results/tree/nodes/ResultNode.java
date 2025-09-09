@@ -107,15 +107,30 @@ public class ResultNode extends DefaultMutableTreeNode {
         this.nodes = Optional.ofNullable(this.result.getData().getNodes()).orElse(Collections.emptyList());
         this.packageData = Optional.ofNullable(this.result.getData().getPackageData()).orElse(Collections.emptyList());
 
-        String labelBuilder = (result.getData().getQueryName() != null
-                ? result.getData().getQueryName()
-                : result.getId());
-        int nodeCount = nodes.size();
-        if (nodeCount > 0) {
-            Node node = result.getData()
-                    .getNodes()
-                    .get(0);
-            labelBuilder += String.format(" (%s:%d)", new File(node.getFileName()).getName(), node.getLine());
+        String labelBuilder;
+
+        //If engine is scs (secret detection), show ruleName
+        if (Constants.SCAN_TYPE_SCS.equals(result.getType()) && result.getData().getRuleName() != null) {
+            labelBuilder = result.getData().getRuleName();
+            if (result.getData().getFileName() != null && result.getData().getLine() > 0) {
+                labelBuilder += String.format(" (%s:%d)",
+                        new File(result.getData().getFileName()).getName(),
+                        result.getData().getLine());
+            }
+        }else {
+            // For other engines, prefer queryName, otherwise fall back to id
+            if (result.getData().getQueryName() != null) {
+                labelBuilder = result.getData().getQueryName();
+            } else {
+                labelBuilder = result.getId();
+            }
+
+            int nodeCount = nodes.size();
+            if (nodeCount > 0) {
+                Node node = nodes.get(0);
+                labelBuilder += String.format(" (%s:%d)",
+                        new File(node.getFileName()).getName(), node.getLine());
+            }
         }
         this.label = labelBuilder;
 
@@ -136,7 +151,10 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel details = buildDetailsPanel(runnableDraw, runnableUpdater);
         JPanel secondPanel = JBUI.Panels.simplePanel();
 
-        if (nodes.size() > 0) {
+        // Special handling for SCS
+        if (Constants.SCAN_TYPE_SCS.equals(result.getType())) {
+            secondPanel = buildScsPanel(runnableUpdater);
+        } else if (nodes.size() > 0) {
             secondPanel = buildAttackVectorPanel(runnableUpdater, project, nodes);
         } else if (packageData.size() > 0) {
             secondPanel = buildPackageDataPanel(packageData);
@@ -156,6 +174,44 @@ public class ResultNode extends DefaultMutableTreeNode {
         } else {
             return buildScaPanel(result, runnableDraw, runnableUpdater);
         }
+    }
+
+    /**
+     * Build  SCS results panel with only Learn More and Remediation Examples tabs
+     */
+    @NotNull
+    private JPanel buildScsPanel(Runnable runnableUpdater) {
+        JPanel panel = new JPanel(new MigLayout("fillx"));
+        JPanel learnMorePanel = new JPanel(new MigLayout("fillx"));
+        JPanel remediationPanel = new JPanel(new MigLayout("fillx"));
+        JBTabbedPane tabbedPane = new JBTabbedPane();
+
+        // Populate Learn More tab with ruleDescription
+        if (Utils.isNotBlank(result.getData().getRuleDescription())) {
+            learnMorePanel.add(new JBLabel(String.format(
+                            Constants.HTML_WRAPPER_FORMAT,
+                            result.getData().getRuleDescription().replaceAll("\n", "<br/>"))),
+                    "wrap, gapbottom 3, gapleft 0");
+        } else {
+            learnMorePanel.add(new JBLabel("No information available"), "wrap, gapbottom 3, gapleft 0");
+        }
+
+        // Populate Remediation Examples tab with remediation content
+        if (Utils.isNotBlank(result.getData().getRemediation())) {
+            remediationPanel.add(new JBLabel(String.format(
+                            Constants.HTML_WRAPPER_FORMAT,
+                            result.getData().getRemediation().replaceAll("\n", "<br/>"))),
+                    "wrap, gapbottom 3, gapleft 0");
+        } else {
+            remediationPanel.add(new JBLabel(Bundle.message(Resource.NO_REMEDIATION_EXAMPLES)),
+                    "wrap, gapbottom 3, gapleft 0");
+        }
+
+        tabbedPane.add(Bundle.message(Resource.LEARN_MORE), learnMorePanel);
+        tabbedPane.add(Bundle.message(Resource.REMEDIATION_EXAMPLES), remediationPanel);
+        panel.add(tabbedPane, "growx");
+
+        return panel;
     }
 
     @NotNull
