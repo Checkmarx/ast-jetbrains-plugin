@@ -248,7 +248,6 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         //Vulnerability Path
         drawSCAVulnerabilityPath(result, scaBody);
-        ;
 
         //References
         drawSCAReferences(result, scaBody);
@@ -547,14 +546,14 @@ public class ResultNode extends DefaultMutableTreeNode {
         details.add(header, "span, growx, wrap");
         details.add(new JSeparator(), "span, growx, wrap");
 
-        boolean triageEnabled = !result.getType().equals(Constants.SCAN_TYPE_SCA);
+        boolean triageEnabled = !result.getType().equals(Constants.SCAN_TYPE_SCA) && !result.getType().equals(Constants.SCAN_TYPE_SCS);
         //Panel with triage form, not available to sca type
         JPanel triageForm = new JPanel(new MigLayout("fillx"));
         JButton updateButton = new JButton();
         updateButton.setText("Update");
         StateService stateService = StateService.getInstance();
         final ComboBox<String> stateComboBox = (result.getType().equals(CxConstants.SAST)) ? new ComboBox<>(stateService.getStatesNameListForSastTriage().toArray(new String[0]))
-                : new ComboBox<>(Arrays.stream(StateEnum.values()).map(Enum::name).toArray(String[]::new));;
+                : new ComboBox<>(Arrays.stream(StateEnum.values()).map(Enum::name).toArray(String[]::new));
 
         stateComboBox.setEditable(true);
         stateComboBox.setSelectedItem(result.getState());
@@ -649,9 +648,39 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         String description = result.getDescription();
         if (Utils.isNotBlank(description)) {
-            // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)),
-                    "wrap, gapbottom 5");
+            if (Constants.SCAN_TYPE_SCS.equals(result.getType())) {
+                // For SCS only: split description into message and file path, and make the path clickable
+                String preamble = description;
+                String filePathInText = null;
+                int slashIdx = description.indexOf('/');
+                if (slashIdx >= 0) {
+                    preamble = description.substring(0, slashIdx).trim();
+                    filePathInText = description.substring(slashIdx).trim();
+                }
+
+                if (Utils.isNotBlank(preamble)) {
+                    descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, preamble)),
+                            "wrap, gapbottom 5");
+                }
+
+                String fileName = result.getData() != null ? result.getData().getFileName() : null;
+                int line = result.getData() != null ? result.getData().getLine() : 0;
+                if (Utils.isNotBlank(filePathInText) && Utils.isNotBlank(fileName)) {
+                    FileNode fileNode = FileNode
+                            .builder()
+                            .fileName(fileName)
+                            .line(line)
+                            .column(DEFAULT_COLUMN)
+                            .build();
+
+                    JComponent link = new CxLinkLabel(filePathInText, mouseEvent -> navigate(project, fileNode));
+                    descriptionPanel.add(link, "wrap, gapbottom 5");
+                }
+            } else {
+                // Non-SCS: default behavior (render full description)
+                descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)),
+                        "wrap, gapbottom 5");
+            }
         }
         if (Utils.isNotBlank(result.getData().getValue()) && Utils.isNotBlank(result.getData()
                 .getExpectedValue())) {
