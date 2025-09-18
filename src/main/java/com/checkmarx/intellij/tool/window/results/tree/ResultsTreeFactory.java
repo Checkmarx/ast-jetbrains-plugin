@@ -68,10 +68,12 @@ public class ResultsTreeFactory {
                         && enabledFilterValues.contains(result.getState()))
                 .forEach(result -> {
                     if (!isDevTestDependency(result, isSCAHideDevTestDependencyEnabled)) {
-                        //Map "scs" to "secret detection" for engine display
+                        //Map "scs" to "secret detection" & "kics" to "IaC Security" for engine display
                         String engineType = result.getType();
                         if (Constants.SCAN_TYPE_SCS.equals(engineType)) {
                             engineType = Bundle.message(Resource.SECRET_DETECTION);
+                        } else if (Constants.SCAN_TYPE_KICS.equals(engineType)) {
+                            engineType = Bundle.message(Resource.IAC_SECURITY);
                         }
                                 addResultToEngine(project, groupByList,
                                         engineNodes.computeIfAbsent(engineType, NonLeafNode::new),

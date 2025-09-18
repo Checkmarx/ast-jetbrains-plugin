@@ -25,7 +25,7 @@ public final class Constants {
             = "https://checkmarx.com/resource/documents/en/34965-68626-global-flags.html";
 
     public static final String INTELLIJ_HELP
-            = "https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html";
+            = "https://docs.checkmarx.com/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-pluging.html";
 
     public static final String FIELD_GAP_BOTTOM = "gapbottom 15";
 

@@ -620,26 +620,26 @@ public class ResultNode extends DefaultMutableTreeNode {
                     result.setSeverity(newSeverity);
                 } catch (Throwable error) {
                     Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
-                    // Get log final line with error message
                     String[] lines = error.getMessage().split("\n");
                     String lastLine = lines[lines.length - 1];
                     Utils.notify(project,
                             lastLine,
                             NotificationType.ERROR);
                 } finally {
-                    //UI thread stuff
                     ApplicationManager.getApplication().invokeLater(() -> updateButton.setEnabled(true));
                 }
             });
         });
-
-        triageForm.add(severityComboBox, "growx");
-        triageForm.add(stateComboBox, "growx");
-        if (triageEnabled) {
-            triageForm.add(updateButton, "growx, wrap");
-            triageForm.add(commentText, "span, growx");
+        // Render triage UI for all engines except SCS.
+        if (!Constants.SCAN_TYPE_SCS.equals(result.getType())) {
+            triageForm.add(severityComboBox, "growx");
+            triageForm.add(stateComboBox, "growx");
+            if (triageEnabled) {
+                triageForm.add(updateButton, "growx, wrap");
+                triageForm.add(commentText, "span, growx");
+            }
+            details.add(triageForm, "span, growx, wrap");
         }
-        details.add(triageForm, "span, growx, wrap");
         //Construction of the tabs
         JBTabbedPane tabbedPane = new JBTabbedPane();
 
@@ -710,9 +710,13 @@ public class ResultNode extends DefaultMutableTreeNode {
             }
             return Collections.emptyList();
         }).thenAccept(triageChangesList -> ApplicationManager.getApplication().invokeLater(() -> {
-            for (Predicate predicate : triageChangesList) {
-
-                createChangesPanels(triageChanges, predicate);
+            if (triageChangesList == null || triageChangesList.isEmpty()) {
+                // Show message only when there is nothing else to display
+                triageChanges.add(new JBLabel(Bundle.message(Resource.NO_CHANGES)), "wrap");
+            } else {
+                for (Predicate predicate : triageChangesList) {
+                    createChangesPanels(triageChanges, predicate);
+                }
             }
             runnableUpdater.run();
         }));
