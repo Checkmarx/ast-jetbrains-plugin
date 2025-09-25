@@ -16,6 +16,8 @@ import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.icons.AllIcons;
+import com.intellij.ide.ui.LafManager;
+import com.intellij.ide.ui.LafManagerListener;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -33,6 +35,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.components.labels.BoldLabel;
+import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -529,7 +532,18 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         if (result.getType().equals(CxConstants.SAST)) {
             //Creating codebashing label
-            JLabel codebashing = new JLabel("<html>Learn more at <font color='#F36A22'><b>>_</b></font>codebashing</html>");
+            JLabel codebashing = new JLabel();
+            updateCodebashingImage(codebashing); // Set the initial image
+
+            // listener to detect theme changes
+            MessageBusConnection connection = ApplicationManager.getApplication().getMessageBus().connect();
+            connection.subscribe(LafManagerListener.TOPIC, new LafManagerListener() {
+                @Override
+                public void lookAndFeelChanged(LafManager source) {
+                    updateCodebashingImage(codebashing);
+                }
+            });
+
             codebashing.setCursor(new Cursor(Cursor.HAND_CURSOR));
             codebashing.setToolTipText(String.format("Learn more about %s using Checkmarx's eLearning platform ", result.getData().getQueryName()));
             codebashing.addMouseListener(new MouseAdapter() {
@@ -1191,5 +1205,25 @@ public class ResultNode extends DefaultMutableTreeNode {
             panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, Resource.NO_REMEDIATION_EXAMPLES)),
                     "wrap, gapbottom 3, gapleft 0");
         }
+    }
+
+    // Method to update the image based on the current theme of the IDE
+    private void updateCodebashingImage(JLabel codebashing) {
+        ImageIcon icon;
+        if (UIManager.getColor("Panel.background").getRed() > 128) {
+            // Light theme
+            icon = new ImageIcon(getClass().getResource("/icons/codebashing_light.png"));
+        } else {
+            // Dark theme
+            icon = new ImageIcon(getClass().getResource("/icons/codebashing_dark.png"));
+        }
+        Image scaledImage = icon.getImage().getScaledInstance(170, 40, Image.SCALE_SMOOTH);
+        ImageIcon scaledIcon = new ImageIcon(scaledImage);
+
+        // Update the JLabel with the new image
+        codebashing.setIcon(scaledIcon);
+        codebashing.setText("Learn more at ");
+        codebashing.setHorizontalTextPosition(SwingConstants.LEFT);
+        codebashing.setVerticalTextPosition(SwingConstants.CENTER);
     }
 }
