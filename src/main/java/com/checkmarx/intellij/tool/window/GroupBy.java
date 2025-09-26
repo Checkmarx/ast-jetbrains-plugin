@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.ast.results.result.Result;
+import com.checkmarx.intellij.Constants;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -13,9 +14,9 @@ import java.util.function.Function;
  */
 public enum GroupBy {
     SEVERITY,
+    VULNERABILITY_TYPE_NAME,
     STATE,
     FILE,
-    VULNERABILITY_TYPE_NAME,
     PACKAGE,
     DIRECT_DEPENDENCY,
     SCA_TYPE;
@@ -31,7 +32,14 @@ public enum GroupBy {
             return Result::getSeverity;
         }
         if (this == VULNERABILITY_TYPE_NAME) {
-            return (result) -> result.getData().getQueryName();
+            return (result) -> {
+                // For SCS (secret detection), group by the result id
+                if (Constants.SCAN_TYPE_SCS.equals(result.getType())) {
+                    return result.getId();
+                }
+                // For all other engines, keep the existing behavior (queryName)
+                return result.getData().getQueryName();
+            };
         }
         if (this == FILE) {
             return (result) -> result.getData().getFileName();
