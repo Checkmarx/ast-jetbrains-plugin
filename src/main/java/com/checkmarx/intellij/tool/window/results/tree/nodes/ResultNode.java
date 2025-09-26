@@ -122,21 +122,17 @@ public class ResultNode extends DefaultMutableTreeNode {
             }
         }else {
             // For other engines, prefer queryName, otherwise fall back to id
-            if (result.getData().getQueryName() != null) {
-                labelBuilder = result.getData().getQueryName();
-            } else {
-                labelBuilder = result.getId();
-            }
+            labelBuilder = Optional.ofNullable(result.getData().getQueryName())
+                    .orElse(result.getId());
 
-            int nodeCount = nodes.size();
-            if (nodeCount > 0) {
+            if (!nodes.isEmpty()) {
                 Node node = nodes.get(0);
                 labelBuilder += String.format(" (%s:%d)",
                         new File(node.getFileName()).getName(), node.getLine());
             }
         }
-        this.label = labelBuilder;
 
+        this.label = labelBuilder;
         setUserObject(this.label);
         setAllowsChildren(false);
     }

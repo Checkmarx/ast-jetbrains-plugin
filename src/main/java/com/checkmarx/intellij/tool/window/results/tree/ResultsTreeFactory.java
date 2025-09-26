@@ -68,16 +68,10 @@ public class ResultsTreeFactory {
                         && enabledFilterValues.contains(result.getState()))
                 .forEach(result -> {
                     if (!isDevTestDependency(result, isSCAHideDevTestDependencyEnabled)) {
-                        //Map "scs" to "secret detection" & "kics" to "IaC Security" for engine display
-                        String engineType = result.getType();
-                        if (Constants.SCAN_TYPE_SCS.equals(engineType)) {
-                            engineType = Bundle.message(Resource.SECRET_DETECTION);
-                        } else if (Constants.SCAN_TYPE_KICS.equals(engineType)) {
-                            engineType = Bundle.message(Resource.IAC_SECURITY);
-                        }
-                                addResultToEngine(project, groupByList,
-                                        engineNodes.computeIfAbsent(engineType, NonLeafNode::new),
-                                        result, scanId);
+                        String engineType = mapEngineTypeForDisplay(result.getType());
+                        addResultToEngine(project, groupByList,
+                                engineNodes.computeIfAbsent(engineType, NonLeafNode::new),
+                                result, scanId);
                             }
                         }
                 );
@@ -102,6 +96,26 @@ public class ResultsTreeFactory {
             return (scaPackageData != null && (scaPackageData.isDevelopmentDependency() || scaPackageData.isTestDependency()));
         }
         return false;
+    }
+
+    /**
+     * Maps internal engine type codes to user-friendly display names.
+     * If no mapping exists, returns the original engineType.
+     */
+    private static String mapEngineTypeForDisplay(String engineType) {
+        if (engineType == null) {
+            return null;
+        }
+        switch (engineType) {
+            case Constants.SCAN_TYPE_SCS:
+                return Bundle.message(Resource.SECRET_DETECTION);
+
+            case Constants.SCAN_TYPE_KICS:
+                return Bundle.message(Resource.IAC_SECURITY);
+
+            default:
+                return engineType;
+        }
     }
 
     private static void addResultToEngine(Project project,
