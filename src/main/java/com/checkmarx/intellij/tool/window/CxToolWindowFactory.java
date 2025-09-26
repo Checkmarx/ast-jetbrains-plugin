@@ -8,6 +8,8 @@ import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.content.ContentManager;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
+
 /**
  * Factory class to build {@link CxToolWindowPanel} panels.
  */
@@ -22,7 +24,18 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
                                         @NotNull ToolWindow toolWindow) {
         final CxToolWindowPanel cxToolWindowPanel = new CxToolWindowPanel(project);
         ContentManager contentManager = toolWindow.getContentManager();
-        contentManager.addContent(contentManager.getFactory().createContent(cxToolWindowPanel, null, false));
+        // First tab (your real panel)
+        contentManager.addContent(
+                contentManager.getFactory().createContent(cxToolWindowPanel, "Main View", false)
+        );
+
+        final AscaVulnerabilityToolWindow ascaVulnerabilityToolWindow = new AscaVulnerabilityToolWindow(project);
+
+        contentManager.addContent(
+                contentManager.getFactory().createContent(ascaVulnerabilityToolWindow, "Dummy Tab", false)
+        );
+
+        // Dispose properly
         Disposer.register(project, cxToolWindowPanel);
     }
 }

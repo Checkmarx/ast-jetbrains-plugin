@@ -21,6 +21,7 @@
          on how to target different products -->
     <depends>com.intellij.modules.platform</depends>
 
+
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable instance="com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable"
                                  parentId="tools"
@@ -51,6 +52,14 @@
                 groupPath="Checkmarx"
                 enabledByDefault="true"
                 implementationClass="com.checkmarx.intellij.inspections.AscaInspection"/>
+
+        <globalInspection
+                displayName="ASCA"
+                groupName="ASCA"
+                groupPath="Checkmarx"
+                enabledByDefault="true"
+                implementationClass="com.checkmarx.intellij.inspections.AscaGlobalInspection"/>
+
     </extensions>
 
     <applicationListeners>
