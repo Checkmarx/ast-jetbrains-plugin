@@ -3,6 +3,8 @@ package com.checkmarx.intellij.unit.tool.window.results.tree;
 import com.checkmarx.ast.results.Results;
 import com.checkmarx.ast.results.result.Data;
 import com.checkmarx.ast.results.result.Result;
+import com.checkmarx.intellij.Bundle;
+import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.tool.window.CustomResultState;
 import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.Severity;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -84,4 +87,38 @@ class ResultsTreeFactoryTest {
         assertEquals("SAST", engineNode.getUserObject(), "Engine node should be SAST");
         assertTrue(engineNode.toString().contains("(1)"), "Engine node should have one result");
     }
-} 
+
+    @Test
+    void buildResultsTree_WithScsType_EngineLabelIsSecretDetection() {
+        // Setup
+        when(mockResult.getType()).thenReturn("scs");
+
+        // Act + Assert
+        try (MockedStatic<Bundle> mockedBundle = mockStatic(Bundle.class)) {
+            mockedBundle.when(() -> Bundle.message(eq(Resource.SECRET_DETECTION))).thenReturn("secret detection");
+            mockedBundle.when(() -> Bundle.message(eq(Resource.RESULTS_TREE_HEADER), any()))
+                    .thenReturn("Scan " + SCAN_ID);
+
+            Tree resultTree = ResultsTreeFactory.buildResultsTree(
+                    SCAN_ID,
+                    mockResults,
+                    mockProject,
+                    groupByList,
+                    enabledFilters,
+                    true
+            );
+
+            TreeModel model = resultTree.getModel();
+            DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+            assertNotNull(root, "Root node should be present");
+            assertEquals(1, root.getChildCount(), "Root should have one engine node");
+
+            DefaultMutableTreeNode engineNode = (DefaultMutableTreeNode) root.getChildAt(0);
+            assertTrue(engineNode instanceof NonLeafNode, "Engine node should be NonLeafNode");
+            assertEquals("secret detection", engineNode.getUserObject(),
+                    "SCS engine should be displayed as 'secret detection'");
+            assertTrue(engineNode.toString().contains("(1)"),
+                    "Engine node should indicate a single result");
+        }
+    }
+}
