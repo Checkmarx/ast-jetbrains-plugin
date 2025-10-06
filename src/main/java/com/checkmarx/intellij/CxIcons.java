@@ -23,4 +23,6 @@ public final class CxIcons {
     public static final Icon COMMENT = IconLoader.getIcon("/icons/comment.svg", CxIcons.class);
     public static final Icon STATE = IconLoader.getIcon("/icons/Flags.svg", CxIcons.class);
     public static final Icon ABOUT = IconLoader.getIcon("/icons/about.svg", CxIcons.class);
+    public static final Icon WELCOME_SCANNER = IconLoader.getIcon("/icons/Welcome_Scanner.svg", CxIcons.class);
+    public static final Icon WELCOME_DOUBLE_CHECK = IconLoader.getIcon("/icons/WELCOME_DOUBLE_CHECK.svg", CxIcons.class);
 }

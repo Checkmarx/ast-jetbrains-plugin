@@ -11,10 +11,12 @@ import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
+import com.checkmarx.intellij.ui.WelcomeDialog;
 import com.checkmarx.intellij.util.InputValidator;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
@@ -256,6 +258,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                             SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
                             apply(); // Persist the state immediately
                             logoutButton.requestFocusInWindow();
+                            showWelcomeDialogIfNeeded();
                         });
                         LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
                     } catch (Exception e) {
@@ -350,6 +353,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
             apply();
             notifyAuthSuccess(); // Even if panel is not showing now
+            showWelcomeDialogIfNeeded();
         });
     }
 
@@ -372,6 +376,20 @@ public class GlobalSettingsComponent implements SettingsComponent {
             apply();
             notifyAuthError(error);
         });
+    }
+
+    private void showWelcomeDialogIfNeeded() {
+        GlobalSettingsState settings = GlobalSettingsState.getInstance();
+        if (!settings.isWelcomeShown()) {
+            if (settings.isAsca() && !settings.isOssRealtime()) {
+                settings.setOssRealtime(true);
+            }
+
+            WelcomeDialog welcomeDialog = new WelcomeDialog(project);
+            welcomeDialog.show();
+
+            settings.setWelcomeShown(true);
+        }
     }
 
     private void handleConnectionFailure(Exception e) {
@@ -481,6 +499,14 @@ public class GlobalSettingsComponent implements SettingsComponent {
         addSectionHeader(Resource.ASCA_DESCRIPTION, false);
         mainPanel.add(ascaCheckBox);
         mainPanel.add(ascaInstallationMsg, "gapleft 5, wrap");
+
+        // === NEW: CxOne Assist link section ===
+        CxLinkLabel goToAssistLink = new CxLinkLabel(
+                Bundle.message(Resource.GO_TO_CXONE_ASSIST_LINK),
+                e -> ShowSettingsUtil.getInstance().showSettingsDialog(project, CxOneAssistConfigurable.class)
+        );
+
+        mainPanel.add(goToAssistLink, "wrap, gapleft 5, gaptop 10");
     }
 
     private void setupFields() {
