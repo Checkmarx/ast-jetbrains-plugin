@@ -10,8 +10,7 @@ import java.util.*;
 
 @Service(Service.Level.PROJECT)
 public final class ProblemHolderService {
-                    //ProblemHolderService
-
+ 
     private final Map<String, List<VulnerabilityIssue>> fileToIssues = new HashMap<>();
 
     public static final Topic<IssueListener> ISSUE_TOPIC =
