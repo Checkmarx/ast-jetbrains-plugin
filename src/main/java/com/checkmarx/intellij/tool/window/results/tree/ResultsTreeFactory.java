@@ -15,7 +15,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.ui.hover.TreeHoverListener;
 import com.intellij.ui.tree.ui.DefaultTreeUI;
 import com.intellij.ui.treeStructure.Tree;
-import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -68,14 +67,11 @@ public class ResultsTreeFactory {
                 .filter(result -> enabledFilterValues.contains(result.getSeverity())
                         && enabledFilterValues.contains(result.getState()))
                 .forEach(result -> {
-                    /*
-                     * If a result is for SCA - dev or test dependency, and SCA Hide Dev & Test Dependency filter is enabled,
-                     * then ignore a result to add in the engine
-                     */
                     if (!isDevTestDependency(result, isSCAHideDevTestDependencyEnabled)) {
-                                addResultToEngine(project, groupByList,
-                                        engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
-                                        result, scanId);
+                        String engineType = mapEngineTypeForDisplay(result.getType());
+                        addResultToEngine(project, groupByList,
+                                engineNodes.computeIfAbsent(engineType, NonLeafNode::new),
+                                result, scanId);
                             }
                         }
                 );
@@ -102,6 +98,26 @@ public class ResultsTreeFactory {
         return false;
     }
 
+    /**
+     * Maps internal engine type codes to user-friendly display names.
+     * If no mapping exists, returns the original engineType.
+     */
+    private static String mapEngineTypeForDisplay(String engineType) {
+        if (engineType == null) {
+            return null;
+        }
+        switch (engineType) {
+            case Constants.SCAN_TYPE_SCS:
+                return Bundle.message(Resource.SECRET_DETECTION);
+
+            case Constants.SCAN_TYPE_KICS:
+                return Bundle.message(Resource.IAC_SECURITY);
+
+            default:
+                return engineType;
+        }
+    }
+
     private static void addResultToEngine(Project project,
                                           List<GroupBy> groupByList,
                                           NonLeafNode parent,
@@ -110,7 +126,7 @@ public class ResultsTreeFactory {
         for (GroupBy groupBy : groupByList) {
             NonLeafNode child = null;
             String childKey = groupBy.getFunction().apply(result);
-            if (StringUtils.isBlank(childKey)) {
+            if (Utils.isBlank(childKey)) {
                 continue;
             }
             // search for the child node

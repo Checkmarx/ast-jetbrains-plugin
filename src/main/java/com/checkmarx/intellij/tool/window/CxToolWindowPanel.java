@@ -38,7 +38,6 @@ import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.JBUI;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -313,7 +312,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         currentState = new ResultGetState();
 
-        if (!StringUtils.isBlank(scanIdValue) && !uuidPattern.matcher(scanIdValue).matches()) {
+        if (!Utils.isBlank(scanIdValue) && !uuidPattern.matcher(scanIdValue).matches()) {
             currentState.setMessage(Bundle.message(Resource.INVALID_SCAN_ID));
             updateDisplay();
             return;

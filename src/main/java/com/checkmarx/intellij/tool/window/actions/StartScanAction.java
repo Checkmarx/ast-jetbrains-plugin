@@ -30,7 +30,6 @@ import com.intellij.psi.search.GlobalSearchScope;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -89,7 +88,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
         boolean matchProject = isAstProjectMatchesWorkspaceProject();
         // Case it is a git repo check for project and branch match
         if (repository != null) {
-            String storedBranch = Optional.ofNullable(propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY)).orElse(StringUtils.EMPTY);
+            String storedBranch = Optional.ofNullable(propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY)).orElse(Utils.EMPTY);
             if(storedBranch.equals(Constants.USE_LOCAL_BRANCH)) {
                 storedBranch = getActiveBranch(workspaceProject);
             }
@@ -125,7 +124,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
         String workspaceProjectName = getRepositoryProjectName();
 
         // Return true if the selected project matches the expected project name
-        return StringUtils.isNotBlank(pluginProjectName) &&
+        return Utils.isNotBlank(pluginProjectName) &&
                 workspaceProjectName != null &&
                 pluginProjectName.equals(workspaceProjectName);
     }
@@ -260,7 +259,7 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
                     LOGGER.info(msg(Resource.SCAN_RUNNING, scanId));
                 } else {
                     LOGGER.info(msg(Resource.SCAN_FINISHED, scan.getStatus().toLowerCase()));
-                    propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, StringUtils.EMPTY);
+                    propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, Utils.EMPTY);
                     ActivityTracker.getInstance().inc();
                     pollScanExecutor.shutdown();
 
@@ -297,11 +296,11 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
             cxToolWindowPanel = getCxToolWindowPanel(e);
             workspaceProject = e.getProject();
             propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(workspaceProject));
-            boolean isScanRunning = StringUtils.isNotBlank(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
+            boolean isScanRunning = Utils.isNotBlank(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
             String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
             String storedBranch = propertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY);
 
-            boolean projectAndBranchSelected = StringUtils.isNotBlank(storedProject) && StringUtils.isNotBlank(storedBranch);
+            boolean projectAndBranchSelected = Utils.isNotBlank(storedProject) && Utils.isNotBlank(storedBranch);
 
             // Check if IDE was restarted and there's a scan still running
             if (isScanRunning && !isPollingScan && !actionInitialized) {

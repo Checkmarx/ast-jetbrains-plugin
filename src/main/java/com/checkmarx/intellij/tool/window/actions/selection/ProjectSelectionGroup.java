@@ -11,7 +11,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -111,7 +110,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
         String storedProject = propertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY);
         return Bundle.message(Resource.PROJECT_SELECT_PREFIX)
                + ": "
-               + (StringUtils.isBlank(storedProject) ? NONE_SELECTED : storedProject);
+               + (Utils.isBlank(storedProject) ? NONE_SELECTED : storedProject);
     }
 
     /**

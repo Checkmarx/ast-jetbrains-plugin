@@ -16,6 +16,8 @@ import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.tool.window.FileNode;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.icons.AllIcons;
+import com.intellij.ide.ui.LafManager;
+import com.intellij.ide.ui.LafManagerListener;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -33,13 +35,13 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.components.labels.BoldLabel;
+import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.util.ui.JBUI;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import net.miginfocom.swing.MigLayout;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 
@@ -108,18 +110,29 @@ public class ResultNode extends DefaultMutableTreeNode {
         this.nodes = Optional.ofNullable(this.result.getData().getNodes()).orElse(Collections.emptyList());
         this.packageData = Optional.ofNullable(this.result.getData().getPackageData()).orElse(Collections.emptyList());
 
-        String labelBuilder = (result.getData().getQueryName() != null
-                ? result.getData().getQueryName()
-                : result.getId());
-        int nodeCount = nodes.size();
-        if (nodeCount > 0) {
-            Node node = result.getData()
-                    .getNodes()
-                    .get(0);
-            labelBuilder += String.format(" (%s:%d)", new File(node.getFileName()).getName(), node.getLine());
-        }
-        this.label = labelBuilder;
+        String labelBuilder;
 
+        //If engine is scs (secret detection), show ruleName
+        if (Constants.SCAN_TYPE_SCS.equals(result.getType()) && result.getData().getRuleName() != null) {
+            labelBuilder = result.getData().getRuleName();
+            if (result.getData().getFileName() != null && result.getData().getLine() > 0) {
+                labelBuilder += String.format(" (%s:%d)",
+                        new File(result.getData().getFileName()).getName(),
+                        result.getData().getLine());
+            }
+        }else {
+            // For other engines, prefer queryName, otherwise fall back to id
+            labelBuilder = Optional.ofNullable(result.getData().getQueryName())
+                    .orElse(result.getId());
+
+            if (!nodes.isEmpty()) {
+                Node node = nodes.get(0);
+                labelBuilder += String.format(" (%s:%d)",
+                        new File(node.getFileName()).getName(), node.getLine());
+            }
+        }
+
+        this.label = labelBuilder;
         setUserObject(this.label);
         setAllowsChildren(false);
     }
@@ -137,11 +150,14 @@ public class ResultNode extends DefaultMutableTreeNode {
         JPanel details = buildDetailsPanel(runnableDraw, runnableUpdater);
         JPanel secondPanel = JBUI.Panels.simplePanel();
 
-        if (nodes.size() > 0) {
+        // Special handling for SCS
+        if (Constants.SCAN_TYPE_SCS.equals(result.getType())) {
+            secondPanel = buildScsPanel(runnableUpdater);
+        } else if (nodes.size() > 0) {
             secondPanel = buildAttackVectorPanel(runnableUpdater, project, nodes);
         } else if (packageData.size() > 0) {
             secondPanel = buildPackageDataPanel(packageData);
-        } else if (StringUtils.isNotBlank(result.getData().getFileName())) {
+        } else if (Utils.isNotBlank(result.getData().getFileName())) {
             secondPanel = buildVulnerabilityLocation(project,
                     result.getData().getFileName(),
                     result.getData().getLine(),
@@ -157,6 +173,44 @@ public class ResultNode extends DefaultMutableTreeNode {
         } else {
             return buildScaPanel(result, runnableDraw, runnableUpdater);
         }
+    }
+
+    /**
+     * Build  SCS results panel with only Learn More and Remediation Examples tabs
+     */
+    @NotNull
+    private JPanel buildScsPanel(Runnable runnableUpdater) {
+        JPanel panel = new JPanel(new MigLayout("fillx"));
+        JPanel learnMorePanel = new JPanel(new MigLayout("fillx"));
+        JPanel remediationPanel = new JPanel(new MigLayout("fillx"));
+        JBTabbedPane tabbedPane = new JBTabbedPane();
+
+        // Populate Learn More tab with ruleDescription
+        if (Utils.isNotBlank(result.getData().getRuleDescription())) {
+            learnMorePanel.add(new JBLabel(String.format(
+                            Constants.HTML_WRAPPER_FORMAT,
+                            result.getData().getRuleDescription().replaceAll("\n", "<br/>"))),
+                    "wrap, gapbottom 3, gapleft 0");
+        } else {
+            learnMorePanel.add(new JBLabel("No information available"), "wrap, gapbottom 3, gapleft 0");
+        }
+
+        // Populate Remediation Examples tab with remediation content
+        if (Utils.isNotBlank(result.getData().getRemediation())) {
+            remediationPanel.add(new JBLabel(String.format(
+                            Constants.HTML_WRAPPER_FORMAT,
+                            result.getData().getRemediation().replaceAll("\n", "<br/>"))),
+                    "wrap, gapbottom 3, gapleft 0");
+        } else {
+            remediationPanel.add(new JBLabel(Bundle.message(Resource.NO_REMEDIATION_EXAMPLES)),
+                    "wrap, gapbottom 3, gapleft 0");
+        }
+
+        tabbedPane.add(Bundle.message(Resource.LEARN_MORE), learnMorePanel);
+        tabbedPane.add(Bundle.message(Resource.REMEDIATION_EXAMPLES), remediationPanel);
+        panel.add(tabbedPane, "growx");
+
+        return panel;
     }
 
     @NotNull
@@ -193,7 +247,6 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         //Vulnerability Path
         drawSCAVulnerabilityPath(result, scaBody);
-        ;
 
         //References
         drawSCAReferences(result, scaBody);
@@ -212,7 +265,7 @@ public class ResultNode extends DefaultMutableTreeNode {
      */
     private void drawSCADescription(JPanel scaBody) {
         String description = result.getDescriptionHTML();
-        if (StringUtils.isNotBlank(description)) {
+        if (Utils.isNotBlank(description)) {
             HTMLEditorKit kit = new HTMLEditorKit();
             StyleSheet styleSheet = kit.getStyleSheet();
             styleSheet.addRule("p {margin: 0}");
@@ -255,7 +308,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         JLabel remediation = new JLabel();
         remediation.setBorder(JBUI.Borders.empty(0, 10, 20, 0));
-        if (StringUtils.isNotBlank(result.getData().getRecommendedVersion())) {
+        if (Utils.isNotBlank(result.getData().getRecommendedVersion())) {
             remediation.setIcon(AllIcons.Diff.MagicResolve);
             remediation.setToolTipText(Bundle.message(Resource.AUTO_REMEDIATION_TOOLTIP));
             remediation.setText(String.format(Constants.HTML_FONT_YELLOW_FORMAT, hex, UPGRADE_TO_VERSION_LABEL + result.getData().getRecommendedVersion()));
@@ -288,7 +341,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         JLabel aboutVulnerability = new JLabel(Bundle.message(Resource.ABOUT_VULNERABILITY));
         aboutVulnerability.setBorder(JBUI.Borders.empty(0, 10, 20, 0));
-        if (result.getData().getScaPackageData() != null && StringUtils.isNotBlank(result.getData().getScaPackageData().getFixLink())) {
+        if (result.getData().getScaPackageData() != null && Utils.isNotBlank(result.getData().getScaPackageData().getFixLink())) {
             aboutVulnerability.setIcon(CxIcons.ABOUT);
             aboutVulnerability.setCursor(new Cursor(Cursor.HAND_CURSOR));
             aboutVulnerability.addMouseListener(new MouseAdapter() {
@@ -375,7 +428,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             for (int i = 0; i < result.getData().getPackageData().size(); i++) {
                 PackageData packageData = result.getData().getPackageData().get(i);
                 JLabel packageName;
-                if (StringUtils.isNotBlank(packageData.getUrl())) {
+                if (Utils.isNotBlank(packageData.getUrl())) {
                     packageName = new JLabel(String.format(Constants.HTML_FONT_BLUE_FORMAT, hex, result.getData().getPackageData().get(i).getType()));
                     packageName.setCursor(new Cursor(Cursor.HAND_CURSOR));
                     packageName.addMouseListener(new MouseAdapter() {
@@ -410,7 +463,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                 return;
             }
             String baseDir = projectDir.getCanonicalPath();
-            if (StringUtils.isBlank(baseDir)) {
+            if (Utils.isBlank(baseDir)) {
                 return;
             }
             List<List<DependencyPath>> dependencyPaths = result.getData()
@@ -475,7 +528,18 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         if (result.getType().equals(CxConstants.SAST)) {
             //Creating codebashing label
-            JLabel codebashing = new JLabel("<html>Learn more at <font color='#F36A22'><b>>_</b></font>codebashing</html>");
+            JLabel codebashing = new JLabel();
+            updateCodebashingImage(codebashing); // Set the initial image
+
+            // listener to detect theme changes
+            MessageBusConnection connection = ApplicationManager.getApplication().getMessageBus().connect();
+            connection.subscribe(LafManagerListener.TOPIC, new LafManagerListener() {
+                @Override
+                public void lookAndFeelChanged(LafManager source) {
+                    updateCodebashingImage(codebashing);
+                }
+            });
+
             codebashing.setCursor(new Cursor(Cursor.HAND_CURSOR));
             codebashing.setToolTipText(String.format("Learn more about %s using Checkmarx's eLearning platform ", result.getData().getQueryName()));
             codebashing.addMouseListener(new MouseAdapter() {
@@ -492,14 +556,14 @@ public class ResultNode extends DefaultMutableTreeNode {
         details.add(header, "span, growx, wrap");
         details.add(new JSeparator(), "span, growx, wrap");
 
-        boolean triageEnabled = !result.getType().equals(Constants.SCAN_TYPE_SCA);
+        boolean triageEnabled = !result.getType().equals(Constants.SCAN_TYPE_SCA) && !result.getType().equals(Constants.SCAN_TYPE_SCS);
         //Panel with triage form, not available to sca type
         JPanel triageForm = new JPanel(new MigLayout("fillx"));
         JButton updateButton = new JButton();
         updateButton.setText("Update");
         StateService stateService = StateService.getInstance();
         final ComboBox<String> stateComboBox = (result.getType().equals(CxConstants.SAST)) ? new ComboBox<>(stateService.getStatesNameListForSastTriage().toArray(new String[0]))
-                : new ComboBox<>(Arrays.stream(StateEnum.values()).map(Enum::name).toArray(String[]::new));;
+                : new ComboBox<>(Arrays.stream(StateEnum.values()).map(Enum::name).toArray(String[]::new));
 
         stateComboBox.setEditable(true);
         stateComboBox.setSelectedItem(result.getState());
@@ -566,26 +630,26 @@ public class ResultNode extends DefaultMutableTreeNode {
                     result.setSeverity(newSeverity);
                 } catch (Throwable error) {
                     Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
-                    // Get log final line with error message
                     String[] lines = error.getMessage().split("\n");
                     String lastLine = lines[lines.length - 1];
                     Utils.notify(project,
                             lastLine,
                             NotificationType.ERROR);
                 } finally {
-                    //UI thread stuff
                     ApplicationManager.getApplication().invokeLater(() -> updateButton.setEnabled(true));
                 }
             });
         });
-
-        triageForm.add(severityComboBox, "growx");
-        triageForm.add(stateComboBox, "growx");
-        if (triageEnabled) {
-            triageForm.add(updateButton, "growx, wrap");
-            triageForm.add(commentText, "span, growx");
+        // Render triage UI for all engines except SCS.
+        if (!Constants.SCAN_TYPE_SCS.equals(result.getType())) {
+            triageForm.add(severityComboBox, "growx");
+            triageForm.add(stateComboBox, "growx");
+            if (triageEnabled) {
+                triageForm.add(updateButton, "growx, wrap");
+                triageForm.add(commentText, "span, growx");
+            }
+            details.add(triageForm, "span, growx, wrap");
         }
-        details.add(triageForm, "span, growx, wrap");
         //Construction of the tabs
         JBTabbedPane tabbedPane = new JBTabbedPane();
 
@@ -593,12 +657,42 @@ public class ResultNode extends DefaultMutableTreeNode {
         descriptionPanel.setLayout(new MigLayout("fillx"));
 
         String description = result.getDescription();
-        if (StringUtils.isNotBlank(description)) {
-            // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)),
-                    "wrap, gapbottom 5");
+        if (Utils.isNotBlank(description)) {
+            if (Constants.SCAN_TYPE_SCS.equals(result.getType())) {
+                // For SCS only: split description into message and file path, and make the path clickable
+                String preamble = description;
+                String filePathInText = null;
+                int slashIdx = description.indexOf('/');
+                if (slashIdx >= 0) {
+                    preamble = description.substring(0, slashIdx).trim();
+                    filePathInText = description.substring(slashIdx).trim();
+                }
+
+                if (Utils.isNotBlank(preamble)) {
+                    descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, preamble)),
+                            "wrap, gapbottom 5");
+                }
+
+                String fileName = result.getData() != null ? result.getData().getFileName() : null;
+                int line = result.getData() != null ? result.getData().getLine() : 0;
+                if (Utils.isNotBlank(filePathInText) && Utils.isNotBlank(fileName)) {
+                    FileNode fileNode = FileNode
+                            .builder()
+                            .fileName(fileName)
+                            .line(line)
+                            .column(DEFAULT_COLUMN)
+                            .build();
+
+                    JComponent link = new CxLinkLabel(filePathInText, mouseEvent -> navigate(project, fileNode));
+                    descriptionPanel.add(link, "wrap, gapbottom 5");
+                }
+            } else {
+                // Non-SCS: default behavior (render full description)
+                descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)),
+                        "wrap, gapbottom 5");
+            }
         }
-        if (StringUtils.isNotBlank(result.getData().getValue()) && StringUtils.isNotBlank(result.getData()
+        if (Utils.isNotBlank(result.getData().getValue()) && Utils.isNotBlank(result.getData()
                 .getExpectedValue())) {
 
             descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
@@ -626,9 +720,13 @@ public class ResultNode extends DefaultMutableTreeNode {
             }
             return Collections.emptyList();
         }).thenAccept(triageChangesList -> ApplicationManager.getApplication().invokeLater(() -> {
-            for (Predicate predicate : triageChangesList) {
-
-                createChangesPanels(triageChanges, predicate);
+            if (triageChangesList == null || triageChangesList.isEmpty()) {
+                // Show message only when there is nothing else to display
+                triageChanges.add(new JBLabel(Bundle.message(Resource.NO_CHANGES)), "wrap");
+            } else {
+                for (Predicate predicate : triageChangesList) {
+                    createChangesPanels(triageChanges, predicate);
+                }
             }
             runnableUpdater.run();
         }));
@@ -877,7 +975,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                 return;
             }
             String baseDir = projectDir.getCanonicalPath();
-            if (StringUtils.isBlank(baseDir)) {
+            if (Utils.isBlank(baseDir)) {
                 return;
             }
             try {
@@ -921,11 +1019,14 @@ public class ResultNode extends DefaultMutableTreeNode {
     private static void navigate(@NotNull Project project, @NotNull FileNode fileNode) {
         String fileName = fileNode.getFileName();
         Utils.runAsyncReadAction(() -> {
-            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(project, FilenameUtils.getName(fileName),
-                            GlobalSearchScope.projectScope(project))
+            List<VirtualFile> files = FilenameIndex.getVirtualFilesByName(
+                            FilenameUtils.getName(fileName),
+                            GlobalSearchScope.projectScope(project)
+                    )
                     .stream()
                     .filter(f -> f.getPath().contains(fileName))
                     .collect(Collectors.toList());
+
             if (files.isEmpty()) {
                 Utils.notify(project,
                         Bundle.message(Resource.MISSING_FILE, fileName),
@@ -937,11 +1038,12 @@ public class ResultNode extends DefaultMutableTreeNode {
                             NotificationType.WARNING);
                 }
                 for (VirtualFile file : files) {
-
-                    OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(project,
+                    OpenFileDescriptor openFileDescriptor = new OpenFileDescriptor(
+                            project,
                             file,
                             fileNode.getLine() - 1,
-                            fileNode.getColumn() - 1);
+                            fileNode.getColumn() - 1
+                    );
                     ApplicationManager.getApplication().invokeLater(() -> openFileDescriptor.navigate(true));
                 }
             }
@@ -1019,7 +1121,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(riskTitle, "span, growx");
 
         String risk = learnMore.getRisk();
-        if (StringUtils.isNotBlank(risk)) {
+        if (Utils.isNotBlank(risk)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
             panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, risk.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
@@ -1029,7 +1131,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(causeTitle, "span, growx");
 
         String cause = learnMore.getCause();
-        if (StringUtils.isNotBlank(cause)) {
+        if (Utils.isNotBlank(cause)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
             panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, cause.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
@@ -1039,7 +1141,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(recommendationsTitle, "span, growx");
 
         String recommendations = learnMore.getGeneralRecommendations();
-        if (StringUtils.isNotBlank(cause)) {
+        if (Utils.isNotBlank(cause)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
             panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, recommendations.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
@@ -1050,7 +1152,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         panel.add(cweLinkTitle, "span, growx");
 
         VulnerabilityDetails vulnerabilityDetails = result.getVulnerabilityDetails();
-        if (vulnerabilityDetails != null && StringUtils.isNotBlank(vulnerabilityDetails.getCweId())) {
+        if (vulnerabilityDetails != null && Utils.isNotBlank(vulnerabilityDetails.getCweId())) {
             String cweId = vulnerabilityDetails.getCweId();
             String linkUrl = "https://cwe.mitre.org/data/definitions/" + cweId + ".html";
             String linkText = "CWE-" + cweId;
@@ -1099,5 +1201,25 @@ public class ResultNode extends DefaultMutableTreeNode {
             panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, Resource.NO_REMEDIATION_EXAMPLES)),
                     "wrap, gapbottom 3, gapleft 0");
         }
+    }
+
+    // Method to update the image based on the current theme of the IDE
+    private void updateCodebashingImage(JLabel codebashing) {
+        ImageIcon icon;
+        if (UIManager.getColor("Panel.background").getRed() > 128) {
+            // Light theme
+            icon = new ImageIcon(getClass().getResource("/icons/codebashing_light.png"));
+        } else {
+            // Dark theme
+            icon = new ImageIcon(getClass().getResource("/icons/codebashing_dark.png"));
+        }
+        Image scaledImage = icon.getImage().getScaledInstance(170, 40, Image.SCALE_SMOOTH);
+        ImageIcon scaledIcon = new ImageIcon(scaledImage);
+
+        // Update the JLabel with the new image
+        codebashing.setIcon(scaledIcon);
+        codebashing.setText("Learn more at ");
+        codebashing.setHorizontalTextPosition(SwingConstants.LEFT);
+        codebashing.setVerticalTextPosition(SwingConstants.CENTER);
     }
 }

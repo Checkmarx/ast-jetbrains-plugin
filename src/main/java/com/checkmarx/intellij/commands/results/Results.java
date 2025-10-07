@@ -10,7 +10,6 @@ import com.checkmarx.intellij.commands.Scan;
 import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -42,7 +41,7 @@ public class Results {
     @NotNull
     public static CompletableFuture<ResultGetState> getResults(String scanIdFieldValue) {
         return CompletableFuture.supplyAsync(() -> {
-            boolean getLatest = StringUtils.isBlank(scanIdFieldValue);
+            boolean getLatest = Utils.isBlank(scanIdFieldValue);
             ResultGetState newState = new ResultGetState();
             String scanId;
 

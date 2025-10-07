@@ -14,7 +14,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -41,7 +40,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
     public ScanSelectionGroup(@NotNull Project project) {
         super(project);
         String storedValue = propertiesComponent.getValue(Constants.SELECTED_SCAN_PROPERTY);
-        if (StringUtils.isNotBlank(storedValue)) {
+        if (Utils.isNotBlank(storedValue)) {
             ApplicationManager.getApplication().invokeLater(() -> Optional.ofNullable(getCxToolWindowPanel(project))
                                                                           .ifPresent(cxToolWindowPanel -> cxToolWindowPanel.selectScan(
                                                                                   unFormatScan(storedValue))));
@@ -70,7 +69,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
         removeAll();
         CompletableFuture.supplyAsync((Supplier<List<com.checkmarx.ast.scan.Scan>>) () -> {
             try {
-                return StringUtils.isBlank(projectId) || StringUtils.isBlank(branch)
+                return Utils.isBlank(projectId) || Utils.isBlank(branch)
                        ? Collections.emptyList()
                        : Scan.getList(projectId, branch);
             } catch (IOException | URISyntaxException | InterruptedException | CxException e) {
@@ -102,7 +101,7 @@ public class ScanSelectionGroup extends BaseSelectionGroup {
             return Bundle.message(Resource.SCAN_SELECT_PREFIX) + ": " + (isEnabled() ? NONE_SELECTED : "...");
         }
         String storedScan = propertiesComponent.getValue(Constants.SELECTED_SCAN_PROPERTY);
-        return Bundle.message(Resource.SCAN_SELECT_PREFIX) + ": " + (StringUtils.isBlank(storedScan)
+        return Bundle.message(Resource.SCAN_SELECT_PREFIX) + ": " + (Utils.isBlank(storedScan)
                                                                      ? NONE_SELECTED
                                                                      : storedScan);
     }

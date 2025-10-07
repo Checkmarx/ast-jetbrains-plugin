@@ -16,7 +16,6 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import lombok.SneakyThrows;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -44,7 +43,7 @@ public class CancelScanAction extends AnAction implements CxToolWindowAction {
                 LOGGER.info(Bundle.message(Resource.SCAN_CANCELING_INFO, scanId));
                 Scan.scanCancel(scanId);
                 LOGGER.info(Bundle.message(Resource.SCAN_CANCELED, scanId));
-                propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, StringUtils.EMPTY);
+                propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, Utils.EMPTY);
                 ActivityTracker.getInstance().inc();
                 Utils.notifyScan(null, Bundle.message(Resource.SCAN_CANCELED_SUCCESSFULLY), e.getProject(), null, NotificationType.INFORMATION, null);
             }
@@ -59,7 +58,7 @@ public class CancelScanAction extends AnAction implements CxToolWindowAction {
             e.getPresentation().setVisible(StartScanAction.getUserHasPermissionsToScan());
 
             PropertiesComponent propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(e.getProject()));
-            boolean isScanRunning = StringUtils.isNotBlank(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
+            boolean isScanRunning = Utils.isNotBlank(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
             e.getPresentation().setEnabled(isScanRunning);
         }
         catch (Exception ex) {
