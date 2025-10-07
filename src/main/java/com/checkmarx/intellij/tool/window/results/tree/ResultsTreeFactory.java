@@ -71,11 +71,11 @@ public class ResultsTreeFactory {
                      * If a result is for SCA - dev or test dependency, and SCA Hide Dev & Test Dependency filter is enabled,
                      * then ignore a result to add in the engine
                      */
-                    if (!isDevTestDependency(result, isSCAHideDevTestDependencyEnabled)) {
-                                addResultToEngine(project, groupByList,
-                                        engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
-                                        result, scanId);
-                            }
+//                    if (!isDevTestDependency(result, isSCAHideDevTestDependencyEnabled)) {
+//                                addResultToEngine(project, groupByList,
+//                                        engineNodes.computeIfAbsent(result.getType(), NonLeafNode::new),
+//                                        result, scanId);
+//                            }
                         }
                 );
         for (DefaultMutableTreeNode node : engineNodes.values()) {
@@ -96,7 +96,7 @@ public class ResultsTreeFactory {
     private static boolean isDevTestDependency(Result result, boolean isSCAHideDevTestDependencyEnabled) {
         if (isSCAHideDevTestDependencyEnabled && result != null && result.getType().equalsIgnoreCase(Constants.SCAN_TYPE_SCA)) {
             ScaPackageData scaPackageData = result.getData() != null ? result.getData().getScaPackageData() : null;
-            return (scaPackageData != null && (scaPackageData.isDevelopmentDependency() || scaPackageData.isTestDependency()));
+            return (scaPackageData != null);
         }
         return false;
     }

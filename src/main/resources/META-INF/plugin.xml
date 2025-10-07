@@ -53,13 +53,6 @@
                 enabledByDefault="true"
                 implementationClass="com.checkmarx.intellij.inspections.AscaInspection"/>
 
-        <globalInspection
-                displayName="ASCA"
-                groupName="ASCA"
-                groupPath="Checkmarx"
-                enabledByDefault="true"
-                implementationClass="com.checkmarx.intellij.inspections.AscaGlobalInspection"/>
-
     </extensions>
 
     <applicationListeners>

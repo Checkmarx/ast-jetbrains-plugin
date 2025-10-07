@@ -6,17 +6,28 @@ import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.inspections.quickfixes.AscaQuickFix;
-import com.checkmarx.intellij.service.AscaVulnerabilityService;
+import com.checkmarx.intellij.service.ProblemHolderService;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.tool.window.adapters.AscaVulnerabilityIssue;
+import com.checkmarx.intellij.tool.window.adapters.OssVulnerabilityIssue;
+import com.checkmarx.intellij.tool.window.adapters.VulnerabilityIssue;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.codeInspection.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import lombok.Getter;
 import lombok.Setter;
+import com.checkmarx.ast.oss.Package;
 import org.jetbrains.annotations.NotNull;
 
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +44,9 @@ public class AscaInspection extends LocalInspectionTool {
     private Map<String, ProblemHighlightType> severityToHighlightMap;
     public static String ASCA_INSPECTION_ID = "ASCA";
     private final Logger logger = Utils.getLogger(AscaInspection.class);
+
+    private static final String CLI_DIRECTORY = "C:\\Users\\AniketS\\Downloads\\ast-cli_2.3.33-kerberos-auth-native2_windows_x64";
+    private static final String SCAN_COMMAND = "cx scan oss-realtime --file-source \"C:\\Utils\\Dummy Project\\JavaVulnerableLab-master\\JavaVulnerableLab-master\\pom.xml\"";
 
     /**
      * Checks the file for ASCA issues.
@@ -53,7 +67,6 @@ public class AscaInspection extends LocalInspectionTool {
             if (isInvalidScan(scanResult)) {
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
-
             Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
             if (document == null) {
                 return ProblemDescriptor.EMPTY_ARRAY;
@@ -80,12 +93,14 @@ public class AscaInspection extends LocalInspectionTool {
     private ProblemDescriptor[] createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, List<ScanDetail> scanDetails, Document document, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new ArrayList<>();
 
+        List<VulnerabilityIssue> allIssues = new ArrayList<>();
+
         for (ScanDetail detail : scanDetails) {
             int lineNumber = detail.getLine();
             if (isLineOutOfRange(lineNumber, document)) {
                 continue;
             }
-
+            allIssues.add(new AscaVulnerabilityIssue(detail, file.toString()));
             PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(lineNumber - 1));
             if (elementAtLine != null) {
                 ProblemDescriptor problem = createProblemDescriptor(file, manager, detail, document, lineNumber, isOnTheFly);
@@ -94,9 +109,8 @@ public class AscaInspection extends LocalInspectionTool {
         }
 
         // Persist in project service
-        AscaVulnerabilityService.getInstance(file.getProject())
-                .addIssues(file.getVirtualFile().getPath(), scanDetails);
-
+        ProblemHolderService.getInstance(file.getProject())
+                .addProblems(file.getVirtualFile().getPath(), allIssues);
 
         return problems.toArray(ProblemDescriptor[]::new);
     }
@@ -212,5 +226,64 @@ public class AscaInspection extends LocalInspectionTool {
      */
     private ScanResult performAscaScan(PsiFile file) {
         return ascaService.runAscaScan(file, file.getProject(), false, Constants.JET_BRAINS_AGENT_NAME);
+    }
+
+    /*
+    code for checking the oss results
+     */
+
+
+    public List<Package> performOssScan() throws Exception {
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        // Use 'cmd.exe /c' on Windows to run command via shell
+        processBuilder.command("cmd.exe", "/c", SCAN_COMMAND);
+        processBuilder.directory(new java.io.File(CLI_DIRECTORY));
+
+        Process process = processBuilder.start();
+
+        // Capture combined standard output from the command as JSON string
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line);
+            }
+        }
+
+        // Optional: capture standard error in case of errors
+        StringBuilder errorOutput = new StringBuilder();
+        try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+            String errLine;
+            while ((errLine = errorReader.readLine()) != null) {
+                errorOutput.append(errLine).append(System.lineSeparator());
+            }
+        }
+
+        int exitCode = process.waitFor();
+        if (exitCode != 0) {
+            throw new RuntimeException("Process exited with code " + exitCode + ": " + errorOutput);
+        }
+
+        // Parse JSON to your wrapper class that contains List<Package>
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Assuming CLI outputs JSON with root {"Packages": [...] }
+        Wrapper wrapper = mapper.readValue(output.toString(), Wrapper.class);
+
+        return wrapper.getPackages();
+    }
+
+    // Wrapper for the root JSON object
+    public static class Wrapper {
+        @JsonProperty("Packages")
+        private List<Package> Packages;
+
+        public List<Package> getPackages() {
+            return Packages;
+        }
+
+        public void setPackages(List<Package> packages) {
+            this.Packages = packages;
+        }
     }
 }

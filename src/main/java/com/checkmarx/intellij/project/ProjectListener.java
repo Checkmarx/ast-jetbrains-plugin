@@ -10,6 +10,8 @@ public class ProjectListener implements ProjectManagerListener {
     @Override
     public void projectOpened(@NotNull Project project) {
         ProjectManagerListener.super.projectOpened(project);
+
+        String password = "Hello@123";
         project.getService(ProjectResultsService.class).indexResults(project, Results.emptyResults);
     }
 }

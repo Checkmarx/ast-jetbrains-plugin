@@ -24,6 +24,7 @@ public class CxInspection extends LocalInspectionTool {
     @NotNull
     @Override
     public PsiElementVisitor buildVisitor(@NotNull ProblemsHolder holder, boolean isOnTheFly) {
+        System.out.println("------------buildVisitor getting called here");
         return Boolean.getBoolean("CxDev") && isOnTheFly ? dummyVisitor : new CxVisitor(holder);
     }
 }
