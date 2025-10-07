@@ -113,5 +113,17 @@ public final class Constants {
         public static final int TIME_OUT_SECONDS = 120;
     }
 
+    public static final class RealTimeConstants{
+        // OSS Scanner
+
+        public static final String OSS_REALTIME_SCANNER_ENGINE_NAME="Oss";
+        public static final String ACTIVATE_OSS_REALTIME_SCANNER= "Activate OSS-Realtime";
+        public static final String OSS_REALTIME_SCANNER= "Checkmarx Open Source Realtime Scanner (OSS-Realtime)";
+        public static final String OSS_REALTIME_SCANNER_START= "Realtime OSS Scanner Engine started";
+        public static final String OSS_REALTIME_SCANNER_DISABLED= "Realtime OSS Scanner Engine disabled";
+        public static final String  OSS_REALTIME_SCANNER_DIRECTORY= "Cx-oss-realtime-scanner";
+        public static final String ERROR_OSS_REALTIME_SCANNER= "Failed to handle OSS Realtime scan";
+    }
+
 
 }
