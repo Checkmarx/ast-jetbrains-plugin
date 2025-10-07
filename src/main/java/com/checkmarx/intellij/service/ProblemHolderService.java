@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.service;
 
-import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.intellij.tool.window.adapters.VulnerabilityIssue;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
@@ -10,7 +9,7 @@ import java.util.*;
 
 @Service(Service.Level.PROJECT)
 public final class ProblemHolderService {
- 
+
     private final Map<String, List<VulnerabilityIssue>> fileToIssues = new HashMap<>();
 
     public static final Topic<IssueListener> ISSUE_TOPIC =
