@@ -488,4 +488,65 @@ class ResultNodeTest {
         assertEquals(Severity.HIGH.getIcon(), titleLabel.getIcon());
     }
 
+    @Test
+    void constructor_WithScsType_SetsLabelWithRuleNameOnly() {
+        // Setup
+        when(mockResult.getType()).thenReturn(Constants.SCAN_TYPE_SCS);
+        when(mockResultData.getRuleName()).thenReturn("Github-Pat");
+        when(mockResultData.getFileName()).thenReturn("/.github/workflows/checkmarx.yml");
+        when(mockResultData.getLine()).thenReturn(123);
+
+        // Execute
+        resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+
+        // Verify
+        assertEquals("Github-Pat (checkmarx.yml:123)", resultNode.getLabel());
+        assertEquals(resultNode.getLabel(), resultNode.getUserObject());
+    }
+
+    @Test
+    void buildResultPanel_WithScsType_AddsLearnMoreAndRemediationTabs() {
+        // Setup
+        when(mockResult.getType()).thenReturn(Constants.SCAN_TYPE_SCS);
+        when(mockResult.getSeverity()).thenReturn(Severity.HIGH.name());
+        when(mockResultData.getRuleName()).thenReturn("Hardcoded Password");
+        when(mockResultData.getRuleDescription()).thenReturn("Some description");
+        when(mockResultData.getRemediation()).thenReturn("Some remediation");
+
+        try (MockedStatic<Bundle> mockedBundle = mockStatic(Bundle.class)) {
+            mockedBundle.when(() -> Bundle.message(Resource.LEARN_MORE)).thenReturn("Learn More");
+            mockedBundle.when(() -> Bundle.message(Resource.REMEDIATION_EXAMPLES)).thenReturn("Remediation Examples");
+            mockedBundle.when(() -> Bundle.message(Resource.DESCRIPTION)).thenReturn("Description");
+            mockedBundle.when(() -> Bundle.message(Resource.CHANGES)).thenReturn("Changes");
+            mockedBundle.when(() -> Bundle.message(Resource.COMMENT_PLACEHOLDER))
+                    .thenReturn("Notes (Optional)");
+
+            // Execute
+            resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
+            JPanel wrapper = resultNode.buildResultPanel(() -> {}, () -> {});
+
+            // Assert: wrapper exists and contains tabs
+            assertNotNull(wrapper);
+            com.intellij.ui.OnePixelSplitter splitter =
+                    (com.intellij.ui.OnePixelSplitter) wrapper.getComponent(0);
+
+            JScrollPane secondScroll = (JScrollPane) splitter.getSecondComponent();
+            JPanel scsPanel = (JPanel) secondScroll.getViewport().getView();
+
+            // Inline search for JBTabbedPane
+            com.intellij.ui.components.JBTabbedPane tabbedPane = null;
+            for (Component component : scsPanel.getComponents()) {
+                if (component instanceof com.intellij.ui.components.JBTabbedPane) {
+                    tabbedPane = (com.intellij.ui.components.JBTabbedPane) component;
+                    break;
+                }
+            }
+
+            assertNotNull(tabbedPane, "Tabbed pane should exist for SCS findings");
+            assertEquals(
+                    Arrays.asList("Learn More", "Remediation Examples"),
+                    Arrays.asList(tabbedPane.getTitleAt(0), tabbedPane.getTitleAt(1))
+            );
+        }
+    }
 }

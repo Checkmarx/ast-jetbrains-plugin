@@ -6,13 +6,12 @@ plugins {
 }
 
 group 'com.checkmarx'
-version System.getenv('RELEASE_VERSION')
+version System.getenv('RELEASE_VERSION') ?: "dev"
 
-def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION') ?: "dev"
+def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION')
 def remoteRobotVersion = '0.11.23'
 
 repositories {
-    mavenLocal()
     mavenCentral()
     maven {
         url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
@@ -50,7 +49,7 @@ dependencies {
     implementation 'com.miglayout:miglayout-swing:11.3'
 
     if (javaWrapperVersion == "" || javaWrapperVersion == null) {
-        implementation('com.checkmarx.ast:ast-cli-java-wrapper:dev'){
+        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.4.12'){
             exclude group: 'junit', module: 'junit'
         }
     } else {

@@ -68,9 +68,35 @@ class TenantSettingTest {
             when(mockWrapper.ideScansEnabled()).thenThrow(mock(CxException.class));
 
             // Act & Assert
-            assertThrows(CxException.class, () ->
-                TenantSetting.isScanAllowed()
-            );
+            assertThrows(CxException.class, TenantSetting::isScanAllowed);
+        }
+    }
+
+    @Test
+    void isAiMcpServerEnabled_ReturnsTrue() throws IOException, CxException, InterruptedException {
+        // Arrange
+        try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+            mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            when(mockWrapper.aiMcpServerEnabled()).thenReturn(true);
+
+            // Act
+            boolean result = TenantSetting.isAiMcpServerEnabled();
+
+            // Assert
+            assertTrue(result);
+            verify(mockWrapper).aiMcpServerEnabled();
+        }
+    }
+
+    @Test
+    void isAiMcpServerEnabled_ThrowsException() throws IOException, CxException, InterruptedException {
+        // Arrange
+        try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+            mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            when(mockWrapper.aiMcpServerEnabled()).thenThrow(mock(CxException.class));
+
+            // Act & Assert
+            assertThrows(CxException.class, TenantSetting::isAiMcpServerEnabled);
         }
     }
 } 

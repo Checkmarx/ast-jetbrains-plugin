@@ -11,10 +11,12 @@ import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
+import com.checkmarx.intellij.ui.WelcomeDialog;
 import com.checkmarx.intellij.util.InputValidator;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
@@ -256,6 +258,29 @@ public class GlobalSettingsComponent implements SettingsComponent {
                             SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
                             apply(); // Persist the state immediately
                             logoutButton.requestFocusInWindow();
+                            showWelcomeDialogIfNeeded();
+
+                            // Auto-install MCP for GitHub Copilot only (API Key flow) if AI MCP server is enabled
+                            java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                                try {
+                                    if (com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled()) {
+                                        return com.checkmarx.intellij.service.McpSettingsInjector.installForCopilot(String.valueOf(apiKeyField.getPassword()));
+                                    } else {
+                                        LOGGER.debug("AI MCP Server is disabled, skipping auto-configuration");
+                                        return false;
+                                    }
+                                } catch (Exception ex) {
+                                    throw new RuntimeException(ex);
+                                }
+                            }).whenComplete((changed, ex) -> {
+                                if (ex != null) {
+                                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "An unexpected error occurred during MCP setup.", com.intellij.notification.NotificationType.ERROR, project);
+                                } else if (Boolean.TRUE.equals(changed)) {
+                                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration saved successfully.", com.intellij.notification.NotificationType.INFORMATION, project);
+                                } else {
+                                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration already up to date.", com.intellij.notification.NotificationType.INFORMATION, project);
+                                }
+                            });
                         });
                         LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
                     } catch (Exception e) {
@@ -350,6 +375,29 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
             apply();
             notifyAuthSuccess(); // Even if panel is not showing now
+            showWelcomeDialogIfNeeded();
+
+            // Auto-install MCP for GitHub Copilot only (OAuth flow)
+            java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                try {
+                    if (com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled()) {
+                        return com.checkmarx.intellij.service.McpSettingsInjector.installForCopilot(SENSITIVE_SETTINGS_STATE.getRefreshToken());
+                    } else {
+                        LOGGER.debug("AI MCP Server is disabled, skipping auto-configuration");
+                        return false;
+                    }
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            }).whenComplete((changed, ex) -> {
+                if (ex != null) {
+                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "An unexpected error occurred during MCP setup.", com.intellij.notification.NotificationType.ERROR, project);
+                } else if (Boolean.TRUE.equals(changed)) {
+                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration saved successfully.", com.intellij.notification.NotificationType.INFORMATION, project);
+                } else {
+                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration already up to date.", com.intellij.notification.NotificationType.INFORMATION, project);
+                }
+            });
         });
     }
 
@@ -372,6 +420,29 @@ public class GlobalSettingsComponent implements SettingsComponent {
             apply();
             notifyAuthError(error);
         });
+    }
+
+    private void showWelcomeDialogIfNeeded() {
+        GlobalSettingsState settings = GlobalSettingsState.getInstance();
+        if (!settings.isWelcomeShown()) {
+            if (settings.isAsca() && !settings.isOssRealtime()) {
+                settings.setOssRealtime(true);
+            }
+
+            // Check MCP server status for welcome dialog
+            boolean mcpEnabled = false;
+            try {
+                mcpEnabled = com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled();
+            } catch (Exception e) {
+                LOGGER.warn("Failed to check MCP server status", e);
+            }
+
+            // Pass MCP flag to the dialog
+            WelcomeDialog welcomeDialog = new WelcomeDialog(project, mcpEnabled);
+            welcomeDialog.show();
+
+            settings.setWelcomeShown(true);
+        }
     }
 
     private void handleConnectionFailure(Exception e) {
@@ -481,6 +552,14 @@ public class GlobalSettingsComponent implements SettingsComponent {
         addSectionHeader(Resource.ASCA_DESCRIPTION, false);
         mainPanel.add(ascaCheckBox);
         mainPanel.add(ascaInstallationMsg, "gapleft 5, wrap");
+
+        // === NEW: CxOne Assist link section ===
+        CxLinkLabel goToAssistLink = new CxLinkLabel(
+                Bundle.message(Resource.GO_TO_CXONE_ASSIST_LINK),
+                e -> ShowSettingsUtil.getInstance().showSettingsDialog(project, CxOneAssistConfigurable.class)
+        );
+
+        mainPanel.add(goToAssistLink, "wrap, gapleft 5, gaptop 10");
     }
 
     private void setupFields() {
@@ -607,6 +686,18 @@ public class GlobalSettingsComponent implements SettingsComponent {
             if (userChoice == Messages.YES) {
                 setLogoutState();
                 notifyLogout();
+
+                // Ensure only the Checkmarx MCP entry is removed and log any issues.
+                java.util.concurrent.CompletableFuture.runAsync(() -> {
+                    try {
+                        boolean removed = com.checkmarx.intellij.service.McpSettingsInjector.uninstallFromCopilot();
+                        if (!removed) {
+                            LOGGER.debug("Logout completed, but no MCP entry was present to remove.");
+                        }
+                    } catch (Exception ex) {
+                        LOGGER.warn("Failed to remove Checkmarx MCP entry on logout.", ex);
+                    }
+                });
             }
             // else: Do nothing (user clicked Cancel)
         });

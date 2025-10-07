@@ -67,6 +67,15 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @Attribute("validationInProgress")
     private boolean validationInProgress = false;
 
+    // --- CxOne Assist realtime feature flags and options ---
+    private boolean ossRealtime = false;
+    private boolean secretDetectionRealtime = false;
+    private boolean containersRealtime = false;
+    private boolean iacRealtime = false;
+    private String containersTool = "docker";
+    @Attribute("welcomeShown")
+    private boolean welcomeShown = false;
+
     @Override
     public @Nullable GlobalSettingsState getState() {
         return this;

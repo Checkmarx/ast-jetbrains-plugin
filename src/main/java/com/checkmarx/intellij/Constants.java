@@ -25,7 +25,7 @@ public final class Constants {
             = "https://checkmarx.com/resource/documents/en/34965-68626-global-flags.html";
 
     public static final String INTELLIJ_HELP
-            = "https://checkmarx.com/resource/documents/en/34965-68733-checkmarx-one-jetbrains-plugin.html";
+            = "https://docs.checkmarx.com/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-pluging.html";
 
     public static final String FIELD_GAP_BOTTOM = "gapbottom 15";
 
@@ -58,6 +58,7 @@ public final class Constants {
 
     public static final String SCAN_TYPE_SCA = "sca";
     public static final String SCAN_TYPE_KICS = "kics";
+    public static final String SCAN_TYPE_SCS = "scs";
 
     public static final String SCAN_STATE_CONFIRMED = "confirmed";
     public static final String SCAN_STATE_TO_VERIFY = "to_verify";
@@ -111,6 +112,18 @@ public final class Constants {
         public static final String AUTH_ERROR_HTML_FILE_PATH = "auth/auth-error.html";
         public static final String LOCATION = "location";
         public static final int TIME_OUT_SECONDS = 120;
+    }
+
+    public static final class RealTimeConstants{
+        // OSS Scanner
+
+        public static final String OSS_REALTIME_SCANNER_ENGINE_NAME="Oss";
+        public static final String ACTIVATE_OSS_REALTIME_SCANNER= "Activate OSS-Realtime";
+        public static final String OSS_REALTIME_SCANNER= "Checkmarx Open Source Realtime Scanner (OSS-Realtime)";
+        public static final String OSS_REALTIME_SCANNER_START= "Realtime OSS Scanner Engine started";
+        public static final String OSS_REALTIME_SCANNER_DISABLED= "Realtime OSS Scanner Engine disabled";
+        public static final String  OSS_REALTIME_SCANNER_DIRECTORY= "Cx-oss-realtime-scanner";
+        public static final String ERROR_OSS_REALTIME_SCANNER= "Failed to handle OSS Realtime scan";
     }
 
 
