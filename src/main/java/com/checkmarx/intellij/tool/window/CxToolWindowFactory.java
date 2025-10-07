@@ -30,7 +30,7 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
         final VulnerabilityToolWindow ascaVulnerabilityToolWindow = new VulnerabilityToolWindow(project);
 
         contentManager.addContent(
-                contentManager.getFactory().createContent(ascaVulnerabilityToolWindow, "Dummy Tab", false)
+                contentManager.getFactory().createContent(ascaVulnerabilityToolWindow, "Scan Results", false)
         );
 
         // Dispose properly
