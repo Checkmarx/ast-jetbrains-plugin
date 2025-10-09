@@ -2,23 +2,21 @@ package com.checkmarx.intellij.inspections;
 
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
+import com.checkmarx.ast.oss.Vulnerability;
+import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
+import com.checkmarx.intellij.realtimeScanners.dto.Location;
 import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.inspections.quickfixes.AscaQuickFix;
 import com.checkmarx.intellij.service.ProblemHolderService;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
-import com.checkmarx.intellij.tool.window.adapters.AscaVulnerabilityIssue;
-import com.checkmarx.intellij.tool.window.adapters.OssVulnerabilityIssue;
-import com.checkmarx.intellij.tool.window.adapters.VulnerabilityIssue;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.codeInspection.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,6 +30,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Inspection tool for ASCA (AI Secure Coding Assistant).
@@ -93,14 +92,13 @@ public class AscaInspection extends LocalInspectionTool {
     private ProblemDescriptor[] createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, List<ScanDetail> scanDetails, Document document, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new ArrayList<>();
 
-        List<VulnerabilityIssue> allIssues = new ArrayList<>();
+        List<CxProblems> problemsList = new ArrayList<>();
 
         for (ScanDetail detail : scanDetails) {
             int lineNumber = detail.getLine();
             if (isLineOutOfRange(lineNumber, document)) {
                 continue;
             }
-            allIssues.add(new AscaVulnerabilityIssue(detail, file.toString()));
             PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(lineNumber - 1));
             if (elementAtLine != null) {
                 ProblemDescriptor problem = createProblemDescriptor(file, manager, detail, document, lineNumber, isOnTheFly);
@@ -108,9 +106,18 @@ public class AscaInspection extends LocalInspectionTool {
             }
         }
 
+        try {
+            List<Package> ossResultDetails = performOssScan(); // This perform scan and related methods are dummy here to just execute the command to temporarily get the results
+            problemsList.addAll(fromPackagePojo(ossResultDetails)); // Oss results conversion - this can be later moved to oss scanner service class
+            problemsList.addAll(buildCxProblems(scanDetails));
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         // Persist in project service
         ProblemHolderService.getInstance(file.getProject())
-                .addProblems(file.getVirtualFile().getPath(), allIssues);
+                .addProblems(file.getVirtualFile().getPath(), problemsList);
 
         return problems.toArray(ProblemDescriptor[]::new);
     }
@@ -286,4 +293,60 @@ public class AscaInspection extends LocalInspectionTool {
             this.Packages = packages;
         }
     }
+
+    private List<CxProblems> buildCxProblems(List<ScanDetail> scanDetails){
+        List<CxProblems> problems = new ArrayList<>();
+        for (ScanDetail detail : scanDetails) {
+            CxProblems problem = new CxProblems();
+            problem.setLine(detail.getLine());
+            problem.setSeverity(detail.getSeverity());
+            problem.setTitle(detail.getRuleName());
+            problem.setDescription(detail.getDescription());
+            problem.setRemediationAdvise(detail.getRemediationAdvise());
+            problem.setRuleName(detail.getRuleName());
+            problem.setScannerType(ASCA_INSPECTION_ID);
+            problems.add(problem);
+        }
+        return problems;
+    }
+
+
+    // Move this method to a utility class once the ervice part gets completed
+    public static List<CxProblems> fromPackagePojo(List<Package> pkgs) {
+        return pkgs.stream()
+                .filter(pkg -> !"OK".equals(pkg.getStatus()))
+                .map(pkg -> {
+                    CxProblems problem = new CxProblems();
+                    // Set line number
+                    if (pkg.getLocations() != null && !pkg.getLocations().isEmpty()) {
+                        problem.setLine(pkg.getLocations().get(0).getLine());
+                    } else {
+                        problem.setLine(-1);
+                    }
+
+                    problem.setTitle(pkg.getPackageName());
+                    problem.setPackageVersion(pkg.getPackageVersion());
+
+                    List<Vulnerability> vulns = pkg.getVulnerabilities();
+                    if (vulns != null && !vulns.isEmpty()) {
+                        Vulnerability vuln = vulns.get(0);
+                        problem.setSeverity(vuln.getSeverity());
+                        problem.setDescription(vuln.getDescription());
+                        problem.setCve(vuln.getCve());
+                        problem.setRemediationAdvise("Check official documentation or security advisory.");
+                        problem.setScannerType("OSS");
+                    } else {
+                        problem.setSeverity(pkg.getStatus());
+                        problem.setDescription("No vulnerabilities, but issue detected.");
+                        problem.setRemediationAdvise("No action required or further check needed.");
+                        problem.setCve(null);
+                        problem.setRuleName(null);
+                    }
+
+                    return problem;
+                })
+                .collect(Collectors.toList());
+    }
+
+
 }

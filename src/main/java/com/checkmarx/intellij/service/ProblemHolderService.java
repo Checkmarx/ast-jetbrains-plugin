@@ -1,7 +1,6 @@
 package com.checkmarx.intellij.service;
 
-import com.checkmarx.ast.asca.ScanDetail;
-import com.checkmarx.intellij.tool.window.adapters.VulnerabilityIssue;
+import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.messages.Topic;
@@ -12,12 +11,12 @@ import java.util.*;
 public final class ProblemHolderService {
                     //ProblemHolderService
 
-    private final Map<String, List<VulnerabilityIssue>> fileToIssues = new HashMap<>();
+    private final Map<String, List<CxProblems>> fileToIssues = new HashMap<>();
 
     public static final Topic<IssueListener> ISSUE_TOPIC =
             new Topic<>("ASCA_ISSUES_UPDATED", IssueListener.class);
     public interface IssueListener {
-        void onIssuesUpdated(Map<String, List<VulnerabilityIssue>> issues);
+        void onIssuesUpdated(Map<String, List<CxProblems>> issues);
     }
 
     private final Project project;
@@ -30,13 +29,13 @@ public final class ProblemHolderService {
         return project.getService(ProblemHolderService.class);
     }
 
-    public synchronized void addProblems(String filePath, List<VulnerabilityIssue> problems) {
+    public synchronized void addProblems(String filePath, List<CxProblems> problems) {
         fileToIssues.put(filePath, new ArrayList<>(problems));
         // Notify subscribers immediately
         project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
     }
 
-    public synchronized Map<String, List<VulnerabilityIssue>> getAllIssues() {
+    public synchronized Map<String, List<CxProblems>> getAllIssues() {
         return Collections.unmodifiableMap(fileToIssues);
     }
 
