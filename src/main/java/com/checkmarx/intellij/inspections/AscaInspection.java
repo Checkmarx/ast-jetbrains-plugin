@@ -303,7 +303,6 @@ public class AscaInspection extends LocalInspectionTool {
             problem.setTitle(detail.getRuleName());
             problem.setDescription(detail.getDescription());
             problem.setRemediationAdvise(detail.getRemediationAdvise());
-            problem.setRuleName(detail.getRuleName());
             problem.setScannerType(ASCA_INSPECTION_ID);
             problems.add(problem);
         }
@@ -314,35 +313,23 @@ public class AscaInspection extends LocalInspectionTool {
     // Move this method to a utility class once the ervice part gets completed
     public static List<CxProblems> fromPackagePojo(List<Package> pkgs) {
         return pkgs.stream()
-                .filter(pkg -> !"OK".equals(pkg.getStatus()))
+                .filter(pkg -> {
+                    String status = pkg.getStatus();
+                    return !"OK".equals(status) && !"unknown".equalsIgnoreCase(status);
+                })
                 .map(pkg -> {
                     CxProblems problem = new CxProblems();
                     // Set line number
                     if (pkg.getLocations() != null && !pkg.getLocations().isEmpty()) {
                         problem.setLine(pkg.getLocations().get(0).getLine());
+                        problem.setColumn(pkg.getLocations().get(0).getStartIndex());
                     } else {
                         problem.setLine(-1);
                     }
-
                     problem.setTitle(pkg.getPackageName());
                     problem.setPackageVersion(pkg.getPackageVersion());
-
-                    List<Vulnerability> vulns = pkg.getVulnerabilities();
-                    if (vulns != null && !vulns.isEmpty()) {
-                        Vulnerability vuln = vulns.get(0);
-                        problem.setSeverity(vuln.getSeverity());
-                        problem.setDescription(vuln.getDescription());
-                        problem.setCve(vuln.getCve());
-                        problem.setRemediationAdvise("Check official documentation or security advisory.");
-                        problem.setScannerType("OSS");
-                    } else {
-                        problem.setSeverity(pkg.getStatus());
-                        problem.setDescription("No vulnerabilities, but issue detected.");
-                        problem.setRemediationAdvise("No action required or further check needed.");
-                        problem.setCve(null);
-                        problem.setRuleName(null);
-                    }
-
+                    problem.setScannerType("OSS");
+                    problem.setSeverity(pkg.getStatus());
                     return problem;
                 })
                 .collect(Collectors.toList());

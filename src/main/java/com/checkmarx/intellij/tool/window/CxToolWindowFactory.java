@@ -10,6 +10,7 @@ import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentManager;
 import org.jetbrains.annotations.NotNull;
 
+
 import javax.swing.*;
 
 /**
@@ -26,27 +27,16 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
                                         @NotNull ToolWindow toolWindow) {
         final CxToolWindowPanel cxToolWindowPanel = new CxToolWindowPanel(project);
         ContentManager contentManager = toolWindow.getContentManager();
-        // First tab (your real panel)
+        // First tab
         contentManager.addContent(
-                contentManager.getFactory().createContent(cxToolWindowPanel, "Main View", false)
+                contentManager.getFactory().createContent(cxToolWindowPanel, "CxOne Result", false)
         );
+        // Second tab
+        Content customProblemContent = contentManager.getFactory().createContent(null, "CxOne Problems", false);
+        final VulnerabilityToolWindow vulnerabilityToolWindow = new VulnerabilityToolWindow(project, customProblemContent);
+        customProblemContent.setComponent(vulnerabilityToolWindow);
+        contentManager.addContent(customProblemContent);
 
-        final VulnerabilityToolWindow vulnerabilityToolWindow = new VulnerabilityToolWindow(project);
-        Content dummyContent = contentManager.getFactory().createContent(vulnerabilityToolWindow, "Dummy Tab", false);
-        contentManager.addContent(dummyContent);
-
-        // Example: periodically update tab title (better: update when your issues update)
-        Timer timer = new Timer(1000, e -> {
-            int problemCount = vulnerabilityToolWindow.getProblemCount();
-            String title = "Dummy Tab";
-            if (problemCount > 0) {
-                title += " "+problemCount;
-            }
-            dummyContent.setDisplayName(title);
-        });
-        timer.start();
-        // Dispose properly
-        Disposer.register(project, () -> timer.stop());
         Disposer.register(project, cxToolWindowPanel);
         Disposer.register(project, vulnerabilityToolWindow);
     }
