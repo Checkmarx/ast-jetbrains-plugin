@@ -1,7 +1,6 @@
 package com.checkmarx.intellij.service;
 
 import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
-import com.checkmarx.intellij.tool.window.adapters.VulnerabilityIssue;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.messages.Topic;
@@ -10,11 +9,12 @@ import java.util.*;
 
 @Service(Service.Level.PROJECT)
 public final class ProblemHolderService {
+    //ProblemHolderService
 
-    private final Map<String, List<CxProblems>> fileToIssues = new HashMap<>();
+    private final Map<String, List<CxProblems>> fileToIssues = new LinkedHashMap<>();
 
     public static final Topic<IssueListener> ISSUE_TOPIC =
-            new Topic<>("ASCA_ISSUES_UPDATED", IssueListener.class);
+            new Topic<>("ISSUES_UPDATED", IssueListener.class);
     public interface IssueListener {
         void onIssuesUpdated(Map<String, List<CxProblems>> issues);
     }

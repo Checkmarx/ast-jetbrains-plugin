@@ -8,6 +8,8 @@ import org.jetbrains.annotations.NonNls;
 @NonNls
 public final class Constants {
 
+
+
     private Constants() {
         // forbid instantiation of the class
     }
@@ -15,6 +17,7 @@ public final class Constants {
     public static final String BUNDLE_PATH = "messages.CxBundle";
 
     public static final String LOGGER_CAT_PREFIX = "CX#";
+    public static final String CXONE_ASSIST = "CxOne Assist";
 
     public static final String GLOBAL_SETTINGS_ID = "settings.ast";
     public static final String TOOL_WINDOW_ID = "Checkmarx";
