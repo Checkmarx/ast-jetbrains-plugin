@@ -3,6 +3,7 @@ package com.checkmarx.intellij.realtimeScanners.basescanner;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.common.debouncer.DebouncerImpl;
 import com.checkmarx.intellij.realtimeScanners.common.FileChangeHandler;
+import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -28,15 +29,18 @@ public class BaseScannerCommandImpl implements ScannerCommand {
     private final FileChangeHandler handler;
     private static final Logger LOGGER = Utils.getLogger(BaseScannerCommandImpl.class);
     private MessageBusConnection connection;
+    public  ScannerConfig config;
 
-    public BaseScannerCommandImpl(@NotNull Disposable parentDisposable){
+    public BaseScannerCommandImpl(@NotNull Disposable parentDisposable, ScannerConfig config){
         Disposer.register(parentDisposable,this);
+        this.config=config;
         DebouncerImpl documentDebounce = new DebouncerImpl(this);
         this.handler=  new FileChangeHandler(documentDebounce,1000);
     }
 
     @Override
     public void register(){
+       LOGGER.info(config.getEnabledMessage());
        this.initializeScanner();
     }
 

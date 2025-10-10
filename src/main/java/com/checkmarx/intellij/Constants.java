@@ -2,13 +2,13 @@ package com.checkmarx.intellij;
 
 import org.jetbrains.annotations.NonNls;
 
+import java.util.List;
+
 /**
  * Non-translatable constants.
  */
 @NonNls
 public final class Constants {
-
-
 
     private Constants() {
         // forbid instantiation of the class
@@ -17,7 +17,6 @@ public final class Constants {
     public static final String BUNDLE_PATH = "messages.CxBundle";
 
     public static final String LOGGER_CAT_PREFIX = "CX#";
-    public static final String CXONE_ASSIST = "CxOne Assist";
 
     public static final String GLOBAL_SETTINGS_ID = "settings.ast";
     public static final String TOOL_WINDOW_ID = "Checkmarx";
@@ -118,8 +117,8 @@ public final class Constants {
     }
 
     public static final class RealTimeConstants{
-        // OSS Scanner
 
+        // OSS Scanner
         public static final String OSS_REALTIME_SCANNER_ENGINE_NAME="Oss";
         public static final String ACTIVATE_OSS_REALTIME_SCANNER= "Activate OSS-Realtime";
         public static final String OSS_REALTIME_SCANNER= "Checkmarx Open Source Realtime Scanner (OSS-Realtime)";
@@ -127,7 +126,16 @@ public final class Constants {
         public static final String OSS_REALTIME_SCANNER_DISABLED= "Realtime OSS Scanner Engine disabled";
         public static final String  OSS_REALTIME_SCANNER_DIRECTORY= "Cx-oss-realtime-scanner";
         public static final String ERROR_OSS_REALTIME_SCANNER= "Failed to handle OSS Realtime scan";
-    }
 
+       public static final List<String> MANIFEST_FILE_PATTERNS = List.of(
+                "**/Directory.Packages.props",
+                "**/packages.config",
+                "**/pom.xml",
+                "**/package.json",
+                "**/requirements.txt",
+                "**/go.mod",
+                "**/*.csproj"
+        );
+    }
 
 }
