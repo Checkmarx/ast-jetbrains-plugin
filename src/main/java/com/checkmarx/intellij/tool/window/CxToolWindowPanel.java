@@ -6,6 +6,7 @@ import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.project.ProjectResultsService;
+import com.checkmarx.intellij.realtimeScanners.registry.ScannerRegistry;
 import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
@@ -25,6 +26,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.ui.Splitter;
 import com.intellij.ui.OnePixelSplitter;
@@ -96,10 +98,11 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         this.project = project;
         this.projectResultsService = project.getService(ProjectResultsService.class);
-
         Runnable r = () -> {
             if (new GlobalSettingsComponent().isValid()) {
                 drawMainPanel();
+                ScannerRegistry registry =  new ScannerRegistry(project,this);
+                registry.registerAllScanners();
             } else {
                 drawAuthPanel();
                 projectResultsService.indexResults(project, Results.emptyResults);
@@ -169,7 +172,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
     /**
      * Draw a panel with logo and a button to settings, when settings are invalid
-     */
+//     */
     private void drawAuthPanel() {
         removeAll();
         JPanel wrapper = new JPanel(new GridBagLayout());
