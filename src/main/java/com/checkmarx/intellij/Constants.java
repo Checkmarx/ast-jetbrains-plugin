@@ -10,6 +10,8 @@ import java.util.List;
 @NonNls
 public final class Constants {
 
+
+
     private Constants() {
         // forbid instantiation of the class
     }
@@ -17,6 +19,7 @@ public final class Constants {
     public static final String BUNDLE_PATH = "messages.CxBundle";
 
     public static final String LOGGER_CAT_PREFIX = "CX#";
+    public static final String CXONE_ASSIST = "CxOne Assist";
 
     public static final String GLOBAL_SETTINGS_ID = "settings.ast";
     public static final String TOOL_WINDOW_ID = "Checkmarx";
@@ -84,6 +87,11 @@ public final class Constants {
     public static final String ASCA_HIGH_SEVERITY = "High";
     public static final String ASCA_MEDIUM_SEVERITY = "Medium";
     public static final String ASCA_LOW_SEVERITY = "Low";
+
+    public static final String CRITICAL_SEVERITY = "Critical";
+    public static final String HIGH_SEVERITY = "High";
+    public static final String MEDIUM_SEVERITY = "Medium";
+    public static final String LOW_SEVERITY = "Low";
 
     public static final String IGNORE_LABEL = "IGNORED";
     public static final String NOT_IGNORE_LABEL = "NOT_IGNORED";
