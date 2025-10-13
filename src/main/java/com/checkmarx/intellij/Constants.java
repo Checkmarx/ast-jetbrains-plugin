@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NonNls;
 @NonNls
 public final class Constants {
 
-
+    public static final String CXONE_ASSIST = "CxOne Assist";
 
     private Constants() {
         // forbid instantiation of the class
@@ -17,7 +17,6 @@ public final class Constants {
     public static final String BUNDLE_PATH = "messages.CxBundle";
 
     public static final String LOGGER_CAT_PREFIX = "CX#";
-    public static final String CXONE_ASSIST = "CxOne Assist";
 
     public static final String GLOBAL_SETTINGS_ID = "settings.ast";
     public static final String TOOL_WINDOW_ID = "Checkmarx";
@@ -86,6 +85,11 @@ public final class Constants {
     public static final String ASCA_MEDIUM_SEVERITY = "Medium";
     public static final String ASCA_LOW_SEVERITY = "Low";
 
+    public static final String CRITICAL_SEVERITY = "Critical";
+    public static final String HIGH_SEVERITY = "High";
+    public static final String MEDIUM_SEVERITY = "Medium";
+    public static final String LOW_SEVERITY = "Low";
+
     public static final String IGNORE_LABEL = "IGNORED";
     public static final String NOT_IGNORE_LABEL = "NOT_IGNORED";
     public static final String SCA_HIDE_DEV_TEST_DEPENDENCIES = "SCA_HIDE_DEV_TEST_DEPENDENCIES";
@@ -115,18 +119,6 @@ public final class Constants {
         public static final String AUTH_ERROR_HTML_FILE_PATH = "auth/auth-error.html";
         public static final String LOCATION = "location";
         public static final int TIME_OUT_SECONDS = 120;
-    }
-
-    public static final class RealTimeConstants{
-        // OSS Scanner
-
-        public static final String OSS_REALTIME_SCANNER_ENGINE_NAME="Oss";
-        public static final String ACTIVATE_OSS_REALTIME_SCANNER= "Activate OSS-Realtime";
-        public static final String OSS_REALTIME_SCANNER= "Checkmarx Open Source Realtime Scanner (OSS-Realtime)";
-        public static final String OSS_REALTIME_SCANNER_START= "Realtime OSS Scanner Engine started";
-        public static final String OSS_REALTIME_SCANNER_DISABLED= "Realtime OSS Scanner Engine disabled";
-        public static final String  OSS_REALTIME_SCANNER_DIRECTORY= "Cx-oss-realtime-scanner";
-        public static final String ERROR_OSS_REALTIME_SCANNER= "Failed to handle OSS Realtime scan";
     }
 
 
