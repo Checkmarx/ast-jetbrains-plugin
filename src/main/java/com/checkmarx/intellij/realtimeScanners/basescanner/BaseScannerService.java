@@ -9,18 +9,16 @@ import java.util.concurrent.CompletableFuture;
 public class BaseScannerService implements ScannerService{
   public ScannerConfig config;
 
-    public BaseScannerService(){
-
+    public BaseScannerService(ScannerConfig config){
+     this.config=config;
     }
 
     @Override
     public boolean shouldScanFile(PsiFile file) {
-      // logic to be added
         return false;
     }
 
     @Override
-    public CompletableFuture<Void> scan(Document document) {
-        return null;
+    public void scan(Document document) {
     }
 }

@@ -7,5 +7,5 @@ import java.util.concurrent.CompletableFuture;
 
 public interface ScannerService {
   boolean shouldScanFile(PsiFile file);
-  CompletableFuture<Void>scan(Document document);
+  void scan(Document document);
 }

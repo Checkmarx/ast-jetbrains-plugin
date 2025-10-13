@@ -78,7 +78,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     private final OnePixelSplitter scanTreeSplitter = new OnePixelSplitter(true, 0.1f);
     // field to input a scan id
     private SearchTextField scanIdField = new SearchTextField();
-    private final ScannerRegistry scannerRegistry;
+
     // Internal state
     private final List<GroupBy> groupByList = new ArrayList<>(GroupBy.DEFAULT_GROUP_BY);
     @Getter
@@ -98,11 +98,11 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         this.project = project;
         this.projectResultsService = project.getService(ProjectResultsService.class);
-        this.scannerRegistry= new ScannerRegistry(this);
         Runnable r = () -> {
             if (new GlobalSettingsComponent().isValid()) {
                 drawMainPanel();
-                scannerRegistry.registerAllScanners();
+                ScannerRegistry registry =  new ScannerRegistry(project,this);
+                registry.registerAllScanners();
             } else {
                 drawAuthPanel();
                 projectResultsService.indexResults(project, Results.emptyResults);
