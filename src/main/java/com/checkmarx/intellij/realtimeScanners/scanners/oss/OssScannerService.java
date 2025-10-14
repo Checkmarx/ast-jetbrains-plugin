@@ -4,6 +4,8 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerService;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
+import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
+import com.checkmarx.intellij.service.ProblemHolderService;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -17,6 +19,9 @@ import java.nio.file.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 public class OssScannerService extends BaseScannerService {
@@ -152,6 +157,9 @@ public class OssScannerService extends BaseScannerService {
 
     @Override
     public void scan(Document document, String uri) {
+
+        //List<CxProblems> problemsList = new ArrayList<>();
+
         if(!this.shouldScanFile(uri)){
             return;
         }
@@ -164,6 +172,9 @@ public class OssScannerService extends BaseScannerService {
 
             // Call scan method
 
+            //After getting the scan results add them to the list and then pass it to the problem holder service
+            // problemsList.addAll(buildCxProblems(scanDetails));
+
         } catch (IOException e) {
             // TODO this msg needs be improved
          LOGGER.warn("Error occurred during OSS realTime scan");
@@ -171,5 +182,37 @@ public class OssScannerService extends BaseScannerService {
         finally {
 
         }
+
+        // Persist in project service
+        // ProblemHolderService.getInstance(file.getProject())
+                //.addProblems(file.getVirtualFile().getPath(), problemsList);
+    }
+
+    /**
+     * After getting the entire scan result pass to this method to build the CxProblems for custom tool window
+     *
+     */
+    public static List<CxProblems> buildCxProblems(List<OssRealtimeScanPackage> pkgs) {
+        return pkgs.stream()
+                .filter(pkg -> {
+                    String status = pkg.getStatus();
+                    return !"OK".equals(status) && !"unknown".equalsIgnoreCase(status);
+                })
+                .map(pkg -> {
+                    CxProblems problem = new CxProblems();
+                    // Set line number
+                    if (pkg.getLocations() != null && !pkg.getLocations().isEmpty()) {
+                        problem.setLine(pkg.getLocations().get(0).getLine());
+                        problem.setColumn(pkg.getLocations().get(0).getStartIndex());
+                    } else {
+                        problem.setLine(-1);
+                    }
+                    problem.setTitle(pkg.getPackageName());
+                    problem.setPackageVersion(pkg.getPackageVersion());
+                    problem.setScannerType("OSS");
+                    problem.setSeverity(pkg.getStatus());
+                    return problem;
+                })
+                .collect(Collectors.toList());
     }
 }

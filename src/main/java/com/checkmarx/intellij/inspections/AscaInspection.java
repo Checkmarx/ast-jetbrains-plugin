@@ -2,6 +2,7 @@ package com.checkmarx.intellij.inspections;
 
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
+import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
 import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
@@ -80,14 +81,13 @@ public class AscaInspection extends LocalInspectionTool {
     private ProblemDescriptor[] createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, List<ScanDetail> scanDetails, Document document, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new ArrayList<>();
 
-//        List<VulnerabilityIssue> allIssues = new ArrayList<>();
+        List<CxProblems> problemsList = new ArrayList<>();
 
         for (ScanDetail detail : scanDetails) {
             int lineNumber = detail.getLine();
             if (isLineOutOfRange(lineNumber, document)) {
                 continue;
             }
- //          allIssues.add(new AscaVulnerabilityIssue(detail, file.toString()));
             PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(lineNumber - 1));
             if (elementAtLine != null) {
                 ProblemDescriptor problem = createProblemDescriptor(file, manager, detail, document, lineNumber, isOnTheFly);
@@ -95,9 +95,11 @@ public class AscaInspection extends LocalInspectionTool {
             }
         }
 
-        // Persist in problem holder service
-//        ProblemHolderService.getInstance(file.getProject());
-//              .addProblems(file.getVirtualFile().getPath(), allIssues)
+        problemsList.addAll(buildCxProblems(scanDetails));
+
+        // Persist in project service
+        ProblemHolderService.getInstance(file.getProject())
+                .addProblems(file.getVirtualFile().getPath(), problemsList);
 
         return problems.toArray(ProblemDescriptor[]::new);
     }
@@ -213,5 +215,20 @@ public class AscaInspection extends LocalInspectionTool {
      */
     private ScanResult performAscaScan(PsiFile file) {
         return ascaService.runAscaScan(file, file.getProject(), false, Constants.JET_BRAINS_AGENT_NAME);
+    }
+
+    private List<CxProblems> buildCxProblems(List<ScanDetail> scanDetails){
+        List<CxProblems> problems = new ArrayList<>();
+        for (ScanDetail detail : scanDetails) {
+            CxProblems problem = new CxProblems();
+            problem.setLine(detail.getLine());
+            problem.setSeverity(detail.getSeverity());
+            problem.setTitle(detail.getRuleName());
+            problem.setDescription(detail.getDescription());
+            problem.setRemediationAdvise(detail.getRemediationAdvise());
+            problem.setScannerType(ASCA_INSPECTION_ID);
+            problems.add(problem);
+        }
+        return problems;
     }
 }
