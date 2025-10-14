@@ -8,6 +8,6 @@ import java.util.concurrent.CompletableFuture;
 public interface ScannerService {
 
     boolean shouldScanFile(String filePath);
-
     void scan(Document document, String uri);
+
 }
