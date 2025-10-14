@@ -18,9 +18,12 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
 import com.intellij.openapi.util.Disposer;
+import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.messages.MessageBusConnection;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Optional;
 
 
@@ -30,12 +33,15 @@ public class BaseScannerCommandImpl implements ScannerCommand {
     private static final Logger LOGGER = Utils.getLogger(BaseScannerCommandImpl.class);
     private MessageBusConnection connection;
     public  ScannerConfig config;
+    private BaseScannerService scannerService;
 
-    public BaseScannerCommandImpl(@NotNull Disposable parentDisposable, ScannerConfig config){
+    public BaseScannerCommandImpl(@NotNull Disposable parentDisposable, ScannerConfig config,  BaseScannerService service){
         Disposer.register(parentDisposable,this);
         this.config=config;
         DebouncerImpl documentDebounce = new DebouncerImpl(this);
         this.handler=  new FileChangeHandler(documentDebounce,1000);
+        this.scannerService=service;
+
     }
 
     @Override
@@ -65,9 +71,10 @@ public class BaseScannerCommandImpl implements ScannerCommand {
             public void fileOpened(@NotNull FileEditorManager source, @NotNull VirtualFile file) {
                 try {
                     Document document=getDocument(file);
-                    if (document != null) {
-                        // TODO: Add the logic here
-                       LOGGER.info("File opened");
+                    String path = file.getPath();
+                    if (document != null && path!=null) {
+                        LOGGER.info("File opened");
+                        scannerService.scan(document,path);
                     }
                 } catch (Exception e) {
                     LOGGER.warn(e);
@@ -93,12 +100,13 @@ public class BaseScannerCommandImpl implements ScannerCommand {
             @Override
             public void documentChanged(@NotNull DocumentEvent event) {
                 try {
-                    String uri = getUri(document).orElse(null);
+                    String uri = getPath(document).orElse(null);
                     if(uri==null){
                         return;
                     }
                     handler.onTextChanged(uri,()->{
-                        LOGGER.info("Text changed--> "+uri);
+                        LOGGER.info("Text Changed");
+                      scannerService.scan(document,uri);
                     });
                 }
                 catch (Exception e){
@@ -108,16 +116,21 @@ public class BaseScannerCommandImpl implements ScannerCommand {
         },this);
     }
 
-    private Optional<String> getUri(Document document) {
+    private Optional<String> getPath(Document document) {
         VirtualFile file = getVirtualFile(document);
-        return file != null ? Optional.of(file.getUrl()) : Optional.empty();
+        return file != null ? Optional.of(file.getPath()) : Optional.empty();
     }
 
-    private  Document getDocument( @NotNull VirtualFile file ){
+    protected  Document getDocument( @NotNull VirtualFile file ){
         return FileDocumentManager.getInstance().getDocument(file);
     }
 
-    private  VirtualFile getVirtualFile( @NotNull Document doc ){
+    protected   VirtualFile getVirtualFile( @NotNull Document doc ){
         return FileDocumentManager.getInstance().getFile(doc);
+    }
+
+    @Nullable
+    protected VirtualFile findVirtualFile(String path) {
+        return LocalFileSystem.getInstance().findFileByPath(path);
     }
 }

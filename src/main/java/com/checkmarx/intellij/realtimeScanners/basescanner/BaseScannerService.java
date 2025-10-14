@@ -1,24 +1,45 @@
 package com.checkmarx.intellij.realtimeScanners.basescanner;
 
+import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
-import com.intellij.psi.PsiFile;
 
-import java.util.concurrent.CompletableFuture;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class BaseScannerService implements ScannerService{
-  public ScannerConfig config;
+    public ScannerConfig config;
+    private static final Logger LOGGER = Utils.getLogger(BaseScannerService.class);
 
     public BaseScannerService(ScannerConfig config){
-     this.config=config;
+        this.config=config;
     }
 
-    @Override
-    public boolean shouldScanFile(PsiFile file) {
-        return false;
+    public boolean shouldScanFile(String filePath) {
+        // TODO:  check if its file
+        return !filePath.contains("/node_modules/");
     }
 
-    @Override
-    public void scan(Document document) {
-    }
+     public void scan(Document document, String uri) {
+     }
+
+     protected String getTempSubFolderPath(String baseDir) {
+        String tempOS= System.getProperty("java.io.tmpdir");
+        Path tempDir= Paths.get(tempOS,baseDir);
+        return tempDir.toString();
+     }
+
+     protected void createTempFolder(Path folderPath){
+        try{
+            Files.createDirectories(folderPath);
+        } catch (IOException e){
+            //TODO: improve the below logic and warning
+            LOGGER.warn("Cannot create temp folder");
+            e.printStackTrace();
+        }
+     }
 }
