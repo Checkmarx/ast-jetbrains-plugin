@@ -6,7 +6,11 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.settings.SettingsComponent;
+import com.checkmarx.intellij.settings.SettingsListener;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.Disposable;
+import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import net.miginfocom.swing.MigLayout;
@@ -19,7 +23,7 @@ import java.util.Objects;
  * UI component shown under Tools > Checkmarx One > CxOne Assist.
  * Provides realtime feature toggles and container management tool selection.
  */
-public class CxOneAssistComponent implements SettingsComponent {
+public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
     private static final Logger LOGGER = Utils.getLogger(CxOneAssistComponent.class);
 
@@ -43,9 +47,33 @@ public class CxOneAssistComponent implements SettingsComponent {
 
     private GlobalSettingsState state;
 
+    private final MessageBusConnection connection;
+
     public CxOneAssistComponent() {
         buildUI();
         reset();
+        // Subscribe to global settings applied events so UI reflects external changes (e.g. auto-enable after MCP)
+        connection = ApplicationManager.getApplication().getMessageBus().connect();
+        connection.subscribe(SettingsListener.SETTINGS_APPLIED, new SettingsListener() {
+            @Override
+            public void settingsApplied() {
+                SwingUtilities.invokeLater(() -> {
+                    LOGGER.debug("[CxOneAssist] Detected settings change, refreshing checkboxes.");
+                    reset();
+                });
+            }
+        });
+    }
+
+    @Override
+    public void dispose() {
+        if (connection != null) {
+            try {
+                connection.dispose();
+            } catch (Exception ignore) {
+                // ignore
+            }
+        }
     }
 
     private void buildUI() {
@@ -116,6 +144,10 @@ public class CxOneAssistComponent implements SettingsComponent {
         state.setIacRealtime(iacCheckbox.isSelected());
         state.setContainersTool(String.valueOf(containersToolCombo.getSelectedItem()));
         GlobalSettingsState.getInstance().apply(state);
+        // Notify listeners (e.g., RealtimeScannerManager)
+        ApplicationManager.getApplication().getMessageBus()
+                .syncPublisher(SettingsListener.SETTINGS_APPLIED)
+                .settingsApplied();
     }
 
     @Override

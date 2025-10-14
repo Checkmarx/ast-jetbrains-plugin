@@ -218,9 +218,19 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     private GlobalSettingsState getStateFromFields() {
         GlobalSettingsState state = new GlobalSettingsState();
+        // Editable fields from this panel
         state.setAdditionalParameters(additionalParametersField.getText().trim());
         state.setAsca(ascaCheckBox.isSelected());
         state.setApiKeyEnabled(apiKeyRadio.isSelected());
+        // Preserve realtime + other fields not directly edited here so they are not lost on apply()
+        if (SETTINGS_STATE != null) {
+            state.setOssRealtime(SETTINGS_STATE.isOssRealtime());
+            state.setSecretDetectionRealtime(SETTINGS_STATE.isSecretDetectionRealtime());
+            state.setContainersRealtime(SETTINGS_STATE.isContainersRealtime());
+            state.setIacRealtime(SETTINGS_STATE.isIacRealtime());
+            state.setContainersTool(SETTINGS_STATE.getContainersTool());
+            state.setWelcomeShown(SETTINGS_STATE.isWelcomeShown());
+        }
         return state;
     }
 
@@ -248,50 +258,57 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         }
                         Authentication.validateConnection(getStateFromFields(), getSensitiveStateFromFields());
                         sessionConnected = true;
-                        SwingUtilities.invokeLater(() -> {
-                            setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
-                            logoutButton.setEnabled(true);
-                            connectButton.setEnabled(false);
-                            setFieldsEditable(false);
-                            SETTINGS_STATE.setAuthenticated(true);
-                            SETTINGS_STATE.setLastValidationSuccess(true);
-                            SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
-                            apply(); // Persist the state immediately
-                            logoutButton.requestFocusInWindow();
-                            showWelcomeDialogIfNeeded();
-
-                            // Auto-install MCP for GitHub Copilot only (API Key flow) if AI MCP server is enabled
-                            java.util.concurrent.CompletableFuture.supplyAsync(() -> {
-                                try {
-                                    if (com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled()) {
-                                        return com.checkmarx.intellij.service.McpSettingsInjector.installForCopilot(String.valueOf(apiKeyField.getPassword()));
-                                    } else {
-                                        LOGGER.debug("AI MCP Server is disabled, skipping auto-configuration");
-                                        return false;
-                                    }
-                                } catch (Exception ex) {
-                                    throw new RuntimeException(ex);
-                                }
-                            }).whenComplete((changed, ex) -> {
-                                if (ex != null) {
-                                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "An unexpected error occurred during MCP setup.", com.intellij.notification.NotificationType.ERROR, project);
-                                } else if (Boolean.TRUE.equals(changed)) {
-                                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration saved successfully.", com.intellij.notification.NotificationType.INFORMATION, project);
-                                } else {
-                                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration already up to date.", com.intellij.notification.NotificationType.INFORMATION, project);
-                                }
-                            });
-                        });
+                        SwingUtilities.invokeLater(() -> onAuthSuccessApiKey());
                         LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
                     } catch (Exception e) {
                         handleConnectionFailure(e);
                     }
                 });
             } else {
-                // Proceed for OAuth authentication
                 proceedOAuthAuthentication();
             }
         });
+    }
+
+    private void onAuthSuccessApiKey() {
+        setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
+        logoutButton.setEnabled(true);
+        connectButton.setEnabled(false);
+        setFieldsEditable(false);
+        SETTINGS_STATE.setAuthenticated(true);
+        SETTINGS_STATE.setLastValidationSuccess(true);
+        SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
+        apply();
+        logoutButton.requestFocusInWindow();
+
+        boolean mcpServerEnabled = false;
+        try { mcpServerEnabled = com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled(); } catch (Exception ex) { LOGGER.warn("Failed MCP server check", ex); }
+        if (mcpServerEnabled) {
+            autoEnableAllRealtimeScanners();
+            installMcpAsync(String.valueOf(apiKeyField.getPassword()));
+        } else {
+            disableAllRealtimeScanners();
+        }
+        showWelcomeDialog(mcpServerEnabled);
+    }
+
+    private void installMcpAsync(String credential) {
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return com.checkmarx.intellij.service.McpSettingsInjector.installForCopilot(credential);
+            } catch (Exception ex) {
+                return ex;
+            }
+        }).thenAccept(result -> SwingUtilities.invokeLater(() -> {
+            if (result instanceof Exception) {
+                com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "Error during MCP setup.", NotificationType.ERROR, project);
+                LOGGER.warn("MCP install error", (Exception) result);
+            } else if (Boolean.TRUE.equals(result)) {
+                com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration saved successfully.", NotificationType.INFORMATION, project);
+            } else if (Boolean.FALSE.equals(result)) {
+                com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration already up to date.", NotificationType.INFORMATION, project);
+            }
+        }));
     }
 
     /**
@@ -358,14 +375,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private void handleOAuthSuccess(Map<String, Object> refreshTokenDetails) {
         SwingUtilities.invokeLater(() -> {
             sessionConnected = true;
-
             setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
             validateResult.setVisible(true);
-
             logoutButton.setEnabled(true);
             connectButton.setEnabled(false);
             setFieldsEditable(false);
-
             SETTINGS_STATE.setAuthenticated(true);
             SETTINGS_STATE.setValidationInProgress(false);
             SETTINGS_STATE.setValidationExpiry(null);
@@ -374,30 +388,17 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
             apply();
-            notifyAuthSuccess(); // Even if panel is not showing now
-            showWelcomeDialogIfNeeded();
+            notifyAuthSuccess();
 
-            // Auto-install MCP for GitHub Copilot only (OAuth flow)
-            java.util.concurrent.CompletableFuture.supplyAsync(() -> {
-                try {
-                    if (com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled()) {
-                        return com.checkmarx.intellij.service.McpSettingsInjector.installForCopilot(SENSITIVE_SETTINGS_STATE.getRefreshToken());
-                    } else {
-                        LOGGER.debug("AI MCP Server is disabled, skipping auto-configuration");
-                        return false;
-                    }
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
-            }).whenComplete((changed, ex) -> {
-                if (ex != null) {
-                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "An unexpected error occurred during MCP setup.", com.intellij.notification.NotificationType.ERROR, project);
-                } else if (Boolean.TRUE.equals(changed)) {
-                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration saved successfully.", com.intellij.notification.NotificationType.INFORMATION, project);
-                } else {
-                    com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration already up to date.", com.intellij.notification.NotificationType.INFORMATION, project);
-                }
-            });
+            boolean mcpServerEnabled = false;
+            try { mcpServerEnabled = com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled(); } catch (Exception ex) { LOGGER.warn("Failed MCP server check", ex); }
+            if (mcpServerEnabled) {
+                autoEnableAllRealtimeScanners();
+                installMcpAsync(SENSITIVE_SETTINGS_STATE.getRefreshToken());
+            } else {
+                disableAllRealtimeScanners();
+            }
+            showWelcomeDialog(mcpServerEnabled);
         });
     }
 
@@ -422,26 +423,12 @@ public class GlobalSettingsComponent implements SettingsComponent {
         });
     }
 
-    private void showWelcomeDialogIfNeeded() {
-        GlobalSettingsState settings = GlobalSettingsState.getInstance();
-        if (!settings.isWelcomeShown()) {
-            if (settings.isAsca() && !settings.isOssRealtime()) {
-                settings.setOssRealtime(true);
-            }
-
-            // Check MCP server status for welcome dialog
-            boolean mcpEnabled = false;
-            try {
-                mcpEnabled = com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled();
-            } catch (Exception e) {
-                LOGGER.warn("Failed to check MCP server status", e);
-            }
-
-            // Pass MCP flag to the dialog
-            WelcomeDialog welcomeDialog = new WelcomeDialog(project, mcpEnabled);
-            welcomeDialog.show();
-
-            settings.setWelcomeShown(true);
+    private void showWelcomeDialog(boolean mcpEnabled) {
+        try {
+            WelcomeDialog dlg = new WelcomeDialog(project, mcpEnabled);
+            dlg.show();
+        } catch (Exception ex) {
+            LOGGER.warn("Failed to show welcome dialog", ex);
         }
     }
 
@@ -899,5 +886,37 @@ public class GlobalSettingsComponent implements SettingsComponent {
             return LocalDateTime.parse(SETTINGS_STATE.getValidationExpiry()).isBefore(LocalDateTime.now());
         }
         return false;
+    }
+
+    // Enable all realtime scanner flags if not already enabled and persist+publish settings change
+    private void autoEnableAllRealtimeScanners() {
+        GlobalSettingsState st = GlobalSettingsState.getInstance();
+        boolean changed = false;
+        if (!st.isOssRealtime()) { st.setOssRealtime(true); changed = true; }
+        if (!st.isSecretDetectionRealtime()) { st.setSecretDetectionRealtime(true); changed = true; }
+        if (!st.isContainersRealtime()) { st.setContainersRealtime(true); changed = true; }
+        if (!st.isIacRealtime()) { st.setIacRealtime(true); changed = true; }
+        if (changed) {
+            LOGGER.debug("[Auth->MCP] Auto-enabled realtime scanners (OSS, Secrets, Containers, IaC)");
+            apply();
+        } else {
+            LOGGER.debug("[Auth->MCP] All realtime scanners already enabled");
+        }
+    }
+
+    // Disable realtime scanner method
+    private void disableAllRealtimeScanners() {
+        GlobalSettingsState st = GlobalSettingsState.getInstance();
+        boolean changed = false;
+        if (st.isOssRealtime()) { st.setOssRealtime(false); changed = true; }
+        if (st.isSecretDetectionRealtime()) { st.setSecretDetectionRealtime(false); changed = true; }
+        if (st.isContainersRealtime()) { st.setContainersRealtime(false); changed = true; }
+        if (st.isIacRealtime()) { st.setIacRealtime(false); changed = true; }
+        if (changed) {
+            LOGGER.debug("[Auth->NoMCP] Disabled all realtime scanners (OSS, Secrets, Containers, IaC)");
+            apply();
+        } else {
+            LOGGER.debug("[Auth->NoMCP] Realtime scanners already disabled");
+        }
     }
 }
