@@ -3,14 +3,12 @@ package com.checkmarx.intellij.realtimeScanners.scanners.oss;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerCommandImpl;
-import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerService;
+import com.checkmarx.intellij.realtimeScanners.configuration.ConfigurationManager;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
-import com.intellij.openapi.vfs.VfsUtil;
+
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
@@ -26,19 +24,20 @@ import java.util.stream.Collectors;
 
 public class OssScannerCommand extends BaseScannerCommandImpl {
    public OssScannerService ossScannerService ;
+
    private final Project project;
 
    private static final Logger LOGGER = Utils.getLogger(OssScannerCommand.class);
 
-    public OssScannerCommand(@NotNull Disposable parentDisposable, @NotNull Project project,@NotNull OssScannerService OssscannerService){
-        super(parentDisposable, OssScannerService.createConfig(),OssscannerService);
+    public OssScannerCommand(@NotNull Disposable parentDisposable, @NotNull Project project,@NotNull OssScannerService OssscannerService, @NotNull ConfigurationManager configurationManager){
+        super(parentDisposable, OssScannerService.createConfig(),OssscannerService,configurationManager);
         this.ossScannerService = OssscannerService;
         this.project=project;
     }
 
     public OssScannerCommand(@NotNull Disposable parentDisposable,
                              @NotNull Project project) {
-        this(parentDisposable, project, new OssScannerService(project));
+        this(parentDisposable, project, new OssScannerService(project),new ConfigurationManager());
     }
 
     @Override
@@ -47,8 +46,13 @@ public class OssScannerCommand extends BaseScannerCommandImpl {
         scanAllManifestFilesInFolder();
     }
 
+    /**
+     * Scans all manifest files when project is opened in IDE
+     *
+     */
+
     private void scanAllManifestFilesInFolder(){
-        try {
+
             List<String> matchedUris = new ArrayList<>();
 
             List<PathMatcher> pathMatchers = Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
@@ -72,16 +76,15 @@ public class OssScannerCommand extends BaseScannerCommandImpl {
             for (String uri : matchedUris) {
                 Optional<VirtualFile> file = Optional.ofNullable(this.findVirtualFile(uri));
                 if (file.isPresent()) {
-                    Document doc = this.getDocument(file.get());
-                    ossScannerService.scan(doc, uri);
+                    try {
+                        Document doc = this.getDocument(file.get());
+                        ossScannerService.scan(doc, uri);
+                    }
+                    catch(Exception e){
+                        LOGGER.error("Scan has failed for manifest file: "+ uri);
+                    }
                 }
             }
-        }
-        catch(Exception e){
-            // TODO improve the below error with file uri
-            LOGGER.error("Scan has failed for manifest file");
-        }
-
     }
 
 }

@@ -135,7 +135,7 @@ public class OssScannerService extends BaseScannerService {
 
         } catch (IOException e) {
             //TODO improve the logger
-            e.printStackTrace();
+            LOGGER.warn("Error occurred during OSS realTime scan",e);
             return null;
         }
     }
@@ -155,9 +155,10 @@ public class OssScannerService extends BaseScannerService {
         if(!this.shouldScanFile(uri)){
             return;
         }
+        String originalFilePath = uri;
+        Path tempSubFolder = this.getTempSubFolderPath(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DIRECTORY, document);
+
         try {
-            String originalFilePath = uri;
-            Path tempSubFolder = this.getTempSubFolderPath(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DIRECTORY, document);
             this.createTempFolder(tempSubFolder);
             String mainTempPath=this.saveMainManifestFile(tempSubFolder,originalFilePath,document.getText());
             this.saveCompanionFile(tempSubFolder,originalFilePath);
@@ -166,10 +167,10 @@ public class OssScannerService extends BaseScannerService {
 
         } catch (IOException e) {
             // TODO this msg needs be improved
-         LOGGER.warn("Error occurred during OSS realTime scan");
+         LOGGER.warn("Error occurred during OSS realTime scan",e);
         }
         finally {
-
+            this.deleteTempFolder(tempSubFolder);
         }
     }
 }

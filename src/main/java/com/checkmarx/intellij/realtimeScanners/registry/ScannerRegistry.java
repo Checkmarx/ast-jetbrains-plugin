@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.realtimeScanners.registry;
 
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.realtimeScanners.configuration.ConfigurationManager;
 import com.checkmarx.intellij.realtimeScanners.scanners.oss.OssScannerCommand;
 import com.intellij.openapi.Disposable;
 import com.checkmarx.intellij.realtimeScanners.basescanner.ScannerCommand;
@@ -16,6 +17,7 @@ import java.util.Map;
 public final class ScannerRegistry implements Disposable {
 
     private final Map<String, ScannerCommand> scannerMap = new HashMap<>();
+    private ConfigurationManager configurationManager;
 
     @Getter
     private final Project project;

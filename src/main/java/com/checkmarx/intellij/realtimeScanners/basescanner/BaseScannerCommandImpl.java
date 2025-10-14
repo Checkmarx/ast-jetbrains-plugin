@@ -3,6 +3,7 @@ package com.checkmarx.intellij.realtimeScanners.basescanner;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.common.debouncer.DebouncerImpl;
 import com.checkmarx.intellij.realtimeScanners.common.FileChangeHandler;
+import com.checkmarx.intellij.realtimeScanners.configuration.ConfigurationManager;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
@@ -34,13 +35,15 @@ public class BaseScannerCommandImpl implements ScannerCommand {
     private MessageBusConnection connection;
     public  ScannerConfig config;
     private BaseScannerService scannerService;
+    public ConfigurationManager configurationManager;
 
-    public BaseScannerCommandImpl(@NotNull Disposable parentDisposable, ScannerConfig config,  BaseScannerService service){
+    public BaseScannerCommandImpl(@NotNull Disposable parentDisposable, ScannerConfig config,  BaseScannerService service, ConfigurationManager configurationManager){
         Disposer.register(parentDisposable,this);
         this.config=config;
         DebouncerImpl documentDebounce = new DebouncerImpl(this);
         this.handler=  new FileChangeHandler(documentDebounce,1000);
         this.scannerService=service;
+        this.configurationManager=configurationManager;
 
     }
 

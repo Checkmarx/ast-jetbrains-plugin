@@ -2,10 +2,12 @@ package com.checkmarx.intellij.realtimeScanners.basescanner;
 
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
-
-import java.io.File;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VfsUtil;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,5 +43,18 @@ public class BaseScannerService implements ScannerService{
             LOGGER.warn("Cannot create temp folder");
             e.printStackTrace();
         }
+     }
+
+     protected void deleteTempFolder(Path tempFolder){
+         ApplicationManager.getApplication().runWriteAction(() -> {
+             VirtualFile dir = LocalFileSystem.getInstance().findFileByPath(tempFolder.toString());
+             try {
+                 if (dir != null && dir.exists()) {
+                     dir.delete(this);
+                 }
+             } catch (IOException e) {
+                 LOGGER.warn("Cannot delete the folder: "+dir);
+             }
+         });
      }
 }
