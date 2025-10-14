@@ -8,8 +8,6 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.inspections.quickfixes.AscaQuickFix;
 import com.checkmarx.intellij.service.ProblemHolderService;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
-import com.checkmarx.intellij.tool.window.adapters.AscaVulnerabilityIssue;
-import com.checkmarx.intellij.tool.window.adapters.VulnerabilityIssue;
 import com.intellij.codeInspection.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -82,14 +80,14 @@ public class AscaInspection extends LocalInspectionTool {
     private ProblemDescriptor[] createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, List<ScanDetail> scanDetails, Document document, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new ArrayList<>();
 
-        List<VulnerabilityIssue> allIssues = new ArrayList<>();
+//        List<VulnerabilityIssue> allIssues = new ArrayList<>();
 
         for (ScanDetail detail : scanDetails) {
             int lineNumber = detail.getLine();
             if (isLineOutOfRange(lineNumber, document)) {
                 continue;
             }
-            allIssues.add(new AscaVulnerabilityIssue(detail, file.toString()));
+ //          allIssues.add(new AscaVulnerabilityIssue(detail, file.toString()));
             PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(lineNumber - 1));
             if (elementAtLine != null) {
                 ProblemDescriptor problem = createProblemDescriptor(file, manager, detail, document, lineNumber, isOnTheFly);
@@ -98,8 +96,8 @@ public class AscaInspection extends LocalInspectionTool {
         }
 
         // Persist in problem holder service
-        ProblemHolderService.getInstance(file.getProject())
-                .addProblems(file.getVirtualFile().getPath(), allIssues);
+//        ProblemHolderService.getInstance(file.getProject());
+//              .addProblems(file.getVirtualFile().getPath(), allIssues)
 
         return problems.toArray(ProblemDescriptor[]::new);
     }

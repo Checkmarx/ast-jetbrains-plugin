@@ -6,6 +6,8 @@ import com.intellij.openapi.editor.Document;
 import java.util.concurrent.CompletableFuture;
 
 public interface ScannerService {
-  boolean shouldScanFile(PsiFile file);
-  void scan(Document document);
+
+    boolean shouldScanFile(String filePath);
+
+    void scan(Document document, String uri);
 }
