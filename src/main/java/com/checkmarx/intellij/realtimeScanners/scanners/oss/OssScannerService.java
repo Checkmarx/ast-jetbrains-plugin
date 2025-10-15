@@ -1,7 +1,8 @@
 package com.checkmarx.intellij.realtimeScanners.scanners.oss;
 
+import com.checkmarx.ast.ossrealtime.OssRealtimeLocation;
+import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerService;
@@ -25,8 +26,6 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 
 public class OssScannerService extends BaseScannerService {
@@ -170,7 +169,7 @@ public class OssScannerService extends BaseScannerService {
     @Override
     public void scan(Document document, String uri) {
 
-        //List<CxProblems> problemsList = new ArrayList<>();
+        List<CxProblems> problemsList = new ArrayList<>();
 
         if(!this.shouldScanFile(uri)){
             return;
@@ -189,8 +188,7 @@ public class OssScannerService extends BaseScannerService {
             scanResults= CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
             System.out.println("scanResults--->"+scanResults);
 
-            //After getting the scan results add them to the list and then pass it to the problem holder service
-            // problemsList.addAll(buildCxProblems(scanDetails));
+            problemsList.addAll(buildCxProblems(scanResults.getPackages()));
 
         } catch (IOException | CxException | InterruptedException e) {
             // TODO this msg needs be improved
@@ -202,8 +200,8 @@ public class OssScannerService extends BaseScannerService {
         }
 
         // Persist in project service
-        // ProblemHolderService.getInstance(file.getProject())
-                //.addProblems(file.getVirtualFile().getPath(), problemsList);
+         ProblemHolderService.getInstance(project)
+                .addProblems(originalFilePath, problemsList);
     }
 
     /**
@@ -212,23 +210,18 @@ public class OssScannerService extends BaseScannerService {
      */
     public static List<CxProblems> buildCxProblems(List<OssRealtimeScanPackage> pkgs) {
         return pkgs.stream()
-                .filter(pkg -> {
-                    String status = pkg.getStatus();
-                    return !"OK".equals(status) && !"unknown".equalsIgnoreCase(status);
-                })
                 .map(pkg -> {
                     CxProblems problem = new CxProblems();
-                    // Set line number
                     if (pkg.getLocations() != null && !pkg.getLocations().isEmpty()) {
-                        problem.setLine(pkg.getLocations().get(0).getLine());
-                        problem.setColumn(pkg.getLocations().get(0).getStartIndex());
-                    } else {
-                        problem.setLine(-1);
+                        for (OssRealtimeLocation location : pkg.getLocations()) {
+                            problem.addLocation(location.getLine(), location.getStartIndex(), location.getEndIndex());
+                        }
                     }
                     problem.setTitle(pkg.getPackageName());
                     problem.setPackageVersion(pkg.getPackageVersion());
-                    problem.setScannerType("OSS");
+                    problem.setScannerType(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME);
                     problem.setSeverity(pkg.getStatus());
+                    // Optionally set other fields if available, e.g. description, cve, etc.
                     return problem;
                 })
                 .collect(Collectors.toList());
