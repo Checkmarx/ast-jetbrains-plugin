@@ -127,7 +127,7 @@ public final class Constants {
     public static final class RealTimeConstants{
 
         // OSS Scanner
-        public static final String OSS_REALTIME_SCANNER_ENGINE_NAME="Oss";
+        public static final String OSS_REALTIME_SCANNER_ENGINE_NAME="OSS";
         public static final String ACTIVATE_OSS_REALTIME_SCANNER= "Activate OSS-Realtime";
         public static final String OSS_REALTIME_SCANNER= "Checkmarx Open Source Realtime Scanner (OSS-Realtime)";
         public static final String OSS_REALTIME_SCANNER_START= "Realtime OSS Scanner Engine started";

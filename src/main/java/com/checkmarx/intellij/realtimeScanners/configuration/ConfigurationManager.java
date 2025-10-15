@@ -4,6 +4,7 @@ import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.Service;
 import com.intellij.util.messages.MessageBusConnection;
 
 import java.util.HashMap;
@@ -13,13 +14,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-/**
- * IntelliJ analogue of the VS Code configuration manager used by realtime scanners.
- * Responsibilities:
- *  - Answer whether a scanner is active (isScannerActive)
- *  - Provide a listener API that emits only when one of the realtime scanner flags changed
- */
-public class ConfigurationManager implements Disposable {
+@Service(Service.Level.APP)
+public final class ConfigurationManager implements Disposable {
 
     /** Distinct logical keys mirroring VS Code settings identifiers */
     public static final String KEY_OSS = "realtime.oss";
@@ -36,7 +32,7 @@ public class ConfigurationManager implements Disposable {
     }
 
     /** Basic scanner config abstraction */
-    public static class ScannerConfig {
+    /*public static class ScannerConfig {
         private final String key;
         private final Supplier<Boolean> activeSupplier;
         private final String engineName;
@@ -49,12 +45,12 @@ public class ConfigurationManager implements Disposable {
         public String key() { return key; }
         public String engineName() { return engineName; }
         public boolean isActive() { return activeSupplier.get(); }
-    }
+    }*/
 
     /** Returns true if the given scanner config is currently enabled */
-    public boolean isScannerActive(ScannerConfig config) {
+   /* public boolean isScannerActive(ScannerConfig config) {
         return config != null && config.isActive();
-    }
+    }*/
 
     /**
      * Register a listener similar to VS Code's onDidChangeConfiguration.

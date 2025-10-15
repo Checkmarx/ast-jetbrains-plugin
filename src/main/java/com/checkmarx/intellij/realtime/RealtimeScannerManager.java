@@ -21,7 +21,7 @@ import java.util.function.Predicate;
  */
 public class RealtimeScannerManager implements Disposable, SettingsListener {
 
-    private enum ScannerKind { OSS, SECRETS, CONTAINERS, IAC }
+    public enum ScannerKind { OSS, SECRETS, CONTAINERS, IAC }
 
     private static final Logger LOG = Utils.getLogger(RealtimeScannerManager.class);
 
@@ -32,7 +32,7 @@ public class RealtimeScannerManager implements Disposable, SettingsListener {
     private final Disposable configListenerDisposable;
 
     // Map config keys to scanner kinds
-    private static final Map<String, ScannerKind> KEY_KIND_MAP = Map.of(
+    public static final Map<String, ScannerKind> KEY_KIND_MAP = Map.of(
             ConfigurationManager.KEY_OSS, ScannerKind.OSS,
             ConfigurationManager.KEY_SECRETS, ScannerKind.SECRETS,
             ConfigurationManager.KEY_CONTAINERS, ScannerKind.CONTAINERS,
@@ -103,13 +103,11 @@ public class RealtimeScannerManager implements Disposable, SettingsListener {
 
     private void start(ScannerKind kind) {
         active.put(kind, true);
-        LOG.info("[Realtime] Started scanner: " + kind);
         // TODO: Instantiate real scanner service & listeners (future scope)
     }
 
     private void stop(ScannerKind kind) {
         if (active.remove(kind) != null) {
-            LOG.info("[Realtime] Stopped scanner: " + kind);
             // TODO: Dispose real scanner service & listeners (future scope)
         }
     }

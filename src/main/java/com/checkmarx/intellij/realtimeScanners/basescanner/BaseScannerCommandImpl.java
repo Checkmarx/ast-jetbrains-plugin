@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.realtimeScanners.basescanner;
 
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.realtime.RealtimeScannerManager;
 import com.checkmarx.intellij.realtimeScanners.common.debouncer.DebouncerImpl;
 import com.checkmarx.intellij.realtimeScanners.common.FileChangeHandler;
-import com.checkmarx.intellij.realtimeScanners.configuration.ConfigurationManager;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
@@ -18,57 +18,107 @@ import com.intellij.openapi.editor.event.EditorFactoryListener;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.FileEditorManagerListener;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.messages.MessageBusConnection;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class BaseScannerCommandImpl implements ScannerCommand {
 
     private final FileChangeHandler handler;
     private static final Logger LOGGER = Utils.getLogger(BaseScannerCommandImpl.class);
-    private MessageBusConnection connection;
-    public  ScannerConfig config;
-    private BaseScannerService scannerService;
-    public ConfigurationManager configurationManager;
 
-    public BaseScannerCommandImpl(@NotNull Disposable parentDisposable, ScannerConfig config,  BaseScannerService service, ConfigurationManager configurationManager){
+    public  ScannerConfig config;
+    private final BaseScannerService scannerService;
+    private final RealtimeScannerManager scannerManager;
+    private static final Map<Project, Map<RealtimeScannerManager.ScannerKind, Boolean>> initializedPerProject = new ConcurrentHashMap<>();
+    private final  Map<Project,MessageBusConnection>projectConnections= new ConcurrentHashMap<>();
+    private final Map<Project, List<DocumentListener>> documentListenersPerProject = new ConcurrentHashMap<>();
+    private final Map<Project, EditorFactoryListener> editorFactoryListenersPerProject = new ConcurrentHashMap<>();
+
+
+    public BaseScannerCommandImpl(@NotNull Disposable parentDisposable, ScannerConfig config,  BaseScannerService service, RealtimeScannerManager realtimeScannerManager){
         Disposer.register(parentDisposable,this);
         this.config=config;
         DebouncerImpl documentDebounce = new DebouncerImpl(this);
         this.handler=  new FileChangeHandler(documentDebounce,1000);
         this.scannerService=service;
-        this.configurationManager=configurationManager;
-
+        this.scannerManager=realtimeScannerManager;
     }
 
     @Override
-    public void register(){
-       LOGGER.info(config.getEnabledMessage());
-       this.initializeScanner();
+    public void register(Project project){
+        boolean isActive=this.scannerManager.isScannerActive(config.getEngineName());
+        boolean isInitialized = initializedPerProject.computeIfAbsent(project, p -> new EnumMap<>(RealtimeScannerManager.ScannerKind.class))
+                .getOrDefault(RealtimeScannerManager.ScannerKind.valueOf(config.getEngineName().toUpperCase()), false);
+        LOGGER.info("the value of isActive-->"+isActive);
+
+        if(!isActive){
+            this.disposeAllProjects();
+            LOGGER.info(config.getDisabledMessage());
+            return;
+        }
+
+        if(!isInitialized) {
+            LOGGER.info(config.getEnabledMessage());
+            this.initializeScanner(project);
+            initializedPerProject.get(project).put(RealtimeScannerManager.ScannerKind.valueOf(config.getEngineName().toUpperCase()), true);
+
+        }
+    }
+
+    public void disposeAllProjects(){
+        LOGGER.info("Disposing scanner for all projects");
+        for (Project project : new ArrayList<>(initializedPerProject.keySet())) {
+            disposeProject(project);
+        }
+        initializedPerProject.clear();
+        projectConnections.clear();
+        documentListenersPerProject.clear();
+        editorFactoryListenersPerProject.clear();
+    }
+
+
+    public void disposeProject(Project project){
+        disposePerProjectConnection(project);
+
+        List<DocumentListener> listeners = documentListenersPerProject.remove(project);
+        if (listeners != null) {
+            for (Editor editor : EditorFactory.getInstance().getAllEditors()) {
+                for (DocumentListener listener : listeners) {
+                    editor.getDocument().removeDocumentListener(listener);
+                }
+            }
+        }
+
+        editorFactoryListenersPerProject.remove(project);
+        initializedPerProject.remove(project);
     }
 
     @Override
     public void dispose() {
-       this.handler.dispose();
-       if(connection!=null){
-           connection.disconnect();
-           connection=null;
-       }
+        this.handler.dispose();
+        for (Project project : projectConnections.keySet()) {
+            disposePerProjectConnection(project);
+        }
+        projectConnections.clear();
     }
 
-    protected void initializeScanner(){
-        this.registerScanOnChangeText();
-        this.registerScanOnFileOpen();
+    protected void initializeScanner(Project project){
+        this.registerScanOnChangeText(project);
+        this.registerScanOnFileOpen(project);
     }
 
-    protected void registerScanOnFileOpen(){
-        connection= ApplicationManager.getApplication().getMessageBus().connect();
+    protected void registerScanOnFileOpen(Project project){
+        if(projectConnections.containsKey(project)) return;
+        MessageBusConnection connection = ApplicationManager.getApplication().getMessageBus().connect();
+
         connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new FileEditorManagerListener() {
             @Override
             public void fileOpened(@NotNull FileEditorManager source, @NotNull VirtualFile file) {
@@ -84,22 +134,44 @@ public class BaseScannerCommandImpl implements ScannerCommand {
                 }
             }
         });
+        projectConnections.put(project,connection);
     }
-    protected void registerScanOnChangeText(){
-         for(Editor editor: EditorFactory.getInstance().getAllEditors()){
-             attachDocumentListener(editor);
-         }
-        EditorFactory.getInstance().addEditorFactoryListener(new EditorFactoryListener() {
+    protected void registerScanOnChangeText(Project project) {
+        List<DocumentListener> listeners = new ArrayList<>();
+
+        for (Editor editor : EditorFactory.getInstance().getAllEditors()) {
+            DocumentListener listener = attachDocumentListener(editor);
+            listeners.add(listener);
+        }
+
+        EditorFactoryListener editorFactoryListener = new EditorFactoryListener() {
             @Override
-            public void editorCreated( EditorFactoryEvent event) {
-                attachDocumentListener(event.getEditor());
+            public void editorCreated(@NotNull EditorFactoryEvent event) {
+                DocumentListener listener = attachDocumentListener(event.getEditor());
+                listeners.add(listener);
             }
-        }, this);
+
+            @Override
+            public void editorReleased(@NotNull EditorFactoryEvent event) {
+                Document document = event.getEditor().getDocument();
+                listeners.removeIf(listener -> {
+                    document.removeDocumentListener(listener);
+                    return true;
+                });
+            }
+        };
+
+        // Register listener
+        EditorFactory.getInstance().addEditorFactoryListener(editorFactoryListener, project);
+
+        // Store references
+        documentListenersPerProject.put(project, listeners);
+        editorFactoryListenersPerProject.put(project, editorFactoryListener);
     }
 
-    private void attachDocumentListener(Editor editor){
-        Document document=editor.getDocument();
-        document.addDocumentListener(new DocumentListener() {
+    private DocumentListener  attachDocumentListener(Editor editor){
+        Document document = editor.getDocument();
+        DocumentListener listener = new DocumentListener() {
             @Override
             public void documentChanged(@NotNull DocumentEvent event) {
                 try {
@@ -116,7 +188,9 @@ public class BaseScannerCommandImpl implements ScannerCommand {
                     LOGGER.warn(e);
                 }
             }
-        },this);
+        };
+        document.addDocumentListener(listener, this);
+        return listener;
     }
 
     private Optional<String> getPath(Document document) {
@@ -136,4 +210,13 @@ public class BaseScannerCommandImpl implements ScannerCommand {
     protected VirtualFile findVirtualFile(String path) {
         return LocalFileSystem.getInstance().findFileByPath(path);
     }
+
+    private  void disposePerProjectConnection(Project project){
+     MessageBusConnection conn= projectConnections.get(project);
+      if(conn!=null){
+        conn.disconnect();
+      }
+      initializedPerProject.remove(project);
+    }
+
 }

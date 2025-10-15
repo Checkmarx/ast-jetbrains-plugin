@@ -2,13 +2,16 @@ package com.checkmarx.intellij.realtimeScanners.scanners.oss;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.realtime.RealtimeScannerManager;
 import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerCommandImpl;
-import com.checkmarx.intellij.realtimeScanners.configuration.ConfigurationManager;
+import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerService;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
-
+import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
@@ -24,32 +27,28 @@ import java.util.stream.Collectors;
 
 public class OssScannerCommand extends BaseScannerCommandImpl {
    public OssScannerService ossScannerService ;
-
    private final Project project;
+   public  RealtimeScannerManager realtimeScannerManager;
 
    private static final Logger LOGGER = Utils.getLogger(OssScannerCommand.class);
 
-    public OssScannerCommand(@NotNull Disposable parentDisposable, @NotNull Project project,@NotNull OssScannerService OssscannerService, @NotNull ConfigurationManager configurationManager){
-        super(parentDisposable, OssScannerService.createConfig(),OssscannerService,configurationManager);
+    public OssScannerCommand(@NotNull Disposable parentDisposable, @NotNull Project project,@NotNull OssScannerService OssscannerService, @NotNull RealtimeScannerManager realtimeScannerManager){
+        super(parentDisposable, OssScannerService.createConfig(),OssscannerService,realtimeScannerManager);
         this.ossScannerService = OssscannerService;
         this.project=project;
+        this.realtimeScannerManager = realtimeScannerManager;
     }
 
     public OssScannerCommand(@NotNull Disposable parentDisposable,
                              @NotNull Project project) {
-        this(parentDisposable, project, new OssScannerService(project),new ConfigurationManager());
+        this(parentDisposable, project, new OssScannerService(project), new RealtimeScannerManager(project));
     }
 
     @Override
-    protected void initializeScanner() {
-        super.initializeScanner();
+    protected void initializeScanner(Project project) {
+        super.initializeScanner(project);
         scanAllManifestFilesInFolder();
     }
-
-    /**
-     * Scans all manifest files when project is opened in IDE
-     *
-     */
 
     private void scanAllManifestFilesInFolder(){
 

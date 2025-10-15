@@ -37,8 +37,8 @@ public final class ScannerRegistry implements Disposable {
     }
 
 
-    public void registerAllScanners(){
-        scannerMap.values().forEach(ScannerCommand::register);
+    public void registerAllScanners(Project project){
+        scannerMap.values().forEach(scanner->scanner.register(project));
     }
 
     public void deregisterAllScanners(){
@@ -51,6 +51,6 @@ public final class ScannerRegistry implements Disposable {
 
     @Override
     public void dispose() {
-
+      this.deregisterAllScanners();
     }
 }

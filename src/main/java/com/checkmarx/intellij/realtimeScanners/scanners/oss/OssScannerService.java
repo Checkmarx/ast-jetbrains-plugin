@@ -1,9 +1,12 @@
 package com.checkmarx.intellij.realtimeScanners.scanners.oss;
 
+import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerService;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
+import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -17,6 +20,8 @@ import java.nio.file.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 public class OssScannerService extends BaseScannerService {
@@ -40,8 +45,15 @@ public class OssScannerService extends BaseScannerService {
     }
 
     private boolean isManifestFilePatternMatching(String filePath){
-        PathMatcher pathMatcher= FileSystems.getDefault().getPathMatcher("glob:"+filePath);
-        return pathMatcher.matches(Paths.get(filePath));
+        List<PathMatcher> pathMatchers = Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
+                .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
+                .collect(Collectors.toList());
+        for(PathMatcher pathMatcher:pathMatchers){
+            if(pathMatcher.matches(Paths.get(filePath))){
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean shouldScanFile(String filePath){
@@ -157,20 +169,25 @@ public class OssScannerService extends BaseScannerService {
         }
         String originalFilePath = uri;
         Path tempSubFolder = this.getTempSubFolderPath(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DIRECTORY, document);
-
+        com.checkmarx.ast.ossrealtime.OssRealtimeResults scanResults;
         try {
             this.createTempFolder(tempSubFolder);
             String mainTempPath=this.saveMainManifestFile(tempSubFolder,originalFilePath,document.getText());
             this.saveCompanionFile(tempSubFolder,originalFilePath);
+            System.out.println(Files.exists(Path.of(mainTempPath)) && Files.isReadable(Path.of(mainTempPath)));
 
-            // Call scan method
+            LOGGER.info("Scan has started On: "+mainTempPath);
+            LOGGER.info("scanned file is -->"+uri);
+            scanResults= CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
+            System.out.println("scanResults--->"+scanResults);
 
-        } catch (IOException e) {
+        } catch (IOException | CxException | InterruptedException e) {
             // TODO this msg needs be improved
          LOGGER.warn("Error occurred during OSS realTime scan",e);
         }
+
         finally {
-            this.deleteTempFolder(tempSubFolder);
+           this.deleteTempFolder(tempSubFolder);
         }
     }
 }
