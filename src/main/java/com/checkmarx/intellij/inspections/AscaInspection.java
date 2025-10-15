@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Inspection tool for ASCA (AI Secure Coding Assistant).
@@ -217,18 +218,16 @@ public class AscaInspection extends LocalInspectionTool {
         return ascaService.runAscaScan(file, file.getProject(), false, Constants.JET_BRAINS_AGENT_NAME);
     }
 
-    private List<CxProblems> buildCxProblems(List<ScanDetail> scanDetails){
-        List<CxProblems> problems = new ArrayList<>();
-        for (ScanDetail detail : scanDetails) {
+    public static List<CxProblems> buildCxProblems(List<ScanDetail> details) {
+        return details.stream().map(detail -> {
             CxProblems problem = new CxProblems();
-//            problem.setLine(detail.getLine());
             problem.setSeverity(detail.getSeverity());
+            problem.setScannerType(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER_ENGINE_NAME);
             problem.setTitle(detail.getRuleName());
             problem.setDescription(detail.getDescription());
             problem.setRemediationAdvise(detail.getRemediationAdvise());
-            problem.setScannerType(ASCA_INSPECTION_ID);
-            problems.add(problem);
-        }
-        return problems;
+            problem.addLocation(detail.getLine(), 0, 1000); // assume whole line by default
+            return problem;
+        }).collect(Collectors.toList());
     }
 }
