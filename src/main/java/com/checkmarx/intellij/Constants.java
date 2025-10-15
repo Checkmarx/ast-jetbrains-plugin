@@ -92,6 +92,8 @@ public final class Constants {
     public static final String HIGH_SEVERITY = "High";
     public static final String MEDIUM_SEVERITY = "Medium";
     public static final String LOW_SEVERITY = "Low";
+    public static final String OK = "OK";
+    public static final String UNKNOWN = "Unknown";
 
     public static final String IGNORE_LABEL = "IGNORED";
     public static final String NOT_IGNORE_LABEL = "NOT_IGNORED";
