@@ -3,6 +3,7 @@ package com.checkmarx.intellij.realtimeScanners.basescanner;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.vfs.LocalFileSystem;
@@ -46,15 +47,17 @@ public class BaseScannerService implements ScannerService{
      }
 
      protected void deleteTempFolder(Path tempFolder){
-         ApplicationManager.getApplication().runWriteAction(() -> {
-             VirtualFile dir = LocalFileSystem.getInstance().findFileByPath(tempFolder.toString());
-             try {
-                 if (dir != null && dir.exists()) {
-                     dir.delete(this);
+         VirtualFile tempFileDir = LocalFileSystem.getInstance().findFileByPath(tempFolder.toString());
+         ApplicationManager.getApplication().invokeLater(()->{
+             WriteAction.run(()->{
+                 try {
+                     if (tempFileDir != null && tempFileDir.exists()) {
+                         tempFileDir.delete(this);
+                     }
+                 } catch (IOException e) {
+                     LOGGER.warn("Cannot delete the folder: "+tempFileDir);
                  }
-             } catch (IOException e) {
-                 LOGGER.warn("Cannot delete the folder: "+dir);
-             }
+             });
          });
      }
 }
