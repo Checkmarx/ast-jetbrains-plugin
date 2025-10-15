@@ -188,7 +188,6 @@ public class OssScannerService extends BaseScannerService {
             scanResults= CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
             System.out.println("scanResults--->"+scanResults);
 
-            //After getting the scan results add them to the list and then pass it to the problem holder service
             problemsList.addAll(buildCxProblems(scanResults.getPackages()));
 
         } catch (IOException | CxException | InterruptedException e) {
@@ -220,7 +219,7 @@ public class OssScannerService extends BaseScannerService {
                     }
                     problem.setTitle(pkg.getPackageName());
                     problem.setPackageVersion(pkg.getPackageVersion());
-                    problem.setScannerType("OSS");
+                    problem.setScannerType(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME);
                     problem.setSeverity(pkg.getStatus());
                     // Optionally set other fields if available, e.g. description, cve, etc.
                     return problem;

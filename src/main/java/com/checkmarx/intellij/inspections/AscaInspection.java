@@ -221,7 +221,7 @@ public class AscaInspection extends LocalInspectionTool {
         List<CxProblems> problems = new ArrayList<>();
         for (ScanDetail detail : scanDetails) {
             CxProblems problem = new CxProblems();
-            problem.setLine(detail.getLine());
+//            problem.setLine(detail.getLine());
             problem.setSeverity(detail.getSeverity());
             problem.setTitle(detail.getRuleName());
             problem.setDescription(detail.getDescription());
