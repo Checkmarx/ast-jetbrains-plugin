@@ -192,7 +192,6 @@ public class OssScannerService extends BaseScannerService {
             //After getting the scan results add them to the list and then pass it to the problem holder service
             // problemsList.addAll(buildCxProblems(scanDetails));
 
-        } catch (IOException e) {
         } catch (IOException | CxException | InterruptedException e) {
             // TODO this msg needs be improved
          LOGGER.warn("Error occurred during OSS realTime scan",e);
