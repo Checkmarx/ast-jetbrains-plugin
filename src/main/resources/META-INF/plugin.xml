@@ -40,7 +40,7 @@
 
         <!-- Auto-install MCP at IDE startup if already authenticated -->
         <postStartupActivity implementation="com.checkmarx.intellij.service.McpAutoInstallService"/>
-        <postStartupActivity implementation="com.checkmarx.intellij.realtime.RealtimeScannerStartupActivity"/>
+        <postStartupActivity implementation="com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerStartupActivity"/>
 
         <toolWindow id="Checkmarx"
                     anchor="bottom"

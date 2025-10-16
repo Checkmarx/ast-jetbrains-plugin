@@ -2,16 +2,12 @@ package com.checkmarx.intellij.realtimeScanners.scanners.oss;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.realtime.RealtimeScannerManager;
+import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
 import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerCommandImpl;
-import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerService;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
-import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
@@ -51,10 +47,9 @@ public class OssScannerCommand extends BaseScannerCommandImpl {
     }
 
     private void scanAllManifestFilesInFolder(){
+        List<String> matchedUris = new ArrayList<>();
 
-            List<String> matchedUris = new ArrayList<>();
-
-            List<PathMatcher> pathMatchers = Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
+        List<PathMatcher> pathMatchers = Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
                     .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
                     .collect(Collectors.toList());
 
@@ -84,6 +79,11 @@ public class OssScannerCommand extends BaseScannerCommandImpl {
                     }
                 }
             }
+         }
+
+    @Override
+    public void dispose(){
+        super.dispose();
     }
 
 }

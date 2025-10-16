@@ -99,13 +99,12 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         this.project = project;
         this.projectResultsService = project.getService(ProjectResultsService.class);
-        ConfigurationManager configurationManager= ApplicationManager.getApplication().getService(ConfigurationManager.class);
-
         Runnable r = () -> {
             if (new GlobalSettingsComponent().isValid()) {
                 drawMainPanel();
                 ScannerRegistry registry =  new ScannerRegistry(project,this);
                 registry.registerAllScanners(project);
+
             } else {
                 drawAuthPanel();
                 projectResultsService.indexResults(project, Results.emptyResults);
@@ -469,6 +468,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         currentState.setMessage(null);
         scanTreeSplitter.setSecondComponent(simplePanel());
     }
+
 
     public interface CxRefreshHandler {
         void refresh();

@@ -17,7 +17,6 @@ import java.util.Map;
 public final class ScannerRegistry implements Disposable {
 
     private final Map<String, ScannerCommand> scannerMap = new HashMap<>();
-    private ConfigurationManager configurationManager;
 
     @Getter
     private final Project project;
@@ -36,7 +35,6 @@ public final class ScannerRegistry implements Disposable {
         this.scannerMap.put(id,scanner);
     }
 
-
     public void registerAllScanners(Project project){
         scannerMap.values().forEach(scanner->scanner.register(project));
     }
@@ -53,4 +51,5 @@ public final class ScannerRegistry implements Disposable {
     public void dispose() {
       this.deregisterAllScanners();
     }
+
 }

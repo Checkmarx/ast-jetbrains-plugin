@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.realtimeScanners.basescanner;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.realtime.RealtimeScannerManager;
+import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
 import com.checkmarx.intellij.realtimeScanners.common.debouncer.DebouncerImpl;
 import com.checkmarx.intellij.realtimeScanners.common.FileChangeHandler;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
@@ -37,9 +37,9 @@ public class BaseScannerCommandImpl implements ScannerCommand {
     private final BaseScannerService scannerService;
     private final RealtimeScannerManager scannerManager;
 
-    private final static Map<Project, EnumMap<RealtimeScannerManager.ScannerKind, Boolean>> initializedPerProject = new ConcurrentHashMap<>();
+    private final static Map<Project, EnumMap<RealtimeScannerManager.ScannerKind, Boolean>> projectToScannerMap = new ConcurrentHashMap<>();
     private final Map<Project, List<DocumentListener>> documentListenersPerProject = new ConcurrentHashMap<>();
-    private final Map<Project, MessageBusConnection> projectConnections = new ConcurrentHashMap<>();
+    private final Map<Project, MessageBusConnection> scannerConnections = new ConcurrentHashMap<>();
 
     public BaseScannerCommandImpl(@NotNull Disposable parentDisposable, ScannerConfig config,  BaseScannerService service, RealtimeScannerManager realtimeScannerManager){
         Disposer.register(parentDisposable,this);
@@ -54,18 +54,18 @@ public class BaseScannerCommandImpl implements ScannerCommand {
     public void register(Project project) {
         boolean isActive = scannerManager.isScannerActive(config.getEngineName());
         RealtimeScannerManager.ScannerKind kind = RealtimeScannerManager.ScannerKind.valueOf(config.getEngineName().toUpperCase());
-        Map<RealtimeScannerManager.ScannerKind, Boolean> perProjectMap = initializedPerProject.computeIfAbsent(project, p -> new EnumMap<>(RealtimeScannerManager.ScannerKind.class));
+        Map<RealtimeScannerManager.ScannerKind, Boolean> perProjectMap = projectToScannerMap.computeIfAbsent(project, p -> new EnumMap<>(RealtimeScannerManager.ScannerKind.class));
 
         if (!isActive) {
-            disposeAllProjects();
-            LOGGER.info(config.getDisabledMessage());
+            disposeScannerForAllProjects(kind);
+            LOGGER.info(config.getDisabledMessage() +":"+project.getName());
             return;
         }
         if (Boolean.TRUE.equals(perProjectMap.get(kind))) {
             return;
         }
         perProjectMap.put(kind,true);
-        LOGGER.info(config.getEnabledMessage());
+        LOGGER.info(config.getEnabledMessage() +":"+project.getName());
         initializeScanner(project);
     }
 
@@ -74,8 +74,8 @@ public class BaseScannerCommandImpl implements ScannerCommand {
         registerFileOpenListener(project);
         ProjectManager.getInstance().addProjectManagerListener(project, new ProjectManagerListener() {
             @Override
-            public void projectClosing(Project p) {
-                disposeProject(p);
+            public void projectClosing(@NotNull Project project) {
+                disposeScannerListener(project);
             }
         });
     }
@@ -91,14 +91,17 @@ public class BaseScannerCommandImpl implements ScannerCommand {
         documentListenersPerProject.put(project, listeners);
     }
 
-    public void disposeAllProjects() {
-        for (Project project : new ArrayList<>(initializedPerProject.keySet())) {
-            disposeProject(project);
+    public void disposeScannerForAllProjects(RealtimeScannerManager.ScannerKind kind) {
+        for (Project project : new ArrayList<>(projectToScannerMap.keySet())) {
+           if(projectToScannerMap.get(project)!=null){
+               projectToScannerMap.get(project).remove(kind);
+           }
+            disposeScannerListener(project);
         }
     }
 
-    public void disposeProject(Project project) {
-        MessageBusConnection conn = projectConnections.remove(project);
+    public void disposeScannerListener(Project project) {
+        MessageBusConnection conn = scannerConnections.remove(project);
         if (conn != null) conn.disconnect();
         List<DocumentListener> docListeners = documentListenersPerProject.remove(project);
         if (docListeners != null) {
@@ -108,20 +111,24 @@ public class BaseScannerCommandImpl implements ScannerCommand {
                 }
             }
         }
-        initializedPerProject.remove(project);
     }
 
     @Override
     public void dispose() {
         this.handler.dispose();
-        for (Project project : projectConnections.keySet()) {
-            disposePerProjectConnection(project);
+        for (Project project : scannerConnections.keySet()) {
+            MessageBusConnection conn= scannerConnections.get(project);
+            if(conn!=null){
+                conn.disconnect();
+            }
+            projectToScannerMap.remove(project);
+
         }
-        projectConnections.clear();
+        scannerConnections.clear();
     }
 
     private void registerFileOpenListener(Project project) {
-        if (projectConnections.containsKey(project)) return;
+        if (scannerConnections.containsKey(project)) return;
 
         MessageBusConnection connection = project.getMessageBus().connect();
         connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new FileEditorManagerListener() {
@@ -136,15 +143,13 @@ public class BaseScannerCommandImpl implements ScannerCommand {
                 }
             }
         });
-        projectConnections.put(project, connection);
+        scannerConnections.put(project, connection);
     }
 
     private boolean isDocumentOfProject(Document document, Project project) {
         VirtualFile file = getVirtualFile(document);
         return file != null && ProjectUtil.guessProjectForFile(file) == project;
     }
-
-
 
     private boolean isEditorOfProject(Editor editor, Project project) {
         VirtualFile file = getVirtualFile(editor.getDocument());
@@ -167,7 +172,6 @@ public class BaseScannerCommandImpl implements ScannerCommand {
         return listener;
     }
 
-
     private Optional<String> getPath(Document document) {
         VirtualFile file = getVirtualFile(document);
         return file != null ? Optional.of(file.getPath()) : Optional.empty();
@@ -184,14 +188,6 @@ public class BaseScannerCommandImpl implements ScannerCommand {
     @Nullable
     protected VirtualFile findVirtualFile(String path) {
         return LocalFileSystem.getInstance().findFileByPath(path);
-    }
-
-    private  void disposePerProjectConnection(Project project){
-     MessageBusConnection conn= projectConnections.get(project);
-      if(conn!=null){
-        conn.disconnect();
-      }
-      initializedPerProject.remove(project);
     }
 
 }

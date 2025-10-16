@@ -1,9 +1,8 @@
-package com.checkmarx.intellij.realtime;
+package com.checkmarx.intellij.realtimeScanners.configuration;
 
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
-import com.checkmarx.intellij.realtimeScanners.configuration.ConfigurationManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -23,30 +22,15 @@ public class RealtimeScannerManager implements Disposable, SettingsListener {
 
     public enum ScannerKind { OSS, SECRETS, CONTAINERS, IAC }
 
-    private static final Logger LOG = Utils.getLogger(RealtimeScannerManager.class);
-
     private final Project project;
     private final Map<ScannerKind, Boolean> active = new EnumMap<>(ScannerKind.class);
     private final MessageBusConnection settingsConnection;
-    private final ConfigurationManager configManager;
-    private final Disposable configListenerDisposable;
 
-    // Map config keys to scanner kinds
-    public static final Map<String, ScannerKind> KEY_KIND_MAP = Map.of(
-            ConfigurationManager.KEY_OSS, ScannerKind.OSS,
-            ConfigurationManager.KEY_SECRETS, ScannerKind.SECRETS,
-            ConfigurationManager.KEY_CONTAINERS, ScannerKind.CONTAINERS,
-            ConfigurationManager.KEY_IAC, ScannerKind.IAC
-    );
 
     public RealtimeScannerManager(@NotNull Project project) {
         this.project = project;
         this.settingsConnection = ApplicationManager.getApplication().getMessageBus().connect();
         this.settingsConnection.subscribe(SettingsListener.SETTINGS_APPLIED, this);
-        this.configManager = new ConfigurationManager();
-        // Listen for specific realtime flag changes
-        this.configListenerDisposable = configManager.registerConfigChangeListener(this::onRealtimeFlagsChanged);
-        // Initial sync for all scanners
         syncAll();
     }
 
@@ -54,16 +38,6 @@ public class RealtimeScannerManager implements Disposable, SettingsListener {
     @Override
     public void settingsApplied() {
         syncAll();
-    }
-
-    private void onRealtimeFlagsChanged(Predicate<String> affects) {
-        // Only update scanners whose keys actually changed, avoiding full sync noise
-        for (Map.Entry<String, ScannerKind> e : KEY_KIND_MAP.entrySet()) {
-            if (affects.test(e.getKey())) {
-                boolean enabled = currentFlagEnabled(e.getValue());
-                update(e.getValue(), enabled);
-            }
-        }
     }
 
     private synchronized void syncAll() {
@@ -79,17 +53,6 @@ public class RealtimeScannerManager implements Disposable, SettingsListener {
         update(ScannerKind.SECRETS, state.isSecretDetectionRealtime());
         update(ScannerKind.CONTAINERS, state.isContainersRealtime());
         update(ScannerKind.IAC, state.isIacRealtime());
-    }
-
-    private boolean currentFlagEnabled(ScannerKind kind) {
-        GlobalSettingsState st = GlobalSettingsState.getInstance();
-        switch (kind) {
-            case OSS: return st.isOssRealtime();
-            case SECRETS: return st.isSecretDetectionRealtime();
-            case CONTAINERS: return st.isContainersRealtime();
-            case IAC: return st.isIacRealtime();
-            default: return false;
-        }
     }
 
     private void update(ScannerKind kind, boolean shouldRun) {
@@ -129,7 +92,6 @@ public class RealtimeScannerManager implements Disposable, SettingsListener {
             stop(kind);
         }
         settingsConnection.dispose();
-        configListenerDisposable.dispose();
-        configManager.dispose();
+
     }
 }
