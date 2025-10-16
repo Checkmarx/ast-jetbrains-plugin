@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.realtime;
+package com.checkmarx.intellij.realtimeScanners.configuration;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
