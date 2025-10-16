@@ -214,7 +214,7 @@ public class OssScannerService extends BaseScannerService {
                     CxProblems problem = new CxProblems();
                     if (pkg.getLocations() != null && !pkg.getLocations().isEmpty()) {
                         for (OssRealtimeLocation location : pkg.getLocations()) {
-                            problem.addLocation(location.getLine(), location.getStartIndex(), location.getEndIndex());
+                            problem.addLocation(location.getLine()+1, location.getStartIndex(), location.getEndIndex());
                         }
                     }
                     problem.setTitle(pkg.getPackageName());
