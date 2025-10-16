@@ -137,6 +137,9 @@ public final class Constants {
         public static final String  OSS_REALTIME_SCANNER_DIRECTORY= "Cx-oss-realtime-scanner";
         public static final String ERROR_OSS_REALTIME_SCANNER= "Failed to handle OSS Realtime scan";
 
+        //ASCA Scanner
+        public static final String ASCA_REALTIME_SCANNER_ENGINE_NAME= "ASCA";
+
        public static final List<String> MANIFEST_FILE_PATTERNS = List.of(
                 "**/Directory.Packages.props",
                 "**/packages.config",
