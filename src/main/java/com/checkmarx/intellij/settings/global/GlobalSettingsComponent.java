@@ -16,7 +16,6 @@ import com.checkmarx.intellij.util.InputValidator;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
@@ -32,6 +31,10 @@ import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import com.intellij.ide.DataManager;
+import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.options.Configurable;
+import com.intellij.openapi.options.ex.Settings;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -556,13 +559,21 @@ public class GlobalSettingsComponent implements SettingsComponent {
         mainPanel.add(ascaCheckBox);
         mainPanel.add(ascaInstallationMsg, "gapleft 5, wrap");
 
-        // === NEW: CxOne Assist link section ===
-        CxLinkLabel goToAssistLink = new CxLinkLabel(
+        // === CxOne Assist link section ===
+        CxLinkLabel assistLink = new CxLinkLabel(
                 Bundle.message(Resource.GO_TO_CXONE_ASSIST_LINK),
-                e -> ShowSettingsUtil.getInstance().showSettingsDialog(project, CxOneAssistConfigurable.class)
-        );
+                e -> {
+                    DataContext context = DataManager.getInstance().getDataContext(mainPanel);
+                    Settings settings = context.getData(Settings.KEY);
+                    if (settings == null) return;
 
-        mainPanel.add(goToAssistLink, "wrap, gapleft 5, gaptop 10");
+                    Configurable configurable = settings.find("settings.ast.assist");
+                    if (configurable instanceof CxOneAssistConfigurable) {
+                        settings.select(configurable);
+                    }
+                }
+        );
+        mainPanel.add(assistLink, "wrap, gapleft 5, gaptop 10");
     }
 
     private void setupFields() {
