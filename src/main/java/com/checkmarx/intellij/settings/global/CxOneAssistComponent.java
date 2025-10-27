@@ -7,21 +7,26 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
+import com.checkmarx.intellij.service.McpInstallService;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.JBColor;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.Objects;
 
 /**
  * UI component shown under Tools > Checkmarx One > CxOne Assist.
  * Provides realtime feature toggles and container management tool selection.
+ * Also offers manual MCP configuration installation.
  */
 public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
@@ -41,18 +46,19 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private final JBLabel iacTitle = new JBLabel(formatTitle(Bundle.message(Resource.IAC_REALTIME_TITLE)));
     private final JBCheckBox iacCheckbox = new JBCheckBox(Bundle.message(Resource.IAC_REALTIME_CHECKBOX));
 
-    // Containers management tool
-    private final JBLabel containersToolTitle = new JBLabel(Bundle.message(Resource.CONTAINERS_TOOL_TITLE));
-    private final JComboBox<String> containersToolCombo = new JComboBox<>(new String[]{"docker", "podman"});
+    private final ComboBox<String> containersToolCombo = new ComboBox<>(new String[]{"docker", "podman"});
 
     private GlobalSettingsState state;
-
     private final MessageBusConnection connection;
+
+    private final JBLabel mcpStatusLabel = new JBLabel();
+    private boolean mcpInstallInProgress;
+    private Timer mcpClearTimer;
 
     public CxOneAssistComponent() {
         buildUI();
         reset();
-        // Subscribe to global settings applied events so UI reflects external changes (e.g. auto-enable after MCP)
+
         connection = ApplicationManager.getApplication().getMessageBus().connect();
         connection.subscribe(SettingsListener.SETTINGS_APPLIED, new SettingsListener() {
             @Override
@@ -102,22 +108,87 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mainPanel.add(containersLabel, "split 2, span, gaptop 10");
         mainPanel.add(new JSeparator(), "growx, wrap");
         mainPanel.add(new JBLabel(Bundle.message(Resource.CONTAINERS_TOOL_DESCRIPTION)), "wrap, gapleft 15");
-        Dimension labelWidth = containersLabel.getPreferredSize();
-        containersToolCombo.setPreferredSize(new Dimension(labelWidth.width, containersToolCombo.getPreferredSize().height));
+        containersToolCombo.setPreferredSize(new Dimension(
+                containersLabel.getPreferredSize().width,
+                containersToolCombo.getPreferredSize().height
+        ));
         mainPanel.add(containersToolCombo, "wrap, gapleft 15");
 
         // MCP Section
         mainPanel.add(new JBLabel(formatTitle(Bundle.message(Resource.MCP_SECTION_TITLE))), "split 2, span, gaptop 10");
         mainPanel.add(new JSeparator(), "growx, wrap");
         mainPanel.add(new JBLabel(Bundle.message(Resource.MCP_DESCRIPTION)), "wrap, gapleft 15");
-        CxLinkLabel installMcpLink = new CxLinkLabel(Bundle.message(Resource.MCP_INSTALL_LINK), e -> {
-            // TODO: Add action to install MCP
-        });
-        mainPanel.add(installMcpLink, "wrap, gapleft 15");
+
+        CxLinkLabel installMcpLink = new CxLinkLabel(Bundle.message(Resource.MCP_INSTALL_LINK), e -> installMcp());
+        mcpStatusLabel.setVisible(false);
+        mcpStatusLabel.setBorder(new EmptyBorder(0, 20, 0, 0));
+
+        mainPanel.add(installMcpLink, "split 2, gapleft 15");
+        mainPanel.add(mcpStatusLabel, "wrap, gapleft 15");
+
         CxLinkLabel editJsonLink = new CxLinkLabel(Bundle.message(Resource.MCP_EDIT_JSON_LINK), e -> {
-            // TODO: Add action to edit settings.json
+            // intentionally left unimplemented
         });
         mainPanel.add(editJsonLink, "wrap, gapleft 15");
+    }
+
+    /**
+     * Manual MCP installation invoked by the "Install MCP" link.
+     * Provides inline status feedback (successfully saved, already up to date, or auth required).
+     */
+    private void installMcp() {
+        if (mcpInstallInProgress) {
+            return;
+        }
+
+        ensureState();
+        GlobalSettingsSensitiveState sensitive = GlobalSettingsSensitiveState.getInstance();
+
+        if (!state.isAuthenticated()) {
+            showMcpStatus(Bundle.message(Resource.MCP_AUTH_REQUIRED), JBColor.RED);
+            return;
+        }
+
+        String credential = state.isApiKeyEnabled() ? sensitive.getApiKey() : sensitive.getRefreshToken();
+        if (credential == null || credential.isBlank()) {
+            showMcpStatus(Bundle.message(Resource.MCP_AUTH_REQUIRED), JBColor.RED);
+            return;
+        }
+
+        LOGGER.debug("[CxOneAssist] Manual MCP install started.");
+        mcpInstallInProgress = true;
+
+        McpInstallService.installSilentlyAsync(credential)
+                .whenComplete((changed, throwable) ->
+                        SwingUtilities.invokeLater(() -> handleMcpResult(changed, throwable)));
+    }
+
+    private void handleMcpResult(Boolean changed, Throwable throwable) {
+        mcpInstallInProgress = false;
+
+        if (throwable != null || changed == null) {
+            showMcpStatus(Bundle.message(Resource.MCP_AUTH_REQUIRED), JBColor.RED);
+        } else if (changed) {
+            showMcpStatus(Bundle.message(Resource.MCP_CONFIG_SAVED), JBColor.GREEN);
+        } else {
+            showMcpStatus(Bundle.message(Resource.MCP_CONFIG_UP_TO_DATE), JBColor.GREEN);
+        }
+    }
+
+    private void showMcpStatus(String message, Color color) {
+        mcpStatusLabel.setText(message);
+        mcpStatusLabel.setForeground(color);
+        mcpStatusLabel.setVisible(true);
+
+        if (mcpClearTimer != null) {
+            mcpClearTimer.stop();
+        }
+        mcpClearTimer = new Timer(5000, e -> {
+            mcpStatusLabel.setVisible(false);
+            mcpStatusLabel.setText("");
+        });
+        mcpClearTimer.setRepeats(false);
+        mcpClearTimer.start();
     }
 
     @Override
@@ -143,8 +214,9 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         state.setContainersRealtime(containersCheckbox.isSelected());
         state.setIacRealtime(iacCheckbox.isSelected());
         state.setContainersTool(String.valueOf(containersToolCombo.getSelectedItem()));
+
         GlobalSettingsState.getInstance().apply(state);
-        // Notify listeners (e.g., RealtimeScannerManager)
+
         ApplicationManager.getApplication().getMessageBus()
                 .syncPublisher(SettingsListener.SETTINGS_APPLIED)
                 .settingsApplied();
