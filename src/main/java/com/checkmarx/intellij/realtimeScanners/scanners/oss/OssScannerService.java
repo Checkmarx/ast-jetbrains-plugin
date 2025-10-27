@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.realtimeScanners.scanners.oss;
 
-import com.checkmarx.ast.ossrealtime.OssRealtimeLocation;
+import com.checkmarx.ast.realtime.RealtimeLocation;
 import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Constants;
@@ -213,8 +213,8 @@ public class OssScannerService extends BaseScannerService {
                 .map(pkg -> {
                     CxProblems problem = new CxProblems();
                     if (pkg.getLocations() != null && !pkg.getLocations().isEmpty()) {
-                        for (OssRealtimeLocation location : pkg.getLocations()) {
-                            problem.addLocation(location.getLine(), location.getStartIndex(), location.getEndIndex());
+                        for (RealtimeLocation location : pkg.getLocations()) {
+                            problem.addLocation(location.getLine()+1, location.getStartIndex(), location.getEndIndex());
                         }
                     }
                     problem.setTitle(pkg.getPackageName());

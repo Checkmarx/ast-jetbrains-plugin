@@ -295,18 +295,34 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private void installMcpAsync(String credential) {
         CompletableFuture.supplyAsync(() -> {
             try {
+                // Returns Boolean.TRUE if MCP modified, Boolean.FALSE if already up-to-date
                 return com.checkmarx.intellij.service.McpSettingsInjector.installForCopilot(credential);
             } catch (Exception ex) {
                 return ex;
             }
         }).thenAccept(result -> SwingUtilities.invokeLater(() -> {
             if (result instanceof Exception) {
-                com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "Error during MCP setup.", NotificationType.ERROR, project);
+                Utils.showNotification(
+                        Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
+                        Bundle.message(Resource.MCP_AUTH_REQUIRED),
+                        NotificationType.ERROR,
+                        project
+                );
                 LOGGER.warn("MCP install error", (Exception) result);
             } else if (Boolean.TRUE.equals(result)) {
-                com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration saved successfully.", NotificationType.INFORMATION, project);
+                Utils.showNotification(
+                        Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
+                        Bundle.message(Resource.MCP_CONFIG_SAVED),
+                        NotificationType.INFORMATION,
+                        project
+                );
             } else if (Boolean.FALSE.equals(result)) {
-                com.checkmarx.intellij.Utils.showNotification("Checkmarx MCP", "MCP configuration already up to date.", NotificationType.INFORMATION, project);
+                Utils.showNotification(
+                        Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
+                        Bundle.message(Resource.MCP_CONFIG_UP_TO_DATE),
+                        NotificationType.INFORMATION,
+                        project
+                );
             }
         }));
     }
