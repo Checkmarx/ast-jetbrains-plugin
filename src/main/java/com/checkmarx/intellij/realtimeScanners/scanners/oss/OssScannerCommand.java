@@ -3,7 +3,7 @@ package com.checkmarx.intellij.realtimeScanners.scanners.oss;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
-import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerCommandImpl;
+import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerCommand;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class OssScannerCommand extends BaseScannerCommandImpl {
+public class OssScannerCommand extends BaseScannerCommand {
    public OssScannerService ossScannerService ;
    private final Project project;
    public  RealtimeScannerManager realtimeScannerManager;
@@ -36,8 +36,8 @@ public class OssScannerCommand extends BaseScannerCommandImpl {
     }
 
     public OssScannerCommand(@NotNull Disposable parentDisposable,
-                             @NotNull Project project) {
-        this(parentDisposable, project, new OssScannerService(project), new RealtimeScannerManager(project));
+                             @NotNull Project project, RealtimeScannerManager scannerManager) {
+        this(parentDisposable, project, new OssScannerService(project),scannerManager);
     }
 
     @Override
@@ -75,7 +75,7 @@ public class OssScannerCommand extends BaseScannerCommandImpl {
                         ossScannerService.scan(doc, uri);
                     }
                     catch(Exception e){
-                        LOGGER.error("Scan has failed for manifest file: "+ uri);
+                        LOGGER.error("Scan failed for manifest file: "+ uri);
                     }
                 }
             }
@@ -83,6 +83,7 @@ public class OssScannerCommand extends BaseScannerCommandImpl {
 
     @Override
     public void dispose(){
+        super.disposeScannerListener(project);
         super.dispose();
     }
 

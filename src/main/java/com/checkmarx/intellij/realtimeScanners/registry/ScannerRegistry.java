@@ -1,7 +1,8 @@
 package com.checkmarx.intellij.realtimeScanners.registry;
 
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.realtimeScanners.configuration.ConfigurationManager;
+import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerCommand;
+import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
 import com.checkmarx.intellij.realtimeScanners.scanners.oss.OssScannerCommand;
 import com.intellij.openapi.Disposable;
 import com.checkmarx.intellij.realtimeScanners.basescanner.ScannerCommand;
@@ -21,16 +22,13 @@ public final class ScannerRegistry implements Disposable {
     @Getter
     private final Project project;
 
-    public ScannerRegistry( @NotNull Project project,@NotNull Disposable parentDisposable){
+    public ScannerRegistry( @NotNull Project project,@NotNull Disposable parentDisposable, RealtimeScannerManager scannerManager){
         this.project=project;
         Disposer.register(parentDisposable,this);
-        this.setScanner(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME,new OssScannerCommand(this,project));
-    }
-    public  ScannerRegistry(@NotNull Project project){
-       this(project,project);
+        this.setScanner(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME,new OssScannerCommand(this,project,scannerManager));
     }
 
-    public void setScanner(String id, ScannerCommand scanner){
+    private void setScanner(String id, ScannerCommand scanner){
         Disposer.register(this, scanner);
         this.scannerMap.put(id,scanner);
     }
@@ -43,9 +41,20 @@ public final class ScannerRegistry implements Disposable {
         scannerMap.values().forEach(ScannerCommand::dispose);
     }
 
+    public void registerScanner(String Id){
+        ScannerCommand scanner= getScanner(Id);
+        if(scanner!=null) scanner.register(project);
+    }
+
+    public void deregisterScanner(String Id){
+        ScannerCommand scanner= getScanner(Id);
+        if(scanner!=null) scanner.disposeScannerListener(project);
+    }
+
     public ScannerCommand getScanner(String id){
         return this.scannerMap.get(id);
     }
+
 
     @Override
     public void dispose() {
