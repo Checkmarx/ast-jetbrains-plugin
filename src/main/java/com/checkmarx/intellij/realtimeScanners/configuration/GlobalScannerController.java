@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.realtimeScanners.configuration;
 
+import com.checkmarx.intellij.realtimeScanners.common.ScannerKind;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.openapi.Disposable;
@@ -18,8 +19,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class GlobalScannerController implements Disposable, SettingsListener {
 
 
-    private final Map<RealtimeScannerManager.ScannerKind, Boolean> activeMap =
-            new EnumMap<>(RealtimeScannerManager.ScannerKind.class);
+    private final Map<ScannerKind, Boolean> activeMap =
+            new EnumMap<>(ScannerKind.class);
 
     private final Set<String> registeredProjects = ConcurrentHashMap.newKeySet();
 
@@ -28,10 +29,10 @@ public final class GlobalScannerController implements Disposable, SettingsListen
 
         GlobalSettingsState state = GlobalSettingsState.getInstance();
 
-        activeMap.put(RealtimeScannerManager.ScannerKind.OSS, state.isOssRealtime());
-        activeMap.put(RealtimeScannerManager.ScannerKind.SECRETS, state.isSecretDetectionRealtime());
-        activeMap.put(RealtimeScannerManager.ScannerKind.CONTAINERS, state.isContainersRealtime());
-        activeMap.put(RealtimeScannerManager.ScannerKind.IAC, state.isIacRealtime());
+        activeMap.put(ScannerKind.OSS, state.isOssRealtime());
+        activeMap.put(ScannerKind.SECRETS, state.isSecretDetectionRealtime());
+        activeMap.put(ScannerKind.CONTAINERS, state.isContainersRealtime());
+        activeMap.put(ScannerKind.IAC, state.isIacRealtime());
 
         ApplicationManager.getApplication()
                 .getMessageBus()
@@ -44,32 +45,32 @@ public final class GlobalScannerController implements Disposable, SettingsListen
         GlobalSettingsState state = GlobalSettingsState.getInstance();
 
         synchronized (this) {
-            activeMap.put(RealtimeScannerManager.ScannerKind.OSS, state.isOssRealtime());
-            activeMap.put(RealtimeScannerManager.ScannerKind.SECRETS, state.isSecretDetectionRealtime());
-            activeMap.put(RealtimeScannerManager.ScannerKind.CONTAINERS, state.isContainersRealtime());
-            activeMap.put(RealtimeScannerManager.ScannerKind.IAC, state.isIacRealtime());
+            activeMap.put(ScannerKind.OSS, state.isOssRealtime());
+            activeMap.put(ScannerKind.SECRETS, state.isSecretDetectionRealtime());
+            activeMap.put(ScannerKind.CONTAINERS, state.isContainersRealtime());
+            activeMap.put(ScannerKind.IAC, state.isIacRealtime());
         }
 
         syncAll();
     }
 
-    public synchronized boolean isScannerGloballyEnabled(RealtimeScannerManager.ScannerKind kind) {
+    public synchronized boolean isScannerGloballyEnabled(ScannerKind kind) {
         return activeMap.getOrDefault(kind, false);
     }
 
-    public boolean isRegistered(Project project, RealtimeScannerManager.ScannerKind kind) {
+    public boolean isRegistered(Project project,ScannerKind kind) {
         return registeredProjects.contains(key(project, kind));
     }
 
-    private static String key(Project project, RealtimeScannerManager.ScannerKind kind) {
+    private static String key(Project project, ScannerKind kind) {
         return project.getName() + ":" + kind.name();
     }
 
-    public void markRegistered(Project project, RealtimeScannerManager.ScannerKind kind) {
+    public void markRegistered(Project project, ScannerKind kind) {
         registeredProjects.add(key(project, kind));
     }
 
-    public void markUnregistered(Project project, RealtimeScannerManager.ScannerKind kind) {
+    public void markUnregistered(Project project, ScannerKind kind) {
         registeredProjects.remove(key(project, kind));
     }
 

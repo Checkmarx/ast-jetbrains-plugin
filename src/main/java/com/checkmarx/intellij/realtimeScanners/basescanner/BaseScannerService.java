@@ -9,6 +9,8 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VfsUtil;
+import com.intellij.psi.PsiFile;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,11 +25,12 @@ public class BaseScannerService implements ScannerService{
     }
 
     public boolean shouldScanFile(String filePath) {
-        // TODO:  check if its file
+
         return !filePath.contains("/node_modules/");
     }
 
-     public void scan(Document document, String uri) {
+     public void scan(PsiFile psiFile, String uri) {
+
      }
 
      protected String getTempSubFolderPath(String baseDir) {

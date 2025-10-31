@@ -63,6 +63,13 @@
                 enabledByDefault="true"
                 implementationClass="com.checkmarx.intellij.inspections.AscaInspection"/>
 
+        <localInspection
+                displayName="OSS"
+                groupName="OSS"
+                groupPath="Checkmarx"
+                enabledByDefault="true"
+                implementationClass="com.checkmarx.intellij.realtimeScanners.scanners.oss.OSSInspection"/>
+
     </extensions>
 
     <applicationListeners>

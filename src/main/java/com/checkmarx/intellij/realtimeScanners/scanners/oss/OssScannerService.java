@@ -17,6 +17,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiFile;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -32,9 +34,8 @@ public class OssScannerService extends BaseScannerService {
     private static final Logger LOGGER = Utils.getLogger(OssScannerService.class);
     private Project project;
 
-    public OssScannerService(Project project){
+    public OssScannerService(){
       super(createConfig());
-      this.project=project;
     }
 
     public static ScannerConfig createConfig() {
@@ -67,22 +68,19 @@ public class OssScannerService extends BaseScannerService {
        return this.isManifestFilePatternMatching(filePath);
     }
 
-    public String getRelativePath(Document document){
-        if (this.project == null || document == null) {
-            return "";
-        }
-        VirtualFile file = FileDocumentManager.getInstance().getFile(document);
+    public String getRelativePath(PsiFile psiFile){
+        VirtualFile file = psiFile.getVirtualFile();
         if (file == null) {
             return "";
         }
         VirtualFile rootFile = null;
-        for (VirtualFile root : ProjectRootManager.getInstance(project).getContentRoots()) {
+        for (VirtualFile root : ProjectRootManager.getInstance(psiFile.getProject()).getContentRoots()) {
             if (VfsUtilCore.isAncestor(root, file, false)) {
                 rootFile = root;
                 break;
             }
         }
-        String rootPath = (rootFile != null) ? rootFile.getPath() : project.getBasePath();
+        String rootPath = (rootFile != null) ? rootFile.getPath() : psiFile.getProject().getBasePath();
         if (rootPath == null) {
             return file.getName();
         }
@@ -119,9 +117,9 @@ public class OssScannerService extends BaseScannerService {
         }
     }
 
-    protected Path getTempSubFolderPath(String baseTempDir, Document document){
+    protected Path getTempSubFolderPath(String baseTempDir, PsiFile document){
         String baseTempPath = super.getTempSubFolderPath(baseTempDir);
-        String relativePath = this.getRelativePath(document);
+        String relativePath = document.getName();
         return Paths.get(baseTempPath,toSafeTempFileName(relativePath));
     }
 
@@ -166,12 +164,14 @@ public class OssScannerService extends BaseScannerService {
         return "";
     }
 
-    @Override
-    public void scan(Document document, String uri) {
 
-        List<CxProblems> problemsList = new ArrayList<>();
+    public void scan(PsiFile document, String uri) {
 
-        if(!this.shouldScanFile(uri)){
+        LOGGER.info("------------SCAN STARTED OSS---------------"+uri);
+       // List<CxProblems> problemsList = new ArrayList<>();
+
+
+       /* if(!this.shouldScanFile(uri)){
             return;
         }
         String originalFilePath = uri;
@@ -188,20 +188,17 @@ public class OssScannerService extends BaseScannerService {
             scanResults= CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
             System.out.println("scanResults--->"+scanResults);
 
-            problemsList.addAll(buildCxProblems(scanResults.getPackages()));
+           // problemsList.addAll(buildCxProblems(scanResults.getPackages()));
 
         } catch (IOException | CxException | InterruptedException e) {
             // TODO this msg needs be improved
          LOGGER.warn("Error occurred during OSS realTime scan",e);
         }
 
-        finally {
-           this.deleteTempFolder(tempSubFolder);
-        }
-
         // Persist in project service
-         ProblemHolderService.getInstance(project)
-                .addProblems(originalFilePath, problemsList);
+        /* ProblemHolderService.getInstance(document.getProject())
+                .addProblems(originalFilePath, problemsList);*/
+
     }
 
     /**

@@ -10,6 +10,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import org.jetbrains.annotations.NotNull;
 
 import com.intellij.openapi.editor.Document;
@@ -37,12 +39,12 @@ public class OssScannerCommand extends BaseScannerCommand {
 
     public OssScannerCommand(@NotNull Disposable parentDisposable,
                              @NotNull Project project, RealtimeScannerManager scannerManager) {
-        this(parentDisposable, project, new OssScannerService(project),scannerManager);
+        this(parentDisposable, project, new OssScannerService(),scannerManager);
     }
 
     @Override
     protected void initializeScanner(Project project) {
-        super.initializeScanner(project);
+       // super.initializeScanner(project);
         scanAllManifestFilesInFolder();
     }
 
@@ -71,8 +73,8 @@ public class OssScannerCommand extends BaseScannerCommand {
                 Optional<VirtualFile> file = Optional.ofNullable(this.findVirtualFile(uri));
                 if (file.isPresent()) {
                     try {
-                        Document doc = this.getDocument(file.get());
-                        ossScannerService.scan(doc, uri);
+                        PsiFile psiFile= PsiManager.getInstance(project).findFile(file.get());
+                        ossScannerService.scan(psiFile, uri);
                     }
                     catch(Exception e){
                         LOGGER.error("Scan failed for manifest file: "+ uri);
@@ -83,7 +85,7 @@ public class OssScannerCommand extends BaseScannerCommand {
 
     @Override
     public void dispose(){
-        super.disposeScannerListener(project);
+      //  super.disposeScannerListener(project);
         super.dispose();
     }
 
