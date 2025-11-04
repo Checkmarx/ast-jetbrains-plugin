@@ -50,7 +50,7 @@ public class TestResults extends BaseTest {
     public void testGetResults_NotExistingScanID_throwException() {
         CompletableFuture<ResultGetState> getFuture = Results.getResults("11111111-1111-1111-1111-111111111111");
         ResultGetState results = Assertions.assertDoesNotThrow((ThrowingSupplier<ResultGetState>) getFuture::get);
-        assertTrue(results.getMessage().toLowerCase().contains("error"));
+        assertTrue(results.getMessage().toLowerCase().contains("scan not found"));
         Assertions.assertNull(results.getScanId());
     }
 }
