@@ -29,10 +29,10 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
         ContentManager contentManager = toolWindow.getContentManager();
         // First tab
         contentManager.addContent(
-                contentManager.getFactory().createContent(cxToolWindowPanel, "CxOne Result", false)
+                contentManager.getFactory().createContent(cxToolWindowPanel, "Scan Results", false)
         );
         // Second tab
-        Content customProblemContent = contentManager.getFactory().createContent(null, "CxOne Problems", false);
+        Content customProblemContent = contentManager.getFactory().createContent(null, "CxOne Assist Findings", false);
         final VulnerabilityToolWindow vulnerabilityToolWindow = new VulnerabilityToolWindow(project, customProblemContent);
         customProblemContent.setComponent(vulnerabilityToolWindow);
         contentManager.addContent(customProblemContent);

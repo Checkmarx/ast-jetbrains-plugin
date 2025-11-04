@@ -13,6 +13,7 @@ import com.intellij.codeInspection.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -48,10 +49,10 @@ public class AscaInspection extends LocalInspectionTool {
     @Override
     public ProblemDescriptor @NotNull [] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         try {
+            System.out.println("** Check file called **");
             if (!settings.isAsca()) {
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
-
             ScanResult scanResult = performAscaScan(file);
             if (isInvalidScan(scanResult)) {
                 return ProblemDescriptor.EMPTY_ARRAY;
@@ -67,6 +68,7 @@ public class AscaInspection extends LocalInspectionTool {
             logger.warn("Failed to run ASCA scan", e);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
+
     }
 
     /**
@@ -81,9 +83,7 @@ public class AscaInspection extends LocalInspectionTool {
      */
     private ProblemDescriptor[] createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, List<ScanDetail> scanDetails, Document document, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new ArrayList<>();
-
-        List<CxProblems> problemsList = new ArrayList<>();
-
+        System.out.println("** Inside createProblemDescriptors **");
         for (ScanDetail detail : scanDetails) {
             int lineNumber = detail.getLine();
             if (isLineOutOfRange(lineNumber, document)) {
@@ -96,11 +96,12 @@ public class AscaInspection extends LocalInspectionTool {
             }
         }
 
-        problemsList.addAll(buildCxProblems(scanDetails));
-
-        // Persist in project service
-        ProblemHolderService.getInstance(file.getProject())
-                .addProblems(file.getVirtualFile().getPath(), problemsList);
+        List<CxProblems> problemsList = new ArrayList<>(buildCxProblems(scanDetails));
+        VirtualFile virtualFile = file.getVirtualFile();
+        if (virtualFile != null) {
+            ProblemHolderService.getInstance(file.getProject())
+                    .addProblems(file.getVirtualFile().getPath(), problemsList);
+        }
 
         return problems.toArray(ProblemDescriptor[]::new);
     }
@@ -120,7 +121,7 @@ public class AscaInspection extends LocalInspectionTool {
         TextRange problemRange = getTextRangeForLine(document, lineNumber);
         String description = formatDescription(detail.getRuleName(), detail.getRemediationAdvise());
         ProblemHighlightType highlightType = determineHighlightType(detail);
-
+        System.out.println("** inside creat file called **");
         return manager.createProblemDescriptor(
                 file, problemRange, description, highlightType, isOnTheFly, new AscaQuickFix(detail));
     }

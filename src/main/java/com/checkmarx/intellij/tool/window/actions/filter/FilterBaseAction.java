@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.tool.window.actions.filter;
 
+import com.checkmarx.intellij.realtimeScanners.customProblemWindow.VulnerabilityToolWindowAction;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.tool.window.CustomResultState;
 import com.checkmarx.intellij.tool.window.Severity;
