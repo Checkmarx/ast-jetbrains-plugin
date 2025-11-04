@@ -6,7 +6,7 @@ import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.project.ProjectResultsService;
-import com.checkmarx.intellij.realtimeScanners.configuration.ConfigurationManager;
+import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
 import com.checkmarx.intellij.realtimeScanners.registry.ScannerRegistry;
 import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.SettingsListener;
@@ -93,16 +93,18 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     private final Project project;
     // service for indexing current results
     private final ProjectResultsService projectResultsService;
+    private final RealtimeScannerManager realtimeScannerManager;
 
     public CxToolWindowPanel(@NotNull Project project) {
         super(false, true);
 
         this.project = project;
         this.projectResultsService = project.getService(ProjectResultsService.class);
+        this.realtimeScannerManager= project.getService(RealtimeScannerManager.class);
         Runnable r = () -> {
             if (new GlobalSettingsComponent().isValid()) {
                 drawMainPanel();
-                ScannerRegistry registry =  new ScannerRegistry(project,this);
+                ScannerRegistry registry =  new ScannerRegistry(project,this,realtimeScannerManager);
                 registry.registerAllScanners(project);
 
             } else {

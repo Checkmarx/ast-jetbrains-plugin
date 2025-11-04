@@ -6,4 +6,5 @@ import com.intellij.openapi.project.Project;
 public interface ScannerCommand extends Disposable {
     void register(Project project);
     void dispose();
+    void disposeScannerListener(Project project);
 }
