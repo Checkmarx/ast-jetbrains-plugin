@@ -68,9 +68,11 @@ public class CxVisitor extends PsiElementVisitor {
         for (Node node : nodes) {
             int startOffset = doc.getLineStartOffset(lineNumber) + getStartOffset(node);
             int endOffset = doc.getLineStartOffset(lineNumber) + getEndOffset(node);
+            System.out.println("** VisitElement called **");
             if (startOffset == element.getTextRange().getStartOffset()
                 && endOffset == element.getTextRange().getEndOffset()
                 && !alreadyRegistered(node)) {
+                System.out.println("** VisitElement inside if already registered called **");
                 registeredNodes.add(node.getNodeId());
                 holder.registerProblem(element,
                                        getDescriptionTemplate(element.getProject(), node),

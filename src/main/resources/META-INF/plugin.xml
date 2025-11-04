@@ -123,6 +123,15 @@
                     class="com.checkmarx.intellij.tool.window.actions.CollapseAllAction"
                     icon="AllIcons.Actions.Collapseall"/>
         </group>
+        <group id="VulnerabilityToolbarGroup">
+            <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
+            <action id="VulnerabilityCritical" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityCriticalFilter" />
+            <action id="VulnerabilityHigh" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
+            <action id="VulnerabilityMedium" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
+            <action id="VulnerabilityLow" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
+            <action id="VulnerabilityInfo" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityInfoFilter" />
+        <separator/>
+        </group>
     </actions>
 
 </idea-plugin>

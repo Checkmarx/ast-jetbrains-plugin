@@ -14,6 +14,7 @@ import java.util.function.Supplier;
  */
 @Getter
 public enum Severity implements Filterable {
+    MALICIOUS(CxIcons.MALICIOUS),
     CRITICAL(CxIcons.CRITICAL),
     HIGH(CxIcons.HIGH),
     MEDIUM(CxIcons.MEDIUM),
@@ -21,7 +22,7 @@ public enum Severity implements Filterable {
     INFO(CxIcons.INFO),
     ;
 
-    public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(CRITICAL, HIGH, MEDIUM);
+    public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(MALICIOUS,CRITICAL, HIGH, MEDIUM);
 
     private final Icon icon;
 

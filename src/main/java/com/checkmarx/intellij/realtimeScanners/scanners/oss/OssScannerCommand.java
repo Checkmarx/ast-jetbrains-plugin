@@ -21,12 +21,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class OssScannerCommand extends BaseScannerCommand {
-   public OssScannerService ossScannerService ;
-   private final Project project;
-   public  RealtimeScannerManager realtimeScannerManager;
+public class OssScannerCommand extends BaseScannerCommandImpl {
+    public OssScannerService ossScannerService ;
+    private final Project project;
+    public  RealtimeScannerManager realtimeScannerManager;
 
-   private static final Logger LOGGER = Utils.getLogger(OssScannerCommand.class);
+    private static final Logger LOGGER = Utils.getLogger(OssScannerCommand.class);
 
     public OssScannerCommand(@NotNull Disposable parentDisposable, @NotNull Project project,@NotNull OssScannerService OssscannerService, @NotNull RealtimeScannerManager realtimeScannerManager){
         super(parentDisposable, OssScannerService.createConfig(),OssscannerService,realtimeScannerManager);
@@ -50,36 +50,36 @@ public class OssScannerCommand extends BaseScannerCommand {
         List<String> matchedUris = new ArrayList<>();
 
         List<PathMatcher> pathMatchers = Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
-                    .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
-                    .collect(Collectors.toList());
+                .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
+                .collect(Collectors.toList());
 
-            for (VirtualFile vRoot : ProjectRootManager.getInstance(project).getContentRoots()) {
-                VfsUtilCore.iterateChildrenRecursively(vRoot, null, file -> {
-                    if (!file.isDirectory() && !file.getPath().contains("/node_modules/")) {
-                        String path = file.getPath();
-                        for (PathMatcher matcher : pathMatchers) {
-                            if (matcher.matches(Paths.get(path))) {
-                                matchedUris.add(path);
-                                break;
-                            }
+        for (VirtualFile vRoot : ProjectRootManager.getInstance(project).getContentRoots()) {
+            VfsUtilCore.iterateChildrenRecursively(vRoot, null, file -> {
+                if (!file.isDirectory() && !file.getPath().contains("/node_modules/")) {
+                    String path = file.getPath();
+                    for (PathMatcher matcher : pathMatchers) {
+                        if (matcher.matches(Paths.get(path))) {
+                            matchedUris.add(path);
+                            break;
                         }
                     }
-                    return true;
-                });
-            }
-            for (String uri : matchedUris) {
-                Optional<VirtualFile> file = Optional.ofNullable(this.findVirtualFile(uri));
-                if (file.isPresent()) {
-                    try {
-                        Document doc = this.getDocument(file.get());
-                        ossScannerService.scan(doc, uri);
-                    }
-                    catch(Exception e){
-                        LOGGER.error("Scan failed for manifest file: "+ uri);
-                    }
+                }
+                return true;
+            });
+        }
+        for (String uri : matchedUris) {
+            Optional<VirtualFile> file = Optional.ofNullable(this.findVirtualFile(uri));
+            if (file.isPresent()) {
+                try {
+                    Document doc = this.getDocument(file.get());
+                    ossScannerService.scan(doc, uri);
+                }
+                catch(Exception e){
+                    LOGGER.error("Scan has failed for manifest file: "+ uri);
                 }
             }
-         }
+        }
+    }
 
     @Override
     public void dispose(){
