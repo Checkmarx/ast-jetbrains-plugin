@@ -8,6 +8,7 @@ import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
+import com.intellij.ui.ColorUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
@@ -27,11 +28,9 @@ import java.awt.image.BufferedImage;
 /**
  * Welcome dialog displayed after successful authentication.
  * <p>
- * Presents plugin features and allows enabling/disabling real-time scanners
- * when Multi-component Protection (MCP) is available.
+ * Presents plugin features and allows enabling/disabling real-time scanners when MCP is available.
  * <p>
- * The dialog abstracts away settings management for testability using the
- * {@link RealTimeSettingsManager} interface.
+ * Real-time settings are abstracted via {@link RealTimeSettingsManager} for testability.
  */
 public class WelcomeDialog extends DialogWrapper {
 
@@ -44,11 +43,6 @@ public class WelcomeDialog extends DialogWrapper {
     @Getter
     private JBCheckBox realTimeScannersCheckbox;
 
-    // Cache original icon image for scaling
-    private Image rightPanelOriginalImage;
-    private int rightPanelOriginalW;
-    private int rightPanelOriginalH;
-
     public WelcomeDialog(@Nullable Project project, boolean mcpEnabled) {
         this(project, mcpEnabled, new DefaultRealTimeSettingsManager());
     }
@@ -56,9 +50,9 @@ public class WelcomeDialog extends DialogWrapper {
     /**
      * Constructor with dependency injection for testability.
      *
-     * @param project         current project
-     * @param mcpEnabled      whether MCP is enabled
-     * @param settingsManager manager for real-time settings
+     * @param project         current project (nullable)
+     * @param mcpEnabled      whether MCP is enabled for this tenant
+     * @param settingsManager wrapper around settings reads/writes
      */
     public WelcomeDialog(@Nullable Project project, boolean mcpEnabled, RealTimeSettingsManager settingsManager) {
         super(project, false);
@@ -70,34 +64,41 @@ public class WelcomeDialog extends DialogWrapper {
         getRootPane().setPreferredSize(PREFERRED_DIALOG_SIZE);
     }
 
-
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel centerPanel = new JPanel(new BorderLayout());
-        JComponent left = createLeftPanel();
-        centerPanel.add(left, BorderLayout.WEST);
+        centerPanel.add(createLeftPanel(), BorderLayout.WEST);
         centerPanel.add(createRightImagePanel(), BorderLayout.CENTER);
         return centerPanel;
     }
 
+    /**
+     * Builds the left-side content area: title, subtitle, feature card and main bullets.
+     */
     private JComponent createLeftPanel() {
         JPanel leftPanel = new JPanel(new MigLayout("insets 20 20 20 20, gapy 10, wrap 1", "[grow]"));
 
+        // Title
         JBLabel title = new JBLabel(Bundle.message(Resource.WELCOME_TITLE));
         title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
         leftPanel.add(title, "gapbottom 4");
 
-        JBLabel subtitle = new JBLabel("<html><div style='width:" + WRAP_WIDTH + "px;'>" + Bundle.message(Resource.WELCOME_SUBTITLE) + "</div></html>");
+        // Subtitle wrapped to a fixed width for consistent layout
+        JBLabel subtitle = new JBLabel("<html><div style='width:" + WRAP_WIDTH + "px;'>" +
+                Bundle.message(Resource.WELCOME_SUBTITLE) + "</div></html>");
         subtitle.setForeground(UIUtil.getLabelForeground());
         leftPanel.add(subtitle);
 
+        // Assist feature card
         leftPanel.add(createFeatureCard(), "gapbottom 8");
 
+        // Main bullets
         leftPanel.add(createBullet(Resource.WELCOME_MAIN_FEATURE_1));
         leftPanel.add(createBullet(Resource.WELCOME_MAIN_FEATURE_2));
         leftPanel.add(createBullet(Resource.WELCOME_MAIN_FEATURE_3));
         leftPanel.add(createBullet(Resource.WELCOME_MAIN_FEATURE_4), "gapbottom 8");
 
+        // MCP-specific controls
         if (mcpEnabled) {
             initializeRealtimeState();
             configureCheckboxBehavior();
@@ -106,10 +107,18 @@ public class WelcomeDialog extends DialogWrapper {
         return leftPanel;
     }
 
+    /**
+     * A simple card with a header (includes the MCP toggle when available) and feature bullets.
+     */
     private JComponent createFeatureCard() {
         JPanel featureCard = new JPanel(new MigLayout("insets 10, gapy 4, wrap 1", "[grow]", "[]push[]"));
         featureCard.setBorder(BorderFactory.createLineBorder(JBColor.border()));
-        featureCard.setBackground(JBColor.background());
+
+        // Subtle, theme-aware background differing slightly from the dialog panel
+        Color base = UIUtil.getPanelBackground();
+        Color subtleBg = JBColor.isBright() ? ColorUtil.darker(base, 1) : ColorUtil.brighter(base, 1);
+        featureCard.setOpaque(true);
+        featureCard.setBackground(subtleBg);
 
         featureCard.add(createFeatureCardHeader(), "growx");
         featureCard.add(createFeatureCardBullets(), "growx");
@@ -139,11 +148,10 @@ public class WelcomeDialog extends DialogWrapper {
         if (mcpEnabled) {
             bulletsPanel.add(createBullet(Resource.WELCOME_MCP_INSTALLED_INFO));
         } else {
-            JBLabel mcpDisabledIcon = new JBLabel(
-                    JBColor.isBright()
-                            ? CxIcons.WELCOME_MCP_DISABLE_LIGHT
-                            : CxIcons.WELCOME_MCP_DISABLE_DARK
-            );
+            // Show a theme-aware “MCP disabled” info icon
+            JBLabel mcpDisabledIcon = new JBLabel(JBColor.isBright()
+                    ? CxIcons.WELCOME_MCP_DISABLE_LIGHT
+                    : CxIcons.WELCOME_MCP_DISABLE_DARK);
             mcpDisabledIcon.setHorizontalAlignment(SwingConstants.CENTER);
             mcpDisabledIcon.setToolTipText("Checkmarx MCP is not enabled for this tenant.");
             bulletsPanel.add(mcpDisabledIcon, "growx, wrap");
@@ -151,19 +159,26 @@ public class WelcomeDialog extends DialogWrapper {
         return bulletsPanel;
     }
 
+    /**
+     * Builds the right-side panel that hosts a scalable illustration.
+     * Keeps a buffered copy of the original icon and scales it smoothly to fit.
+     */
     private JComponent createRightImagePanel() {
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBorder(JBUI.Borders.empty(20));
+
         Icon original = JBColor.isBright() ? CxIcons.WELCOME_SCANNER_LIGHT : CxIcons.WELCOME_SCANNER_DARK;
-        rightPanelOriginalW = original.getIconWidth();
-        rightPanelOriginalH = original.getIconHeight();
-        Image buf = ImageUtil.createImage(rightPanelOriginalW, rightPanelOriginalH, BufferedImage.TYPE_INT_ARGB);
+        final int origW = original.getIconWidth();
+        final int origH = original.getIconHeight();
+
+        Image buf = ImageUtil.createImage(origW, origH, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = (Graphics2D) buf.getGraphics();
         g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         original.paintIcon(null, g2, 0, 0);
         g2.dispose();
-        rightPanelOriginalImage = buf; // store original buffer for scaling
+        final Image originalImage = buf;
+
         JBLabel imageLabel = new JBLabel();
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         imageLabel.setVerticalAlignment(SwingConstants.CENTER);
@@ -173,19 +188,23 @@ public class WelcomeDialog extends DialogWrapper {
             @Override
             public void componentResized(ComponentEvent e) {
                 Dimension size = rightPanel.getSize();
-                if (size.width <= 0 || size.height <= 0 || rightPanelOriginalImage == null) return;
-                double ratio = Math.min(
-                        Math.min((double) size.width / rightPanelOriginalW, (double) size.height / rightPanelOriginalH),
-                        0.7 );
-                int targetW = (int) Math.max(1, Math.round(rightPanelOriginalW * ratio));
-                int targetH = (int) Math.max(1, Math.round(rightPanelOriginalH * ratio));
-                Image scaled = rightPanelOriginalImage.getScaledInstance(targetW, targetH, Image.SCALE_SMOOTH);
+                if (size.width <= 0 || size.height <= 0) return;
+
+                // Scale proportionally and keep a soft cap to avoid oversized rendering
+                double ratio = Math.min(Math.min((double) size.width / origW, (double) size.height / origH), 0.7);
+                int targetW = Math.max(1, (int) Math.round(origW * ratio));
+                int targetH = Math.max(1, (int) Math.round(origH * ratio));
+
+                Image scaled = originalImage.getScaledInstance(targetW, targetH, Image.SCALE_SMOOTH);
                 imageLabel.setIcon(new ImageIcon(scaled));
             }
         };
         rightPanel.addComponentListener(adapter);
+
         // Perform initial scaling once layout is ready
-        SwingUtilities.invokeLater(() -> adapter.componentResized(null));
+        SwingUtilities.invokeLater(() -> adapter.componentResized(
+                new ComponentEvent(rightPanel, ComponentEvent.COMPONENT_RESIZED)));
+
         return rightPanel;
     }
 
@@ -205,6 +224,9 @@ public class WelcomeDialog extends DialogWrapper {
         return southPanel;
     }
 
+    /**
+     * Wires the MCP checkbox to update all real-time flags via the settings manager.
+     */
     private void configureCheckboxBehavior() {
         if (realTimeScannersCheckbox == null) return;
         realTimeScannersCheckbox.addActionListener(e -> {
@@ -223,30 +245,34 @@ public class WelcomeDialog extends DialogWrapper {
         }
     }
 
+    /**
+     * Syncs the MCP checkbox UI state with current settings.
+     */
     private void refreshCheckboxState() {
         if (realTimeScannersCheckbox == null) return;
         realTimeScannersCheckbox.setSelected(settingsManager.areAllEnabled());
     }
 
-    public JComponent createBullet(Resource res) { return createBullet(res, null); }
-
-    public JComponent createBullet(Resource res, Color customColor) {
+    /**
+     * Builds a single bullet row with a glyph and a wrapped text label.
+     */
+    public JComponent createBullet(Resource res) {
         JPanel panel = new JPanel(new MigLayout("insets 0, gapx 6, fillx", "[][grow, fill]"));
         panel.setOpaque(false);
+
         JBLabel glyph = new JBLabel("\u2022");
         glyph.setFont(new Font("Dialog", Font.BOLD, glyph.getFont().getSize()));
-        JBLabel text = new JBLabel("<html><div style='width:" + WRAP_WIDTH + "px;display:inline-block;'>" + Bundle.message(res) + "</div></html>");
-        if (customColor != null) {
-            glyph.setForeground(customColor);
-            text.setForeground(customColor);
-        }
+
+        JBLabel text = new JBLabel("<html><div style='width:" + WRAP_WIDTH + "px;display:inline-block;'>" +
+                Bundle.message(res) + "</div></html>");
+
         panel.add(glyph, "top");
         panel.add(text, "growx");
         return panel;
     }
 
     /**
-     * Abstracts real-time setting manipulation for testability.
+     * Abstraction over real-time settings to allow testing.
      */
     public interface RealTimeSettingsManager {
         boolean areAllEnabled();
@@ -262,6 +288,7 @@ public class WelcomeDialog extends DialogWrapper {
             GlobalSettingsState s = GlobalSettingsState.getInstance();
             return s.isOssRealtime() && s.isSecretDetectionRealtime() && s.isContainersRealtime() && s.isIacRealtime();
         }
+
         @Override
         public void setAll(boolean enable) {
             GlobalSettingsState s = GlobalSettingsState.getInstance();
@@ -270,7 +297,9 @@ public class WelcomeDialog extends DialogWrapper {
             s.setContainersRealtime(enable);
             s.setIacRealtime(enable);
             GlobalSettingsState.getInstance().apply(s);
-            ApplicationManager.getApplication().getMessageBus().syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied();
+            ApplicationManager.getApplication().getMessageBus()
+                    .syncPublisher(SettingsListener.SETTINGS_APPLIED)
+                    .settingsApplied();
         }
     }
 }
