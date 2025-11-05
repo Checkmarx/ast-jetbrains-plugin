@@ -48,7 +48,10 @@ public final class ScannerRegistry implements Disposable {
 
     public void deregisterScanner(String Id){
         ScannerCommand scanner= getScanner(Id);
-        if(scanner!=null) scanner.dispose();
+        if(scanner!=null){
+            scanner.deregister(project);
+            scanner.dispose();
+        }
     }
 
     public ScannerCommand getScanner(String id){

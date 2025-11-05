@@ -14,43 +14,39 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 @Service(Service.Level.APP)
 public final class GlobalScannerController implements Disposable, SettingsListener {
-
 
     private final Map<ScannerKind, Boolean> activeMap =
             new EnumMap<>(ScannerKind.class);
 
     private final Set<String> registeredProjects = ConcurrentHashMap.newKeySet();
 
-
     public GlobalScannerController() {
 
         GlobalSettingsState state = GlobalSettingsState.getInstance();
-
-        activeMap.put(ScannerKind.OSS, state.isOssRealtime());
-        activeMap.put(ScannerKind.SECRETS, state.isSecretDetectionRealtime());
-        activeMap.put(ScannerKind.CONTAINERS, state.isContainersRealtime());
-        activeMap.put(ScannerKind.IAC, state.isIacRealtime());
-
+        this.updateScannerState(state);
         ApplicationManager.getApplication()
                 .getMessageBus()
                 .connect(this)
                 .subscribe(SettingsListener.SETTINGS_APPLIED, this);
     }
 
+    private void updateScannerState(GlobalSettingsState state){
+        activeMap.put(ScannerKind.OSS, state.isOssRealtime());
+        activeMap.put(ScannerKind.SECRETS, state.isSecretDetectionRealtime());
+        activeMap.put(ScannerKind.CONTAINERS, state.isContainersRealtime());
+        activeMap.put(ScannerKind.IAC, state.isIacRealtime());
+    }
+
     @Override
     public void settingsApplied() {
         GlobalSettingsState state = GlobalSettingsState.getInstance();
-
         synchronized (this) {
-            activeMap.put(ScannerKind.OSS, state.isOssRealtime());
-            activeMap.put(ScannerKind.SECRETS, state.isSecretDetectionRealtime());
-            activeMap.put(ScannerKind.CONTAINERS, state.isContainersRealtime());
-            activeMap.put(ScannerKind.IAC, state.isIacRealtime());
+            updateScannerState(state);
         }
-
         syncAll();
     }
 

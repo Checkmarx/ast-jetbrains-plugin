@@ -68,7 +68,7 @@
                 groupName="OSS"
                 groupPath="Checkmarx"
                 enabledByDefault="true"
-                implementationClass="com.checkmarx.intellij.realtimeScanners.scanners.oss.OSSInspection"/>
+                implementationClass="com.checkmarx.intellij.realtimeScanners.inspection.RealtimeInspection"/>
 
     </extensions>
 

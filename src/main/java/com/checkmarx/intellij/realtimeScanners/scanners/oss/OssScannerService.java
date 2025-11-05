@@ -9,16 +9,12 @@ import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerService;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
-import com.checkmarx.intellij.service.ProblemHolderService;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
-
+import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -27,12 +23,10 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.ArrayList;
 
 
 public class OssScannerService extends BaseScannerService {
     private static final Logger LOGGER = Utils.getLogger(OssScannerService.class);
-    private Project project;
 
     public OssScannerService(){
       super(createConfig());
@@ -68,29 +62,6 @@ public class OssScannerService extends BaseScannerService {
        return this.isManifestFilePatternMatching(filePath);
     }
 
-    public String getRelativePath(PsiFile psiFile){
-        VirtualFile file = psiFile.getVirtualFile();
-        if (file == null) {
-            return "";
-        }
-        VirtualFile rootFile = null;
-        for (VirtualFile root : ProjectRootManager.getInstance(psiFile.getProject()).getContentRoots()) {
-            if (VfsUtilCore.isAncestor(root, file, false)) {
-                rootFile = root;
-                break;
-            }
-        }
-        String rootPath = (rootFile != null) ? rootFile.getPath() : psiFile.getProject().getBasePath();
-        if (rootPath == null) {
-            return file.getName();
-        }
-        try {
-            Path relative = Paths.get(rootPath).relativize(Paths.get(file.getPath()));
-            return relative.toString().replace("\\", "/"); 
-        } catch (Exception e) {
-            return file.getName();
-        }
-    }
 
     public String toSafeTempFileName(String relativePath) {
         String baseName = Paths.get(relativePath).getFileName().toString();
@@ -142,7 +113,6 @@ public class OssScannerService extends BaseScannerService {
         }
         Path companionTempPath = Paths.get(tempFolderPath.toString(), companionFileName);
         try {
-
             Files.copy(companionOriginalPath, companionTempPath, StandardCopyOption.REPLACE_EXISTING);
             LOGGER.info("Filed saved");
             return companionTempPath.toString();
@@ -164,63 +134,36 @@ public class OssScannerService extends BaseScannerService {
         return "";
     }
 
-
-    public void scan(PsiFile document, String uri) {
-
+    public OssRealtimeResults scan(PsiFile document, String uri) {
         LOGGER.info("------------SCAN STARTED OSS---------------"+uri);
-       // List<CxProblems> problemsList = new ArrayList<>();
 
-
-       /* if(!this.shouldScanFile(uri)){
-            return;
-        }
-        String originalFilePath = uri;
-        Path tempSubFolder = this.getTempSubFolderPath(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DIRECTORY, document);
         com.checkmarx.ast.ossrealtime.OssRealtimeResults scanResults;
+        if(!this.shouldScanFile(uri)){
+            return null;
+        }
+        Path tempSubFolder = this.getTempSubFolderPath(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DIRECTORY, document);
+
         try {
             this.createTempFolder(tempSubFolder);
-            String mainTempPath=this.saveMainManifestFile(tempSubFolder,originalFilePath,document.getText());
-            this.saveCompanionFile(tempSubFolder,originalFilePath);
-            System.out.println(Files.exists(Path.of(mainTempPath)) && Files.isReadable(Path.of(mainTempPath)));
+            String mainTempPath=this.saveMainManifestFile(tempSubFolder, uri,document.getText());
+            this.saveCompanionFile(tempSubFolder, uri);
+            Path tempPath=Path.of(mainTempPath);
+            System.out.println(Files.exists(tempPath) && Files.isReadable(tempPath));
 
             LOGGER.info("Scan has started On: "+mainTempPath);
             LOGGER.info("scanned file is -->"+uri);
-            scanResults= CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
-            System.out.println("scanResults--->"+scanResults);
 
-           // problemsList.addAll(buildCxProblems(scanResults.getPackages()));
+            scanResults= CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
+            return  scanResults;
 
         } catch (IOException | CxException | InterruptedException e) {
-            // TODO this msg needs be improved
          LOGGER.warn("Error occurred during OSS realTime scan",e);
         }
-
-        // Persist in project service
-        /* ProblemHolderService.getInstance(document.getProject())
-                .addProblems(originalFilePath, problemsList);*/
-
+        finally {
+            LOGGER.info("Deleting temporary folder");
+            deleteTempFolder(tempSubFolder);
+        }
+        return null;
     }
 
-    /**
-     * After getting the entire scan result pass to this method to build the CxProblems for custom tool window
-     *
-     */
-    public static List<CxProblems> buildCxProblems(List<OssRealtimeScanPackage> pkgs) {
-        return pkgs.stream()
-                .map(pkg -> {
-                    CxProblems problem = new CxProblems();
-                    if (pkg.getLocations() != null && !pkg.getLocations().isEmpty()) {
-                        for (RealtimeLocation location : pkg.getLocations()) {
-                            problem.addLocation(location.getLine()+1, location.getStartIndex(), location.getEndIndex());
-                        }
-                    }
-                    problem.setTitle(pkg.getPackageName());
-                    problem.setPackageVersion(pkg.getPackageVersion());
-                    problem.setScannerType(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME);
-                    problem.setSeverity(pkg.getStatus());
-                    // Optionally set other fields if available, e.g. description, cve, etc.
-                    return problem;
-                })
-                .collect(Collectors.toList());
-    }
 }

@@ -13,8 +13,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import org.jetbrains.annotations.NotNull;
-
-import com.intellij.openapi.editor.Document;
 import java.nio.file.FileSystems;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
@@ -44,7 +42,6 @@ public class OssScannerCommand extends BaseScannerCommand {
 
     @Override
     protected void initializeScanner(Project project) {
-       // super.initializeScanner(project);
         scanAllManifestFilesInFolder();
     }
 
@@ -85,7 +82,6 @@ public class OssScannerCommand extends BaseScannerCommand {
 
     @Override
     public void dispose(){
-      //  super.disposeScannerListener(project);
         super.dispose();
     }
 
