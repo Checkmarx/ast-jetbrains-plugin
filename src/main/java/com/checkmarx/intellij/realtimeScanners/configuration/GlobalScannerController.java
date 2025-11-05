@@ -8,13 +8,11 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
-
-
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
+
 
 @Service(Service.Level.APP)
 public final class GlobalScannerController implements Disposable, SettingsListener {
@@ -47,7 +45,7 @@ public final class GlobalScannerController implements Disposable, SettingsListen
         synchronized (this) {
             updateScannerState(state);
         }
-        syncAll();
+        this.syncAll(state);
     }
 
     public synchronized boolean isScannerGloballyEnabled(ScannerKind kind) {
@@ -70,8 +68,7 @@ public final class GlobalScannerController implements Disposable, SettingsListen
         registeredProjects.remove(key(project, kind));
     }
 
-    public synchronized void syncAll() {
-        GlobalSettingsState state = GlobalSettingsState.getInstance();
+    public synchronized void syncAll(GlobalSettingsState state) {
 
         if (!state.isAuthenticated()) {
             for (Project project : ProjectManager.getInstance().getOpenProjects()) {

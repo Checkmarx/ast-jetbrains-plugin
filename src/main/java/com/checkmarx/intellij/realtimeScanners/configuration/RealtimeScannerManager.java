@@ -1,16 +1,12 @@
 package com.checkmarx.intellij.realtimeScanners.configuration;
 
-
 import com.checkmarx.intellij.realtimeScanners.registry.ScannerRegistry;
-
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.checkmarx.intellij.realtimeScanners.common.ScannerKind;
-
 import org.jetbrains.annotations.NotNull;
-
 
 
 /**
@@ -20,8 +16,6 @@ import org.jetbrains.annotations.NotNull;
 
 @Service(Service.Level.PROJECT)
 public  final class RealtimeScannerManager implements Disposable {
-
-
     private final Project project;
     private final ScannerRegistry registry;
 

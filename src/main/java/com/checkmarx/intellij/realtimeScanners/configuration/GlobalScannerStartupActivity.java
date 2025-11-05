@@ -6,8 +6,7 @@ import com.intellij.openapi.startup.StartupActivity;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Creates and wires the RealtimeScannerManager after project startup.
- * Evaluates current flags and starts/stops placeholder scanners.
+ * Creates and wires the GlobalScannerController after project startup.
  */
 public class GlobalScannerStartupActivity implements StartupActivity.DumbAware {
     @Override
