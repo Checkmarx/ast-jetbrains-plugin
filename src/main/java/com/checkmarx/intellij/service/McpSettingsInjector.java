@@ -177,4 +177,9 @@ public final class McpSettingsInjector {
     private static String stripLineComments(String s) {
         return s.replaceAll("(?m)^\\s*//.*$", "");
     }
+
+    /** Public accessor used by UI components to locate the MCP configuration file. */
+    public static Path getMcpJsonPath() {
+        return resolveCopilotMcpConfigPath();
+    }
 }
