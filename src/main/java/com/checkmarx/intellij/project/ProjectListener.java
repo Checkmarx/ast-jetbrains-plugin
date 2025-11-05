@@ -10,6 +10,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManagerListener;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.logging.Logger;
+
 public class ProjectListener implements ProjectManagerListener {
 
     private  RealtimeScannerManager scannerManager;
@@ -21,6 +23,7 @@ public class ProjectListener implements ProjectManagerListener {
         project.getService(ProjectResultsService.class).indexResults(project, Results.emptyResults);
         if (new GlobalSettingsComponent().isValid()){
             ScannerRegistry scannerRegistry= new ScannerRegistry(project,project,scannerManager);
+            System.out.println("From projectOpened");
             scannerRegistry.registerAllScanners(project);
         }
     }

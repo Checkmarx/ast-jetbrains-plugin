@@ -105,6 +105,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
             if (new GlobalSettingsComponent().isValid()) {
                 drawMainPanel();
                 ScannerRegistry registry =  new ScannerRegistry(project,this,realtimeScannerManager);
+                LOGGER.info("calling from cxToolWindow");
                 registry.registerAllScanners(project);
 
             } else {

@@ -7,6 +7,7 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
+import com.checkmarx.intellij.realtimeScanners.common.ScannerKind;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -14,13 +15,12 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Manager: starts/stops realtime scanners based on settings toggles.
- * Uses ConfigurationManager to listen to specific realtime checkbox changes (mirrors VS Code affectsConfiguration).
+ * Uses ConfigurationManager to listen to specific realtime checkbox changes
  */
 
 @Service(Service.Level.PROJECT)
 public  final class RealtimeScannerManager implements Disposable {
 
-    public enum ScannerKind { OSS, SECRETS, CONTAINERS, IAC }
 
     private final Project project;
     private final ScannerRegistry registry;
@@ -69,8 +69,5 @@ public  final class RealtimeScannerManager implements Disposable {
     @Override
     public void dispose() {
         stopAll();
-        for (ScannerKind kind : ScannerKind.values()) {
-            global().markUnregistered(project, kind);
-        }
     }
 }
