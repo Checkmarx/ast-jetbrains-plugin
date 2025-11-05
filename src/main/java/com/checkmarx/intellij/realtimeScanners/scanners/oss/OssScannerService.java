@@ -135,12 +135,12 @@ public class OssScannerService extends BaseScannerService {
     }
 
     public OssRealtimeResults scan(PsiFile document, String uri) {
-        LOGGER.info("------------SCAN STARTED OSS---------------"+uri);
 
         com.checkmarx.ast.ossrealtime.OssRealtimeResults scanResults;
         if(!this.shouldScanFile(uri)){
             return null;
         }
+        LOGGER.info("------------SCAN STARTED OSS---------------"+uri);
         Path tempSubFolder = this.getTempSubFolderPath(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DIRECTORY, document);
 
         try {

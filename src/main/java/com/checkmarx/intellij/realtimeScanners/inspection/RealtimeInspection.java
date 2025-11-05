@@ -22,7 +22,7 @@ public class RealtimeInspection extends LocalInspectionTool {
 
     @Getter
     @Setter
-    private ScannerService<?> scannerService;
+
     private final Logger logger = Utils.getLogger(RealtimeInspection.class);
 
     private final Map<String,Long> fileTimeStamp= new ConcurrentHashMap<>();
@@ -34,10 +34,14 @@ public class RealtimeInspection extends LocalInspectionTool {
             RealtimeScannerManager scannerManager = file.getProject().getService(RealtimeScannerManager.class);
 
             String path = file.getVirtualFile().getPath();
-            Optional<ScannerService<?>> optScannerService= scannerFactory.findApplicationScanner(path);
-            optScannerService.ifPresent(service -> scannerService = service);
-            if (scannerManager == null || !scannerManager.isScannerActive(scannerService.getConfig().getEngineName())) {
-                return ProblemDescriptor.EMPTY_ARRAY;
+            Optional<ScannerService<?>> scannerService= scannerFactory.findApplicationScanner(path);
+
+            if(scannerService.isEmpty()){
+               return ProblemDescriptor.EMPTY_ARRAY;
+            }
+
+            if ( scannerManager==null || !scannerManager.isScannerActive(scannerService.get().getConfig().getEngineName())){
+                return  ProblemDescriptor.EMPTY_ARRAY;
             }
 
             long currentModificationTime = file.getModificationStamp();
@@ -45,7 +49,7 @@ public class RealtimeInspection extends LocalInspectionTool {
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
             fileTimeStamp.put(path, currentModificationTime);
-            OssRealtimeResults ossRealtimeResults= (OssRealtimeResults) scannerService.scan(file,path);
+            OssRealtimeResults ossRealtimeResults= (OssRealtimeResults) scannerService.get().scan(file,path);
 
         } catch (Exception e) {
             return ProblemDescriptor.EMPTY_ARRAY;
