@@ -98,16 +98,14 @@ public class OssScannerService extends BaseScannerService {
     }
 
     private void saveCompanionFile(Path tempFolderPath,String originalFilePath){
-
-      String companionFileName = getCompanionFileName(getPath(originalFilePath).getFileName().toString());
-
-      if(companionFileName.isEmpty()){
+        String companionFileName = getCompanionFileName(getPath(originalFilePath).getFileName().toString());
+        if(companionFileName.isEmpty()){
           return;
-      }
-      Path companionOriginalPath = Paths.get(getPath(originalFilePath).getParent().toString(), companionFileName);
-      if (!Files.exists(companionOriginalPath)) {
+        }
+        Path companionOriginalPath = Paths.get(getPath(originalFilePath).getParent().toString(), companionFileName);
+        if (!Files.exists(companionOriginalPath)) {
           return;
-      }
+        }
         Path companionTempPath = Paths.get(tempFolderPath.toString(), companionFileName);
         try {
             Files.copy(companionOriginalPath, companionTempPath, StandardCopyOption.REPLACE_EXISTING);
@@ -142,7 +140,7 @@ public class OssScannerService extends BaseScannerService {
             String mainTempPath=this.saveMainManifestFile(tempSubFolder, uri,document.getText());
             this.saveCompanionFile(tempSubFolder, uri);
             LOGGER.info("Start Realtime scan On File: "+uri);
-            scanResults= CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
+            scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
             return  scanResults;
 
         } catch (IOException | CxException | InterruptedException e) {

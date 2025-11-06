@@ -3,7 +3,7 @@ package com.checkmarx.intellij.realtimeScanners.scanners.oss;
 import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
+import com.checkmarx.intellij.realtimeScanners.configuration.ScannerLifeCycleManager;
 import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerCommand;
 import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
 import com.checkmarx.intellij.realtimeScanners.inspection.RealtimeInspection;
@@ -26,22 +26,19 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class OssScannerCommand extends BaseScannerCommand {
-   public OssScannerService ossScannerService ;
-   private final Project project;
-   public  RealtimeScannerManager realtimeScannerManager;
+    public OssScannerService ossScannerService ;
+    private final Project project;
+    private static final Logger LOGGER = Utils.getLogger(OssScannerCommand.class);
 
-   private static final Logger LOGGER = Utils.getLogger(OssScannerCommand.class);
-
-    public OssScannerCommand(@NotNull Disposable parentDisposable, @NotNull Project project,@NotNull OssScannerService OssscannerService, @NotNull RealtimeScannerManager realtimeScannerManager){
-        super(parentDisposable, OssScannerService.createConfig(),OssscannerService,realtimeScannerManager);
+    public OssScannerCommand(@NotNull Disposable parentDisposable, @NotNull Project project,@NotNull OssScannerService OssscannerService){
+        super(parentDisposable, OssScannerService.createConfig(),OssscannerService);
         this.ossScannerService = OssscannerService;
         this.project=project;
-        this.realtimeScannerManager = realtimeScannerManager;
     }
 
     public OssScannerCommand(@NotNull Disposable parentDisposable,
-                             @NotNull Project project, RealtimeScannerManager scannerManager) {
-        this(parentDisposable, project, new OssScannerService(),scannerManager);
+                             @NotNull Project project) {
+        this(parentDisposable, project, new OssScannerService());
     }
 
     @Override

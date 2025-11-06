@@ -49,10 +49,10 @@ public class BaseScannerService<T> implements ScannerService<T>{
         try{
             Files.createDirectories(folderPath);
         } catch (IOException e){
-            LOGGER.warn("Cannot create temp folder",e);
+            //TODO : check below error
+            LOGGER.error("Cannot create temp folder",e);
         }
      }
-
 
      protected void deleteTempFolder(Path tempFolder){
          if(Files.notExists(tempFolder)){
@@ -65,7 +65,7 @@ public class BaseScannerService<T> implements ScannerService<T>{
                            Files.deleteIfExists(path);
                          }
                          catch (Exception e){
-                             LOGGER.warn("Failed to delete:"+path);
+                             LOGGER.warn("Failed to delete file in temp folder:"+path);
                          }
                      });
              }

@@ -5,10 +5,9 @@ import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
 import com.checkmarx.ast.realtime.RealtimeLocation;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerService;
 import com.checkmarx.intellij.realtimeScanners.basescanner.ScannerService;
 import com.checkmarx.intellij.realtimeScanners.common.ScannerFactory;
-import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
+import com.checkmarx.intellij.realtimeScanners.utils.ScannerUtils;
 import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
 import com.checkmarx.intellij.service.ProblemHolderService;
 import com.intellij.codeInspection.*;
@@ -30,25 +29,24 @@ public class RealtimeInspection extends LocalInspectionTool {
 
     @Getter
     @Setter
+    private ScannerFactory scannerFactory= new ScannerFactory();
 
     private final Logger logger = Utils.getLogger(RealtimeInspection.class);
-
     private final Map<String,Long> fileTimeStamp= new ConcurrentHashMap<>();
-    private final ScannerFactory scannerFactory= new ScannerFactory();
+
 
     @Override
     public ProblemDescriptor @NotNull [] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         try {
-            RealtimeScannerManager scannerManager = file.getProject().getService(RealtimeScannerManager.class);
 
             String path = file.getVirtualFile().getPath();
-            Optional<ScannerService<?>> scannerService= scannerFactory.findApplicationScanner(path);
+            Optional<ScannerService<?>> scannerService= scannerFactory.findRealTimeScanner(path);
 
             if(scannerService.isEmpty()){
                return ProblemDescriptor.EMPTY_ARRAY;
             }
 
-            if ( scannerManager==null || !scannerManager.isScannerActive(scannerService.get().getConfig().getEngineName())){
+            if (!ScannerUtils.isScannerActive(scannerService.get().getConfig().getEngineName())){
                 return  ProblemDescriptor.EMPTY_ARRAY;
             }
 

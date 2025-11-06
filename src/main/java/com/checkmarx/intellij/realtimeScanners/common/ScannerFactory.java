@@ -7,13 +7,12 @@ import java.util.Optional;
 
 public class ScannerFactory {
 
-    private  final List<ScannerService<?>> scannerServices;
+    private final List<ScannerService<?>> scannerServices;
 
     public ScannerFactory(){
         scannerServices= List.of(new OssScannerService());
     }
-
-    public Optional<ScannerService<?>> findApplicationScanner(String file){
+    public  Optional<ScannerService<?>> findRealTimeScanner(String file){
         return  scannerServices.stream().filter(scanner->scanner.shouldScanFile(file)).findFirst();
     }
 }
