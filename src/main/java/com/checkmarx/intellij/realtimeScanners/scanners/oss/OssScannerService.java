@@ -1,18 +1,12 @@
 package com.checkmarx.intellij.realtimeScanners.scanners.oss;
 
-import com.checkmarx.ast.realtime.RealtimeLocation;
-import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerService;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
-import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.roots.ProjectRootManager;
-import com.intellij.openapi.vfs.VfsUtilCore;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import java.io.IOException;
@@ -43,6 +37,14 @@ public class OssScannerService extends BaseScannerService {
                 .build();
     }
 
+
+    public boolean shouldScanFile(String filePath){
+       if(!super.shouldScanFile(filePath)){
+           return  false;
+       }
+       return this.isManifestFilePatternMatching(filePath);
+    }
+
     private boolean isManifestFilePatternMatching(String filePath){
         List<PathMatcher> pathMatchers = Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
                 .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
@@ -55,14 +57,6 @@ public class OssScannerService extends BaseScannerService {
         return false;
     }
 
-    public boolean shouldScanFile(String filePath){
-       if(!super.shouldScanFile(filePath)){
-           return  false;
-       }
-       return this.isManifestFilePatternMatching(filePath);
-    }
-
-
     public String toSafeTempFileName(String relativePath) {
         String baseName = Paths.get(relativePath).getFileName().toString();
         String hash = this.generateFileHash(relativePath);
@@ -72,6 +66,7 @@ public class OssScannerService extends BaseScannerService {
     public String generateFileHash(String relativePath) {
         try {
             LocalTime time = LocalTime.now();
+            // MMSS string format for the suffix
             String timeSuffix = String.format("%02d%02d", time.getMinute(), time.getSecond());
             String combined = relativePath + timeSuffix;
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -102,26 +97,28 @@ public class OssScannerService extends BaseScannerService {
           return tempFilePath.toString();
     }
 
-    private String saveCompanionFile(Path tempFolderPath,String originalFilePath){
-      String companionFileName=getCompanionFileName(Paths.get(originalFilePath).getFileName().toString());
+    private void saveCompanionFile(Path tempFolderPath,String originalFilePath){
+
+      String companionFileName = getCompanionFileName(getPath(originalFilePath).getFileName().toString());
+
       if(companionFileName.isEmpty()){
-          return null;
-        }
-        Path companionOriginalPath = Paths.get(Paths.get(originalFilePath).getParent().toString(), companionFileName);
-        if (!Files.exists(companionOriginalPath)) {
-            return null;
-        }
+          return;
+      }
+      Path companionOriginalPath = Paths.get(getPath(originalFilePath).getParent().toString(), companionFileName);
+      if (!Files.exists(companionOriginalPath)) {
+          return;
+      }
         Path companionTempPath = Paths.get(tempFolderPath.toString(), companionFileName);
         try {
             Files.copy(companionOriginalPath, companionTempPath, StandardCopyOption.REPLACE_EXISTING);
-            LOGGER.info("Filed saved");
-            return companionTempPath.toString();
-
         } catch (IOException e) {
             //TODO improve the logger
             LOGGER.warn("Error occurred during OSS realTime scan",e);
-            return null;
         }
+    }
+
+    private Path getPath(String file){
+        return Paths.get(file);
     }
 
     private String getCompanionFileName(String fileName){
@@ -135,24 +132,16 @@ public class OssScannerService extends BaseScannerService {
     }
 
     public OssRealtimeResults scan(PsiFile document, String uri) {
-
         com.checkmarx.ast.ossrealtime.OssRealtimeResults scanResults;
         if(!this.shouldScanFile(uri)){
             return null;
         }
-        LOGGER.info("------------SCAN STARTED OSS---------------"+uri);
         Path tempSubFolder = this.getTempSubFolderPath(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DIRECTORY, document);
-
         try {
             this.createTempFolder(tempSubFolder);
             String mainTempPath=this.saveMainManifestFile(tempSubFolder, uri,document.getText());
             this.saveCompanionFile(tempSubFolder, uri);
-            Path tempPath=Path.of(mainTempPath);
-            System.out.println(Files.exists(tempPath) && Files.isReadable(tempPath));
-
-            LOGGER.info("Scan has started On: "+mainTempPath);
-            LOGGER.info("scanned file is -->"+uri);
-
+            LOGGER.info("Start Realtime scan On File: "+uri);
             scanResults= CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
             return  scanResults;
 

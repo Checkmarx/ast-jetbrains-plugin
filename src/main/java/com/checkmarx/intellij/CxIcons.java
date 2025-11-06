@@ -18,11 +18,10 @@ public final class CxIcons {
     public static final Icon COMMENT = IconLoader.getIcon("/icons/comment.svg", CxIcons.class);
     public static final Icon STATE = IconLoader.getIcon("/icons/Flags.svg", CxIcons.class);
     public static final Icon ABOUT = IconLoader.getIcon("/icons/about.svg", CxIcons.class);
-    public static final Icon WELCOME_SCANNER = IconLoader.getIcon("/icons/welcomePageScanner.svg", CxIcons.class);
-    public static final Icon WELCOME_DOUBLE_CHECK = IconLoader.getIcon("/icons/double-check.svg", CxIcons.class);
-    public static final Icon WELCOME_MCP_DISABLE = IconLoader.getIcon("/icons/cxAIError.svg", CxIcons.class);
-    public static final Icon WELCOME_CHECK = IconLoader.getIcon("/icons/tabler-icon-check.svg", CxIcons.class);
-    public static final Icon WELCOME_UNCHECK = IconLoader.getIcon("/icons/tabler-icon-uncheck.svg", CxIcons.class);
+    public static final Icon WELCOME_SCANNER_LIGHT = IconLoader.getIcon("/icons/welcomePageScanner_light.svg", CxIcons.class);
+    public static final Icon WELCOME_SCANNER_DARK = IconLoader.getIcon("/icons/welcomePageScanner_dark.svg", CxIcons.class);
+    public static final Icon WELCOME_MCP_DISABLE_LIGHT = IconLoader.getIcon("/icons/cxAIError_light.svg", CxIcons.class);
+    public static final Icon WELCOME_MCP_DISABLE_DARK = IconLoader.getIcon("/icons/cxAIError_dark.svg", CxIcons.class);
 
     public static Icon getMaliciousIcon() {
         return IconLoader.getIcon("/icons/malicious.svg", CxIcons.class);

@@ -2,104 +2,199 @@ package com.checkmarx.intellij.unit.welcomedialog;
 
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.ui.WelcomeDialog;
+import com.intellij.ui.components.JBCheckBox;
+import com.intellij.ui.components.JBLabel;
+import java.awt.*;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for {@link WelcomeDialog} logic.
- * Ensures realtime toggle orchestration & bullet layout composition work as intended.
+ * Ensures real-time toggle orchestration and layout composition work as intended.
  */
 public class WelcomeDialogTest {
 
-    /** Fake manager tracking calls for verification. */
+    private static final int WRAP_WIDTH = 250;
+
+    /**
+     * Fake manager for tracking calls for verification.
+     */
     static class FakeManager implements WelcomeDialog.RealTimeSettingsManager {
         final AtomicBoolean enabled = new AtomicBoolean(false);
         int setAllCalls = 0;
-        @Override public boolean areAllEnabled() { return enabled.get(); }
-        @Override public void setAll(boolean enable) { enabled.set(enable); setAllCalls++; }
+
+        @Override
+        public boolean areAllEnabled() {
+            return enabled.get();
+        }
+
+        @Override
+        public void setAll(boolean enable) {
+            enabled.set(enable);
+            setAllCalls++;
+        }
     }
 
     @Test
-    @DisplayName("MCP enabled: initialization forces enable when starting disabled")
-    void testInitializationEnablesAll() throws Exception {
+    @DisplayName("MCP enabled: initialization should force enable when starting disabled")
+    void testInitializationEnablesAllWhenMcpEnabled() throws Exception {
         FakeManager mgr = new FakeManager();
-        assertFalse(mgr.areAllEnabled());
+        assertFalse(mgr.areAllEnabled(), "Precondition: settings should be disabled");
+
         WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, true, mgr));
-        assertTrue(mgr.areAllEnabled());
-        assertEquals(1, mgr.setAllCalls);
-        assertEquals("Scanners enabled", dialog.getAggregateStatusText());
-        assertNotNull(dialog.getToggleIconLabel());
+
+        assertTrue(mgr.areAllEnabled(), "Settings should be enabled after dialog initialization");
+        assertEquals(1, mgr.setAllCalls, "setAll should be called once during initialization");
+        assertNotNull(dialog.getRealTimeScannersCheckbox(), "Checkbox should be present when MCP is enabled");
+        assertTrue(dialog.getRealTimeScannersCheckbox().isSelected(), "Checkbox should be selected");
     }
 
     @Test
-    @DisplayName("MCP disabled: toggle icon hidden and initialization does not force enable")
-    void testMcpDisabledHidesToggle() throws Exception {
+    @DisplayName("MCP disabled: checkbox should be disabled and initialization should not force enable")
+    void testMcpDisabledDisablesCheckbox() throws Exception {
         FakeManager mgr = new FakeManager();
         WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, false, mgr));
-        assertNull(dialog.getToggleIconLabel());
-        assertFalse(mgr.areAllEnabled());
-        assertEquals(0, mgr.setAllCalls);
-        assertEquals("", dialog.getAggregateStatusText());
+
+        JCheckBox checkbox = dialog.getRealTimeScannersCheckbox();
+        assertNotNull(checkbox, "Checkbox should be present when MCP is disabled");
+        assertFalse(checkbox.isEnabled(), "Checkbox should be disabled when MCP is disabled");
+        assertFalse(mgr.areAllEnabled(), "Settings should remain disabled");
+        assertEquals(0, mgr.setAllCalls, "setAll should not be called");
     }
 
     @Test
-    @DisplayName("Clicking toggle flips aggregate realtime state and updates accessibility text")
-    void testToggleClickFlipsState() throws Exception {
+    @DisplayName("Clicking checkbox should flip real-time state")
+    void testCheckboxClickFlipsState() throws Exception {
         FakeManager mgr = new FakeManager();
         WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, true, mgr));
-        JLabel toggle = dialog.getToggleIconLabel();
-        assertNotNull(toggle);
-        assertTrue(mgr.areAllEnabled());
-        runOnEdt(() -> { fireClick(toggle); return null; }); // disable
-        assertFalse(mgr.areAllEnabled());
-        assertEquals("Scanners disabled", dialog.getAggregateStatusText());
-        runOnEdt(() -> { fireClick(toggle); return null; }); // re-enable
-        assertTrue(mgr.areAllEnabled());
-        assertEquals("Scanners enabled", dialog.getAggregateStatusText());
-        assertTrue(mgr.setAllCalls >= 2);
+        JBCheckBox checkbox = dialog.getRealTimeScannersCheckbox();
+
+        assertNotNull(checkbox, "Checkbox must exist for this test");
+        assertTrue(mgr.areAllEnabled(), "Initial state should be enabled");
+        assertEquals(1, mgr.setAllCalls);
+
+        // Simulate user unchecking the box
+        runOnEdt(() -> {
+            checkbox.setSelected(false);
+            checkbox.getActionListeners()[0].actionPerformed(null); // Manually trigger listener
+            return null;
+        });
+        assertFalse(mgr.areAllEnabled(), "State should be disabled after unchecking");
+        assertEquals(2, mgr.setAllCalls, "setAll should be called again");
+
+        // Simulate user re-checking the box
+        runOnEdt(() -> {
+            checkbox.setSelected(true);
+            checkbox.getActionListeners()[0].actionPerformed(null);
+            return null;
+        });
+        assertTrue(mgr.areAllEnabled(), "State should be re-enabled after checking");
+        assertEquals(3, mgr.setAllCalls, "setAll should be called a third time");
     }
 
     @Test
-    @DisplayName("Bullet helper creates glyph + wrapped text")
-    void testBulletHelper() throws Exception {
-        FakeManager mgr = new FakeManager();
-        WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, true, mgr));
+    @DisplayName("Bullet helper should create a glyph and wrapped text")
+    void testBulletHelperCreatesFormattedText() throws Exception {
+        WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, false, new FakeManager()));
         JComponent bullet = runOnEdt(() -> dialog.createBullet(Resource.WELCOME_MAIN_FEATURE_1));
-        assertEquals(2, bullet.getComponentCount());
-        assertInstanceOf(JLabel.class, bullet.getComponent(0));
+
+        assertEquals(2, bullet.getComponentCount(), "Bullet component should have two parts: a glyph and text");
+
+        assertInstanceOf(JLabel.class, bullet.getComponent(0), "First part should be the glyph label");
         JLabel glyph = (JLabel) bullet.getComponent(0);
-        assertEquals("•", glyph.getText());
+        assertEquals("•", glyph.getText(), "Glyph should be a bullet character");
+
+        assertInstanceOf(JLabel.class, bullet.getComponent(1), "Second part should be the text label");
         JLabel text = (JLabel) bullet.getComponent(1);
-        assertTrue(text.getText().contains("width:" + WelcomeDialog.WRAP_WIDTH));
+        assertTrue(text.getText().contains("width:" + WRAP_WIDTH), "Text should be HTML-wrapped with a fixed width");
     }
 
-    // Helpers
+    @Test
+    @DisplayName("Dialog with MCP enabled should not re-apply settings if already enabled")
+    void testInitialStateWithMcpEnabled() throws Exception {
+        FakeManager mgr = new FakeManager();
+        mgr.setAll(true); // Start with scanners already enabled
+        assertEquals(1, mgr.setAllCalls);
 
-    private interface SupplierWithException<T> { T get() throws Exception; }
+        WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, true, mgr));
 
+        assertNotNull(dialog.getRealTimeScannersCheckbox());
+        assertTrue(dialog.getRealTimeScannersCheckbox().isSelected());
+
+        // Since scanners were already enabled, initializeRealtimeState() should NOT call setAll() again
+        assertEquals(1, mgr.setAllCalls,
+                "setAll(true) should NOT be called again if scanners are already enabled");
+    }
+
+    @Test
+    @DisplayName("UI should show MCP disabled info when MCP is not enabled")
+    void testMcpDisabledUi() throws Exception {
+        WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, false, new FakeManager()));
+        JBLabel mcpDisabledIcon = findMcpDisabledLabel(dialog.getContentPane());
+        assertNotNull(mcpDisabledIcon, "MCP disabled label should exist");
+        assertNotNull(mcpDisabledIcon.getIcon(), "Icon should be present when MCP is disabled");
+        assertEquals(
+                "Checkmarx MCP is not enabled for this tenant.",
+                mcpDisabledIcon.getToolTipText(),
+                "Tooltip should explain that MCP is disabled"
+        );
+    }
+
+    // region Helpers
+    /**
+     * Utility: traverses components recursively to find the MCP disabled JBLabel.
+     */
+    private JBLabel findMcpDisabledLabel(Container container) {
+        for (Component comp : container.getComponents()) {
+            if (comp instanceof JBLabel) {
+                JBLabel label = (JBLabel) comp;
+                if ("Checkmarx MCP is not enabled for this tenant.".equals(label.getToolTipText())) {
+                    return label;
+                }
+            } else if (comp instanceof Container) {
+                JBLabel nested = findMcpDisabledLabel((Container) comp);
+                if (nested != null) return nested;
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * Executes a Swing operation on the Event Dispatch Thread (EDT) and waits for it to complete.
+     * This is crucial for testing Swing components safely.
+     */
     private <T> T runOnEdt(SupplierWithException<T> supplier) throws Exception {
         final Object[] holder = new Object[2];
         SwingUtilities.invokeAndWait(() -> {
-            try { holder[0] = supplier.get(); } catch (Throwable t) { holder[1] = t; }
+            try {
+                holder[0] = supplier.get();
+            } catch (Throwable t) {
+                holder[1] = t;
+            }
         });
         if (holder[1] != null) {
             if (holder[1] instanceof Exception) throw (Exception) holder[1];
-            throw new RuntimeException(holder[1].toString(), (Throwable) holder[1]);
+            throw new RuntimeException("Error on EDT", (Throwable) holder[1]);
         }
-        @SuppressWarnings("unchecked") T value = (T) holder[0];
+        @SuppressWarnings("unchecked")
+        T value = (T) holder[0];
         return value;
     }
 
-    private static void fireClick(JLabel label) {
-        for (MouseListener ml : label.getMouseListeners()) {
-            ml.mouseClicked(new MouseEvent(label, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, 1, 1, 1, false));
-        }
+    /**
+     * Functional interface for a supplier that can throw an exception.
+     */
+    @FunctionalInterface
+    private interface SupplierWithException<T> {
+        T get() throws Exception;
     }
+
+    // endregion
 }

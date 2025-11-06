@@ -15,7 +15,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 public class BaseScannerService<T> implements ScannerService<T>{
     public ScannerConfig config;
@@ -47,26 +49,28 @@ public class BaseScannerService<T> implements ScannerService<T>{
         try{
             Files.createDirectories(folderPath);
         } catch (IOException e){
-            //TODO: improve the below logic and warning
             LOGGER.warn("Cannot create temp folder",e);
-
         }
      }
 
+
      protected void deleteTempFolder(Path tempFolder){
-         VirtualFile tempFileDir = LocalFileSystem.getInstance().findFileByPath(tempFolder.toString());
-         CompletableFuture.runAsync(() -> {
-             ApplicationManager.getApplication().invokeAndWait(() -> {
-                 WriteAction.run(() -> {
-                     try {
-                         if (tempFileDir != null && tempFileDir.exists()) {
-                             tempFileDir.delete(this);
+         if(Files.notExists(tempFolder)){
+             return;
+         }
+         try(Stream<Path> walk = Files.walk(tempFolder)){
+                     walk.sorted(Comparator.reverseOrder())
+                     .forEach(path->{
+                         try{
+                           Files.deleteIfExists(path);
                          }
-                     } catch (IOException e) {
-                         LOGGER.warn("Cannot delete the folder: " + tempFileDir);
-                     }
-                 });
-             });
-         }).thenRun(() -> LOGGER.info("Temp folder deleted"));
-     }
-}
+                         catch (Exception e){
+                             LOGGER.warn("Failed to delete:"+path);
+                         }
+                     });
+             }
+         catch (IOException e){
+            LOGGER.warn("Failed to delete temporary folder:"+tempFolder );
+           }
+         }
+       }

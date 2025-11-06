@@ -8,6 +8,7 @@ import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.service.McpInstallService;
+import com.checkmarx.intellij.service.McpSettingsInjector;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.Disposable;
@@ -22,6 +23,11 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.Objects;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 
 /**
  * UI component shown under Tools > Checkmarx One > CxOne Assist.
@@ -126,9 +132,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mainPanel.add(installMcpLink, "split 2, gapleft 15");
         mainPanel.add(mcpStatusLabel, "wrap, gapleft 15");
 
-        CxLinkLabel editJsonLink = new CxLinkLabel(Bundle.message(Resource.MCP_EDIT_JSON_LINK), e -> {
-            // intentionally left unimplemented
-        });
+        CxLinkLabel editJsonLink = new CxLinkLabel(Bundle.message(Resource.MCP_EDIT_JSON_LINK), e -> openMcpJson());
         mainPanel.add(editJsonLink, "wrap, gapleft 15");
     }
 
@@ -189,6 +193,49 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         });
         mcpClearTimer.setRepeats(false);
         mcpClearTimer.start();
+    }
+
+    /** Opens (and creates if necessary) the Copilot MCP configuration file then closes the settings dialog. */
+    private void openMcpJson() {
+        // Apply settings if modified, then close dialog window
+        try {
+            if (isModified()) {
+                apply();
+            }
+        } catch (Exception ex) {
+            LOGGER.warn("[CxOneAssist] Failed applying settings before closing dialog", ex);
+        }
+        java.awt.Window w = SwingUtilities.getWindowAncestor(mainPanel);
+        if (w != null) {
+            w.dispose();
+        }
+
+        Project[] open = ProjectManager.getInstance().getOpenProjects();
+        Project project = (open.length > 0) ? open[0] : ProjectManager.getInstance().getDefaultProject();
+        if (project == null) {
+            LOGGER.warn("[CxOneAssist] No project available to open mcp.json");
+            return;
+        }
+
+        java.nio.file.Path path;
+        try {
+            path = McpSettingsInjector.getMcpJsonPath();
+        } catch (Exception ex) {
+            LOGGER.warn("[CxOneAssist] Failed resolving MCP config path", ex);
+            return;
+        }
+        if (path == null) {
+            LOGGER.warn("[CxOneAssist] MCP config path is null");
+            return;
+        }
+
+        VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(path);
+        if (vf != null && vf.exists()) {
+            FileEditorManager.getInstance(project).openFile(vf, true);
+        } else {
+            LOGGER.warn("[CxOneAssist] mcp.json not found at: " + path);
+            showMcpStatus(Bundle.message(Resource.MCP_NOT_FOUND), JBColor.RED);
+        }
     }
 
     @Override
