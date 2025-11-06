@@ -77,14 +77,13 @@ public class OssScannerCommand extends BaseScannerCommand {
                         PsiFile psiFile= PsiManager.getInstance(project).findFile(file.get());
                         OssRealtimeResults ossRealtimeResults=  ossScannerService.scan(psiFile, uri);
 
-                        if (ossRealtimeResults == null){
-                            List<CxProblems> problemsList = new ArrayList<>(RealtimeInspection.buildCxProblems(ossRealtimeResults.getPackages()));
+                        List<CxProblems> problemsList = new ArrayList<>();
+                        problemsList.addAll(RealtimeInspection.buildCxProblems(ossRealtimeResults.getPackages()));
 
-                            VirtualFile virtualFile = psiFile.getVirtualFile();
-                            if (virtualFile != null) {
-                                ProblemHolderService.getInstance(psiFile.getProject())
-                                        .addProblems(psiFile.getVirtualFile().getPath(), problemsList);
-                            }
+                        VirtualFile virtualFile = psiFile.getVirtualFile();
+                        if (virtualFile != null) {
+                            ProblemHolderService.getInstance(psiFile.getProject())
+                                    .addProblems(psiFile.getVirtualFile().getPath(), problemsList);
                         }
                     }
                     catch(Exception e){
