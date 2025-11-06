@@ -101,9 +101,9 @@ public class WelcomeDialog extends DialogWrapper {
         // MCP-specific controls
         if (mcpEnabled) {
             initializeRealtimeState();
-            configureCheckboxBehavior();
-            refreshCheckboxState();
         }
+        configureCheckboxBehavior();
+        refreshCheckboxState();
         return leftPanel;
     }
 
@@ -128,11 +128,10 @@ public class WelcomeDialog extends DialogWrapper {
     private JComponent createFeatureCardHeader() {
         JPanel header = new JPanel(new MigLayout("insets 0, gapx 6", "[][grow]"));
         header.setOpaque(false);
-        if (mcpEnabled) {
-            realTimeScannersCheckbox = new JBCheckBox();
-            realTimeScannersCheckbox.setToolTipText("Enable all real-time scanners");
-            header.add(realTimeScannersCheckbox);
-        }
+        realTimeScannersCheckbox = new JBCheckBox();
+        realTimeScannersCheckbox.setToolTipText("Enable all real-time scanners");
+        realTimeScannersCheckbox.setEnabled(mcpEnabled);
+        header.add(realTimeScannersCheckbox);
         JBLabel assistTitle = new JBLabel(Bundle.message(Resource.WELCOME_ASSIST_TITLE));
         assistTitle.setFont(assistTitle.getFont().deriveFont(Font.BOLD));
         header.add(assistTitle, "growx, pushx");
