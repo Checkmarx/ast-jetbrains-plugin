@@ -142,7 +142,7 @@ public class OssScannerService extends BaseScannerService {
             String mainTempPath=this.saveMainManifestFile(tempSubFolder, uri,document.getText());
             this.saveCompanionFile(tempSubFolder, uri);
             LOGGER.info("Start Realtime scan On File: "+uri);
-            scanResults= CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
+            scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
             return  scanResults;
 
         } catch (IOException | CxException | InterruptedException e) {

@@ -17,15 +17,10 @@ import org.jetbrains.annotations.NotNull;
 @Service(Service.Level.PROJECT)
 public  final class RealtimeScannerManager implements Disposable {
     private final Project project;
-    private final ScannerRegistry registry;
+    private  ScannerRegistry registry;
 
     public RealtimeScannerManager(@NotNull Project project) {
         this.project = project;
-        this.registry= new ScannerRegistry(project,this,this);
-    }
-
-    private GlobalScannerController global() {
-        return ApplicationManager.getApplication().getService(GlobalScannerController.class);
     }
 
     public synchronized void updateFromGlobal(@NotNull GlobalScannerController controller) {
@@ -37,26 +32,18 @@ public  final class RealtimeScannerManager implements Disposable {
     }
 
     public void start(ScannerKind kind) {
+        this.registry=project.getService(ScannerRegistry.class);
         registry.registerScanner(kind.name());
     }
 
     public void stop(ScannerKind kind) {
+        this.registry = project.getService(ScannerRegistry.class);
         registry.deregisterScanner(kind.name());
     }
 
     public void stopAll() {
         for (ScannerKind kind : ScannerKind.values()) {
             stop(kind);
-        }
-    }
-
-    public boolean isScannerActive(String engineName) {
-        if (engineName == null) return false;
-        try {
-            ScannerKind kind = ScannerKind.valueOf(engineName.toUpperCase());
-            return global().isScannerGloballyEnabled(kind);
-        } catch (IllegalArgumentException ex) {
-            return false;
         }
     }
 

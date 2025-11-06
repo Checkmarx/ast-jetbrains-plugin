@@ -19,10 +19,9 @@ public class ProjectListener implements ProjectManagerListener {
     @Override
     public void projectOpened(@NotNull Project project) {
         ProjectManagerListener.super.projectOpened(project);
-        scannerManager= project.getService(RealtimeScannerManager.class);
         project.getService(ProjectResultsService.class).indexResults(project, Results.emptyResults);
         if (new GlobalSettingsComponent().isValid()){
-            ScannerRegistry scannerRegistry= new ScannerRegistry(project,project,scannerManager);
+            ScannerRegistry scannerRegistry= project.getService(ScannerRegistry.class);
             System.out.println("From projectOpened");
             scannerRegistry.registerAllScanners(project);
         }

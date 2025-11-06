@@ -104,7 +104,8 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         Runnable r = () -> {
             if (new GlobalSettingsComponent().isValid()) {
                 drawMainPanel();
-                ScannerRegistry registry =  new ScannerRegistry(project,this,realtimeScannerManager);
+                ScannerRegistry registry = project.getService(ScannerRegistry.class);
+
                 LOGGER.info("calling from cxToolWindow");
                 registry.registerAllScanners(project);
 

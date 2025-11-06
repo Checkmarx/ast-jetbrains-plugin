@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.realtimeScanners.basescanner;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.realtimeScanners.common.ScannerUtils;
 import com.checkmarx.intellij.realtimeScanners.configuration.GlobalScannerController;
 import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
@@ -19,12 +20,11 @@ public class BaseScannerCommand implements ScannerCommand {
 
     private static final Logger LOGGER = Utils.getLogger(BaseScannerCommand.class);
     public  ScannerConfig config;
-    private final RealtimeScannerManager scannerManager;
 
-    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config, BaseScannerService<?> service, RealtimeScannerManager realtimeScannerManager){
+    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config, BaseScannerService<?> service){
         Disposer.register(parentDisposable,this);
         this.config = config;
-        this.scannerManager = realtimeScannerManager;
+
     }
 
     private GlobalScannerController global() {
@@ -57,7 +57,7 @@ public class BaseScannerCommand implements ScannerCommand {
     }
 
     private boolean getScannerActivationStatus(){
-        return scannerManager.isScannerActive(config.getEngineName());
+        return ScannerUtils.isScannerActive(config.getEngineName());
     }
 
     @Nullable

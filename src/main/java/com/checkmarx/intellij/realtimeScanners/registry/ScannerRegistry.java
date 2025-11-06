@@ -6,6 +6,7 @@ import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerMana
 import com.checkmarx.intellij.realtimeScanners.scanners.oss.OssScannerCommand;
 import com.intellij.openapi.Disposable;
 import com.checkmarx.intellij.realtimeScanners.basescanner.ScannerCommand;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import lombok.Getter;
@@ -14,18 +15,23 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashMap;
 import java.util.Map;
 
-
+@Service(Service.Level.PROJECT)
 public final class ScannerRegistry implements Disposable {
 
     private final Map<String, ScannerCommand> scannerMap = new HashMap<>();
+    private final Disposable myDisposable = Disposer.newDisposable("ScannerRegistry");
 
     @Getter
     private final Project project;
 
-    public ScannerRegistry( @NotNull Project project,@NotNull Disposable parentDisposable, RealtimeScannerManager scannerManager){
+    public ScannerRegistry( @NotNull Project project){
         this.project=project;
-        Disposer.register(parentDisposable,this);
-        this.setScanner(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME,new OssScannerCommand(this,project,scannerManager));
+        Disposer.register(this,myDisposable);
+        scannerInitialization();
+    }
+
+    private void scannerInitialization(){
+        this.setScanner(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME,new OssScannerCommand(this,project));
     }
 
     private void setScanner(String id, ScannerCommand scanner){
@@ -58,10 +64,11 @@ public final class ScannerRegistry implements Disposable {
         return this.scannerMap.get(id);
     }
 
-
     @Override
     public void dispose() {
       this.deregisterAllScanners();
+      Disposer.dispose(myDisposable);
+
     }
 
 }

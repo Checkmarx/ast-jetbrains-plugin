@@ -57,7 +57,7 @@ public final class GlobalScannerController implements Disposable, SettingsListen
     }
 
     private static String key(Project project, ScannerKind kind) {
-        return project.getName() + ":" + kind.name();
+        return project.getName() + "-" + kind.name();
     }
 
     public void markRegistered(Project project, ScannerKind kind) {
