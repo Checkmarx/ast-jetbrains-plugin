@@ -1,9 +1,13 @@
 package com.checkmarx.intellij.realtimeScanners.scanners.oss;
 
+import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
 import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerCommand;
+import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
+import com.checkmarx.intellij.realtimeScanners.inspection.RealtimeInspection;
+import com.checkmarx.intellij.service.ProblemHolderService;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -71,7 +75,17 @@ public class OssScannerCommand extends BaseScannerCommand {
                 if (file.isPresent()) {
                     try {
                         PsiFile psiFile= PsiManager.getInstance(project).findFile(file.get());
-                        ossScannerService.scan(psiFile, uri);
+                        OssRealtimeResults ossRealtimeResults=  ossScannerService.scan(psiFile, uri);
+
+                        if (ossRealtimeResults == null){
+                            List<CxProblems> problemsList = new ArrayList<>(RealtimeInspection.buildCxProblems(ossRealtimeResults.getPackages()));
+
+                            VirtualFile virtualFile = psiFile.getVirtualFile();
+                            if (virtualFile != null) {
+                                ProblemHolderService.getInstance(psiFile.getProject())
+                                        .addProblems(psiFile.getVirtualFile().getPath(), problemsList);
+                            }
+                        }
                     }
                     catch(Exception e){
                         LOGGER.error("Scan failed for manifest file: "+ uri);
