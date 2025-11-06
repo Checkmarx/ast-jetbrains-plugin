@@ -1,5 +1,5 @@
 package com.checkmarx.intellij.realtimeScanners.common;
 
-public enum ScannerKind {
+public enum ScannerType {
     OSS, SECRETS, CONTAINERS, IAC
 }

@@ -2,12 +2,9 @@ package com.checkmarx.intellij.realtimeScanners.inspection;
 
 import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerService;
 import com.checkmarx.intellij.realtimeScanners.basescanner.ScannerService;
 import com.checkmarx.intellij.realtimeScanners.common.ScannerFactory;
-import com.checkmarx.intellij.realtimeScanners.common.ScannerUtils;
-import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
-import com.checkmarx.intellij.realtimeScanners.scanners.oss.OssScannerService;
+import com.checkmarx.intellij.realtimeScanners.utils.ScannerUtils;
 import com.intellij.codeInspection.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiFile;
@@ -34,7 +31,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         try {
 
             String path = file.getVirtualFile().getPath();
-            Optional<ScannerService<?>> scannerService= scannerFactory.findApplicationScanner(path);
+            Optional<ScannerService<?>> scannerService= scannerFactory.findRealTimeScanner(path);
 
             if(scannerService.isEmpty()){
                return ProblemDescriptor.EMPTY_ARRAY;

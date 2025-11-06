@@ -1,8 +1,6 @@
 package com.checkmarx.intellij.realtimeScanners.registry;
 
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerCommand;
-import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
 import com.checkmarx.intellij.realtimeScanners.scanners.oss.OssScannerCommand;
 import com.intellij.openapi.Disposable;
 import com.checkmarx.intellij.realtimeScanners.basescanner.ScannerCommand;
@@ -14,19 +12,19 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service(Service.Level.PROJECT)
 public final class ScannerRegistry implements Disposable {
 
-    private final Map<String, ScannerCommand> scannerMap = new HashMap<>();
-    private final Disposable myDisposable = Disposer.newDisposable("ScannerRegistry");
+    private final Map<String, ScannerCommand> scannerMap = new ConcurrentHashMap<>();
 
     @Getter
     private final Project project;
 
     public ScannerRegistry( @NotNull Project project){
         this.project=project;
-        Disposer.register(this,myDisposable);
+        Disposer.register(this,project);
         scannerInitialization();
     }
 
@@ -67,8 +65,7 @@ public final class ScannerRegistry implements Disposable {
     @Override
     public void dispose() {
       this.deregisterAllScanners();
-      Disposer.dispose(myDisposable);
-
+      scannerMap.clear();
     }
 
 }
