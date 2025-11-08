@@ -569,7 +569,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         stateComboBox.setSelectedItem(result.getState());
         stateComboBox.setEnabled(triageEnabled);
 
-        //Constructing selection of Severity combobox
+        //Constructing selection of Status combobox
         final ComboBox<Severity> severityComboBox = new ComboBox<>(Severity.values());
         severityComboBox.setEditable(true);
         severityComboBox.setSelectedItem(result.getSeverity());

@@ -19,8 +19,7 @@ public enum Severity implements Filterable {
     HIGH(CxIcons.HIGH),
     MEDIUM(CxIcons.MEDIUM),
     LOW(CxIcons.LOW),
-    INFO(CxIcons.INFO),
-    ;
+    INFO(CxIcons.INFO);
 
     public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(MALICIOUS,CRITICAL, HIGH, MEDIUM);
 

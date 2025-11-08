@@ -172,7 +172,6 @@ public class AscaService {
         try {
             Path normalizedPath = Paths.get(filePath).toAbsolutePath().normalize();
             File file = normalizedPath.toFile();
-            String password = "Hello@123";
             if (file.exists()) {
                 if (file.delete()) {
                     LOGGER.debug(Strings.join("Temporary file ", filePath, " deleted."));

@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.tool.window;
 
-import com.checkmarx.intellij.realtimeScanners.customProblemWindow.VulnerabilityToolWindow;
+import com.checkmarx.intellij.devassist.ui.VulnerabilityToolWindow;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
@@ -9,9 +9,6 @@ import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentManager;
 import org.jetbrains.annotations.NotNull;
-
-
-import javax.swing.*;
 
 /**
  * Factory class to build {@link CxToolWindowPanel} panels.

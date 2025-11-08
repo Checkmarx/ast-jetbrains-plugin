@@ -28,4 +28,12 @@ public final class CxIcons {
     public static final Icon WELCOME_SCANNER_DARK = IconLoader.getIcon("/icons/welcomePageScanner_dark.svg", CxIcons.class);
     public static final Icon WELCOME_MCP_DISABLE_LIGHT = IconLoader.getIcon("/icons/cxAIError_light.svg", CxIcons.class);
     public static final Icon WELCOME_MCP_DISABLE_DARK = IconLoader.getIcon("/icons/cxAIError_dark.svg", CxIcons.class);
+
+    public static final Icon GUTTER_MALICIOUS = IconLoader.getIcon("/icons/devassist/malicious.svg", CxIcons.class);
+    public static final Icon GUTTER_CRITICAL = IconLoader.getIcon("/icons/devassist/critical_severity.svg", CxIcons.class);
+    public static final Icon GUTTER_HIGH = IconLoader.getIcon("/icons/devassist/high_severity.svg", CxIcons.class);
+    public static final Icon GUTTER_MEDIUM = IconLoader.getIcon("/icons/devassist/medium_severity.svg", CxIcons.class);
+    public static final Icon GUTTER_LOW = IconLoader.getIcon("/icons/devassist/low_severity.svg", CxIcons.class);
+    public static final Icon GUTTER_SHIELD_QUESTION = IconLoader.getIcon("/icons/devassist/question_mark.svg", CxIcons.class);
+    public static final Icon GUTTER_GREEN_SHIELD_CHECK = IconLoader.getIcon("/icons/devassist/green_check.svg", CxIcons.class);
 }

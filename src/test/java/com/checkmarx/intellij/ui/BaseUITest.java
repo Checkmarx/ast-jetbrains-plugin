@@ -334,7 +334,7 @@ public abstract class BaseUITest {
     }
 
     protected void severity() {
-        groupAction("Severity");
+        groupAction("Status");
     }
 
     protected void toggleFilter(Severity severity, boolean enabled) {

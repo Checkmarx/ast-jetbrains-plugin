@@ -3,14 +3,12 @@ package com.checkmarx.intellij.project;
 
 import com.checkmarx.intellij.commands.results.Results;
 
-import com.checkmarx.intellij.realtimeScanners.configuration.RealtimeScannerManager;
-import com.checkmarx.intellij.realtimeScanners.registry.ScannerRegistry;
+import com.checkmarx.intellij.devassist.configuration.RealtimeScannerManager;
+import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManagerListener;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.logging.Logger;
 
 public class ProjectListener implements ProjectManagerListener {
 
