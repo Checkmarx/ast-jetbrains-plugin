@@ -9,7 +9,6 @@ import com.checkmarx.intellij.devassist.common.ScannerFactory;
 import com.checkmarx.intellij.devassist.configuration.RealtimeScannerManager;
 import com.checkmarx.intellij.devassist.inspection.remediation.CxOneAssistFix;
 import com.checkmarx.intellij.service.ProblemHolderService;
-import com.checkmarx.intellij.util.Status;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -25,6 +24,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Dev Assist RealtimeInspection class that extends LocalInspectionTool to perform real-time code scan.
+ */
 public class RealtimeInspection extends LocalInspectionTool {
 
     private final Logger logger = Utils.getLogger(RealtimeInspection.class);
@@ -33,6 +35,14 @@ public class RealtimeInspection extends LocalInspectionTool {
     private final ScannerFactory scannerFactory = new ScannerFactory();
     private final ProblemManager problemManager = new ProblemManager();
 
+    /**
+     * Checks the given file for problems.
+     *
+     * @param file       to check.
+     * @param manager    InspectionManager to ask for ProblemDescriptor's from.
+     * @param isOnTheFly true if called during on the fly editor highlighting. Called from Inspect Code action otherwise.
+     * @return an array of ProblemDescriptor's found in the file.
+     */
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         System.out.println("** RealtimeInspection called for file : " + file.getName());
@@ -60,7 +70,13 @@ public class RealtimeInspection extends LocalInspectionTool {
         return problems.toArray(new ProblemDescriptor[0]);
     }
 
-
+    /**
+     * Scans the given file using the appropriate scanner service.
+     *
+     * @param file - the file to scan
+     * @param path - the file path
+     * @return the scan results
+     */
     private OssRealtimeResults scanFile(PsiFile file, String path) {
         System.out.println("** Called scan for file : " + file.getName());
         Optional<ScannerService<?>> scannerService = scannerFactory.findApplicationScanner(path);
@@ -79,10 +95,10 @@ public class RealtimeInspection extends LocalInspectionTool {
      *
      * @param file       the file to check
      * @param manager    the inspection manager
-     * @param scanResult   the scan details
+     * @param scanResult the scan details
      * @param document   the document
      * @param isOnTheFly whether the inspection is on-the-fly
-     * @return an array of problem descriptors
+     * @return a list of problem descriptors
      */
     private List<ProblemDescriptor> createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly, OssRealtimeResults scanResult, Document document) {
         List<ProblemDescriptor> problems = new ArrayList<>();
@@ -99,7 +115,7 @@ public class RealtimeInspection extends LocalInspectionTool {
                     || scanPackage.getStatus() == null || scanPackage.getStatus().isBlank())
                 continue;
             try {
-                if (isProblem(scanPackage.getStatus().toLowerCase())) {
+                if (problemManager.isProblem(scanPackage.getStatus().toLowerCase())) {
                     ProblemDescriptor problemDescriptor = createProblem(file, manager, scanPackage, document, problemLineNumber, isOnTheFly);
                     if (Objects.nonNull(problemDescriptor)) {
                         problems.add(problemDescriptor);
@@ -107,8 +123,7 @@ public class RealtimeInspection extends LocalInspectionTool {
                 }
                 PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(problemLineNumber));
                 if (Objects.isNull(elementAtLine)) continue;
-
-                problemManager.addGutterIconForProblem(file.getProject(), file, elementAtLine, scanPackage.getStatus());
+                problemManager.addGutterIconForProblem(file.getProject(), file, elementAtLine, scanPackage);
             } catch (Exception e) {
                 System.out.println("** EXCEPTION OCCURRED WHILE ITERATING SCAN RESULT: " + Arrays.toString(e.getStackTrace()));
             }
@@ -117,7 +132,17 @@ public class RealtimeInspection extends LocalInspectionTool {
         return problems;
     }
 
-
+    /**
+     * Creates a ProblemDescriptor for the given scan package.
+     *
+     * @param file        @NotNull PsiFile
+     * @param manager     @NotNull InspectionManager to create problem
+     * @param scanPackage OssRealtimeScanPackage scan result
+     * @param document    Document of the file
+     * @param lineNumber  int line number where problem is found
+     * @param isOnTheFly  boolean indicating if inspection is on-the-fly
+     * @return ProblemDescriptor for the problem found
+     */
     private ProblemDescriptor createProblem(@NotNull PsiFile file, @NotNull InspectionManager manager, OssRealtimeScanPackage scanPackage, Document document, int lineNumber, boolean isOnTheFly) {
         try {
             System.out.println("** Creating problem using inspection called **");
@@ -133,134 +158,10 @@ public class RealtimeInspection extends LocalInspectionTool {
                     isOnTheFly,
                     new CxOneAssistFix()
             );
-
         } catch (Exception e) {
             System.out.println("** EXCEPTION: ProblemDescriptor *** " + e.getMessage() + " " + Arrays.toString(e.getStackTrace()));
             return null;
         }
     }
-
-    /**
-     * Checks if the scan package is a problem.
-     *
-     * @param status - the status of the scan package e.g. "high", "medium", "low", etc.
-     * @return true if the scan package is a problem, false otherwise
-     */
-    private boolean isProblem(String status) {
-        if (status.equals(Status.OK.getStatus())) {
-            return false;
-        } else return !status.equals(Status.UNKNOWN.getStatus());
-    }
-
-
-
-    /*private ProblemDescriptor createProblemDescriptor(@NotNull PsiFile file, @NotNull InspectionManager manager, OssRealtimeScanPackage detail, Document document, int lineNumber, boolean isOnTheFly) {
-
-        List<ProblemDescriptor> problems = new ArrayList<>();
-        System.out.println("** createProblemDescriptors called **");
-
-        for (OssRealtimeScanPackage scanPackage : packages) {
-            System.out.println("** OssRealtimeScanPackage name:" + scanPackage.getPackageName());
-
-          *//*  if (Objects.isNull(scanPackage.getVulnerabilities()) || scanPackage.getVulnerabilities().isEmpty()) {
-                System.out.println("** Vulnerabilities not found:" + scanPackage.getPackageName());
-                continue;
-            }*//*
-            List<RealtimeLocation> locations = scanPackage.getLocations();
-            if (Objects.isNull(locations) || locations.isEmpty()) {
-                System.out.println("** Locations not found:" + scanPackage.getPackageName());
-                continue;
-            }
-
-             String description = problemManager.formatDescription(scanPackage);
-            ProblemHighlightType highlightType = problemManager.determineHighlightType(scanPackage);
-
-           for (RealtimeLocation loc : locations) {
-
-                if (problemManager.isLineOutOfRange(loc.getLine(), document))
-                    continue;
-
-                int lineIndex = loc.getLine()-1;
-
-                if (lineIndex < 1 || lineIndex > document.getLineCount()) continue;
-
-                int startOffset = document.getLineStartOffset(lineIndex) + loc.getStartIndex();
-                int endOffset = Math.min(document.getLineEndOffset(lineIndex),
-                        document.getLineStartOffset(lineIndex) + loc.getEndIndex());
-
-                // Get the actual line text
-                String lineText = document.getText(new TextRange(document.getLineStartOffset(lineIndex), document.getLineEndOffset(lineIndex)));
-                int trimmedLineStart = document.getLineStartOffset(lineIndex) + (lineText.length() - lineText.stripLeading().length());
-                int trimmedLineEnd = document.getLineEndOffset(lineIndex) - (lineText.length() - lineText.stripTrailing().length());
-
-                // Calculate highlight range: restrict to code, not spaces
-                int highlightStart = Math.max(startOffset, trimmedLineStart);
-                int highlightEnd = Math.min(endOffset, trimmedLineEnd);
-
-                // If location is for the whole line, just highlight non-whitespace
-                if (loc.getStartIndex() == 0 && (loc.getEndIndex() >= lineText.length() || loc.getEndIndex() == 1000)) {
-                    highlightStart = trimmedLineStart;
-                    highlightEnd = trimmedLineEnd;
-                }
-                if (highlightStart >= highlightEnd) continue; // Skip empty ranges
-
-                boolean skipHighlight = "ok".equalsIgnoreCase(scanPackage.getStatus())
-                        || "unknown".equalsIgnoreCase(scanPackage.getStatus());
-
-
-                TextRange relativeRange = new TextRange(highlightStart, highlightEnd);
-
-                PsiElement element = file.findElementAt(highlightStart);
-
-                System.out.println("** element: "+ element);
-
-            // int startOffset = problemManager.getOffset(document, loc.getLine(), loc.getStartIndex());
-            //int endOffset = problemManager.getOffset(document, loc.getLine(), loc.getEndIndex());
-            // Math.min(document.getLineEndOffset(loc.getLine()-1), problemManager.getOffset(document, loc.getLine(), loc.getEndIndex()));
-
-                int lineStart = document.getLineStartOffset(loc.getLine() - 1);
-                int lineEnd = document.getLineEndOffset(loc.getLine() - 1);
-
-                int startOffset = lineStart + Math.max(0, loc.getStartIndex());
-                int endOffset = Math.min(lineEnd, lineStart + loc.getEndIndex());
-
-                System.out.println("** startOffset: "+ startOffset+", endOffset: "+ endOffset);
-
-
-                if (startOffset >= endOffset || endOffset > document.getTextLength()) return null;
-
-                TextRange safeRange = new TextRange(startOffset, endOffset);
-
-                PsiElement element = ReadAction.compute(() ->
-                        AstLoadingFilter.forceAllowTreeLoading(file, () -> file.findElementAt(startOffset))
-                );
-
-                if (element == null) return null;
-
-                TextRange elementRange = element.getTextRange();
-                if (elementRange == null) return null;
-
-                TextRange relativeRange = new TextRange(
-                        Math.max(0, safeRange.getStartOffset() - elementRange.getStartOffset()),
-                        Math.min(element.getTextLength(), safeRange.getEndOffset() - elementRange.getStartOffset())
-                );
-
-                ProblemDescriptor descriptor = manager.createProblemDescriptor(
-                        file,
-                        relativeRange,
-                        description,
-                        highlightType,
-                        isOnTheFly,
-                        new CxOneAssistFix()
-                );
-                problems.add(descriptor);
-            }
-
-
-        }
-        System.out.println("** problems  called:" + problems);
-        return problems.toArray(ProblemDescriptor[]::new);
-    }*/
-
 }
 

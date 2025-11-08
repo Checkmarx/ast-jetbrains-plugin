@@ -11,7 +11,6 @@ import java.util.List;
 public final class Constants {
 
 
-
     private Constants() {
         // forbid instantiation of the class
     }
@@ -110,7 +109,7 @@ public final class Constants {
     /**
      * Inner static final class, to maintain the constants used in authentication.
      */
-    public static final class AuthConstants{
+    public static final class AuthConstants {
 
         public static final String OAUTH_IDE_CLIENT_ID = "ide-integration";
         public static final String ALGO_SHA256 = "SHA-256";
@@ -127,21 +126,21 @@ public final class Constants {
         public static final int TIME_OUT_SECONDS = 120;
     }
 
-    public static final class RealTimeConstants{
+    public static final class RealTimeConstants {
 
         // OSS Scanner
-        public static final String OSS_REALTIME_SCANNER_ENGINE_NAME="OSS";
-        public static final String ACTIVATE_OSS_REALTIME_SCANNER= "Activate OSS-Realtime";
-        public static final String OSS_REALTIME_SCANNER= "Checkmarx Open Source Realtime Scanner (OSS-Realtime)";
-        public static final String OSS_REALTIME_SCANNER_START= "Realtime OSS Scanner Engine started";
-        public static final String OSS_REALTIME_SCANNER_DISABLED= "Realtime OSS Scanner Engine disabled";
-        public static final String OSS_REALTIME_SCANNER_DIRECTORY= "Cx-oss-realtime-scanner";
-        public static final String ERROR_OSS_REALTIME_SCANNER= "Failed to handle OSS Realtime scan";
+        public static final String OSS_REALTIME_SCANNER_ENGINE_NAME = "OSS";
+        public static final String ACTIVATE_OSS_REALTIME_SCANNER = "Activate OSS-Realtime";
+        public static final String OSS_REALTIME_SCANNER = "Checkmarx Open Source Realtime Scanner (OSS-Realtime)";
+        public static final String OSS_REALTIME_SCANNER_START = "Realtime OSS Scanner Engine started";
+        public static final String OSS_REALTIME_SCANNER_DISABLED = "Realtime OSS Scanner Engine disabled";
+        public static final String OSS_REALTIME_SCANNER_DIRECTORY = "Cx-oss-realtime-scanner";
+        public static final String ERROR_OSS_REALTIME_SCANNER = "Failed to handle OSS Realtime scan";
 
         //ASCA Scanner
-        public static final String ASCA_REALTIME_SCANNER_ENGINE_NAME= "ASCA";
+        public static final String ASCA_REALTIME_SCANNER_ENGINE_NAME = "ASCA";
 
-       public static final List<String> MANIFEST_FILE_PATTERNS = List.of(
+        public static final List<String> MANIFEST_FILE_PATTERNS = List.of(
                 "**/Directory.Packages.props",
                 "**/packages.config",
                 "**/pom.xml",
@@ -150,6 +149,25 @@ public final class Constants {
                 "**/go.mod",
                 "**/*.csproj"
         );
+    }
+
+    /**
+     * Constant class to hold image paths.
+     */
+    public static final class ImagePaths {
+
+        private ImagePaths() {
+            throw new UnsupportedOperationException("Cannot instantiate ImagePaths class");
+        }
+
+        public static final String DEV_ASSIST_PNG = "/icons/devassist/cxone_assist.png";
+        public static final String CRITICAL_SEVERITY_PNG = "/icons/devassist/critical_severity.png";
+        public static final String HIGH_SEVERITY_PNG = "/icons/devassist/high_severity.png";
+        public static final String MEDIUM_SEVERITY_PNG = "/icons/devassist/medium_severity.png";
+        public static final String LOW_SEVERITY_PNG = "/icons/devassist/low_severity.png";
+        public static final String MALICIOUS_SEVERITY_PNG = "/icons/devassist/malicious.png";
+        public static final String PACKAGE_PNG = "/icons/devassist/package.png";
+
     }
 
 }

@@ -4,10 +4,8 @@ import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.devassist.dto.CxProblems;
 import com.checkmarx.intellij.inspections.quickfixes.AscaQuickFix;
 import com.checkmarx.intellij.service.AscaService;
-import com.checkmarx.intellij.service.ProblemHolderService;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
@@ -16,7 +14,6 @@ import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
@@ -28,7 +25,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Inspection tool for ASCA (AI Secure Coding Assistant).
@@ -56,10 +52,12 @@ public class AscaInspection extends LocalInspectionTool {
             if (!settings.isAsca()) {
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
+
             ScanResult scanResult = performAscaScan(file);
             if (isInvalidScan(scanResult)) {
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
+
             Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
             if (document == null) {
                 return ProblemDescriptor.EMPTY_ARRAY;
@@ -70,7 +68,6 @@ public class AscaInspection extends LocalInspectionTool {
             logger.warn("Failed to run ASCA scan", e);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-
     }
 
     /**
@@ -85,23 +82,18 @@ public class AscaInspection extends LocalInspectionTool {
      */
     private ProblemDescriptor[] createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, List<ScanDetail> scanDetails, Document document, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new ArrayList<>();
+
         for (ScanDetail detail : scanDetails) {
             int lineNumber = detail.getLine();
             if (isLineOutOfRange(lineNumber, document)) {
                 continue;
             }
+
             PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(lineNumber - 1));
             if (elementAtLine != null) {
                 ProblemDescriptor problem = createProblemDescriptor(file, manager, detail, document, lineNumber, isOnTheFly);
                 problems.add(problem);
             }
-        }
-
-        List<CxProblems> problemsList = new ArrayList<>(buildCxProblems(scanDetails));
-        VirtualFile virtualFile = file.getVirtualFile();
-        if (virtualFile != null) {
-            ProblemHolderService.getInstance(file.getProject())
-                    .addProblems(file.getVirtualFile().getPath(), problemsList);
         }
 
         return problems.toArray(ProblemDescriptor[]::new);
@@ -122,6 +114,7 @@ public class AscaInspection extends LocalInspectionTool {
         TextRange problemRange = getTextRangeForLine(document, lineNumber);
         String description = formatDescription(detail.getRuleName(), detail.getRemediationAdvise());
         ProblemHighlightType highlightType = determineHighlightType(detail);
+
         return manager.createProblemDescriptor(
                 file, problemRange, description, highlightType, isOnTheFly, new AscaQuickFix(detail));
     }
@@ -217,18 +210,5 @@ public class AscaInspection extends LocalInspectionTool {
      */
     private ScanResult performAscaScan(PsiFile file) {
         return ascaService.runAscaScan(file, file.getProject(), false, Constants.JET_BRAINS_AGENT_NAME);
-    }
-
-    public static List<CxProblems> buildCxProblems(List<ScanDetail> details) {
-        return details.stream().map(detail -> {
-            CxProblems problem = new CxProblems();
-            problem.setSeverity(detail.getSeverity());
-            problem.setScannerType(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER_ENGINE_NAME);
-            problem.setTitle(detail.getRuleName());
-            problem.setDescription(detail.getDescription());
-            problem.setRemediationAdvise(detail.getRemediationAdvise());
-            problem.addLocation(detail.getLine(), 0, 1000); // assume whole line by default
-            return problem;
-        }).collect(Collectors.toList());
     }
 }

@@ -1,12 +1,10 @@
 package com.checkmarx.intellij.components;
 
 import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.HyperlinkLabel;
-import com.intellij.ui.components.JBLabel;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
