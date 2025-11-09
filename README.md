@@ -73,7 +73,7 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 
 -   Group and filter results.
 
--   Triage results (by adjusting the status and state and adding comments) directly from the JetBrains console (currently supported for SAST and IaC Security).
+-   Triage results (by adjusting the severity and state and adding comments) directly from the JetBrains console (currently supported for SAST and IaC Security).
 
 -   Apply Auto Remediation to automatically remediate open source vulnerabilities, by updating to a non-vulnerable package version.
 
