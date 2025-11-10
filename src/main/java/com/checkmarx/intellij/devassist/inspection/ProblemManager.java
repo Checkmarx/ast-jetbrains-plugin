@@ -10,7 +10,6 @@ import com.checkmarx.intellij.devassist.dto.CxProblems;
 import com.checkmarx.intellij.inspections.AscaInspection;
 import com.checkmarx.intellij.service.ProblemHolderService;
 import com.checkmarx.intellij.util.Status;
-import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
@@ -21,7 +20,6 @@ import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -31,6 +29,9 @@ import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * ProblemManager class responsible to provides utility methods for managing problem, highlighting and gutter icons.
+ */
 @Getter
 public class ProblemManager {
 
@@ -251,7 +252,7 @@ public class ProblemManager {
 
             boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(markupModel, editor, problemLineNumber);
 
-            System.out.println("Already has gutter icon: " + alreadyHasGutterIcon+" targetLine : " + problemLineNumber);
+            System.out.println("Already has gutter icon: " + alreadyHasGutterIcon + " targetLine : " + problemLineNumber);
 
 
             for (RealtimeLocation location : scanPackage.getLocations()) {
@@ -265,11 +266,11 @@ public class ProblemManager {
     /**
      * Highlights a specific location in the editor and optionally adds a gutter icon.
      *
-     * @param editor         the editor instance
-     * @param markupModel    the markup model for highlighting
-     * @param targetLine     the line number to highlight (1-based)
-     * @param scanPackage    the scan package containing severity information
-     * @param addGutterIcon  whether to add a gutter icon for this location
+     * @param editor        the editor instance
+     * @param markupModel   the markup model for highlighting
+     * @param targetLine    the line number to highlight (1-based)
+     * @param scanPackage   the scan package containing severity information
+     * @param addGutterIcon whether to add a gutter icon for this location
      */
     private void highlightLocationInEditor(Editor editor, MarkupModel markupModel, int targetLine,
                                            OssRealtimeScanPackage scanPackage, boolean addGutterIcon, boolean isProblem, boolean alreadyHasGutterIcon) {
@@ -277,9 +278,9 @@ public class ProblemManager {
         TextAttributes attr = createTextAttributes();
 
         RangeHighlighter highlighter = markupModel.addLineHighlighter(
-                targetLine-1, 0, null);
+                targetLine - 1, 0, null);
 
-        if (isProblem){
+        if (isProblem) {
             highlighter = markupModel.addRangeHighlighter(
                     textRange.getStartOffset(),
                     textRange.getEndOffset(),
@@ -315,8 +316,9 @@ public class ProblemManager {
 
     /**
      * Adds a gutter icon to the highlighter.
+     *
      * @param highlighter the highlighter
-     * @param severity the severity
+     * @param severity    the severity
      */
     private void addGutterIcon(RangeHighlighter highlighter, String severity) {
         highlighter.setGutterIconRenderer(new GutterIconRenderer() {
@@ -350,6 +352,7 @@ public class ProblemManager {
 
     /**
      * Removes all existing gutter icons from the markup model in the given editor.
+     *
      * @param file the file to remove the gutter icons from.
      */
     public void removeAllGutterIcons(PsiFile file) {
@@ -365,11 +368,12 @@ public class ProblemManager {
 
     /**
      * Checks if the highlighter already has a gutter icon for the given line.
-     * @apiNote this method is particularly used to avoid adding duplicate gutter icons in the file for duplicate dependencies.
+     *
      * @param markupModel the markup model
-     * @param editor the editor
-     * @param line the line
+     * @param editor      the editor
+     * @param line        the line
      * @return true if the highlighter already has a gutter icon for the given line, false otherwise
+     * @apiNote this method is particularly used to avoid adding duplicate gutter icons in the file for duplicate dependencies.
      */
     private boolean isAlreadyHasGutterIcon(MarkupModel markupModel, Editor editor, int line) {
         return Arrays.stream(markupModel.getAllHighlighters())
@@ -419,6 +423,7 @@ public class ProblemManager {
 
     /**
      * Determines the highlighter layer for a specific scan detail.
+     *
      * @param detail the scan detail
      * @return the highlighter layer
      */
