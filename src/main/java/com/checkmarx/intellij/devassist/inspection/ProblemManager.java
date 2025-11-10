@@ -10,6 +10,7 @@ import com.checkmarx.intellij.devassist.dto.CxProblems;
 import com.checkmarx.intellij.inspections.AscaInspection;
 import com.checkmarx.intellij.service.ProblemHolderService;
 import com.checkmarx.intellij.util.Status;
+import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
@@ -20,6 +21,7 @@ import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -234,7 +236,7 @@ public class ProblemManager {
      * Adds a gutter icon at the line of the given PsiElement.
      */
     public void highlightLineAddGutterIconForProblem(@NotNull Project project, @NotNull PsiFile file,
-                                                     OssRealtimeScanPackage scanPackage, boolean isProblem) {
+                                                     OssRealtimeScanPackage scanPackage, boolean isProblem, int problemLineNumber) {
         ApplicationManager.getApplication().invokeLater(() -> {
             Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
             if (editor == null) return;
@@ -244,13 +246,17 @@ public class ProblemManager {
                 // Only decorate the active editor of this file
                 return;
             }
-
             MarkupModel markupModel = editor.getMarkupModel();
             boolean isFirstLocation = true;
 
+            boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(markupModel, editor, problemLineNumber);
+
+            System.out.println("Already has gutter icon: " + alreadyHasGutterIcon+" targetLine : " + problemLineNumber);
+
+
             for (RealtimeLocation location : scanPackage.getLocations()) {
                 int targetLine = location.getLine() + 1;
-                highlightLocationInEditor(editor, markupModel, targetLine, scanPackage, isFirstLocation, isProblem);
+                highlightLocationInEditor(editor, markupModel, targetLine, scanPackage, isFirstLocation, isProblem, alreadyHasGutterIcon);
                 isFirstLocation = false;
             }
         });
@@ -266,7 +272,7 @@ public class ProblemManager {
      * @param addGutterIcon  whether to add a gutter icon for this location
      */
     private void highlightLocationInEditor(Editor editor, MarkupModel markupModel, int targetLine,
-                                           OssRealtimeScanPackage scanPackage, boolean addGutterIcon, boolean isProblem) {
+                                           OssRealtimeScanPackage scanPackage, boolean addGutterIcon, boolean isProblem, boolean alreadyHasGutterIcon) {
         TextRange textRange = getTextRangeForLine(editor.getDocument(), targetLine);
         TextAttributes attr = createTextAttributes();
 
@@ -283,11 +289,8 @@ public class ProblemManager {
             );
         }
 
-        if (addGutterIcon) {
-            boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(markupModel, editor, targetLine);
-            if (!alreadyHasGutterIcon) {
-                addGutterIcon(highlighter, scanPackage.getStatus());
-            }
+        if (addGutterIcon && !alreadyHasGutterIcon) {
+            addGutterIcon(highlighter, scanPackage.getStatus());
         }
     }
 
@@ -346,7 +349,23 @@ public class ProblemManager {
     }
 
     /**
+     * Removes all existing gutter icons from the markup model in the given editor.
+     * @param file the file to remove the gutter icons from.
+     */
+    public void removeAllGutterIcons(PsiFile file) {
+        ApplicationManager.getApplication().invokeLater(() -> {
+            Editor editor = FileEditorManager.getInstance(file.getProject()).getSelectedTextEditor();
+            if (editor == null) return;
+            MarkupModel markupModel = editor.getMarkupModel();
+            Arrays.stream(markupModel.getAllHighlighters())
+                    .filter(highlighter -> highlighter.getGutterIconRenderer() != null)
+                    .forEach(markupModel::removeHighlighter);
+        });
+    }
+
+    /**
      * Checks if the highlighter already has a gutter icon for the given line.
+     * @apiNote this method is particularly used to avoid adding duplicate gutter icons in the file for duplicate dependencies.
      * @param markupModel the markup model
      * @param editor the editor
      * @param line the line
@@ -357,14 +376,9 @@ public class ProblemManager {
                 .anyMatch(highlighter -> {
                     GutterIconRenderer renderer = highlighter.getGutterIconRenderer();
                     if (renderer == null) return false;
-                    int existingLine = editor.getDocument().getLineNumber(highlighter.getStartOffset());
+                    int existingLine = editor.getDocument().getLineNumber(highlighter.getStartOffset()) + 1;
                     // Match if highlighter covers the same PSI element region
-                    if (existingLine == line) {
-                        // Remove if overlaps the same element
-                        markupModel.removeHighlighter(highlighter);
-                        return true;
-                    }
-                    return false;
+                    return existingLine == line;
                 });
     }
 

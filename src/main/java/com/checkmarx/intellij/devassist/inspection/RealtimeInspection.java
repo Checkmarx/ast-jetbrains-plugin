@@ -15,6 +15,8 @@ import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
@@ -58,13 +60,11 @@ public class RealtimeInspection extends LocalInspectionTool {
         System.out.println("** File modified : " + file.getName());
 
         Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
-        if (document == null) {
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
+        if (document == null) return ProblemDescriptor.EMPTY_ARRAY;
+
         OssRealtimeResults scanResult = scanFile(file, file.getVirtualFile().getPath());
-        if (Objects.isNull(scanResult)) {
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
+        if (Objects.isNull(scanResult)) return ProblemDescriptor.EMPTY_ARRAY;
+
         List<ProblemDescriptor> problems = createProblemDescriptors(file, manager, isOnTheFly, scanResult, document);
         problemHolderService.addProblemDescriptors(path, problems);
         return problems.toArray(new ProblemDescriptor[0]);
@@ -100,15 +100,17 @@ public class RealtimeInspection extends LocalInspectionTool {
      * @param isOnTheFly whether the inspection is on-the-fly
      * @return a list of problem descriptors
      */
-    private List<ProblemDescriptor> createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly, OssRealtimeResults scanResult, Document document) {
+    private List<ProblemDescriptor> createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly,
+                                                             OssRealtimeResults scanResult, Document document) {
         List<ProblemDescriptor> problems = new ArrayList<>();
+        problemManager.removeAllGutterIcons(file);
         for (OssRealtimeScanPackage scanPackage : scanResult.getPackages()) {
             System.out.println("** Package name: " + scanPackage.getPackageName());
             List<RealtimeLocation> locations = scanPackage.getLocations();
             if (Objects.isNull(locations) || locations.isEmpty()) {
                 continue;
             }
-            // Example: Line number where problem is found (1-based, e.g., line 18)
+            // Example: Line number where a problem is found (1-based, e.g., line 18)
             int problemLineNumber = scanPackage.getLocations().get(0).getLine() + 1;
             System.out.println("** Package found lineNumber: " + problemLineNumber);
             if (problemManager.isLineOutOfRange(problemLineNumber, document)
@@ -124,7 +126,7 @@ public class RealtimeInspection extends LocalInspectionTool {
                 }
                 PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(problemLineNumber));
                 if (Objects.isNull(elementAtLine)) continue;
-                problemManager.highlightLineAddGutterIconForProblem(file.getProject(), file, scanPackage, isProblem);
+                problemManager.highlightLineAddGutterIconForProblem(file.getProject(), file, scanPackage, isProblem, problemLineNumber);
             } catch (Exception e) {
                 System.out.println("** EXCEPTION OCCURRED WHILE ITERATING SCAN RESULT: " + Arrays.toString(e.getStackTrace()));
             }
