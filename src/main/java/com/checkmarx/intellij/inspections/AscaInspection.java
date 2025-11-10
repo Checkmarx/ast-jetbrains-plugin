@@ -49,7 +49,6 @@ public class AscaInspection extends LocalInspectionTool {
     @Override
     public ProblemDescriptor @NotNull [] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         try {
-            System.out.println("** Check file called **");
             if (!settings.isAsca()) {
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
