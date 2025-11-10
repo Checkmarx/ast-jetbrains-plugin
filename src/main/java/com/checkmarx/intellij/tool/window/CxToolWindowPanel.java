@@ -6,6 +6,7 @@ import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.devassist.configuration.ScannerLifeCycleManager;
+import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.checkmarx.intellij.project.ProjectResultsService;
 import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.SettingsListener;
@@ -102,7 +103,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         Runnable r = () -> {
             if (new GlobalSettingsComponent().isValid()) {
                 drawMainPanel();
-                com.checkmarx.intellij.realtimeScanners.registry.ScannerRegistry registry = project.getService(ScannerRegistry.class);
+                ScannerRegistry registry = project.getService(ScannerRegistry.class);
 
                 LOGGER.info("calling from cxToolWindow");
                 registry.registerAllScanners(project);
