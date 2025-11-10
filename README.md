@@ -75,7 +75,7 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 
 -   Triage results (by adjusting the severity and state and adding comments) directly from the JetBrains console (currently supported for SAST and IaC Security).
 
--   Apply Auto Remediation to automatically remediate open source vulnerabilities, by updating to a non-vulnerable package version.
+-   Apply Auto Remediation to automatically remediate open source vulnerabilities by updating to a non-vulnerable package version.
 
 -   Links to Codebashing lessons.
 

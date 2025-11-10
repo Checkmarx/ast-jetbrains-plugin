@@ -115,7 +115,8 @@ public class RealtimeInspection extends LocalInspectionTool {
                     || scanPackage.getStatus() == null || scanPackage.getStatus().isBlank())
                 continue;
             try {
-                if (problemManager.isProblem(scanPackage.getStatus().toLowerCase())) {
+                boolean isProblem = problemManager.isProblem(scanPackage.getStatus().toLowerCase());
+                if (isProblem) {
                     ProblemDescriptor problemDescriptor = createProblem(file, manager, scanPackage, document, problemLineNumber, isOnTheFly);
                     if (Objects.nonNull(problemDescriptor)) {
                         problems.add(problemDescriptor);
@@ -123,7 +124,7 @@ public class RealtimeInspection extends LocalInspectionTool {
                 }
                 PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(problemLineNumber));
                 if (Objects.isNull(elementAtLine)) continue;
-                problemManager.addGutterIconForProblem(file.getProject(), file, elementAtLine, scanPackage);
+                problemManager.highlightLineAddGutterIconForProblem(file.getProject(), file, scanPackage, isProblem);
             } catch (Exception e) {
                 System.out.println("** EXCEPTION OCCURRED WHILE ITERATING SCAN RESULT: " + Arrays.toString(e.getStackTrace()));
             }
@@ -136,11 +137,11 @@ public class RealtimeInspection extends LocalInspectionTool {
      * Creates a ProblemDescriptor for the given scan package.
      *
      * @param file        @NotNull PsiFile
-     * @param manager     @NotNull InspectionManager to create problem
+     * @param manager     @NotNull InspectionManager to create a problem
      * @param scanPackage OssRealtimeScanPackage scan result
      * @param document    Document of the file
-     * @param lineNumber  int line number where problem is found
-     * @param isOnTheFly  boolean indicating if inspection is on-the-fly
+     * @param lineNumber  int line number where a problem is found
+     * @param isOnTheFly  boolean indicating if the inspection is on-the-fly
      * @return ProblemDescriptor for the problem found
      */
     private ProblemDescriptor createProblem(@NotNull PsiFile file, @NotNull InspectionManager manager, OssRealtimeScanPackage scanPackage, Document document, int lineNumber, boolean isOnTheFly) {
@@ -156,7 +157,7 @@ public class RealtimeInspection extends LocalInspectionTool {
                     description,
                     problemHighlightType,
                     isOnTheFly,
-                    new CxOneAssistFix()
+                    new CxOneAssistFix()/*, new ViewDetailsFix(), new IgnoreVulnerabilityFix(), new IgnoreAllTypeFix()*/
             );
         } catch (Exception e) {
             System.out.println("** EXCEPTION: ProblemDescriptor *** " + e.getMessage() + " " + Arrays.toString(e.getStackTrace()));

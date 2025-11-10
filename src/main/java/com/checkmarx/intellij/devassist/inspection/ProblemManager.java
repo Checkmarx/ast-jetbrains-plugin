@@ -20,7 +20,6 @@ import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -33,21 +32,34 @@ import java.util.stream.Collectors;
 @Getter
 public class ProblemManager {
 
-    private final Map<String, ProblemHighlightType> severityToHighlightMap = new HashMap<>();
+    private final Map<String, ProblemHighlightType> severityHighlightTypeMap = new HashMap<>();
+    private final Map<String, Integer> severityHighlighterLayerMap = new HashMap<>();
 
     public ProblemManager() {
         initSeverityToHighlightMap();
+        initSeverityHighlighterLayerMap();
     }
 
     /**
      * Initializes the mapping from severity levels to problem highlight types.
      */
     private void initSeverityToHighlightMap() {
-        severityToHighlightMap.put(Constants.MALICIOUS_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
-        severityToHighlightMap.put(Constants.CRITICAL_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
-        severityToHighlightMap.put(Constants.HIGH_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
-        severityToHighlightMap.put(Constants.MEDIUM_SEVERITY, ProblemHighlightType.WARNING);
-        severityToHighlightMap.put(Constants.LOW_SEVERITY, ProblemHighlightType.WEAK_WARNING);
+        severityHighlightTypeMap.put(Constants.MALICIOUS_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
+        severityHighlightTypeMap.put(Constants.CRITICAL_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
+        severityHighlightTypeMap.put(Constants.HIGH_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
+        severityHighlightTypeMap.put(Constants.MEDIUM_SEVERITY, ProblemHighlightType.WARNING);
+        severityHighlightTypeMap.put(Constants.LOW_SEVERITY, ProblemHighlightType.WEAK_WARNING);
+    }
+
+    /**
+     * Initializes the mapping from severity levels to highlighter layers.
+     */
+    private void initSeverityHighlighterLayerMap() {
+        severityHighlighterLayerMap.put(Constants.MALICIOUS_SEVERITY, HighlighterLayer.ERROR);
+        severityHighlighterLayerMap.put(Constants.CRITICAL_SEVERITY, HighlighterLayer.ERROR);
+        severityHighlighterLayerMap.put(Constants.HIGH_SEVERITY, HighlighterLayer.ERROR);
+        severityHighlighterLayerMap.put(Constants.MEDIUM_SEVERITY, HighlighterLayer.WARNING);
+        severityHighlighterLayerMap.put(Constants.LOW_SEVERITY, HighlighterLayer.WEAK_WARNING);
     }
 
     /**
@@ -221,89 +233,125 @@ public class ProblemManager {
     /**
      * Adds a gutter icon at the line of the given PsiElement.
      */
-    public void addGutterIconForProblem(@NotNull Project project, @NotNull PsiFile file, @NotNull PsiElement problemElement, OssRealtimeScanPackage scanPackage) {
-
-        String severity = scanPackage.getStatus();
-
+    public void highlightLineAddGutterIconForProblem(@NotNull Project project, @NotNull PsiFile file,
+                                                     OssRealtimeScanPackage scanPackage, boolean isProblem) {
         ApplicationManager.getApplication().invokeLater(() -> {
             Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
             if (editor == null) return;
+
             if (!Objects.equals(editor.getDocument(),
                     com.intellij.psi.PsiDocumentManager.getInstance(project).getDocument(file))) {
                 // Only decorate the active editor of this file
                 return;
             }
-            int line = editor.getDocument().getLineNumber(problemElement.getTextOffset());
-            System.out.println("gutter line:" + line);
+
             MarkupModel markupModel = editor.getMarkupModel();
+            boolean isFirstLocation = true;
 
-            int gutterIndex = 0;
-            for(RealtimeLocation location: scanPackage.getLocations()){
-                int problemLine = location.getLine() + 1;
-                System.out.println("gutter problemLine line:" + problemLine);
-                TextRange textRange = getTextRangeForLine(editor.getDocument(), problemLine);
-                // Normal range highlighting for other severities
-                TextAttributes errorAttrs = EditorColorsManager.getInstance()
-                        .getGlobalScheme().getAttributes(CodeInsightColors.ERRORS_ATTRIBUTES);
-                TextAttributes attr = new TextAttributes();
-                attr.setEffectType(EffectType.WAVE_UNDERSCORE);
-                attr.setEffectColor(errorAttrs.getEffectColor());
-                attr.setForegroundColor(errorAttrs.getForegroundColor());
-                attr.setBackgroundColor(null);
-
-                RangeHighlighter highlighter = markupModel.addRangeHighlighter(
-                        textRange.getStartOffset(),
-                        textRange.getEndOffset(),
-                        HighlighterLayer.ERROR,
-                        attr,
-                        HighlighterTargetArea.EXACT_RANGE
-                );
-
-                if (gutterIndex  != 0) {
-                    continue;
-                }
-                gutterIndex++;
-                // Check if there’s already a gutter icon highlighter at this element’s position
-                boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(markupModel, editor, problemLine);
-
-                System.out.println("alreadyHasGutterIcon:" + alreadyHasGutterIcon);
-
-                highlighter.setGutterIconRenderer(new GutterIconRenderer() {
-
-                    @Override
-                    public @NotNull Icon getIcon() {
-                        return getGutterIconBasedOnStatus(severity);
-                    }
-
-                    @Override
-                    public @NotNull Alignment getAlignment() {
-                        return Alignment.LEFT;
-                    }
-
-                    @Override
-                    public String getTooltipText() {
-                        return severity;
-                    }
-
-                    @Override
-                    public boolean equals(Object obj) {
-                        return obj == this;
-                    }
-
-                    @Override
-                    public int hashCode() {
-                        return System.identityHashCode(this);
-                    }
-                });
-
+            for (RealtimeLocation location : scanPackage.getLocations()) {
+                int targetLine = location.getLine() + 1;
+                highlightLocationInEditor(editor, markupModel, targetLine, scanPackage, isFirstLocation, isProblem);
+                isFirstLocation = false;
             }
-
-
         });
-
-
     }
 
+    /**
+     * Highlights a specific location in the editor and optionally adds a gutter icon.
+     *
+     * @param editor         the editor instance
+     * @param markupModel    the markup model for highlighting
+     * @param targetLine     the line number to highlight (1-based)
+     * @param scanPackage    the scan package containing severity information
+     * @param addGutterIcon  whether to add a gutter icon for this location
+     */
+    private void highlightLocationInEditor(Editor editor, MarkupModel markupModel, int targetLine,
+                                           OssRealtimeScanPackage scanPackage, boolean addGutterIcon, boolean isProblem) {
+        TextRange textRange = getTextRangeForLine(editor.getDocument(), targetLine);
+        TextAttributes attr = createTextAttributes();
+
+        RangeHighlighter highlighter = markupModel.addLineHighlighter(
+                targetLine-1, 0, null);
+
+        if (isProblem){
+            highlighter = markupModel.addRangeHighlighter(
+                    textRange.getStartOffset(),
+                    textRange.getEndOffset(),
+                    determineHighlighterLayer(scanPackage),
+                    attr,
+                    HighlighterTargetArea.EXACT_RANGE
+            );
+        }
+
+        if (addGutterIcon) {
+            boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(markupModel, editor, targetLine);
+            if (!alreadyHasGutterIcon) {
+                addGutterIcon(highlighter, scanPackage.getStatus());
+            }
+        }
+    }
+
+    /**
+     * Creates text attributes for error highlighting with wave underscore effect.
+     *
+     * @return the configured text attributes
+     */
+    private TextAttributes createTextAttributes() {
+        TextAttributes errorAttrs = EditorColorsManager.getInstance()
+                .getGlobalScheme().getAttributes(CodeInsightColors.ERRORS_ATTRIBUTES);
+
+        TextAttributes attr = new TextAttributes();
+        attr.setEffectType(EffectType.WAVE_UNDERSCORE);
+        attr.setEffectColor(errorAttrs.getEffectColor());
+        attr.setForegroundColor(errorAttrs.getForegroundColor());
+        attr.setBackgroundColor(null);
+
+        return attr;
+    }
+
+
+    /**
+     * Adds a gutter icon to the highlighter.
+     * @param highlighter the highlighter
+     * @param severity the severity
+     */
+    private void addGutterIcon(RangeHighlighter highlighter, String severity) {
+        highlighter.setGutterIconRenderer(new GutterIconRenderer() {
+
+            @Override
+            public @NotNull Icon getIcon() {
+                return getGutterIconBasedOnStatus(severity);
+            }
+
+            @Override
+            public @NotNull Alignment getAlignment() {
+                return Alignment.LEFT;
+            }
+
+            @Override
+            public String getTooltipText() {
+                return severity;
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                return obj == this;
+            }
+
+            @Override
+            public int hashCode() {
+                return System.identityHashCode(this);
+            }
+        });
+    }
+
+    /**
+     * Checks if the highlighter already has a gutter icon for the given line.
+     * @param markupModel the markup model
+     * @param editor the editor
+     * @param line the line
+     * @return true if the highlighter already has a gutter icon for the given line, false otherwise
+     */
     private boolean isAlreadyHasGutterIcon(MarkupModel markupModel, Editor editor, int line) {
         return Arrays.stream(markupModel.getAllHighlighters())
                 .anyMatch(highlighter -> {
@@ -352,7 +400,16 @@ public class ProblemManager {
      * @return the problem highlight type
      */
     public ProblemHighlightType determineHighlightType(OssRealtimeScanPackage detail) {
-        return severityToHighlightMap.getOrDefault(detail.getStatus(), ProblemHighlightType.WEAK_WARNING);
+        return severityHighlightTypeMap.getOrDefault(detail.getStatus(), ProblemHighlightType.WEAK_WARNING);
+    }
+
+    /**
+     * Determines the highlighter layer for a specific scan detail.
+     * @param detail the scan detail
+     * @return the highlighter layer
+     */
+    public Integer determineHighlighterLayer(OssRealtimeScanPackage detail) {
+        return severityHighlighterLayerMap.getOrDefault(detail.getStatus(), HighlighterLayer.WEAK_WARNING);
     }
 
     public void addToCxOneProblems(PsiFile file, List<CxProblems> problemsList) {
