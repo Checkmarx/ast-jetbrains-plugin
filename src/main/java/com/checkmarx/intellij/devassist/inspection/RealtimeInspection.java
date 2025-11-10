@@ -10,6 +10,7 @@ import com.checkmarx.intellij.devassist.common.ScannerFactory;
 import com.checkmarx.intellij.devassist.dto.CxProblems;
 import com.checkmarx.intellij.devassist.inspection.remediation.CxOneAssistFix;
 import com.checkmarx.intellij.service.ProblemHolderService;
+import com.checkmarx.intellij.util.ScannerUtils;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -67,6 +68,14 @@ public class RealtimeInspection extends LocalInspectionTool {
 
         List<ProblemDescriptor> problems = createProblemDescriptors(file, manager, isOnTheFly, scanResult, document);
         problemHolderService.addProblemDescriptors(path, problems);
+
+        List<CxProblems> problemsList = new ArrayList<>();
+        problemsList.addAll(buildCxProblems(scanResult.getPackages()));
+
+        ProblemHolderService.getInstance(file.getProject())
+                    .addProblems(file.getVirtualFile().getPath(), problemsList);
+
+
         return problems.toArray(new ProblemDescriptor[0]);
     }
 
@@ -79,12 +88,11 @@ public class RealtimeInspection extends LocalInspectionTool {
      */
     private OssRealtimeResults scanFile(PsiFile file, String path) {
         System.out.println("** Called scan for file : " + file.getName());
-        Optional<ScannerService<?>> scannerService = scannerFactory.findApplicationScanner(path);
+        Optional<ScannerService<?>> scannerService = scannerFactory.findRealTimeScanner(path);
         if (scannerService.isEmpty()) {
             return null;
         }
-        RealtimeScannerManager scannerManager = file.getProject().getService(RealtimeScannerManager.class);
-        if (scannerManager == null || !scannerManager.isScannerActive(scannerService.get().getConfig().getEngineName())) {
+        if (!ScannerUtils.isScannerActive(scannerService.get().getConfig().getEngineName())) {
             return null;
         }
         return (OssRealtimeResults) scannerService.get().scan(file, path);
