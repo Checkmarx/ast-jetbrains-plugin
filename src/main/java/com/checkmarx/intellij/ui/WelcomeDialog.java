@@ -120,16 +120,19 @@ public class WelcomeDialog extends DialogWrapper {
         featureCard.setOpaque(true);
         featureCard.setBackground(subtleBg);
 
-        featureCard.add(createFeatureCardHeader(), "growx");
+        featureCard.add(createFeatureCardHeader(subtleBg), "growx");
         featureCard.add(createFeatureCardBullets(), "growx");
         return featureCard;
     }
 
-    private JComponent createFeatureCardHeader() {
+    private JComponent createFeatureCardHeader(Color backgroundColor) {
         JPanel header = new JPanel(new MigLayout("insets 0, gapx 6", "[][grow]"));
         header.setOpaque(false);
         realTimeScannersCheckbox = new JBCheckBox();
         realTimeScannersCheckbox.setEnabled(mcpEnabled);
+        realTimeScannersCheckbox.setOpaque(false);
+        realTimeScannersCheckbox.setContentAreaFilled(false);
+        realTimeScannersCheckbox.setBackground(backgroundColor);
         header.add(realTimeScannersCheckbox);
         JBLabel assistTitle = new JBLabel(Bundle.message(Resource.WELCOME_ASSIST_TITLE));
         assistTitle.setFont(assistTitle.getFont().deriveFont(Font.BOLD));

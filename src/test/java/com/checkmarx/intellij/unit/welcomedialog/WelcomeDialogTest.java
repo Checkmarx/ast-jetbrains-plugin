@@ -42,17 +42,29 @@ public class WelcomeDialogTest {
     }
 
     @Test
-    @DisplayName("MCP enabled: initialization should force enable when starting disabled")
-    void testInitializationEnablesAllWhenMcpEnabled() throws Exception {
-        FakeManager mgr = new FakeManager();
-        assertFalse(mgr.areAllEnabled(), "Precondition: settings should be disabled");
+    @DisplayName("MCP enabled: initialization behavior with different initial states")
+    void testMcpEnabledInitialization() throws Exception {
+        // Test 1: Force enable when starting disabled
+        FakeManager mgr1 = new FakeManager();
+        assertFalse(mgr1.areAllEnabled(), "Precondition: settings should be disabled");
 
-        WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, true, mgr));
+        WelcomeDialog dialog1 = runOnEdt(() -> new WelcomeDialog(null, true, mgr1));
 
-        assertTrue(mgr.areAllEnabled(), "Settings should be enabled after dialog initialization");
-        assertEquals(1, mgr.setAllCalls, "setAll should be called once during initialization");
-        assertNotNull(dialog.getRealTimeScannersCheckbox(), "Checkbox should be present when MCP is enabled");
-        assertTrue(dialog.getRealTimeScannersCheckbox().isSelected(), "Checkbox should be selected");
+        assertTrue(mgr1.areAllEnabled(), "Settings should be enabled after dialog initialization");
+        assertEquals(1, mgr1.setAllCalls, "setAll should be called once during initialization");
+        assertNotNull(dialog1.getRealTimeScannersCheckbox(), "Checkbox should be present when MCP is enabled");
+        assertTrue(dialog1.getRealTimeScannersCheckbox().isSelected(), "Checkbox should be selected");
+
+        // Test 2: No duplicate call when already enabled
+        FakeManager mgr2 = new FakeManager();
+        mgr2.setAll(true); // Start with scanners already enabled
+        assertEquals(1, mgr2.setAllCalls, "Precondition: one call to set enabled state");
+
+        WelcomeDialog dialog2 = runOnEdt(() -> new WelcomeDialog(null, true, mgr2));
+
+        assertNotNull(dialog2.getRealTimeScannersCheckbox(), "Checkbox should be present");
+        assertTrue(dialog2.getRealTimeScannersCheckbox().isSelected(), "Checkbox should be selected");
+        assertEquals(1, mgr2.setAllCalls, "setAll should NOT be called again if scanners are already enabled");
     }
 
     @Test
@@ -115,22 +127,7 @@ public class WelcomeDialogTest {
         assertTrue(text.getText().contains("width:" + WRAP_WIDTH), "Text should be HTML-wrapped with a fixed width");
     }
 
-    @Test
-    @DisplayName("Dialog with MCP enabled should not re-apply settings if already enabled")
-    void testInitialStateWithMcpEnabled() throws Exception {
-        FakeManager mgr = new FakeManager();
-        mgr.setAll(true); // Start with scanners already enabled
-        assertEquals(1, mgr.setAllCalls);
 
-        WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, true, mgr));
-
-        assertNotNull(dialog.getRealTimeScannersCheckbox());
-        assertTrue(dialog.getRealTimeScannersCheckbox().isSelected());
-
-        // Since scanners were already enabled, initializeRealtimeState() should NOT call setAll() again
-        assertEquals(1, mgr.setAllCalls,
-                "setAll(true) should NOT be called again if scanners are already enabled");
-    }
 
     @Test
     @DisplayName("UI should show MCP disabled info when MCP is not enabled")
@@ -146,18 +143,7 @@ public class WelcomeDialogTest {
         );
     }
 
-    @Test
-    @DisplayName("Checkbox should have dynamic tooltip when MCP is enabled")
-    void testCheckboxTooltipWithMcpEnabled() throws Exception {
-        FakeManager mgr = new FakeManager();
-        WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, true, mgr));
 
-        JBCheckBox checkbox = dialog.getRealTimeScannersCheckbox();
-        assertNotNull(checkbox, "Checkbox should be present when MCP is enabled");
-        assertTrue(checkbox.isSelected(), "Checkbox should be selected initially when MCP is enabled");
-        assertEquals("Disable all real-time scanners", checkbox.getToolTipText(),
-                "Checkbox should show disable tooltip when checked");
-    }
 
     @Test
     @DisplayName("Checkbox tooltip should change when state changes")
