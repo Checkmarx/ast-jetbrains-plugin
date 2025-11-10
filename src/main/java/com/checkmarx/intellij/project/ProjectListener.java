@@ -3,8 +3,8 @@ package com.checkmarx.intellij.project;
 
 import com.checkmarx.intellij.commands.results.Results;
 
-import com.checkmarx.intellij.realtimeScanners.configuration.ScannerLifeCycleManager;
-import com.checkmarx.intellij.realtimeScanners.registry.ScannerRegistry;
+import com.checkmarx.intellij.devassist.configuration.ScannerLifeCycleManager;
+import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManagerListener;
