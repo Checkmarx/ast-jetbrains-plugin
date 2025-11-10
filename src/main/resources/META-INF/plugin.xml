@@ -39,8 +39,8 @@
         <projectService serviceImplementation="com.checkmarx.intellij.project.ProjectResultsService"/>
 
         <!-- Auto-install MCP at IDE startup if already authenticated -->
-        <postStartupActivity implementation="com.checkmarx.intellij.service.McpInstallService"/>
-        <postStartupActivity implementation="com.checkmarx.intellij.realtimeScanners.configuration.GlobalScannerStartupActivity"/>
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService"/>
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
 
         <toolWindow id="Checkmarx"
                     anchor="bottom"
@@ -68,7 +68,7 @@
                 groupName="OSS"
                 groupPath="Checkmarx"
                 enabledByDefault="true"
-                implementationClass="com.checkmarx.intellij.realtimeScanners.inspection.RealtimeInspection"/>
+                implementationClass="com.checkmarx.intellij.devassist.inspection.RealtimeInspection"/>
 
     </extensions>
 
@@ -131,12 +131,12 @@
                     icon="AllIcons.Actions.Collapseall"/>
         </group>
         <group id="VulnerabilityToolbarGroup">
-            <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
-            <action id="VulnerabilityCritical" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityCriticalFilter" />
-            <action id="VulnerabilityHigh" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
-            <action id="VulnerabilityMedium" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
-            <action id="VulnerabilityLow" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
-            <action id="VulnerabilityInfo" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityInfoFilter" />
+            <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
+            <action id="VulnerabilityCritical" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityCriticalFilter" />
+            <action id="VulnerabilityHigh" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
+            <action id="VulnerabilityMedium" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
+            <action id="VulnerabilityLow" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
+            <action id="VulnerabilityInfo" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityInfoFilter" />
         <separator/>
         </group>
     </actions>

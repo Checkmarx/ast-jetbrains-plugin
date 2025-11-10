@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.unit.welcomedialog;
 
 import com.checkmarx.intellij.Resource;
-import com.checkmarx.intellij.ui.WelcomeDialog;
+import com.checkmarx.intellij.devassist.ui.WelcomeDialog;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import java.awt.*;

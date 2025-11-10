@@ -2,12 +2,12 @@ package com.checkmarx.intellij.inspections;
 
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
+import com.checkmarx.intellij.devassist.dto.CxProblems;
 import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.inspections.quickfixes.AscaQuickFix;
-import com.checkmarx.intellij.service.ProblemHolderService;
+import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.codeInspection.*;
 import com.intellij.openapi.diagnostic.Logger;
