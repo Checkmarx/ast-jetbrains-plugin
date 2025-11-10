@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.ui;
+package com.checkmarx.intellij.devassist.ui;
 
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.CxIcons;

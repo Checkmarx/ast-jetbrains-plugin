@@ -11,7 +11,7 @@ import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
-import com.checkmarx.intellij.ui.WelcomeDialog;
+import com.checkmarx.intellij.devassist.ui.WelcomeDialog;
 import com.checkmarx.intellij.util.InputValidator;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
