@@ -4,6 +4,7 @@ import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerService;
+import com.checkmarx.intellij.realtimeScanners.common.ScanResult;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
@@ -19,7 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 
-public class OssScannerService extends BaseScannerService {
+public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
     private static final Logger LOGGER = Utils.getLogger(OssScannerService.class);
 
     public OssScannerService(){
@@ -83,8 +84,8 @@ public class OssScannerService extends BaseScannerService {
         }
     }
 
-    protected Path getTempSubFolderPath(String baseTempDir, PsiFile document){
-        String baseTempPath = super.getTempSubFolderPath(baseTempDir);
+    protected Path getTempSubFolderPath(PsiFile document){
+        String baseTempPath = super.getTempSubFolderPath(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DIRECTORY);
         String relativePath = document.getName();
         return Paths.get(baseTempPath,toSafeTempFileName(relativePath));
     }
@@ -129,19 +130,19 @@ public class OssScannerService extends BaseScannerService {
         return "";
     }
 
-    public OssRealtimeResults scan(PsiFile document, String uri) {
-        com.checkmarx.ast.ossrealtime.OssRealtimeResults scanResults;
+    public ScanResult<OssRealtimeResults> scan(PsiFile document, String uri) {
+        OssRealtimeResults scanResults;
         if(!this.shouldScanFile(uri)){
             return null;
         }
-        Path tempSubFolder = this.getTempSubFolderPath(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DIRECTORY, document);
+        Path tempSubFolder = this.getTempSubFolderPath(document);
         try {
             this.createTempFolder(tempSubFolder);
             String mainTempPath=this.saveMainManifestFile(tempSubFolder, uri,document.getText());
             this.saveCompanionFile(tempSubFolder, uri);
             LOGGER.info("Start Realtime scan On File: "+uri);
             scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
-            return  scanResults;
+            return new OssScanResultAdaptor(scanResults);
 
         } catch (IOException | CxException | InterruptedException e) {
          LOGGER.warn("Error occurred during OSS realTime scan",e);

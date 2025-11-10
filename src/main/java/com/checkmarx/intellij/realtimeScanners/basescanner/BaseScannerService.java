@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.realtimeScanners.basescanner;
 
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.realtimeScanners.common.ScanResult;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.WriteAction;
@@ -35,7 +36,7 @@ public class BaseScannerService<T> implements ScannerService<T>{
         return !filePath.contains("/node_modules/");
     }
 
-     public  T scan(PsiFile psiFile, String uri) {
+     public ScanResult<T> scan(PsiFile psiFile, String uri) {
          return null;
      }
 

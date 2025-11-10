@@ -6,6 +6,7 @@ import com.checkmarx.ast.realtime.RealtimeLocation;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.realtimeScanners.basescanner.ScannerService;
+import com.checkmarx.intellij.realtimeScanners.common.ScanResult;
 import com.checkmarx.intellij.realtimeScanners.common.ScannerFactory;
 import com.checkmarx.intellij.realtimeScanners.utils.ScannerUtils;
 import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
@@ -27,9 +28,8 @@ import java.util.stream.Collectors;
 
 public class RealtimeInspection extends LocalInspectionTool {
 
-    @Getter
-    @Setter
-    private ScannerFactory scannerFactory= new ScannerFactory();
+
+    private final ScannerFactory scannerFactory= new ScannerFactory();
 
     private final Logger logger = Utils.getLogger(RealtimeInspection.class);
     private final Map<String,Long> fileTimeStamp= new ConcurrentHashMap<>();
@@ -55,12 +55,10 @@ public class RealtimeInspection extends LocalInspectionTool {
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
             fileTimeStamp.put(path, currentModificationTime);
-            OssRealtimeResults ossRealtimeResults= (OssRealtimeResults) scannerService.get().scan(file,path);
+            ScanResult<?> ossRealtimeResults= scannerService.get().scan(file,path);
 
             List<CxProblems> problemsList = new ArrayList<>();
-
             problemsList.addAll(buildCxProblems(ossRealtimeResults.getPackages()));
-
 
             VirtualFile virtualFile = file.getVirtualFile();
             if (virtualFile != null) {

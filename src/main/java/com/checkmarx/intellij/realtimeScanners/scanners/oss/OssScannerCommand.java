@@ -3,6 +3,7 @@ package com.checkmarx.intellij.realtimeScanners.scanners.oss;
 import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.realtimeScanners.common.ScanResult;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerLifeCycleManager;
 import com.checkmarx.intellij.realtimeScanners.basescanner.BaseScannerCommand;
 import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
@@ -42,7 +43,7 @@ public class OssScannerCommand extends BaseScannerCommand {
     }
 
     @Override
-    protected void initializeScanner(Project project) {
+    protected void initializeScanner() {
         scanAllManifestFilesInFolder();
     }
 
@@ -72,16 +73,12 @@ public class OssScannerCommand extends BaseScannerCommand {
                 if (file.isPresent()) {
                     try {
                         PsiFile psiFile= PsiManager.getInstance(project).findFile(file.get());
-                        OssRealtimeResults ossRealtimeResults=  ossScannerService.scan(psiFile, uri);
-
+                        ScanResult<?> ossRealtimeResults=  ossScannerService.scan(psiFile, uri);
                         List<CxProblems> problemsList = new ArrayList<>();
                         problemsList.addAll(RealtimeInspection.buildCxProblems(ossRealtimeResults.getPackages()));
+                        ProblemHolderService.getInstance(psiFile.getProject())
+                                    .addProblems(file.get().getPath(), problemsList);
 
-                        VirtualFile virtualFile = psiFile.getVirtualFile();
-                        if (virtualFile != null) {
-                            ProblemHolderService.getInstance(psiFile.getProject())
-                                    .addProblems(psiFile.getVirtualFile().getPath(), problemsList);
-                        }
                     }
                     catch(Exception e){
                         LOGGER.error("Scan failed for manifest file: "+ uri);
