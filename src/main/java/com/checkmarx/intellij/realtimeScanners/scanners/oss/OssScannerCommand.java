@@ -81,7 +81,7 @@ public class OssScannerCommand extends BaseScannerCommand {
 
                     }
                     catch(Exception e){
-                        LOGGER.error("Scan failed for manifest file: "+ uri);
+                        LOGGER.warn("Scan failed for manifest file: "+ uri +" Exception:"+ e);
                     }
                 }
             }
