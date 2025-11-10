@@ -39,9 +39,9 @@ public class BaseScannerCommand implements ScannerCommand {
         if (isScannerRegisteredAlready(project)) {
             return;
         }
-        global().markRegistered(project, getScannerType());
-        LOGGER.info(config.getEnabledMessage() + ":" + project.getName());
-        initializeScanner(project);
+        global().markRegistered(project,getScannerType());
+        LOGGER.info(config.getEnabledMessage() +":"+project.getName());
+        initializeScanner();
     }
 
     public void deregister(Project project) {
@@ -69,7 +69,7 @@ public class BaseScannerCommand implements ScannerCommand {
         return LocalFileSystem.getInstance().findFileByPath(path);
     }
 
-    protected void initializeScanner(Project project) {
+    protected void initializeScanner() {
     }
 
     @Override

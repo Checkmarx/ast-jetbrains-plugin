@@ -2,7 +2,6 @@ package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
-import com.intellij.icons.AllIcons;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -14,19 +13,24 @@ import java.util.function.Supplier;
  */
 @Getter
 public enum Severity implements Filterable {
-    MALICIOUS(CxIcons.MALICIOUS),
-    CRITICAL(CxIcons.CRITICAL),
-    HIGH(CxIcons.HIGH),
-    MEDIUM(CxIcons.MEDIUM),
-    LOW(CxIcons.LOW),
-    INFO(CxIcons.INFO);
+    MALICIOUS(() -> CxIcons.getMaliciousIcon()),
+    CRITICAL(() -> CxIcons.getCriticalIcon()),
+    HIGH(() -> CxIcons.getHighIcon()),
+    MEDIUM(() -> CxIcons.getMediumIcon()),
+    LOW(() -> CxIcons.getLowIcon()),
+    INFO(() -> CxIcons.getInfoIcon()) ;
 
     public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(MALICIOUS,CRITICAL, HIGH, MEDIUM);
 
-    private final Icon icon;
+    private final Supplier<Icon> iconSupplier;
 
-    Severity(Icon icon) {
-        this.icon = icon;
+    Severity(Supplier<Icon> iconSupplier) {
+        this.iconSupplier = iconSupplier;
+    }
+
+    @Override
+    public Icon getIcon() {
+        return iconSupplier.get();
     }
 
     public Supplier<String> tooltipSupplier() {

@@ -14,10 +14,14 @@ public class ScannerUtils {
     public static boolean isScannerActive(String engineName) {
         if (engineName == null) return false;
         try {
-            ScannerType kind = ScannerType.valueOf(engineName.toUpperCase());
-            return global().isScannerGloballyEnabled(kind);
+            if( new GlobalSettingsComponent().isValid()){
+                ScannerType kind = ScannerType.valueOf(engineName.toUpperCase());
+                return global().isScannerGloballyEnabled(kind);
+            }
+
         } catch (IllegalArgumentException ex) {
             return false;
         }
+        return false;
     }
 }

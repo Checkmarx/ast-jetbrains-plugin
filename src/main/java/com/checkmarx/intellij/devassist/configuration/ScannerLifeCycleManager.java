@@ -25,6 +25,10 @@ public final class ScannerLifeCycleManager implements Disposable {
         this.project = project;
     }
 
+    private ScannerRegistry scannerRegistry(){
+        return this.project.getService(ScannerRegistry.class);
+    }
+
     public synchronized void updateFromGlobal(@NotNull GlobalScannerController controller) {
         for (ScannerType kind : ScannerType.values()) {
             boolean isEnabled = controller.isScannerGloballyEnabled(kind);
@@ -34,13 +38,11 @@ public final class ScannerLifeCycleManager implements Disposable {
     }
 
     public void start(ScannerType kind) {
-        this.registry = project.getService(ScannerRegistry.class);
-        registry.registerScanner(kind.name());
+        scannerRegistry().registerScanner(kind.name());
     }
 
     public void stop(ScannerType kind) {
-        this.registry = project.getService(ScannerRegistry.class);
-        registry.deregisterScanner(kind.name());
+        scannerRegistry().deregisterScanner(kind.name());
     }
 
     public void stopAll() {

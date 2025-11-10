@@ -120,17 +120,19 @@ public class WelcomeDialog extends DialogWrapper {
         featureCard.setOpaque(true);
         featureCard.setBackground(subtleBg);
 
-        featureCard.add(createFeatureCardHeader(), "growx");
+        featureCard.add(createFeatureCardHeader(subtleBg), "growx");
         featureCard.add(createFeatureCardBullets(), "growx");
         return featureCard;
     }
 
-    private JComponent createFeatureCardHeader() {
+    private JComponent createFeatureCardHeader(Color backgroundColor) {
         JPanel header = new JPanel(new MigLayout("insets 0, gapx 6", "[][grow]"));
         header.setOpaque(false);
         realTimeScannersCheckbox = new JBCheckBox();
-        realTimeScannersCheckbox.setToolTipText("Enable all real-time scanners");
         realTimeScannersCheckbox.setEnabled(mcpEnabled);
+        realTimeScannersCheckbox.setOpaque(false);
+        realTimeScannersCheckbox.setContentAreaFilled(false);
+        realTimeScannersCheckbox.setBackground(backgroundColor);
         header.add(realTimeScannersCheckbox);
         JBLabel assistTitle = new JBLabel(Bundle.message(Resource.WELCOME_ASSIST_TITLE));
         assistTitle.setFont(assistTitle.getFont().deriveFont(Font.BOLD));
@@ -147,10 +149,8 @@ public class WelcomeDialog extends DialogWrapper {
         if (mcpEnabled) {
             bulletsPanel.add(createBullet(Resource.WELCOME_MCP_INSTALLED_INFO));
         } else {
-            // Show a theme-aware “MCP disabled” info icon
-            JBLabel mcpDisabledIcon = new JBLabel(JBColor.isBright()
-                    ? CxIcons.WELCOME_MCP_DISABLE_LIGHT
-                    : CxIcons.WELCOME_MCP_DISABLE_DARK);
+            // Show a theme-aware MCP disabled info icon
+            JBLabel mcpDisabledIcon = new JBLabel(CxIcons.getWelcomeMcpDisableIcon());
             mcpDisabledIcon.setHorizontalAlignment(SwingConstants.CENTER);
             mcpDisabledIcon.setToolTipText("Checkmarx MCP is not enabled for this tenant.");
             bulletsPanel.add(mcpDisabledIcon, "growx, wrap");
@@ -166,7 +166,7 @@ public class WelcomeDialog extends DialogWrapper {
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBorder(JBUI.Borders.empty(20));
 
-        Icon original = JBColor.isBright() ? CxIcons.WELCOME_SCANNER_LIGHT : CxIcons.WELCOME_SCANNER_DARK;
+        Icon original = CxIcons.getWelcomeScannerIcon();
         final int origW = original.getIconWidth();
         final int origH = original.getIconHeight();
 
@@ -250,6 +250,25 @@ public class WelcomeDialog extends DialogWrapper {
     private void refreshCheckboxState() {
         if (realTimeScannersCheckbox == null) return;
         realTimeScannersCheckbox.setSelected(settingsManager.areAllEnabled());
+        updateCheckboxTooltip();
+    }
+
+    /**
+     * Updates the checkbox tooltip based on current state and MCP availability.
+     * Shows appropriate enable/disable message when MCP is enabled, no tooltip when MCP is disabled.
+     */
+    private void updateCheckboxTooltip() {
+        if (realTimeScannersCheckbox == null || !mcpEnabled) {
+            if (realTimeScannersCheckbox != null) {
+                realTimeScannersCheckbox.setToolTipText(null);
+            }
+            return;
+        }
+
+        String tooltipText = realTimeScannersCheckbox.isSelected()
+            ? "Disable all real-time scanners"
+            : "Enable all real-time scanners";
+        realTimeScannersCheckbox.setToolTipText(tooltipText);
     }
 
     /**
