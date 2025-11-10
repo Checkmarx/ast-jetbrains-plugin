@@ -1,17 +1,22 @@
 package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.devassist.dto.CxProblems;
+import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.messages.Topic;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service(Service.Level.PROJECT)
 public final class ProblemHolderService {
     //ProblemHolderService
 
     private final Map<String, List<CxProblems>> fileToIssues = new LinkedHashMap<>();
+
+    //  Problem descriptors for each file to avoid display empty problems
+    private final Map<String, List<ProblemDescriptor>> fileProblemDescriptor = new ConcurrentHashMap<>();
 
     public static final Topic<IssueListener> ISSUE_TOPIC =
             new Topic<>("ISSUES_UPDATED", IssueListener.class);
@@ -37,6 +42,14 @@ public final class ProblemHolderService {
 
     public synchronized Map<String, List<CxProblems>> getAllIssues() {
         return Collections.unmodifiableMap(fileToIssues);
+    }
+
+    public synchronized List<ProblemDescriptor> getProblemDescriptors(String filePath) {
+        return fileProblemDescriptor.getOrDefault(filePath, Collections.emptyList());
+    }
+
+    public synchronized void addProblemDescriptors(String filePath, List<ProblemDescriptor> problemDescriptors) {
+        fileProblemDescriptor.put(filePath, new ArrayList<>(problemDescriptors));
     }
 
 }

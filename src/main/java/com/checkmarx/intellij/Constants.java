@@ -152,4 +152,23 @@ public final class Constants {
         );
     }
 
+    /**
+     * Constant class to hold image paths.
+     */
+    public static final class ImagePaths {
+
+        private ImagePaths() {
+            throw new UnsupportedOperationException("Cannot instantiate ImagePaths class");
+        }
+
+        public static final String DEV_ASSIST_PNG = "/icons/devassist/cxone_assist_dark.png";
+        public static final String CRITICAL_SEVERITY_PNG = "/icons/devassist/critical_severity.png";
+        public static final String HIGH_SEVERITY_PNG = "/icons/devassist/high_severity.png";
+        public static final String MEDIUM_SEVERITY_PNG = "/icons/devassist/medium_severity.png";
+        public static final String LOW_SEVERITY_PNG = "/icons/devassist/low_severity.png";
+        public static final String MALICIOUS_SEVERITY_PNG = "/icons/devassist/malicious.png";
+        public static final String PACKAGE_PNG = "/icons/devassist/package.png";
+
+    }
+
 }
