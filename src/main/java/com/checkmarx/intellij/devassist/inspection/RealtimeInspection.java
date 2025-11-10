@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.devassist.inspection;
 
-import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
 import com.checkmarx.ast.realtime.RealtimeLocation;
 import com.checkmarx.intellij.Constants;
@@ -57,7 +56,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         long currentModificationTime = file.getModificationStamp();
 
         if (fileTimeStamp.containsKey(path) && fileTimeStamp.get(path) == (currentModificationTime)) {
-            return problemHolderService.getProblemDescriptors(path).toArray(new ProblemDescriptor[0]);
+            //return problemHolderService.getProblemDescriptors(path).toArray(new ProblemDescriptor[0]);
         }
         fileTimeStamp.put(path, currentModificationTime);
         System.out.println("** File modified : " + file.getName());
@@ -71,9 +70,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         List<ProblemDescriptor> problems = createProblemDescriptors(file, manager, isOnTheFly, scanResult, document);
         problemHolderService.addProblemDescriptors(path, problems);
 
-        ProblemHolderService.getInstance(file.getProject())
-                .addProblems(file.getVirtualFile().getPath(),
-                        buildCxProblems(scanResult.getPackages()));
+        problemManager.addToCxOneProblems(file, buildCxProblems(scanResult.getPackages()));
 
         return problems.toArray(new ProblemDescriptor[0]);
     }
@@ -94,7 +91,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         if (!ScannerUtils.isScannerActive(scannerService.get().getConfig().getEngineName())) {
             return null;
         }
-        return scannerService.get().scan(file,path);
+        return scannerService.get().scan(file, path);
     }
 
     /**
