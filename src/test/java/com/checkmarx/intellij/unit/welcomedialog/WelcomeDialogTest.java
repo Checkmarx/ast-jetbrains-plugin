@@ -146,6 +146,51 @@ public class WelcomeDialogTest {
         );
     }
 
+    @Test
+    @DisplayName("Checkbox should have dynamic tooltip when MCP is enabled")
+    void testCheckboxTooltipWithMcpEnabled() throws Exception {
+        FakeManager mgr = new FakeManager();
+        WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, true, mgr));
+
+        JBCheckBox checkbox = dialog.getRealTimeScannersCheckbox();
+        assertNotNull(checkbox, "Checkbox should be present when MCP is enabled");
+        assertTrue(checkbox.isSelected(), "Checkbox should be selected initially when MCP is enabled");
+        assertEquals("Disable all real-time scanners", checkbox.getToolTipText(),
+                "Checkbox should show disable tooltip when checked");
+    }
+
+    @Test
+    @DisplayName("Checkbox tooltip should change when state changes")
+    void testCheckboxTooltipChangesWithState() throws Exception {
+        FakeManager mgr = new FakeManager();
+        WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, true, mgr));
+
+        JBCheckBox checkbox = dialog.getRealTimeScannersCheckbox();
+        assertNotNull(checkbox, "Checkbox should be present when MCP is enabled");
+
+        // Initially checked, should show disable message
+        assertTrue(checkbox.isSelected());
+        assertEquals("Disable all real-time scanners", checkbox.getToolTipText());
+
+        // Uncheck the box and verify tooltip changes
+        runOnEdt(() -> {
+            checkbox.setSelected(false);
+            checkbox.getActionListeners()[0].actionPerformed(null);
+            return null;
+        });
+        assertEquals("Enable all real-time scanners", checkbox.getToolTipText(),
+                "Tooltip should show enable message when unchecked");
+
+        // Check the box again and verify tooltip changes back
+        runOnEdt(() -> {
+            checkbox.setSelected(true);
+            checkbox.getActionListeners()[0].actionPerformed(null);
+            return null;
+        });
+        assertEquals("Disable all real-time scanners", checkbox.getToolTipText(),
+                "Tooltip should show disable message when checked again");
+    }
+
     // region Helpers
     /**
      * Utility: traverses components recursively to find the MCP disabled JBLabel.

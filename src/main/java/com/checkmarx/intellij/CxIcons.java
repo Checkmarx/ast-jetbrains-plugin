@@ -18,11 +18,9 @@ public final class CxIcons {
     public static final Icon COMMENT = IconLoader.getIcon("/icons/comment.svg", CxIcons.class);
     public static final Icon STATE = IconLoader.getIcon("/icons/Flags.svg", CxIcons.class);
     public static final Icon ABOUT = IconLoader.getIcon("/icons/about.svg", CxIcons.class);
-    public static final Icon WELCOME_SCANNER_LIGHT = IconLoader.getIcon("/icons/welcomePageScanner_light.svg", CxIcons.class);
-    public static final Icon WELCOME_SCANNER_DARK = IconLoader.getIcon("/icons/welcomePageScanner_dark.svg", CxIcons.class);
-    public static final Icon WELCOME_MCP_DISABLE_LIGHT = IconLoader.getIcon("/icons/cxAIError_light.svg", CxIcons.class);
-    public static final Icon WELCOME_MCP_DISABLE_DARK = IconLoader.getIcon("/icons/cxAIError_dark.svg", CxIcons.class);
 
+    public static Icon getWelcomeScannerIcon() {return IconLoader.getIcon("/icons/welcomePageScanner.svg", CxIcons.class);}
+    public static Icon getWelcomeMcpDisableIcon() {return IconLoader.getIcon("/icons/cxAIError.svg", CxIcons.class);}
     public static Icon getMaliciousIcon() {
         return IconLoader.getIcon("/icons/malicious.svg", CxIcons.class);
     }
@@ -35,7 +33,6 @@ public final class CxIcons {
     public static Icon getMediumIcon() {
         return IconLoader.getIcon("/icons/medium.svg", CxIcons.class);
     }
-
     public static Icon getLowIcon() {
         return IconLoader.getIcon("/icons/low.svg", CxIcons.class);
     }
