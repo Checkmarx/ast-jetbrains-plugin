@@ -56,7 +56,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         long currentModificationTime = file.getModificationStamp();
 
         if (fileTimeStamp.containsKey(path) && fileTimeStamp.get(path) == (currentModificationTime)) {
-            //return problemHolderService.getProblemDescriptors(path).toArray(new ProblemDescriptor[0]);
+            return problemHolderService.getProblemDescriptors(path).toArray(new ProblemDescriptor[0]);
         }
         fileTimeStamp.put(path, currentModificationTime);
         System.out.println("** File modified : " + file.getName());
