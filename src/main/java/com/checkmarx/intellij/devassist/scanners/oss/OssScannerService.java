@@ -130,7 +130,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
         return "";
     }
 
-    public ScanResult<OssRealtimeResults> scan(PsiFile document, String uri) {
+    public OssRealtimeResults scan(PsiFile document, String uri) {
         OssRealtimeResults scanResults;
         if(!this.shouldScanFile(uri)){
             return null;
@@ -142,7 +142,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
             this.saveCompanionFile(tempSubFolder, uri);
             LOGGER.info("Start Realtime scan On File: "+uri);
             scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
-            return new OssScanResultAdaptor(scanResults);
+            return new OssScanResultAdaptor(scanResults).getResults();
 
         } catch (IOException | CxException | InterruptedException e) {
          LOGGER.warn("Error occurred during OSS realTime scan",e);
