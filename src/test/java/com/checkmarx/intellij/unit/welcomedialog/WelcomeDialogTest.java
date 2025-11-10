@@ -3,6 +3,9 @@ package com.checkmarx.intellij.unit.welcomedialog;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.ui.WelcomeDialog;
 import com.intellij.ui.components.JBCheckBox;
+import com.intellij.ui.components.JBLabel;
+import java.awt.*;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -53,12 +56,14 @@ public class WelcomeDialogTest {
     }
 
     @Test
-    @DisplayName("MCP disabled: checkbox should be hidden and initialization should not force enable")
-    void testMcpDisabledHidesCheckbox() throws Exception {
+    @DisplayName("MCP disabled: checkbox should be disabled and initialization should not force enable")
+    void testMcpDisabledDisablesCheckbox() throws Exception {
         FakeManager mgr = new FakeManager();
         WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, false, mgr));
 
-        assertNull(dialog.getRealTimeScannersCheckbox(), "Checkbox should not be present when MCP is disabled");
+        JCheckBox checkbox = dialog.getRealTimeScannersCheckbox();
+        assertNotNull(checkbox, "Checkbox should be present when MCP is disabled");
+        assertFalse(checkbox.isEnabled(), "Checkbox should be disabled when MCP is disabled");
         assertFalse(mgr.areAllEnabled(), "Settings should remain disabled");
         assertEquals(0, mgr.setAllCalls, "setAll should not be called");
     }
@@ -127,7 +132,39 @@ public class WelcomeDialogTest {
                 "setAll(true) should NOT be called again if scanners are already enabled");
     }
 
+    @Test
+    @DisplayName("UI should show MCP disabled info when MCP is not enabled")
+    void testMcpDisabledUi() throws Exception {
+        WelcomeDialog dialog = runOnEdt(() -> new WelcomeDialog(null, false, new FakeManager()));
+        JBLabel mcpDisabledIcon = findMcpDisabledLabel(dialog.getContentPane());
+        assertNotNull(mcpDisabledIcon, "MCP disabled label should exist");
+        assertNotNull(mcpDisabledIcon.getIcon(), "Icon should be present when MCP is disabled");
+        assertEquals(
+                "Checkmarx MCP is not enabled for this tenant.",
+                mcpDisabledIcon.getToolTipText(),
+                "Tooltip should explain that MCP is disabled"
+        );
+    }
+
     // region Helpers
+    /**
+     * Utility: traverses components recursively to find the MCP disabled JBLabel.
+     */
+    private JBLabel findMcpDisabledLabel(Container container) {
+        for (Component comp : container.getComponents()) {
+            if (comp instanceof JBLabel) {
+                JBLabel label = (JBLabel) comp;
+                if ("Checkmarx MCP is not enabled for this tenant.".equals(label.getToolTipText())) {
+                    return label;
+                }
+            } else if (comp instanceof Container) {
+                JBLabel nested = findMcpDisabledLabel((Container) comp);
+                if (nested != null) return nested;
+            }
+        }
+        return null;
+    }
+
 
     /**
      * Executes a Swing operation on the Event Dispatch Thread (EDT) and waits for it to complete.

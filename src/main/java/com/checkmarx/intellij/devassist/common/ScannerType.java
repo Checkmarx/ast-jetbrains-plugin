@@ -1,5 +1,5 @@
 package com.checkmarx.intellij.devassist.common;
 
-public enum ScannerKind {
+public enum ScannerType {
     OSS, SECRETS, CONTAINERS, IAC
 }

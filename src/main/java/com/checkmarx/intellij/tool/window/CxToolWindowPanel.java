@@ -5,9 +5,8 @@ import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.components.TreeUtils;
+import com.checkmarx.intellij.devassist.configuration.ScannerLifeCycleManager;
 import com.checkmarx.intellij.project.ProjectResultsService;
-import com.checkmarx.intellij.devassist.configuration.RealtimeScannerManager;
-import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
@@ -92,18 +91,19 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     private final Project project;
     // service for indexing current results
     private final ProjectResultsService projectResultsService;
-    private final RealtimeScannerManager realtimeScannerManager;
+    private final ScannerLifeCycleManager realtimeScannerManager;
 
     public CxToolWindowPanel(@NotNull Project project) {
         super(false, true);
 
         this.project = project;
         this.projectResultsService = project.getService(ProjectResultsService.class);
-        this.realtimeScannerManager= project.getService(RealtimeScannerManager.class);
+        this.realtimeScannerManager = project.getService(ScannerLifeCycleManager.class);
         Runnable r = () -> {
             if (new GlobalSettingsComponent().isValid()) {
                 drawMainPanel();
-                ScannerRegistry registry =  new ScannerRegistry(project,this,realtimeScannerManager);
+                com.checkmarx.intellij.realtimeScanners.registry.ScannerRegistry registry = project.getService(ScannerRegistry.class);
+
                 LOGGER.info("calling from cxToolWindow");
                 registry.registerAllScanners(project);
 
@@ -175,7 +175,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
     /**
      * Draw a panel with logo and a button to settings, when settings are invalid
-//     */
+     */
     private void drawAuthPanel() {
         removeAll();
         JPanel wrapper = new JPanel(new GridBagLayout());

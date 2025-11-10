@@ -3,10 +3,11 @@ package com.checkmarx.intellij.devassist.inspection;
 import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
 import com.checkmarx.ast.realtime.RealtimeLocation;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
 import com.checkmarx.intellij.devassist.common.ScannerFactory;
-import com.checkmarx.intellij.devassist.configuration.RealtimeScannerManager;
+import com.checkmarx.intellij.devassist.dto.CxProblems;
 import com.checkmarx.intellij.devassist.inspection.remediation.CxOneAssistFix;
 import com.checkmarx.intellij.service.ProblemHolderService;
 import com.intellij.codeInspection.InspectionManager;
@@ -15,8 +16,6 @@ import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
@@ -25,6 +24,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Dev Assist RealtimeInspection class that extends LocalInspectionTool to perform real-time code scan.
@@ -165,6 +165,29 @@ public class RealtimeInspection extends LocalInspectionTool {
             System.out.println("** EXCEPTION: ProblemDescriptor *** " + e.getMessage() + " " + Arrays.toString(e.getStackTrace()));
             return null;
         }
+    }
+
+    /**
+     * After getting the entire scan result pass to this method to build the CxProblems for custom tool window
+     *
+     */
+    public static List<CxProblems> buildCxProblems(List<OssRealtimeScanPackage> pkgs) {
+        return pkgs.stream()
+                .map(pkg -> {
+                    CxProblems problem = new CxProblems();
+                    if (pkg.getLocations() != null && !pkg.getLocations().isEmpty()) {
+                        for (RealtimeLocation location : pkg.getLocations()) {
+                            problem.addLocation(location.getLine() + 1, location.getStartIndex(), location.getEndIndex());
+                        }
+                    }
+                    problem.setTitle(pkg.getPackageName());
+                    problem.setPackageVersion(pkg.getPackageVersion());
+                    problem.setScannerType(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME);
+                    problem.setSeverity(pkg.getStatus());
+                    // Optionally set other fields if available, e.g. description, cve, etc.
+                    return problem;
+                })
+                .collect(Collectors.toList());
     }
 }
 

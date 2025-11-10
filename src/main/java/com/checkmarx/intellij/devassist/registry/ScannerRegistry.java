@@ -1,66 +1,70 @@
 package com.checkmarx.intellij.devassist.registry;
 
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.devassist.configuration.RealtimeScannerManager;
+import com.checkmarx.intellij.devassist.basescanner.ScannerCommand;
 import com.checkmarx.intellij.devassist.scanners.oss.OssScannerCommand;
 import com.intellij.openapi.Disposable;
-import com.checkmarx.intellij.devassist.basescanner.ScannerCommand;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-
+@Service(Service.Level.PROJECT)
 public final class ScannerRegistry implements Disposable {
 
-    private final Map<String, ScannerCommand> scannerMap = new HashMap<>();
+    private final Map<String, ScannerCommand> scannerMap = new ConcurrentHashMap<>();
 
     @Getter
     private final Project project;
 
-    public ScannerRegistry( @NotNull Project project,@NotNull Disposable parentDisposable, RealtimeScannerManager scannerManager){
-        this.project=project;
-        Disposer.register(parentDisposable,this);
-        this.setScanner(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME,new OssScannerCommand(this,project,scannerManager));
+    public ScannerRegistry(@NotNull Project project) {
+        this.project = project;
+        Disposer.register(this, project);
+        scannerInitialization();
     }
 
-    private void setScanner(String id, ScannerCommand scanner){
+    private void scannerInitialization() {
+        this.setScanner(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME, new OssScannerCommand(this, project));
+    }
+
+    private void setScanner(String id, ScannerCommand scanner) {
         Disposer.register(this, scanner);
-        this.scannerMap.put(id,scanner);
+        this.scannerMap.put(id, scanner);
     }
 
-    public void registerAllScanners(Project project){
-        scannerMap.values().forEach(scanner->scanner.register(project));
+    public void registerAllScanners(Project project) {
+        scannerMap.values().forEach(scanner -> scanner.register(project));
     }
 
-    public void deregisterAllScanners(){
+    public void deregisterAllScanners() {
         scannerMap.values().forEach(ScannerCommand::dispose);
     }
 
-    public void registerScanner(String Id){
-        ScannerCommand scanner= getScanner(Id);
-        if(scanner!=null) scanner.register(project);
+    public void registerScanner(String Id) {
+        ScannerCommand scanner = getScanner(Id);
+        if (scanner != null) scanner.register(project);
     }
 
-    public void deregisterScanner(String Id){
-        ScannerCommand scanner= getScanner(Id);
-        if(scanner!=null){
+    public void deregisterScanner(String Id) {
+        ScannerCommand scanner = getScanner(Id);
+        if (scanner != null) {
             scanner.deregister(project);
             scanner.dispose();
         }
     }
 
-    public ScannerCommand getScanner(String id){
+    public ScannerCommand getScanner(String id) {
         return this.scannerMap.get(id);
     }
 
-
     @Override
     public void dispose() {
-      this.deregisterAllScanners();
+        this.deregisterAllScanners();
+        scannerMap.clear();
     }
 
 }
