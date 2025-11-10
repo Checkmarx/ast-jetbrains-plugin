@@ -182,7 +182,7 @@ public class ProblemManager {
     private Optional<OssRealtimeVulnerability> findVulnerabilityBySeverity(List<OssRealtimeVulnerability> vulnerabilityList, String severity) {
         return vulnerabilityList.stream()
                 .filter(vulnerability -> vulnerability.getSeverity().equalsIgnoreCase(severity))
-                .findFirst();
+                .findAny();
     }
 
 
@@ -250,7 +250,9 @@ public class ProblemManager {
             boolean isFirstLocation = true;
 
             boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(markupModel, editor, problemLineNumber);
+
             System.out.println("Already has gutter icon: " + alreadyHasGutterIcon + " targetLine : " + problemLineNumber);
+
 
             for (RealtimeLocation location : scanPackage.getLocations()) {
                 int targetLine = location.getLine() + 1;
@@ -428,11 +430,6 @@ public class ProblemManager {
         return severityHighlighterLayerMap.getOrDefault(detail.getStatus(), HighlighterLayer.WEAK_WARNING);
     }
 
-    /**
-     * Adding problems to ProblemHolderService for CxOne Problems Tool Window
-     * @param file PsiFile instance
-     * @param problemsList List<CxProblems>
-     */
     public void addToCxOneProblems(PsiFile file, List<CxProblems> problemsList) {
         ProblemHolderService.getInstance(file.getProject())
                 .addProblems(file.getVirtualFile().getPath(), problemsList);
