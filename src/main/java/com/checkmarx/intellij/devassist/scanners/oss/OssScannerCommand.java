@@ -6,7 +6,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerCommand;
 import com.checkmarx.intellij.devassist.dto.CxProblems;
 import com.checkmarx.intellij.devassist.inspection.RealtimeInspection;
-import com.checkmarx.intellij.service.ProblemHolderService;
+import com.checkmarx.intellij.devassist.inspection.problems.ProblemHolderService;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;

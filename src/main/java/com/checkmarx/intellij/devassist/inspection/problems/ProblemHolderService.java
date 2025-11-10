@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.service;
+package com.checkmarx.intellij.devassist.inspection.problems;
 
 import com.checkmarx.intellij.devassist.dto.CxProblems;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -13,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ProblemHolderService {
 
     private final Map<String, List<CxProblems>> fileToIssues = new LinkedHashMap<>();
+
+    //  Problem descriptors for each file to avoid display empty problems
     private final Map<String, List<ProblemDescriptor>> fileProblemDescriptor = new ConcurrentHashMap<>();
 
     public static final Topic<IssueListener> ISSUE_TOPIC =

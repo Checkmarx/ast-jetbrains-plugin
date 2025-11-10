@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.devassist.inspection;
+package com.checkmarx.intellij.devassist.inspection.problems;
 
 import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
 import com.checkmarx.ast.ossrealtime.OssRealtimeVulnerability;
@@ -8,7 +8,6 @@ import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.dto.CxProblems;
 import com.checkmarx.intellij.inspections.AscaInspection;
-import com.checkmarx.intellij.service.ProblemHolderService;
 import com.checkmarx.intellij.util.Status;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.application.ApplicationManager;

@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.service;
+package com.checkmarx.intellij.devassist.configuration.mcp;
 
 import com.checkmarx.intellij.Constants;
 import com.fasterxml.jackson.core.type.TypeReference;

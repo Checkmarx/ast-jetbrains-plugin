@@ -7,6 +7,7 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
+import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
 import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
@@ -299,7 +300,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         CompletableFuture.supplyAsync(() -> {
             try {
                 // Returns Boolean.TRUE if MCP modified, Boolean.FALSE if already up-to-date
-                return com.checkmarx.intellij.service.McpSettingsInjector.installForCopilot(credential);
+                return McpSettingsInjector.installForCopilot(credential);
             } catch (Exception ex) {
                 return ex;
             }
@@ -704,7 +705,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 // Ensure only the Checkmarx MCP entry is removed and log any issues.
                 java.util.concurrent.CompletableFuture.runAsync(() -> {
                     try {
-                        boolean removed = com.checkmarx.intellij.service.McpSettingsInjector.uninstallFromCopilot();
+                        boolean removed = McpSettingsInjector.uninstallFromCopilot();
                         if (!removed) {
                             LOGGER.debug("Logout completed, but no MCP entry was present to remove.");
                         }
