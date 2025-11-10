@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.realtimeScanners.basescanner;
 
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.realtimeScanners.common.ScanResult;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.WriteAction;
@@ -35,7 +36,7 @@ public class BaseScannerService<T> implements ScannerService<T>{
         return !filePath.contains("/node_modules/");
     }
 
-     public  T scan(PsiFile psiFile, String uri) {
+     public ScanResult<T> scan(PsiFile psiFile, String uri) {
          return null;
      }
 
@@ -49,10 +50,10 @@ public class BaseScannerService<T> implements ScannerService<T>{
         try{
             Files.createDirectories(folderPath);
         } catch (IOException e){
-            LOGGER.warn("Cannot create temp folder",e);
+            //TODO : check below error
+            LOGGER.error("Cannot create temp folder",e);
         }
      }
-
 
      protected void deleteTempFolder(Path tempFolder){
          if(Files.notExists(tempFolder)){
@@ -65,7 +66,7 @@ public class BaseScannerService<T> implements ScannerService<T>{
                            Files.deleteIfExists(path);
                          }
                          catch (Exception e){
-                             LOGGER.warn("Failed to delete:"+path);
+                             LOGGER.warn("Failed to delete file in temp folder:"+path);
                          }
                      });
              }
