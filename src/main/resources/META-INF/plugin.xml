@@ -136,7 +136,6 @@
             <action id="VulnerabilityHigh" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
             <action id="VulnerabilityMedium" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
             <action id="VulnerabilityLow" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
-            <action id="VulnerabilityInfo" class="com.checkmarx.intellij.realtimeScanners.customProblemWindow.filterAction.VulnerabilityFilterBaseAction$VulnerabilityInfoFilter" />
         <separator/>
         </group>
     </actions>

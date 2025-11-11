@@ -39,5 +39,15 @@ public final class ProblemHolderService {
         return Collections.unmodifiableMap(fileToIssues);
     }
 
+    public void removeAllProblemsOfType(String scannerType) {
+        for (Map.Entry<String, List<CxProblems>> entry :  getAllIssues().entrySet()) {
+            List<CxProblems> problems = entry.getValue();
+            if (problems != null) {
+                problems.removeIf(problem -> scannerType.equals(problem.getScannerType()));
+            }
+        }
+        project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
+    }
+
 }
 

@@ -45,7 +45,6 @@ public class RealtimeInspection extends LocalInspectionTool {
             if(scannerService.isEmpty()){
                return ProblemDescriptor.EMPTY_ARRAY;
             }
-
             if (!ScannerUtils.isScannerActive(scannerService.get().getConfig().getEngineName())){
                 return  ProblemDescriptor.EMPTY_ARRAY;
             }
@@ -95,6 +94,7 @@ public class RealtimeInspection extends LocalInspectionTool {
                 })
                 .collect(Collectors.toList());
     }
+
 }
 
 

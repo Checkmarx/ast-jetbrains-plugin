@@ -35,7 +35,6 @@ public final class CxIcons {
     public static Icon getMediumIcon() {
         return IconLoader.getIcon("/icons/medium.svg", CxIcons.class);
     }
-
     public static Icon getLowIcon() {
         return IconLoader.getIcon("/icons/low.svg", CxIcons.class);
     }

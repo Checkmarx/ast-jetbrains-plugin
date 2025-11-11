@@ -4,6 +4,7 @@ import com.checkmarx.intellij.realtimeScanners.utils.ScannerUtils;
 import com.checkmarx.intellij.realtimeScanners.configuration.GlobalScannerController;
 import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
 import com.checkmarx.intellij.realtimeScanners.common.ScannerType;
+import com.checkmarx.intellij.service.ProblemHolderService;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -47,6 +48,8 @@ public class BaseScannerCommand implements ScannerCommand {
             return;
         }
         global().markUnregistered(project,getScannerType());
+        ProblemHolderService.getInstance(project)
+                .removeAllProblemsOfType(getScannerType().toString());
         LOGGER.info(config.getDisabledMessage() +":"+project.getName());
     }
 
