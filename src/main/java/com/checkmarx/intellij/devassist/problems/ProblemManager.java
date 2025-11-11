@@ -1,12 +1,11 @@
 package com.checkmarx.intellij.devassist.problems;
 
-import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
-import com.checkmarx.ast.ossrealtime.OssRealtimeVulnerability;
-import com.checkmarx.ast.realtime.RealtimeLocation;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.devassist.dto.CxProblems;
+import com.checkmarx.intellij.devassist.model.Location;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.inspections.AscaInspection;
 import com.checkmarx.intellij.util.Status;
 import com.intellij.codeInspection.ProblemHighlightType;
@@ -136,33 +135,33 @@ public class ProblemManager {
     /**
      * Formats the description for the given scan package.
      *
-     * @param scanPackage the scan package
+     * @param scanIssue the scan package
      * @return the formatted description
      */
-    public String formatDescription(OssRealtimeScanPackage scanPackage) {
+    public String formatDescription(ScanIssue scanIssue) {
         StringBuilder descBuilder = new StringBuilder();
         descBuilder.append("<html><body><div style='display:flex;align-items:center;gap:4px;'>");
         descBuilder.append("<div><img src='").append(getIconPath(Constants.ImagePaths.DEV_ASSIST_PNG)).append("'/></div><br>");
 
-        if (scanPackage.getStatus().equalsIgnoreCase(Status.MALICIOUS.getStatus())) {
-            buildMaliciousPackageMessage(descBuilder, scanPackage);
+        if (scanIssue.getSeverity().equalsIgnoreCase(Status.MALICIOUS.getStatus())) {
+            buildMaliciousPackageMessage(descBuilder, scanIssue);
             return descBuilder.toString();
         }
-        descBuilder.append("<div'>").append(scanPackage.getStatus()).append("-risk package:  ").append(scanPackage.getPackageName())
-                .append("@").append(scanPackage.getPackageVersion()).append("</div><br>");
+        descBuilder.append("<div'>").append(scanIssue.getSeverity()).append("-risk package:  ").append(scanIssue.getTitle())
+                .append("@").append(scanIssue.getPackageVersion()).append("</div><br>");
 
         descBuilder.append("<div'>").append(getImage(getIconPath(Constants.ImagePaths.PACKAGE_PNG)))
-                .append("<b>").append(scanPackage.getPackageName()).append("@").append(scanPackage.getPackageVersion()).append("</b>")
-                .append(" - ").append(scanPackage.getStatus()).append(" Severity Package").append("</div><br><br>");
+                .append("<b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
+                .append(" - ").append(scanIssue.getSeverity()).append(" Severity Package").append("</div><br><br>");
 
-        List<OssRealtimeVulnerability> vulnerabilityList = scanPackage.getVulnerabilities();
+        List<Vulnerability> vulnerabilityList = scanIssue.getVulnerabilities();
         if (!Objects.isNull(vulnerabilityList) && !vulnerabilityList.isEmpty()) {
             descBuilder.append("<div>");
             buildVulnerabilityCountMessage(descBuilder, vulnerabilityList);
             descBuilder.append("</div><br>");
             descBuilder.append("<div>");
 
-            findVulnerabilityBySeverity(vulnerabilityList, scanPackage.getStatus())
+            findVulnerabilityBySeverity(vulnerabilityList, scanIssue.getSeverity())
                     .ifPresent(vulnerability ->
                             descBuilder.append(Utils.escapeHtml(vulnerability.getDescription())).append("<br>")
                     );
@@ -179,29 +178,29 @@ public class ProblemManager {
      * @param severity          the severity level to match
      * @return an Optional containing the matching vulnerability, or empty if not found
      */
-    private Optional<OssRealtimeVulnerability> findVulnerabilityBySeverity(List<OssRealtimeVulnerability> vulnerabilityList, String severity) {
+    private Optional<Vulnerability> findVulnerabilityBySeverity(List<Vulnerability> vulnerabilityList, String severity) {
         return vulnerabilityList.stream()
                 .filter(vulnerability -> vulnerability.getSeverity().equalsIgnoreCase(severity))
-                .findAny();
+                .findFirst();
     }
 
 
-    private void buildMaliciousPackageMessage(StringBuilder descBuilder, OssRealtimeScanPackage scanPackage) {
-        descBuilder.append("<div'>").append(scanPackage.getStatus()).append(" package detected:  ").append(scanPackage.getPackageName())
-                .append("@").append(scanPackage.getPackageVersion()).append("</div><br>");
+    private void buildMaliciousPackageMessage(StringBuilder descBuilder, ScanIssue scanIssue) {
+        descBuilder.append("<div'>").append(scanIssue.getSeverity()).append(" package detected:  ").append(scanIssue.getTitle())
+                .append("@").append(scanIssue.getPackageVersion()).append("</div><br>");
         descBuilder.append("<div'>").append(getImage(getIconPath(Constants.ImagePaths.MALICIOUS_SEVERITY_PNG)))
-                .append("<b>").append(scanPackage.getPackageName()).append("@").append(scanPackage.getPackageVersion()).append("</b>")
-                .append(" - ").append(scanPackage.getStatus()).append(" Package").append("</div><br>");
+                .append("<b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
+                .append(" - ").append(scanIssue.getSeverity()).append(" Package").append("</div><br>");
         descBuilder.append("</div><br>").append("</div></body></html>");
     }
 
-    private Map<String, Long> getVulnerabilityCount(List<OssRealtimeVulnerability> vulnerabilityList) {
+    private Map<String, Long> getVulnerabilityCount(List<Vulnerability> vulnerabilityList) {
         return vulnerabilityList.stream()
-                .map(OssRealtimeVulnerability::getSeverity)
+                .map(Vulnerability::getSeverity)
                 .collect(Collectors.groupingBy(severity -> severity, Collectors.counting()));
     }
 
-    private void buildVulnerabilityCountMessage(StringBuilder descBuilder, List<OssRealtimeVulnerability> vulnerabilityList) {
+    private void buildVulnerabilityCountMessage(StringBuilder descBuilder, List<Vulnerability> vulnerabilityList) {
 
         Map<String, Long> vulnerabilityCount = getVulnerabilityCount(vulnerabilityList);
 
@@ -236,7 +235,7 @@ public class ProblemManager {
      * Adds a gutter icon at the line of the given PsiElement.
      */
     public void highlightLineAddGutterIconForProblem(@NotNull Project project, @NotNull PsiFile file,
-                                                     OssRealtimeScanPackage scanPackage, boolean isProblem, int problemLineNumber) {
+                                                     ScanIssue scanIssue, boolean isProblem, int problemLineNumber) {
         ApplicationManager.getApplication().invokeLater(() -> {
             Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
             if (editor == null) return;
@@ -254,9 +253,9 @@ public class ProblemManager {
             System.out.println("Already has gutter icon: " + alreadyHasGutterIcon + " targetLine : " + problemLineNumber);
 
 
-            for (RealtimeLocation location : scanPackage.getLocations()) {
+            for (Location location : scanIssue.getLocations()) {
                 int targetLine = location.getLine() + 1;
-                highlightLocationInEditor(editor, markupModel, targetLine, scanPackage, isFirstLocation, isProblem, alreadyHasGutterIcon);
+                highlightLocationInEditor(editor, markupModel, targetLine, scanIssue, isFirstLocation, isProblem, alreadyHasGutterIcon);
                 isFirstLocation = false;
             }
         });
@@ -268,11 +267,11 @@ public class ProblemManager {
      * @param editor        the editor instance
      * @param markupModel   the markup model for highlighting
      * @param targetLine    the line number to highlight (1-based)
-     * @param scanPackage   the scan package containing severity information
+     * @param scanIssue     the scan package containing severity information
      * @param addGutterIcon whether to add a gutter icon for this location
      */
     private void highlightLocationInEditor(Editor editor, MarkupModel markupModel, int targetLine,
-                                           OssRealtimeScanPackage scanPackage, boolean addGutterIcon, boolean isProblem, boolean alreadyHasGutterIcon) {
+                                           ScanIssue scanIssue, boolean addGutterIcon, boolean isProblem, boolean alreadyHasGutterIcon) {
         TextRange textRange = getTextRangeForLine(editor.getDocument(), targetLine);
         TextAttributes attr = createTextAttributes();
 
@@ -283,14 +282,14 @@ public class ProblemManager {
             highlighter = markupModel.addRangeHighlighter(
                     textRange.getStartOffset(),
                     textRange.getEndOffset(),
-                    determineHighlighterLayer(scanPackage),
+                    determineHighlighterLayer(scanIssue),
                     attr,
                     HighlighterTargetArea.EXACT_RANGE
             );
         }
 
         if (addGutterIcon && !alreadyHasGutterIcon) {
-            addGutterIcon(highlighter, scanPackage.getStatus());
+            addGutterIcon(highlighter, scanIssue.getSeverity());
         }
     }
 
@@ -413,25 +412,24 @@ public class ProblemManager {
     /**
      * Determines the highlight type for a specific scan detail.
      *
-     * @param detail the scan detail
+     * @param scanIssue the scan detail
      * @return the problem highlight type
      */
-    public ProblemHighlightType determineHighlightType(OssRealtimeScanPackage detail) {
-        return severityHighlightTypeMap.getOrDefault(detail.getStatus(), ProblemHighlightType.WEAK_WARNING);
+    public ProblemHighlightType determineHighlightType(ScanIssue scanIssue) {
+        return severityHighlightTypeMap.getOrDefault(scanIssue.getSeverity(), ProblemHighlightType.WEAK_WARNING);
     }
 
     /**
      * Determines the highlighter layer for a specific scan detail.
      *
-     * @param detail the scan detail
+     * @param scanIssue the scan detail
      * @return the highlighter layer
      */
-    public Integer determineHighlighterLayer(OssRealtimeScanPackage detail) {
-        return severityHighlighterLayerMap.getOrDefault(detail.getStatus(), HighlighterLayer.WEAK_WARNING);
+    public Integer determineHighlighterLayer(ScanIssue scanIssue) {
+        return severityHighlighterLayerMap.getOrDefault(scanIssue.getSeverity(), HighlighterLayer.WEAK_WARNING);
     }
 
-    public void addToCxOneProblems(PsiFile file, List<CxProblems> problemsList) {
-        ProblemHolderService.getInstance(file.getProject())
-                .addProblems(file.getVirtualFile().getPath(), problemsList);
+    public void addToCxOneFindings(PsiFile file, List<ScanIssue> problemsList) {
+        ProblemHolderService.getInstance(file.getProject()).addProblems(file.getVirtualFile().getPath(), problemsList);
     }
 }

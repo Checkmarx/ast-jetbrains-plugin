@@ -1,13 +1,31 @@
 package com.checkmarx.intellij.devassist.common;
 
-import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
 
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Interface for a scan result.
+ * @param <T>
+ */
 public interface ScanResult<T> {
+
+    /**
+     * Retrieves the results of a scan operation.
+     * This will be used to get the actual results from the original scan engine scan
+     *
+     * @return the results of the scan as an object of type T
+     */
     T getResults();
-    default List<OssRealtimeScanPackage> getPackages() {
+
+    /**
+     * Get issues from a scan result. Default implementation returns empty list.
+     * This is the common implementation for all scan results.
+     *
+     * @return list of issues
+     */
+    default List<ScanIssue> getIssues() {
         return Collections.emptyList();
     }
 }

@@ -2,7 +2,8 @@ package com.checkmarx.intellij.inspections;
 
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.intellij.devassist.dto.CxProblems;
+import com.checkmarx.intellij.devassist.model.Location;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
@@ -106,7 +107,7 @@ public class AscaInspection extends LocalInspectionTool {
             }
         }
 
-        List<CxProblems> problemsList = new ArrayList<>(buildCxProblems(scanDetails));
+        List<ScanIssue> problemsList = new ArrayList<>(buildCxProblems(scanDetails));
         VirtualFile virtualFile = file.getVirtualFile();
         if (virtualFile != null) {
             ProblemHolderService.getInstance(file.getProject())
@@ -229,15 +230,15 @@ public class AscaInspection extends LocalInspectionTool {
         return ascaService.runAscaScan(file, file.getProject(), false, Constants.JET_BRAINS_AGENT_NAME);
     }
 
-    public static List<CxProblems> buildCxProblems(List<ScanDetail> details) {
+    public static List<ScanIssue> buildCxProblems(List<ScanDetail> details) {
         return details.stream().map(detail -> {
-            CxProblems problem = new CxProblems();
+            ScanIssue problem = new ScanIssue();
             problem.setSeverity(detail.getSeverity());
-            problem.setScannerType(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER_ENGINE_NAME);
+            problem.setScanEngine(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER_ENGINE_NAME);
             problem.setTitle(detail.getRuleName());
             problem.setDescription(detail.getDescription());
             problem.setRemediationAdvise(detail.getRemediationAdvise());
-            problem.addLocation(detail.getLine(), 0, 1000); // assume whole line by default
+            problem.getLocations().add(new Location(detail.getLine(), 0, 1000)); // assume whole line by default
             return problem;
         }).collect(Collectors.toList());
     }

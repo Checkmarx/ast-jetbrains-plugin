@@ -4,7 +4,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerCommand;
-import com.checkmarx.intellij.devassist.dto.CxProblems;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.inspection.RealtimeInspection;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.intellij.openapi.Disposable;
@@ -72,8 +72,8 @@ public class OssScannerCommand extends BaseScannerCommand {
                     try {
                         PsiFile psiFile= PsiManager.getInstance(project).findFile(file.get());
                         ScanResult<?> ossRealtimeResults=  ossScannerService.scan(psiFile, uri);
-                        List<CxProblems> problemsList = new ArrayList<>();
-                        problemsList.addAll(RealtimeInspection.buildCxProblems(ossRealtimeResults.getPackages()));
+                        List<ScanIssue> problemsList = new ArrayList<>();
+                        problemsList.addAll(ossRealtimeResults.getIssues());
                         ProblemHolderService.getInstance(psiFile.getProject())
                                     .addProblems(file.get().getPath(), problemsList);
 
