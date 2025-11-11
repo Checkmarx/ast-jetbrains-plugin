@@ -10,6 +10,9 @@ import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.common.ScannerFactory;
 import com.checkmarx.intellij.devassist.dto.CxProblems;
 import com.checkmarx.intellij.devassist.inspection.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.inspection.remediation.IgnoreAllTypeFix;
+import com.checkmarx.intellij.devassist.inspection.remediation.IgnoreVulnerabilityFix;
+import com.checkmarx.intellij.devassist.inspection.remediation.ViewDetailsFix;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.problems.ProblemManager;
 import com.checkmarx.intellij.devassist.utils.ScannerUtils;
@@ -166,7 +169,7 @@ public class RealtimeInspection extends LocalInspectionTool {
                     description,
                     problemHighlightType,
                     isOnTheFly,
-                    new CxOneAssistFix()/*, new ViewDetailsFix(), new IgnoreVulnerabilityFix(), new IgnoreAllTypeFix()*/
+                    new CxOneAssistFix(), new ViewDetailsFix(), new IgnoreVulnerabilityFix(), new IgnoreAllTypeFix()
             );
         } catch (Exception e) {
             System.out.println("** EXCEPTION: ProblemDescriptor *** " + e.getMessage() + " " + Arrays.toString(e.getStackTrace()));
