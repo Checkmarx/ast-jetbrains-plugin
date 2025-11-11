@@ -1,11 +1,7 @@
 package com.checkmarx.intellij.devassist.basescanner;
 
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.realtimeScanners.utils.ScannerUtils;
-import com.checkmarx.intellij.realtimeScanners.configuration.GlobalScannerController;
-import com.checkmarx.intellij.realtimeScanners.configuration.ScannerConfig;
-import com.checkmarx.intellij.realtimeScanners.common.ScannerType;
-import com.checkmarx.intellij.service.ProblemHolderService;
+import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.ScannerUtils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;

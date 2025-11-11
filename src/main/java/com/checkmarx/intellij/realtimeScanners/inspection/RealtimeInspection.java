@@ -1,22 +1,19 @@
 package com.checkmarx.intellij.realtimeScanners.inspection;
 
-import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
 import com.checkmarx.ast.realtime.RealtimeLocation;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.realtimeScanners.basescanner.ScannerService;
-import com.checkmarx.intellij.realtimeScanners.common.ScanResult;
-import com.checkmarx.intellij.realtimeScanners.common.ScannerFactory;
-import com.checkmarx.intellij.realtimeScanners.utils.ScannerUtils;
-import com.checkmarx.intellij.realtimeScanners.dto.CxProblems;
-import com.checkmarx.intellij.service.ProblemHolderService;
+import com.checkmarx.intellij.devassist.basescanner.ScannerService;
+import com.checkmarx.intellij.devassist.common.ScanResult;
+import com.checkmarx.intellij.devassist.common.ScannerFactory;
+import com.checkmarx.intellij.devassist.utils.ScannerUtils;
+import com.checkmarx.intellij.devassist.dto.CxProblems;
+import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.intellij.codeInspection.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
-import lombok.Getter;
-import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
