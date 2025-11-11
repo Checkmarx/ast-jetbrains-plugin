@@ -11,15 +11,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service(Service.Level.PROJECT)
 public final class ProblemHolderService {
-    //ProblemHolderService
+    // ProblemHolderService
 
     private final Map<String, List<CxProblems>> fileToIssues = new LinkedHashMap<>();
 
-    //  Problem descriptors for each file to avoid display empty problems
+    // Problem descriptors for each file to avoid display empty problems
     private final Map<String, List<ProblemDescriptor>> fileProblemDescriptor = new ConcurrentHashMap<>();
 
-    public static final Topic<IssueListener> ISSUE_TOPIC =
-            new Topic<>("ISSUES_UPDATED", IssueListener.class);
+    public static final Topic<IssueListener> ISSUE_TOPIC = new Topic<>("ISSUES_UPDATED", IssueListener.class);
+
     public interface IssueListener {
         void onIssuesUpdated(Map<String, List<CxProblems>> issues);
     }
@@ -44,6 +44,16 @@ public final class ProblemHolderService {
         return Collections.unmodifiableMap(fileToIssues);
     }
 
+    public void removeAllProblemsOfType(String scannerType) {
+        for (Map.Entry<String, List<CxProblems>> entry : getAllIssues().entrySet()) {
+            List<CxProblems> problems = entry.getValue();
+            if (problems != null) {
+                problems.removeIf(problem -> scannerType.equals(problem.getScannerType()));
+            }
+        }
+        project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
+    }
+
     public synchronized List<ProblemDescriptor> getProblemDescriptors(String filePath) {
         return fileProblemDescriptor.getOrDefault(filePath, Collections.emptyList());
     }
@@ -53,4 +63,3 @@ public final class ProblemHolderService {
     }
 
 }
-

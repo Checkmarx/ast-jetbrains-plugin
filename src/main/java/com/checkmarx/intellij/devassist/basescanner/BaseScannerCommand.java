@@ -1,5 +1,7 @@
 package com.checkmarx.intellij.devassist.basescanner;
+
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.ScannerUtils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
@@ -14,13 +16,13 @@ import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
 public class BaseScannerCommand implements ScannerCommand {
     private static final Logger LOGGER = Utils.getLogger(BaseScannerCommand.class);
-    public  ScannerConfig config;
+    public ScannerConfig config;
 
-    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config, BaseScannerService<?> service){
-        Disposer.register(parentDisposable,this);
+    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config,
+            BaseScannerService<?> service) {
+        Disposer.register(parentDisposable, this);
         this.config = config;
     }
 
@@ -34,31 +36,33 @@ public class BaseScannerCommand implements ScannerCommand {
         if (!isActive) {
             return;
         }
-        if(isScannerRegisteredAlready(project)){
+        if (isScannerRegisteredAlready(project)) {
             return;
         }
-        global().markRegistered(project,getScannerType());
-        LOGGER.info(config.getEnabledMessage() +":"+project.getName());
+        global().markRegistered(project, getScannerType());
+        LOGGER.info(config.getEnabledMessage() + ":" + project.getName());
         initializeScanner();
     }
 
-    public void deregister(Project project){
-        if(!global().isRegistered(project,getScannerType())){
+    public void deregister(Project project) {
+        if (!global().isRegistered(project, getScannerType())) {
             return;
         }
-        global().markUnregistered(project,getScannerType());
-        LOGGER.info(config.getDisabledMessage() +":"+project.getName());
+        global().markUnregistered(project, getScannerType());
+        ProblemHolderService.getInstance(project)
+                .removeAllProblemsOfType(getScannerType().toString());
+        LOGGER.info(config.getDisabledMessage() + ":" + project.getName());
     }
 
-    private boolean getScannerActivationStatus(){
+    private boolean getScannerActivationStatus() {
         return ScannerUtils.isScannerActive(config.getEngineName());
     }
 
-    private boolean isScannerRegisteredAlready(Project project){
-        return global().isRegistered(project,getScannerType());
+    private boolean isScannerRegisteredAlready(Project project) {
+        return global().isRegistered(project, getScannerType());
     }
 
-    protected ScannerType getScannerType(){
+    protected ScannerType getScannerType() {
         return ScannerType.valueOf(config.getEngineName().toUpperCase());
     }
 
