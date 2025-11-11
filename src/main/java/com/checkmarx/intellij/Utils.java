@@ -361,4 +361,19 @@ public final class Utils {
         }
     }
 
+    /**
+     * Escape HTML special characters
+     * @param text String to escape
+     * @return Escaped string
+     */
+    public static String escapeHtml(String text) {
+        if (Objects.isNull(text) || text.isBlank()) {
+            return "";
+        }
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
 }

@@ -39,8 +39,8 @@
         <projectService serviceImplementation="com.checkmarx.intellij.project.ProjectResultsService"/>
 
         <!-- Auto-install MCP at IDE startup if already authenticated -->
-        <postStartupActivity implementation="com.checkmarx.intellij.service.McpInstallService"/>
-        <postStartupActivity implementation="com.checkmarx.intellij.realtimeScanners.configuration.GlobalScannerStartupActivity"/>
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService"/>
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
 
         <toolWindow id="Checkmarx"
                     anchor="bottom"
@@ -68,7 +68,7 @@
                 groupName="OSS"
                 groupPath="Checkmarx"
                 enabledByDefault="true"
-                implementationClass="com.checkmarx.intellij.realtimeScanners.inspection.RealtimeInspection"/>
+                implementationClass="com.checkmarx.intellij.devassist.inspection.RealtimeInspection"/>
 
     </extensions>
 
