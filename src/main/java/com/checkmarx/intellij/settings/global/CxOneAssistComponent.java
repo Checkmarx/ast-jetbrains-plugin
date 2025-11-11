@@ -22,7 +22,6 @@ import net.miginfocom.swing.MigLayout;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.util.Objects;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -31,8 +30,9 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 
 /**
  * UI component shown under Tools > Checkmarx One > CxOne Assist.
- * Provides realtime feature toggles and container management tool selection.
- * Also offers manual MCP configuration installation.
+ * Currently shows OSS realtime scanner toggle and MCP configuration installation.
+ * Other realtime scanners and container management tools are temporarily hidden
+ * and will be restored in a future release.
  */
 public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
@@ -43,15 +43,23 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private final JBLabel ossTitle = new JBLabel(formatTitle(Bundle.message(Resource.OSS_REALTIME_TITLE)));
     private final JBCheckBox ossCheckbox = new JBCheckBox(Bundle.message(Resource.OSS_REALTIME_CHECKBOX));
 
+    // TEMPORARILY HIDDEN FIELDS - Will be restored in future release
+    @SuppressWarnings("unused")
     private final JBLabel secretsTitle = new JBLabel(formatTitle(Bundle.message(Resource.SECRETS_REALTIME_TITLE)));
+    @SuppressWarnings("unused")
     private final JBCheckBox secretsCheckbox = new JBCheckBox(Bundle.message(Resource.SECRETS_REALTIME_CHECKBOX));
 
+    @SuppressWarnings("unused")
     private final JBLabel containersTitle = new JBLabel(formatTitle(Bundle.message(Resource.CONTAINERS_REALTIME_TITLE)));
+    @SuppressWarnings("unused")
     private final JBCheckBox containersCheckbox = new JBCheckBox(Bundle.message(Resource.CONTAINERS_REALTIME_CHECKBOX));
 
+    @SuppressWarnings("unused")
     private final JBLabel iacTitle = new JBLabel(formatTitle(Bundle.message(Resource.IAC_REALTIME_TITLE)));
+    @SuppressWarnings("unused")
     private final JBCheckBox iacCheckbox = new JBCheckBox(Bundle.message(Resource.IAC_REALTIME_CHECKBOX));
 
+    @SuppressWarnings("unused")
     private final ComboBox<String> containersToolCombo = new ComboBox<>(new String[]{"docker", "podman"});
 
     private GlobalSettingsState state;
@@ -94,31 +102,31 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mainPanel.add(new JSeparator(), "growx, wrap");
         mainPanel.add(ossCheckbox, "wrap, gapbottom 10, gapleft 15");
 
-        // Secret Detection
-        mainPanel.add(secretsTitle, "split 2, span");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(secretsCheckbox, "wrap, gapbottom 10, gapleft 15");
+        // TEMPORARILY HIDDEN: Secret Detection - Will be restored in future release
+        // mainPanel.add(secretsTitle, "split 2, span");
+        // mainPanel.add(new JSeparator(), "growx, wrap");
+        // mainPanel.add(secretsCheckbox, "wrap, gapbottom 10, gapleft 15");
 
-        // Containers Realtime
-        mainPanel.add(containersTitle, "split 2, span");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(containersCheckbox, "wrap, gapbottom 10, gapleft 15");
+        // TEMPORARILY HIDDEN: Containers Realtime - Will be restored in future release
+        // mainPanel.add(containersTitle, "split 2, span");
+        // mainPanel.add(new JSeparator(), "growx, wrap");
+        // mainPanel.add(containersCheckbox, "wrap, gapbottom 10, gapleft 15");
 
-        // IaC Realtime
-        mainPanel.add(iacTitle, "split 2, span");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(iacCheckbox, "wrap, gapbottom 10, gapleft 15");
+        // TEMPORARILY HIDDEN: IaC Realtime - Will be restored in future release
+        // mainPanel.add(iacTitle, "split 2, span");
+        // mainPanel.add(new JSeparator(), "growx, wrap");
+        // mainPanel.add(iacCheckbox, "wrap, gapbottom 10, gapleft 15");
 
-        // Containers management tool dropdown
-        JBLabel containersLabel = new JBLabel(formatTitle(Bundle.message(Resource.IAC_REALTIME_SCANNER_PREFIX)));
-        mainPanel.add(containersLabel, "split 2, span, gaptop 10");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(new JBLabel(Bundle.message(Resource.CONTAINERS_TOOL_DESCRIPTION)), "wrap, gapleft 15");
-        containersToolCombo.setPreferredSize(new Dimension(
-                containersLabel.getPreferredSize().width,
-                containersToolCombo.getPreferredSize().height
-        ));
-        mainPanel.add(containersToolCombo, "wrap, gapleft 15");
+        // TEMPORARILY HIDDEN: Containers management tool dropdown - Will be restored in future release
+        // JBLabel containersLabel = new JBLabel(formatTitle(Bundle.message(Resource.IAC_REALTIME_SCANNER_PREFIX)));
+        // mainPanel.add(containersLabel, "split 2, span, gaptop 10");
+        // mainPanel.add(new JSeparator(), "growx, wrap");
+        // mainPanel.add(new JBLabel(Bundle.message(Resource.CONTAINERS_TOOL_DESCRIPTION)), "wrap, gapleft 15");
+        // containersToolCombo.setPreferredSize(new Dimension(
+        //         containersLabel.getPreferredSize().width,
+        //         containersToolCombo.getPreferredSize().height
+        // ));
+        // mainPanel.add(containersToolCombo, "wrap, gapleft 15");
 
         // MCP Section
         mainPanel.add(new JBLabel(formatTitle(Bundle.message(Resource.MCP_SECTION_TITLE))), "split 2, span, gaptop 10");
@@ -246,21 +254,23 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     @Override
     public boolean isModified() {
         ensureState();
-        return ossCheckbox.isSelected() != state.isOssRealtime()
-                || secretsCheckbox.isSelected() != state.isSecretDetectionRealtime()
-                || containersCheckbox.isSelected() != state.isContainersRealtime()
-                || iacCheckbox.isSelected() != state.isIacRealtime()
-                || !Objects.equals(String.valueOf(containersToolCombo.getSelectedItem()), state.getContainersTool());
+        return ossCheckbox.isSelected() != state.isOssRealtime();
+                // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
+                // || secretsCheckbox.isSelected() != state.isSecretDetectionRealtime()
+                // || containersCheckbox.isSelected() != state.isContainersRealtime()
+                // || iacCheckbox.isSelected() != state.isIacRealtime()
+                // || !Objects.equals(String.valueOf(containersToolCombo.getSelectedItem()), state.getContainersTool());
     }
 
     @Override
     public void apply() {
         ensureState();
         state.setOssRealtime(ossCheckbox.isSelected());
-        state.setSecretDetectionRealtime(secretsCheckbox.isSelected());
-        state.setContainersRealtime(containersCheckbox.isSelected());
-        state.setIacRealtime(iacCheckbox.isSelected());
-        state.setContainersTool(String.valueOf(containersToolCombo.getSelectedItem()));
+        // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
+        // state.setSecretDetectionRealtime(secretsCheckbox.isSelected());
+        // state.setContainersRealtime(containersCheckbox.isSelected());
+        // state.setIacRealtime(iacCheckbox.isSelected());
+        // state.setContainersTool(String.valueOf(containersToolCombo.getSelectedItem()));
 
         GlobalSettingsState.getInstance().apply(state);
 
@@ -273,14 +283,15 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     public void reset() {
         state = GlobalSettingsState.getInstance();
         ossCheckbox.setSelected(state.isOssRealtime());
-        secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
-        containersCheckbox.setSelected(state.isContainersRealtime());
-        iacCheckbox.setSelected(state.isIacRealtime());
-        containersToolCombo.setSelectedItem(
-                state.getContainersTool() == null || state.getContainersTool().isBlank()
-                        ? "docker"
-                        : state.getContainersTool()
-        );
+        // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
+        // secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
+        // containersCheckbox.setSelected(state.isContainersRealtime());
+        // iacCheckbox.setSelected(state.isIacRealtime());
+        // containersToolCombo.setSelectedItem(
+        //         state.getContainersTool() == null || state.getContainersTool().isBlank()
+        //                 ? "docker"
+        //                 : state.getContainersTool()
+        // );
     }
 
     private void ensureState() {
