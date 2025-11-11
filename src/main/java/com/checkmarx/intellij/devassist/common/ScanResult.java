@@ -2,11 +2,11 @@ package com.checkmarx.intellij.devassist.common;
 
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
  * Interface for a scan result.
+ *
  * @param <T>
  */
 public interface ScanResult<T> {
@@ -21,11 +21,9 @@ public interface ScanResult<T> {
 
     /**
      * Get issues from a scan result. Default implementation returns empty list.
-     * This is the common implementation for all scan results.
+     * This method wraps an actual scan result and provides a meaningful scan issues list with required details.
      *
      * @return list of issues
      */
-    default List<ScanIssue> getIssues() {
-        return Collections.emptyList();
-    }
+    List<ScanIssue> getIssues();
 }
