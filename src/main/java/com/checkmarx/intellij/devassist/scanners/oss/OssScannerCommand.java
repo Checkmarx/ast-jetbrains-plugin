@@ -30,7 +30,7 @@ public class OssScannerCommand extends BaseScannerCommand {
     private static final Logger LOGGER = Utils.getLogger(OssScannerCommand.class);
 
     public OssScannerCommand(@NotNull Disposable parentDisposable, @NotNull Project project, @NotNull OssScannerService OssscannerService) {
-        super(parentDisposable, OssScannerService.createConfig(), OssscannerService);
+        super(parentDisposable, OssScannerService.createConfig());
         this.ossScannerService = OssscannerService;
         this.project = project;
     }
