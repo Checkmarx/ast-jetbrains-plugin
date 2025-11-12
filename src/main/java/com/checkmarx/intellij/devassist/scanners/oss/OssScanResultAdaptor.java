@@ -2,11 +2,13 @@ package com.checkmarx.intellij.devassist.scanners.oss;
 
 import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
+import com.checkmarx.ast.ossrealtime.OssRealtimeVulnerability;
 import com.checkmarx.ast.realtime.RealtimeLocation;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 
 import java.util.Collections;
 import java.util.List;
@@ -73,18 +75,38 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
      * severity, and vulnerability locations derived from the provided package.
      */
     private ScanIssue createScanIssue(OssRealtimeScanPackage packageObj) {
-        ScanIssue problem = new ScanIssue();
+        ScanIssue scanIssue = new ScanIssue();
 
-        List<RealtimeLocation> locations = packageObj.getLocations();
-        if (Objects.nonNull(locations) && !locations.isEmpty()) {
-            locations.forEach(location -> problem.getLocations().add(createLocation(location)));
+        scanIssue.setTitle(packageObj.getPackageName());
+        scanIssue.setPackageVersion(packageObj.getPackageVersion());
+        scanIssue.setScanEngine(ScanEngine.OSS);
+        scanIssue.setSeverity(packageObj.getStatus());
+
+        if (Objects.nonNull(packageObj.getLocations()) && !packageObj.getLocations().isEmpty()) {
+            packageObj.getLocations().forEach(location ->
+                    scanIssue.getLocations().add(createLocation(location)));
         }
-        problem.setTitle(packageObj.getPackageName());
-        problem.setPackageVersion(packageObj.getPackageVersion());
-        problem.setScanEngine(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME);
-        problem.setSeverity(packageObj.getStatus());
+        if (packageObj.getVulnerabilities() != null && !packageObj.getVulnerabilities().isEmpty()) {
+            packageObj.getVulnerabilities().forEach(vulnerability ->
+                    scanIssue.getVulnerabilities().add(createVulnerability(vulnerability)));
+        }
+        return scanIssue;
+    }
 
-        return problem;
+    /**
+     * Creates a {@code Vulnerability} instance based on the provided {@code OssRealtimeVulnerability}.
+     * This method extracts relevant information such as the ID, description, severity, and fix version
+     * from the provided {@code OssRealtimeVulnerability} object and uses it to construct a new
+     * {@code Vulnerability}.
+     *
+     * @param vulnerability the {@code OssRealtimeVulnerability} object containing details of the vulnerability
+     *                      identified during the real-time scan, including ID, description, severity,
+     *                      and fix version
+     * @return a new {@code Vulnerability} instance encapsulating the details from the given {@code OssRealtimeVulnerability}
+     */
+    private Vulnerability createVulnerability(OssRealtimeVulnerability vulnerability) {
+        return new Vulnerability(vulnerability.getId(), vulnerability.getDescription(),
+                vulnerability.getSeverity(), "", vulnerability.getFixVersion());
     }
 
     /**
@@ -98,6 +120,17 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
      * and start and end indices derived from the provided {@code RealtimeLocation}.
      */
     private Location createLocation(RealtimeLocation location) {
-        return new Location(location.getLine() + 1, location.getStartIndex(), location.getEndIndex());
+        return new Location(getLine(location), location.getStartIndex(), location.getEndIndex());
+    }
+
+    /**
+     * Retrieves the line number from the given {@code RealtimeLocation} object, increments it by one, and returns the result.
+     *
+     * @param location the {@code RealtimeLocation} object containing the original line number
+     * @return the incremented line number based on the {@code RealtimeLocation}'s line value
+     * @apiNote - Current OSS scan result line numbers are zero-based, so this method adjusts them to be one-based.
+     */
+    private int getLine(RealtimeLocation location) {
+        return location.getLine() + 1;
     }
 }

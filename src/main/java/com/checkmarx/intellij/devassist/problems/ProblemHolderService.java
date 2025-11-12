@@ -48,7 +48,7 @@ public final class ProblemHolderService {
         for (Map.Entry<String, List<ScanIssue>> entry : getAllIssues().entrySet()) {
             List<ScanIssue> problems = entry.getValue();
             if (problems != null) {
-                problems.removeIf(problem -> scannerType.equals(problem.getScanEngine()));
+                problems.removeIf(problem -> scannerType.equals(problem.getScanEngine().name()));
             }
         }
         project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());

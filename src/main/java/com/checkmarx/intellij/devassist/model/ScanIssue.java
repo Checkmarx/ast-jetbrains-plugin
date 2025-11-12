@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.model;
 
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -41,7 +42,7 @@ public class ScanIssue {
     private String remediationAdvise;
     private String packageVersion;
     private String cve;
-    private String scanEngine;
+    private ScanEngine scanEngine;
     private String filePath;
 
     /**
