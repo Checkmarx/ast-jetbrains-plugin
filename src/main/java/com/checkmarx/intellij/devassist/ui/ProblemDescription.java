@@ -87,7 +87,7 @@ public class ProblemDescription {
      */
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         descBuilder.append("<div>").append(getIconBasedOnSeverity(scanIssue.getSeverity()))
-                .append("</div>&nbsp;&nbsp<div'><b>").append(escapeHtml(scanIssue.getTitle())).append("</b> - ")
+                .append("<b>").append(escapeHtml(scanIssue.getTitle())).append("</b> - ")
                 .append(wrapTextAtWord(escapeHtml(scanIssue.getRemediationAdvise()))).append("<br>")
                 .append("<font color='gray'>").append(scanIssue.getScanEngine().name()).append("</font></div><br>");
     }
