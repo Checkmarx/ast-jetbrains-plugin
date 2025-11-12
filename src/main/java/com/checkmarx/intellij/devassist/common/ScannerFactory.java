@@ -9,10 +9,11 @@ public class ScannerFactory {
 
     private final List<ScannerService<?>> scannerServices;
 
-    public ScannerFactory(){
-        scannerServices= List.of(new OssScannerService());
+    public ScannerFactory() {
+        scannerServices = List.of(new OssScannerService());
     }
-    public  Optional<ScannerService<?>> findRealTimeScanner(String file){
-        return  scannerServices.stream().filter(scanner->scanner.shouldScanFile(file)).findFirst();
+
+    public Optional<ScannerService<?>> findRealTimeScanner(String file) {
+        return scannerServices.stream().filter(scanner -> scanner.shouldScanFile(file)).findFirst();
     }
 }

@@ -6,6 +6,8 @@ import com.intellij.psi.PsiFile;
 
 public interface ScannerService<T> {
     boolean shouldScanFile(String filePath);
+
     ScanResult<T> scan(PsiFile psiFile, String uri);
+
     ScannerConfig getConfig();
 }

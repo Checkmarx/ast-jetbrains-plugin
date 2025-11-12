@@ -23,8 +23,8 @@ import java.util.stream.Collectors;
 public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
     private static final Logger LOGGER = Utils.getLogger(OssScannerService.class);
 
-    public OssScannerService(){
-      super(createConfig());
+    public OssScannerService() {
+        super(createConfig());
     }
 
     public static ScannerConfig createConfig() {
@@ -39,32 +39,32 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
     }
 
 
-    public boolean shouldScanFile(String filePath){
-       if(!super.shouldScanFile(filePath)){
-           return  false;
-       }
-       return this.isManifestFilePatternMatching(filePath);
+    public boolean shouldScanFile(String filePath) {
+        if (!super.shouldScanFile(filePath)) {
+            return false;
+        }
+        return this.isManifestFilePatternMatching(filePath);
     }
 
-    private boolean isManifestFilePatternMatching(String filePath){
+    private boolean isManifestFilePatternMatching(String filePath) {
         List<PathMatcher> pathMatchers = Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
                 .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
                 .collect(Collectors.toList());
-        for(PathMatcher pathMatcher:pathMatchers){
-            if(pathMatcher.matches(Paths.get(filePath))){
+        for (PathMatcher pathMatcher : pathMatchers) {
+            if (pathMatcher.matches(Paths.get(filePath))) {
                 return true;
             }
         }
         return false;
     }
 
-    public String toSafeTempFileName(String relativePath) {
+    private String toSafeTempFileName(String relativePath) {
         String baseName = Paths.get(relativePath).getFileName().toString();
         String hash = this.generateFileHash(relativePath);
         return baseName + "-" + hash + ".tmp";
     }
 
-    public String generateFileHash(String relativePath) {
+    private String generateFileHash(String relativePath) {
         try {
             LocalTime time = LocalTime.now();
             // MMSS string format for the suffix
@@ -77,77 +77,82 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
                 hexString.append(String.format("%02x", b));
             }
             return hexString.substring(0, 16);
-        }
-        catch (NoSuchAlgorithmException  e){
-           // TODO : add the logger that you are using diff way
+        } catch (NoSuchAlgorithmException e) {
+            // TODO : add the logger that you are using diff way
             return Integer.toHexString((relativePath + System.currentTimeMillis()).hashCode());
         }
     }
 
-    protected Path getTempSubFolderPath(PsiFile document){
+    protected Path getTempSubFolderPath(PsiFile file) {
         String baseTempPath = super.getTempSubFolderPath(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DIRECTORY);
-        String relativePath = document.getName();
-        return Paths.get(baseTempPath,toSafeTempFileName(relativePath));
+        String relativePath = file.getName();
+        return Paths.get(baseTempPath, toSafeTempFileName(relativePath));
     }
 
-    private String saveMainManifestFile(Path tempSubFolder, String originalFilePath,String content) throws IOException {
-          Path originalPath = Paths.get(originalFilePath);
-          String fileName = originalPath.getFileName().toString();
-          Path tempFilePath = Paths.get(tempSubFolder.toString(), fileName);
-          Files.writeString(tempFilePath, content, StandardCharsets.UTF_8);
-          return tempFilePath.toString();
+    private String saveMainManifestFile(Path tempSubFolder, String originalFilePath, String content) throws IOException {
+        Path originalPath = Paths.get(originalFilePath);
+        String fileName = originalPath.getFileName().toString();
+        Path tempFilePath = Paths.get(tempSubFolder.toString(), fileName);
+        Files.writeString(tempFilePath, content, StandardCharsets.UTF_8);
+        return tempFilePath.toString();
     }
 
-    private void saveCompanionFile(Path tempFolderPath,String originalFilePath){
+    private void saveCompanionFile(Path tempFolderPath, String originalFilePath) {
         String companionFileName = getCompanionFileName(getPath(originalFilePath).getFileName().toString());
-        if(companionFileName.isEmpty()){
-          return;
+        if (companionFileName.isEmpty()) {
+            return;
         }
         Path companionOriginalPath = Paths.get(getPath(originalFilePath).getParent().toString(), companionFileName);
         if (!Files.exists(companionOriginalPath)) {
-          return;
+            return;
         }
         Path companionTempPath = Paths.get(tempFolderPath.toString(), companionFileName);
         try {
             Files.copy(companionOriginalPath, companionTempPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             //TODO improve the logger
-            LOGGER.warn("Error occurred during OSS realTime scan",e);
+            LOGGER.warn("Error occurred during OSS realTime scan", e);
         }
     }
 
-    private Path getPath(String file){
+    private Path getPath(String file) {
         return Paths.get(file);
     }
 
-    private String getCompanionFileName(String fileName){
-        if(fileName.equals("package.json")){
+    private String getCompanionFileName(String fileName) {
+        if (fileName.equals("package.json")) {
             return "package-lock.json";
         }
-        if(fileName.contains(".csproj")){
+        if (fileName.contains(".csproj")) {
             return "package.lock.json";
         }
         return "";
     }
 
-    public ScanResult<OssRealtimeResults> scan(PsiFile document, String uri) {
+    /**
+     * Scans the given Psi file using OssScanner wrapper method.
+     *
+     * @param file - the file to scan
+     * @param uri - the file path
+     * @return ScanResult of type OssRealtimeResults
+     */
+    public ScanResult<OssRealtimeResults> scan(PsiFile file, String uri) {
         OssRealtimeResults scanResults;
-        if(!this.shouldScanFile(uri)){
+        if (!this.shouldScanFile(uri)) {
             return null;
         }
-        Path tempSubFolder = this.getTempSubFolderPath(document);
+        Path tempSubFolder = this.getTempSubFolderPath(file);
         try {
             this.createTempFolder(tempSubFolder);
-            String mainTempPath=this.saveMainManifestFile(tempSubFolder, uri,document.getText());
+            String mainTempPath = this.saveMainManifestFile(tempSubFolder, uri, file.getText());
             this.saveCompanionFile(tempSubFolder, uri);
-            LOGGER.info("Start Realtime scan On File: "+uri);
-            scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath,"");
+            LOGGER.info("Start Realtime scan On File: " + uri);
+            scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath, "");
             return new OssScanResultAdaptor(scanResults);
 
         } catch (IOException | CxException | InterruptedException e) {
-         LOGGER.warn("Error occurred during OSS realTime scan",e);
-        }
-        finally {
+            LOGGER.warn("Error occurred during OSS realTime scan", e);
+        } finally {
             LOGGER.info("Deleting temporary folder");
             deleteTempFolder(tempSubFolder);
         }

@@ -1,4 +1,5 @@
 package com.checkmarx.intellij.devassist.basescanner;
+
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.utils.ScannerUtils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
@@ -17,10 +18,10 @@ import org.jetbrains.annotations.Nullable;
 
 public class BaseScannerCommand implements ScannerCommand {
     private static final Logger LOGGER = Utils.getLogger(BaseScannerCommand.class);
-    public  ScannerConfig config;
+    public ScannerConfig config;
 
-    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config, BaseScannerService<?> service){
-        Disposer.register(parentDisposable,this);
+    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config, BaseScannerService<?> service) {
+        Disposer.register(parentDisposable, this);
         this.config = config;
     }
 
@@ -28,37 +29,47 @@ public class BaseScannerCommand implements ScannerCommand {
         return ApplicationManager.getApplication().getService(GlobalScannerController.class);
     }
 
+    /**
+     * Registers the project for the scanner which is invoked
+     * @param project - the project for the registration
+     */
+
     @Override
     public void register(Project project) {
         boolean isActive = getScannerActivationStatus();
         if (!isActive) {
             return;
         }
-        if(isScannerRegisteredAlready(project)){
+        if (isScannerRegisteredAlready(project)) {
             return;
         }
-        global().markRegistered(project,getScannerType());
-        LOGGER.info(config.getEnabledMessage() +":"+project.getName());
+        global().markRegistered(project, getScannerType());
+        LOGGER.info(config.getEnabledMessage() + ":" + project.getName());
         initializeScanner();
     }
 
-    public void deregister(Project project){
-        if(!global().isRegistered(project,getScannerType())){
+    /**
+     * De-registers the project for the scanner ,
+     * @param project - the project that is registered
+     */
+
+    public void deregister(Project project) {
+        if (!global().isRegistered(project, getScannerType())) {
             return;
         }
-        global().markUnregistered(project,getScannerType());
-        LOGGER.info(config.getDisabledMessage() +":"+project.getName());
+        global().markUnregistered(project, getScannerType());
+        LOGGER.info(config.getDisabledMessage() + ":" + project.getName());
     }
 
-    private boolean getScannerActivationStatus(){
+    private boolean getScannerActivationStatus() {
         return ScannerUtils.isScannerActive(config.getEngineName());
     }
 
-    private boolean isScannerRegisteredAlready(Project project){
-        return global().isRegistered(project,getScannerType());
+    private boolean isScannerRegisteredAlready(Project project) {
+        return global().isRegistered(project, getScannerType());
     }
 
-    protected ScannerType getScannerType(){
+    protected ScannerType getScannerType() {
         return ScannerType.valueOf(config.getEngineName().toUpperCase());
     }
 

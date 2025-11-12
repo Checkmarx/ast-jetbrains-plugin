@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface ScanResult<T> {
     T getResults();
+
     default List<OssRealtimeScanPackage> getPackages() {
         return Collections.emptyList();
     }
