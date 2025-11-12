@@ -50,9 +50,20 @@ public class AscaInspection extends LocalInspectionTool {
     public ProblemDescriptor @NotNull [] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         try {
             if (!settings.isAsca()) {
+                ProblemHolderService.getInstance(file.getProject())
+                        .removeAllProblemsOfType(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER_ENGINE_NAME);
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
             ScanResult scanResult = performAscaScan(file);
+
+            if(scanResult.getScanDetails() == null && scanResult.getError()==null){
+                VirtualFile virtualFile = file.getVirtualFile();
+                if (virtualFile != null) {
+                    ProblemHolderService.getInstance(file.getProject())
+                            .addProblems(file.getVirtualFile().getPath(), new ArrayList<>());
+                }
+            }
+
             if (isInvalidScan(scanResult)) {
                 return ProblemDescriptor.EMPTY_ARRAY;
             }

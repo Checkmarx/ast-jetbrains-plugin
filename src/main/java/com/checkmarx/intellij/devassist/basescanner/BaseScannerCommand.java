@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.devassist.basescanner;
 
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.ScannerUtils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
@@ -20,7 +21,7 @@ public class BaseScannerCommand implements ScannerCommand {
     private static final Logger LOGGER = Utils.getLogger(BaseScannerCommand.class);
     public ScannerConfig config;
 
-    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config, BaseScannerService<?> service) {
+    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config ) {
         Disposer.register(parentDisposable, this);
         this.config = config;
     }
@@ -57,6 +58,8 @@ public class BaseScannerCommand implements ScannerCommand {
         if (!global().isRegistered(project, getScannerType())) {
             return;
         }
+        ProblemHolderService.getInstance(project)
+                .removeAllProblemsOfType(getScannerType().toString());
         global().markUnregistered(project, getScannerType());
         LOGGER.info(config.getDisabledMessage() + ":" + project.getName());
     }
