@@ -76,7 +76,7 @@ public class RealtimeInspection extends LocalInspectionTool {
 
         List<ProblemDescriptor> problems = createProblemDescriptors(file, manager, isOnTheFly, scanResult, document);
         problemHolderService.addProblemDescriptors(path, problems);
-        DevAssistUtils.addToCxOneFindings(file, scanResult.getIssues());
+        ProblemHolderService.addToCxOneFindings(file, scanResult.getIssues());
         return problems.toArray(new ProblemDescriptor[0]);
     }
 

@@ -62,4 +62,8 @@ public final class ProblemHolderService {
     public synchronized void addProblemDescriptors(String filePath, List<ProblemDescriptor> problemDescriptors) {
         fileProblemDescriptor.put(filePath, new ArrayList<>(problemDescriptors));
     }
+
+    public static void addToCxOneFindings(PsiFile file, List<ScanIssue> problemsList) {
+        getInstance(file.getProject()).addProblems(file.getVirtualFile().getPath(), problemsList);
+    }
 }

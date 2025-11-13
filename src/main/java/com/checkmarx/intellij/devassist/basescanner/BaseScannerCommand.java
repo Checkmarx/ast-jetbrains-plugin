@@ -1,11 +1,11 @@
 package com.checkmarx.intellij.devassist.basescanner;
 
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
-import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
-import com.checkmarx.intellij.devassist.common.ScannerType;
+import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -16,12 +16,17 @@ import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
+/**
+ * BaseScannerCommand is an abstract implementation of the ScannerCommand interface
+ * that provides foundational functionality for registering, deregistering, and
+ * managing a scanner's lifecycle for a given project. This class serves as a
+ * base implementation for custom scanner commands.
+ */
 public class BaseScannerCommand implements ScannerCommand {
     private static final Logger LOGGER = Utils.getLogger(BaseScannerCommand.class);
     public ScannerConfig config;
 
-    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config ) {
+    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config) {
         Disposer.register(parentDisposable, this);
         this.config = config;
     }
@@ -32,6 +37,7 @@ public class BaseScannerCommand implements ScannerCommand {
 
     /**
      * Registers the project for the scanner which is invoked
+     *
      * @param project - the project for the registration
      */
 
@@ -51,6 +57,7 @@ public class BaseScannerCommand implements ScannerCommand {
 
     /**
      * De-registers the project for the scanner ,
+     *
      * @param project - the project that is registered
      */
 
@@ -72,8 +79,8 @@ public class BaseScannerCommand implements ScannerCommand {
         return global().isRegistered(project, getScannerType());
     }
 
-    protected ScannerType getScannerType() {
-        return ScannerType.valueOf(config.getEngineName().toUpperCase());
+    protected ScanEngine getScannerType() {
+        return ScanEngine.valueOf(config.getEngineName().toUpperCase());
     }
 
     @Nullable

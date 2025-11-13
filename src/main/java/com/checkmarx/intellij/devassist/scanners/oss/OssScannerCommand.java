@@ -7,6 +7,7 @@ import com.checkmarx.intellij.devassist.basescanner.BaseScannerCommand;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.inspection.RealtimeInspection;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -81,11 +82,8 @@ public class OssScannerCommand extends BaseScannerCommand {
                 try {
                     PsiFile psiFile = PsiManager.getInstance(project).findFile(file.get());
                     ScanResult<?> ossRealtimeResults = ossScannerService.scan(psiFile, uri);
-                    List<ScanIssue> problemsList = new ArrayList<>();
-                    problemsList.addAll(ossRealtimeResults.getIssues());
-                    ProblemHolderService.getInstance(psiFile.getProject())
-                            .addProblems(file.get().getPath(), problemsList);
-
+                    List<ScanIssue> problemsList = new ArrayList<>(ossRealtimeResults.getIssues());
+                    ProblemHolderService.addToCxOneFindings(psiFile, problemsList);
                 } catch (Exception e) {
                     LOGGER.warn("Scan failed for manifest file: " + uri + " with exception:" + e);
                 }
