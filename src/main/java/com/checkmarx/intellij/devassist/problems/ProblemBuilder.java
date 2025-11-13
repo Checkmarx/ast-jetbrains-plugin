@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.devassist.problems;
 
-import com.checkmarx.intellij.devassist.inspection.remediation.CxOneAssistFix;
-import com.checkmarx.intellij.devassist.inspection.remediation.IgnoreAllThisTypeFix;
-import com.checkmarx.intellij.devassist.inspection.remediation.IgnoreVulnerabilityFix;
-import com.checkmarx.intellij.devassist.inspection.remediation.ViewDetailsFix;
+import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.remediation.IgnoreAllThisTypeFix;
+import com.checkmarx.intellij.devassist.remediation.IgnoreVulnerabilityFix;
+import com.checkmarx.intellij.devassist.remediation.ViewDetailsFix;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.ui.ProblemDescription;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;

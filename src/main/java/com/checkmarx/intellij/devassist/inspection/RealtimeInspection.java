@@ -81,18 +81,22 @@ public class RealtimeInspection extends LocalInspectionTool {
     }
 
     /**
+     * Retrieves an appropriate instance of {@link ScannerService} for handling real-time scanning
+     * of the specified file. The method checks available scanner services to determine if
+     * any of them is suited to handle the given file path.
      *
-     * @param filePath
-     * @return
+     * @param filePath the path of the file as a string, used to identify an applicable scanner service; must not be null or empty
+     * @return an {@link Optional} containing the matching {@link ScannerService} if found, or an empty {@link Optional} if no appropriate service exists
      */
     private Optional<ScannerService<?>> getScannerService(String filePath) {
         return scannerFactory.findRealTimeScanner(filePath);
     }
 
     /**
+     * Checks if the real-time scanner is active for the given {@link ScannerService}.
      *
-     * @param scannerService
-     * @return
+     * @param scannerService the scanner service whose active status is to be checked; must not be null
+     * @return true if the real-time scanner corresponding to the given scanner service is active, false otherwise
      */
     private boolean isRealTimeScannerActive(ScannerService<?> scannerService) {
         return DevAssistUtils.isScannerActive(scannerService.getConfig().getEngineName());
@@ -136,7 +140,7 @@ public class RealtimeInspection extends LocalInspectionTool {
                 problems.add(descriptor);
             }
         }
-        LOGGER.debug("RTS: Problem descriptors created: {} for file: {}", +problems.size(), file.getName());
+        LOGGER.debug("RTS: Problem descriptors created: {} for file: {}", problems.size(), file.getName());
         return problems;
     }
 }

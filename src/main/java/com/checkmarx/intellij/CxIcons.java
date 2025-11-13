@@ -48,5 +48,6 @@ public final class CxIcons {
     public static final Icon GUTTER_LOW = IconLoader.getIcon("/icons/devassist/low_severity.svg", CxIcons.class);
     public static final Icon GUTTER_SHIELD_QUESTION = IconLoader.getIcon("/icons/devassist/question_mark.svg", CxIcons.class);
     public static final Icon GUTTER_GREEN_SHIELD_CHECK = IconLoader.getIcon("/icons/devassist/green_check.svg", CxIcons.class);
+    public static final Icon STAR_ACTION = IconLoader.getIcon("/icons/devassist/star-action.svg", CxIcons.class);
 
 }

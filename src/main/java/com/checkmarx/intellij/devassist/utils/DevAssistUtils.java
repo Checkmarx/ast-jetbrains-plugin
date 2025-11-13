@@ -6,6 +6,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
 
+/**
+ * Utility class for common operations.
+ */
 public class DevAssistUtils {
 
     private DevAssistUtils() {
@@ -15,6 +18,11 @@ public class DevAssistUtils {
         return ApplicationManager.getApplication().getService(GlobalScannerController.class);
     }
 
+    /**
+     * Checks if the scanner with the given name is active.
+     * @param engineName the name of the scanner to check
+     * @return true if the scanner is active, false otherwise
+     */
     public static boolean isScannerActive(String engineName) {
         if (engineName == null) return false;
         try {
@@ -73,5 +81,34 @@ public class DevAssistUtils {
      */
     public static boolean isLineOutOfRange(int lineNumber, Document document) {
         return lineNumber <= 0 || lineNumber > document.getLineCount();
+    }
+
+    /**
+     * Wraps the given text into lines at word boundaries without exceeding a defined maximum line length.
+     * If a word exceeds the specified line length, it will be placed on a new line.
+     *
+     * @param text the input text to be wrapped into lines
+     * @return the text with line breaks added to wrap it at word boundaries
+     */
+    public static String wrapTextAtWord(String text, int maxLineLength) {
+        StringBuilder result = new StringBuilder();
+        int lineLength = 0;
+        for (String word : text.split(" ")) {
+            if (lineLength > 0) {
+                // Add a space before the word if not at the start of a line
+                result.append(" ");
+                lineLength++;
+            }
+            if (lineLength + word.length() > maxLineLength) {
+                // Start a new line before adding the word
+                result.append("\n");
+                result.append(word);
+                lineLength = word.length();
+            } else {
+                result.append(word);
+                lineLength += word.length();
+            }
+        }
+        return result.toString();
     }
 }
