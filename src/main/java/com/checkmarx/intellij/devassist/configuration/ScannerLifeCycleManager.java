@@ -4,7 +4,7 @@ import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
-import com.checkmarx.intellij.devassist.common.ScannerType;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,23 +30,23 @@ public final class ScannerLifeCycleManager implements Disposable {
     }
 
     public synchronized void updateFromGlobal(@NotNull GlobalScannerController controller) {
-        for (ScannerType kind : ScannerType.values()) {
+        for (ScanEngine kind : ScanEngine.values()) {
             boolean isEnabled = controller.isScannerGloballyEnabled(kind);
             if (isEnabled) start(kind);
             else stop(kind);
         }
     }
 
-    public void start(ScannerType kind) {
+    public void start(ScanEngine kind) {
         scannerRegistry().registerScanner(kind.name());
     }
 
-    public void stop(ScannerType kind) {
+    public void stop(ScanEngine kind) {
         scannerRegistry().deregisterScanner(kind.name());
     }
 
     public void stopAll() {
-        for (ScannerType kind : ScannerType.values()) {
+        for (ScanEngine kind : ScanEngine.values()) {
             stop(kind);
         }
     }

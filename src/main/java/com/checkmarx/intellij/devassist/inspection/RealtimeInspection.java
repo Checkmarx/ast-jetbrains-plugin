@@ -1,61 +1,65 @@
 package com.checkmarx.intellij.devassist.inspection;
 
-import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
-import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
-import com.checkmarx.ast.realtime.RealtimeLocation;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.common.ScannerFactory;
-import com.checkmarx.intellij.devassist.dto.CxProblems;
-import com.checkmarx.intellij.devassist.inspection.remediation.CxOneAssistFix;
-import com.checkmarx.intellij.devassist.inspection.remediation.IgnoreAllTypeFix;
-import com.checkmarx.intellij.devassist.inspection.remediation.IgnoreVulnerabilityFix;
-import com.checkmarx.intellij.devassist.inspection.remediation.ViewDetailsFix;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
-import com.checkmarx.intellij.devassist.problems.ProblemManager;
-import com.checkmarx.intellij.devassist.utils.ScannerUtils;
+import com.checkmarx.intellij.devassist.problems.ScanIssueProcessor;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
-import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+
+import static java.lang.String.format;
 
 /**
- * Dev Assist RealtimeInspection class that extends LocalInspectionTool to perform real-time code scan.
+ * The RealtimeInspection class extends LocalInspectionTool and is responsible for
+ * performing real-time inspections of files within a project. It uses various
+ * utility classes to scan files, identify issues, and provide problem descriptors
+ * for on-the-fly or manual inspections.
+ * <p>
+ * This class maintains a cache of file modification timestamps to optimize its
+ * behavior, avoiding repeated scans of unchanged files. It supports integration
+ * with real-time scanner services and provides problem highlights and fixes for
+ * identified issues.
  */
 public class RealtimeInspection extends LocalInspectionTool {
 
-    private final Logger logger = Utils.getLogger(RealtimeInspection.class);
+    private static final Logger LOGGER = Utils.getLogger(RealtimeInspection.class);
 
     private final Map<String, Long> fileTimeStamp = new ConcurrentHashMap<>();
     private final ScannerFactory scannerFactory = new ScannerFactory();
-    private final ProblemManager problemManager = new ProblemManager();
+    private final ProblemDecorator problemDecorator = new ProblemDecorator();
 
     /**
-     * Checks the given file for problems.
+     * Inspects the given PSI file and identifies potential issues or problems by leveraging
+     * scanning services and generating problem descriptors.
      *
-     * @param file       to check.
-     * @param manager    InspectionManager to ask for ProblemDescriptor's from.
-     * @param isOnTheFly true if called during on the fly editor highlighting. Called from Inspect Code action otherwise.
-     * @return an array of ProblemDescriptor's found in the file.
+     * @param file       the PSI file to be checked; must not be null
+     * @param manager    the inspection manager used to create problem descriptors; must not be null
+     * @param isOnTheFly a flag that indicates whether the inspection is executed on-the-fly
+     * @return an array of {@link ProblemDescriptor} representing the detected issues, or an empty array if no issues were found
      */
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
-        System.out.println("** RealtimeInspection called for file : " + file.getName());
         String path = file.getVirtualFile().getPath();
+        Optional<ScannerService<?>> scannerService = getScannerService(path);
 
+        if (scannerService.isEmpty() || !isRealTimeScannerActive(scannerService.get())) {
+            LOGGER.warn(format("RTS: Scanner is not active for file: %s.", file.getName()));
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(file.getProject());
         long currentModificationTime = file.getModificationStamp();
 
@@ -63,140 +67,76 @@ public class RealtimeInspection extends LocalInspectionTool {
             return problemHolderService.getProblemDescriptors(path).toArray(new ProblemDescriptor[0]);
         }
         fileTimeStamp.put(path, currentModificationTime);
-        System.out.println("** File modified : " + file.getName());
 
         Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
         if (document == null) return ProblemDescriptor.EMPTY_ARRAY;
 
-        ScanResult<?> scanResult = scanFile(file, path);
+        ScanResult<?> scanResult = scanFile(scannerService.get(), file, path);
         if (Objects.isNull(scanResult)) return ProblemDescriptor.EMPTY_ARRAY;
 
         List<ProblemDescriptor> problems = createProblemDescriptors(file, manager, isOnTheFly, scanResult, document);
         problemHolderService.addProblemDescriptors(path, problems);
-
-        ProblemHolderService.getInstance(file.getProject())
-                .addProblems(file.getVirtualFile().getPath(),
-                        buildCxProblems(scanResult.getPackages()));
-
+        ProblemHolderService.addToCxOneFindings(file, scanResult.getIssues());
         return problems.toArray(new ProblemDescriptor[0]);
     }
 
     /**
-     * Scans the given file using the appropriate scanner service.
      *
-     * @param file - the file to scan
-     * @param path - the file path
-     * @return the scan results
+     * @param filePath
+     * @return
      */
-    private ScanResult<?> scanFile(PsiFile file, String path) {
-        System.out.println("** Called scan for file : " + file.getName());
-        Optional<ScannerService<?>> scannerService = scannerFactory.findRealTimeScanner(path);
-        if (scannerService.isEmpty()) {
-            return null;
-        }
-        if (!ScannerUtils.isScannerActive(scannerService.get().getConfig().getEngineName())) {
-            return null;
-        }
-        return scannerService.get().scan(file,path);
+    private Optional<ScannerService<?>> getScannerService(String filePath) {
+        return scannerFactory.findRealTimeScanner(filePath);
     }
 
     /**
-     * Creates problem descriptors for the given scan details.
      *
-     * @param file       the file to check
-     * @param manager    the inspection manager
-     * @param scanResult the scan details
-     * @param document   the document
-     * @param isOnTheFly whether the inspection is on-the-fly
-     * @return a list of problem descriptors
+     * @param scannerService
+     * @return
+     */
+    private boolean isRealTimeScannerActive(ScannerService<?> scannerService) {
+        return DevAssistUtils.isScannerActive(scannerService.getConfig().getEngineName());
+    }
+
+    /**
+     * Scans the given PSI file at the specified path using an appropriate real-time scanner,
+     * if available and active.
+     *
+     * @param scannerService - ScannerService object of found scan engine
+     * @param file           the PsiFile representing the file to be scanned; must not be null
+     * @param path           the string representation of the file path to be scanned; must not be null or empty
+     * @return a {@link ScanResult} instance containing the results of the scan, or null if no
+     * active and suitable scanner is found
+     */
+    private ScanResult<?> scanFile(ScannerService<?> scannerService, PsiFile file, String path) {
+        return scannerService.scan(file, path);
+    }
+
+    /**
+     * Creates a list of {@link ProblemDescriptor} objects based on the issues identified in the scan result.
+     * This method processes the scan issues for the specified file and uses the provided InspectionManager
+     * to generate corresponding problem descriptors, if applicable.
+     *
+     * @param file       the {@link PsiFile} being inspected; must not be null
+     * @param manager    the {@link InspectionManager} used to create problem descriptors; must not be null
+     * @param isOnTheFly a flag that indicates whether the inspection is executed on-the-fly
+     * @param scanResult the result of the scan containing issues to process
+     * @param document   the {@link Document} object representing the content of the file
+     * @return a list of {@link ProblemDescriptor}; an empty list is returned if no issues are found or processed successfully
      */
     private List<ProblemDescriptor> createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly,
                                                              ScanResult<?> scanResult, Document document) {
         List<ProblemDescriptor> problems = new ArrayList<>();
-        problemManager.removeAllGutterIcons(file);
-        for (OssRealtimeScanPackage scanPackage : scanResult.getPackages()) {
-            System.out.println("** Package name: " + scanPackage.getPackageName());
-            List<RealtimeLocation> locations = scanPackage.getLocations();
-            if (Objects.isNull(locations) || locations.isEmpty()) {
-                continue;
-            }
-            // Example: Line number where a problem is found (1-based, e.g., line 18)
-            int problemLineNumber = scanPackage.getLocations().get(0).getLine() + 1;
-            System.out.println("** Package found lineNumber: " + problemLineNumber);
-            if (problemManager.isLineOutOfRange(problemLineNumber, document)
-                    || scanPackage.getStatus() == null || scanPackage.getStatus().isBlank())
-                continue;
-            try {
-                boolean isProblem = problemManager.isProblem(scanPackage.getStatus().toLowerCase());
-                if (isProblem) {
-                    ProblemDescriptor problemDescriptor = createProblem(file, manager, scanPackage, document, problemLineNumber, isOnTheFly);
-                    if (Objects.nonNull(problemDescriptor)) {
-                        problems.add(problemDescriptor);
-                    }
-                }
-                PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(problemLineNumber));
-                if (Objects.isNull(elementAtLine)) continue;
-                problemManager.highlightLineAddGutterIconForProblem(file.getProject(), file, scanPackage, isProblem, problemLineNumber);
-            } catch (Exception e) {
-                System.out.println("** EXCEPTION OCCURRED WHILE ITERATING SCAN RESULT: " + Arrays.toString(e.getStackTrace()));
+        this.problemDecorator.removeAllGutterIcons(file);
+        ScanIssueProcessor processor = new ScanIssueProcessor(this.problemDecorator, file, manager, document, isOnTheFly);
+
+        for (ScanIssue scanIssue : scanResult.getIssues()) {
+            ProblemDescriptor descriptor = processor.processScanIssue(scanIssue);
+            if (descriptor != null) {
+                problems.add(descriptor);
             }
         }
-        System.out.println("** problems  called:" + problems);
+        LOGGER.debug("RTS: Problem descriptors created: {} for file: {}", +problems.size(), file.getName());
         return problems;
-    }
-
-    /**
-     * Creates a ProblemDescriptor for the given scan package.
-     *
-     * @param file        @NotNull PsiFile
-     * @param manager     @NotNull InspectionManager to create a problem
-     * @param scanPackage OssRealtimeScanPackage scan result
-     * @param document    Document of the file
-     * @param lineNumber  int line number where a problem is found
-     * @param isOnTheFly  boolean indicating if the inspection is on-the-fly
-     * @return ProblemDescriptor for the problem found
-     */
-    private ProblemDescriptor createProblem(@NotNull PsiFile file, @NotNull InspectionManager manager, OssRealtimeScanPackage scanPackage, Document document, int lineNumber, boolean isOnTheFly) {
-        try {
-            System.out.println("** Creating problem using inspection called **");
-            TextRange problemRange = problemManager.getTextRangeForLine(document, lineNumber);
-            String description = problemManager.formatDescription(scanPackage);
-            ProblemHighlightType problemHighlightType = problemManager.determineHighlightType(scanPackage);
-
-            return manager.createProblemDescriptor(
-                    file,
-                    problemRange,
-                    description,
-                    problemHighlightType,
-                    isOnTheFly,
-                    new CxOneAssistFix(), new ViewDetailsFix(), new IgnoreVulnerabilityFix(), new IgnoreAllTypeFix()
-            );
-        } catch (Exception e) {
-            System.out.println("** EXCEPTION: ProblemDescriptor *** " + e.getMessage() + " " + Arrays.toString(e.getStackTrace()));
-            return null;
-        }
-    }
-
-    /**
-     * After getting the entire scan result pass to this method to build the CxProblems for custom tool window
-     *
-     */
-    public static List<CxProblems> buildCxProblems(List<OssRealtimeScanPackage> pkgs) {
-        return pkgs.stream()
-                .map(pkg -> {
-                    CxProblems problem = new CxProblems();
-                    if (pkg.getLocations() != null && !pkg.getLocations().isEmpty()) {
-                        for (RealtimeLocation location : pkg.getLocations()) {
-                            problem.addLocation(location.getLine() + 1, location.getStartIndex(), location.getEndIndex());
-                        }
-                    }
-                    problem.setTitle(pkg.getPackageName());
-                    problem.setPackageVersion(pkg.getPackageVersion());
-                    problem.setScannerType(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME);
-                    problem.setSeverity(pkg.getStatus());
-                    // Optionally set other fields if available, e.g. description, cve, etc.
-                    return problem;
-                })
-                .collect(Collectors.toList());
     }
 }

@@ -6,6 +6,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiFile;
@@ -29,7 +30,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
 
     public static ScannerConfig createConfig() {
         return ScannerConfig.builder()
-                .engineName(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME)
+                .engineName(ScanEngine.OSS.name())
                 .configSection(Constants.RealTimeConstants.OSS_REALTIME_SCANNER)
                 .activateKey(Constants.RealTimeConstants.ACTIVATE_OSS_REALTIME_SCANNER)
                 .errorMessage(Constants.RealTimeConstants.ERROR_OSS_REALTIME_SCANNER)
