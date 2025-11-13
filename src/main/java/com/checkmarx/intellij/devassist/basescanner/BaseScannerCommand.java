@@ -2,7 +2,7 @@ package com.checkmarx.intellij.devassist.basescanner;
 
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
-import com.checkmarx.intellij.devassist.utils.ScannerUtils;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.common.ScannerType;
@@ -55,7 +55,7 @@ public class BaseScannerCommand implements ScannerCommand {
     }
 
     private boolean getScannerActivationStatus() {
-        return ScannerUtils.isScannerActive(config.getEngineName());
+        return DevAssistUtils.isScannerActive(config.getEngineName());
     }
 
     private boolean isScannerRegisteredAlready(Project project) {

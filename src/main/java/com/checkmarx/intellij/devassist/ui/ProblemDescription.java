@@ -25,18 +25,28 @@ public class ProblemDescription {
     private static final int MAX_LINE_LENGTH = 150;
     private final Map<String, String> severityConfig = new LinkedHashMap<>();
 
+    private static final String DIV = "<div>";
+    private static final String DIV_BR = "</div><br>";
+
+    //Tooltip description constants
+    public static final String PACKAGE = "Package";
+    public static final String RISK_PACKAGE = "risk package";
+    public static final String SEVERITY_PACKAGE = "Severity Package";
+    public static final String PACKAGE_DETECTED = "package detected";
+
     public ProblemDescription(){
-        initGutterIconsMap();
+        initIconsMap();
     }
 
     /**
      * Initializes the mapping from severity levels to severity-specific icons.
      */
-    private void initGutterIconsMap() {
+    private void initIconsMap() {
         severityConfig.put(SeverityLevel.CRITICAL.getSeverity(), getImage(getIconPath(Constants.ImagePaths.CRITICAL_SEVERITY_PNG)));
         severityConfig.put(SeverityLevel.HIGH.getSeverity(), getImage(getIconPath(Constants.ImagePaths.HIGH_SEVERITY_PNG)));
         severityConfig.put(SeverityLevel.MEDIUM.getSeverity(), getImage(getIconPath(Constants.ImagePaths.MEDIUM_SEVERITY_PNG)));
         severityConfig.put(SeverityLevel.LOW.getSeverity(), getImage(getIconPath(Constants.ImagePaths.LOW_SEVERITY_PNG)));
+        severityConfig.put(PACKAGE, getImage(getIconPath(Constants.ImagePaths.PACKAGE_PNG)));
     }
 
     public String formatDescription(ScanIssue scanIssue) {
@@ -69,9 +79,10 @@ public class ProblemDescription {
      *                    including its severity, vulnerabilities, and related details
      */
     private void buildOSSDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-        if (scanIssue.getSeverity().equalsIgnoreCase(SeverityLevel.MALICIOUS.getSeverity()))
+        if (scanIssue.getSeverity().equalsIgnoreCase(SeverityLevel.MALICIOUS.getSeverity())) {
             buildMaliciousPackageMessage(descBuilder, scanIssue);
-
+            return;
+        }
         buildPackageHeader(descBuilder, scanIssue);
         buildVulnerabilitySection(descBuilder, scanIssue);
     }
@@ -86,10 +97,10 @@ public class ProblemDescription {
      *                    remediation advice, and the scanning engine responsible for detecting the issue
      */
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<div>").append(getIconBasedOnSeverity(scanIssue.getSeverity()))
+        descBuilder.append(DIV).append(getIconBasedOnSeverity(scanIssue.getSeverity()))
                 .append("<b>").append(escapeHtml(scanIssue.getTitle())).append("</b> - ")
                 .append(wrapTextAtWord(escapeHtml(scanIssue.getRemediationAdvise()))).append("<br>")
-                .append("<font color='gray'>").append(scanIssue.getScanEngine().name()).append("</font></div><br>");
+                .append("<font color='gray'>").append(scanIssue.getScanEngine().name()).append("</font></div><br><hr>");
     }
 
     String getIconBasedOnSeverity(String severity) {
@@ -104,7 +115,7 @@ public class ProblemDescription {
      * @param scanIssue   the ScanIssue object containing details about the issue such as title and description
      */
     private void buildDefaultDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<div'><b>").append(scanIssue.getTitle()).append("</b> -").append(scanIssue.getDescription());
+        descBuilder.append("<div><b>").append(scanIssue.getTitle()).append("</b> -").append(scanIssue.getDescription());
     }
 
     /**
@@ -116,13 +127,32 @@ public class ProblemDescription {
      * @param scanIssue   the ScanIssue object containing details about the issue such as severity, title, and package version
      */
     private void buildPackageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<div'>").append(scanIssue.getSeverity()).append("-risk package:  ")
-                .append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion())
+        descBuilder.append(DIV).append(scanIssue.getSeverity()).append("-").append(RISK_PACKAGE)
+                .append(":  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion())
                 .append(" - <font color='gray'>").append(scanIssue.getScanEngine().name()).append("</font></div><br>");
-        descBuilder.append("<div'>").append(getImage(getIconPath(Constants.ImagePaths.PACKAGE_PNG)))
+        descBuilder.append(DIV).append(severityConfig.get(PACKAGE))
                 .append("<b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
-                .append(" - ").append(scanIssue.getSeverity()).append(" Severity Package")
-                .append("").append("</div><br><br>");
+                .append(" - ").append(scanIssue.getSeverity()).append(" ").append(SEVERITY_PACKAGE).append("</div><br><br>");
+    }
+
+    /**
+     * Builds a malicious package message and appends it to the provided StringBuilder.
+     * This method formats details about a detected malicious package based on its
+     * severity, title, and package version, and includes a corresponding icon representing
+     * the severity of the issue.
+     *
+     * @param descBuilder the StringBuilder to which the formatted malicious package message will be appended
+     * @param scanIssue   the ScanIssue object containing details about the malicious package, such as its severity,
+     *                    title, and package version
+     */
+    private void buildMaliciousPackageMessage(StringBuilder descBuilder, ScanIssue scanIssue) {
+        descBuilder.append(DIV).append(scanIssue.getSeverity()).append(" ").append(PACKAGE_DETECTED)
+                .append(":  ").append(scanIssue.getTitle())
+                .append("@").append(scanIssue.getPackageVersion()).append(DIV_BR);
+        descBuilder.append(DIV).append(getImage(getIconPath(Constants.ImagePaths.MALICIOUS_SEVERITY_PNG)))
+                .append("<b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
+                .append(" - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE).append(DIV_BR);
+        descBuilder.append(DIV_BR);
     }
 
     /**
@@ -136,7 +166,7 @@ public class ProblemDescription {
     private void buildVulnerabilitySection(StringBuilder descBuilder, ScanIssue scanIssue) {
         List<Vulnerability> vulnerabilityList = scanIssue.getVulnerabilities();
         if (vulnerabilityList != null && !vulnerabilityList.isEmpty()) {
-            descBuilder.append("<div>");
+            descBuilder.append(DIV);
             buildVulnerabilityIconWithCountMessage(descBuilder, vulnerabilityList);
             descBuilder.append("</div><br><div>");
             findVulnerabilityBySeverity(vulnerabilityList, scanIssue.getSeverity())
@@ -158,25 +188,6 @@ public class ProblemDescription {
         return vulnerabilityList.stream()
                 .filter(vulnerability -> vulnerability.getSeverity().equalsIgnoreCase(severity))
                 .findFirst();
-    }
-
-    /**
-     * Builds a malicious package message and appends it to the provided StringBuilder.
-     * This method formats details about a detected malicious package based on its
-     * severity, title, and package version, and includes a corresponding icon representing
-     * the severity of the issue.
-     *
-     * @param descBuilder the StringBuilder to which the formatted malicious package message will be appended
-     * @param scanIssue   the ScanIssue object containing details about the malicious package, such as its severity,
-     *                    title, and package version
-     */
-    private void buildMaliciousPackageMessage(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<div'>").append(scanIssue.getSeverity()).append(" package detected:  ").append(scanIssue.getTitle())
-                .append("@").append(scanIssue.getPackageVersion()).append("</div><br>");
-        descBuilder.append("<div'>").append(getImage(getIconPath(Constants.ImagePaths.MALICIOUS_SEVERITY_PNG)))
-                .append("<b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
-                .append(" - ").append(scanIssue.getSeverity()).append(" Package").append("</div><br>");
-        descBuilder.append("</div><br>").append("</div></body></html>");
     }
 
     /**
@@ -246,5 +257,4 @@ public class ProblemDescription {
         }
         return result.toString();
     }
-
 }

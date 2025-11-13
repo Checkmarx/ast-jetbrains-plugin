@@ -9,6 +9,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
+import static java.lang.String.format;
+
 /**
  * The `CxOneAssistFix` class implements the `LocalQuickFix` interface and provides a specific fix
  * for issues detected during scans. This class is used to apply a remediation action
@@ -61,6 +63,24 @@ public class CxOneAssistFix implements LocalQuickFix {
      */
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
-        LOGGER.info("applyFix called.." + getFamilyName() + " " + scanIssue.getTitle());
+        LOGGER.info(format("RTS-Fix: Remediation called: %s for issue: %s", getFamilyName(), scanIssue.getTitle()));
+        switch (scanIssue.getScanEngine()) {
+            case OSS:
+                applyOSSRemediation();
+                break;
+            case ASCA:
+                applyASCARemediation();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void applyOSSRemediation() {
+        LOGGER.info(format("RTS-Fix: Remediation started for OSS Issue: %s", scanIssue.getTitle()));
+    }
+
+    private void applyASCARemediation() {
+        LOGGER.info(format("RTS-Fix: Remediation started for ASCA Issue: %s", scanIssue.getTitle()));
     }
 }
