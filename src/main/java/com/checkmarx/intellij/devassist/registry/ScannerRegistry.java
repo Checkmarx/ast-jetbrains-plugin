@@ -2,6 +2,7 @@ package com.checkmarx.intellij.devassist.registry;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.scanners.oss.OssScannerCommand;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.Disposable;
 import com.checkmarx.intellij.devassist.basescanner.ScannerCommand;
 import com.intellij.openapi.components.Service;
@@ -28,7 +29,7 @@ public final class ScannerRegistry implements Disposable {
     }
 
     private void scannerInitialization(){
-        this.setScanner(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_ENGINE_NAME,new OssScannerCommand(this,project));
+        this.setScanner(ScanEngine.OSS.name(), new OssScannerCommand(this,project));
     }
 
     private void setScanner(String id, ScannerCommand scanner){
