@@ -44,6 +44,7 @@ public class ProblemDescription {
      * Initializes the mapping from severity levels to severity-specific icons.
      */
     private void initIconsMap() {
+        DESCRIPTION_ICON.put(SeverityLevel.MALICIOUS.getSeverity(), getImage(getIconPath(Constants.ImagePaths.MALICIOUS_SEVERITY_PNG)));
         DESCRIPTION_ICON.put(SeverityLevel.CRITICAL.getSeverity(), getImage(getIconPath(Constants.ImagePaths.CRITICAL_SEVERITY_PNG)));
         DESCRIPTION_ICON.put(SeverityLevel.HIGH.getSeverity(), getImage(getIconPath(Constants.ImagePaths.HIGH_SEVERITY_PNG)));
         DESCRIPTION_ICON.put(SeverityLevel.MEDIUM.getSeverity(), getImage(getIconPath(Constants.ImagePaths.MEDIUM_SEVERITY_PNG)));
@@ -79,7 +80,7 @@ public class ProblemDescription {
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
-        descBuilder.append("</div></body></html>");
+        descBuilder.append("<hr></div></body></html>");
         return descBuilder.toString();
     }
 
@@ -111,14 +112,14 @@ public class ProblemDescription {
      *                    remediation advice, and the scanning engine responsible for detecting the issue
      */
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append(DIV).append(getIconBasedOnSeverity(scanIssue.getSeverity()))
+        descBuilder.append(DIV).append(getIcon(scanIssue.getSeverity()))
                 .append("<b>").append(escapeHtml(scanIssue.getTitle())).append("</b> - ")
                 .append(wrapText(escapeHtml(scanIssue.getRemediationAdvise()))).append("<br>")
                 .append("<font color='gray'>").append(scanIssue.getScanEngine().name()).append("</font></div><br><hr>");
     }
 
-    String getIconBasedOnSeverity(String severity) {
-        return DESCRIPTION_ICON.getOrDefault(severity, "");
+    private String getIcon(String key) {
+        return DESCRIPTION_ICON.getOrDefault(key, "");
     }
 
     /**
@@ -144,7 +145,7 @@ public class ProblemDescription {
         descBuilder.append(DIV).append(scanIssue.getSeverity()).append("-").append(RISK_PACKAGE)
                 .append(":  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion())
                 .append(" - <font color='gray'>").append(scanIssue.getScanEngine().name()).append("</font></div><br>");
-        descBuilder.append(DIV).append(DESCRIPTION_ICON.get(PACKAGE))
+        descBuilder.append(DIV).append(getIcon(PACKAGE))
                 .append("<b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
                 .append(" - ").append(scanIssue.getSeverity()).append(" ").append(SEVERITY_PACKAGE).append("</div><br><br>");
     }
@@ -163,7 +164,7 @@ public class ProblemDescription {
         descBuilder.append(DIV).append(scanIssue.getSeverity()).append(" ").append(PACKAGE_DETECTED)
                 .append(":  ").append(scanIssue.getTitle())
                 .append("@").append(scanIssue.getPackageVersion()).append(DIV_BR);
-        descBuilder.append(DIV).append(getImage(getIconPath(Constants.ImagePaths.MALICIOUS_SEVERITY_PNG)))
+        descBuilder.append(DIV).append(getIcon(scanIssue.getSeverity()))
                 .append("<b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
                 .append(" - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE).append(DIV_BR);
         descBuilder.append(DIV_BR);
@@ -187,7 +188,7 @@ public class ProblemDescription {
                     .ifPresent(vulnerability ->
                             descBuilder.append(wrapText(escapeHtml(vulnerability.getDescription()))).append("<br>")
                     );
-            descBuilder.append("</div><br><hr>");
+            descBuilder.append(DIV_BR);
         }
     }
 

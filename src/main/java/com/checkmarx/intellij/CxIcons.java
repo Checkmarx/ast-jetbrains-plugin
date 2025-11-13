@@ -23,18 +23,15 @@ public final class CxIcons {
     public static Icon getWelcomeMcpDisableIcon() {return IconLoader.getIcon("/icons/cxAIError.svg", CxIcons.class);}
 
     public static final Icon GUTTER_MALICIOUS = IconLoader.getIcon("/icons/devassist/malicious.svg", CxIcons.class);
-    public static final Icon GUTTER_CRITICAL = IconLoader.getIcon("/icons/devassist/critical_severity.svg", CxIcons.class);
-    public static final Icon GUTTER_HIGH = IconLoader.getIcon("/icons/devassist/high_severity.svg", CxIcons.class);
-    public static final Icon GUTTER_MEDIUM = IconLoader.getIcon("/icons/devassist/medium_severity.svg", CxIcons.class);
-    public static final Icon GUTTER_LOW = IconLoader.getIcon("/icons/devassist/low_severity.svg", CxIcons.class);
     public static final Icon GUTTER_SHIELD_QUESTION = IconLoader.getIcon("/icons/devassist/question_mark.svg", CxIcons.class);
-    public static final Icon GUTTER_GREEN_SHIELD_CHECK = IconLoader.getIcon("/icons/devassist/green_check.svg", CxIcons.class);
     public static final Icon STAR_ACTION = IconLoader.getIcon("/icons/devassist/star-action.svg", CxIcons.class);
 
     /**
      * Inner static final class, to maintain the constants used in icons for the value 24*24.
      */
     public static final class Regular{
+
+        private Regular() {}
 
         public static final Icon MALICIOUS = IconLoader.getIcon("/icons/devassist/severity_24/malicious.svg", CxIcons.class);
         public static final Icon CRITICAL = IconLoader.getIcon("/icons/devassist/severity_24/critical.svg", CxIcons.class);
@@ -51,6 +48,8 @@ public final class CxIcons {
      */
     public static final class Medium{
 
+        private Medium() {}
+
         public static final Icon MALICIOUS = IconLoader.getIcon("/icons/devassist/severity_20/malicious.svg", CxIcons.class);
         public static final Icon CRITICAL = IconLoader.getIcon("/icons/devassist/severity_20/critical.svg", CxIcons.class);
         public static final Icon HIGH = IconLoader.getIcon("/icons/devassist/severity_20/high.svg", CxIcons.class);
@@ -65,6 +64,8 @@ public final class CxIcons {
      * Inner static final class, to maintain the constants used in icons for the value 16*16.
      */
     public static final class Small{
+
+        private Small() {}
 
         public static final Icon MALICIOUS = IconLoader.getIcon("/icons/devassist/severity_16/malicious.svg", CxIcons.class);
         public static final Icon CRITICAL = IconLoader.getIcon("/icons/devassist/severity_16/critical.svg", CxIcons.class);

@@ -202,20 +202,19 @@ public class ProblemDecorator {
             case MALICIOUS:
                 return CxIcons.GUTTER_MALICIOUS;
             case CRITICAL:
-                return CxIcons.GUTTER_CRITICAL;
+                return CxIcons.Small.CRITICAL;
             case HIGH:
-                return CxIcons.GUTTER_HIGH;
+                return CxIcons.Small.HIGH;
             case MEDIUM:
-                return CxIcons.GUTTER_MEDIUM;
+                return CxIcons.Small.MEDIUM;
             case LOW:
-                return CxIcons.GUTTER_LOW;
+                return CxIcons.Small.LOW;
             case OK:
-                return CxIcons.GUTTER_GREEN_SHIELD_CHECK;
+                return CxIcons.Small.OK;
             default:
                 return CxIcons.GUTTER_SHIELD_QUESTION;
         }
     }
-
 
     /**
      * Determines the highlighter layer for a specific scan detail.
