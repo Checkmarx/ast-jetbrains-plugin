@@ -1,42 +1,68 @@
 package com.checkmarx.intellij.devassist.inspection.remediation;
 
+import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.util.IntentionFamilyName;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.profile.codeInspection.ProjectInspectionProfileManager;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * A class representing a quick fix that enables users to view details of a scan issue detected during
+ * a scanning process. This class implements the `LocalQuickFix` interface, allowing it to be presented
+ * as a fix option within IDE inspections or problem lists.
+ * <p>
+ * This quick fix is primarily used to group and categorize similar fixes with a common family
+ * name, and to invoke functionality that provides further details about the associated scan issue.
+ * <p>
+ * Key behaviors of this class include:
+ * - Providing a family name that categorizes this type of quick fix.
+ * - Implementing an action to be executed when the quick fix is applied, which in this case is to display details of the scan issue.
+ */
 public class ViewDetailsFix implements LocalQuickFix {
-/*
-    @SafeFieldForPreview
-    private final ScanDetail scanDetail;
 
-    public ViewDetailsFix(ScanDetail scanDetail) {
-        this.scanDetail = scanDetail;
-    }*/
+    private static final Logger LOGGER = Utils.getLogger(ViewDetailsFix.class);
+
+    @SafeFieldForPreview
+    private final ScanIssue scanIssue;
 
     /**
-     * @return text to appear in "Apply Fix" popup when multiple Quick Fixes exist (in the results of batch code inspection). For example,
-     * if the name of the quickfix is "Create template &lt;filename&gt", the return value of getFamilyName() should be "Create template".
-     * If the name of the quickfix does not depend on a specific element, simply return {@link #getName()}.
+     * Constructs a ViewDetailsFix instance to enable users to view details of the provided scan issue.
+     * This quick fix allows users to inspect detailed information about a specific issue identified
+     * during a scanning process.
+     *
+     * @param scanIssue the scan issue that this fix targets; includes details such as severity, title, description, locations, and vulnerabilities
      */
-    @Override
-    public @IntentionFamilyName @NotNull String getFamilyName() {
-        return "View details";
+    public ViewDetailsFix(ScanIssue scanIssue) {
+        super();
+        this.scanIssue = scanIssue;
     }
 
     /**
-     * Called to apply the fix.
-     * <p>
-     * Please call {@link ProjectInspectionProfileManager#fireProfileChanged()} if inspection profile is changed as result of fix.
+     * Returns the family name of this quick fix.
+     * The family name is used to group similar quick fixes together and is displayed
+     * in the "Apply Fix" popup when multiple quick fixes are available.
      *
-     * @param project    {@link Project}
-     * @param descriptor problem reported by the tool which provided this quick fix action
+     * @return a non-null string representing the family name, which categorizes this quick fix
+     */
+    @Override
+    public @IntentionFamilyName @NotNull String getFamilyName() {
+        return Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME;
+    }
+
+    /**
+     * Applies the quick fix action for the specified problem descriptor within the given project.
+     * This implementation displays details about the scan issue associated with this fix
+     *
+     * @param project    the project where the fix is to be applied; must not be null
+     * @param descriptor the problem descriptor that represents the issue to be fixed; must not be null
      */
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
-
+        LOGGER.info("applyFix called.." + getFamilyName() + " " + scanIssue.getTitle());
     }
 
 }

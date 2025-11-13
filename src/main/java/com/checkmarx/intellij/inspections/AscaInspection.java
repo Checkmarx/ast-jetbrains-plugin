@@ -2,7 +2,12 @@ package com.checkmarx.intellij.inspections;
 
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.intellij.devassist.dto.CxProblems;
+import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
+import com.checkmarx.ast.realtime.RealtimeLocation;
+import com.checkmarx.intellij.devassist.model.Location;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.ui.ProblemDescription;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
@@ -20,10 +25,7 @@ import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -38,6 +40,7 @@ public class AscaInspection extends LocalInspectionTool {
     public static String ASCA_INSPECTION_ID = "ASCA";
     private final Logger logger = Utils.getLogger(AscaInspection.class);
 
+
     /**
      * Checks the file for ASCA issues.
      *
@@ -51,7 +54,7 @@ public class AscaInspection extends LocalInspectionTool {
         try {
             if (!settings.isAsca()) {
                 ProblemHolderService.getInstance(file.getProject())
-                        .removeAllProblemsOfType(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER_ENGINE_NAME);
+                        .removeAllProblemsOfType(ScanEngine.ASCA.name());
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
             ScanResult scanResult = performAscaScan(file);
@@ -106,7 +109,7 @@ public class AscaInspection extends LocalInspectionTool {
             }
         }
 
-        List<CxProblems> problemsList = new ArrayList<>(buildCxProblems(scanDetails));
+        List<ScanIssue> problemsList = new ArrayList<>(buildCxProblems(scanDetails));
         VirtualFile virtualFile = file.getVirtualFile();
         if (virtualFile != null) {
             ProblemHolderService.getInstance(file.getProject())
@@ -129,7 +132,8 @@ public class AscaInspection extends LocalInspectionTool {
      */
     private ProblemDescriptor createProblemDescriptor(@NotNull PsiFile file, @NotNull InspectionManager manager, ScanDetail detail, Document document, int lineNumber, boolean isOnTheFly) {
         TextRange problemRange = getTextRangeForLine(document, lineNumber);
-        String description = formatDescription(detail.getRuleName(), detail.getRemediationAdvise());
+
+        String description =  new ProblemDescription().formatDescription(createScanIssue(detail));//formatDescription(detail.getRuleName(), detail.getRemediationAdvise());
         ProblemHighlightType highlightType = determineHighlightType(detail);
         System.out.println("** inside creat file called **");
         return manager.createProblemDescriptor(
@@ -211,10 +215,10 @@ public class AscaInspection extends LocalInspectionTool {
     private Map<String, ProblemHighlightType> getSeverityToHighlightMap() {
         if (severityToHighlightMap == null) {
             severityToHighlightMap = new HashMap<>();
-            severityToHighlightMap.put(Constants.ASCA_CRITICAL_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
-            severityToHighlightMap.put(Constants.ASCA_HIGH_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
-            severityToHighlightMap.put(Constants.ASCA_MEDIUM_SEVERITY, ProblemHighlightType.WARNING);
-            severityToHighlightMap.put(Constants.ASCA_LOW_SEVERITY, ProblemHighlightType.WEAK_WARNING);
+            severityToHighlightMap.put(Constants.CRITICAL_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
+            severityToHighlightMap.put(Constants.HIGH_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
+            severityToHighlightMap.put(Constants.MEDIUM_SEVERITY, ProblemHighlightType.WARNING);
+            severityToHighlightMap.put(Constants.LOW_SEVERITY, ProblemHighlightType.WEAK_WARNING);
         }
         return severityToHighlightMap;
     }
@@ -229,16 +233,27 @@ public class AscaInspection extends LocalInspectionTool {
         return ascaService.runAscaScan(file, file.getProject(), false, Constants.JET_BRAINS_AGENT_NAME);
     }
 
-    public static List<CxProblems> buildCxProblems(List<ScanDetail> details) {
+    public static List<ScanIssue> buildCxProblems(List<ScanDetail> details) {
         return details.stream().map(detail -> {
-            CxProblems problem = new CxProblems();
+            ScanIssue problem = new ScanIssue();
             problem.setSeverity(detail.getSeverity());
-            problem.setScannerType(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER_ENGINE_NAME);
+            problem.setScanEngine(ScanEngine.ASCA);
             problem.setTitle(detail.getRuleName());
             problem.setDescription(detail.getDescription());
             problem.setRemediationAdvise(detail.getRemediationAdvise());
-            problem.addLocation(detail.getLine(), 0, 1000); // assume whole line by default
+            problem.getLocations().add(new Location(detail.getLine(), 0, 1000)); // assume whole line by default
             return problem;
         }).collect(Collectors.toList());
+    }
+
+    private ScanIssue createScanIssue(ScanDetail scanDetail) {
+        ScanIssue problem = new ScanIssue();
+
+        problem.setTitle(scanDetail.getRuleName());
+        problem.setScanEngine(ScanEngine.ASCA);
+        problem.setRemediationAdvise(scanDetail.getRemediationAdvise());
+        problem.setSeverity(scanDetail.getSeverity());
+
+        return problem;
     }
 }
