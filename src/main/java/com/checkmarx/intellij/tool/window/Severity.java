@@ -2,7 +2,7 @@ package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
-import com.checkmarx.intellij.util.SeverityLevel;
+import com.intellij.icons.AllIcons;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -10,31 +10,23 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 /**
- * Enum representing different severity levels. Each severity level is associated with an icon supplier and a
- * corresponding severity level from the {@link SeverityLevel} enum. This enum implements the {@link Filterable}
- * interface, allowing integration with filtering functionalities.
+ * Link severity with an icon.
  */
 @Getter
 public enum Severity implements Filterable {
+    MALICIOUS(CxIcons.Medium.MALICIOUS),
+    CRITICAL(CxIcons.Medium.CRITICAL),
+    HIGH(CxIcons.Medium.HIGH),
+    MEDIUM(CxIcons.Medium.MEDIUM),
+    LOW(CxIcons.Medium.LOW),
+    ;
 
-    MALICIOUS(CxIcons::getMaliciousIcon),
-    CRITICAL(CxIcons::getCriticalIcon),
-    HIGH(CxIcons::getHighIcon),
-    MEDIUM(CxIcons::getMediumIcon),
-    LOW(CxIcons::getLowIcon),
-    INFO(CxIcons::getInfoIcon);
+    public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(CRITICAL, HIGH, MEDIUM);
 
-    public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(MALICIOUS, CRITICAL, HIGH, MEDIUM);
+    private final Icon icon;
 
-    private final Supplier<Icon> iconSupplier;
-
-    Severity(Supplier<Icon> iconSupplier) {
-        this.iconSupplier = iconSupplier;
-    }
-
-    @Override
-    public Icon getIcon() {
-        return iconSupplier.get();
+    Severity(Icon icon) {
+        this.icon = icon;
     }
 
     public Supplier<String> tooltipSupplier() {
