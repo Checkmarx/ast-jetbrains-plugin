@@ -19,13 +19,13 @@ public final class ScannerLifeCycleManager implements Disposable {
 
     @Getter
     private final Project project;
-    private  ScannerRegistry registry;
+
 
     public ScannerLifeCycleManager(@NotNull Project project) {
         this.project = project;
     }
 
-    private ScannerRegistry scannerRegistry(){
+    private ScannerRegistry scannerRegistry() {
         return this.project.getService(ScannerRegistry.class);
     }
 

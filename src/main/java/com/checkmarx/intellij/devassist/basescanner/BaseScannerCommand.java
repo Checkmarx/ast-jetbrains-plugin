@@ -16,12 +16,12 @@ import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+
 public class BaseScannerCommand implements ScannerCommand {
     private static final Logger LOGGER = Utils.getLogger(BaseScannerCommand.class);
     public ScannerConfig config;
 
-    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config,
-            BaseScannerService<?> service) {
+    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config ) {
         Disposer.register(parentDisposable, this);
         this.config = config;
     }
@@ -29,6 +29,11 @@ public class BaseScannerCommand implements ScannerCommand {
     private GlobalScannerController global() {
         return ApplicationManager.getApplication().getService(GlobalScannerController.class);
     }
+
+    /**
+     * Registers the project for the scanner which is invoked
+     * @param project - the project for the registration
+     */
 
     @Override
     public void register(Project project) {
@@ -44,13 +49,18 @@ public class BaseScannerCommand implements ScannerCommand {
         initializeScanner();
     }
 
+    /**
+     * De-registers the project for the scanner ,
+     * @param project - the project that is registered
+     */
+
     public void deregister(Project project) {
         if (!global().isRegistered(project, getScannerType())) {
             return;
         }
-        global().markUnregistered(project, getScannerType());
         ProblemHolderService.getInstance(project)
                 .removeAllProblemsOfType(getScannerType().toString());
+        global().markUnregistered(project, getScannerType());
         LOGGER.info(config.getDisabledMessage() + ":" + project.getName());
     }
 

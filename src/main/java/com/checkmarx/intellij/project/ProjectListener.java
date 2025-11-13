@@ -20,7 +20,6 @@ public class ProjectListener implements ProjectManagerListener {
         project.getService(ProjectResultsService.class).indexResults(project, Results.emptyResults);
         if (new GlobalSettingsComponent().isValid()){
             ScannerRegistry scannerRegistry= project.getService(ScannerRegistry.class);
-            System.out.println("From projectOpened");
             scannerRegistry.registerAllScanners(project);
         }
     }

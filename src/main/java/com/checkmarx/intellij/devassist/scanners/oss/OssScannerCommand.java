@@ -25,14 +25,14 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class OssScannerCommand extends BaseScannerCommand {
-    public OssScannerService ossScannerService ;
+    public OssScannerService ossScannerService;
     private final Project project;
     private static final Logger LOGGER = Utils.getLogger(OssScannerCommand.class);
 
-    public OssScannerCommand(@NotNull Disposable parentDisposable, @NotNull Project project,@NotNull OssScannerService OssscannerService){
-        super(parentDisposable, OssScannerService.createConfig(),OssscannerService);
+    public OssScannerCommand(@NotNull Disposable parentDisposable, @NotNull Project project, @NotNull OssScannerService OssscannerService) {
+        super(parentDisposable, OssScannerService.createConfig());
         this.ossScannerService = OssscannerService;
-        this.project=project;
+        this.project = project;
     }
 
     public OssScannerCommand(@NotNull Disposable parentDisposable,
@@ -40,53 +40,66 @@ public class OssScannerCommand extends BaseScannerCommand {
         this(parentDisposable, project, new OssScannerService());
     }
 
+    /**
+     * Initializes the scanner , invoked after registration of the scanner
+     */
+
     @Override
     protected void initializeScanner() {
         scanAllManifestFilesInFolder();
     }
 
-    private void scanAllManifestFilesInFolder(){
+    /**
+     * Scans all manifest Files in the opened project
+     * Happens on project opened or when  scanner is enabled
+     */
+
+    private void scanAllManifestFilesInFolder() {
         List<String> matchedUris = new ArrayList<>();
 
         List<PathMatcher> pathMatchers = Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
-                    .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
-                    .collect(Collectors.toList());
+                .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
+                .collect(Collectors.toList());
 
-            for (VirtualFile vRoot : ProjectRootManager.getInstance(project).getContentRoots()) {
-                VfsUtilCore.iterateChildrenRecursively(vRoot, null, file -> {
-                    if (!file.isDirectory() && !file.getPath().contains("/node_modules/")) {
-                        String path = file.getPath();
-                        for (PathMatcher matcher : pathMatchers) {
-                            if (matcher.matches(Paths.get(path))) {
-                                matchedUris.add(path);
-                                break;
-                            }
+        for (VirtualFile vRoot : ProjectRootManager.getInstance(project).getContentRoots()) {
+            VfsUtilCore.iterateChildrenRecursively(vRoot, null, file -> {
+                if (!file.isDirectory() && !file.getPath().contains("/node_modules/")) {
+                    String path = file.getPath();
+                    for (PathMatcher matcher : pathMatchers) {
+                        if (matcher.matches(Paths.get(path))) {
+                            matchedUris.add(path);
+                            break;
                         }
                     }
-                    return true;
-                });
-            }
-            for (String uri : matchedUris) {
-                Optional<VirtualFile> file = Optional.ofNullable(this.findVirtualFile(uri));
-                if (file.isPresent()) {
-                    try {
-                        PsiFile psiFile= PsiManager.getInstance(project).findFile(file.get());
-                        ScanResult<?> ossRealtimeResults=  ossScannerService.scan(psiFile, uri);
-                        List<ScanIssue> problemsList = new ArrayList<>();
-                        problemsList.addAll(ossRealtimeResults.getIssues());
-                        ProblemHolderService.getInstance(psiFile.getProject())
-                                    .addProblems(file.get().getPath(), problemsList);
+                }
+                return true;
+            });
+        }
+        for (String uri : matchedUris) {
+            Optional<VirtualFile> file = Optional.ofNullable(this.findVirtualFile(uri));
+            if (file.isPresent()) {
+                try {
+                    PsiFile psiFile = PsiManager.getInstance(project).findFile(file.get());
+                    ScanResult<?> ossRealtimeResults = ossScannerService.scan(psiFile, uri);
+                    List<ScanIssue> problemsList = new ArrayList<>();
+                    problemsList.addAll(ossRealtimeResults.getIssues());
+                    ProblemHolderService.getInstance(psiFile.getProject())
+                            .addProblems(file.get().getPath(), problemsList);
 
-                    }
-                    catch(Exception e){
-                        LOGGER.warn("Scan failed for manifest file: "+ uri +" Exception:"+ e);
-                    }
+                } catch (Exception e) {
+                    LOGGER.warn("Scan failed for manifest file: " + uri + " with exception:" + e);
                 }
             }
-         }
+        }
+    }
+
+    /**
+     * Disposes the listeners automatically
+     * Triggered when project is closed
+     */
 
     @Override
-    public void dispose(){
+    public void dispose() {
         super.dispose();
     }
 

@@ -7,6 +7,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
@@ -14,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 @Service(Service.Level.APP)
-public final class GlobalScannerController implements  SettingsListener {
+public final class GlobalScannerController implements SettingsListener {
     private final Map<ScannerType, Boolean> scannerStateMap =
             new EnumMap<>(ScannerType.class);
     private final Set<String> activeScannerProjectSet = ConcurrentHashMap.newKeySet();
@@ -28,7 +29,7 @@ public final class GlobalScannerController implements  SettingsListener {
         this.updateScannerState(state);
     }
 
-    private void updateScannerState(GlobalSettingsState state){
+    private void updateScannerState(GlobalSettingsState state) {
         scannerStateMap.put(ScannerType.OSS, state.isOssRealtime());
         scannerStateMap.put(ScannerType.SECRETS, state.isSecretDetectionRealtime());
         scannerStateMap.put(ScannerType.CONTAINERS, state.isContainersRealtime());
@@ -52,6 +53,11 @@ public final class GlobalScannerController implements  SettingsListener {
         return activeScannerProjectSet.contains(key(project, type));
     }
 
+
+    /**
+     * Key Uses locationHash which is unique even for two project with same name but different LocationPath
+     * LocationHash is used by intellij to uniquely identify the project
+     */
     private static String key(Project project, ScannerType type) {
         return project.getLocationHash() + "-" + type.name();
     }
@@ -61,9 +67,13 @@ public final class GlobalScannerController implements  SettingsListener {
     }
 
     public void markUnregistered(Project project, ScannerType type) {
-        activeScannerProjectSet.remove(key(project,type));
+        activeScannerProjectSet.remove(key(project, type));
     }
 
+    /**
+     * Syncs  all the opened projects with latest changes in Scanner toggle settings
+     * Calls @updateFromGlobal method for each project
+     */
     public synchronized void syncAll(GlobalSettingsState state) {
         if (!state.isAuthenticated()) {
             for (Project project : ProjectManager.getInstance().getOpenProjects()) {

@@ -92,20 +92,16 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     private final Project project;
     // service for indexing current results
     private final ProjectResultsService projectResultsService;
-    private final ScannerLifeCycleManager realtimeScannerManager;
 
     public CxToolWindowPanel(@NotNull Project project) {
         super(false, true);
 
         this.project = project;
         this.projectResultsService = project.getService(ProjectResultsService.class);
-        this.realtimeScannerManager= project.getService(ScannerLifeCycleManager.class);
         Runnable r = () -> {
             if (new GlobalSettingsComponent().isValid()) {
                 drawMainPanel();
                 ScannerRegistry registry = project.getService(ScannerRegistry.class);
-
-                LOGGER.info("calling from cxToolWindow");
                 registry.registerAllScanners(project);
 
             } else {
