@@ -2,18 +2,24 @@ package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
+import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.colors.CodeInsightColors;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
+import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -27,6 +33,7 @@ import java.util.*;
 @Getter
 public class ProblemDecorator {
 
+    private static final Logger LOGGER = Utils.getLogger(ProblemDecorator.class);
     private final Map<String, Integer> severityHighlighterLayerMap = new HashMap<>();
 
     public ProblemDecorator() {
@@ -80,7 +87,7 @@ public class ProblemDecorator {
     private void highlightLocationInEditor(Editor editor, MarkupModel markupModel, int targetLine,
                                            ScanIssue scanIssue, boolean addGutterIcon, boolean isProblem, int problemLineNumber) {
         TextRange textRange = DevAssistUtils.getTextRangeForLine(editor.getDocument(), targetLine);
-        TextAttributes attr = createTextAttributes();
+        TextAttributes textAttributes = createTextAttributes(scanIssue.getSeverity());
 
         RangeHighlighter highlighter = markupModel.addLineHighlighter(
                 targetLine - 1, 0, null);
@@ -90,7 +97,7 @@ public class ProblemDecorator {
                     textRange.getStartOffset(),
                     textRange.getEndOffset(),
                     determineHighlighterLayer(scanIssue),
-                    attr,
+                    textAttributes,
                     HighlighterTargetArea.EXACT_RANGE
             );
         }
@@ -105,19 +112,34 @@ public class ProblemDecorator {
      *
      * @return the configured text attributes
      */
-    private TextAttributes createTextAttributes() {
+    private TextAttributes createTextAttributes(String severity) {
         TextAttributes errorAttrs = EditorColorsManager.getInstance()
-                .getGlobalScheme().getAttributes(CodeInsightColors.ERRORS_ATTRIBUTES);
+                .getGlobalScheme().getAttributes(getCodeInsightColors(severity));
 
         TextAttributes attr = new TextAttributes();
         attr.setEffectType(EffectType.WAVE_UNDERSCORE);
         attr.setEffectColor(errorAttrs.getEffectColor());
         attr.setForegroundColor(errorAttrs.getForegroundColor());
         attr.setBackgroundColor(null);
-
         return attr;
     }
 
+    /**
+     * Gets the CodeInsightColors key based on severity.
+     * @param severity the severity
+     * @return the text attributes key for the given severity
+     */
+    private TextAttributesKey getCodeInsightColors(String severity) {
+        if (severity.equalsIgnoreCase(SeverityLevel.MALICIOUS.getSeverity()) ||
+                severity.equalsIgnoreCase(SeverityLevel.CRITICAL.getSeverity())
+                || severity.equalsIgnoreCase(SeverityLevel.HIGH.getSeverity())) {
+            return CodeInsightColors.ERRORS_ATTRIBUTES;
+        } else if (severity.equalsIgnoreCase(SeverityLevel.MEDIUM.getSeverity())) {
+            return CodeInsightColors.WARNINGS_ATTRIBUTES;
+        } else {
+            return CodeInsightColors.WEAK_WARNING_ATTRIBUTES;
+        }
+    }
 
     /**
      * Adds a gutter icon to the highlighter.
@@ -224,5 +246,32 @@ public class ProblemDecorator {
      */
     public Integer determineHighlighterLayer(ScanIssue scanIssue) {
         return severityHighlighterLayerMap.getOrDefault(scanIssue.getSeverity(), HighlighterLayer.WEAK_WARNING);
+    }
+
+    /**
+     * Restores problems for the given file.
+     *
+     * @param project       the project
+     * @param psiFile       the psi file
+     * @param scanIssueList the scan issue list
+     */
+    public void restoreGutterIcons(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList) {
+        Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
+        if (document == null) return;
+
+        scanIssueList.forEach(scanIssue -> {
+            try {
+                boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
+                int problemLineNumber = scanIssue.getLocations().get(0).getLine();
+                PsiElement elementAtLine = psiFile.findElementAt(document.getLineStartOffset(problemLineNumber));
+                if (elementAtLine != null) {
+                    highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
+                }
+            } catch (Exception e) {
+                LOGGER.debug("RTS: Exception occurred while restoring gutter icons for: {} ",
+                        psiFile.getName(), scanIssue.getTitle(), e.getMessage());
+            }
+        });
+
     }
 }

@@ -96,7 +96,6 @@ public class AscaInspection extends LocalInspectionTool {
      */
     private ProblemDescriptor[] createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, List<ScanDetail> scanDetails, Document document, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new ArrayList<>();
-        System.out.println("** Inside createProblemDescriptors **");
         for (ScanDetail detail : scanDetails) {
             int lineNumber = detail.getLine();
             if (isLineOutOfRange(lineNumber, document)) {
@@ -135,7 +134,6 @@ public class AscaInspection extends LocalInspectionTool {
 
         String description =  new ProblemDescription().formatDescription(createScanIssue(detail));//formatDescription(detail.getRuleName(), detail.getRemediationAdvise());
         ProblemHighlightType highlightType = determineHighlightType(detail);
-        System.out.println("** inside creat file called **");
         return manager.createProblemDescriptor(
                 file, problemRange, description, highlightType, isOnTheFly, new AscaQuickFix(detail));
     }

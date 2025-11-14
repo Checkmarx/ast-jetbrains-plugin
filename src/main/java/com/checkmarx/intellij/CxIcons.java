@@ -12,8 +12,6 @@ public final class CxIcons {
     private CxIcons() {
     }
 
-    public static final Icon CHECKMARX_13 = IconLoader.getIcon("/icons/checkmarx-mono-13.png", CxIcons.class);
-    public static final Icon CHECKMARX_13_COLOR = IconLoader.getIcon("/icons/checkmarx-13.png", CxIcons.class);
     public static final Icon CHECKMARX_80 = IconLoader.getIcon("/icons/checkmarx-80.png", CxIcons.class);
     public static final Icon COMMENT = IconLoader.getIcon("/icons/comment.svg", CxIcons.class);
     public static final Icon STATE = IconLoader.getIcon("/icons/Flags.svg", CxIcons.class);
