@@ -1,0 +1,114 @@
+package com.checkmarx.intellij.devassist.utils;
+
+import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
+import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.util.TextRange;
+
+/**
+ * Utility class for common operations.
+ */
+public class DevAssistUtils {
+
+    private DevAssistUtils() {
+    }
+
+    private static GlobalScannerController global() {
+        return ApplicationManager.getApplication().getService(GlobalScannerController.class);
+    }
+
+    /**
+     * Checks if the scanner with the given name is active.
+     * @param engineName the name of the scanner to check
+     * @return true if the scanner is active, false otherwise
+     */
+    public static boolean isScannerActive(String engineName) {
+        if (engineName == null) return false;
+        try {
+            if (new GlobalSettingsComponent().isValid()) {
+                ScanEngine kind = ScanEngine.valueOf(engineName.toUpperCase());
+                return global().isScannerGloballyEnabled(kind);
+            }
+
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+        return false;
+    }
+
+    /**
+     * Retrieves the text range for the specified line in the given document, trimming leading and trailing whitespace.
+     *
+     * @param document          the document from which the specified line's text range is to be retrieved
+     * @param problemLineNumber the 1-based line number for which the text range is needed
+     * @return a TextRange representing the trimmed start and end offsets of the specified line
+     */
+    public static TextRange getTextRangeForLine(Document document, int problemLineNumber) {
+        // Convert to 0-based index for document API
+        int lineIndex = problemLineNumber - 1;
+
+        // Get the exact offsets for this line
+        int lineStartOffset = document.getLineStartOffset(lineIndex);
+        int lineEndOffset = document.getLineEndOffset(lineIndex);
+
+        // Get the line text and trim whitespace for highlighting
+        CharSequence chars = document.getCharsSequence();
+
+        // Calculate leading spaces
+        int trimmedStartOffset = lineStartOffset;
+        while (trimmedStartOffset < lineEndOffset && Character.isWhitespace(chars.charAt(trimmedStartOffset))) {
+            trimmedStartOffset++;
+        }
+        // Calculate trailing spaces
+        int trimmedEndOffset = lineEndOffset;
+        while (trimmedEndOffset > trimmedStartOffset && Character.isWhitespace(chars.charAt(trimmedEndOffset - 1))) {
+            trimmedEndOffset--;
+        }
+        // Ensure a valid range (fallback to original if the line is all whitespace)
+        if (trimmedStartOffset >= trimmedEndOffset) {
+            return new TextRange(lineStartOffset, lineEndOffset);
+        }
+        return new TextRange(trimmedStartOffset, trimmedEndOffset);
+    }
+
+    /**
+     * Checks if the given line number is out of range for the document.
+     *
+     * @param lineNumber the line number to check (1-based)
+     * @param document   the document
+     * @return true if the line number is out of range, false otherwise
+     */
+    public static boolean isLineOutOfRange(int lineNumber, Document document) {
+        return lineNumber <= 0 || lineNumber > document.getLineCount();
+    }
+
+    /**
+     * Wraps the given text into lines at word boundaries without exceeding a defined maximum line length.
+     * If a word exceeds the specified line length, it will be placed on a new line.
+     *
+     * @param text the input text to be wrapped into lines
+     * @return the text with line breaks added to wrap it at word boundaries
+     */
+    public static String wrapTextAtWord(String text, int maxLineLength) {
+        StringBuilder result = new StringBuilder();
+        int lineLength = 0;
+        for (String word : text.split(" ")) {
+            if (lineLength > 0) {
+                // Add a space before the word if not at the start of a line
+                result.append(" ");
+                lineLength++;
+            }
+            if (lineLength + word.length() > maxLineLength) {
+                // Start a new line before adding the word
+                result.append("\n");
+                result.append(word);
+                lineLength = word.length();
+            } else {
+                result.append(word);
+                lineLength += word.length();
+            }
+        }
+        return result.toString();
+    }
+}

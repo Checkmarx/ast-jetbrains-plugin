@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.devassist.configuration;
 
-import com.checkmarx.intellij.devassist.common.ScannerType;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.openapi.application.ApplicationManager;
@@ -16,8 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service(Service.Level.APP)
 public final class GlobalScannerController implements SettingsListener {
-    private final Map<ScannerType, Boolean> scannerStateMap =
-            new EnumMap<>(ScannerType.class);
+    private final Map<ScanEngine, Boolean> scannerStateMap =
+            new EnumMap<>(ScanEngine.class);
     private final Set<String> activeScannerProjectSet = ConcurrentHashMap.newKeySet();
 
     public GlobalScannerController() {
@@ -30,10 +30,10 @@ public final class GlobalScannerController implements SettingsListener {
     }
 
     private void updateScannerState(GlobalSettingsState state) {
-        scannerStateMap.put(ScannerType.OSS, state.isOssRealtime());
-        scannerStateMap.put(ScannerType.SECRETS, state.isSecretDetectionRealtime());
-        scannerStateMap.put(ScannerType.CONTAINERS, state.isContainersRealtime());
-        scannerStateMap.put(ScannerType.IAC, state.isIacRealtime());
+        scannerStateMap.put(ScanEngine.OSS, state.isOssRealtime());
+        scannerStateMap.put(ScanEngine.SECRETS, state.isSecretDetectionRealtime());
+        scannerStateMap.put(ScanEngine.CONTAINERS, state.isContainersRealtime());
+        scannerStateMap.put(ScanEngine.IAC, state.isIacRealtime());
     }
 
     @Override
@@ -45,11 +45,11 @@ public final class GlobalScannerController implements SettingsListener {
         this.syncAll(state);
     }
 
-    public synchronized boolean isScannerGloballyEnabled(ScannerType type) {
+    public synchronized boolean isScannerGloballyEnabled(ScanEngine type) {
         return scannerStateMap.getOrDefault(type, false);
     }
 
-    public boolean isRegistered(Project project, ScannerType type) {
+    public boolean isRegistered(Project project, ScanEngine type) {
         return activeScannerProjectSet.contains(key(project, type));
     }
 
@@ -58,15 +58,15 @@ public final class GlobalScannerController implements SettingsListener {
      * Key Uses locationHash which is unique even for two project with same name but different LocationPath
      * LocationHash is used by intellij to uniquely identify the project
      */
-    private static String key(Project project, ScannerType type) {
+    private static String key(Project project, ScanEngine type) {
         return project.getLocationHash() + "-" + type.name();
     }
 
-    public void markRegistered(Project project, ScannerType type) {
+    public void markRegistered(Project project, ScanEngine type) {
         activeScannerProjectSet.add(key(project, type));
     }
 
-    public void markUnregistered(Project project, ScannerType type) {
+    public void markUnregistered(Project project, ScanEngine type) {
         activeScannerProjectSet.remove(key(project, type));
     }
 

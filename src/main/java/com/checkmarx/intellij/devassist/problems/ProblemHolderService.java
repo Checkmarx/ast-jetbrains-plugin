@@ -4,6 +4,7 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
+import com.intellij.psi.PsiFile;
 import com.intellij.util.messages.Topic;
 
 import java.util.*;
@@ -62,4 +63,7 @@ public final class ProblemHolderService {
         fileProblemDescriptor.put(filePath, new ArrayList<>(problemDescriptors));
     }
 
+    public static void addToCxOneFindings(PsiFile file, List<ScanIssue> problemsList) {
+        getInstance(file.getProject()).addProblems(file.getVirtualFile().getPath(), problemsList);
+    }
 }

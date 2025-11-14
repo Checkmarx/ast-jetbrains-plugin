@@ -11,7 +11,6 @@ import java.util.List;
 public final class Constants {
 
 
-
     private Constants() {
         // forbid instantiation of the class
     }
@@ -106,7 +105,7 @@ public final class Constants {
     /**
      * Inner static final class, to maintain the constants used in authentication.
      */
-    public static final class AuthConstants{
+    public static final class AuthConstants {
 
         private AuthConstants() {
             throw new UnsupportedOperationException("Cannot instantiate AuthConstants class");
@@ -132,18 +131,19 @@ public final class Constants {
      * related to real-time scanning functionalities, including support for
      * different scanning engines and associated configurations.
      */
-    public static final class RealTimeConstants{
+    public static final class RealTimeConstants {
 
         private RealTimeConstants() {
             throw new UnsupportedOperationException("Cannot instantiate RealTimeConstants class");
         }
+
         // OSS Scanner Constants
-        public static final String ACTIVATE_OSS_REALTIME_SCANNER= "Activate OSS-Realtime";
-        public static final String OSS_REALTIME_SCANNER= "Checkmarx Open Source Realtime Scanner (OSS-Realtime)";
-        public static final String OSS_REALTIME_SCANNER_START= "Realtime OSS Scanner Engine started";
-        public static final String OSS_REALTIME_SCANNER_DISABLED= "Realtime OSS Scanner Engine disabled";
-        public static final String OSS_REALTIME_SCANNER_DIRECTORY= "Cx-oss-realtime-scanner";
-        public static final String ERROR_OSS_REALTIME_SCANNER= "Failed to handle OSS Realtime scan";
+        public static final String ACTIVATE_OSS_REALTIME_SCANNER = "Activate OSS-Realtime";
+        public static final String OSS_REALTIME_SCANNER = "Checkmarx Open Source Realtime Scanner (OSS-Realtime)";
+        public static final String OSS_REALTIME_SCANNER_START = "Realtime OSS Scanner Engine started";
+        public static final String OSS_REALTIME_SCANNER_DISABLED = "Realtime OSS Scanner Engine disabled";
+        public static final String OSS_REALTIME_SCANNER_DIRECTORY = "Cx-oss-realtime-scanner";
+        public static final String ERROR_OSS_REALTIME_SCANNER = "Failed to handle OSS Realtime scan";
 
         //Dev Assist Fixes Constants
         public static final String FIX_WITH_CXONE_ASSIST = "Fix with CxOne Assist";
@@ -151,7 +151,7 @@ public final class Constants {
         public static final String IGNORE_THIS_VULNERABILITY_FIX_NAME = "Ignore this vulnerability";
         public static final String IGNORE_ALL_OF_THIS_TYPE_FIX_NAME = "Ignore all of this type";
 
-       public static final List<String> MANIFEST_FILE_PATTERNS = List.of(
+        public static final List<String> MANIFEST_FILE_PATTERNS = List.of(
                 "**/Directory.Packages.props",
                 "**/packages.config",
                 "**/pom.xml",

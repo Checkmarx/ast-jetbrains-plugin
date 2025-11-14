@@ -4,10 +4,9 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
-import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.colors.CodeInsightColors;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
@@ -23,28 +22,15 @@ import javax.swing.*;
 import java.util.*;
 
 /**
- * ProblemManager class responsible to provides utility methods for managing problem, highlighting and gutter icons.
+ * ProblemDecorator class responsible to provides utility methods for managing problem, highlighting and gutter icons.
  */
 @Getter
-public class ProblemManager {
+public class ProblemDecorator {
 
-    private final Map<String, ProblemHighlightType> severityHighlightTypeMap = new HashMap<>();
     private final Map<String, Integer> severityHighlighterLayerMap = new HashMap<>();
 
-    public ProblemManager() {
-        initSeverityToHighlightMap();
+    public ProblemDecorator() {
         initSeverityHighlighterLayerMap();
-    }
-
-    /**
-     * Initializes the mapping from severity levels to problem highlight types.
-     */
-    private void initSeverityToHighlightMap() {
-        severityHighlightTypeMap.put(Constants.MALICIOUS_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
-        severityHighlightTypeMap.put(Constants.CRITICAL_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
-        severityHighlightTypeMap.put(Constants.HIGH_SEVERITY, ProblemHighlightType.GENERIC_ERROR);
-        severityHighlightTypeMap.put(Constants.MEDIUM_SEVERITY, ProblemHighlightType.WARNING);
-        severityHighlightTypeMap.put(Constants.LOW_SEVERITY, ProblemHighlightType.WEAK_WARNING);
     }
 
     /**
@@ -57,65 +43,6 @@ public class ProblemManager {
         severityHighlighterLayerMap.put(Constants.MEDIUM_SEVERITY, HighlighterLayer.WARNING);
         severityHighlighterLayerMap.put(Constants.LOW_SEVERITY, HighlighterLayer.WEAK_WARNING);
     }
-
-    /**
-     * Checks if the scan package is a problem.
-     *
-     * @param status - the status of the scan package e.g. "high", "medium", "low", etc.
-     * @return true if the scan package is a problem, false otherwise
-     */
-    public boolean isProblem(String status) {
-        if (status.equalsIgnoreCase(SeverityLevel.OK.getSeverity())) {
-            return false;
-        } else return !status.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity());
-    }
-
-    /**
-     * Checks if the given line number is out of range for the document.
-     *
-     * @param lineNumber the line number to check (1-based)
-     * @param document   the document
-     * @return true if the line number is out of range, false otherwise
-     */
-    public boolean isLineOutOfRange(int lineNumber, Document document) {
-        return lineNumber <= 0 || lineNumber > document.getLineCount();
-    }
-
-    /**
-     * Retrieves the text range for the specified line in the given document, trimming leading and trailing whitespace.
-     *
-     * @param document          the document from which the specified line's text range is to be retrieved
-     * @param problemLineNumber the 1-based line number for which the text range is needed
-     * @return a TextRange representing the trimmed start and end offsets of the specified line
-     */
-    public TextRange getTextRangeForLine(Document document, int problemLineNumber) {
-        // Convert to 0-based index for document API
-        int lineIndex = problemLineNumber - 1;
-
-        // Get the exact offsets for this line
-        int lineStartOffset = document.getLineStartOffset(lineIndex);
-        int lineEndOffset = document.getLineEndOffset(lineIndex);
-
-        // Get the line text and trim whitespace for highlighting
-        CharSequence chars = document.getCharsSequence();
-
-        // Calculate leading spaces
-        int trimmedStartOffset = lineStartOffset;
-        while (trimmedStartOffset < lineEndOffset && Character.isWhitespace(chars.charAt(trimmedStartOffset))) {
-            trimmedStartOffset++;
-        }
-        // Calculate trailing spaces
-        int trimmedEndOffset = lineEndOffset;
-        while (trimmedEndOffset > trimmedStartOffset && Character.isWhitespace(chars.charAt(trimmedEndOffset - 1))) {
-            trimmedEndOffset--;
-        }
-        // Ensure a valid range (fallback to original if the line is all whitespace)
-        if (trimmedStartOffset >= trimmedEndOffset) {
-            return new TextRange(lineStartOffset, lineEndOffset);
-        }
-        return new TextRange(trimmedStartOffset, trimmedEndOffset);
-    }
-
 
     /**
      * Adds a gutter icon at the line of the given PsiElement.
@@ -133,15 +60,9 @@ public class ProblemManager {
             }
             MarkupModel markupModel = editor.getMarkupModel();
             boolean isFirstLocation = true;
-
-            boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(markupModel, editor, problemLineNumber);
-
-            System.out.println("Already has gutter icon: " + alreadyHasGutterIcon + " targetLine : " + problemLineNumber);
-
-
             for (Location location : scanIssue.getLocations()) {
                 int targetLine = location.getLine();
-                highlightLocationInEditor(editor, markupModel, targetLine, scanIssue, isFirstLocation, isProblem, alreadyHasGutterIcon);
+                highlightLocationInEditor(editor, markupModel, targetLine, scanIssue, isFirstLocation, isProblem, problemLineNumber);
                 isFirstLocation = false;
             }
         });
@@ -157,8 +78,8 @@ public class ProblemManager {
      * @param addGutterIcon whether to add a gutter icon for this location
      */
     private void highlightLocationInEditor(Editor editor, MarkupModel markupModel, int targetLine,
-                                           ScanIssue scanIssue, boolean addGutterIcon, boolean isProblem, boolean alreadyHasGutterIcon) {
-        TextRange textRange = getTextRangeForLine(editor.getDocument(), targetLine);
+                                           ScanIssue scanIssue, boolean addGutterIcon, boolean isProblem, int problemLineNumber) {
+        TextRange textRange = DevAssistUtils.getTextRangeForLine(editor.getDocument(), targetLine);
         TextAttributes attr = createTextAttributes();
 
         RangeHighlighter highlighter = markupModel.addLineHighlighter(
@@ -173,7 +94,7 @@ public class ProblemManager {
                     HighlighterTargetArea.EXACT_RANGE
             );
         }
-
+        boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(markupModel, editor, problemLineNumber);
         if (addGutterIcon && !alreadyHasGutterIcon) {
             addGutterIcon(highlighter, scanIssue.getSeverity());
         }
@@ -281,28 +202,18 @@ public class ProblemManager {
             case MALICIOUS:
                 return CxIcons.GUTTER_MALICIOUS;
             case CRITICAL:
-                return CxIcons.GUTTER_CRITICAL;
+                return CxIcons.Small.CRITICAL;
             case HIGH:
-                return CxIcons.GUTTER_HIGH;
+                return CxIcons.Small.HIGH;
             case MEDIUM:
-                return CxIcons.GUTTER_MEDIUM;
+                return CxIcons.Small.MEDIUM;
             case LOW:
-                return CxIcons.GUTTER_LOW;
+                return CxIcons.Small.LOW;
             case OK:
-                return CxIcons.GUTTER_GREEN_SHIELD_CHECK;
+                return CxIcons.Small.OK;
             default:
                 return CxIcons.GUTTER_SHIELD_QUESTION;
         }
-    }
-
-    /**
-     * Determines the highlight type for a specific scan detail.
-     *
-     * @param scanIssue the scan detail
-     * @return the problem highlight type
-     */
-    public ProblemHighlightType determineHighlightType(ScanIssue scanIssue) {
-        return severityHighlightTypeMap.getOrDefault(scanIssue.getSeverity(), ProblemHighlightType.WEAK_WARNING);
     }
 
     /**
@@ -313,9 +224,5 @@ public class ProblemManager {
      */
     public Integer determineHighlighterLayer(ScanIssue scanIssue) {
         return severityHighlighterLayerMap.getOrDefault(scanIssue.getSeverity(), HighlighterLayer.WEAK_WARNING);
-    }
-
-    public void addToCxOneFindings(PsiFile file, List<ScanIssue> problemsList) {
-        ProblemHolderService.getInstance(file.getProject()).addProblems(file.getVirtualFile().getPath(), problemsList);
     }
 }

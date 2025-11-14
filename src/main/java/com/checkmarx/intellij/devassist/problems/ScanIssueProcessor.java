@@ -1,6 +1,8 @@
 package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
@@ -19,7 +21,7 @@ public class ScanIssueProcessor {
 
     private static final Logger LOGGER = Logger.getInstance(ScanIssueProcessor.class);
 
-    private final ProblemManager problemManager;
+    private final ProblemDecorator problemDecorator;
     private final PsiFile file;
     private final InspectionManager manager;
     private final Document document;
@@ -32,7 +34,6 @@ public class ScanIssueProcessor {
      * @return a ProblemDescriptor if the issue is valid and should be reported, null otherwise
      */
     public ProblemDescriptor processScanIssue(@NotNull ScanIssue scanIssue) {
-
         if (!isValidScanIssue(scanIssue)) {
             LOGGER.debug("RTS: Scan issue does not have location: {}", scanIssue.getTitle());
             return null;
@@ -62,7 +63,7 @@ public class ScanIssueProcessor {
      * Validates the line number and severity of the scan issue.
      */
     private boolean isValidLineAndSeverity(int lineNumber, ScanIssue scanIssue) {
-        if (problemManager.isLineOutOfRange(lineNumber, document)) {
+        if (DevAssistUtils.isLineOutOfRange(lineNumber, document)) {
             return false;
         }
         String severity = scanIssue.getSeverity();
@@ -73,7 +74,7 @@ public class ScanIssueProcessor {
      * Processes a valid scan issue, creates problem descriptor and adds gutter icon.
      */
     private ProblemDescriptor processValidIssue(ScanIssue scanIssue, int problemLineNumber) {
-        boolean isProblem = problemManager.isProblem(scanIssue.getSeverity().toLowerCase());
+        boolean isProblem = isProblem(scanIssue.getSeverity().toLowerCase());
 
         ProblemDescriptor problemDescriptor = null;
         if (isProblem) {
@@ -101,9 +102,21 @@ public class ScanIssueProcessor {
     private void highlightIssueIfNeeded(ScanIssue scanIssue, int problemLineNumber, boolean isProblem) {
         PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(problemLineNumber));
         if (elementAtLine != null) {
-            problemManager.highlightLineAddGutterIconForProblem(
+            problemDecorator.highlightLineAddGutterIconForProblem(
                     file.getProject(), file, scanIssue, isProblem, problemLineNumber
             );
         }
+    }
+
+    /**
+     * Checks if the scan package is a problem.
+     *
+     * @param severity - the severity of the scan package e.g. "high", "medium", "low", etc.
+     * @return true if the scan package is a problem, false otherwise
+     */
+    private boolean isProblem(String severity) {
+        if (severity.equalsIgnoreCase(SeverityLevel.OK.getSeverity())) {
+            return false;
+        } else return !severity.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity());
     }
 }
