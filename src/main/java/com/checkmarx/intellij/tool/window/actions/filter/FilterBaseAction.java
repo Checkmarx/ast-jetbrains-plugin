@@ -118,6 +118,18 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
         }
     }
 
+    public static class InfoFilter extends FilterBaseAction {
+
+        public InfoFilter() {
+            super();
+        }
+
+        @Override
+        protected Filterable getFilterable() {
+            return Severity.INFO;
+        }
+    }
+
     /**
      * Interface for topic {@link FilterBaseAction#FILTER_CHANGED}.
      */

@@ -74,7 +74,7 @@ public class ScanIssueProcessor {
      * Processes a valid scan issue, creates problem descriptor and adds gutter icon.
      */
     private ProblemDescriptor processValidIssue(ScanIssue scanIssue, int problemLineNumber) {
-        boolean isProblem = isProblem(scanIssue.getSeverity().toLowerCase());
+        boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
 
         ProblemDescriptor problemDescriptor = null;
         if (isProblem) {
@@ -106,17 +106,5 @@ public class ScanIssueProcessor {
                     file.getProject(), file, scanIssue, isProblem, problemLineNumber
             );
         }
-    }
-
-    /**
-     * Checks if the scan package is a problem.
-     *
-     * @param severity - the severity of the scan package e.g. "high", "medium", "low", etc.
-     * @return true if the scan package is a problem, false otherwise
-     */
-    private boolean isProblem(String severity) {
-        if (severity.equalsIgnoreCase(SeverityLevel.OK.getSeverity())) {
-            return false;
-        } else return !severity.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity());
     }
 }

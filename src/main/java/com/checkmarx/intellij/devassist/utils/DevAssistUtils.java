@@ -2,6 +2,7 @@ package com.checkmarx.intellij.devassist.utils;
 
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
+import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
@@ -110,5 +111,17 @@ public class DevAssistUtils {
             }
         }
         return result.toString();
+    }
+
+    /**
+     * Checks if the scan package is a problem.
+     *
+     * @param severity - the severity of the scan package e.g. "high", "medium", "low", etc.
+     * @return true if the scan package is a problem, false otherwise
+     */
+    public static boolean isProblem(String severity) {
+        if (severity.equalsIgnoreCase(SeverityLevel.OK.getSeverity())) {
+            return false;
+        } else return !severity.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity());
     }
 }

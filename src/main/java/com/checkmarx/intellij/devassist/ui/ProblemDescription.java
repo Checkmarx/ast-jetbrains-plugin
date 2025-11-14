@@ -67,9 +67,9 @@ public class ProblemDescription {
     public String formatDescription(ScanIssue scanIssue) {
 
         StringBuilder descBuilder = new StringBuilder();
-        descBuilder.append("<html><body><div style='display:flex;align-items:center;gap:4px;'>");
-        descBuilder.append("<div><img src='").append(getIconPath(Constants.ImagePaths.DEV_ASSIST_PNG)).append("'/></div><br>");
-
+        descBuilder.append("<html><body><div style='display:flex;align-items:center;gap:4px;'>")
+                .append("<div><table><tr><img src='").append(getIconPath(Constants.ImagePaths.DEV_ASSIST_PNG))
+                .append("'/></tr><table></div><br>");
         switch (scanIssue.getScanEngine()) {
             case OSS:
                 buildOSSDescription(descBuilder, scanIssue);
@@ -142,12 +142,13 @@ public class ProblemDescription {
      * @param scanIssue   the ScanIssue object containing details about the issue such as severity, title, and package version
      */
     private void buildPackageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append(DIV).append(scanIssue.getSeverity()).append("-").append(RISK_PACKAGE)
+        descBuilder.append("<table style='display:inline-table;vertical-align:middle;'>")
+                .append("<tr>").append(DIV).append(scanIssue.getSeverity()).append("-").append(RISK_PACKAGE)
                 .append(":  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion())
-                .append(" - <font color='gray'>").append(scanIssue.getScanEngine().name()).append("</font></div><br>");
-        descBuilder.append(DIV).append(getIcon(PACKAGE))
-                .append("<b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
-                .append(" - ").append(scanIssue.getSeverity()).append(" ").append(SEVERITY_PACKAGE).append("</div><br><br>");
+                .append(" - <font color='gray'>").append(scanIssue.getScanEngine().name()).append("</font></div></tr>");
+        descBuilder.append("<tr>").append(DIV).append(getIcon(PACKAGE))
+                .append("&nbsp&nbsp<b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
+                .append(" - ").append(scanIssue.getSeverity()).append(" ").append(SEVERITY_PACKAGE).append(DIV_BR).append("</tr></table>");
     }
 
     /**
@@ -183,12 +184,12 @@ public class ProblemDescription {
         if (vulnerabilityList != null && !vulnerabilityList.isEmpty()) {
             descBuilder.append(DIV);
             buildVulnerabilityIconWithCountMessage(descBuilder, vulnerabilityList);
-            descBuilder.append("</div><br><div>");
+            descBuilder.append("</div><br><div><table><tr>");
             findVulnerabilityBySeverity(vulnerabilityList, scanIssue.getSeverity())
                     .ifPresent(vulnerability ->
                             descBuilder.append(wrapText(escapeHtml(vulnerability.getDescription()))).append("<br>")
                     );
-            descBuilder.append(DIV_BR);
+            descBuilder.append("</tr><table>").append(DIV_BR);
         }
     }
 
@@ -231,15 +232,19 @@ public class ProblemDescription {
         if (vulnerabilityList.isEmpty()) {
             return;
         }
+        descBuilder.append("<table style='display:inline-table;vertical-align:middle;'><tr>");
         Map<String, Long> vulnerabilityCount = getVulnerabilityCount(vulnerabilityList);
         DESCRIPTION_ICON.forEach((severity, iconPath) -> {
             Long count = vulnerabilityCount.get(severity);
             if (count != null && count > 0) {
-                descBuilder.append(iconPath)
-                        .append(count)
-                        .append("&nbsp;&nbsp;&nbsp;&nbsp;");
+                descBuilder.append("<td style='vertical-align:middle;padding:0;'>").append(iconPath).append("</td>")
+                        .append("<td style='vertical-align:middle;padding:0 6px 0 0;'>")
+                        .append(count).append("</td>");
+
+
             }
         });
+        descBuilder.append("</tr></table>");
     }
 
     /**
@@ -249,7 +254,7 @@ public class ProblemDescription {
      * @return a String representing an HTML image element with the provided icon path
      */
     private String getImage(String iconPath) {
-        return "<img src='" + iconPath + "'/>&nbsp;&nbsp;";
+        return "<img src='" + iconPath + "'/>";
     }
 
     /**
@@ -260,16 +265,17 @@ public class ProblemDescription {
      * @return the external form of the resource URL as a string, or an empty string if the resource is not found
      */
     private String getIconPath(String iconPath) {
-        URL res = ProblemDescription.class.getResource(iconPath);
+        URL res = getClass().getResource(iconPath);
         return (res != null) ? res.toExternalForm() : "";
     }
 
     /**
      * Wraps the provided text at the word boundary.
+     *
      * @param text the text to be wrapped
      * @return the wrapped text
      */
     private String wrapText(String text) {
-       return DevAssistUtils.wrapTextAtWord(text, MAX_LINE_LENGTH);
+        return DevAssistUtils.wrapTextAtWord(text, MAX_LINE_LENGTH);
     }
 }

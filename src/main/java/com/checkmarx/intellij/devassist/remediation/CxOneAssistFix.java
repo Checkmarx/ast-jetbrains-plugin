@@ -9,6 +9,7 @@ import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Iconable;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -33,6 +34,7 @@ public class CxOneAssistFix implements LocalQuickFix, Iconable {
 
     private static final Logger LOGGER = Utils.getLogger(CxOneAssistFix.class);
 
+    @Getter
     @SafeFieldForPreview
     private final ScanIssue scanIssue;
 
