@@ -1,16 +1,29 @@
 package com.checkmarx.intellij.devassist.utils;
 
+import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
+import com.checkmarx.intellij.devassist.scanners.oss.OssScannerService;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.VfsUtil;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiFile;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
 
 /**
  * Utility class for common operations.
  */
 public class DevAssistUtils {
+    private static final Logger LOGGER = Utils.getLogger(DevAssistUtils.class);
+
 
     private DevAssistUtils() {
     }
@@ -123,5 +136,42 @@ public class DevAssistUtils {
         if (severity.equalsIgnoreCase(SeverityLevel.OK.getSeverity())) {
             return false;
         } else return !severity.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity());
+    }
+
+
+    /**
+     * Returns the full textual content of the given {@link PsiFile}, including both
+     * unsaved in-editor changes and updates made to the underlying file outside the IDE.
+     * <p>
+     * This method first attempts to read from the associated {@link Document}, ensuring
+     * that any unsaved modifications in the editor are included. If no document is
+     * associated with the PSI file, the content is loaded directly from the
+     * {@link VirtualFile}, ensuring externally modified file content is retrieved.
+     * <p>
+     * All operations are performed inside a read action as required by the IntelliJ Platform.
+     *
+     * @param file the PSI file whose content should be read
+     * @return the full file text, or {@code null} if the file cannot be accessed
+     */
+
+    public static String getFileContent(@NotNull PsiFile file){
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) ()->{
+
+            Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
+            if (document != null) {
+                return document.getText();
+            }
+            VirtualFile virtualFile = file.getVirtualFile();
+            if (virtualFile == null) {
+                LOGGER.warn("Virtual file is null for PsiFile: " + file.getName());
+                return null;
+            }
+            try {
+                return VfsUtil.loadText(virtualFile);
+            } catch (IOException e) {
+                LOGGER.warn("Failed to load content from file: " + virtualFile.getPath(), e);
+                return null;
+            }
+        });
     }
 }

@@ -54,6 +54,9 @@ public class RealtimeInspection extends LocalInspectionTool {
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         String path = file.getVirtualFile().getPath();
+        if(path.isEmpty()){
+           return ProblemDescriptor.EMPTY_ARRAY;
+        }
         Optional<ScannerService<?>> scannerService = getScannerService(path);
 
         if (scannerService.isEmpty() || !isRealTimeScannerActive(scannerService.get())) {
@@ -112,7 +115,7 @@ public class RealtimeInspection extends LocalInspectionTool {
      * @return a {@link ScanResult} instance containing the results of the scan, or null if no
      * active and suitable scanner is found
      */
-    private ScanResult<?> scanFile(ScannerService<?> scannerService, PsiFile file, String path) {
+    private ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
         return scannerService.scan(file, path);
     }
 
