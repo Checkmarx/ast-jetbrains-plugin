@@ -18,6 +18,7 @@ public final class CxIcons {
     public static final Icon COMMENT = IconLoader.getIcon("/icons/comment.svg", CxIcons.class);
     public static final Icon STATE = IconLoader.getIcon("/icons/Flags.svg", CxIcons.class);
     public static final Icon ABOUT = IconLoader.getIcon("/icons/about.svg", CxIcons.class);
+    public static final Icon INFO = IconLoader.getIcon("/icons/info.svg", CxIcons.class);
 
     public static Icon getWelcomeScannerIcon() {return IconLoader.getIcon("/icons/welcomePageScanner.svg", CxIcons.class);}
     public static Icon getWelcomeMcpDisableIcon() {return IconLoader.getIcon("/icons/cxAIError.svg", CxIcons.class);}
