@@ -1,13 +1,18 @@
-package com.checkmarx.intellij.devassist.inspection.remediation;
+package com.checkmarx.intellij.devassist.remediation;
 
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Iconable;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
+
+import javax.swing.*;
 
 import static java.lang.String.format;
 
@@ -25,10 +30,11 @@ import static java.lang.String.format;
  * <p>
  * This fix is categorized under the "Fix with CXOne Assist" family for easy identification and grouping.
  */
-public class CxOneAssistFix implements LocalQuickFix {
+public class CxOneAssistFix implements LocalQuickFix, Iconable {
 
     private static final Logger LOGGER = Utils.getLogger(CxOneAssistFix.class);
 
+    @Getter
     @SafeFieldForPreview
     private final ScanIssue scanIssue;
 
@@ -53,6 +59,14 @@ public class CxOneAssistFix implements LocalQuickFix {
     @Override
     public String getFamilyName() {
         return Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST;
+    }
+
+    /**
+     * Returns the icon representing this quick fix.
+     */
+    @Override
+    public Icon getIcon(int flags) {
+        return CxIcons.STAR_ACTION;
     }
 
     /**

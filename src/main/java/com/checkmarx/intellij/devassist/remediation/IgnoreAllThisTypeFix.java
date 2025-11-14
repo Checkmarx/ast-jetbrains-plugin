@@ -1,6 +1,7 @@
-package com.checkmarx.intellij.devassist.inspection.remediation;
+package com.checkmarx.intellij.devassist.remediation;
 
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.intellij.codeInspection.LocalQuickFix;
@@ -8,7 +9,10 @@ import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.util.IntentionFamilyName;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Iconable;
 import org.jetbrains.annotations.NotNull;
+
+import javax.swing.*;
 
 /**
  * A quick fix implementation to ignore all issues of a specific type during real-time scanning.
@@ -26,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
  * It is expected that the scan issue passed at the time of object creation includes enough
  * details to handle the ignoring process properly.
  */
-public class IgnoreAllThisTypeFix implements LocalQuickFix {
+public class IgnoreAllThisTypeFix implements LocalQuickFix, Iconable {
 
     private static final Logger LOGGER = Utils.getLogger(IgnoreAllThisTypeFix.class);
 
@@ -47,6 +51,14 @@ public class IgnoreAllThisTypeFix implements LocalQuickFix {
     @Override
     public @IntentionFamilyName @NotNull String getFamilyName() {
         return Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME;
+    }
+
+    /**
+     * Returns the icon representing this quick fix.
+     */
+    @Override
+    public Icon getIcon(int flags) {
+        return CxIcons.STAR_ACTION;
     }
 
     /**

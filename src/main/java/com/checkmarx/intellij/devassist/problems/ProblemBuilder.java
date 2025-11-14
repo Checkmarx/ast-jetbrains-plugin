@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.devassist.problems;
 
-import com.checkmarx.intellij.devassist.inspection.remediation.CxOneAssistFix;
-import com.checkmarx.intellij.devassist.inspection.remediation.IgnoreAllThisTypeFix;
-import com.checkmarx.intellij.devassist.inspection.remediation.IgnoreVulnerabilityFix;
-import com.checkmarx.intellij.devassist.inspection.remediation.ViewDetailsFix;
+import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.remediation.IgnoreAllThisTypeFix;
+import com.checkmarx.intellij.devassist.remediation.IgnoreVulnerabilityFix;
+import com.checkmarx.intellij.devassist.remediation.ViewDetailsFix;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.ui.ProblemDescription;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
@@ -33,17 +33,22 @@ public class ProblemBuilder {
     private static final Map<String, ProblemHighlightType> SEVERITY_HIGHLIGHT_TYPE_MAP = new HashMap<>();
     private static final ProblemDescription PROBLEM_DESCRIPTION_INSTANCE = new ProblemDescription();
 
-    /**
-     * Private constructor to prevent instantiation.
+    /*
+     * Static initializer to initialize the mapping from severity levels to problem highlight types.
      */
-    private ProblemBuilder() {
+    static {
         initSeverityToHighlightMap();
     }
 
     /**
+     * Private constructor to prevent instantiation.
+     */
+    private ProblemBuilder() {}
+
+    /**
      * Initializes the mapping from severity levels to problem highlight types.
      */
-    private void initSeverityToHighlightMap() {
+    private static void initSeverityToHighlightMap() {
         SEVERITY_HIGHLIGHT_TYPE_MAP.put(SeverityLevel.MALICIOUS.getSeverity(), ProblemHighlightType.GENERIC_ERROR);
         SEVERITY_HIGHLIGHT_TYPE_MAP.put(SeverityLevel.CRITICAL.getSeverity(), ProblemHighlightType.GENERIC_ERROR);
         SEVERITY_HIGHLIGHT_TYPE_MAP.put(SeverityLevel.HIGH.getSeverity(), ProblemHighlightType.GENERIC_ERROR);

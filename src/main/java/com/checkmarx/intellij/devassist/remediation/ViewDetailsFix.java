@@ -1,6 +1,7 @@
-package com.checkmarx.intellij.devassist.inspection.remediation;
+package com.checkmarx.intellij.devassist.remediation;
 
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.intellij.codeInspection.LocalQuickFix;
@@ -8,7 +9,10 @@ import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.util.IntentionFamilyName;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Iconable;
 import org.jetbrains.annotations.NotNull;
+
+import javax.swing.*;
 
 /**
  * A class representing a quick fix that enables users to view details of a scan issue detected during
@@ -22,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
  * - Providing a family name that categorizes this type of quick fix.
  * - Implementing an action to be executed when the quick fix is applied, which in this case is to display details of the scan issue.
  */
-public class ViewDetailsFix implements LocalQuickFix {
+public class ViewDetailsFix implements LocalQuickFix, Iconable {
 
     private static final Logger LOGGER = Utils.getLogger(ViewDetailsFix.class);
 
@@ -51,6 +55,14 @@ public class ViewDetailsFix implements LocalQuickFix {
     @Override
     public @IntentionFamilyName @NotNull String getFamilyName() {
         return Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME;
+    }
+
+    /**
+     * Returns the icon representing this quick fix.
+     */
+    @Override
+    public Icon getIcon(int flags) {
+        return CxIcons.STAR_ACTION;
     }
 
     /**
