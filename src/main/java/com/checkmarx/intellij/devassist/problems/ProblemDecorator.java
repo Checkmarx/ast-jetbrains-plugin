@@ -3,9 +3,11 @@ package com.checkmarx.intellij.devassist.problems;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -21,6 +23,7 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.search.GlobalSearchScope;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
@@ -186,10 +189,7 @@ public class ProblemDecorator {
         ApplicationManager.getApplication().invokeLater(() -> {
             Editor editor = FileEditorManager.getInstance(file.getProject()).getSelectedTextEditor();
             if (editor == null) return;
-            MarkupModel markupModel = editor.getMarkupModel();
-            Arrays.stream(markupModel.getAllHighlighters())
-                    .filter(highlighter -> highlighter.getGutterIconRenderer() != null)
-                    .forEach(markupModel::removeHighlighter);
+            editor.getMarkupModel().removeAllHighlighters();
         });
     }
 
@@ -222,7 +222,7 @@ public class ProblemDecorator {
     public Icon getGutterIconBasedOnStatus(String severity) {
         switch (SeverityLevel.fromValue(severity)) {
             case MALICIOUS:
-                return CxIcons.GUTTER_MALICIOUS;
+                return CxIcons.Small.MALICIOUS;
             case CRITICAL:
                 return CxIcons.Small.CRITICAL;
             case HIGH:
@@ -259,19 +259,26 @@ public class ProblemDecorator {
         Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
         if (document == null) return;
 
-        scanIssueList.forEach(scanIssue -> {
+        Map<ScanEngine, Boolean> scanEngines = GlobalScannerController.getInstance().getScannerStateMap();
+        if (scanEngines.isEmpty() || scanIssueList.isEmpty()) {
+            LOGGER.debug("RTS: No scan engines or scan issues found for: {} ", psiFile.getName());
+            return;
+        }
+        for(ScanIssue scanIssue : scanIssueList) {
             try {
-                boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
-                int problemLineNumber = scanIssue.getLocations().get(0).getLine();
-                PsiElement elementAtLine = psiFile.findElementAt(document.getLineStartOffset(problemLineNumber));
-                if (elementAtLine != null) {
-                    highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
+                if (scanEngines.containsKey(scanIssue.getScanEngine()) && Boolean.TRUE.equals(scanEngines.get(scanIssue.getScanEngine()))) {
+                    boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
+                    int problemLineNumber = scanIssue.getLocations().get(0).getLine();
+                    PsiElement elementAtLine = psiFile.findElementAt(document.getLineStartOffset(problemLineNumber));
+                    if (elementAtLine != null) {
+                        highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
+                    }
                 }
             } catch (Exception e) {
                 LOGGER.debug("RTS: Exception occurred while restoring gutter icons for: {} ",
                         psiFile.getName(), scanIssue.getTitle(), e.getMessage());
             }
-        });
+        }
 
     }
 }

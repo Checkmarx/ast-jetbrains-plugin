@@ -7,6 +7,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import lombok.Getter;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -16,9 +17,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service(Service.Level.APP)
 public final class GlobalScannerController implements SettingsListener {
-    private final Map<ScanEngine, Boolean> scannerStateMap =
-            new EnumMap<>(ScanEngine.class);
+    @Getter
+    private final Map<ScanEngine, Boolean> scannerStateMap = new EnumMap<>(ScanEngine.class);
     private final Set<String> activeScannerProjectSet = ConcurrentHashMap.newKeySet();
+
+    /**
+     * Get the singleton instance of GlobalScannerController
+     *
+     * @return GlobalScannerController
+     */
+    public static GlobalScannerController getInstance() {
+        return ApplicationManager.getApplication().getService(GlobalScannerController.class);
+    }
 
     public GlobalScannerController() {
         GlobalSettingsState state = GlobalSettingsState.getInstance();

@@ -6,7 +6,6 @@ import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
 
-import java.net.URL;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +22,7 @@ import static com.checkmarx.intellij.Utils.escapeHtml;
  */
 public class ProblemDescription {
 
-    private static final int MAX_LINE_LENGTH = 150;
+    private static final int MAX_LINE_LENGTH = 140;
     private static final Map<String, String> DESCRIPTION_ICON = new LinkedHashMap<>();
 
     private static final String DIV = "<div>";
@@ -35,6 +34,8 @@ public class ProblemDescription {
     public static final String RISK_PACKAGE = "risk package";
     public static final String SEVERITY_PACKAGE = "Severity Package";
     public static final String PACKAGE_DETECTED = "package detected";
+    private static final String THEME = "THEME";
+    private static final String COUNT = "COUNT";
 
     public ProblemDescription() {
         initIconsMap();
@@ -44,13 +45,27 @@ public class ProblemDescription {
      * Initializes the mapping from severity levels to severity-specific icons.
      */
     private void initIconsMap() {
-        DESCRIPTION_ICON.put(SeverityLevel.MALICIOUS.getSeverity(), getImage(getIconPath(Constants.ImagePaths.MALICIOUS_SEVERITY_PNG)));
-        DESCRIPTION_ICON.put(SeverityLevel.CRITICAL.getSeverity(), getImage(getIconPath(Constants.ImagePaths.CRITICAL_SEVERITY_PNG)));
-        DESCRIPTION_ICON.put(SeverityLevel.HIGH.getSeverity(), getImage(getIconPath(Constants.ImagePaths.HIGH_SEVERITY_PNG)));
-        DESCRIPTION_ICON.put(SeverityLevel.MEDIUM.getSeverity(), getImage(getIconPath(Constants.ImagePaths.MEDIUM_SEVERITY_PNG)));
-        DESCRIPTION_ICON.put(SeverityLevel.LOW.getSeverity(), getImage(getIconPath(Constants.ImagePaths.LOW_SEVERITY_PNG)));
-        DESCRIPTION_ICON.put(PACKAGE, getImage(getIconPath(Constants.ImagePaths.PACKAGE_PNG)));
-        DESCRIPTION_ICON.put(DEV_ASSIST, getIconPath(Constants.ImagePaths.DEV_ASSIST_PNG));
+        DESCRIPTION_ICON.put(SeverityLevel.MALICIOUS.getSeverity(), getImage(Constants.ImagePaths.MALICIOUS_PNG));
+        DESCRIPTION_ICON.put(SeverityLevel.CRITICAL.getSeverity(), getImage(Constants.ImagePaths.CRITICAL_PNG));
+        DESCRIPTION_ICON.put(SeverityLevel.HIGH.getSeverity(), getImage(Constants.ImagePaths.HIGH_PNG));
+        DESCRIPTION_ICON.put(SeverityLevel.MEDIUM.getSeverity(), getImage(Constants.ImagePaths.MEDIUM_PNG));
+        DESCRIPTION_ICON.put(SeverityLevel.LOW.getSeverity(), getImage(Constants.ImagePaths.LOW_PNG));
+
+        DESCRIPTION_ICON.put(SeverityLevel.CRITICAL.getSeverity()+COUNT, getImage(Constants.ImagePaths.CRITICAL_16_PNG));
+        DESCRIPTION_ICON.put(SeverityLevel.HIGH.getSeverity()+COUNT, getImage(Constants.ImagePaths.HIGH_16_PNG));
+        DESCRIPTION_ICON.put(SeverityLevel.MEDIUM.getSeverity()+COUNT, getImage(Constants.ImagePaths.MEDIUM_16_PNG));
+        DESCRIPTION_ICON.put(SeverityLevel.LOW.getSeverity()+COUNT, getImage(Constants.ImagePaths.LOW_16_PNG));
+
+        DESCRIPTION_ICON.put(PACKAGE, getImage(Constants.ImagePaths.PACKAGE_PNG));
+        DESCRIPTION_ICON.put(DEV_ASSIST, getImage(Constants.ImagePaths.DEV_ASSIST_PNG));
+        DESCRIPTION_ICON.put(THEME, getTheme());
+    }
+
+    /**
+     * Reloads the mapping from severity levels to severity-specific icons.
+     */
+    public void reloadIcons() {
+        initIconsMap();
     }
 
     /**
@@ -67,9 +82,8 @@ public class ProblemDescription {
     public String formatDescription(ScanIssue scanIssue) {
 
         StringBuilder descBuilder = new StringBuilder();
-        descBuilder.append("<html><body><div style='display:flex;align-items:center;gap:4px;'>")
-                .append("<div><table><tr><img src='").append(getIconPath(Constants.ImagePaths.DEV_ASSIST_PNG))
-                .append("'/></tr><table></div><br>");
+        descBuilder.append("<html><body><div style='display:flex;flex-direction:row;align-items:center;gap:10px;'>")
+                .append(DIV).append("<table><tr><td>").append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table></div>");
         switch (scanIssue.getScanEngine()) {
             case OSS:
                 buildOSSDescription(descBuilder, scanIssue);
@@ -80,7 +94,7 @@ public class ProblemDescription {
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
-        descBuilder.append("<hr></div></body></html>");
+        descBuilder.append("</div></body></html>");
         return descBuilder.toString();
     }
 
@@ -118,7 +132,15 @@ public class ProblemDescription {
                 .append("<font color='gray'>").append(scanIssue.getScanEngine().name()).append("</font></div><br><hr>");
     }
 
+    /**
+     * Returns the icon path for the specified key.
+     * @param key the key for the icon path
+     * @return the icon path
+     */
     private String getIcon(String key) {
+        if (!DESCRIPTION_ICON.get(THEME).equalsIgnoreCase(getTheme())) {
+            reloadIcons();
+        }
         return DESCRIPTION_ICON.getOrDefault(key, "");
     }
 
@@ -142,13 +164,11 @@ public class ProblemDescription {
      * @param scanIssue   the ScanIssue object containing details about the issue such as severity, title, and package version
      */
     private void buildPackageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<table style='display:inline-table;vertical-align:middle;'>")
-                .append("<tr>").append(DIV).append(scanIssue.getSeverity()).append("-").append(RISK_PACKAGE)
-                .append(":  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion())
-                .append(" - <font color='gray'>").append(scanIssue.getScanEngine().name()).append("</font></div></tr>");
-        descBuilder.append("<tr>").append(DIV).append(getIcon(PACKAGE))
-                .append("&nbsp&nbsp<b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
-                .append(" - ").append(scanIssue.getSeverity()).append(" ").append(SEVERITY_PACKAGE).append(DIV_BR).append("</tr></table>");
+        descBuilder.append("<table><tr><td colspan=\"2\"><p>").append(scanIssue.getSeverity()).append("-").append(RISK_PACKAGE)
+                .append(" :  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</p></td></tr>")
+                .append("<tr><td>").append(getIcon(PACKAGE)).append("</td>")
+                .append("<td><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
+                .append(" - ").append(scanIssue.getSeverity()).append(" ").append(SEVERITY_PACKAGE).append("</td></tr></table>");
     }
 
     /**
@@ -162,13 +182,23 @@ public class ProblemDescription {
      *                    title, and package version
      */
     private void buildMaliciousPackageMessage(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append(DIV).append(scanIssue.getSeverity()).append(" ").append(PACKAGE_DETECTED)
-                .append(":  ").append(scanIssue.getTitle())
-                .append("@").append(scanIssue.getPackageVersion()).append(DIV_BR);
-        descBuilder.append(DIV).append(getIcon(scanIssue.getSeverity()))
-                .append("<b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
-                .append(" - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE).append(DIV_BR);
-        descBuilder.append(DIV_BR);
+        descBuilder.append("<table><tr><td colspan=\"2\">");
+        buildMaliciousPackageHeader(descBuilder, scanIssue);
+        descBuilder.append("</td></tr><tr><td>").append(getIcon(scanIssue.getSeverity())).append("</td>")
+                .append("<td style='vertical-align:middle;padding:0 6px 0 0;'><b>")
+                .append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
+                .append(" - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE).append("</td></tr></table><br>");
+    }
+
+    /**
+     * Builds the malicious package header section of a scan issue description and appends it to the provided StringBuilder.
+     *
+     * @param descBuilder the StringBuilder to which the formatted malicious package header will be appended
+     * @param scanIssue   he ScanIssue object containing details about the malicious package
+     */
+    private void buildMaliciousPackageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
+        descBuilder.append("<p>").append(scanIssue.getSeverity()).append(" ").append(PACKAGE_DETECTED).append(" :  ")
+                .append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</p>");
     }
 
     /**
@@ -184,7 +214,7 @@ public class ProblemDescription {
         if (vulnerabilityList != null && !vulnerabilityList.isEmpty()) {
             descBuilder.append(DIV);
             buildVulnerabilityIconWithCountMessage(descBuilder, vulnerabilityList);
-            descBuilder.append("</div><br><div><table><tr>");
+            descBuilder.append("</div><div><table><tr>");
             findVulnerabilityBySeverity(vulnerabilityList, scanIssue.getSeverity())
                     .ifPresent(vulnerability ->
                             descBuilder.append(wrapText(escapeHtml(vulnerability.getDescription()))).append("<br>")
@@ -237,7 +267,7 @@ public class ProblemDescription {
         DESCRIPTION_ICON.forEach((severity, iconPath) -> {
             Long count = vulnerabilityCount.get(severity);
             if (count != null && count > 0) {
-                descBuilder.append("<td style='vertical-align:middle;padding:0;'>").append(iconPath).append("</td>")
+                descBuilder.append("<td>").append(getIcon(severity+COUNT)).append("</td>")
                         .append("<td style='vertical-align:middle;padding:0 6px 0 0;'>")
                         .append(count).append("</td>");
 
@@ -248,25 +278,13 @@ public class ProblemDescription {
     }
 
     /**
-     * Generates an HTML image element based on the provided icon path.
+     * Generates an HTML image element based on the provided icon name.
      *
      * @param iconPath the path to the image file that will be used in the HTML content
      * @return a String representing an HTML image element with the provided icon path
      */
-    private String getImage(String iconPath) {
-        return "<img src='" + iconPath + "'/>";
-    }
-
-    /**
-     * Retrieves the external form of a resource URL for the given icon path, if available.
-     * If the resource cannot be found, an empty string is returned.
-     *
-     * @param iconPath the relative path to the icon resource to be located
-     * @return the external form of the resource URL as a string, or an empty string if the resource is not found
-     */
-    private String getIconPath(String iconPath) {
-        URL res = getClass().getResource(iconPath);
-        return (res != null) ? res.toExternalForm() : "";
+    private static String getImage(String iconPath) {
+        return iconPath.isEmpty() ? "" : "<img src='" + DevAssistUtils.themeBasedPNGIconForHtmlImage(iconPath) + "'/>";
     }
 
     /**
@@ -276,6 +294,15 @@ public class ProblemDescription {
      * @return the wrapped text
      */
     private String wrapText(String text) {
-        return DevAssistUtils.wrapTextAtWord(text, MAX_LINE_LENGTH);
+        return text.length() < MAX_LINE_LENGTH ? text : DevAssistUtils.wrapTextAtWord(text, MAX_LINE_LENGTH);
+    }
+
+    /**
+     * Gets the theme name for the current IDE theme.
+     *
+     * @return dark or light
+     */
+    private static String getTheme() {
+        return DevAssistUtils.isDarkTheme() ? "dark" : "light";
     }
 }

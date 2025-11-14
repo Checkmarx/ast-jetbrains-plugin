@@ -171,14 +171,19 @@ public final class Constants {
             throw new UnsupportedOperationException("Cannot instantiate ImagePaths class");
         }
 
-        public static final String DEV_ASSIST_PNG = "/icons/devassist/cxone_assist_dark.png";
-        public static final String CRITICAL_SEVERITY_PNG = "/icons/devassist/critical_severity.png";
-        public static final String HIGH_SEVERITY_PNG = "/icons/devassist/high_severity.png";
-        public static final String MEDIUM_SEVERITY_PNG = "/icons/devassist/medium_severity.png";
-        public static final String LOW_SEVERITY_PNG = "/icons/devassist/low_severity.png";
-        public static final String MALICIOUS_SEVERITY_PNG = "/icons/devassist/malicious.png";
-        public static final String PACKAGE_PNG = "/icons/devassist/package.png";
+        public static final String DEV_ASSIST_PNG = "/icons/devassist/tooltip/cxone_assist";
+        public static final String CRITICAL_PNG = "/icons/devassist/tooltip/critical";
+        public static final String HIGH_PNG = "/icons/devassist/tooltip/high";
+        public static final String MEDIUM_PNG = "/icons/devassist/tooltip/medium";
+        public static final String LOW_PNG = "/icons/devassist/tooltip/low";
+        public static final String MALICIOUS_PNG = "/icons/devassist/tooltip/malicious";
+        public static final String PACKAGE_PNG = "/icons/devassist/tooltip/package";
 
+        // Vulnerability Severity Count Icons
+        public static final String CRITICAL_16_PNG = "/icons/devassist/tooltip/severity_count/critical";
+        public static final String HIGH_16_PNG = "/icons/devassist/tooltip/severity_count/high";
+        public static final String MEDIUM_16_PNG = "/icons/devassist/tooltip/severity_count/medium";
+        public static final String LOW_16_PNG = "/icons/devassist/tooltip/severity_count/low";
     }
 
 }

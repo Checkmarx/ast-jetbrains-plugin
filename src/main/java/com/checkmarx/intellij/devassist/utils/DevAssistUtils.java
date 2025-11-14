@@ -6,6 +6,9 @@ import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.util.ui.UIUtil;
+
+import java.net.URL;
 
 /**
  * Utility class for common operations.
@@ -21,6 +24,7 @@ public class DevAssistUtils {
 
     /**
      * Checks if the scanner with the given name is active.
+     *
      * @param engineName the name of the scanner to check
      * @return true if the scanner is active, false otherwise
      */
@@ -123,5 +127,37 @@ public class DevAssistUtils {
         if (severity.equalsIgnoreCase(SeverityLevel.OK.getSeverity())) {
             return false;
         } else return !severity.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity());
+    }
+
+    /**
+     * Returns a resource URL string suitable for embedding in an <img src='...'> tag
+     * for the given simple icon key (e.g. "critical", "high", "package", "malicious").
+     *
+     * @param iconPath severity or logical icon path
+     * @return external form URL or empty string if not found
+     */
+    public static String themeBasedPNGIconForHtmlImage(String iconPath) {
+        if (iconPath == null || iconPath.isEmpty()) {
+            return "";
+        }
+        boolean dark = isDarkTheme();
+        // Try the dark variant first if in a dark theme.
+        String candidate = iconPath + (dark ? "_dark" : "") + ".png";
+        URL res = DevAssistUtils.class.getResource(candidate);
+        if (res == null && dark) {
+            // Fallback to the light variant.
+            candidate = iconPath + ".png";
+            res = DevAssistUtils.class.getResource(candidate);
+        }
+        return res != null ? res.toExternalForm() : "";
+    }
+
+    /**
+     * Checks if the IDE is in a dark theme.
+     *
+     * @return true if in a dark theme, false otherwise
+     */
+    public static boolean isDarkTheme() {
+        return UIUtil.isUnderDarcula();
     }
 }
