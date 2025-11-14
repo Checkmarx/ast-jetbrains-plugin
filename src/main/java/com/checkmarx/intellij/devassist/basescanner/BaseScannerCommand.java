@@ -57,6 +57,7 @@ public class BaseScannerCommand implements ScannerCommand {
 
     /**
      * De-registers the project for the scanner ,
+     * This method is called in two cases, either project is closed by the user, or scanner is disabled
      *
      * @param project - the project that is registered
      */
@@ -65,20 +66,39 @@ public class BaseScannerCommand implements ScannerCommand {
         if (!global().isRegistered(project, getScannerType())) {
             return;
         }
-        ProblemHolderService.getInstance(project)
-                .removeAllProblemsOfType(getScannerType().toString());
         global().markUnregistered(project, getScannerType());
         LOGGER.info(config.getDisabledMessage() + ":" + project.getName());
+        if (project.isDisposed()) {
+            return;
+        }
+        ProblemHolderService.getInstance(project)
+                .removeAllProblemsOfType(getScannerType().toString());
     }
 
+
+    /**
+     * Returns the scanner activationStatus of the scanner engine
+     */
     private boolean getScannerActivationStatus() {
         return DevAssistUtils.isScannerActive(config.getEngineName());
     }
 
+
+    /**
+     * Checks if the scanner is registered already for the project
+     *
+     * @param project is required
+     */
     private boolean isScannerRegisteredAlready(Project project) {
         return global().isRegistered(project, getScannerType());
     }
 
+
+    /**
+     * This method returns the ScanEngine Type
+     *
+     * @return ScanEngine
+     */
     protected ScanEngine getScannerType() {
         return ScanEngine.valueOf(config.getEngineName().toUpperCase());
     }

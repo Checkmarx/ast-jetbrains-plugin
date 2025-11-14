@@ -5,9 +5,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerCommand;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
-import com.checkmarx.intellij.devassist.inspection.RealtimeInspection;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
-import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -17,11 +15,13 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import org.jetbrains.annotations.NotNull;
+
 import java.nio.file.FileSystems;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -64,7 +64,7 @@ public class OssScannerCommand extends BaseScannerCommand {
 
         for (VirtualFile vRoot : ProjectRootManager.getInstance(project).getContentRoots()) {
             VfsUtilCore.iterateChildrenRecursively(vRoot, null, file -> {
-                if (!file.isDirectory() && !file.getPath().contains("/node_modules/")) {
+                if (!file.isDirectory() && !file.getPath().contains("/node_modules/") && file.exists()) {
                     String path = file.getPath();
                     for (PathMatcher matcher : pathMatchers) {
                         if (matcher.matches(Paths.get(path))) {
@@ -81,6 +81,9 @@ public class OssScannerCommand extends BaseScannerCommand {
             if (file.isPresent()) {
                 try {
                     PsiFile psiFile = PsiManager.getInstance(project).findFile(file.get());
+                    if (Objects.isNull(psiFile)) {
+                        return;
+                    }
                     ScanResult<?> ossRealtimeResults = ossScannerService.scan(psiFile, uri);
                     List<ScanIssue> problemsList = new ArrayList<>(ossRealtimeResults.getIssues());
                     ProblemHolderService.addToCxOneFindings(psiFile, problemsList);
