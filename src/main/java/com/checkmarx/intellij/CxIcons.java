@@ -66,7 +66,7 @@ public final class CxIcons {
 
         private Small() {}
 
-        public static final Icon MALICIOUS = IconLoader.getIcon("/icons/devassist/severity_16/malicious.svg", CxIcons.class);
+        public static final Icon MALICIOUS = IconLoader.getIcon("/icons/devassist/malicious.svg", CxIcons.class);
         public static final Icon CRITICAL = IconLoader.getIcon("/icons/devassist/severity_16/critical.svg", CxIcons.class);
         public static final Icon HIGH = IconLoader.getIcon("/icons/devassist/severity_16/high.svg", CxIcons.class);
         public static final Icon MEDIUM = IconLoader.getIcon("/icons/devassist/severity_16/medium.svg", CxIcons.class);
