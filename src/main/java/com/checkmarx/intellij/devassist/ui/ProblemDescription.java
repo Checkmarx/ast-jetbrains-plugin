@@ -30,7 +30,7 @@ public class ProblemDescription {
     private static final String COUNT = "COUNT";
     private static final String PACKAGE = "Package";
     private static final String DEV_ASSIST = "DevAssist";
-    private static final String GRAY = "<p style='color: gray;'>";
+    private static final String GRAY = "<p style='color: gray; margin:0;'>";
 
     public ProblemDescription() {
         initIconsMap();
@@ -77,7 +77,8 @@ public class ProblemDescription {
 
         StringBuilder descBuilder = new StringBuilder();
         descBuilder.append("<html><body><div style='display:flex;flex-direction:row;align-items:center;gap:10px;'>")
-                .append(DIV).append("<table><tr><td>").append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table></div>");
+                .append(DIV).append("<table style='border-collapse:collapse;'><tr><td style='padding:0;'>")
+                .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table></div>");
         switch (scanIssue.getScanEngine()) {
             case OSS:
                 buildOSSDescription(descBuilder, scanIssue);
@@ -120,10 +121,10 @@ public class ProblemDescription {
      *                    remediation advice, and the scanning engine responsible for detecting the issue
      */
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<table style='table-layout:fixed;'><tr>")
-                .append("<td style='width:24px;min-width:24px;vertical-align:top;'>")
+        descBuilder.append("<table style='table-layout:fixed;border-collapse:collapse;'><tr>")
+                .append("<td style='width:24px;min-width:24px;vertical-align:top;padding:0;'>")
                 .append(getIcon(scanIssue.getSeverity()))
-                .append("</td><td style='word-break:break-word;'>")
+                .append("</td><td style='word-break:break-word;padding:0;'>")
                 .append("<b>").append(escapeHtml(scanIssue.getTitle())).append("</b> - ")
                 .append(escapeHtml(scanIssue.getRemediationAdvise())).append("<br>")
                 .append(GRAY).append(scanIssue.getScanEngine().name()).append("</p></td></tr></table>");
@@ -159,13 +160,16 @@ public class ProblemDescription {
      * @param scanIssue   the ScanIssue object containing details about the issue such as severity, title, and package version
      */
     private void buildPackageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<table><tr><td colspan=\"3\"><p style='font-size: 11px;'>")
+        descBuilder.append("<table style='border-collapse:collapse;'><tr><td colspan=\"3\" style='padding:0;'><p style='font-size: 10px; margin:0;'>")
                 .append(scanIssue.getSeverity()).append("-").append(Constants.RealTimeConstants.RISK_PACKAGE)
-                .append(" :  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</p></td></tr>")
-                .append("<tr><td>").append(getIcon(PACKAGE)).append("</td>")
-                .append("<td><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b></td><td>")
+                .append(" :  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</p></td></tr>");
+
+        descBuilder.append("<tr><td style='padding:0;vertical-align:middle;'>").append(getIcon(PACKAGE)).append("</td>")
+                .append("<td style='padding:0 4px 0 4px;vertical-align:middle;'><b>").append(scanIssue.getTitle()).append("@")
+                .append(scanIssue.getPackageVersion()).append("</b></td><td style='padding:0;vertical-align:middle;'>")
                 .append(GRAY).append(" - ").append(scanIssue.getSeverity()).append(" ")
-                .append(Constants.RealTimeConstants.SEVERITY_PACKAGE).append("</p></td></tr></table>");
+                .append(Constants.RealTimeConstants.SEVERITY_PACKAGE)
+                .append("</p></td></tr></table>");
     }
 
     /**
@@ -179,12 +183,12 @@ public class ProblemDescription {
      *                    title, and package version
      */
     private void buildMaliciousPackageMessage(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<table><tr><td colspan=\"3\">");
+        descBuilder.append("<table style='border-collapse:collapse;'><tr><td colspan=\"3\" style='padding:0;'>");
         buildMaliciousPackageHeader(descBuilder, scanIssue);
         descBuilder.append("</td></tr><tr><td>").append(getIcon(scanIssue.getSeverity())).append("</td>")
-                .append("<td><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b></td><td>")
-                .append(GRAY).append(" - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE)
-                .append("</p></td></tr></table><br>");
+                .append("<td><span><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b></span>")
+                .append("<span style='color: gray; margin:0;'> - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE)
+                .append("</span><td></tr></table><br>");
     }
 
     /**
@@ -194,7 +198,7 @@ public class ProblemDescription {
      * @param scanIssue   he ScanIssue object containing details about the malicious package
      */
     private void buildMaliciousPackageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<p style='font-size: 11px;'>").append(scanIssue.getSeverity())
+        descBuilder.append("<p style='font-size: 10px; margin:0;'>").append(scanIssue.getSeverity())
                 .append(" ").append(Constants.RealTimeConstants.PACKAGE_DETECTED).append(" :  ")
                 .append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</p>");
     }
@@ -212,7 +216,7 @@ public class ProblemDescription {
         if (vulnerabilityList != null && !vulnerabilityList.isEmpty()) {
             descBuilder.append(DIV);
             buildVulnerabilityIconWithCountMessage(descBuilder, vulnerabilityList);
-            descBuilder.append("<p style='margin-left: 5px;'>");
+            descBuilder.append("<p style='margin-left: 5px; margin-top:4px; margin-bottom:0;'>");
             findVulnerabilityBySeverity(vulnerabilityList, scanIssue.getSeverity())
                     .ifPresent(vulnerability ->
                             descBuilder.append(escapeHtml(vulnerability.getDescription()))
@@ -260,13 +264,13 @@ public class ProblemDescription {
         if (vulnerabilityList.isEmpty()) {
             return;
         }
-        descBuilder.append("<table><tr>");
+        descBuilder.append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>");
         Map<String, Long> vulnerabilityCount = getVulnerabilityCount(vulnerabilityList);
         DESCRIPTION_ICON.forEach((severity, iconPath) -> {
             Long count = vulnerabilityCount.get(severity);
             if (count != null && count > 0) {
-                descBuilder.append("<td>").append(getIcon(getSeverityCountIconKey(severity))).append("</td>")
-                        .append("<td style='vertical-align:middle;padding:0 6px 0 0;'>")
+                descBuilder.append("<td style='padding:0;'>").append(getIcon(getSeverityCountIconKey(severity))).append("</td>")
+                        .append("<td style='vertical-align:middle;padding:0 6px 0 2px;'>")
                         .append(count).append("</td>");
 
 
@@ -282,7 +286,8 @@ public class ProblemDescription {
      * @return a String representing an HTML image element with the provided icon path
      */
     private static String getImage(String iconPath) {
-        return iconPath.isEmpty() ? "" : "<img src='" + DevAssistUtils.themeBasedPNGIconForHtmlImage(iconPath) + "'/>";
+        // Add vertical-align:middle and remove default spacing; display:inline-block ensures tight layout.
+        return iconPath.isEmpty() ? "" : "<img style='vertical-align:middle;display:inline-block;margin:0;padding:0;' src='" + DevAssistUtils.themeBasedPNGIconForHtmlImage(iconPath) + "'/>";
     }
 
     /**
