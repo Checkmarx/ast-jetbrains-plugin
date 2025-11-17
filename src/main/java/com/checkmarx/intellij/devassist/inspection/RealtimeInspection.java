@@ -1,14 +1,20 @@
 package com.checkmarx.intellij.devassist.inspection;
 
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.common.ScannerFactory;
+import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
+import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.problems.ScanIssueProcessor;
+import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.ui.ProblemDescription;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -42,7 +48,7 @@ public class RealtimeInspection extends LocalInspectionTool {
     private final Map<String, Long> fileTimeStamp = new ConcurrentHashMap<>();
     private final ScannerFactory scannerFactory = new ScannerFactory();
     private final ProblemDecorator problemDecorator = new ProblemDecorator();
-    private final Key<Boolean> key = Key.create("THEME");
+    private final Key<Boolean> key = Key.create(Constants.RealTimeConstants.THEME);
 
     /**
      * Inspects the given PSI file and identifies potential issues or problems by leveraging
@@ -56,13 +62,17 @@ public class RealtimeInspection extends LocalInspectionTool {
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         String path = file.getVirtualFile().getPath();
-        if(path.isEmpty()){
-           return ProblemDescriptor.EMPTY_ARRAY;
-        }
-        Optional<ScannerService<?>> scannerService = getScannerService(path);
+        List<ScanEngine> enabledScanners = GlobalScannerController.getInstance().getEnabledScanners();
 
-        if (scannerService.isEmpty() || !isRealTimeScannerActive(scannerService.get())) {
-            LOGGER.warn(format("RTS: Scanner is not active for file: %s.", file.getName()));
+        if (path.isEmpty() || enabledScanners.isEmpty()) {
+            LOGGER.warn(format("RTS: No scanner is enabled, skipping file: %s", file.getName()));
+            problemDecorator.removeAllGutterIcons(file);
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
+        List<ScannerService<?>> supportedScanners = getSupportedScanner(path);
+
+        if (supportedScanners.isEmpty() || !isRealTimeScannerActive(supportedScanners, enabledScanners)) {
+            LOGGER.warn(format("RTS: No supported scanner found or scanner inactive for this file: %s.", file.getName()));
             problemDecorator.removeAllGutterIcons(file);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
@@ -71,43 +81,126 @@ public class RealtimeInspection extends LocalInspectionTool {
 
         if (fileTimeStamp.containsKey(path) && fileTimeStamp.get(path) == (currentModificationTime)
                 && isProblemDescriptorValid(problemHolderService, path, file)) {
-            return problemHolderService.getProblemDescriptors(path).toArray(new ProblemDescriptor[0]);
+            return getProblemsForEnabledScanners(problemHolderService, enabledScanners, path);
         }
         fileTimeStamp.put(path, currentModificationTime);
+        file.putUserData(key, DevAssistUtils.isDarkTheme());
 
         Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
         if (document == null) return ProblemDescriptor.EMPTY_ARRAY;
 
-        ScanResult<?> scanResult = scanFile(scannerService.get(), file, path);
-        if (Objects.isNull(scanResult)) return ProblemDescriptor.EMPTY_ARRAY;
-
-        List<ProblemDescriptor> problems = createProblemDescriptors(file, manager, isOnTheFly, scanResult, document);
-        problemHolderService.addProblemDescriptors(path, problems);
-        ProblemHolderService.addToCxOneFindings(file, scanResult.getIssues());
-        file.putUserData(key, DevAssistUtils.isDarkTheme());
-        return problems.toArray(new ProblemDescriptor[0]);
+        ProblemHelper.ProblemHelperBuilder problemHelperBuilder = buildHelper(file, manager, isOnTheFly, document);
+        problemHelperBuilder.supportedScanners(supportedScanners);
+        problemHelperBuilder.filePath(path);
+        problemHelperBuilder.problemHolderService(problemHolderService);
+        return scanFileAndCreateProblemDescriptors(problemHelperBuilder);
     }
 
     /**
-     * Retrieves an appropriate instance of {@link ScannerService} for handling real-time scanning
+     * Retrieves all supported instances of {@link ScannerService} for handling real-time scanning
      * of the specified file. The method checks available scanner services to determine if
      * any of them is suited to handle the given file path.
      *
      * @param filePath the path of the file as a string, used to identify an applicable scanner service; must not be null or empty
      * @return an {@link Optional} containing the matching {@link ScannerService} if found, or an empty {@link Optional} if no appropriate service exists
      */
-    private Optional<ScannerService<?>> getScannerService(String filePath) {
-        return scannerFactory.findRealTimeScanner(filePath);
+    private List<ScannerService<?>> getSupportedScanner(String filePath) {
+        return scannerFactory.getAllSupportedScanners(filePath);
     }
 
     /**
-     * Checks if the real-time scanner is active for the given {@link ScannerService}.
+     * Checks if the supported real-time scanner is active for the given {@link ScannerService}.
      *
-     * @param scannerService the scanner service whose active status is to be checked; must not be null
+     * @param supportedScanners the list of supported {@link ScannerService} instances for the file
+     * @param enabledScanners   the list of enabled {@link ScanEngine} instances for the project
      * @return true if the real-time scanner corresponding to the given scanner service is active, false otherwise
      */
-    private boolean isRealTimeScannerActive(ScannerService<?> scannerService) {
-        return DevAssistUtils.isScannerActive(scannerService.getConfig().getEngineName());
+    private boolean isRealTimeScannerActive(List<ScannerService<?>> supportedScanners, List<ScanEngine> enabledScanners) {
+        return enabledScanners.stream().anyMatch(engine ->
+                supportedScanners.stream().anyMatch(scannerService ->
+                        scannerService.getConfig().getEngineName().toUpperCase().equals(engine.name())));
+    }
+
+    /**
+     * Checks if the problem descriptor for the given file path is valid.
+     * Scan file on theme change, as the inspection tooltip doesn't support dynamic icon change in the tooltip description.
+     *
+     * @param problemHolderService the problem holder service
+     * @param path                 the file path
+     * @return true if the problem descriptor is valid, false otherwise
+     */
+    private boolean isProblemDescriptorValid(ProblemHolderService problemHolderService, String path, PsiFile file) {
+        if (file.getUserData(key) != null && !Objects.equals(file.getUserData(key), DevAssistUtils.isDarkTheme())) {
+            ProblemDescription.reloadIcons(); // reload problem descriptions icons on theme change
+            return false;
+        }
+        return !problemHolderService.getProblemDescriptors(path).isEmpty();
+    }
+
+    /**
+     * Gets the problem descriptors for the given file path and enabled scanners.
+     *
+     * @param problemHolderService the problem holder service.
+     * @param enabledScanners      the list of enabled scanners.
+     * @param filePath             the file path.
+     * @return the problem descriptors.
+     */
+    private ProblemDescriptor[] getProblemsForEnabledScanners(ProblemHolderService problemHolderService, List<ScanEngine> enabledScanners, String filePath) {
+        List<ProblemDescriptor> problemDescriptorsList = problemHolderService.getProblemDescriptors(filePath);
+
+        if (problemDescriptorsList.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
+
+        List<ProblemDescriptor> filteredProblems = new ArrayList<>();
+        for (ProblemDescriptor descriptor : problemDescriptorsList) {
+            try {
+                CxOneAssistFix cxOneAssistFix = (CxOneAssistFix) descriptor.getFixes()[0];
+                if (Objects.nonNull(cxOneAssistFix) && enabledScanners.contains(cxOneAssistFix.getScanIssue().getScanEngine())) {
+                    filteredProblems.add(descriptor);
+                }
+            } catch (Exception e) {
+                LOGGER.debug("RTS: Exception occurred while getting existing problems for enabled scanner for file: {} ",
+                        filePath, e.getMessage());
+                filteredProblems.add(descriptor);
+            }
+        }
+        problemHolderService.addProblemDescriptors(filePath, filteredProblems);
+        return filteredProblems.toArray(new ProblemDescriptor[0]);
+    }
+
+    /**
+     * Builds a {@link ProblemHelper.ProblemHelperBuilder} instance with the specified parameters.
+     *
+     * @param file       the PSI file to be scanned
+     * @param manager    the inspection manager used to create problem descriptors
+     * @param isOnTheFly a flag that indicates whether the inspection is executed on-the-fly
+     * @param document   the document containing the file to be scanned
+     * @return a {@link ProblemHelper.ProblemHelperBuilder} instance
+     */
+    private ProblemHelper.ProblemHelperBuilder buildHelper(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly, Document document) {
+        return ProblemHelper.builder().file(file).manager(manager).isOnTheFly(isOnTheFly).document(document);
+    }
+
+    /**
+     * Scans the given PSI file and creates problem descriptors for any identified issues.
+     *
+     * @param problemHelperBuilder - The {@link ProblemHelper}
+     * @return an array of {@link ProblemDescriptor} representing the detected issues, or an empty array if no issues were found
+     */
+    private ProblemDescriptor[] scanFileAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
+        ProblemHelper problemHelper = problemHelperBuilder.build();
+        List<ProblemDescriptor> allProblems = new ArrayList<>();
+        List<ScanIssue> allScanIssues = new ArrayList<>();
+
+        for (ScannerService<?> scannerService : problemHelper.getSupportedScanners()) {
+            ScanResult<?> scanResult = scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath());
+            if (Objects.isNull(scanResult)) continue;
+            problemHelperBuilder.scanResult(scanResult);
+            allProblems.addAll(createProblemDescriptors(problemHelperBuilder.build()));
+            allScanIssues.addAll(scanResult.getIssues());
+        }
+        problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
+        problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), allScanIssues);
+        return allProblems.toArray(new ProblemDescriptor[0]);
     }
 
     /**
@@ -121,7 +214,12 @@ public class RealtimeInspection extends LocalInspectionTool {
      * active and suitable scanner is found
      */
     private ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
-        return scannerService.scan(file, path);
+        try {
+            return scannerService.scan(file, path);
+        } catch (Exception e) {
+            LOGGER.debug("RTS: Exception occurred while scanning file: {} ", path, e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -129,41 +227,21 @@ public class RealtimeInspection extends LocalInspectionTool {
      * This method processes the scan issues for the specified file and uses the provided InspectionManager
      * to generate corresponding problem descriptors, if applicable.
      *
-     * @param file       the {@link PsiFile} being inspected; must not be null
-     * @param manager    the {@link InspectionManager} used to create problem descriptors; must not be null
-     * @param isOnTheFly a flag that indicates whether the inspection is executed on-the-fly
-     * @param scanResult the result of the scan containing issues to process
-     * @param document   the {@link Document} object representing the content of the file
+     * @param problemHelper - The {@link ProblemHelper}} instance containing necessary context for creating problem descriptors
      * @return a list of {@link ProblemDescriptor}; an empty list is returned if no issues are found or processed successfully
      */
-    private List<ProblemDescriptor> createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly,
-                                                             ScanResult<?> scanResult, Document document) {
+    private List<ProblemDescriptor> createProblemDescriptors(ProblemHelper problemHelper) {
         List<ProblemDescriptor> problems = new ArrayList<>();
-        this.problemDecorator.removeAllGutterIcons(file);
-        ScanIssueProcessor processor = new ScanIssueProcessor(this.problemDecorator, file, manager, document, isOnTheFly);
+        this.problemDecorator.removeAllGutterIcons(problemHelper.getFile());
+        ScanIssueProcessor processor = new ScanIssueProcessor(problemHelper, this.problemDecorator);
 
-        for (ScanIssue scanIssue : scanResult.getIssues()) {
+        for (ScanIssue scanIssue : problemHelper.getScanResult().getIssues()) {
             ProblemDescriptor descriptor = processor.processScanIssue(scanIssue);
             if (descriptor != null) {
                 problems.add(descriptor);
             }
         }
-        LOGGER.debug("RTS: Problem descriptors created: {} for file: {}", problems.size(), file.getName());
+        LOGGER.debug("RTS: Problem descriptors created: {} for file: {}", problems.size(), problemHelper.getFile().getName());
         return problems;
     }
-
-    /**
-     * Checks if the problem descriptor for the given file path is valid.
-     * Scan file on theme change, as the inspection tooltip doesn't support dynamic icon change in the tooltip description.
-     * @param problemHolderService the problem holder service
-     * @param path                 the file path
-     * @return true if the problem descriptor is valid, false otherwise
-     */
-    private boolean isProblemDescriptorValid(ProblemHolderService problemHolderService, String path, PsiFile file) {
-        if (file.getUserData(key) != null && !Objects.equals(file.getUserData(key), DevAssistUtils.isDarkTheme())) {
-            return false;
-        }
-        return !problemHolderService.getProblemDescriptors(path).isEmpty();
-    }
-
 }

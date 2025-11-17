@@ -9,10 +9,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import lombok.Getter;
 
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Application-level controller that tracks the global enablement state of each realtime scanner
@@ -151,6 +150,25 @@ public final class GlobalScannerController implements SettingsListener {
                 mgr.updateFromGlobal(this);
             }
         }
+    }
+
+    /**
+     * Checks if any scanner is enabled
+     * @return true if any scanner is enabled
+     */
+    public boolean checkAnyScannerEnabled(){
+        return Arrays.stream(ScanEngine.values())
+                .anyMatch(this::isScannerGloballyEnabled);
+    }
+
+    /**
+     * Get the list of enabled scanners
+     * @return list of enabled scanners
+     */
+    public List<ScanEngine> getEnabledScanners(){
+        return Arrays.stream(ScanEngine.values())
+                .filter(this::isScannerGloballyEnabled)
+                .collect(Collectors.toList());
     }
 
 }

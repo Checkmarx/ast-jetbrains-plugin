@@ -160,6 +160,11 @@ public final class Constants {
                 "**/go.mod",
                 "**/*.csproj"
         );
+        //Tooltip description constants
+        public static final String RISK_PACKAGE = "risk package";
+        public static final String SEVERITY_PACKAGE = "Severity Package";
+        public static final String PACKAGE_DETECTED = "package detected";
+        public static final String THEME = "THEME";
     }
 
     /**
