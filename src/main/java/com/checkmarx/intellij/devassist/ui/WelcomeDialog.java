@@ -12,7 +12,6 @@ import com.intellij.ui.ColorUtil;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
-import com.intellij.util.ui.ImageUtil;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import lombok.Getter;
@@ -21,21 +20,18 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.image.BufferedImage;
 
 /**
  * Welcome dialog displayed after successful authentication.
- * <p>
  * Presents plugin features and allows enabling/disabling real-time scanners when MCP is available.
- * <p>
  * Real-time settings are abstracted via {@link RealTimeSettingsManager} for testability.
  */
 public class WelcomeDialog extends DialogWrapper {
 
     private static final int WRAP_WIDTH = 250;
     private static final Dimension PREFERRED_DIALOG_SIZE = new Dimension(720, 460);
+    private static final Dimension RIGHT_PANEL_SIZE = new Dimension(420, 420);
+    private static final int PANEL_SPACING = 20;
 
     private final boolean mcpEnabled;
     private final RealTimeSettingsManager settingsManager;
@@ -128,7 +124,15 @@ public class WelcomeDialog extends DialogWrapper {
     private JComponent createFeatureCardHeader(Color backgroundColor) {
         JPanel header = new JPanel(new MigLayout("insets 0, gapx 6", "[][grow]"));
         header.setOpaque(false);
-        realTimeScannersCheckbox = new JBCheckBox();
+        realTimeScannersCheckbox = new JBCheckBox() {
+            @Override
+            public JToolTip createToolTip() {
+                JToolTip toolTip = super.createToolTip();
+                toolTip.setBackground(JBColor.background());
+                toolTip.setForeground(JBColor.foreground());
+                return toolTip;
+            }
+        };
         realTimeScannersCheckbox.setEnabled(mcpEnabled);
         realTimeScannersCheckbox.setOpaque(false);
         realTimeScannersCheckbox.setContentAreaFilled(false);
@@ -158,51 +162,21 @@ public class WelcomeDialog extends DialogWrapper {
         return bulletsPanel;
     }
 
-    /**
-     * Builds the right-side panel that hosts a scalable illustration.
-     * Keeps a buffered copy of the original icon and scales it smoothly to fit.
-     */
+    // Builds the right-side panel that hosts an image
+
     private JComponent createRightImagePanel() {
         JPanel rightPanel = new JPanel(new BorderLayout());
-        rightPanel.setBorder(JBUI.Borders.empty(20));
+        rightPanel.setBorder(JBUI.Borders.empty(PANEL_SPACING));
+        rightPanel.setPreferredSize(RIGHT_PANEL_SIZE);
+        rightPanel.setMinimumSize(RIGHT_PANEL_SIZE);
+        rightPanel.setMaximumSize(RIGHT_PANEL_SIZE);
 
-        Icon original = CxIcons.getWelcomeScannerIcon();
-        final int origW = original.getIconWidth();
-        final int origH = original.getIconHeight();
-
-        Image buf = ImageUtil.createImage(origW, origH, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = (Graphics2D) buf.getGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        original.paintIcon(null, g2, 0, 0);
-        g2.dispose();
-        final Image originalImage = buf;
-
-        JBLabel imageLabel = new JBLabel();
+        // Load the original icon
+        Icon originalIcon = CxIcons.getWelcomeScannerIcon();
+        JBLabel imageLabel = new JBLabel(originalIcon);
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        imageLabel.setVerticalAlignment(SwingConstants.CENTER);
+        imageLabel.setVerticalAlignment(SwingConstants.TOP);
         rightPanel.add(imageLabel, BorderLayout.NORTH);
-
-        ComponentAdapter adapter = new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                Dimension size = rightPanel.getSize();
-                if (size.width <= 0 || size.height <= 0) return;
-
-                // Scale proportionally and keep a soft cap to avoid oversized rendering
-                double ratio = Math.min(Math.min((double) size.width / origW, (double) size.height / origH), 0.7);
-                int targetW = Math.max(1, (int) Math.round(origW * ratio));
-                int targetH = Math.max(1, (int) Math.round(origH * ratio));
-
-                Image scaled = originalImage.getScaledInstance(targetW, targetH, Image.SCALE_SMOOTH);
-                imageLabel.setIcon(new ImageIcon(scaled));
-            }
-        };
-        rightPanel.addComponentListener(adapter);
-
-        // Perform initial scaling once layout is ready
-        SwingUtilities.invokeLater(() -> adapter.componentResized(
-                new ComponentEvent(rightPanel, ComponentEvent.COMPONENT_RESIZED)));
 
         return rightPanel;
     }
@@ -254,8 +228,8 @@ public class WelcomeDialog extends DialogWrapper {
     }
 
     /**
-     * Updates the checkbox tooltip based on current state and MCP availability.
-     * Shows appropriate enable/disable message when MCP is enabled, no tooltip when MCP is disabled.
+     * Updates the checkbox tooltip based on the current state and MCP availability.
+     * Shows the appropriate enable/disable message when MCP is enabled, no tooltip when MCP is disabled.
      */
     private void updateCheckboxTooltip() {
         if (realTimeScannersCheckbox == null || !mcpEnabled) {
@@ -266,8 +240,8 @@ public class WelcomeDialog extends DialogWrapper {
         }
 
         String tooltipText = realTimeScannersCheckbox.isSelected()
-            ? "Disable all real-time scanners"
-            : "Enable all real-time scanners";
+                ? "Disable all real-time scanners"
+                : "Enable all real-time scanners";
         realTimeScannersCheckbox.setToolTipText(tooltipText);
     }
 
