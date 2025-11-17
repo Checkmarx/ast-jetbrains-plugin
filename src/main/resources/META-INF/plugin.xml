@@ -136,7 +136,6 @@
             <action id="VulnerabilityHigh" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
             <action id="VulnerabilityMedium" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
             <action id="VulnerabilityLow" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
-        <separator/>
         </group>
     </actions>
 
