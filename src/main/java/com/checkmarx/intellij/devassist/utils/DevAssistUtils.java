@@ -27,15 +27,11 @@ public class DevAssistUtils {
 
 
     private DevAssistUtils() {
-    }
-
-    private static GlobalScannerController global() {
-        return ApplicationManager.getApplication().getService(GlobalScannerController.class);
+        // Private constructor to prevent instantiation
     }
 
     /**
      * Checks if the scanner with the given name is active.
-     *
      *
      * @param engineName the name of the scanner to check
      * @return true if the scanner is active, false otherwise
@@ -45,13 +41,21 @@ public class DevAssistUtils {
         try {
             if (new GlobalSettingsComponent().isValid()) {
                 ScanEngine kind = ScanEngine.valueOf(engineName.toUpperCase());
-                return global().isScannerGloballyEnabled(kind);
+                return GlobalScannerController.getInstance().isScannerGloballyEnabled(kind);
             }
-
         } catch (IllegalArgumentException ex) {
             return false;
         }
         return false;
+    }
+
+    /**
+     * Checks if any scanner is enabled.
+     *
+     * @return true if any scanner is enabled, false otherwise
+     */
+    public static boolean isAnyScannerEnabled() {
+        return GlobalScannerController.getInstance().checkAnyScannerEnabled();
     }
 
     /**
@@ -188,8 +192,8 @@ public class DevAssistUtils {
      * @return the full file text, or {@code null} if the file cannot be accessed
      */
 
-    public static String getFileContent(@NotNull PsiFile file){
-        return ApplicationManager.getApplication().runReadAction((Computable<String>) ()->{
+    public static String getFileContent(@NotNull PsiFile file) {
+        return ApplicationManager.getApplication().runReadAction((Computable<String>) () -> {
 
             Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
             if (document != null) {

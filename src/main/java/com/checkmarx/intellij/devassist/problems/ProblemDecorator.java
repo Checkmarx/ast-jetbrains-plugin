@@ -3,11 +3,9 @@ package com.checkmarx.intellij.devassist.problems;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
-import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -20,10 +18,8 @@ import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.search.GlobalSearchScope;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
@@ -129,6 +125,7 @@ public class ProblemDecorator {
 
     /**
      * Gets the CodeInsightColors key based on severity.
+     *
      * @param severity the severity
      * @return the text attributes key for the given severity
      */
@@ -186,11 +183,20 @@ public class ProblemDecorator {
      * @param file the file to remove the gutter icons from.
      */
     public void removeAllGutterIcons(PsiFile file) {
-        ApplicationManager.getApplication().invokeLater(() -> {
-            Editor editor = FileEditorManager.getInstance(file.getProject()).getSelectedTextEditor();
-            if (editor == null) return;
-            editor.getMarkupModel().removeAllHighlighters();
-        });
+        try {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                Editor editor = FileEditorManager.getInstance(file.getProject()).getSelectedTextEditor();
+                if (editor == null) return;
+
+                MarkupModel markupModel = editor.getMarkupModel();
+                if (Objects.nonNull(markupModel.getAllHighlighters())) {
+                    markupModel.removeAllHighlighters();
+                }
+            });
+        } catch (Exception e) {
+            LOGGER.debug("RTS-Decorator: Exception occurred while removing gutter icons for: {} ",
+                    file.getName(), e.getMessage());
+        }
     }
 
     /**
@@ -234,7 +240,7 @@ public class ProblemDecorator {
             case OK:
                 return CxIcons.Small.OK;
             default:
-                return CxIcons.GUTTER_SHIELD_QUESTION;
+                return CxIcons.Small.UNKNOWN;
         }
     }
 
@@ -255,27 +261,17 @@ public class ProblemDecorator {
      * @param psiFile       the psi file
      * @param scanIssueList the scan issue list
      */
-    public void restoreGutterIcons(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList) {
-        Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
-        if (document == null) return;
-
-        Map<ScanEngine, Boolean> scanEngines = GlobalScannerController.getInstance().getScannerStateMap();
-        if (scanEngines.isEmpty() || scanIssueList.isEmpty()) {
-            LOGGER.debug("RTS: No scan engines or scan issues found for: {} ", psiFile.getName());
-            return;
-        }
-        for(ScanIssue scanIssue : scanIssueList) {
+    public void restoreGutterIcons(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, Document document) {
+        for (ScanIssue scanIssue : scanIssueList) {
             try {
-                if (scanEngines.containsKey(scanIssue.getScanEngine()) && Boolean.TRUE.equals(scanEngines.get(scanIssue.getScanEngine()))) {
-                    boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
-                    int problemLineNumber = scanIssue.getLocations().get(0).getLine();
-                    PsiElement elementAtLine = psiFile.findElementAt(document.getLineStartOffset(problemLineNumber));
-                    if (elementAtLine != null) {
-                        highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
-                    }
+                boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
+                int problemLineNumber = scanIssue.getLocations().get(0).getLine();
+                PsiElement elementAtLine = psiFile.findElementAt(document.getLineStartOffset(problemLineNumber));
+                if (elementAtLine != null) {
+                    highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
                 }
             } catch (Exception e) {
-                LOGGER.debug("RTS: Exception occurred while restoring gutter icons for: {} ",
+                LOGGER.debug("RTS-Decorator: Exception occurred while restoring gutter icons for: {} ",
                         psiFile.getName(), scanIssue.getTitle(), e.getMessage());
             }
         }

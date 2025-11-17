@@ -22,20 +22,15 @@ import static com.checkmarx.intellij.Utils.escapeHtml;
  */
 public class ProblemDescription {
 
-    private static final int MAX_LINE_LENGTH = 140;
+    private static final int MAX_LINE_LENGTH = 120;
     private static final Map<String, String> DESCRIPTION_ICON = new LinkedHashMap<>();
 
     private static final String DIV = "<div>";
     private static final String DIV_BR = "</div><br>";
-
-    //Tooltip description constants
-    public static final String PACKAGE = "Package";
-    public static final String DEV_ASSIST = "DevAssist";
-    public static final String RISK_PACKAGE = "risk package";
-    public static final String SEVERITY_PACKAGE = "Severity Package";
-    public static final String PACKAGE_DETECTED = "package detected";
-    private static final String THEME = "THEME";
     private static final String COUNT = "COUNT";
+    private static final String PACKAGE = "Package";
+    private static final String DEV_ASSIST = "DevAssist";
+    private static final String GRAY = "<p style='color: gray;'>";
 
     public ProblemDescription() {
         initIconsMap();
@@ -44,27 +39,26 @@ public class ProblemDescription {
     /**
      * Initializes the mapping from severity levels to severity-specific icons.
      */
-    private void initIconsMap() {
+    private static void initIconsMap() {
         DESCRIPTION_ICON.put(SeverityLevel.MALICIOUS.getSeverity(), getImage(Constants.ImagePaths.MALICIOUS_PNG));
         DESCRIPTION_ICON.put(SeverityLevel.CRITICAL.getSeverity(), getImage(Constants.ImagePaths.CRITICAL_PNG));
         DESCRIPTION_ICON.put(SeverityLevel.HIGH.getSeverity(), getImage(Constants.ImagePaths.HIGH_PNG));
         DESCRIPTION_ICON.put(SeverityLevel.MEDIUM.getSeverity(), getImage(Constants.ImagePaths.MEDIUM_PNG));
         DESCRIPTION_ICON.put(SeverityLevel.LOW.getSeverity(), getImage(Constants.ImagePaths.LOW_PNG));
 
-        DESCRIPTION_ICON.put(SeverityLevel.CRITICAL.getSeverity()+COUNT, getImage(Constants.ImagePaths.CRITICAL_16_PNG));
-        DESCRIPTION_ICON.put(SeverityLevel.HIGH.getSeverity()+COUNT, getImage(Constants.ImagePaths.HIGH_16_PNG));
-        DESCRIPTION_ICON.put(SeverityLevel.MEDIUM.getSeverity()+COUNT, getImage(Constants.ImagePaths.MEDIUM_16_PNG));
-        DESCRIPTION_ICON.put(SeverityLevel.LOW.getSeverity()+COUNT, getImage(Constants.ImagePaths.LOW_16_PNG));
+        DESCRIPTION_ICON.put(getSeverityCountIconKey(SeverityLevel.CRITICAL.getSeverity()), getImage(Constants.ImagePaths.CRITICAL_16_PNG));
+        DESCRIPTION_ICON.put(getSeverityCountIconKey(SeverityLevel.HIGH.getSeverity()), getImage(Constants.ImagePaths.HIGH_16_PNG));
+        DESCRIPTION_ICON.put(getSeverityCountIconKey(SeverityLevel.MEDIUM.getSeverity()), getImage(Constants.ImagePaths.MEDIUM_16_PNG));
+        DESCRIPTION_ICON.put(getSeverityCountIconKey(SeverityLevel.LOW.getSeverity()), getImage(Constants.ImagePaths.LOW_16_PNG));
 
         DESCRIPTION_ICON.put(PACKAGE, getImage(Constants.ImagePaths.PACKAGE_PNG));
         DESCRIPTION_ICON.put(DEV_ASSIST, getImage(Constants.ImagePaths.DEV_ASSIST_PNG));
-        DESCRIPTION_ICON.put(THEME, getTheme());
     }
 
     /**
      * Reloads the mapping from severity levels to severity-specific icons.
      */
-    public void reloadIcons() {
+    public static void reloadIcons() {
         initIconsMap();
     }
 
@@ -126,21 +120,22 @@ public class ProblemDescription {
      *                    remediation advice, and the scanning engine responsible for detecting the issue
      */
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append(DIV).append(getIcon(scanIssue.getSeverity()))
+        descBuilder.append("<table style='table-layout:fixed;'><tr>")
+                .append("<td style='width:24px;min-width:24px;vertical-align:top;'>")
+                .append(getIcon(scanIssue.getSeverity()))
+                .append("</td><td style='word-break:break-word;'>")
                 .append("<b>").append(escapeHtml(scanIssue.getTitle())).append("</b> - ")
-                .append(wrapText(escapeHtml(scanIssue.getRemediationAdvise()))).append("<br>")
-                .append("<font color='gray'>").append(scanIssue.getScanEngine().name()).append("</font></div><br><hr>");
+                .append(escapeHtml(scanIssue.getRemediationAdvise())).append("<br>")
+                .append(GRAY).append(scanIssue.getScanEngine().name()).append("</p></td></tr></table>");
     }
 
     /**
      * Returns the icon path for the specified key.
+     *
      * @param key the key for the icon path
      * @return the icon path
      */
     private String getIcon(String key) {
-        if (!DESCRIPTION_ICON.get(THEME).equalsIgnoreCase(getTheme())) {
-            reloadIcons();
-        }
         return DESCRIPTION_ICON.getOrDefault(key, "");
     }
 
@@ -164,11 +159,13 @@ public class ProblemDescription {
      * @param scanIssue   the ScanIssue object containing details about the issue such as severity, title, and package version
      */
     private void buildPackageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<table><tr><td colspan=\"2\"><p>").append(scanIssue.getSeverity()).append("-").append(RISK_PACKAGE)
+        descBuilder.append("<table><tr><td colspan=\"2\"><p style='font-size: 11px;'>")
+                .append(scanIssue.getSeverity()).append("-").append(Constants.RealTimeConstants.RISK_PACKAGE)
                 .append(" :  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</p></td></tr>")
                 .append("<tr><td>").append(getIcon(PACKAGE)).append("</td>")
-                .append("<td><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
-                .append(" - ").append(scanIssue.getSeverity()).append(" ").append(SEVERITY_PACKAGE).append("</td></tr></table>");
+                .append("<td style='word-break:break-word;'><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
+                .append(GRAY).append(" - ").append(scanIssue.getSeverity()).append(" ")
+                .append(Constants.RealTimeConstants.SEVERITY_PACKAGE).append("</p></td></tr></table>");
     }
 
     /**
@@ -185,9 +182,10 @@ public class ProblemDescription {
         descBuilder.append("<table><tr><td colspan=\"2\">");
         buildMaliciousPackageHeader(descBuilder, scanIssue);
         descBuilder.append("</td></tr><tr><td>").append(getIcon(scanIssue.getSeverity())).append("</td>")
-                .append("<td style='vertical-align:middle;padding:0 6px 0 0;'><b>")
+                .append("<td style='vertical-align:middle;padding:0 6px 0 0; word-break:break-word;'><b>")
                 .append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
-                .append(" - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE).append("</td></tr></table><br>");
+                .append(GRAY).append(" - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE)
+                .append("</p></td></tr></table><br>");
     }
 
     /**
@@ -197,7 +195,8 @@ public class ProblemDescription {
      * @param scanIssue   he ScanIssue object containing details about the malicious package
      */
     private void buildMaliciousPackageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<p>").append(scanIssue.getSeverity()).append(" ").append(PACKAGE_DETECTED).append(" :  ")
+        descBuilder.append("<p style='font-size: 11px;'>").append(scanIssue.getSeverity())
+                .append(" ").append(Constants.RealTimeConstants.PACKAGE_DETECTED).append(" :  ")
                 .append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</p>");
     }
 
@@ -214,12 +213,12 @@ public class ProblemDescription {
         if (vulnerabilityList != null && !vulnerabilityList.isEmpty()) {
             descBuilder.append(DIV);
             buildVulnerabilityIconWithCountMessage(descBuilder, vulnerabilityList);
-            descBuilder.append("</div><div><table><tr>");
+            descBuilder.append("<p style='margin-left: 5px;'>");
             findVulnerabilityBySeverity(vulnerabilityList, scanIssue.getSeverity())
                     .ifPresent(vulnerability ->
-                            descBuilder.append(wrapText(escapeHtml(vulnerability.getDescription()))).append("<br>")
+                            descBuilder.append(escapeHtml(vulnerability.getDescription()))
                     );
-            descBuilder.append("</tr><table>").append(DIV_BR);
+            descBuilder.append(DIV_BR).append("<p>");
         }
     }
 
@@ -262,12 +261,12 @@ public class ProblemDescription {
         if (vulnerabilityList.isEmpty()) {
             return;
         }
-        descBuilder.append("<table style='display:inline-table;vertical-align:middle;'><tr>");
+        descBuilder.append("<table><tr>");
         Map<String, Long> vulnerabilityCount = getVulnerabilityCount(vulnerabilityList);
         DESCRIPTION_ICON.forEach((severity, iconPath) -> {
             Long count = vulnerabilityCount.get(severity);
             if (count != null && count > 0) {
-                descBuilder.append("<td>").append(getIcon(severity+COUNT)).append("</td>")
+                descBuilder.append("<td>").append(getIcon(getSeverityCountIconKey(severity))).append("</td>")
                         .append("<td style='vertical-align:middle;padding:0 6px 0 0;'>")
                         .append(count).append("</td>");
 
@@ -298,11 +297,12 @@ public class ProblemDescription {
     }
 
     /**
-     * Gets the theme name for the current IDE theme.
+     * Returns the key for the icon representing the specified severity with a count suffix.
      *
-     * @return dark or light
+     * @param severity the severity
+     * @return the key for the icon representing the specified severity with a count suffix
      */
-    private static String getTheme() {
-        return DevAssistUtils.isDarkTheme() ? "dark" : "light";
+    private static String getSeverityCountIconKey(String severity) {
+        return severity + COUNT;
     }
 }

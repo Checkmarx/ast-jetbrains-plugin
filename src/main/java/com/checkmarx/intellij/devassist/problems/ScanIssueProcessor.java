@@ -26,6 +26,14 @@ public class ScanIssueProcessor {
     private final Document document;
     private final boolean isOnTheFly;
 
+    public ScanIssueProcessor(ProblemHelper problemHelper, ProblemDecorator problemDecorator) {
+        this.problemDecorator = problemDecorator;
+        this.file = problemHelper.getFile();
+        this.manager = problemHelper.getManager();
+        this.document = problemHelper.getDocument();
+        this.isOnTheFly = problemHelper.isOnTheFly();
+    }
+
     /**
      * Processes a single scan issue and returns a problem descriptor if applicable.
      *
