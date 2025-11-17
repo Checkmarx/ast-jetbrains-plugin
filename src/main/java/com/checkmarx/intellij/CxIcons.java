@@ -12,6 +12,8 @@ public final class CxIcons {
     private CxIcons() {
     }
 
+    public static final Icon CHECKMARX_13 = IconLoader.getIcon("/icons/checkmarx-mono-13.png", CxIcons.class);
+    public static final Icon CHECKMARX_13_COLOR = IconLoader.getIcon("/icons/checkmarx-13.png", CxIcons.class);
     public static final Icon CHECKMARX_80 = IconLoader.getIcon("/icons/checkmarx-80.png", CxIcons.class);
     public static final Icon COMMENT = IconLoader.getIcon("/icons/comment.svg", CxIcons.class);
     public static final Icon STATE = IconLoader.getIcon("/icons/Flags.svg", CxIcons.class);
@@ -21,7 +23,6 @@ public final class CxIcons {
     public static Icon getWelcomeScannerIcon() {return IconLoader.getIcon("/icons/welcomePageScanner.svg", CxIcons.class);}
     public static Icon getWelcomeMcpDisableIcon() {return IconLoader.getIcon("/icons/cxAIError.svg", CxIcons.class);}
 
-    public static final Icon GUTTER_MALICIOUS = IconLoader.getIcon("/icons/devassist/malicious.svg", CxIcons.class);
     public static final Icon GUTTER_SHIELD_QUESTION = IconLoader.getIcon("/icons/devassist/question_mark.svg", CxIcons.class);
     public static final Icon STAR_ACTION = IconLoader.getIcon("/icons/devassist/star-action.svg", CxIcons.class);
 

@@ -14,6 +14,7 @@ import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.util.Key;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
@@ -41,6 +42,7 @@ public class RealtimeInspection extends LocalInspectionTool {
     private final Map<String, Long> fileTimeStamp = new ConcurrentHashMap<>();
     private final ScannerFactory scannerFactory = new ScannerFactory();
     private final ProblemDecorator problemDecorator = new ProblemDecorator();
+    private final Key<Boolean> key = Key.create("THEME");
 
     /**
      * Inspects the given PSI file and identifies potential issues or problems by leveraging
@@ -54,16 +56,21 @@ public class RealtimeInspection extends LocalInspectionTool {
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         String path = file.getVirtualFile().getPath();
+        if(path.isEmpty()){
+           return ProblemDescriptor.EMPTY_ARRAY;
+        }
         Optional<ScannerService<?>> scannerService = getScannerService(path);
 
         if (scannerService.isEmpty() || !isRealTimeScannerActive(scannerService.get())) {
             LOGGER.warn(format("RTS: Scanner is not active for file: %s.", file.getName()));
+            problemDecorator.removeAllGutterIcons(file);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(file.getProject());
         long currentModificationTime = file.getModificationStamp();
 
-        if (fileTimeStamp.containsKey(path) && fileTimeStamp.get(path) == (currentModificationTime)) {
+        if (fileTimeStamp.containsKey(path) && fileTimeStamp.get(path) == (currentModificationTime)
+                && isProblemDescriptorValid(problemHolderService, path, file)) {
             return problemHolderService.getProblemDescriptors(path).toArray(new ProblemDescriptor[0]);
         }
         fileTimeStamp.put(path, currentModificationTime);
@@ -77,6 +84,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         List<ProblemDescriptor> problems = createProblemDescriptors(file, manager, isOnTheFly, scanResult, document);
         problemHolderService.addProblemDescriptors(path, problems);
         ProblemHolderService.addToCxOneFindings(file, scanResult.getIssues());
+        file.putUserData(key, DevAssistUtils.isDarkTheme());
         return problems.toArray(new ProblemDescriptor[0]);
     }
 
@@ -112,7 +120,7 @@ public class RealtimeInspection extends LocalInspectionTool {
      * @return a {@link ScanResult} instance containing the results of the scan, or null if no
      * active and suitable scanner is found
      */
-    private ScanResult<?> scanFile(ScannerService<?> scannerService, PsiFile file, String path) {
+    private ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
         return scannerService.scan(file, path);
     }
 
@@ -143,4 +151,19 @@ public class RealtimeInspection extends LocalInspectionTool {
         LOGGER.debug("RTS: Problem descriptors created: {} for file: {}", problems.size(), file.getName());
         return problems;
     }
+
+    /**
+     * Checks if the problem descriptor for the given file path is valid.
+     * Scan file on theme change, as the inspection tooltip doesn't support dynamic icon change in the tooltip description.
+     * @param problemHolderService the problem holder service
+     * @param path                 the file path
+     * @return true if the problem descriptor is valid, false otherwise
+     */
+    private boolean isProblemDescriptorValid(ProblemHolderService problemHolderService, String path, PsiFile file) {
+        if (file.getUserData(key) != null && !Objects.equals(file.getUserData(key), DevAssistUtils.isDarkTheme())) {
+            return false;
+        }
+        return !problemHolderService.getProblemDescriptors(path).isEmpty();
+    }
+
 }

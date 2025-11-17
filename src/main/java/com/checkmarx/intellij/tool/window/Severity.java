@@ -2,7 +2,6 @@ package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
-import com.intellij.icons.AllIcons;
 import lombok.Getter;
 
 import javax.swing.*;

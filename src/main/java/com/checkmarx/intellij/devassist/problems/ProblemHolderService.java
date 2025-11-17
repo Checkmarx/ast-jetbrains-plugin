@@ -10,6 +10,9 @@ import com.intellij.util.messages.Topic;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Service for managing problems and problem descriptors.
+ */
 @Service(Service.Level.PROJECT)
 public final class ProblemHolderService {
     // ProblemHolderService
@@ -61,6 +64,10 @@ public final class ProblemHolderService {
 
     public synchronized void addProblemDescriptors(String filePath, List<ProblemDescriptor> problemDescriptors) {
         fileProblemDescriptor.put(filePath, new ArrayList<>(problemDescriptors));
+    }
+
+    public synchronized void removeProblemDescriptorsForFile(String filePath) {
+        fileProblemDescriptor.remove(filePath);
     }
 
     public static void addToCxOneFindings(PsiFile file, List<ScanIssue> problemsList) {
