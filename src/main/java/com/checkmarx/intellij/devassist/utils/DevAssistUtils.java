@@ -17,6 +17,7 @@ import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URL;
 
 /**
@@ -211,5 +212,15 @@ public class DevAssistUtils {
                 return null;
             }
         });
+    }
+
+    public static  boolean isInternetConnectivity(){
+        try{
+            InetAddress address= InetAddress.getByName("8.8.8.8");
+            return address.isReachable(500);
+        }
+        catch (Exception e){
+            return  false;
+        }
     }
 }

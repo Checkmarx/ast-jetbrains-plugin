@@ -32,7 +32,7 @@ public class BaseScannerCommand implements ScannerCommand {
     }
 
     private GlobalScannerController global() {
-        return ApplicationManager.getApplication().getService(GlobalScannerController.class);
+        return GlobalScannerController.getInstance();
     }
 
     /**
