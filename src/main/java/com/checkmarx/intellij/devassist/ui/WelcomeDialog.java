@@ -124,15 +124,7 @@ public class WelcomeDialog extends DialogWrapper {
     private JComponent createFeatureCardHeader(Color backgroundColor) {
         JPanel header = new JPanel(new MigLayout("insets 0, gapx 6", "[][grow]"));
         header.setOpaque(false);
-        realTimeScannersCheckbox = new JBCheckBox() {
-            @Override
-            public JToolTip createToolTip() {
-                JToolTip toolTip = super.createToolTip();
-                toolTip.setBackground(JBColor.background());
-                toolTip.setForeground(JBColor.foreground());
-                return toolTip;
-            }
-        };
+        realTimeScannersCheckbox = new JBCheckBox();
         realTimeScannersCheckbox.setEnabled(mcpEnabled);
         realTimeScannersCheckbox.setOpaque(false);
         realTimeScannersCheckbox.setContentAreaFilled(false);
