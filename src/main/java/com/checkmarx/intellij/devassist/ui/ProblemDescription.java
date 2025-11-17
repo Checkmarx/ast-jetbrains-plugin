@@ -159,11 +159,11 @@ public class ProblemDescription {
      * @param scanIssue   the ScanIssue object containing details about the issue such as severity, title, and package version
      */
     private void buildPackageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<table><tr><td colspan=\"2\"><p style='font-size: 11px;'>")
+        descBuilder.append("<table><tr><td colspan=\"3\"><p style='font-size: 11px;'>")
                 .append(scanIssue.getSeverity()).append("-").append(Constants.RealTimeConstants.RISK_PACKAGE)
                 .append(" :  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</p></td></tr>")
                 .append("<tr><td>").append(getIcon(PACKAGE)).append("</td>")
-                .append("<td style='word-break:break-word;'><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
+                .append("<td><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b></td><td>")
                 .append(GRAY).append(" - ").append(scanIssue.getSeverity()).append(" ")
                 .append(Constants.RealTimeConstants.SEVERITY_PACKAGE).append("</p></td></tr></table>");
     }
@@ -179,11 +179,10 @@ public class ProblemDescription {
      *                    title, and package version
      */
     private void buildMaliciousPackageMessage(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<table><tr><td colspan=\"2\">");
+        descBuilder.append("<table><tr><td colspan=\"3\">");
         buildMaliciousPackageHeader(descBuilder, scanIssue);
         descBuilder.append("</td></tr><tr><td>").append(getIcon(scanIssue.getSeverity())).append("</td>")
-                .append("<td style='vertical-align:middle;padding:0 6px 0 0; word-break:break-word;'><b>")
-                .append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b>")
+                .append("<td><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b></td><td>")
                 .append(GRAY).append(" - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE)
                 .append("</p></td></tr></table><br>");
     }
