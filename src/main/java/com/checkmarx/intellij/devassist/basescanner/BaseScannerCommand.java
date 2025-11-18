@@ -31,9 +31,6 @@ public class BaseScannerCommand implements ScannerCommand {
         this.config = config;
     }
 
-    private GlobalScannerController global() {
-        return ApplicationManager.getApplication().getService(GlobalScannerController.class);
-    }
 
     /**
      * Registers the project for the scanner which is invoked
@@ -50,7 +47,7 @@ public class BaseScannerCommand implements ScannerCommand {
         if (isScannerRegisteredAlready(project)) {
             return;
         }
-        global().markRegistered(project, getScannerType());
+        DevAssistUtils.globalScannerController().markRegistered(project, getScannerType());
         LOGGER.info(config.getEnabledMessage() + ":" + project.getName());
         initializeScanner();
     }
@@ -63,10 +60,10 @@ public class BaseScannerCommand implements ScannerCommand {
      */
 
     public void deregister(Project project) {
-        if (!global().isRegistered(project, getScannerType())) {
+        if (!DevAssistUtils.globalScannerController().isRegistered(project, getScannerType())) {
             return;
         }
-        global().markUnregistered(project, getScannerType());
+        DevAssistUtils.globalScannerController().markUnregistered(project, getScannerType());
         LOGGER.info(config.getDisabledMessage() + ":" + project.getName());
         if (project.isDisposed()) {
             return;
@@ -90,7 +87,7 @@ public class BaseScannerCommand implements ScannerCommand {
      * @param project is required
      */
     private boolean isScannerRegisteredAlready(Project project) {
-        return global().isRegistered(project, getScannerType());
+        return DevAssistUtils.globalScannerController().isRegistered(project, getScannerType());
     }
 
 

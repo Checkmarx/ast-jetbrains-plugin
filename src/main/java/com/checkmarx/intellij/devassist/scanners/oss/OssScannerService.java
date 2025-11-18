@@ -9,18 +9,10 @@ import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
-import com.fasterxml.jackson.annotation.OptBoolean;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.util.Computable;
-import com.intellij.openapi.vfs.VfsUtil;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import org.jetbrains.annotations.NotNull;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -28,6 +20,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -176,7 +169,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
      * @param originalFilePath original manifest path used to locate the companion file
      */
     private void saveCompanionFile(Path tempFolderPath, String originalFilePath) {
-        if (originalFilePath.isEmpty()) {
+        if (originalFilePath.isEmpty() || Objects.isNull(tempFolderPath)) {
             return;
         }
         String parentFileName = getPath(originalFilePath).getFileName().toString();
