@@ -9,8 +9,8 @@ import com.checkmarx.intellij.devassist.basescanner.BaseScannerCommand;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.application.AppUIExecutor;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -21,7 +21,6 @@ import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.util.concurrency.AppExecutorUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.FileSystems;
@@ -56,6 +55,9 @@ public class OssScannerCommand extends BaseScannerCommand {
     @Override
     protected void initializeScanner() {
         if(!DevAssistUtils.isInternetConnectivity()){
+            Utils.notify(project,
+                    Bundle.message(Resource.FAILED_OSS_SCAN_INITIALIZATION),
+                    NotificationType.WARNING);
             return;
         }
         new Task.Backgroundable(project, Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN), false) {
