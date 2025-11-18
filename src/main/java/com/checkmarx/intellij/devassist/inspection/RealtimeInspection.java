@@ -22,7 +22,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
@@ -63,16 +62,13 @@ public class RealtimeInspection extends LocalInspectionTool {
      */
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
-        if(!DevAssistUtils.isInternetConnectivityActive()){
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
-        VirtualFile virtualFile = file.getVirtualFile();
-        if (Objects.isNull(virtualFile) || !DevAssistUtils.isAnyScannerEnabled()) {
+        String path = file.getVirtualFile().getPath();
+
+        if (path.isEmpty() || !DevAssistUtils.isAnyScannerEnabled()) {
             LOGGER.warn(format("RTS: No scanner is enabled, skipping file: %s", file.getName()));
             resetResults(file.getProject());
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        String path = virtualFile.getPath();
         List<ScannerService<?>> supportedScanners = getSupportedEnabledScanner(path);
         if (supportedScanners.isEmpty()) {
             LOGGER.warn(format("RTS: No supported scanner enabled for this file: %s.", file.getName()));
