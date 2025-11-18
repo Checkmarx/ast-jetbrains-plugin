@@ -5,7 +5,6 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.common.ScannerFactory;
-import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
@@ -62,7 +61,7 @@ public class RealtimeInspection extends LocalInspectionTool {
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         String path = file.getVirtualFile().getPath();
-        List<ScanEngine> enabledScanners = GlobalScannerController.getInstance().getEnabledScanners();
+        List<ScanEngine> enabledScanners = DevAssistUtils.globalScannerController().getEnabledScanners();
 
         if (path.isEmpty() || enabledScanners.isEmpty()) {
             LOGGER.warn(format("RTS: No scanner is enabled, skipping file: %s", file.getName()));

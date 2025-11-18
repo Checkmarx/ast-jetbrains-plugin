@@ -2,7 +2,7 @@ package com.checkmarx.intellij.devassist.utils;
 
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
-import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
+import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -31,6 +31,10 @@ public class DevAssistUtils {
         // Private constructor to prevent instantiation
     }
 
+    public static GlobalScannerController globalScannerController() {
+        return GlobalScannerController.getInstance();
+    }
+
     /**
      * Checks if the scanner with the given name is active.
      *
@@ -40,9 +44,9 @@ public class DevAssistUtils {
     public static boolean isScannerActive(String engineName) {
         if (engineName == null) return false;
         try {
-            if (new GlobalSettingsComponent().isValid()) {
+            if (GlobalSettingsState.getInstance().isAuthenticated()) {
                 ScanEngine kind = ScanEngine.valueOf(engineName.toUpperCase());
-                return GlobalScannerController.getInstance().isScannerGloballyEnabled(kind);
+                return globalScannerController().isScannerGloballyEnabled(kind);
             }
         } catch (IllegalArgumentException ex) {
             return false;
@@ -56,8 +60,9 @@ public class DevAssistUtils {
      * @return true if any scanner is enabled, false otherwise
      */
     public static boolean isAnyScannerEnabled() {
-        return GlobalScannerController.getInstance().checkAnyScannerEnabled();
+        return globalScannerController().checkAnyScannerEnabled();
     }
+
 
     /**
      * Retrieves the text range for the specified line in the given document, trimming leading and trailing whitespace.
@@ -214,6 +219,12 @@ public class DevAssistUtils {
         });
     }
 
+
+    /**
+     * Checks if you are connected to Internet.
+     *
+     * @return true if in a yes, false otherwise
+     */
     public static  boolean isInternetConnectivity(){
         try{
             InetAddress address= InetAddress.getByName("8.8.8.8");

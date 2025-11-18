@@ -1,10 +1,10 @@
 package com.checkmarx.intellij.devassist.listeners;
 
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
@@ -71,7 +71,7 @@ public class DevAssistFileListener {
     private static void restoreGutterIcons(Project project, PsiFile psiFile, String filePath) {
         if (psiFile == null) return;
 
-        List<ScanEngine> enabledScanEngines = GlobalScannerController.getInstance().getEnabledScanners();
+        List<ScanEngine> enabledScanEngines = DevAssistUtils.globalScannerController().getEnabledScanners();
         if (enabledScanEngines.isEmpty()) {
             LOGGER.warn(format("RTS-Listener: No scanner is enabled, skipping restoring gutter icons for file: %s", psiFile.getName()));
             return;
