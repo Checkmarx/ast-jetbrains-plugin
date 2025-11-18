@@ -92,11 +92,11 @@ public class BaseScannerService<T> implements ScannerService<T> {
 
 
     /**
-     * Recursively deletes the provided temporary folder if it has been created.
+     * Recursively deletes the provided temporary folder and files in it, if it has been created.
      *
      * @param tempFolder root path of the temporary folder to remove
      */
-    protected void deleteTempFolder(Path tempFolder) {
+    protected void deleteTempFolder( @NotNull Path tempFolder) {
         if (Files.notExists(tempFolder)) {
             return;
         }

@@ -20,7 +20,7 @@ public class ProjectListener implements ProjectManagerListener {
     public void projectOpened(@NotNull Project project) {
         ProjectManagerListener.super.projectOpened(project);
         project.getService(ProjectResultsService.class).indexResults(project, Results.emptyResults);
-        if (new GlobalSettingsState().isAuthenticated()) {
+        if (GlobalSettingsState.getInstance().isAuthenticated()) {
             ProgressManager.getInstance().runProcess(() -> {
                 ScannerRegistry scannerRegistry = project.getService(ScannerRegistry.class);
                 scannerRegistry.registerAllScanners(project);
