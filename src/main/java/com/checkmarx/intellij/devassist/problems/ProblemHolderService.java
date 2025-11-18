@@ -15,8 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Service(Service.Level.PROJECT)
 public final class ProblemHolderService {
-    // ProblemHolderService
-
+    // Scan issues for each file
     private final Map<String, List<ScanIssue>> fileToIssues = new LinkedHashMap<>();
 
     // Problem descriptors for each file to avoid display empty problems
@@ -34,10 +33,20 @@ public final class ProblemHolderService {
         this.project = project;
     }
 
+    /**
+     * Returns the instance of this service for the given project.
+     * @param project the project.
+     * @return the instance of this service for the given project.
+     */
     public static ProblemHolderService getInstance(Project project) {
         return project.getService(ProblemHolderService.class);
     }
 
+    /**
+     * Adds problems for the given file.
+     * @param filePath the file path.
+     * @param problems the scan issues.
+     */
     public synchronized void addProblems(String filePath, List<ScanIssue> problems) {
         fileToIssues.put(filePath, new ArrayList<>(problems));
         // Notify subscribers immediately
@@ -58,18 +67,53 @@ public final class ProblemHolderService {
         project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
     }
 
-    public synchronized List<ProblemDescriptor> getProblemDescriptors(String filePath) {
+    /**
+     * Returns the scan issues for the given file.
+     * @param filePath the file path.
+     * @return the scan issues.
+     */
+    public synchronized List<ScanIssue> getScanIssueByFile(String filePath) {
+        return fileToIssues.getOrDefault(filePath, Collections.emptyList());
+    }
+
+    /**
+     * Returns the problem descriptors for the given file.
+     * @param filePath the file path.
+     * @return the problem descriptors.
+     */
+    public List<ProblemDescriptor> getProblemDescriptors(String filePath) {
         return fileProblemDescriptor.getOrDefault(filePath, Collections.emptyList());
     }
 
-    public synchronized void addProblemDescriptors(String filePath, List<ProblemDescriptor> problemDescriptors) {
+    /**
+     * Adds problem descriptors for the given file.
+     * @param filePath the file path.
+     * @param problemDescriptors the problem descriptors.
+     */
+    public void addProblemDescriptors(String filePath, List<ProblemDescriptor> problemDescriptors) {
         fileProblemDescriptor.put(filePath, new ArrayList<>(problemDescriptors));
     }
 
-    public synchronized void removeProblemDescriptorsForFile(String filePath) {
+    /**
+     * Removes all problem descriptors for the given file.
+     * @param filePath the file path.
+     */
+    public void removeProblemDescriptorsForFile(String filePath) {
         fileProblemDescriptor.remove(filePath);
     }
 
+    /**
+     * Clears all problem descriptors.
+     */
+    public void removeAllProblemDescriptors() {
+        fileProblemDescriptor.clear();
+    }
+
+    /**
+     * Adds problems to the CxOne findings for the given file.
+     * @param file the PSI file.
+     * @param problemsList the list of problems.
+     */
     public static void addToCxOneFindings(PsiFile file, List<ScanIssue> problemsList) {
         getInstance(file.getProject()).addProblems(file.getVirtualFile().getPath(), problemsList);
     }

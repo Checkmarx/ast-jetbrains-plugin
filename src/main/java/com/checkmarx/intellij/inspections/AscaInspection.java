@@ -2,31 +2,29 @@ package com.checkmarx.intellij.inspections;
 
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
-import com.checkmarx.ast.realtime.RealtimeLocation;
-import com.checkmarx.intellij.devassist.model.Location;
-import com.checkmarx.intellij.devassist.model.ScanIssue;
-import com.checkmarx.intellij.devassist.ui.ProblemDescription;
-import com.checkmarx.intellij.devassist.utils.ScanEngine;
-import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.inspections.quickfixes.AscaQuickFix;
-import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
-import com.intellij.codeInspection.*;
+import com.intellij.codeInspection.InspectionManager;
+import com.intellij.codeInspection.LocalInspectionTool;
+import com.intellij.codeInspection.ProblemDescriptor;
+import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.*;
+import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
-
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Inspection tool for ASCA (AI Secure Coding Assistant).
@@ -40,12 +38,11 @@ public class AscaInspection extends LocalInspectionTool {
     public static String ASCA_INSPECTION_ID = "ASCA";
     private final Logger logger = Utils.getLogger(AscaInspection.class);
 
-
     /**
      * Checks the file for ASCA issues.
      *
-     * @param file the file to check
-     * @param manager the inspection manager
+     * @param file       the file to check
+     * @param manager    the inspection manager
      * @param isOnTheFly whether the inspection is on-the-fly
      * @return an array of problem descriptors
      */
@@ -53,66 +50,50 @@ public class AscaInspection extends LocalInspectionTool {
     public ProblemDescriptor @NotNull [] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         try {
             if (!settings.isAsca()) {
-                ProblemHolderService.getInstance(file.getProject())
-                        .removeAllProblemsOfType(ScanEngine.ASCA.name());
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
+
             ScanResult scanResult = performAscaScan(file);
-
-            if(scanResult.getScanDetails() == null && scanResult.getError()==null){
-                VirtualFile virtualFile = file.getVirtualFile();
-                if (virtualFile != null) {
-                    ProblemHolderService.getInstance(file.getProject())
-                            .addProblems(file.getVirtualFile().getPath(), new ArrayList<>());
-                }
-            }
-
             if (isInvalidScan(scanResult)) {
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
+
             Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
             if (document == null) {
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
 
             return createProblemDescriptors(file, manager, scanResult.getScanDetails(), document, isOnTheFly);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             logger.warn("Failed to run ASCA scan", e);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-
     }
 
     /**
      * Creates problem descriptors for the given scan details.
      *
-     * @param file the file to check
-     * @param manager the inspection manager
+     * @param file        the file to check
+     * @param manager     the inspection manager
      * @param scanDetails the scan details
-     * @param document the document
-     * @param isOnTheFly whether the inspection is on-the-fly
+     * @param document    the document
+     * @param isOnTheFly  whether the inspection is on-the-fly
      * @return an array of problem descriptors
      */
     private ProblemDescriptor[] createProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, List<ScanDetail> scanDetails, Document document, boolean isOnTheFly) {
         List<ProblemDescriptor> problems = new ArrayList<>();
+
         for (ScanDetail detail : scanDetails) {
             int lineNumber = detail.getLine();
             if (isLineOutOfRange(lineNumber, document)) {
                 continue;
             }
+
             PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(lineNumber - 1));
             if (elementAtLine != null) {
                 ProblemDescriptor problem = createProblemDescriptor(file, manager, detail, document, lineNumber, isOnTheFly);
                 problems.add(problem);
             }
-        }
-
-        List<ScanIssue> problemsList = new ArrayList<>(buildCxProblems(scanDetails));
-        VirtualFile virtualFile = file.getVirtualFile();
-        if (virtualFile != null) {
-            ProblemHolderService.getInstance(file.getProject())
-                    .addProblems(file.getVirtualFile().getPath(), problemsList);
         }
 
         return problems.toArray(ProblemDescriptor[]::new);
@@ -121,19 +102,19 @@ public class AscaInspection extends LocalInspectionTool {
     /**
      * Creates a problem descriptor for a specific scan detail.
      *
-     * @param file the file to check
-     * @param manager the inspection manager
-     * @param detail the scan detail
-     * @param document the document
+     * @param file       the file to check
+     * @param manager    the inspection manager
+     * @param detail     the scan detail
+     * @param document   the document
      * @param lineNumber the line number
      * @param isOnTheFly whether the inspection is on-the-fly
      * @return a problem descriptor
      */
     private ProblemDescriptor createProblemDescriptor(@NotNull PsiFile file, @NotNull InspectionManager manager, ScanDetail detail, Document document, int lineNumber, boolean isOnTheFly) {
         TextRange problemRange = getTextRangeForLine(document, lineNumber);
-
-        String description =  new ProblemDescription().formatDescription(createScanIssue(detail));//formatDescription(detail.getRuleName(), detail.getRemediationAdvise());
+        String description = formatDescription(detail.getRuleName(), detail.getRemediationAdvise());
         ProblemHighlightType highlightType = determineHighlightType(detail);
+
         return manager.createProblemDescriptor(
                 file, problemRange, description, highlightType, isOnTheFly, new AscaQuickFix(detail));
     }
@@ -160,7 +141,7 @@ public class AscaInspection extends LocalInspectionTool {
     /**
      * Gets the text range for a specific line in the document.
      *
-     * @param document the document
+     * @param document   the document
      * @param lineNumber the line number
      * @return the text range
      */
@@ -178,7 +159,7 @@ public class AscaInspection extends LocalInspectionTool {
      * Checks if the line number is out of range in the document.
      *
      * @param lineNumber the line number
-     * @param document the document
+     * @param document   the document
      * @return true if the line number is out of range, false otherwise
      */
     private boolean isLineOutOfRange(int lineNumber, Document document) {
@@ -229,29 +210,5 @@ public class AscaInspection extends LocalInspectionTool {
      */
     private ScanResult performAscaScan(PsiFile file) {
         return ascaService.runAscaScan(file, file.getProject(), false, Constants.JET_BRAINS_AGENT_NAME);
-    }
-
-    public static List<ScanIssue> buildCxProblems(List<ScanDetail> details) {
-        return details.stream().map(detail -> {
-            ScanIssue problem = new ScanIssue();
-            problem.setSeverity(detail.getSeverity());
-            problem.setScanEngine(ScanEngine.ASCA);
-            problem.setTitle(detail.getRuleName());
-            problem.setDescription(detail.getDescription());
-            problem.setRemediationAdvise(detail.getRemediationAdvise());
-            problem.getLocations().add(new Location(detail.getLine(), 0, 1000)); // assume whole line by default
-            return problem;
-        }).collect(Collectors.toList());
-    }
-
-    private ScanIssue createScanIssue(ScanDetail scanDetail) {
-        ScanIssue problem = new ScanIssue();
-
-        problem.setTitle(scanDetail.getRuleName());
-        problem.setScanEngine(ScanEngine.ASCA);
-        problem.setRemediationAdvise(scanDetail.getRemediationAdvise());
-        problem.setSeverity(scanDetail.getSeverity());
-
-        return problem;
     }
 }
