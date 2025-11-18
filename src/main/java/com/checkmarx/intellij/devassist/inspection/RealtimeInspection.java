@@ -20,6 +20,7 @@ import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.Key;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
@@ -60,14 +61,19 @@ public class RealtimeInspection extends LocalInspectionTool {
      */
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
-        String path = file.getVirtualFile().getPath();
+        if(!DevAssistUtils.isInternetConnectivityActive()){
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
+
+        VirtualFile virtualFile = file.getVirtualFile();
         List<ScanEngine> enabledScanners = DevAssistUtils.globalScannerController().getEnabledScanners();
 
-        if (path.isEmpty() || enabledScanners.isEmpty()) {
+        if (Objects.isNull(virtualFile) || enabledScanners.isEmpty()) {
             LOGGER.warn(format("RTS: No scanner is enabled, skipping file: %s", file.getName()));
             problemDecorator.removeAllGutterIcons(file);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
+        String path= virtualFile.getPath();
         List<ScannerService<?>> supportedScanners = getSupportedScanner(path);
 
         if (supportedScanners.isEmpty() || !isRealTimeScannerActive(supportedScanners, enabledScanners)) {

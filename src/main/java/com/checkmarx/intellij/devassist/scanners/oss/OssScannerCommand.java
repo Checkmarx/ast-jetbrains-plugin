@@ -9,6 +9,7 @@ import com.checkmarx.intellij.devassist.basescanner.BaseScannerCommand;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.AppUIExecutor;
 import com.intellij.openapi.application.ReadAction;
@@ -55,7 +56,10 @@ public class OssScannerCommand extends BaseScannerCommand {
 
     @Override
     protected void initializeScanner() {
-        if(!DevAssistUtils.isInternetConnectivity()){
+        if(!DevAssistUtils.isInternetConnectivityActive()){
+            Utils.notify(project,
+                    Bundle.message(Resource.FAILED_OSS_SCAN_INITIALIZATION),
+                    NotificationType.WARNING);
             return;
         }
         new Task.Backgroundable(project, Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN), false) {
