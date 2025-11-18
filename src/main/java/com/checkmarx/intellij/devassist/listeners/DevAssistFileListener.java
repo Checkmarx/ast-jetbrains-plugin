@@ -20,7 +20,6 @@ import com.intellij.util.messages.MessageBusConnection;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -51,6 +50,7 @@ public class DevAssistFileListener {
                 Project project = source.getProject();
                 String path = file.getPath();
                 PsiFile psiFile = PsiManager.getInstance(project).findFile(file);
+                // fallback if problem descriptors exist and gutter icons are not restored
                 restoreGutterIcons(project, psiFile, path);
             }
 
@@ -77,15 +77,11 @@ public class DevAssistFileListener {
             return;
         }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(project);
-
         List<ProblemDescriptor> problemDescriptorList = problemHolderService.getProblemDescriptors(filePath);
         if (problemDescriptorList.isEmpty()) {
             return;
         }
-        Map<String, List<ScanIssue>> scanIssuesMap = ProblemHolderService.getInstance(project).getAllIssues();
-        if (scanIssuesMap.isEmpty()) return;
-
-        List<ScanIssue> scanIssueList = scanIssuesMap.getOrDefault(filePath, List.of());
+        List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
         if (scanIssueList.isEmpty()) return;
 
         List<ScanIssue> enabledEngineScanIssues = getScanIssuesForEnabledScanner(enabledScanEngines, scanIssueList);

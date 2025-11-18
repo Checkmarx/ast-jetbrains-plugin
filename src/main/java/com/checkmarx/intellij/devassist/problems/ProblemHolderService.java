@@ -58,6 +58,10 @@ public final class ProblemHolderService {
         project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
     }
 
+    public synchronized List<ScanIssue> getScanIssueByFile(String filePath) {
+        return fileToIssues.getOrDefault(filePath, Collections.emptyList());
+    }
+
     public synchronized List<ProblemDescriptor> getProblemDescriptors(String filePath) {
         return fileProblemDescriptor.getOrDefault(filePath, Collections.emptyList());
     }
@@ -68,6 +72,10 @@ public final class ProblemHolderService {
 
     public synchronized void removeProblemDescriptorsForFile(String filePath) {
         fileProblemDescriptor.remove(filePath);
+    }
+
+    public void removeAllProblemDescriptors() {
+        fileProblemDescriptor.clear();
     }
 
     public static void addToCxOneFindings(PsiFile file, List<ScanIssue> problemsList) {

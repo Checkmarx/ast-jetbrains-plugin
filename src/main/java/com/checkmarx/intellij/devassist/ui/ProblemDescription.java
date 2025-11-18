@@ -122,12 +122,14 @@ public class ProblemDescription {
      */
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         descBuilder.append("<table style='table-layout:fixed;border-collapse:collapse;'><tr>")
-                .append("<td style='width:24px;min-width:24px;vertical-align:top;padding:0;'>")
+                .append("<td style='width:20px;vertical-align:top;padding:0;'><div style='flex:0 0 auto; display:flex; align-items:flex-start;'>")
                 .append(getIcon(scanIssue.getSeverity()))
-                .append("</td><td style='word-break:break-word;padding:0;'>")
+                .append("</div></td>");
+        descBuilder.append("<div style='display:flex;flex-direction:row;align-items:flex-start;gap:10px;'><div>")
                 .append("<b>").append(escapeHtml(scanIssue.getTitle())).append("</b> - ")
-                .append(escapeHtml(scanIssue.getRemediationAdvise())).append("<br>")
-                .append(GRAY).append(scanIssue.getScanEngine().name()).append("</p></td></tr></table>");
+                .append(escapeHtml(scanIssue.getRemediationAdvise())).append("<span style='color: gray; margin:0;'> - ")
+                .append(scanIssue.getScanEngine().name())
+                .append("</span></div></tr></table><br>");
     }
 
     /**

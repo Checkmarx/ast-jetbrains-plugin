@@ -178,28 +178,6 @@ public class ProblemDecorator {
     }
 
     /**
-     * Removes all existing gutter icons from the markup model in the given editor.
-     *
-     * @param file the file to remove the gutter icons from.
-     */
-    public void removeAllGutterIcons(PsiFile file) {
-        try {
-            ApplicationManager.getApplication().invokeLater(() -> {
-                Editor editor = FileEditorManager.getInstance(file.getProject()).getSelectedTextEditor();
-                if (editor == null) return;
-
-                MarkupModel markupModel = editor.getMarkupModel();
-                if (Objects.nonNull(markupModel.getAllHighlighters())) {
-                    markupModel.removeAllHighlighters();
-                }
-            });
-        } catch (Exception e) {
-            LOGGER.debug("RTS-Decorator: Exception occurred while removing gutter icons for: {} ",
-                    file.getName(), e.getMessage());
-        }
-    }
-
-    /**
      * Checks if the highlighter already has a gutter icon for the given line.
      *
      * @param markupModel the markup model
@@ -255,6 +233,28 @@ public class ProblemDecorator {
     }
 
     /**
+     * Removes all existing gutter icons from the markup model in the given editor.
+     *
+     * @param project the file to remove the gutter icons from.
+     */
+    public static void removeAllGutterIcons(Project project) {
+        try {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
+                if (editor == null) return;
+
+                MarkupModel markupModel = editor.getMarkupModel();
+                if (Objects.nonNull(markupModel.getAllHighlighters())) {
+                    markupModel.removeAllHighlighters();
+                }
+            });
+        } catch (Exception e) {
+            LOGGER.debug("RTS-Decorator: Exception occurred while removing gutter icons for: {} ",
+                    e.getMessage());
+        }
+    }
+
+    /**
      * Restores problems for the given file.
      *
      * @param project       the project
@@ -262,6 +262,7 @@ public class ProblemDecorator {
      * @param scanIssueList the scan issue list
      */
     public void restoreGutterIcons(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, Document document) {
+        removeAllGutterIcons(project);
         for (ScanIssue scanIssue : scanIssueList) {
             try {
                 boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());

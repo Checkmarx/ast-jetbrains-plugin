@@ -20,6 +20,7 @@ import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
@@ -27,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
@@ -44,7 +46,6 @@ import static java.lang.String.format;
 public class RealtimeInspection extends LocalInspectionTool {
 
     private static final Logger LOGGER = Utils.getLogger(RealtimeInspection.class);
-
     private final Map<String, Long> fileTimeStamp = new ConcurrentHashMap<>();
     private final ScannerFactory scannerFactory = new ScannerFactory();
     private final ProblemDecorator problemDecorator = new ProblemDecorator();
@@ -62,26 +63,23 @@ public class RealtimeInspection extends LocalInspectionTool {
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         String path = file.getVirtualFile().getPath();
-        List<ScanEngine> enabledScanners = GlobalScannerController.getInstance().getEnabledScanners();
 
-        if (path.isEmpty() || enabledScanners.isEmpty()) {
+        if (path.isEmpty() || !DevAssistUtils.isAnyScannerEnabled()) {
             LOGGER.warn(format("RTS: No scanner is enabled, skipping file: %s", file.getName()));
-            problemDecorator.removeAllGutterIcons(file);
+            resetResults(file.getProject());
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        List<ScannerService<?>> supportedScanners = getSupportedScanner(path);
-
-        if (supportedScanners.isEmpty() || !isRealTimeScannerActive(supportedScanners, enabledScanners)) {
-            LOGGER.warn(format("RTS: No supported scanner found or scanner inactive for this file: %s.", file.getName()));
-            problemDecorator.removeAllGutterIcons(file);
+        List<ScannerService<?>> supportedScanners = getSupportedEnabledScanner(path);
+        if (supportedScanners.isEmpty()) {
+            LOGGER.warn(format("RTS: No supported scanner enabled for this file: %s.", file.getName()));
+            resetResults(file.getProject());
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(file.getProject());
         long currentModificationTime = file.getModificationStamp();
-
         if (fileTimeStamp.containsKey(path) && fileTimeStamp.get(path) == (currentModificationTime)
                 && isProblemDescriptorValid(problemHolderService, path, file)) {
-            return getProblemsForEnabledScanners(problemHolderService, enabledScanners, path);
+            return getExistingProblemsForEnabledScanners(problemHolderService, path);
         }
         fileTimeStamp.put(path, currentModificationTime);
         file.putUserData(key, DevAssistUtils.isDarkTheme());
@@ -97,6 +95,16 @@ public class RealtimeInspection extends LocalInspectionTool {
     }
 
     /**
+     * Clears all problem descriptors and gutter icons for the given project.
+     *
+     * @param project the project to reset results for
+     */
+    private void resetResults(Project project) {
+        ProblemDecorator.removeAllGutterIcons(project);
+        ProblemHolderService.getInstance(project).removeAllProblemDescriptors();
+    }
+
+    /**
      * Retrieves all supported instances of {@link ScannerService} for handling real-time scanning
      * of the specified file. The method checks available scanner services to determine if
      * any of them is suited to handle the given file path.
@@ -104,21 +112,15 @@ public class RealtimeInspection extends LocalInspectionTool {
      * @param filePath the path of the file as a string, used to identify an applicable scanner service; must not be null or empty
      * @return an {@link Optional} containing the matching {@link ScannerService} if found, or an empty {@link Optional} if no appropriate service exists
      */
-    private List<ScannerService<?>> getSupportedScanner(String filePath) {
-        return scannerFactory.getAllSupportedScanners(filePath);
-    }
-
-    /**
-     * Checks if the supported real-time scanner is active for the given {@link ScannerService}.
-     *
-     * @param supportedScanners the list of supported {@link ScannerService} instances for the file
-     * @param enabledScanners   the list of enabled {@link ScanEngine} instances for the project
-     * @return true if the real-time scanner corresponding to the given scanner service is active, false otherwise
-     */
-    private boolean isRealTimeScannerActive(List<ScannerService<?>> supportedScanners, List<ScanEngine> enabledScanners) {
-        return enabledScanners.stream().anyMatch(engine ->
-                supportedScanners.stream().anyMatch(scannerService ->
-                        scannerService.getConfig().getEngineName().toUpperCase().equals(engine.name())));
+    private List<ScannerService<?>> getSupportedEnabledScanner(String filePath) {
+        List<ScannerService<?>> supportedScanners = scannerFactory.getAllSupportedScanners(filePath);
+        if (supportedScanners.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return supportedScanners.stream()
+                .filter(scannerService ->
+                        DevAssistUtils.isScannerActive(scannerService.getConfig().getEngineName()))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -141,30 +143,29 @@ public class RealtimeInspection extends LocalInspectionTool {
      * Gets the problem descriptors for the given file path and enabled scanners.
      *
      * @param problemHolderService the problem holder service.
-     * @param enabledScanners      the list of enabled scanners.
      * @param filePath             the file path.
      * @return the problem descriptors.
      */
-    private ProblemDescriptor[] getProblemsForEnabledScanners(ProblemHolderService problemHolderService, List<ScanEngine> enabledScanners, String filePath) {
+    private ProblemDescriptor[] getExistingProblemsForEnabledScanners(ProblemHolderService problemHolderService, String filePath) {
         List<ProblemDescriptor> problemDescriptorsList = problemHolderService.getProblemDescriptors(filePath);
+        List<ScanEngine> enabledScanners = GlobalScannerController.getInstance().getEnabledScanners();
+        if (problemDescriptorsList.isEmpty() || enabledScanners.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
 
-        if (problemDescriptorsList.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
-
-        List<ProblemDescriptor> filteredProblems = new ArrayList<>();
+        List<ProblemDescriptor> enabledScannerProblems = new ArrayList<>();
         for (ProblemDescriptor descriptor : problemDescriptorsList) {
             try {
                 CxOneAssistFix cxOneAssistFix = (CxOneAssistFix) descriptor.getFixes()[0];
                 if (Objects.nonNull(cxOneAssistFix) && enabledScanners.contains(cxOneAssistFix.getScanIssue().getScanEngine())) {
-                    filteredProblems.add(descriptor);
+                    enabledScannerProblems.add(descriptor);
                 }
             } catch (Exception e) {
                 LOGGER.debug("RTS: Exception occurred while getting existing problems for enabled scanner for file: {} ",
                         filePath, e.getMessage());
-                filteredProblems.add(descriptor);
+                enabledScannerProblems.add(descriptor);
             }
         }
-        problemHolderService.addProblemDescriptors(filePath, filteredProblems);
-        return filteredProblems.toArray(new ProblemDescriptor[0]);
+        problemHolderService.addProblemDescriptors(filePath, enabledScannerProblems);
+        return enabledScannerProblems.toArray(new ProblemDescriptor[0]);
     }
 
     /**
@@ -232,7 +233,7 @@ public class RealtimeInspection extends LocalInspectionTool {
      */
     private List<ProblemDescriptor> createProblemDescriptors(ProblemHelper problemHelper) {
         List<ProblemDescriptor> problems = new ArrayList<>();
-        this.problemDecorator.removeAllGutterIcons(problemHelper.getFile());
+        ProblemDecorator.removeAllGutterIcons(problemHelper.getFile().getProject());
         ScanIssueProcessor processor = new ScanIssueProcessor(problemHelper, this.problemDecorator);
 
         for (ScanIssue scanIssue : problemHelper.getScanResult().getIssues()) {

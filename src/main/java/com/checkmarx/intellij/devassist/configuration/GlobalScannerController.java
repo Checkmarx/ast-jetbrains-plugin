@@ -154,21 +154,22 @@ public final class GlobalScannerController implements SettingsListener {
 
     /**
      * Checks if any scanner is enabled
+     *
      * @return true if any scanner is enabled
      */
-    public boolean checkAnyScannerEnabled(){
+    public boolean checkAnyScannerEnabled() {
         return Arrays.stream(ScanEngine.values())
                 .anyMatch(this::isScannerGloballyEnabled);
     }
 
     /**
      * Get the list of enabled scanners
+     *
      * @return list of enabled scanners
      */
-    public List<ScanEngine> getEnabledScanners(){
+    public List<ScanEngine> getEnabledScanners() {
         return Arrays.stream(ScanEngine.values())
                 .filter(this::isScannerGloballyEnabled)
                 .collect(Collectors.toList());
     }
-
 }
