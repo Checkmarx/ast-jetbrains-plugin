@@ -18,6 +18,7 @@ import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import lombok.Getter;
@@ -59,8 +60,7 @@ public class ProblemDecorator {
             Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
             if (editor == null) return;
 
-            if (!Objects.equals(editor.getDocument(),
-                    com.intellij.psi.PsiDocumentManager.getInstance(project).getDocument(file))) {
+            if (!Objects.equals(editor.getDocument(), PsiDocumentManager.getInstance(project).getDocument(file))) {
                 // Only decorate the active editor of this file
                 return;
             }
