@@ -225,7 +225,7 @@ public class DevAssistUtils {
      *
      * @return true if in a yes, false otherwise
      */
-    public static  boolean isInternetConnectivity(){
+    public static  boolean isInternetConnectivityActive(){
         try{
             InetAddress address= InetAddress.getByName("8.8.8.8");
             return address.isReachable(500);
