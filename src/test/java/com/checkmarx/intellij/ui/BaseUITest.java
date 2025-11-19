@@ -193,6 +193,7 @@ public abstract class BaseUITest {
         waitFor(() -> {
             focusCxWindow();
             findAll(LINK_LABEL).get(0).doubleClick();
+            hideToolWindows();
             return hasAnyComponent(EDITOR);
         });
         Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
@@ -350,5 +351,8 @@ public abstract class BaseUITest {
             return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
         });
     }
-
+    protected static void hideToolWindows() {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_F12);
+    }
 }

@@ -41,11 +41,11 @@ public class TestTriggerScan extends BaseUITest {
 
         waitForScanIdSelection();
         findRunScanButtonAndClick();
+        waitFor(() -> hasAnyComponent(PROJECT_DOES_NOT_MATCH));
+        find(RUN_SCAN_LOCAL).click();
         waitFor(() -> find(ActionButtonFixture.class, CANCEL_SCAN_BTN).isEnabled());
         find(CANCEL_SCAN_BTN).click();
-
-        waitFor(() -> hasAnyComponent(String.format("//div[@class='JEditorPane'and @visible_text='%s']", Bundle.message(Resource.SCAN_CANCELED_SUCCESSFULLY))));
-
+        waitFor(() -> find(ActionButtonFixture.class, START_SCAN_BTN).isEnabled());
         Assertions.assertTrue(find(ActionButtonFixture.class, START_SCAN_BTN).isEnabled());
     }
 
@@ -71,7 +71,7 @@ public class TestTriggerScan extends BaseUITest {
     @Video
     public void testTriggerScanProjectWithDifferentOrganizationsDontMatch() {
         waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
-        testSelectionAction(findSelection("Project"), "Project", "DiffOrg/WebGoat");
+        testSelectionAction(findSelection("Project"), "Project", Environment.PROJECT_NAME);
         testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
         testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID_NOT_MATCH_PROJECT);
         waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled());
@@ -89,6 +89,9 @@ public class TestTriggerScan extends BaseUITest {
         findRunScanButtonAndClick();
         JTreeFixture treeBeforeScan = find(JTreeFixture.class, TREE);
         Assertions.assertTrue(treeBeforeScan.getValueAtRow(0).contains(Environment.SCAN_ID));
+        waitFor(() -> hasAnyComponent(PROJECT_DOES_NOT_MATCH));
+        find(RUN_SCAN_LOCAL).click();
+        find(CLOSE_RUN_SCAN_LOCAL_NOTIFICATION_WINDOW).click();
         waitFor(() -> hasAnyComponent(SCAN_FINISHED));
         find(LOAD_RESULTS).click();
         waitFor(() -> {

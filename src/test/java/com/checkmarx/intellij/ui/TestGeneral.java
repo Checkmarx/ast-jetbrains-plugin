@@ -184,7 +184,7 @@ public class TestGeneral extends BaseUITest {
         });
 
         testFileNavigation();
-
+        openCxToolWindow();
         waitFor(() -> {
             find(TAB_LEARN_MORE).click();
             return findAll(TAB_RISK).size() > 0 && findAll(CAUSE).size() > 0 && findAll(TAB_RECOMMENDATIONS).size() > 0;
