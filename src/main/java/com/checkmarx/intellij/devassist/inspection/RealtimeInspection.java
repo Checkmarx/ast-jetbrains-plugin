@@ -1,6 +1,8 @@
 package com.checkmarx.intellij.devassist.inspection;
 
+import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
@@ -20,6 +22,8 @@ import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
 import com.intellij.psi.PsiDocumentManager;
@@ -28,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -84,17 +89,13 @@ public class RealtimeInspection extends LocalInspectionTool {
         }
         fileTimeStamp.put(path, currentModificationTime);
         file.putUserData(key, DevAssistUtils.isDarkTheme());
-
         Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
         if (document == null) return ProblemDescriptor.EMPTY_ARRAY;
 
-        ProblemHelper.ProblemHelperBuilder problemHelperBuilder = buildHelper(file, manager, isOnTheFly, document);
-        problemHelperBuilder.supportedScanners(supportedScanners);
-        problemHelperBuilder.filePath(path);
-        problemHelperBuilder.problemHolderService(problemHolderService);
-        return scanFileAndCreateProblemDescriptors(problemHelperBuilder);
+        ProblemHelper.ProblemHelperBuilder problemHelperBuilder = buildHelper(file, manager, isOnTheFly, document,
+                supportedScanners, path, problemHolderService);
+        return scanFileAndCreateProblemDescriptors(problemHelperBuilder, file.getName());
     }
-
     /**
      * Clears all problem descriptors and gutter icons for the given project.
      *
@@ -179,17 +180,58 @@ public class RealtimeInspection extends LocalInspectionTool {
      * @param document   the document containing the file to be scanned
      * @return a {@link ProblemHelper.ProblemHelperBuilder} instance
      */
-    private ProblemHelper.ProblemHelperBuilder buildHelper(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly, Document document) {
-        return ProblemHelper.builder().file(file).manager(manager).isOnTheFly(isOnTheFly).document(document);
+    private ProblemHelper.ProblemHelperBuilder buildHelper(@NotNull PsiFile file, @NotNull InspectionManager manager,
+                                                           boolean isOnTheFly, Document document, List<ScannerService<?>> supportedScanners,
+                                                           String path, ProblemHolderService problemHolderService) {
+        return ProblemHelper.builder()
+                .file(file)
+                .manager(manager)
+                .isOnTheFly(isOnTheFly)
+                .document(document)
+                .supportedScanners(supportedScanners)
+                .filePath(path)
+                .problemHolderService(problemHolderService);
+    }
+
+    /**
+     * Scans the given file and creates problem descriptors for any identified issues.
+     * @param problemHelperBuilder - The {@link ProblemHelper}
+     * @param fileName - The file name
+     * @return an array of {@link ProblemDescriptor} representing the detected issues, or an empty array if no issues were found
+     */
+    private ProblemDescriptor[] scanFileAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder, String fileName) {
+        List<ProblemDescriptor> resultProblemDescriptor = new ArrayList<>();
+        startScanAndCreateProblemDescriptors(problemHelperBuilder, problemDescriptors -> {
+            LOGGER.info(format("RTS: Scan completed for file: %s, problems found: %d", fileName, problemDescriptors.size()));
+            resultProblemDescriptor.addAll(problemDescriptors);
+        });
+        return resultProblemDescriptor.toArray(new ProblemDescriptor[0]);
+    }
+
+    /**
+     * Starts the scan process and creates problem descriptors asynchronously.
+     * @param problemHelperBuilder - The {@link ProblemHelper}
+     * @param allProblems - The consumer to process the scan result
+     */
+    private void startScanAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder, Consumer<List<ProblemDescriptor>> allProblems) {
+        new Task.Backgroundable(problemHelperBuilder.build().getFile().getProject(), Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN), false) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                indicator.setText(Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN));
+                List<ProblemDescriptor> scanResult = startScan(problemHelperBuilder);
+                allProblems.accept(scanResult);
+            }
+        }.queue();
     }
 
     /**
      * Scans the given PSI file and creates problem descriptors for any identified issues.
      *
      * @param problemHelperBuilder - The {@link ProblemHelper}
-     * @return an array of {@link ProblemDescriptor} representing the detected issues, or an empty array if no issues were found
+     * @return a list of {@link ProblemDescriptor} representing the detected issues, or an empty list if no issues were found
      */
-    private ProblemDescriptor[] scanFileAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
+    private List<ProblemDescriptor> startScan(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
         ProblemHelper problemHelper = problemHelperBuilder.build();
         List<ProblemDescriptor> allProblems = new ArrayList<>();
         List<ScanIssue> allScanIssues = new ArrayList<>();
@@ -203,7 +245,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         }
         problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
         problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), allScanIssues);
-        return allProblems.toArray(new ProblemDescriptor[0]);
+        return allProblems;
     }
 
     /**
