@@ -1,6 +1,8 @@
 package com.checkmarx.intellij.devassist.inspection;
 
+import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
@@ -20,6 +22,8 @@ import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -29,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -63,17 +68,13 @@ public class RealtimeInspection extends LocalInspectionTool {
      */
     @Override
     public ProblemDescriptor[] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
-        if(!DevAssistUtils.isInternetConnectivityActive()){
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
         VirtualFile virtualFile = file.getVirtualFile();
         if (Objects.isNull(virtualFile) || !DevAssistUtils.isAnyScannerEnabled()) {
-            LOGGER.warn(format("RTS: No scanner is enabled, skipping file: %s", file.getName()));
+            LOGGER.warn(format("RTS: VirtualFile object not found or No scanner is enabled, skipping file: %s", file.getName()));
             resetResults(file.getProject());
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        String path = file.getVirtualFile().getPath();
-        List<ScannerService<?>> supportedScanners = getSupportedEnabledScanner(path);
+        List<ScannerService<?>> supportedScanners = getSupportedEnabledScanner(virtualFile.getPath());
         if (supportedScanners.isEmpty()) {
             LOGGER.warn(format("RTS: No supported scanner enabled for this file: %s.", file.getName()));
             resetResults(file.getProject());
@@ -81,21 +82,25 @@ public class RealtimeInspection extends LocalInspectionTool {
         }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(file.getProject());
         long currentModificationTime = file.getModificationStamp();
-        if (fileTimeStamp.containsKey(path) && fileTimeStamp.get(path) == (currentModificationTime)
-                && isProblemDescriptorValid(problemHolderService, path, file)) {
-            return getExistingProblemsForEnabledScanners(problemHolderService, path);
+        if (fileTimeStamp.containsKey(virtualFile.getPath()) && fileTimeStamp.get(virtualFile.getPath()) == (currentModificationTime)
+                && isProblemDescriptorValid(problemHolderService, virtualFile.getPath(), file)) {
+            LOGGER.info(format("RTS: File: %s is already scanned, retrieving existing results.", file.getName()));
+            return getExistingProblemsForEnabledScanners(problemHolderService, virtualFile.getPath());
         }
-        fileTimeStamp.put(path, currentModificationTime);
+        fileTimeStamp.put(virtualFile.getPath(), currentModificationTime);
         file.putUserData(key, DevAssistUtils.isDarkTheme());
-
         Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
         if (document == null) return ProblemDescriptor.EMPTY_ARRAY;
 
-        ProblemHelper.ProblemHelperBuilder problemHelperBuilder = buildHelper(file, manager, isOnTheFly, document);
-        problemHelperBuilder.supportedScanners(supportedScanners);
-        problemHelperBuilder.filePath(path);
-        problemHelperBuilder.problemHolderService(problemHolderService);
-        return scanFileAndCreateProblemDescriptors(problemHelperBuilder);
+        ProblemHelper.ProblemHelperBuilder problemHelperBuilder = buildHelper(file, manager, isOnTheFly, document,
+                supportedScanners, virtualFile.getPath(), problemHolderService);
+
+        List<ProblemDescriptor> scanResultDescriptors = scanFileAndCreateProblemDescriptors(problemHelperBuilder, file.getName());
+        if (scanResultDescriptors.isEmpty()) {
+            LOGGER.info(format("RTS: No issues found for file: %s resetting the editor state", file.getName()));
+            resetResults(file.getProject());
+        }
+        return scanResultDescriptors.toArray(new ProblemDescriptor[0]);
     }
 
     /**
@@ -119,6 +124,7 @@ public class RealtimeInspection extends LocalInspectionTool {
     private List<ScannerService<?>> getSupportedEnabledScanner(String filePath) {
         List<ScannerService<?>> supportedScanners = scannerFactory.getAllSupportedScanners(filePath);
         if (supportedScanners.isEmpty()) {
+            LOGGER.warn(format("RTS: No supported scanner found for this file: %s.", filePath));
             return Collections.emptyList();
         }
         return supportedScanners.stream()
@@ -138,6 +144,7 @@ public class RealtimeInspection extends LocalInspectionTool {
     private boolean isProblemDescriptorValid(ProblemHolderService problemHolderService, String path, PsiFile file) {
         if (file.getUserData(key) != null && !Objects.equals(file.getUserData(key), DevAssistUtils.isDarkTheme())) {
             ProblemDescription.reloadIcons(); // reload problem descriptions icons on theme change
+            LOGGER.info("RTS: Theme changed, resetting problem descriptors");
             return false;
         }
         return !problemHolderService.getProblemDescriptors(path).isEmpty();
@@ -181,17 +188,60 @@ public class RealtimeInspection extends LocalInspectionTool {
      * @param document   the document containing the file to be scanned
      * @return a {@link ProblemHelper.ProblemHelperBuilder} instance
      */
-    private ProblemHelper.ProblemHelperBuilder buildHelper(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly, Document document) {
-        return ProblemHelper.builder().file(file).manager(manager).isOnTheFly(isOnTheFly).document(document);
+    private ProblemHelper.ProblemHelperBuilder buildHelper(@NotNull PsiFile file, @NotNull InspectionManager manager,
+                                                           boolean isOnTheFly, Document document, List<ScannerService<?>> supportedScanners,
+                                                           String path, ProblemHolderService problemHolderService) {
+        return ProblemHelper.builder()
+                .file(file)
+                .manager(manager)
+                .isOnTheFly(isOnTheFly)
+                .document(document)
+                .supportedScanners(supportedScanners)
+                .filePath(path)
+                .problemHolderService(problemHolderService);
+    }
+
+    /**
+     * Scans the given file and creates problem descriptors for any identified issues.
+     *
+     * @param problemHelperBuilder - The {@link ProblemHelper}
+     * @param fileName             - The file name
+     * @return a list of {@link ProblemDescriptor} representing the detected issues, or an empty array if no issues were found
+     */
+    private List<ProblemDescriptor> scanFileAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder, String fileName) {
+        List<ProblemDescriptor> resultProblemDescriptor = new ArrayList<>();
+        startScanAndCreateProblemDescriptors(problemHelperBuilder, problemDescriptors -> {
+            LOGGER.info(format("RTS: Scan completed for file: %s, problems found: %d", fileName, problemDescriptors.size()));
+            resultProblemDescriptor.addAll(problemDescriptors);
+        });
+        return resultProblemDescriptor;
+    }
+
+    /**
+     * Starts the scan process and creates problem descriptors asynchronously.
+     *
+     * @param problemHelperBuilder - The {@link ProblemHelper}
+     * @param allProblems          - The consumer to process the scan result
+     */
+    private void startScanAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder, Consumer<List<ProblemDescriptor>> allProblems) {
+        new Task.Backgroundable(problemHelperBuilder.build().getFile().getProject(), Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN), false) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                indicator.setText(Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN));
+                List<ProblemDescriptor> scanResult = startScan(problemHelperBuilder);
+                allProblems.accept(scanResult);
+            }
+        }.queue();
     }
 
     /**
      * Scans the given PSI file and creates problem descriptors for any identified issues.
      *
      * @param problemHelperBuilder - The {@link ProblemHelper}
-     * @return an array of {@link ProblemDescriptor} representing the detected issues, or an empty array if no issues were found
+     * @return a list of {@link ProblemDescriptor} representing the detected issues, or an empty list if no issues were found
      */
-    private ProblemDescriptor[] scanFileAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
+    private List<ProblemDescriptor> startScan(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
         ProblemHelper problemHelper = problemHelperBuilder.build();
         List<ProblemDescriptor> allProblems = new ArrayList<>();
         List<ScanIssue> allScanIssues = new ArrayList<>();
@@ -205,7 +255,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         }
         problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
         problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), allScanIssues);
-        return allProblems.toArray(new ProblemDescriptor[0]);
+        return allProblems;
     }
 
     /**
@@ -220,6 +270,7 @@ public class RealtimeInspection extends LocalInspectionTool {
      */
     private ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
         try {
+            LOGGER.info(format("RTS: Scanning file: %s using scanner: %s", path, scannerService.getConfig().getEngineName()));
             return scannerService.scan(file, path);
         } catch (Exception e) {
             LOGGER.debug("RTS: Exception occurred while scanning file: {} ", path, e.getMessage());
@@ -246,7 +297,7 @@ public class RealtimeInspection extends LocalInspectionTool {
                 problems.add(descriptor);
             }
         }
-        LOGGER.debug("RTS: Problem descriptors created: {} for file: {}", problems.size(), problemHelper.getFile().getName());
+        LOGGER.info(format("RTS: Problem descriptors created: %s for file: %s", problems.size(), problemHelper.getFile().getName()));
         return problems;
     }
 }
