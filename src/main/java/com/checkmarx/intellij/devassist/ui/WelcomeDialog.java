@@ -148,7 +148,6 @@ public class WelcomeDialog extends DialogWrapper {
             // Show a theme-aware MCP disabled info icon
             JBLabel mcpDisabledIcon = new JBLabel(CxIcons.getWelcomeMcpDisableIcon());
             mcpDisabledIcon.setHorizontalAlignment(SwingConstants.CENTER);
-            mcpDisabledIcon.setToolTipText("Checkmarx MCP is not enabled for this tenant.");
             bulletsPanel.add(mcpDisabledIcon, "growx, wrap");
         }
         return bulletsPanel;
@@ -184,7 +183,10 @@ public class WelcomeDialog extends DialogWrapper {
     protected JComponent createSouthPanel() {
         JComponent southPanel = super.createSouthPanel();
         if (southPanel != null) {
-            southPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.border()));
+            southPanel.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(1, 0, 0, 0, JBColor.border()),
+                    JBUI.Borders.empty(12, 16, 0, 16)
+            ));
         }
         return southPanel;
     }
@@ -221,13 +223,15 @@ public class WelcomeDialog extends DialogWrapper {
 
     /**
      * Updates the checkbox tooltip based on the current state and MCP availability.
-     * Shows the appropriate enable/disable message when MCP is enabled, no tooltip when MCP is disabled.
+     * Shows the appropriate enable/disable message when MCP is enabled, shows MCP not enabled message when MCP is disabled.
      */
     private void updateCheckboxTooltip() {
-        if (realTimeScannersCheckbox == null || !mcpEnabled) {
-            if (realTimeScannersCheckbox != null) {
-                realTimeScannersCheckbox.setToolTipText(null);
-            }
+        if (realTimeScannersCheckbox == null) {
+            return;
+        }
+
+        if (!mcpEnabled) {
+            realTimeScannersCheckbox.setToolTipText("Checkmarx MCP is not enabled for this tenant.");
             return;
         }
 
