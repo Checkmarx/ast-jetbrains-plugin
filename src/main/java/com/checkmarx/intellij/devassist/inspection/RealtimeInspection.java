@@ -65,7 +65,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         String path = file.getVirtualFile().getPath();
 
         if (path.isEmpty() || !DevAssistUtils.isAnyScannerEnabled()) {
-            LOGGER.warn(format("RTS: No scanner is enabled, skipping file: %s", file.getName()));
+            LOGGER.info(format("RTS: No scanner is enabled, skipping file: %s", file.getName()));
             resetResults(file.getProject());
             return ProblemDescriptor.EMPTY_ARRAY;
         }
@@ -79,6 +79,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         long currentModificationTime = file.getModificationStamp();
         if (fileTimeStamp.containsKey(path) && fileTimeStamp.get(path) == (currentModificationTime)
                 && isProblemDescriptorValid(problemHolderService, path, file)) {
+            LOGGER.info(format("RTS: File: %s is already scanned, retrieving existing results.", file.getName()));
             return getExistingProblemsForEnabledScanners(problemHolderService, path);
         }
         fileTimeStamp.put(path, currentModificationTime);
@@ -115,6 +116,7 @@ public class RealtimeInspection extends LocalInspectionTool {
     private List<ScannerService<?>> getSupportedEnabledScanner(String filePath) {
         List<ScannerService<?>> supportedScanners = scannerFactory.getAllSupportedScanners(filePath);
         if (supportedScanners.isEmpty()) {
+            LOGGER.warn(format("RTS: No supported scanner found for this file: %s.", filePath));
             return Collections.emptyList();
         }
         return supportedScanners.stream()
@@ -216,6 +218,7 @@ public class RealtimeInspection extends LocalInspectionTool {
      */
     private ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
         try {
+            LOGGER.info(format("RTS: Scanning file: %s using scanner: %s", path, scannerService.getConfig().getEngineName()));
             return scannerService.scan(file, path);
         } catch (Exception e) {
             LOGGER.debug("RTS: Exception occurred while scanning file: {} ", path, e.getMessage());
@@ -242,7 +245,7 @@ public class RealtimeInspection extends LocalInspectionTool {
                 problems.add(descriptor);
             }
         }
-        LOGGER.debug("RTS: Problem descriptors created: {} for file: {}", problems.size(), problemHelper.getFile().getName());
+        LOGGER.info(format("RTS: Problem descriptors created: %s for file: %s", problems.size(), problemHelper.getFile().getName()));
         return problems;
     }
 }
