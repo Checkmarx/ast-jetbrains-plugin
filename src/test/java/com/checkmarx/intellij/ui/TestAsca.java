@@ -105,10 +105,13 @@ public class TestAsca extends BaseUITest {
 
     protected static void enter(String value) {
         Keyboard keyboard = new Keyboard(remoteRobot);
+
         waitFor(() -> {
             keyboard.enterText(value);
-            return hasAnyComponent(String.format(VISIBLE_TEXT, value));
+            return hasAnyComponent(String.format("//div[@visible_text='%s']", value));
         });
+
         keyboard.enter();
     }
+
 }
