@@ -132,11 +132,11 @@
                     class="com.checkmarx.intellij.tool.window.actions.OpenSettingsAction"
                     icon="AllIcons.General.Settings"/>
             <separator/>
-            <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
-            <action id="VulnerabilityCritical" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityCriticalFilter" />
-            <action id="VulnerabilityHigh" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
-            <action id="VulnerabilityMedium" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
-            <action id="VulnerabilityLow" class="com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
+            <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
+            <action id="VulnerabilityCritical" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityCriticalFilter" />
+            <action id="VulnerabilityHigh" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
+            <action id="VulnerabilityMedium" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
+            <action id="VulnerabilityLow" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
             <separator/>
         </group>
     </actions>

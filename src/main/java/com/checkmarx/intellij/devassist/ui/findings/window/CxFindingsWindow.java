@@ -1,12 +1,11 @@
-package com.checkmarx.intellij.devassist.ui;
+package com.checkmarx.intellij.devassist.ui.findings.window;
 
 import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
-import com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction;
-import com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterState;
-import com.checkmarx.intellij.devassist.ui.vulnerabilityTree.IssueTreeRenderer;
+import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction;
+import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterState;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
@@ -52,23 +51,22 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
-import com.intellij.openapi.editor.markup.*;
 
 
 /**
  * Handles drawing of the Checkmarx vulnerability tool window.
  * Extends {@link SimpleToolWindowPanel} to provide a panel with toolbar and content area.
- * Implements {@link Disposable} for cleanup and {@link VulnerabilityToolWindowAction} for toolbar actions.
+ * Implements {@link Disposable} for cleanup toolbar actions.
  * Manages a tree view of vulnerabilities with filtering and navigation capabilities.
  * Initializes icons for different vulnerability severities.
  * Subscribes to settings changes and problem updates to refresh the UI accordingly.
  * Uses a timer to periodically update the tab title with the current problem count.
  * Refactored to have separate drawAuthPanel() and drawMainPanel() following pattern in CxToolWindowPanel.
  */
-public class VulnerabilityToolWindow extends SimpleToolWindowPanel
-        implements Disposable, VulnerabilityToolWindowAction {
+public class CxFindingsWindow extends SimpleToolWindowPanel
+        implements Disposable {
 
-    private static final Logger LOGGER = Utils.getLogger(VulnerabilityToolWindow.class);
+    private static final Logger LOGGER = Utils.getLogger(CxFindingsWindow.class);
 
     private final Project project;
     private final SimpleTree tree;
@@ -79,7 +77,7 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
     private final Content content;
     private final Timer timer;
 
-    public VulnerabilityToolWindow(Project project, Content content) {
+    public CxFindingsWindow(Project project, Content content) {
         super(false, true);
         this.project = project;
         this.tree = new SimpleTree();

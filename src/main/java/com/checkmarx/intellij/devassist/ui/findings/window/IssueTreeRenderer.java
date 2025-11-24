@@ -1,8 +1,7 @@
-package com.checkmarx.intellij.devassist.ui.vulnerabilityTree;
+package com.checkmarx.intellij.devassist.ui.findings.window;
 
 import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
-import com.checkmarx.intellij.devassist.ui.VulnerabilityToolWindow;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.ColoredTreeCellRenderer;
@@ -91,8 +90,8 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
         Object obj = node.getUserObject();
         Icon icon = null;
         LOGGER.debug("Rendering the result tree");
-        if (obj instanceof VulnerabilityToolWindow.FileNodeLabel) {
-            VulnerabilityToolWindow.FileNodeLabel info = (VulnerabilityToolWindow.FileNodeLabel) obj;
+        if (obj instanceof CxFindingsWindow.FileNodeLabel) {
+            CxFindingsWindow.FileNodeLabel info = (CxFindingsWindow.FileNodeLabel) obj;
             if (info.icon != null) {
                 setIcon(info.icon);
             }
@@ -110,8 +109,8 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
                     }
                 }
             }
-        } else if (obj instanceof VulnerabilityToolWindow.ScanDetailWithPath) {
-            ScanIssue detail = ((VulnerabilityToolWindow.ScanDetailWithPath) obj).detail;
+        } else if (obj instanceof CxFindingsWindow.ScanDetailWithPath) {
+            ScanIssue detail = ((CxFindingsWindow.ScanDetailWithPath) obj).detail;
 
             icon = vulnerabilityToIcon.getOrDefault(detail.getSeverity(), null);
             if (icon != null)
