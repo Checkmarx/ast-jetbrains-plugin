@@ -137,6 +137,9 @@ public final class Constants {
             throw new UnsupportedOperationException("Cannot instantiate RealTimeConstants class");
         }
 
+        // Tab Name Constants
+        public static final String DEVASSIST_TAB = "CxOne Assist Findings";
+
         // OSS Scanner Constants
         public static final String ACTIVATE_OSS_REALTIME_SCANNER = "Activate OSS-Realtime";
         public static final String OSS_REALTIME_SCANNER = "Checkmarx Open Source Realtime Scanner (OSS-Realtime)";

@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.tool.window;
 
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.ui.VulnerabilityToolWindow;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -29,7 +30,7 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
                 contentManager.getFactory().createContent(cxToolWindowPanel, "Scan Results", false)
         );
         // Second tab
-        Content customProblemContent = contentManager.getFactory().createContent(null, "CxOne Assist Findings", false);
+        Content customProblemContent = contentManager.getFactory().createContent(null, Constants.RealTimeConstants.DEVASSIST_TAB, false);
         final VulnerabilityToolWindow vulnerabilityToolWindow = new VulnerabilityToolWindow(project, customProblemContent);
         customProblemContent.setComponent(vulnerabilityToolWindow);
         contentManager.addContent(customProblemContent);
