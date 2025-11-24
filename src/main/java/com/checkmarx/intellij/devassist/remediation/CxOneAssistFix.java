@@ -78,23 +78,6 @@ public class CxOneAssistFix implements LocalQuickFix, Iconable {
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
         LOGGER.info(format("RTS-Fix: Remediation called: %s for issue: %s", getFamilyName(), scanIssue.getTitle()));
-        switch (scanIssue.getScanEngine()) {
-            case OSS:
-                applyOSSRemediation();
-                break;
-            case ASCA:
-                applyASCARemediation();
-                break;
-            default:
-                break;
-        }
-    }
-
-    private void applyOSSRemediation() {
-        LOGGER.info(format("RTS-Fix: Remediation started for OSS Issue: %s", scanIssue.getTitle()));
-    }
-
-    private void applyASCARemediation() {
-        LOGGER.info(format("RTS-Fix: Remediation started for ASCA Issue: %s", scanIssue.getTitle()));
+        new RemediationManager().fixWithCxOneAssist(project, scanIssue);
     }
 }

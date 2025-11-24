@@ -261,6 +261,7 @@ public final class Utils {
                         content,
                         type)
                 .notify(project);
+        LOGGER.info(String.format("Notification: Title:%s, Content:%s, Type:%s", project.getName(), content, type));
     }
 
     /**
