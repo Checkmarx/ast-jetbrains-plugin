@@ -145,6 +145,13 @@ public final class Constants {
         public static final String OSS_REALTIME_SCANNER_DIRECTORY = "Cx-oss-realtime-scanner";
         public static final String ERROR_OSS_REALTIME_SCANNER = "Failed to handle OSS Realtime scan";
 
+        public static final String ACTIVATE_CONTAINER_REALTIME_SCANNER = "Activate Containers-Realtime";
+        public static final String CONTAINER_REALTIME_SCANNER = "Checkmarx Containers Realtime Scanner (Containers-Realtime)";
+        public static final String CONTAINER_REALTIME_SCANNER_START = "Realtime Containers Scanner Engine started";
+        public static final String CONTAINER_REALTIME_SCANNER_DISABLED = "Realtime Containers Scanner Engine disabled";
+        public static final String CONTAINER_REALTIME_SCANNER_DIRECTORY = "Cx-containers-realtime-scanner";
+        public static final String ERROR_CONTAINER_REALTIME_SCANNER = "Failed to handle Containers Realtime scan";
+
         //Dev Assist Fixes Constants
         public static final String FIX_WITH_CXONE_ASSIST = "Fix with CxOne Assist";
         public static final String VIEW_DETAILS_FIX_NAME = "View details";
@@ -160,11 +167,30 @@ public final class Constants {
                 "**/go.mod",
                 "**/*.csproj"
         );
+
+        public  static  final List<String> CONTAINERS_FILE_PATTERNS= List.of(
+                "**/dockerfile",
+                "**/dockerfile-*",
+                "**/dockerfile.*",
+                "**/docker-compose.yml",
+                "**/docker-compose.yaml",
+                "**/docker-compose-*.yml",
+                "**/docker-compose-*.yaml"
+        );
+
+        public static final List<String>CONTAINER_HELM_EXTENSION= List.of( "yml",
+                "yaml");
+
+
+        public static final List<String>CONTAINER_HELM_EXCLUDED_FILES= List.of( "chart.yml",
+                "chart.yaml");
+
         //Tooltip description constants
         public static final String RISK_PACKAGE = "risk package";
         public static final String SEVERITY_PACKAGE = "Severity Package";
         public static final String PACKAGE_DETECTED = "package detected";
         public static final String THEME = "THEME";
+        public static final String RISK_IMAGE="risk image";
     }
 
     /**

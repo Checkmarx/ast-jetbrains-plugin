@@ -44,6 +44,8 @@ public class ScanIssue {
     private String cve;
     private ScanEngine scanEngine;
     private String filePath;
+    private String imageTag;
+
 
     /**
      * A list of specific locations within the file that are related to the scan issue.

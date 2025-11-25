@@ -96,6 +96,7 @@ public class ScanIssueProcessor {
      */
     private ProblemDescriptor createProblemDescriptor(ScanIssue scanIssue, int lineNumber) {
         try {
+            LOGGER.info("I am in problem descriptor");
             return ProblemBuilder.build(file, manager, scanIssue, document, lineNumber, isOnTheFly);
         } catch (Exception e) {
             LOGGER.error("RTS: Failed to create problem descriptor for: {} ", scanIssue.getTitle(), e.getMessage());
@@ -107,10 +108,13 @@ public class ScanIssueProcessor {
      * Highlights the issue line and adds a gutter icon if a valid PSI element exists.
      */
     private void highlightIssueIfNeeded(ScanIssue scanIssue, int problemLineNumber, boolean isProblem) {
-        PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(problemLineNumber));
+        LOGGER.info("I am in highlight issue");
+        LOGGER.info("The problem line number is "+problemLineNumber);
+        PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(problemLineNumber-1));
+        LOGGER.info("The elementAtLine-->"+elementAtLine);
         if (elementAtLine != null) {
             problemDecorator.highlightLineAddGutterIconForProblem(
-                    file.getProject(), file, scanIssue, isProblem, problemLineNumber
+                    file.getProject(), file, scanIssue, isProblem, problemLineNumber-1
             );
         }
     }

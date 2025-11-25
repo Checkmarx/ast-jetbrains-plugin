@@ -56,6 +56,7 @@ public class ProblemDecorator {
      */
     public void highlightLineAddGutterIconForProblem(@NotNull Project project, @NotNull PsiFile file,
                                                      ScanIssue scanIssue, boolean isProblem, int problemLineNumber) {
+
         ApplicationManager.getApplication().invokeLater(() -> {
             Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
             if (editor == null) return;
@@ -85,7 +86,9 @@ public class ProblemDecorator {
      */
     private void highlightLocationInEditor(Editor editor, MarkupModel markupModel, int targetLine,
                                            ScanIssue scanIssue, boolean addGutterIcon, boolean isProblem, int problemLineNumber) {
+
         TextRange textRange = DevAssistUtils.getTextRangeForLine(editor.getDocument(), targetLine);
+        LOGGER.info("The text range is -->"+textRange);
         TextAttributes textAttributes = createTextAttributes(scanIssue.getSeverity());
 
         RangeHighlighter highlighter = markupModel.addLineHighlighter(

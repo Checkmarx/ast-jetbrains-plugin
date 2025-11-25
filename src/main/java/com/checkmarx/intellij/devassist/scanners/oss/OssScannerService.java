@@ -22,6 +22,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -63,8 +64,8 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
      * @param filePath absolute path to the file
      * @return {@code true} if the file should be scanned; {@code false} otherwise
      */
-    public boolean shouldScanFile(String filePath) {
-        if (!super.shouldScanFile(filePath)) {
+    public boolean shouldScanFile(String filePath,PsiFile psiFile) {
+        if (!super.shouldScanFile(filePath,psiFile)) {
             return false;
         }
         return this.isManifestFilePatternMatching(filePath);
@@ -226,7 +227,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
      * @return ScanResult of type OssRealtimeResults
      */
     public ScanResult<OssRealtimeResults> scan(@NotNull PsiFile file, @NotNull String uri) {
-        if (!this.shouldScanFile(uri)) {
+        if (!this.shouldScanFile(uri,file)) {
             return null;
         }
         Path tempSubFolder = this.getTempSubFolderPath(file);
@@ -242,9 +243,9 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
             return new OssScanResultAdaptor(scanResults);
 
         } catch (IOException | CxException | InterruptedException e) {
-            LOGGER.warn("Error occurred during OSS realTime scan", e);
+            LOGGER.warn(this.config.getErrorMessage(), e);
         } finally {
-            LOGGER.debug("Deleting temporary folder");
+            LOGGER.info("Deleting temporary folder");
             deleteTempFolder(tempSubFolder);
         }
         return null;

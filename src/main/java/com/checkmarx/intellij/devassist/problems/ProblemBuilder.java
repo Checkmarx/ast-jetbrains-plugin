@@ -74,6 +74,7 @@ public class ProblemBuilder {
                                    int lineNumber,
                                    boolean isOnTheFly) {
         TextRange problemRange = DevAssistUtils.getTextRangeForLine(document, lineNumber);
+
         String description = PROBLEM_DESCRIPTION_INSTANCE.formatDescription(scanIssue);
         ProblemHighlightType highlightType = determineHighlightType(scanIssue);
 

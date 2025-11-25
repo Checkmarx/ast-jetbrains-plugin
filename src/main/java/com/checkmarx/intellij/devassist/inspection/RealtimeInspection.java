@@ -18,6 +18,7 @@ import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
@@ -25,9 +26,11 @@ import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
+import com.intellij.util.concurrency.AppExecutorUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -69,7 +72,7 @@ public class RealtimeInspection extends LocalInspectionTool {
             resetResults(file.getProject());
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        List<ScannerService<?>> supportedScanners = getSupportedEnabledScanner(virtualFile.getPath());
+        List<ScannerService<?>> supportedScanners = getSupportedEnabledScanner(virtualFile.getPath(),file);
         if (supportedScanners.isEmpty()) {
             LOGGER.warn(format("RTS: No supported scanner enabled for this file: %s.", file.getName()));
             resetResults(file.getProject());
@@ -117,8 +120,8 @@ public class RealtimeInspection extends LocalInspectionTool {
      * @param filePath the path of the file as a string, used to identify an applicable scanner service; must not be null or empty
      * @return an {@link Optional} containing the matching {@link ScannerService} if found, or an empty {@link Optional} if no appropriate service exists
      */
-    private List<ScannerService<?>> getSupportedEnabledScanner(String filePath) {
-        List<ScannerService<?>> supportedScanners = scannerFactory.getAllSupportedScanners(filePath);
+    private List<ScannerService<?>> getSupportedEnabledScanner(String filePath, PsiFile psiFile) {
+        List<ScannerService<?>> supportedScanners = scannerFactory.getAllSupportedScanners(filePath, psiFile);
         if (supportedScanners.isEmpty()) {
             LOGGER.warn(format("RTS: No supported scanner found for this file: %s.", filePath));
             return Collections.emptyList();
@@ -263,3 +266,4 @@ public class RealtimeInspection extends LocalInspectionTool {
         return problems;
     }
 }
+
