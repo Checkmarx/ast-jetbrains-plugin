@@ -225,21 +225,6 @@ public class DevAssistUtils {
 
 
     /**
-     * Checks if you are connected to with timeout of 4 seconds Internet.
-     *
-     * @return true if in a yes, false otherwise
-     */
-    public static  boolean isInternetConnectivityActive(){
-        try{
-            InetAddress address= InetAddress.getByName("8.8.8.8");
-            return address.isReachable(4000);
-        }
-        catch (Exception e){
-            return  false;
-        }
-    }
-
-    /**
      * Copies the given text to the system clipboard and shows a notification on success.
      *
      * @param text the text to copy
