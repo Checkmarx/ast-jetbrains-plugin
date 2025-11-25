@@ -41,7 +41,7 @@ public class ScanIssueProcessor {
      * @return a ProblemDescriptor if the issue is valid and should be reported, null otherwise
      */
     public ProblemDescriptor processScanIssue(@NotNull ScanIssue scanIssue) {
-        if (!isValidScanIssue(scanIssue)) {
+        if (!isValidLocation(scanIssue)) {
             LOGGER.debug("RTS: Scan issue does not have location: {}", scanIssue.getTitle());
             return null;
         }
@@ -62,7 +62,7 @@ public class ScanIssueProcessor {
     /**
      * Validates that the scan issue has valid locations.
      */
-    private boolean isValidScanIssue(ScanIssue scanIssue) {
+    private boolean isValidLocation(ScanIssue scanIssue) {
         return scanIssue.getLocations() != null && !scanIssue.getLocations().isEmpty();
     }
 

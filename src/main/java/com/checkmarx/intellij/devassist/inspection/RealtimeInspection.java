@@ -223,7 +223,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         List<ProblemDescriptor> scanResultDescriptors = startScanAndCreateProblemDescriptors(problemHelperBuilder);
         if (scanResultDescriptors.isEmpty()) {
             LOGGER.info(format("RTS: No issues found for file: %s resetting the editor state", file.getName()));
-            resetResults(file.getProject());
+           // resetResults(file.getProject());
         }
         LOGGER.info(format("RTS: Scanning completed and descriptors created: %s for file: %s", scanResultDescriptors.size(), file.getName()));
         return scanResultDescriptors.toArray(new ProblemDescriptor[0]);

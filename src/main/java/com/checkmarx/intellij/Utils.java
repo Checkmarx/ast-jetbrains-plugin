@@ -4,7 +4,10 @@ import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
-import com.intellij.notification.*;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationAction;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -261,7 +264,6 @@ public final class Utils {
                         content,
                         type)
                 .notify(project);
-        LOGGER.info(String.format("Notification: Title:%s, Content:%s, Type:%s", project.getName(), content, type));
     }
 
     /**
@@ -353,7 +355,7 @@ public final class Utils {
         if (strLen == 0) {
             return true;
         } else {
-            for(int i = 0; i < strLen; ++i) {
+            for (int i = 0; i < strLen; ++i) {
                 if (!Character.isWhitespace(cs.charAt(i))) {
                     return false;
                 }
@@ -364,6 +366,7 @@ public final class Utils {
 
     /**
      * Escape HTML special characters
+     *
      * @param text String to escape
      * @return Escaped string
      */
@@ -376,5 +379,21 @@ public final class Utils {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+    }
+
+    /**
+     * Display sticky ballon notification in notification area, this notification won't expire automatically
+     *
+     * @param title   - Title for notification
+     * @param content - Message to display as notification
+     * @param type    - Notification type e.g., WARNING, ERROR, INFO etc.
+     * @param project - Current project instance
+     */
+    public static void showStickyNotification(String title, String content, NotificationType type, Project project) {
+        NotificationGroupManager.getInstance()
+                .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
+                .createNotification(title, content, type)
+                .setImportant(true) // Make it sticky (won't expire automatically)
+                .notify(project);
     }
 }

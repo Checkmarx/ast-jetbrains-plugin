@@ -227,19 +227,22 @@ public class DevAssistUtils {
     /**
      * Copies the given text to the system clipboard and shows a notification on success.
      *
-     * @param text the text to copy
+     * @param textToCopy the text to copy
+     * @param project    the project in which the notification should be shown
+     * @param notificationTitle the title of the notification
+     * @param notificationContent the content of the notification
      */
-    public static boolean copyToClipboardWithNotification(@NotNull String text, String notificationTitle,
-                                                          String content, Project project) {
-        StringSelection stringSelection = new StringSelection(text);
+    public static boolean copyToClipboardWithNotification(@NotNull String textToCopy, String notificationTitle,
+                                                          String notificationContent, Project project) {
+        StringSelection stringSelection = new StringSelection(textToCopy);
         try {
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
-            Utils.showNotification(notificationTitle, content,
+            Utils.showStickyNotification(notificationTitle, notificationContent,
                     NotificationType.INFORMATION,
                     project);
             return true;
         } catch (Exception exception) {
-            LOGGER.debug("Failed to copy remediation text to clipboard: ", exception);
+            LOGGER.debug("Failed to copy text to clipboard: ", exception);
             Utils.showNotification(notificationTitle, "Failed to copy text to clipboard.", NotificationType.ERROR, null);
             return false;
         }
