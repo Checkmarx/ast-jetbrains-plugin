@@ -14,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 
+import static java.lang.String.format;
+
 /**
  * A class representing a quick fix that enables users to view details of a scan issue detected during
  * a scanning process. This class implements the `LocalQuickFix` interface, allowing it to be presented
@@ -74,7 +76,8 @@ public class ViewDetailsFix implements LocalQuickFix, Iconable {
      */
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
-        LOGGER.info("applyFix called.." + getFamilyName() + " " + scanIssue.getTitle());
+        LOGGER.info(format("RTS-Fix: Remediation called: %s for issue: %s", getFamilyName(), scanIssue.getTitle()));
+        new RemediationManager().viewDetails(project, scanIssue);
     }
 
 }

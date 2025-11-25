@@ -172,7 +172,8 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
     /**
      * Draw a panel with logo and a button to settings, when settings are invalid
-//     */
+     *
+     */
     private void drawAuthPanel() {
         removeAll();
         JPanel wrapper = new JPanel(new GridBagLayout());

@@ -31,8 +31,8 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 /**
  * UI component shown under Tools > Checkmarx One > CxOne Assist.
  * Currently shows OSS realtime scanner toggle and MCP configuration installation.
- * Other realtime scanners and container management tools are temporarily hidden
- * and will be restored in a future release.
+ * Other realtime scanners and container management tools are temporarily hidden and will be restored in a future release.
+ * MCP status is shown inline in the UI.
  */
 public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
@@ -42,6 +42,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
     private final JBLabel ossTitle = new JBLabel(formatTitle(Bundle.message(Resource.OSS_REALTIME_TITLE)));
     private final JBCheckBox ossCheckbox = new JBCheckBox(Bundle.message(Resource.OSS_REALTIME_CHECKBOX));
+    private final JBLabel assistMessageLabel = new JBLabel();
 
     // TEMPORARILY HIDDEN FIELDS - Will be restored in future release
     @SuppressWarnings("unused")
@@ -97,6 +98,12 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     }
 
     private void buildUI() {
+        // Status message label - shown at the top in red when authentication/MCP issues exist
+        assistMessageLabel.setForeground(JBColor.RED);
+        assistMessageLabel.setHorizontalAlignment(SwingConstants.LEFT);
+        assistMessageLabel.setVisible(false);
+        mainPanel.add(assistMessageLabel, "hidemode 3, growx, alignx left, wrap, gapbottom 5");
+
         // OSS Realtime
         mainPanel.add(ossTitle, "split 2, span");
         mainPanel.add(new JSeparator(), "growx, wrap");
@@ -292,12 +299,91 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         //                 ? "docker"
         //                 : state.getContainersTool()
         // );
+        updateAssistState();
+    }
+
+    private void updateAssistState() {
+        ensureState();
+        boolean authenticated = state.isAuthenticated();
+
+        if (!authenticated) {
+            // If not authenticated, immediately show message, disable controls, and uncheck scanners
+            ossCheckbox.setEnabled(false);
+            ossCheckbox.setSelected(false);
+            // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
+            // secretsCheckbox.setEnabled(false);
+            // secretsCheckbox.setSelected(false);
+            // containersCheckbox.setEnabled(false);
+            // containersCheckbox.setSelected(false);
+            // iacCheckbox.setEnabled(false);
+            // iacCheckbox.setSelected(false);
+
+            assistMessageLabel.setText(Bundle.message(Resource.CXONE_ASSIST_LOGIN_MESSAGE));
+            assistMessageLabel.setForeground(JBColor.RED);
+            assistMessageLabel.setVisible(true);
+            return;
+        }
+
+        // If authenticated, use the cached MCP status (determined during authentication)
+        boolean mcpEnabled = state.isMcpEnabled();
+        updateUIWithMcpStatus(mcpEnabled);
+    }
+
+
+
+    private void updateUIWithMcpStatus(boolean mcpEnabled) {
+        ossCheckbox.setEnabled(mcpEnabled);
+        // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
+        // secretsCheckbox.setEnabled(mcpEnabled);
+        // containersCheckbox.setEnabled(mcpEnabled);
+        // iacCheckbox.setEnabled(mcpEnabled);
+
+        if (!mcpEnabled) {
+            // When MCP is disabled, uncheck all scanner checkboxes to prevent realtime scanning
+            ossCheckbox.setSelected(false);
+            // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
+            // secretsCheckbox.setSelected(false);
+            // containersCheckbox.setSelected(false);
+            // iacCheckbox.setSelected(false);
+            ensureState();
+            boolean settingsChanged = false;
+            if (state.isOssRealtime()) {
+                state.setOssRealtime(false);
+                settingsChanged = true;
+            }
+            // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
+            // if (state.isSecretDetectionRealtime()) {
+            //     state.setSecretDetectionRealtime(false);
+            //     settingsChanged = true;
+            // }
+            // if (state.isContainersRealtime()) {
+            //     state.setContainersRealtime(false);
+            //     settingsChanged = true;
+            // }
+            // if (state.isIacRealtime()) {
+            //     state.setIacRealtime(false);
+            //     settingsChanged = true;
+            // }
+
+            if (settingsChanged) {
+                GlobalSettingsState.getInstance().apply(state);
+                ApplicationManager.getApplication().getMessageBus()
+                        .syncPublisher(SettingsListener.SETTINGS_APPLIED)
+                        .settingsApplied();
+            }
+
+            assistMessageLabel.setText(Bundle.message(Resource.CXONE_ASSIST_MCP_DISABLED_MESSAGE));
+            assistMessageLabel.setForeground(JBColor.RED);
+            assistMessageLabel.setVisible(true);
+        } else {
+            assistMessageLabel.setVisible(false);
+            assistMessageLabel.setText(""); // Clear any previous message
+        }
     }
 
     private void ensureState() {
-        if (state == null) {
-            state = GlobalSettingsState.getInstance();
-        }
+        // Always get fresh state to ensure we have the latest MCP configuration
+        state = GlobalSettingsState.getInstance();
     }
 
     private static String formatTitle(String raw) {

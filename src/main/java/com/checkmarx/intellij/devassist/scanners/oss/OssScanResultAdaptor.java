@@ -77,10 +77,12 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
     private ScanIssue createScanIssue(OssRealtimeScanPackage packageObj) {
         ScanIssue scanIssue = new ScanIssue();
 
+        scanIssue.setPackageManager(packageObj.getPackageManager());
         scanIssue.setTitle(packageObj.getPackageName());
         scanIssue.setPackageVersion(packageObj.getPackageVersion());
         scanIssue.setScanEngine(ScanEngine.OSS);
         scanIssue.setSeverity(packageObj.getStatus());
+        scanIssue.setFilePath(packageObj.getFilePath());
 
         if (Objects.nonNull(packageObj.getLocations()) && !packageObj.getLocations().isEmpty()) {
             packageObj.getLocations().forEach(location ->

@@ -1,16 +1,17 @@
-package com.checkmarx.intellij.devassist.ui;
+package com.checkmarx.intellij.devassist.ui.findings.window;
 
 import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
-import com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterBaseAction;
-import com.checkmarx.intellij.devassist.ui.filterAction.VulnerabilityFilterState;
+import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction;
+import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterState;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
+import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.intellij.icons.AllIcons;
+import com.checkmarx.intellij.Constants;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
@@ -18,6 +19,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.Disposer;
@@ -26,12 +28,13 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import com.intellij.ui.ColoredTreeCellRenderer;
-import com.intellij.ui.Gray;
-import com.intellij.ui.JBColor;
-import com.intellij.ui.SimpleTextAttributes;
+import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.treeStructure.SimpleTree;
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.uiDesigner.core.GridLayoutManager;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -43,71 +46,75 @@ import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
-import com.intellij.openapi.editor.markup.*;
 
 
 /**
- * Handles drawing of the checkmarx vulnerability tool window.
- *
+ * Handles drawing of the Checkmarx vulnerability tool window.
+ * Extends {@link SimpleToolWindowPanel} to provide a panel with toolbar and content area.
+ * Implements {@link Disposable} for cleanup toolbar actions.
+ * Manages a tree view of vulnerabilities with filtering and navigation capabilities.
+ * Initializes icons for different vulnerability severities.
+ * Subscribes to settings changes and problem updates to refresh the UI accordingly.
+ * Uses a timer to periodically update the tab title with the current problem count.
+ * Refactored to have separate drawAuthPanel() and drawMainPanel() following pattern in CxToolWindowPanel.
  */
-public class VulnerabilityToolWindow extends SimpleToolWindowPanel
-        implements Disposable, VulnerabilityToolWindowAction {
+public class CxFindingsWindow extends SimpleToolWindowPanel
+        implements Disposable {
 
-    private static final Logger LOGGER = Utils.getLogger(VulnerabilityToolWindow.class);
+    private static final Logger LOGGER = Utils.getLogger(CxFindingsWindow.class);
 
     private final Project project;
     private final SimpleTree tree;
     private final DefaultMutableTreeNode rootNode;
     private static Map<String, Icon> vulnerabilityCountToIcon;
     private static Map<String, Icon> vulnerabilityToIcon;
-    private static Set<String> expandedPathsSet = new java.util.HashSet<>();
+    private static Set<String> expandedPathsSet = new HashSet<>();
     private final Content content;
     private final Timer timer;
 
-    public VulnerabilityToolWindow(Project project, Content content) {
+    public CxFindingsWindow(Project project, Content content) {
         super(false, true);
         this.project = project;
         this.tree = new SimpleTree();
         this.rootNode = new DefaultMutableTreeNode();
         this.content = content;
 
-        // Remove or hide toolbar if settings are invalid
-        Runnable r = () -> {
+        // Setup initial UI based on settings validity, subscribe to settings changes
+        Runnable settingsCheckRunnable = () -> {
             if (new GlobalSettingsComponent().isValid()) {
-                ActionToolbar toolbar = createActionToolbar();
-                toolbar.setTargetComponent(this);
-                setToolbar(toolbar.getComponent());
+                drawMainPanel();
             } else {
-                setToolbar(null);
+                drawAuthPanel();
             }
         };
 
-        // Subscribe to filter changes using FilterBaseAction's topic to refresh tree on
-        // toggle
         project.getMessageBus().connect(this)
                 .subscribe(VulnerabilityFilterBaseAction.TOPIC,
-                        (VulnerabilityFilterBaseAction.VulnerabilityFilterChanged) () -> ApplicationManager.getApplication().invokeLater(() -> triggerRefreshTree()));
-        //Subscribe to the settings changed
+                        (VulnerabilityFilterBaseAction.VulnerabilityFilterChanged) () -> ApplicationManager.getApplication().invokeLater(this::triggerRefreshTree));
+
         ApplicationManager.getApplication().getMessageBus()
                 .connect(this)
-                .subscribe(SettingsListener.SETTINGS_APPLIED, r::run);
+                .subscribe(SettingsListener.SETTINGS_APPLIED, settingsCheckRunnable::run);
 
-        r.run();
+        settingsCheckRunnable.run();
 
-        LOGGER.info("Initiated the custom problem window for project: " + project.getName());
-        add(new JScrollPane(tree), BorderLayout.CENTER);
+        LOGGER.debug("Initiated the custom problem window for project: " + project.getName());
+
+        // Initialize icons for rendering
         initVulnerabilityCountIcons();
         initVulnerabilityIcons();
 
-        tree.setModel(new javax.swing.tree.DefaultTreeModel(rootNode));
-        tree.setCellRenderer(new IssueTreeRenderer(tree));
+        // Setup tree model and renderer
+        tree.setModel(new DefaultTreeModel(rootNode));
+        tree.setCellRenderer(new IssueTreeRenderer(tree, vulnerabilityToIcon, vulnerabilityCountToIcon));
         tree.setRootVisible(false);
+
+        // Add mouse listeners for navigation and popup menu
         tree.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -126,13 +133,12 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
             }
         });
 
+        // Timer for updating tab title count
         timer = new Timer(1000, e -> updateTabTitle());
         timer.start();
-
-        // Ensure proper disposal of timer
         Disposer.register(this, () -> timer.stop());
 
-        // Trigger initial refresh with initially added scan results
+        // Trigger initial refresh with existing scan results if any (on EDT)
         SwingUtilities.invokeLater(() -> {
             Map<String, List<ScanIssue>> existingIssues = ProblemHolderService.getInstance(project).getAllIssues();
             if (existingIssues != null && !existingIssues.isEmpty()) {
@@ -140,6 +146,7 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
             }
         });
 
+        // Subscribe to scan issue updates to refresh tree automatically
         project.getMessageBus().connect(this)
                 .subscribe(ProblemHolderService.ISSUE_TOPIC, new ProblemHolderService.IssueListener() {
                     @Override
@@ -147,7 +154,54 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
                         ApplicationManager.getApplication().invokeLater(() -> triggerRefreshTree());
                     }
                 });
+    }
 
+    /**
+     * Draw the authentication panel prompting the user to configure settings.
+     *
+     */
+    private void drawAuthPanel() {
+        removeAll();
+        JPanel wrapper = new JPanel(new GridBagLayout());
+
+        JPanel panel = new JPanel(new GridLayoutManager(2, 1, JBUI.emptyInsets(), -1, -1));
+
+        GridConstraints constraints = new GridConstraints();
+        constraints.setRow(0);
+        panel.add(new JBLabel(CxIcons.CHECKMARX_80), constraints);
+
+        JButton openSettingsButton = new JButton(Bundle.message(Resource.OPEN_SETTINGS_BUTTON));
+        openSettingsButton.addActionListener(e -> ShowSettingsUtil.getInstance()
+                .showSettingsDialog(project, GlobalSettingsConfigurable.class));
+
+        constraints = new GridConstraints();
+        constraints.setRow(1);
+        panel.add(openSettingsButton, constraints);
+
+        wrapper.add(panel);
+
+        setContent(wrapper);
+
+    }
+
+    /**
+     * Draw the main panel with toolbar and tree inside a scroll pane.
+     * Shown when global settings are valid.
+     */
+    private void drawMainPanel() {
+        removeAll();
+
+        // Create and set toolbar
+        ActionToolbar toolbar = createActionToolbar();
+        toolbar.setTargetComponent(this);
+        setToolbar(toolbar.getComponent());
+
+        // Add tree inside scroll pane
+        JBScrollPane scrollPane = new JBScrollPane(tree);
+        setContent(scrollPane);
+
+        revalidate();
+        repaint();
     }
 
     /**
@@ -155,8 +209,9 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
      */
     private void triggerRefreshTree() {
         Map<String, List<ScanIssue>> allIssues = ProblemHolderService.getInstance(project).getAllIssues();
-        if (allIssues == null)
+        if (allIssues == null) {
             return;
+        }
 
         Set<Filterable> activeFilters = VulnerabilityFilterState.getInstance().getFilters();
 
@@ -184,7 +239,7 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
                 if (lastNode instanceof DefaultMutableTreeNode) {
                     DefaultMutableTreeNode node = (DefaultMutableTreeNode) lastNode;
                     Object userObject = node.getUserObject();
-                    if (userObject instanceof FileNodeLabel) { // file path nodes
+                    if (userObject instanceof FileNodeLabel) {
                         expandedPathsSet.add(((FileNodeLabel) userObject).filePath);
                     }
                 }
@@ -201,7 +256,7 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
             List<ScanIssue> filteredScanDetails = scanDetails.stream()
                     .filter(detail -> {
                         String severity = detail.getSeverity();
-                        return !"ok".equalsIgnoreCase(severity) && !"unknown".equalsIgnoreCase(severity);
+                        return !Constants.OK.equalsIgnoreCase(severity) && !Constants.UNKNOWN.equalsIgnoreCase(severity);
                     })
                     .collect(Collectors.toList());
 
@@ -212,10 +267,11 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
                 icon = psiFile.getIcon(Iconable.ICON_FLAG_VISIBILITY | Iconable.ICON_FLAG_READ_STATUS);
             }
 
-            // Count issues by severity and sort them based on the sevierity
+            // Count issues by severity and sort them based on severity order
             Map<String, Long> severityCounts = filteredScanDetails.stream()
                     .collect(Collectors.groupingBy(ScanIssue::getSeverity, Collectors.counting()));
-            severityCounts = List.of(Constants.MALICIOUS_SEVERITY, Constants.CRITICAL_SEVERITY, Constants.HIGH_SEVERITY, Constants.MEDIUM_SEVERITY, Constants.LOW_SEVERITY).stream()
+            severityCounts = List.of(Constants.MALICIOUS_SEVERITY, Constants.CRITICAL_SEVERITY, Constants.HIGH_SEVERITY,
+                            Constants.MEDIUM_SEVERITY, Constants.LOW_SEVERITY).stream()
                     .filter(severityCounts::containsKey)
                     .collect(Collectors.toMap(
                             s -> s,
@@ -238,7 +294,7 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
     }
 
     /**
-     * Expand nodes by file path after reload
+     * Expand nodes by file path after reload.
      */
     private void expandNodesByFilePath() {
         SwingUtilities.invokeLater(() -> {
@@ -273,7 +329,6 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
         String filePath = detailWithPath.filePath;
 
         if (detail.getLocations() != null && !detail.getLocations().isEmpty()) {
-            // By default, navigate to the first occurrence
             Location targetLoc = detail.getLocations().get(0);
 
             int lineNumber = targetLoc.getLine();
@@ -313,187 +368,6 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
         popup.show(tree, e.getX(), e.getY());
     }
 
-    private static class IssueTreeRenderer extends ColoredTreeCellRenderer {
-        private int hoveredRow = -1;
-        private final Icon bulbIcon = AllIcons.Actions.IntentionBulb;
-        int currentRow = -1;
-        private List<IconWithCount> severityIconsToDraw = new ArrayList<>();
-        private String fileNameText = "";
-
-        public IssueTreeRenderer(JTree tree) {
-            tree.addMouseMotionListener(new MouseMotionAdapter() {
-                @Override
-                public void mouseMoved(MouseEvent e) {
-                    int row = tree.getRowForLocation(e.getX(), e.getY());
-                    if (row != hoveredRow) {
-                        hoveredRow = row;
-                        tree.repaint();
-                    }
-                }
-            });
-
-            tree.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mousePressed(MouseEvent e) {
-                    int row = tree.getRowForLocation(e.getX(), e.getY());
-                    if (row == -1) {
-                        tree.clearSelection();
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void customizeCellRenderer(JTree tree, Object value, boolean selected,
-                                          boolean expanded, boolean leaf, int row, boolean hasFocus) {
-            currentRow = row;
-            severityIconsToDraw.clear();
-            fileNameText = "";
-
-            if (!(value instanceof DefaultMutableTreeNode))
-                return;
-
-            DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
-            Object obj = node.getUserObject();
-            Icon icon = null;
-            LOGGER.info("Rendering the result tree");
-            if (obj instanceof FileNodeLabel) {
-                FileNodeLabel info = (FileNodeLabel) obj;
-                if (info.icon != null) {
-                    setIcon(info.icon);
-                }
-                fileNameText = info.fileName;
-                append(info.fileName, SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
-                if (info.problemCount != null && !info.problemCount.isEmpty()) {
-                    append("  ", SimpleTextAttributes.GRAY_ATTRIBUTES);
-                    // Store icons and counts only, don't append counts as text here
-                    for (Map.Entry<String, Long> entry : info.problemCount.entrySet()) {
-                        Long count = entry.getValue();
-                        if (count != null && count > 0) {
-                            Icon severityIcon = vulnerabilityCountToIcon.get(entry.getKey());
-                            if (severityIcon != null) {
-                                severityIconsToDraw.add(new IconWithCount(severityIcon, count));
-                            }
-                        }
-                    }
-                }
-            } else if (obj instanceof ScanDetailWithPath) {
-                ScanIssue detail = ((ScanDetailWithPath) obj).detail;
-
-                icon = vulnerabilityToIcon.getOrDefault(detail.getSeverity(), null);
-                if (icon != null)
-                    setIcon(icon);
-
-                switch (detail.getScanEngine()) {
-                    case ASCA:
-                        append(detail.getTitle() + " ", SimpleTextAttributes.REGULAR_ATTRIBUTES);
-                        break;
-                    case OSS:
-                        append(detail.getSeverity() + "-risk package: " + detail.getTitle() + "@"
-                                + detail.getPackageVersion(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
-                        break;
-                    default:
-                        append(detail.getDescription(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
-                        break;
-                }
-                append(" " + Constants.CXONE_ASSIST + " ", SimpleTextAttributes.GRAYED_ATTRIBUTES);
-
-                if (detail.getLocations() != null && !detail.getLocations().isEmpty()) {
-                    // By default, navigate to the first occurrence
-                    Location targetLoc = detail.getLocations().get(0);
-                    int line = targetLoc.getLine();
-                    Integer column = Math.max(0, targetLoc.getStartIndex());
-                    String lineColText = "[Ln " + line;
-                    if (column != null) {
-                        lineColText += ", Col " + column;
-                    }
-                    lineColText += "]";
-                    append(lineColText, SimpleTextAttributes.GRAYED_ATTRIBUTES);
-                }
-                if (hoveredRow == row) {
-                    icon = bulbIcon; // show bulb on hover
-                    setIcon(icon);
-                }
-            } else if (obj instanceof String) {
-                setIcon(null);
-                append((String) obj, SimpleTextAttributes.REGULAR_ATTRIBUTES);
-            }
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-
-            if (hoveredRow == currentRow) {
-                Graphics2D g2d = (Graphics2D) g.create();
-                try {
-                    g2d.setColor(new Color(211, 211, 211, 40));
-                    g2d.fillRect(0, 0, getWidth(), getHeight());
-                } finally {
-                    g2d.dispose();
-                }
-            }
-            if (!severityIconsToDraw.isEmpty() && !fileNameText.isEmpty()) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                try {
-                    FontMetrics fm = getFontMetrics(getFont());
-
-                    int x = getIpad().left;
-                    if (getIcon() != null) {
-                        x += getIcon().getIconWidth() + getIconTextGap();
-                    }
-                    x += fm.stringWidth("__");
-                    x += fm.stringWidth(fileNameText);
-                    x += fm.stringWidth("  ");
-
-                    int y = (getHeight() - 16) / 2; // center vertically assuming 16px icons
-
-                    int iconCountSpacing = 5; // space after count before next icon
-                    int iconNumberSpacing = 1; // space between icon and count
-
-                    for (IconWithCount iconWithCount : severityIconsToDraw) {
-                        // Draw the icon
-                        iconWithCount.icon.paintIcon(this, g2, x, y);
-
-                        // Advance x by icon width + spacing
-                        x += iconWithCount.icon.getIconWidth() + iconNumberSpacing;
-
-                        String countStr = iconWithCount.count.toString();
-
-                        // Compute width of count string
-                        int countWidth = fm.stringWidth(countStr);
-
-                        // Vertically center count text relative to icon
-                        int countY = y + (iconWithCount.icon.getIconHeight() + fm.getAscent()) / 2 - 2;
-
-                        // Draw count
-                        g2.setColor(new JBColor(Gray._10, Gray._190));
-
-                        Font baseFont = getFont();
-                        g2.setFont(baseFont.deriveFont(Font.BOLD));
-                        g2.drawString(countStr, x, countY);
-
-                        // Advance x by count width + spacing for next icon
-                        x += countWidth + iconCountSpacing;
-                    }
-
-                } finally {
-                    g2.dispose();
-                }
-            }
-        }
-
-        private static class IconWithCount {
-            final Icon icon;
-            final Long count;
-
-            IconWithCount(Icon icon, Long count) {
-                this.icon = icon;
-                this.count = count;
-            }
-        }
-    }
-
     @Override
     public void dispose() {
         // Cleanup if needed
@@ -512,11 +386,11 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
     private JPopupMenu createPopupMenu(ScanIssue detail) {
         JPopupMenu popup = new JPopupMenu();
 
-        JMenuItem promptOption = new JMenuItem("Fix with CxOne Assist");
+        JMenuItem promptOption = new JMenuItem(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST);
         promptOption.setIcon(CxIcons.STAR_ACTION);
         popup.add(promptOption);
 
-        JMenuItem copyDescription = new JMenuItem("View Details");
+        JMenuItem copyDescription = new JMenuItem(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME);
         copyDescription.addActionListener(ev -> {
             String description = detail.getDescription();
             Toolkit.getDefaultToolkit().getSystemClipboard()
@@ -525,11 +399,11 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
         copyDescription.setIcon(CxIcons.STAR_ACTION);
         popup.add(copyDescription);
 
-        JMenuItem ignoreOption = new JMenuItem("Ignore this vulnerability");
+        JMenuItem ignoreOption = new JMenuItem(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME);
         ignoreOption.setIcon(CxIcons.STAR_ACTION);
         popup.add(ignoreOption);
 
-        JMenuItem ignoreAllOption = new JMenuItem("Ignore all of this type");
+        JMenuItem ignoreAllOption = new JMenuItem(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME);
         ignoreAllOption.setIcon(CxIcons.STAR_ACTION);
         popup.add(ignoreAllOption);
         popup.add(new JSeparator());
@@ -548,20 +422,20 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
         });
         popup.add(copyFix);
 
-        JMenuItem CopyMessage = new JMenuItem("Copy Message");
-        CopyMessage.addActionListener(ev -> {
+        JMenuItem copyMessage = new JMenuItem("Copy Message");
+        copyMessage.addActionListener(ev -> {
             String message = detail.getSeverity() + "-risk package: " + detail.getTitle() + "@"
                     + detail.getPackageVersion();
             Toolkit.getDefaultToolkit().getSystemClipboard()
                     .setContents(new StringSelection(message), null);
         });
-        popup.add(CopyMessage);
+        popup.add(copyMessage);
         return popup;
     }
 
     private String getSecureFileName(String filePath) {
         if (filePath == null || filePath.trim().isEmpty()) {
-            return "unknown";
+            return Constants.UNKNOWN;
         }
         try {
             Path path = Paths.get(filePath).normalize();
@@ -592,10 +466,9 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
     public void updateTabTitle() {
         int count = getProblemCount();
         if (count > 0)
-            content.setDisplayName("<html> CxOne Assist Findings <span style='color:gray'>" + count + "</span></html>");
+            content.setDisplayName("<html>" + Constants.RealTimeConstants.DEVASSIST_TAB + " <span style='color:gray'>" + count + "</span></html>");
         else
-            content.setDisplayName("CxOne Assist Findings");
-
+            content.setDisplayName(Constants.RealTimeConstants.DEVASSIST_TAB);
     }
 
     public int getProblemCount() {
@@ -610,7 +483,6 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
 
     @NotNull
     private ActionToolbar createActionToolbar() {
-
         ActionGroup originalXmlGroup =
                 (ActionGroup) ActionManager.getInstance().getAction("VulnerabilityToolbarGroup");
 
@@ -625,14 +497,13 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
             newGroup.add(a);
         }
 
-        // Add Expand/Collapse actions (shared, safe)
+        // Add Expand/Collapse actions
         AnAction expandAll = ActionManager.getInstance().getAction("Checkmarx.ExpandAll");
         AnAction collapseAll = ActionManager.getInstance().getAction("Checkmarx.CollapseAll");
 
         newGroup.add(expandAll);
         newGroup.add(collapseAll);
 
-        // Create toolbar
         ActionToolbar toolbar = ActionManager.getInstance()
                 .createActionToolbar(Constants.TOOL_WINDOW_ID, newGroup, false);
 
@@ -640,10 +511,6 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
         return toolbar;
     }
 
-
-    /**
-     * Initialize the icons for vulnerability in the tree
-     */
     private void initVulnerabilityIcons() {
         vulnerabilityToIcon = new HashMap<>();
         vulnerabilityToIcon.put(Constants.MALICIOUS_SEVERITY, CxIcons.Small.MALICIOUS);
@@ -653,9 +520,6 @@ public class VulnerabilityToolWindow extends SimpleToolWindowPanel
         vulnerabilityToIcon.put(Constants.LOW_SEVERITY, CxIcons.Small.LOW);
     }
 
-    /**
-     * Initialize the icons for vulnerability count in front of the file name in the tree
-     */
     private void initVulnerabilityCountIcons() {
         vulnerabilityCountToIcon = new HashMap<>();
         vulnerabilityCountToIcon.put(Constants.MALICIOUS_SEVERITY, CxIcons.Medium.MALICIOUS);

@@ -137,6 +137,9 @@ public final class Constants {
             throw new UnsupportedOperationException("Cannot instantiate RealTimeConstants class");
         }
 
+        // Tab Name Constants
+        public static final String DEVASSIST_TAB = "CxOne Assist Findings";
+
         // OSS Scanner Constants
         public static final String ACTIVATE_OSS_REALTIME_SCANNER = "Activate OSS-Realtime";
         public static final String OSS_REALTIME_SCANNER = "Checkmarx Open Source Realtime Scanner (OSS-Realtime)";
@@ -168,6 +171,13 @@ public final class Constants {
                 "**/*.csproj"
         );
 
+
+
+
+
+
+
+
         public  static  final List<String> CONTAINERS_FILE_PATTERNS= List.of(
                 "**/dockerfile",
                 "**/dockerfile-*",
@@ -190,6 +200,8 @@ public final class Constants {
         public static final String SEVERITY_PACKAGE = "Severity Package";
         public static final String PACKAGE_DETECTED = "package detected";
         public static final String THEME = "THEME";
+        public static final String CX_AGENT_NAME = "Checkmarx One Assist";
+        public static final String DEV_ASSIST_COPY_PROMPT = "Remediation prompt copied to the clipboard!, please paste in the Github Copilot Chat (Agent Mode).";
         public static final String RISK_IMAGE="risk image";
     }
 

@@ -73,6 +73,10 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     private boolean containersRealtime = false;
     private boolean iacRealtime = false;
     private String containersTool = "docker";
+    @Attribute("mcpEnabled")
+    private boolean mcpEnabled = false;
+    @Attribute("mcpStatusChecked")
+    private boolean mcpStatusChecked = false;
     @Attribute("welcomeShown")
     private boolean welcomeShown = false;
 

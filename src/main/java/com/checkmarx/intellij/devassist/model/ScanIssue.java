@@ -41,6 +41,7 @@ public class ScanIssue {
     private String description;
     private String remediationAdvise;
     private String packageVersion;
+    private String packageManager;
     private String cve;
     private ScanEngine scanEngine;
     private String filePath;

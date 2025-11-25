@@ -112,7 +112,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
         try {
             LocalTime time = LocalTime.now();
             String timeSuffix = String.format("%02d%02d", time.getMinute(), time.getSecond());
-            String combined = relativePath + timeSuffix;
+            String combined = relativePath + timeSuffix + UUID.randomUUID().toString().substring(0,5);
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = digest.digest(combined.getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();

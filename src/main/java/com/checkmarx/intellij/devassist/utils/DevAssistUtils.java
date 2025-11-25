@@ -4,9 +4,11 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.util.SeverityLevel;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VfsUtil;
@@ -16,6 +18,8 @@ import com.intellij.psi.PsiFile;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
@@ -221,17 +225,23 @@ public class DevAssistUtils {
 
 
     /**
-     * Checks if you are connected to with timeout of 4 seconds Internet.
+     * Copies the given text to the system clipboard and shows a notification on success.
      *
-     * @return true if in a yes, false otherwise
+     * @param text the text to copy
      */
-    public static  boolean isInternetConnectivityActive(){
-        try{
-            InetAddress address= InetAddress.getByName("8.8.8.8");
-            return address.isReachable(4000);
-        }
-        catch (Exception e){
-            return  false;
+    public static boolean copyToClipboardWithNotification(@NotNull String text, String notificationTitle,
+                                                          String content, Project project) {
+        StringSelection stringSelection = new StringSelection(text);
+        try {
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
+            Utils.showNotification(notificationTitle, content,
+                    NotificationType.INFORMATION,
+                    project);
+            return true;
+        } catch (Exception exception) {
+            LOGGER.debug("Failed to copy remediation text to clipboard: ", exception);
+            Utils.showNotification(notificationTitle, "Failed to copy text to clipboard.", NotificationType.ERROR, null);
+            return false;
         }
     }
 

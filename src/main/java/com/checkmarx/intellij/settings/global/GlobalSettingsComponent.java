@@ -226,7 +226,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
         state.setAdditionalParameters(additionalParametersField.getText().trim());
         state.setAsca(ascaCheckBox.isSelected());
         state.setApiKeyEnabled(apiKeyRadio.isSelected());
-        // Preserve realtime + other fields not directly edited here so they are not lost on apply()
         if (SETTINGS_STATE != null) {
             state.setOssRealtime(SETTINGS_STATE.isOssRealtime());
             state.setSecretDetectionRealtime(SETTINGS_STATE.isSecretDetectionRealtime());
@@ -234,6 +233,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
             state.setIacRealtime(SETTINGS_STATE.isIacRealtime());
             state.setContainersTool(SETTINGS_STATE.getContainersTool());
             state.setWelcomeShown(SETTINGS_STATE.isWelcomeShown());
+            state.setMcpEnabled(SETTINGS_STATE.isMcpEnabled());
+            state.setMcpStatusChecked(SETTINGS_STATE.isMcpStatusChecked());
         }
         return state;
     }
@@ -275,6 +276,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     private void onAuthSuccessApiKey() {
+        // Set basic authentication success state
         setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
         logoutButton.setEnabled(true);
         connectButton.setEnabled(false);
@@ -282,17 +284,40 @@ public class GlobalSettingsComponent implements SettingsComponent {
         SETTINGS_STATE.setAuthenticated(true);
         SETTINGS_STATE.setLastValidationSuccess(true);
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
-        apply();
         logoutButton.requestFocusInWindow();
 
+        // Complete post-authentication setup
+        completeAuthenticationSetup(String.valueOf(apiKeyField.getPassword()));
+    }
+
+    /**
+     * Common post-authentication setup logic for both API key and OAuth authentication.
+     * Checks MCP server status, configures realtime scanners, and shows welcome dialog.
+     *
+     * @param credential The credential to use for MCP installation (API key or refresh token)
+     */
+    private void completeAuthenticationSetup(String credential) {
+        // Check MCP server status once during authentication
         boolean mcpServerEnabled = false;
-        try { mcpServerEnabled = com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled(); } catch (Exception ex) { LOGGER.warn("Failed MCP server check", ex); }
+        try {
+            mcpServerEnabled = com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled();
+        } catch (Exception ex) {
+            LOGGER.warn("Failed MCP server check", ex);
+        }
+
+        // Store MCP status and all authentication state in a single apply() call
+        SETTINGS_STATE.setMcpEnabled(mcpServerEnabled);
+        SETTINGS_STATE.setMcpStatusChecked(true);
+        apply();
+
+        // Configure realtime scanners and install MCP based on server status
         if (mcpServerEnabled) {
             autoEnableAllRealtimeScanners();
-            installMcpAsync(String.valueOf(apiKeyField.getPassword()));
+            installMcpAsync(credential);
         } else {
             disableAllRealtimeScanners();
         }
+
         showWelcomeDialog(mcpServerEnabled);
     }
 
@@ -407,18 +432,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
-            apply();
             notifyAuthSuccess();
 
-            boolean mcpServerEnabled = false;
-            try { mcpServerEnabled = com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled(); } catch (Exception ex) { LOGGER.warn("Failed MCP server check", ex); }
-            if (mcpServerEnabled) {
-                autoEnableAllRealtimeScanners();
-                installMcpAsync(SENSITIVE_SETTINGS_STATE.getRefreshToken());
-            } else {
-                disableAllRealtimeScanners();
-            }
-            showWelcomeDialog(mcpServerEnabled);
+            // Complete post-authentication setup
+            completeAuthenticationSetup(SENSITIVE_SETTINGS_STATE.getRefreshToken());
         });
     }
 
@@ -730,6 +747,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         setFieldsEditable(true);
         updateConnectButtonState();
         SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+        // Don't clear MCP status on logout - keep it for next login
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.LOGOUT_SUCCESS));
         SETTINGS_STATE.setLastValidationSuccess(true);
         if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
@@ -746,13 +764,16 @@ public class GlobalSettingsComponent implements SettingsComponent {
         connectButton.setEnabled(true);
         logoutButton.setEnabled(false);
         setFieldsEditable(true);
-        updateConnectButtonState();
-        SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+
+        // Clear authentication and MCP status
+        SETTINGS_STATE.setAuthenticated(false);
+        SETTINGS_STATE.setMcpEnabled(false);
+        SETTINGS_STATE.setMcpStatusChecked(false);
         if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
             SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
         }
         apply();
-        updateConnectButtonState(); // Ensure the Connect button state is updated
+        updateConnectButtonState(); // Update button state after all changes
     }
 
 
