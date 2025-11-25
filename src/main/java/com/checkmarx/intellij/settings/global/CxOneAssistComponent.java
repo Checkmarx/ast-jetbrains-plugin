@@ -361,6 +361,34 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             // containersCheckbox.setSelected(false);
             // iacCheckbox.setSelected(false);
 
+            // Persist the disabled state to settings to prevent scanners from running
+            ensureState();
+            boolean settingsChanged = false;
+            if (state.isOssRealtime()) {
+                state.setOssRealtime(false);
+                settingsChanged = true;
+            }
+            // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
+            // if (state.isSecretDetectionRealtime()) {
+            //     state.setSecretDetectionRealtime(false);
+            //     settingsChanged = true;
+            // }
+            // if (state.isContainersRealtime()) {
+            //     state.setContainersRealtime(false);
+            //     settingsChanged = true;
+            // }
+            // if (state.isIacRealtime()) {
+            //     state.setIacRealtime(false);
+            //     settingsChanged = true;
+            // }
+
+            if (settingsChanged) {
+                GlobalSettingsState.getInstance().apply(state);
+                ApplicationManager.getApplication().getMessageBus()
+                        .syncPublisher(SettingsListener.SETTINGS_APPLIED)
+                        .settingsApplied();
+            }
+
             assistMessageLabel.setText(Bundle.message(Resource.CXONE_ASSIST_MCP_DISABLED_MESSAGE));
             assistMessageLabel.setForeground(JBColor.RED);
             assistMessageLabel.setVisible(true);
