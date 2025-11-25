@@ -31,8 +31,8 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 /**
  * UI component shown under Tools > Checkmarx One > CxOne Assist.
  * Currently shows OSS realtime scanner toggle and MCP configuration installation.
- * Other realtime scanners and container management tools are temporarily hidden
- * and will be restored in a future release.
+ * Other realtime scanners and container management tools are temporarily hidden and will be restored in a future release.
+ * MCP status is shown inline in the UI.
  */
 public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
@@ -98,7 +98,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     }
 
     private void buildUI() {
-        // Status message label - shown at the top when authentication/MCP issues exist
+        // Status message label - shown at the top in red when authentication/MCP issues exist
         assistMessageLabel.setForeground(JBColor.RED);
         assistMessageLabel.setHorizontalAlignment(SwingConstants.LEFT);
         assistMessageLabel.setVisible(false);
@@ -324,27 +324,12 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             return;
         }
 
-        // If authenticated, show checking status and then check MCP status in real-time
-        assistMessageLabel.setText(Bundle.message(Resource.CXONE_ASSIST_CHECKING_MCP));
-        assistMessageLabel.setForeground(JBColor.LIGHT_GRAY);
-        assistMessageLabel.setVisible(true);
-        ossCheckbox.setEnabled(false); // Disable while checking
-
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            boolean mcpEnabled;
-            try {
-                mcpEnabled = com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled();
-            } catch (Exception e) {
-                // If we can't determine MCP status, treat as disabled
-                LOGGER.debug("[CxOneAssist] Failed to check MCP status: " + e.getMessage());
-                mcpEnabled = false;
-            }
-
-            final boolean finalMcpEnabled = mcpEnabled;
-            // Always update UI on EDT with the final result
-            SwingUtilities.invokeLater(() -> updateUIWithMcpStatus(finalMcpEnabled));
-        });
+        // If authenticated, use the cached MCP status (determined during authentication)
+        boolean mcpEnabled = state.isMcpEnabled();
+        updateUIWithMcpStatus(mcpEnabled);
     }
+
+
 
     private void updateUIWithMcpStatus(boolean mcpEnabled) {
         ossCheckbox.setEnabled(mcpEnabled);
@@ -360,8 +345,6 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             // secretsCheckbox.setSelected(false);
             // containersCheckbox.setSelected(false);
             // iacCheckbox.setSelected(false);
-
-            // Persist the disabled state to settings to prevent scanners from running
             ensureState();
             boolean settingsChanged = false;
             if (state.isOssRealtime()) {
@@ -399,9 +382,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     }
 
     private void ensureState() {
-        if (state == null) {
-            state = GlobalSettingsState.getInstance();
-        }
+        // Always get fresh state to ensure we have the latest MCP configuration
+        state = GlobalSettingsState.getInstance();
     }
 
     private static String formatTitle(String raw) {
