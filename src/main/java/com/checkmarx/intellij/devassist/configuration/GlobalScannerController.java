@@ -74,12 +74,20 @@ public final class GlobalScannerController implements SettingsListener {
 
     /**
      * Indicates whether the specified scanner type is globally enabled according to the most
-     * recent settings snapshot.
+     * recent settings snapshot. Also checks if MCP is enabled at tenant level.
      *
      * @param type scanner engine identifier
-     * @return {@code true} if enabled globally; {@code false} otherwise
+     * @return {@code true} if enabled globally and MCP is enabled; {@code false} otherwise
      */
     public synchronized boolean isScannerGloballyEnabled(ScanEngine type) {
+        GlobalSettingsState state = GlobalSettingsState.getInstance();
+
+        // If MCP is disabled at tenant level, scanners should be disabled
+        if (!state.isMcpEnabled()) {
+            return false;
+        }
+
+        // Return the scanner's individual state
         return scannerStateMap.getOrDefault(type, false);
     }
 
