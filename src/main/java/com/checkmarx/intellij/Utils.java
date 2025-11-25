@@ -2,6 +2,7 @@ package com.checkmarx.intellij;
 
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.settings.SettingsListener;
+import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.notification.Notification;
@@ -382,18 +383,16 @@ public final class Utils {
     }
 
     /**
-     * Display sticky ballon notification in notification area, this notification won't expire automatically
+     * Check if the user is authenticated or not
      *
-     * @param title   - Title for notification
-     * @param content - Message to display as notification
-     * @param type    - Notification type e.g., WARNING, ERROR, INFO etc.
-     * @param project - Current project instance
+     * @return true if a user is authenticated otherwise false
      */
-    public static void showStickyNotification(String title, String content, NotificationType type, Project project) {
-        NotificationGroupManager.getInstance()
-                .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
-                .createNotification(title, content, type)
-                .setImportant(true) // Make it sticky (won't expire automatically)
-                .notify(project);
+    public static boolean isUserAuthenticated() {
+        try {
+            return GlobalSettingsState.getInstance().isAuthenticated();
+        } catch (Exception e) {
+            LOGGER.error("Exception occurred while checking user authentication.", e.getMessage());
+            return false;
+        }
     }
 }

@@ -237,7 +237,7 @@ public class DevAssistUtils {
         StringSelection stringSelection = new StringSelection(textToCopy);
         try {
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
-            Utils.showStickyNotification(notificationTitle, notificationContent,
+            Utils.showNotification(notificationTitle, notificationContent,
                     NotificationType.INFORMATION,
                     project);
             return true;

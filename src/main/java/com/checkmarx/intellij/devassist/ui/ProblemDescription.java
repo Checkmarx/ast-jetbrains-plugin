@@ -289,7 +289,7 @@ public class ProblemDescription {
      */
     private static String getImage(String iconPath) {
         // Add vertical-align:middle and remove default spacing; display:inline-block ensures tight layout.
-        return iconPath.isEmpty() ? "" : "<img style='vertical-align:middle;display:inline-block;margin:0;padding:0;' src='" + DevAssistUtils.themeBasedPNGIconForHtmlImage(iconPath) + "'/>";
+        return iconPath.isEmpty() ? "" : "<img src='" + DevAssistUtils.themeBasedPNGIconForHtmlImage(iconPath) + "'/>";
     }
 
     /**
