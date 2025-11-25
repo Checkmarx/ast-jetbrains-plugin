@@ -55,12 +55,6 @@ public class OssScannerCommand extends BaseScannerCommand {
 
     @Override
     protected void initializeScanner() {
-        if(!DevAssistUtils.isInternetConnectivityActive()){
-            Utils.notify(project,
-                    Bundle.message(Resource.FAILED_OSS_SCAN_INITIALIZATION),
-                    NotificationType.WARNING);
-            return;
-        }
         new Task.Backgroundable(project, Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN), false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator){
