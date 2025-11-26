@@ -92,7 +92,7 @@ public class TestTriggerScan extends BaseUITest {
         waitFor(() -> hasAnyComponent(PROJECT_DOES_NOT_MATCH));
         find(RUN_SCAN_LOCAL).click();
         find(CLOSE_RUN_SCAN_LOCAL_NOTIFICATION_WINDOW).click();
-        waitFor(() -> hasAnyComponent(SCAN_FINISHED));
+        waitFor(() -> hasAnyComponent(LOAD_RESULTS));
         find(LOAD_RESULTS).click();
         waitFor(() -> {
             JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
