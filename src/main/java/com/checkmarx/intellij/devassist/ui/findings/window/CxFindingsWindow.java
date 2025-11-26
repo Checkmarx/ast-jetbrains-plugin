@@ -29,6 +29,8 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.ui.Gray;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
@@ -465,10 +467,13 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
 
     public void updateTabTitle() {
         int count = getProblemCount();
-        if (count > 0)
-            content.setDisplayName("<html>" + Constants.RealTimeConstants.DEVASSIST_TAB + " <span style='color:gray'>" + count + "</span></html>");
-        else
+        if (count > 0) {
+            JBColor jbColor = new JBColor(Gray._10, Gray._190);
+            String hexColor = "#" + Integer.toHexString(jbColor.getRGB()).substring(2);
+            content.setDisplayName("<html>" + Constants.RealTimeConstants.DEVASSIST_TAB + " <span style='color:" + hexColor+"'>" + count + "</span></html>");
+        }else {
             content.setDisplayName(Constants.RealTimeConstants.DEVASSIST_TAB);
+        }
     }
 
     public int getProblemCount() {

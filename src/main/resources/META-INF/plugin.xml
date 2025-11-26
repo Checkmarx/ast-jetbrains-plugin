@@ -74,6 +74,8 @@
     <applicationListeners>
         <listener class="com.checkmarx.intellij.project.ProjectListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
+        <listener class="com.checkmarx.intellij.devassist.configuration.mcp.McpUninstallHandler"
+                  topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     </applicationListeners>
 
     <actions>
