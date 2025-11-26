@@ -14,6 +14,7 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
@@ -21,8 +22,9 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.URL;
+
+import static java.lang.String.format;
 
 /**
  * Utility class for common operations.
@@ -227,9 +229,9 @@ public class DevAssistUtils {
     /**
      * Copies the given text to the system clipboard and shows a notification on success.
      *
-     * @param textToCopy the text to copy
-     * @param project    the project in which the notification should be shown
-     * @param notificationTitle the title of the notification
+     * @param textToCopy          the text to copy
+     * @param project             the project in which the notification should be shown
+     * @param notificationTitle   the title of the notification
      * @param notificationContent the content of the notification
      */
     public static boolean copyToClipboardWithNotification(@NotNull String textToCopy, String notificationTitle,
@@ -245,6 +247,23 @@ public class DevAssistUtils {
             LOGGER.debug("Failed to copy text to clipboard: ", exception);
             Utils.showNotification(notificationTitle, "Failed to copy text to clipboard.", NotificationType.ERROR, null);
             return false;
+        }
+    }
+
+    /**
+     * Gets the PsiElement at the start of the specified line number in the given PsiFile and Document.
+     *
+     * @param file       PsiFile
+     * @param document   Document
+     * @param lineNumber line number
+     * @return PsiElement
+     */
+    public static PsiElement getPsiElement(PsiFile file, Document document, int lineNumber) {
+        try {
+            return file.findElementAt(document.getLineStartOffset(lineNumber - 1)); // Convert to 0-based index
+        } catch (Exception e) {
+            LOGGER.error(format("Exception occurred while getting PsiElement for line number: %s", lineNumber), e);
+            return null;
         }
     }
 }

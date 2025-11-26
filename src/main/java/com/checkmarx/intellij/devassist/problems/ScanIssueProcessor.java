@@ -108,7 +108,7 @@ public class ScanIssueProcessor {
      * Highlights the issue line and adds a gutter icon if a valid PSI element exists.
      */
     private void highlightIssueIfNeeded(ScanIssue scanIssue, int problemLineNumber, boolean isProblem) {
-        PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(problemLineNumber));
+        PsiElement elementAtLine = DevAssistUtils.getPsiElement(file, document, problemLineNumber);
         if (Objects.isNull(elementAtLine)) {
             LOGGER.debug("RTS: Skipping to add gutter icon, Failed to find PSI element for line : {}", problemLineNumber, scanIssue.getTitle());
             return;
