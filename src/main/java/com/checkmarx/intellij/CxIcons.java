@@ -15,73 +15,12 @@ public final class CxIcons {
     public static final Icon CHECKMARX_13 = IconLoader.getIcon("/icons/checkmarx-mono-13.png", CxIcons.class);
     public static final Icon CHECKMARX_13_COLOR = IconLoader.getIcon("/icons/checkmarx-13.png", CxIcons.class);
     public static final Icon CHECKMARX_80 = IconLoader.getIcon("/icons/checkmarx-80.png", CxIcons.class);
+    public static final Icon CRITICAL = IconLoader.getIcon("/icons/critical.svg", CxIcons.class);
+    public static final Icon HIGH = IconLoader.getIcon("/icons/high.svg", CxIcons.class);
+    public static final Icon MEDIUM = IconLoader.getIcon("/icons/medium.svg", CxIcons.class);
+    public static final Icon LOW = IconLoader.getIcon("/icons/low.svg", CxIcons.class);
+    public static final Icon INFO = IconLoader.getIcon("/icons/info.svg", CxIcons.class);
     public static final Icon COMMENT = IconLoader.getIcon("/icons/comment.svg", CxIcons.class);
     public static final Icon STATE = IconLoader.getIcon("/icons/Flags.svg", CxIcons.class);
     public static final Icon ABOUT = IconLoader.getIcon("/icons/about.svg", CxIcons.class);
-    public static final Icon INFO = IconLoader.getIcon("/icons/info.svg", CxIcons.class);
-
-    public static Icon getWelcomeScannerIcon() {
-        return IconLoader.getIcon("/icons/welcomePageScanner.svg", CxIcons.class);
-    }
-
-    public static Icon getWelcomeMcpDisableIcon() {
-        return IconLoader.getIcon("/icons/cxAIError.svg", CxIcons.class);
-    }
-
-    public static final Icon STAR_ACTION = IconLoader.getIcon("/icons/devassist/star-action.svg", CxIcons.class);
-
-    /**
-     * Inner static final class, to maintain the constants used in icons for the value 24*24.
-     */
-    public static final class Regular {
-
-        private Regular() {
-        }
-
-        public static final Icon MALICIOUS = IconLoader.getIcon("/icons/devassist/severity_24/malicious.svg", CxIcons.class);
-        public static final Icon CRITICAL = IconLoader.getIcon("/icons/devassist/severity_24/critical.svg", CxIcons.class);
-        public static final Icon HIGH = IconLoader.getIcon("/icons/devassist/severity_24/high.svg", CxIcons.class);
-        public static final Icon MEDIUM = IconLoader.getIcon("/icons/devassist/severity_24/medium.svg", CxIcons.class);
-        public static final Icon LOW = IconLoader.getIcon("/icons/devassist/severity_24/low.svg", CxIcons.class);
-        public static final Icon IGNORED = IconLoader.getIcon("/icons/devassist/severity_24/ignored.svg", CxIcons.class);
-        public static final Icon OK = IconLoader.getIcon("/icons/devassist/severity_24/ok.svg", CxIcons.class);
-
-    }
-
-    /**
-     * Inner static final class, to maintain the constants used in icons for the value 20*20.
-     */
-    public static final class Medium {
-
-        private Medium() {
-        }
-
-        public static final Icon MALICIOUS = IconLoader.getIcon("/icons/devassist/severity_20/malicious.svg", CxIcons.class);
-        public static final Icon CRITICAL = IconLoader.getIcon("/icons/devassist/severity_20/critical.svg", CxIcons.class);
-        public static final Icon HIGH = IconLoader.getIcon("/icons/devassist/severity_20/high.svg", CxIcons.class);
-        public static final Icon MEDIUM = IconLoader.getIcon("/icons/devassist/severity_20/medium.svg", CxIcons.class);
-        public static final Icon LOW = IconLoader.getIcon("/icons/devassist/severity_20/low.svg", CxIcons.class);
-        public static final Icon IGNORED = IconLoader.getIcon("/icons/devassist/severity_20/ignored.svg", CxIcons.class);
-        public static final Icon OK = IconLoader.getIcon("/icons/devassist/severity_20/ok.svg", CxIcons.class);
-
-    }
-
-    /**
-     * Inner static final class, to maintain the constants used in icons for the value 16*16.
-     */
-    public static final class Small {
-
-        private Small() {
-        }
-
-        public static final Icon MALICIOUS = IconLoader.getIcon("/icons/devassist/severity_16/malicious.svg", CxIcons.class);
-        public static final Icon CRITICAL = IconLoader.getIcon("/icons/devassist/severity_16/critical.svg", CxIcons.class);
-        public static final Icon HIGH = IconLoader.getIcon("/icons/devassist/severity_16/high.svg", CxIcons.class);
-        public static final Icon MEDIUM = IconLoader.getIcon("/icons/devassist/severity_16/medium.svg", CxIcons.class);
-        public static final Icon LOW = IconLoader.getIcon("/icons/devassist/severity_16/low.svg", CxIcons.class);
-        public static final Icon IGNORED = IconLoader.getIcon("/icons/devassist/severity_16/ignored.svg", CxIcons.class);
-        public static final Icon OK = IconLoader.getIcon("/icons/devassist/severity_16/ok.svg", CxIcons.class);
-        public static final Icon UNKNOWN = IconLoader.getIcon("/icons/devassist/severity_16/unknown.svg", CxIcons.class);
-
-    }
 }

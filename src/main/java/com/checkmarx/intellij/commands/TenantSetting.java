@@ -25,18 +25,4 @@ public class TenantSetting {
             InterruptedException {
         return CxWrapperFactory.build().ideScansEnabled();
     }
-
-    /**
-     * Check if AI MCP server is enabled for the current tenant
-     *
-     * @return true if AI MCP server is enabled, false otherwise
-     */
-    @NotNull
-    public static boolean isAiMcpServerEnabled() throws
-            IOException,
-            CxException,
-            InterruptedException {
-        return CxWrapperFactory.build().aiMcpServerEnabled();
-    }
-
 }

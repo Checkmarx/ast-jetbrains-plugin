@@ -6,7 +6,6 @@ import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.inspections.AscaInspection;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
-import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
@@ -124,7 +123,7 @@ class AscaInspectionTest {
         when(mockDetail.getLine()).thenReturn(1);
         when(mockDetail.getRuleName()).thenReturn("Test Rule");
         when(mockDetail.getRemediationAdvise()).thenReturn("Fix this");
-        when(mockDetail.getSeverity()).thenReturn(SeverityLevel.HIGH.getSeverity());
+        when(mockDetail.getSeverity()).thenReturn(Constants.ASCA_HIGH_SEVERITY);
 
         try (MockedStatic<PsiDocumentManager> docManagerMock = mockStatic(PsiDocumentManager.class)) {
             when(mockSettings.isAsca()).thenReturn(true);

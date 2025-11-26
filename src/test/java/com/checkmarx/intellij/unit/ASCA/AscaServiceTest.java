@@ -72,9 +72,9 @@ class AscaServiceTest {
     void runAscaScan_WithNullFile_ReturnsNull() {
         // Act
         ScanResult result = ascaService.runAscaScan(null, mockProject, true, "test-agent");
+
         // Assert
         assertNull(result);
-
         verify(mockLogger, never()).warn(anyString());
     }
 

@@ -2,6 +2,7 @@ package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
+import com.intellij.icons.AllIcons;
 import lombok.Getter;
 
 import javax.swing.*;
@@ -13,15 +14,14 @@ import java.util.function.Supplier;
  */
 @Getter
 public enum Severity implements Filterable {
-    MALICIOUS(CxIcons.Medium.MALICIOUS),
-    CRITICAL(CxIcons.Medium.CRITICAL),
-    HIGH(CxIcons.Medium.HIGH),
-    MEDIUM(CxIcons.Medium.MEDIUM),
-    LOW(CxIcons.Medium.LOW),
+    CRITICAL(CxIcons.CRITICAL),
+    HIGH(CxIcons.HIGH),
+    MEDIUM(CxIcons.MEDIUM),
+    LOW(CxIcons.LOW),
     INFO(CxIcons.INFO),
     ;
 
-    public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(MALICIOUS,CRITICAL, HIGH, MEDIUM);
+    public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(CRITICAL, HIGH, MEDIUM);
 
     private final Icon icon;
 

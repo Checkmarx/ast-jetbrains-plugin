@@ -6,8 +6,6 @@ import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.project.ProjectResultsService;
-import com.checkmarx.intellij.devassist.configuration.ScannerLifeCycleManager;
-import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
@@ -98,12 +96,10 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         this.project = project;
         this.projectResultsService = project.getService(ProjectResultsService.class);
+
         Runnable r = () -> {
             if (new GlobalSettingsComponent().isValid()) {
                 drawMainPanel();
-                ScannerRegistry registry = project.getService(ScannerRegistry.class);
-                registry.registerAllScanners(project);
-
             } else {
                 drawAuthPanel();
                 projectResultsService.indexResults(project, Results.emptyResults);
@@ -119,6 +115,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         r.run();
     }
+
 
     /**
      * Creates the main panel UI for results.
@@ -172,7 +169,6 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
     /**
      * Draw a panel with logo and a button to settings, when settings are invalid
-     *
      */
     private void drawAuthPanel() {
         removeAll();
@@ -468,7 +464,6 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         currentState.setMessage(null);
         scanTreeSplitter.setSecondComponent(simplePanel());
     }
-
 
     public interface CxRefreshHandler {
         void refresh();
