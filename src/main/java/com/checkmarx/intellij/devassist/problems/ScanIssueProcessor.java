@@ -11,6 +11,8 @@ import com.intellij.psi.PsiFile;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
 /**
  * Helper class responsible for processing individual scan issues and creating problem descriptors.
  * This class encapsulates the logic for validating, processing, and highlighting scan issues.
@@ -41,7 +43,7 @@ public class ScanIssueProcessor {
      * @return a ProblemDescriptor if the issue is valid and should be reported, null otherwise
      */
     public ProblemDescriptor processScanIssue(@NotNull ScanIssue scanIssue) {
-        if (!isValidScanIssue(scanIssue)) {
+        if (!isValidLocation(scanIssue)) {
             LOGGER.debug("RTS: Scan issue does not have location: {}", scanIssue.getTitle());
             return null;
         }
@@ -62,7 +64,7 @@ public class ScanIssueProcessor {
     /**
      * Validates that the scan issue has valid locations.
      */
-    private boolean isValidScanIssue(ScanIssue scanIssue) {
+    private boolean isValidLocation(ScanIssue scanIssue) {
         return scanIssue.getLocations() != null && !scanIssue.getLocations().isEmpty();
     }
 
@@ -73,8 +75,7 @@ public class ScanIssueProcessor {
         if (DevAssistUtils.isLineOutOfRange(lineNumber, document)) {
             return false;
         }
-        String severity = scanIssue.getSeverity();
-        return severity != null && !severity.isBlank();
+        return scanIssue.getSeverity() != null && !scanIssue.getSeverity().isBlank();
     }
 
     /**
@@ -94,9 +95,9 @@ public class ScanIssueProcessor {
     /**
      * Creates a problem descriptor for the given scan issue.
      */
-    private ProblemDescriptor createProblemDescriptor(ScanIssue scanIssue, int lineNumber) {
+    private ProblemDescriptor createProblemDescriptor(ScanIssue scanIssue, int problemLineNumber) {
         try {
-            return ProblemBuilder.build(file, manager, scanIssue, document, lineNumber, isOnTheFly);
+            return ProblemBuilder.build(file, manager, scanIssue, document, problemLineNumber, isOnTheFly);
         } catch (Exception e) {
             LOGGER.error("RTS: Failed to create problem descriptor for: {} ", scanIssue.getTitle(), e.getMessage());
             return null;
@@ -108,10 +109,12 @@ public class ScanIssueProcessor {
      */
     private void highlightIssueIfNeeded(ScanIssue scanIssue, int problemLineNumber, boolean isProblem) {
         PsiElement elementAtLine = file.findElementAt(document.getLineStartOffset(problemLineNumber));
-        if (elementAtLine != null) {
-            problemDecorator.highlightLineAddGutterIconForProblem(
-                    file.getProject(), file, scanIssue, isProblem, problemLineNumber
-            );
+        if (Objects.isNull(elementAtLine)) {
+            LOGGER.debug("RTS: Skipping to add gutter icon, Failed to find PSI element for line : {}", problemLineNumber, scanIssue.getTitle());
+            return;
         }
+        problemDecorator.highlightLineAddGutterIconForProblem(
+                file.getProject(), file, scanIssue, isProblem, problemLineNumber
+        );
     }
 }

@@ -107,7 +107,7 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
      * @return a new {@code Vulnerability} instance encapsulating the details from the given {@code OssRealtimeVulnerability}
      */
     private Vulnerability createVulnerability(OssRealtimeVulnerability vulnerability) {
-        return new Vulnerability(vulnerability.getId(), vulnerability.getDescription(),
+        return new Vulnerability(vulnerability.getCve(), vulnerability.getDescription(),
                 vulnerability.getSeverity(), "", vulnerability.getFixVersion());
     }
 

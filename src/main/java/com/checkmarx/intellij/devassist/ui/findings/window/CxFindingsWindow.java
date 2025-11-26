@@ -4,6 +4,7 @@ import com.checkmarx.intellij.*;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterState;
 import com.checkmarx.intellij.settings.SettingsListener;
@@ -78,6 +79,8 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
     private static Set<String> expandedPathsSet = new HashSet<>();
     private final Content content;
     private final Timer timer;
+
+    private final RemediationManager remediationManager = new RemediationManager();
 
     public CxFindingsWindow(Project project, Content content) {
         super(false, true);
@@ -388,16 +391,13 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
     private JPopupMenu createPopupMenu(ScanIssue detail) {
         JPopupMenu popup = new JPopupMenu();
 
-        JMenuItem promptOption = new JMenuItem(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST);
-        promptOption.setIcon(CxIcons.STAR_ACTION);
-        popup.add(promptOption);
+        JMenuItem fixWithCxOneAssist = new JMenuItem(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST);
+        fixWithCxOneAssist.addActionListener(ev -> remediationManager.fixWithCxOneAssist(project, detail));
+        fixWithCxOneAssist.setIcon(CxIcons.STAR_ACTION);
+        popup.add(fixWithCxOneAssist);
 
         JMenuItem copyDescription = new JMenuItem(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME);
-        copyDescription.addActionListener(ev -> {
-            String description = detail.getDescription();
-            Toolkit.getDefaultToolkit().getSystemClipboard()
-                    .setContents(new StringSelection(description), null);
-        });
+        copyDescription.addActionListener(ev -> remediationManager.viewDetails(project, detail));
         copyDescription.setIcon(CxIcons.STAR_ACTION);
         popup.add(copyDescription);
 

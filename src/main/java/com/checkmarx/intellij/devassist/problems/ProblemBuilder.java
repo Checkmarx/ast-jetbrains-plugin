@@ -63,17 +63,15 @@ public class ProblemBuilder {
      * @param manager    the InspectionManager
      * @param scanIssue  the scan issue
      * @param document   the document
-     * @param lineNumber the line number where the problem was found
+     * @param problemLineNumber the line number where the problem was found
      * @param isOnTheFly whether the inspection is on-the-fly
      * @return a ProblemDescriptor instance
      */
-    static ProblemDescriptor build(@NotNull PsiFile file,
-                                   @NotNull InspectionManager manager,
-                                   @NotNull ScanIssue scanIssue,
-                                   @NotNull Document document,
-                                   int lineNumber,
-                                   boolean isOnTheFly) {
-        TextRange problemRange = DevAssistUtils.getTextRangeForLine(document, lineNumber);
+    static ProblemDescriptor build(@NotNull PsiFile file, @NotNull InspectionManager manager,
+                                   @NotNull ScanIssue scanIssue, @NotNull Document document,
+                                   int problemLineNumber, boolean isOnTheFly) {
+
+        TextRange problemRange = DevAssistUtils.getTextRangeForLine(document, problemLineNumber);
         String description = PROBLEM_DESCRIPTION_INSTANCE.formatDescription(scanIssue);
         ProblemHighlightType highlightType = determineHighlightType(scanIssue);
 

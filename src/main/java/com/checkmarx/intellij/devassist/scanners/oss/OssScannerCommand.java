@@ -55,12 +55,6 @@ public class OssScannerCommand extends BaseScannerCommand {
 
     @Override
     protected void initializeScanner() {
-        if(!DevAssistUtils.isInternetConnectivityActive()){
-            Utils.notify(project,
-                    Bundle.message(Resource.FAILED_OSS_SCAN_INITIALIZATION),
-                    NotificationType.WARNING);
-            return;
-        }
         new Task.Backgroundable(project, Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN), false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator){
@@ -108,11 +102,14 @@ public class OssScannerCommand extends BaseScannerCommand {
                     PsiFile psiFile = ReadAction.compute(()->
                             PsiManager.getInstance(project).findFile(file.get()));
                     if (Objects.isNull(psiFile)) {
-                        return;
+                        continue;
                     }
                     ScanResult<?> ossRealtimeResults = ossScannerService.scan(psiFile, uri);
-                    List<ScanIssue> problemsList = new ArrayList<>(ossRealtimeResults.getIssues());
-                    ProblemHolderService.addToCxOneFindings(psiFile, problemsList);
+                    if (Objects.isNull(ossRealtimeResults)) {
+                        LOGGER.warn("Scan failed for manifest file: " + uri);
+                        continue;
+                    }
+                    ProblemHolderService.addToCxOneFindings(psiFile, ossRealtimeResults.getIssues());
                 } catch (Exception e) {
                     LOGGER.warn("Scan failed for manifest file: " + uri + " with exception:" + e);
                 }
