@@ -102,11 +102,14 @@ public class OssScannerCommand extends BaseScannerCommand {
                     PsiFile psiFile = ReadAction.compute(()->
                             PsiManager.getInstance(project).findFile(file.get()));
                     if (Objects.isNull(psiFile)) {
-                        return;
+                        continue;
                     }
                     ScanResult<?> ossRealtimeResults = ossScannerService.scan(psiFile, uri);
-                    List<ScanIssue> problemsList = new ArrayList<>(ossRealtimeResults.getIssues());
-                    ProblemHolderService.addToCxOneFindings(psiFile, problemsList);
+                    if (Objects.isNull(ossRealtimeResults)) {
+                        LOGGER.warn("Scan failed for manifest file: " + uri);
+                        continue;
+                    }
+                    ProblemHolderService.addToCxOneFindings(psiFile, ossRealtimeResults.getIssues());
                 } catch (Exception e) {
                     LOGGER.warn("Scan failed for manifest file: " + uri + " with exception:" + e);
                 }

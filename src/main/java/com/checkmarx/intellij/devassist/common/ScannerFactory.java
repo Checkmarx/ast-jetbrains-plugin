@@ -14,7 +14,7 @@ public class ScannerFactory {
     private final List<ScannerService<?>> scannerServices;
 
     public ScannerFactory() {
-        scannerServices = List.of(new OssScannerService(),new ContainerScannerService());
+        scannerServices = List.of(new OssScannerService());
     }
 
 
