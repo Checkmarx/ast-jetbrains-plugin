@@ -169,7 +169,8 @@ public final class Constants {
         public static final String PACKAGE_DETECTED = "package detected";
         public static final String THEME = "THEME";
         public static final String CX_AGENT_NAME = "Checkmarx One Assist";
-        public static final String DEV_ASSIST_COPY_PROMPT = "Remediation prompt copied to the clipboard!, please paste in the Github Copilot Chat (Agent Mode).";
+        public static final String DEV_ASSIST_COPY_FIX_PROMPT = "Remediation prompt copied to clipboard! Paste the prompt into Copilot chat (Agent Mode).";
+        public static final String DEV_ASSIST_COPY_VIEW_PROMPT = "View details prompt copied to clipboard! Paste the prompt into Copilot chat.";
     }
 
     /**

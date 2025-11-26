@@ -167,8 +167,8 @@ public class ProblemDescription {
 
         descBuilder.append("<tr><td style='padding:0;vertical-align:middle;'>").append(getIcon(PACKAGE)).append("</td>")
                 .append("<td style='padding:0 4px 0 4px;vertical-align:middle;'><b>").append(scanIssue.getTitle()).append("@")
-                .append(scanIssue.getPackageVersion()).append("</b></td><td style='padding:0;vertical-align:middle;'>")
-                .append(" - ").append(scanIssue.getSeverity()).append(" ")
+                .append(scanIssue.getPackageVersion()).append("</b></td><td style='padding:0;vertical-align:middle;font-style: italic;'> - ")
+                .append(scanIssue.getSeverity()).append(" ")
                 .append(Constants.RealTimeConstants.SEVERITY_PACKAGE)
                 .append("</td></tr></table>");
     }
@@ -187,8 +187,9 @@ public class ProblemDescription {
         descBuilder.append("<table style='border-collapse:collapse;'><tr><td colspan=\"3\" style='padding:0;'>");
         buildMaliciousPackageHeader(descBuilder, scanIssue);
         descBuilder.append("</td></tr><tr><td>").append(getIcon(scanIssue.getSeverity())).append("</td>")
-                .append("<td><span><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b></span><span> - ")
-                .append(scanIssue.getSeverity()).append(" ").append(PACKAGE).append("</span><td></tr></table>");
+                .append("<td><span><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b></span>")
+                .append("<span style='font-style: italic;'> - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE)
+                .append("</span><td></tr></table>");
     }
 
     /**

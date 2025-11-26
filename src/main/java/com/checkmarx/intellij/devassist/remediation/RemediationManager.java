@@ -10,7 +10,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
-import static com.checkmarx.intellij.Constants.RealTimeConstants.DEV_ASSIST_COPY_PROMPT;
+import static com.checkmarx.intellij.Constants.RealTimeConstants.DEV_ASSIST_COPY_FIX_PROMPT;
+import static com.checkmarx.intellij.Constants.RealTimeConstants.DEV_ASSIST_COPY_VIEW_PROMPT;
 import static java.lang.String.format;
 
 /**
@@ -76,7 +77,7 @@ public final class RemediationManager {
         String scaPrompt = CxOneAssistFixPrompts.scaRemediationPrompt(scanIssue.getTitle(), scanIssue.getPackageVersion(),
                 scanIssue.getPackageManager(), scanIssue.getSeverity());
         if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, Constants.RealTimeConstants.CX_AGENT_NAME,
-                DEV_ASSIST_COPY_PROMPT, project)) {
+                DEV_ASSIST_COPY_FIX_PROMPT, project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for OSS Issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
         }
@@ -103,7 +104,7 @@ public final class RemediationManager {
                 scanIssue.getSeverity(),
                 scanIssue.getVulnerabilities());
         if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, Constants.RealTimeConstants.CX_AGENT_NAME,
-                DEV_ASSIST_COPY_PROMPT, project)) {
+                DEV_ASSIST_COPY_VIEW_PROMPT, project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for OSS Issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
         }
