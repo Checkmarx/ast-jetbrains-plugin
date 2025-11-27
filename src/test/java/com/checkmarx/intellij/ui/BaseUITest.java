@@ -203,9 +203,16 @@ public abstract class BaseUITest {
 
     protected void getResults() {
         focusCxWindow();
-        waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
+        //waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
+        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
         focusCxWindow();
-        find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
+        JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
+        scanField.setText(Environment.SCAN_ID);
+        //Wait until the text is actually set in UI
+        waitFor(() -> {
+            focusCxWindow();
+            return Environment.SCAN_ID.equals(scanField.getText());
+        });
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> {
             focusCxWindow();

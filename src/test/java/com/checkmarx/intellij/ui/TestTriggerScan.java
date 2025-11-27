@@ -12,9 +12,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
+import static java.lang.Thread.sleep;
 
 public class TestTriggerScan extends BaseUITest {
-
+    private static final int DEFAULT_SLEEP_MS = 1500;
     @BeforeEach
     public void checkResults(TestInfo info) {
         if (info.getDisplayName().equals("testScanButtonsDisabledWhenMissingProjectOrBranch")) {
@@ -76,7 +77,9 @@ public class TestTriggerScan extends BaseUITest {
         testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID_NOT_MATCH_PROJECT);
         waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled());
         findRunScanButtonAndClick();
-        Assertions.assertTrue(hasAnyComponent(PROJECT_DOES_NOT_MATCH));
+        waitFor(() -> hasAnyComponent(PROJECT_DOES_NOT_MATCH));
+        Assertions.assertTrue(hasAnyComponent(PROJECT_DOES_NOT_MATCH),
+                "Expected project mismatch warning, but it never appeared");
     }
 
 
@@ -84,20 +87,45 @@ public class TestTriggerScan extends BaseUITest {
     @Video
     public void testTriggerScanAndLoadResults() {
         if (triggerScanNotAllowed()) return;
-
         waitForScanIdSelection();
         findRunScanButtonAndClick();
         JTreeFixture treeBeforeScan = find(JTreeFixture.class, TREE);
         Assertions.assertTrue(treeBeforeScan.getValueAtRow(0).contains(Environment.SCAN_ID));
         waitFor(() -> hasAnyComponent(PROJECT_DOES_NOT_MATCH));
-        find(RUN_SCAN_LOCAL).click();
-        find(CLOSE_RUN_SCAN_LOCAL_NOTIFICATION_WINDOW).click();
+        clickSafe(RUN_SCAN_LOCAL);
+        clickSafe(CLOSE_RUN_SCAN_LOCAL_NOTIFICATION_WINDOW);
         waitFor(() -> hasAnyComponent(LOAD_RESULTS));
-        find(LOAD_RESULTS).click();
+        clickSafe(LOAD_RESULTS);
         waitFor(() -> {
             JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
             return treeAfterScan.getValueAtRow(0).startsWith("Scan") && !treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID);
         });
+    }
+    private void clickSafe(String locator) {
+        repeatUntilSuccess(5, () -> {
+            waitFor(() -> hasAnyComponent(locator));
+            find(locator).click();
+        });
+    }
+
+    private void repeatUntilSuccess(int attempts, Runnable action) {
+        for (int i = 1; i <= attempts; i++) {
+            try {
+                action.run();
+                return;
+            } catch (Exception e) {
+                if (i == attempts) throw e;
+                sleep(DEFAULT_SLEEP_MS);
+            }
+        }
+    }
+
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interruption flag
+        }
     }
 
     private void findRunScanButtonAndClick() {
