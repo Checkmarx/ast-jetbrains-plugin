@@ -71,7 +71,7 @@ public class OssScanResultAdaptorTest {
     void testGetIssues_singlePackageWithLocationsAndVulns_mappingAndLineIncrement() {
         // Mock vulnerability
         OssRealtimeVulnerability vul = mock(OssRealtimeVulnerability.class);
-        when(vul.getId()).thenReturn("CVE-999");
+        when(vul.getCve()).thenReturn("CVE-999");
         when(vul.getDescription()).thenReturn("Test vulnerability");
         when(vul.getSeverity()).thenReturn("CRITICAL");
         when(vul.getFixVersion()).thenReturn("9.9.9");

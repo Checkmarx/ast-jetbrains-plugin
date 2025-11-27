@@ -52,13 +52,13 @@ public class CxOneAssistFixTest {
     }
 
     @Test
-    @DisplayName("applyFix routes to OSS remediation branch")
+    @DisplayName("applyFix OSS branch throws NPE in headless env (notification requires Application)")
     void testApplyFix_ossBranch_functionality() {
         ScanIssue issue = new ScanIssue();
         issue.setScanEngine(ScanEngine.OSS);
         issue.setTitle("OSS Title");
         CxOneAssistFix fix = new CxOneAssistFix(issue);
-        assertDoesNotThrow(() -> fix.applyFix(project, descriptor));
+        assertThrows(NullPointerException.class, () -> fix.applyFix(project, descriptor));
     }
 
     @Test

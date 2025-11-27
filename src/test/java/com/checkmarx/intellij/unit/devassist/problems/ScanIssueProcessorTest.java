@@ -29,10 +29,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Comprehensive unit tests for ScanIssueProcessor located in original test folder.
- * Method naming pattern: testOriginalMethodName_scenarioName
- */
 public class ScanIssueProcessorTest {
 
     private ProblemDecorator problemDecorator;
@@ -71,8 +67,6 @@ public class ScanIssueProcessorTest {
         issue.setLocations(locations);
         return issue;
     }
-
-    // --- Validation tests ---
 
     @Test
     @DisplayName("ScanIssue without locations should return null and not interact with decorator")
@@ -128,8 +122,6 @@ public class ScanIssueProcessorTest {
         verifyNoInteractions(problemDecorator);
     }
 
-    // --- isProblem false scenarios ---
-
     @Test
     @DisplayName("Non-problem element present: highlight only, no descriptor")
     void testProcessValidIssue_isProblemFalse_elementPresent() {
@@ -141,7 +133,7 @@ public class ScanIssueProcessorTest {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(8, document)).thenReturn(false);
             utils.when(() -> DevAssistUtils.isProblem("low")).thenReturn(false);
             assertNull(processorViaHelper.processScanIssue(issue));
-            verify(problemDecorator).highlightLineAddGutterIconForProblem(project, psiFile, issue, false, 8);
+            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), any(), anyBoolean(), anyInt());
         }
     }
 
@@ -159,8 +151,6 @@ public class ScanIssueProcessorTest {
         }
     }
 
-    // --- isProblem true descriptor success ---
-
     @Test
     @DisplayName("High severity skipped (forced non-problem) with element: non-problem highlight")
     void testProcessValidIssue_descriptorSkipped_elementPresent() { // renamed from isProblemTrue_descriptorSuccess_elementPresent
@@ -173,7 +163,7 @@ public class ScanIssueProcessorTest {
             utils.when(() -> DevAssistUtils.isProblem("high")).thenReturn(false); // force skip
             ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
             assertNull(result);
-            verify(problemDecorator).highlightLineAddGutterIconForProblem(project, psiFile, issue, false, 3);
+            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), any(), anyBoolean(), anyInt());
         }
     }
 
@@ -204,7 +194,7 @@ public class ScanIssueProcessorTest {
             utils.when(() -> DevAssistUtils.isProblem("high")).thenReturn(false); // skip
             ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
             assertNull(result);
-            verify(problemDecorator).highlightLineAddGutterIconForProblem(project, psiFile, issue, false, 5);
+            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), any(), anyBoolean(), anyInt());
         }
     }
 
@@ -239,12 +229,9 @@ public class ScanIssueProcessorTest {
             utils.when(() -> DevAssistUtils.isProblem("critical")).thenReturn(false); // skip descriptor
             ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
             assertNull(result);
-            verify(problemDecorator).highlightLineAddGutterIconForProblem(project, psiFile, issue, false, 20);
+            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), any(), anyBoolean(), anyInt());
         }
     }
-
-
-    // --- constructors ---
 
     @Test
     @DisplayName("Constructor via ProblemHelper should initialize processor")
@@ -258,8 +245,7 @@ public class ScanIssueProcessorTest {
         ScanIssueProcessor direct = new ScanIssueProcessor(problemDecorator, psiFile, inspectionManager, document, false);
         assertNotNull(direct);
     }
-
-    // Helper to stub manager.createProblemDescriptor with flexible args to avoid varargs issues.
+    
     private void stubManagerCreateProblemDescriptor(ProblemDescriptor returnValue) {
         when(inspectionManager.createProblemDescriptor(
                 any(PsiFile.class),

@@ -2,7 +2,6 @@ package com.checkmarx.intellij.unit.devassist.scanners.oss;
 
 import com.checkmarx.intellij.devassist.scanners.oss.OssScannerCommand;
 import com.checkmarx.intellij.devassist.scanners.oss.OssScannerService;
-import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
@@ -62,22 +61,9 @@ public class OssScannerCommandTest {
     }
 
     @Test
-    @DisplayName("initializeScanner returns early when no internet connectivity")
-    void testInitializeScanner_noConnectivity_functionality() {
-        try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
-            utils.when(DevAssistUtils::isInternetConnectivity).thenReturn(false);
-            assertDoesNotThrow(() -> command.invokeInitializeScanner());
-            verifyNoInteractions(ossScannerServiceSpy);
-        }
-    }
-
-    @Test
     @DisplayName("initializeScanner queues background task (NPE expected in headless env)")
     void testInitializeScanner_connectivityQueuesTask_functionality() {
-        try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
-            utils.when(DevAssistUtils::isInternetConnectivity).thenReturn(true);
-            assertThrows(NullPointerException.class, () -> command.invokeInitializeScanner());
-        }
+        assertThrows(NullPointerException.class, () -> command.invokeInitializeScanner());
     }
 
     @Test

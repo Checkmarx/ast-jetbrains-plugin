@@ -128,7 +128,7 @@ public class OssScannerServiceTest {
             when(loc.getLine()).thenReturn(4); // zero-based line 4 -> stored +1 in Location
             when(loc.getStartIndex()).thenReturn(1);
             when(loc.getEndIndex()).thenReturn(3);
-            when(vul.getId()).thenReturn("CVE-123");
+            when(vul.getCve()).thenReturn("CVE-123");
             when(vul.getDescription()).thenReturn("Desc");
             when(vul.getSeverity()).thenReturn("HIGH");
             when(vul.getFixVersion()).thenReturn("2.0.0");

@@ -4,6 +4,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.remediation.ViewDetailsFix;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Iconable;
@@ -29,6 +30,7 @@ public class ViewDetailsFixTest {
         descriptor = mock(ProblemDescriptor.class);
         issue = new ScanIssue();
         issue.setTitle("Detail Title");
+        issue.setScanEngine(ScanEngine.ASCA);
     }
 
     @Test
@@ -81,14 +83,14 @@ public class ViewDetailsFixTest {
     }
 
     @Test
-    @DisplayName("applyFix logs info without throwing when title present")
+    @DisplayName("applyFix completes without throwing when title present")
     void testApplyFix_functionality() {
         ViewDetailsFix fix = new ViewDetailsFix(issue);
         assertDoesNotThrow(() -> fix.applyFix(project, descriptor));
     }
 
     @Test
-    @DisplayName("applyFix handles null title gracefully")
+    @DisplayName("applyFix completes without throwing when title is null")
     void testApplyFix_nullTitle_functionality() {
         issue.setTitle(null);
         ViewDetailsFix fix = new ViewDetailsFix(issue);

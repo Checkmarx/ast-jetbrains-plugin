@@ -15,9 +15,6 @@ import com.intellij.openapi.util.Computable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-
-import java.net.InetAddress;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -213,7 +210,7 @@ public class DevAssistUtilsTest {
         }
     }
 
-    // getFileContent tests: we cannot fully exercise IntelliJ readAction; simulate document path
+    // getFileContent tests: simulate document path
     @Test @DisplayName("getFileContent_documentPresent_returnsText")
     void testGetFileContent_documentPresent_returnsText() {
         PsiFile psi = mock(PsiFile.class, RETURNS_DEEP_STUBS);
@@ -222,7 +219,7 @@ public class DevAssistUtilsTest {
         try (MockedStatic<ApplicationManager> app = mockStatic(ApplicationManager.class, CALLS_REAL_METHODS)) {
             var application = mock(com.intellij.openapi.application.Application.class);
             app.when(ApplicationManager::getApplication).thenReturn(application);
-            doAnswer(inv -> { // handle both overloads
+            doAnswer(inv -> {
                 Object arg = inv.getArgument(0);
                 if (arg instanceof com.intellij.openapi.util.Computable) {
                     com.intellij.openapi.util.Computable<?> comp = (com.intellij.openapi.util.Computable<?>) arg;
@@ -234,9 +231,6 @@ public class DevAssistUtilsTest {
                         mgr.when(() -> com.intellij.psi.PsiDocumentManager.getInstance(mockProject)).thenReturn(psiDocMgr);
                         return comp.compute();
                     }
-                } else if (arg instanceof Runnable) {
-                    ((Runnable) arg).run();
-                    return null;
                 }
                 return null;
             }).when(application).runReadAction(any(Computable.class));
@@ -263,42 +257,10 @@ public class DevAssistUtilsTest {
                         mgr.when(() -> com.intellij.psi.PsiDocumentManager.getInstance(mockProject)).thenReturn(psiDocMgr);
                         return comp.compute();
                     }
-                } else if (arg instanceof Runnable) {
-                    ((Runnable) arg).run();
-                    return null;
                 }
                 return null;
             }).when(application).runReadAction(any(Computable.class));
             assertNull(DevAssistUtils.getFileContent(psi));
-        }
-    }
-
-    // isInternetConnectivity tests (mock InetAddress)
-    @Test @DisplayName("isInternetConnectivity_hostReachable_returnsTrue")
-    void testIsInternetConnectivity_hostReachable_returnsTrue() throws Exception {
-        try (MockedStatic<InetAddress> inet = mockStatic(InetAddress.class)) {
-            InetAddress addr = mock(InetAddress.class);
-            inet.when(() -> InetAddress.getByName("8.8.8.8")).thenReturn(addr);
-            when(addr.isReachable(500)).thenReturn(true);
-            assertTrue(DevAssistUtils.isInternetConnectivity());
-        }
-    }
-
-    @Test @DisplayName("isInternetConnectivity_hostUnreachable_returnsFalse")
-    void testIsInternetConnectivity_hostUnreachable_returnsFalse() throws Exception {
-        try (MockedStatic<InetAddress> inet = mockStatic(InetAddress.class)) {
-            InetAddress addr = mock(InetAddress.class);
-            inet.when(() -> InetAddress.getByName("8.8.8.8")).thenReturn(addr);
-            when(addr.isReachable(500)).thenReturn(false);
-            assertFalse(DevAssistUtils.isInternetConnectivity());
-        }
-    }
-
-    @Test @DisplayName("isInternetConnectivity_exception_returnsFalse")
-    void testIsInternetConnectivity_exception_returnsFalse() {
-        try (MockedStatic<InetAddress> inet = mockStatic(InetAddress.class)) {
-            inet.when(() -> InetAddress.getByName("8.8.8.8")).thenThrow(new RuntimeException("fail"));
-            assertFalse(DevAssistUtils.isInternetConnectivity());
         }
     }
 }
