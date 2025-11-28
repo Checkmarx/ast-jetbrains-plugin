@@ -22,6 +22,7 @@ import net.miginfocom.swing.MigLayout;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.util.concurrent.CompletableFuture;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -45,9 +46,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private final JBLabel assistMessageLabel = new JBLabel();
 
     // TEMPORARILY HIDDEN FIELDS - Will be restored in future release
-    @SuppressWarnings("unused")
     private final JBLabel secretsTitle = new JBLabel(formatTitle(Bundle.message(Resource.SECRETS_REALTIME_TITLE)));
-    @SuppressWarnings("unused")
     private final JBCheckBox secretsCheckbox = new JBCheckBox(Bundle.message(Resource.SECRETS_REALTIME_CHECKBOX));
 
     @SuppressWarnings("unused")
@@ -109,10 +108,10 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mainPanel.add(new JSeparator(), "growx, wrap");
         mainPanel.add(ossCheckbox, "wrap, gapbottom 10, gapleft 15");
 
-        // TEMPORARILY HIDDEN: Secret Detection - Will be restored in future release
-        // mainPanel.add(secretsTitle, "split 2, span");
-        // mainPanel.add(new JSeparator(), "growx, wrap");
-        // mainPanel.add(secretsCheckbox, "wrap, gapbottom 10, gapleft 15");
+        // Secret Detection
+        mainPanel.add(secretsTitle, "split 2, span");
+        mainPanel.add(new JSeparator(), "growx, wrap");
+        mainPanel.add(secretsCheckbox, "wrap, gapbottom 10, gapleft 15");
 
         // TEMPORARILY HIDDEN: Containers Realtime - Will be restored in future release
         // mainPanel.add(containersTitle, "split 2, span");
@@ -261,9 +260,9 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     @Override
     public boolean isModified() {
         ensureState();
-        return ossCheckbox.isSelected() != state.isOssRealtime();
+        return ossCheckbox.isSelected() != state.isOssRealtime()
+                || secretsCheckbox.isSelected() != state.isSecretDetectionRealtime();
                 // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-                // || secretsCheckbox.isSelected() != state.isSecretDetectionRealtime()
                 // || containersCheckbox.isSelected() != state.isContainersRealtime()
                 // || iacCheckbox.isSelected() != state.isIacRealtime()
                 // || !Objects.equals(String.valueOf(containersToolCombo.getSelectedItem()), state.getContainersTool());
@@ -272,12 +271,25 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     @Override
     public void apply() {
         ensureState();
+
+        // Apply current UI selections to active scanner settings
         state.setOssRealtime(ossCheckbox.isSelected());
+        state.setSecretDetectionRealtime(secretsCheckbox.isSelected());
         // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-        // state.setSecretDetectionRealtime(secretsCheckbox.isSelected());
         // state.setContainersRealtime(containersCheckbox.isSelected());
         // state.setIacRealtime(iacCheckbox.isSelected());
         // state.setContainersTool(String.valueOf(containersToolCombo.getSelectedItem()));
+
+        // Save user preferences to preserve choices across MCP enable/disable cycles
+        // This ensures that when MCP is temporarily disabled and then re-enabled,
+        // the user's individual scanner preferences are restored instead of defaulting to "all enabled"
+        state.setUserPreferences(
+            ossCheckbox.isSelected(),
+            secretsCheckbox.isSelected(),
+            state.isContainersRealtime(), // Use current state for hidden fields
+            state.isIacRealtime()         // Use current state for hidden fields
+        );
+
 
         GlobalSettingsState.getInstance().apply(state);
 
@@ -290,8 +302,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     public void reset() {
         state = GlobalSettingsState.getInstance();
         ossCheckbox.setSelected(state.isOssRealtime());
+        secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
         // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-        // secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
         // containersCheckbox.setSelected(state.isContainersRealtime());
         // iacCheckbox.setSelected(state.isIacRealtime());
         // containersToolCombo.setSelectedItem(
@@ -310,9 +322,9 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             // If not authenticated, immediately show message, disable controls, and uncheck scanners
             ossCheckbox.setEnabled(false);
             ossCheckbox.setSelected(false);
+            secretsCheckbox.setEnabled(false);
+            secretsCheckbox.setSelected(false);
             // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-            // secretsCheckbox.setEnabled(false);
-            // secretsCheckbox.setSelected(false);
             // containersCheckbox.setEnabled(false);
             // containersCheckbox.setSelected(false);
             // iacCheckbox.setEnabled(false);
@@ -324,6 +336,12 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             return;
         }
 
+        // Check if MCP status hasn't been checked yet (upgrade scenario)
+        if (!state.isMcpStatusChecked()) {
+            checkAndUpdateMcpStatusAsync();
+            return; // UI will be updated when async check completes
+        }
+
         // If authenticated, use the cached MCP status (determined during authentication)
         boolean mcpEnabled = state.isMcpEnabled();
         updateUIWithMcpStatus(mcpEnabled);
@@ -333,29 +351,37 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
     private void updateUIWithMcpStatus(boolean mcpEnabled) {
         ossCheckbox.setEnabled(mcpEnabled);
+        secretsCheckbox.setEnabled(mcpEnabled);
         // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-        // secretsCheckbox.setEnabled(mcpEnabled);
         // containersCheckbox.setEnabled(mcpEnabled);
         // iacCheckbox.setEnabled(mcpEnabled);
 
         if (!mcpEnabled) {
+            ensureState();
+
+            // Preserve current scanner settings as user preferences before disabling
+            if (!state.isUserPreferencesSet()) {
+                state.saveCurrentSettingsAsUserPreferences();
+                LOGGER.debug("[CxOneAssist] Preserved scanner settings as user preferences (MCP disabled)");
+            }
+
             // When MCP is disabled, uncheck all scanner checkboxes to prevent realtime scanning
             ossCheckbox.setSelected(false);
+            secretsCheckbox.setSelected(false);
             // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-            // secretsCheckbox.setSelected(false);
             // containersCheckbox.setSelected(false);
             // iacCheckbox.setSelected(false);
-            ensureState();
+
             boolean settingsChanged = false;
             if (state.isOssRealtime()) {
                 state.setOssRealtime(false);
                 settingsChanged = true;
             }
+            if (state.isSecretDetectionRealtime()) {
+                state.setSecretDetectionRealtime(false);
+                settingsChanged = true;
+            }
             // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-            // if (state.isSecretDetectionRealtime()) {
-            //     state.setSecretDetectionRealtime(false);
-            //     settingsChanged = true;
-            // }
             // if (state.isContainersRealtime()) {
             //     state.setContainersRealtime(false);
             //     settingsChanged = true;
@@ -376,9 +402,74 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             assistMessageLabel.setForeground(JBColor.RED);
             assistMessageLabel.setVisible(true);
         } else {
+            // MCP is enabled - restore user preferences if available
+            ensureState();
+            if (state.isUserPreferencesSet()) {
+                boolean preferencesApplied = state.applyUserPreferencesToRealtimeSettings();
+                if (preferencesApplied) {
+                    LOGGER.debug("[CxOneAssist] Restored user preferences for realtime scanners");
+                    GlobalSettingsState.getInstance().apply(state);
+                    ApplicationManager.getApplication().getMessageBus()
+                            .syncPublisher(SettingsListener.SETTINGS_APPLIED)
+                            .settingsApplied();
+                }
+            }
+
+            // Update UI to reflect current scanner state (including any restored preferences)
+            ossCheckbox.setSelected(state.isOssRealtime());
+            secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
+
             assistMessageLabel.setVisible(false);
             assistMessageLabel.setText(""); // Clear any previous message
         }
+    }
+
+    /**
+     * Asynchronously checks MCP status when it hasn't been checked before.
+     * This handles the upgrade scenario where a user is already authenticated
+     * but using a newer plugin version that includes MCP status checking.
+     */
+    private void checkAndUpdateMcpStatusAsync() {
+        // Show loading message while checking
+        assistMessageLabel.setText(Bundle.message(Resource.CHECKING_MCP_STATUS));
+        assistMessageLabel.setForeground(JBColor.GRAY);
+        assistMessageLabel.setVisible(true);
+
+        // Disable controls while checking
+        ossCheckbox.setEnabled(false);
+        secretsCheckbox.setEnabled(false);
+
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled();
+            } catch (Exception ex) {
+                LOGGER.warn("Failed to check MCP status during upgrade scenario", ex);
+                return false; // Default to disabled on error
+            }
+        }).whenCompleteAsync((mcpEnabled, throwable) -> {
+            SwingUtilities.invokeLater(() -> {
+                ensureState();
+
+                // For future upgrade scenarios: preserve existing scanner configuration as user preferences
+                // This prevents plugin updates from losing the user's current scanner settings
+                if (!state.isUserPreferencesSet()) {
+                    state.saveCurrentSettingsAsUserPreferences();
+                    LOGGER.debug("[CxOneAssist] Preserved existing scanner configuration during upgrade");
+                }
+
+                // Update state with the determined MCP status
+                state.setMcpEnabled(mcpEnabled);
+                state.setMcpStatusChecked(true);
+                GlobalSettingsState.getInstance().apply(state);
+
+                // Update UI based on MCP availability (will restore preferences if MCP enabled)
+                updateUIWithMcpStatus(mcpEnabled);
+
+                if (throwable != null) {
+                    LOGGER.warn("Error during MCP status check", throwable);
+                }
+            });
+        });
     }
 
     private void ensureState() {

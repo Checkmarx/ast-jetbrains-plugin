@@ -124,6 +124,9 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
                     append(detail.getSeverity() + "-risk package: " + detail.getTitle() + "@"
                             + detail.getPackageVersion(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
                     break;
+                    case SECRETS:
+                        append(detail.getSeverity() + "-risk secret: " + detail.getTitle());
+                    break;
                 default:
                     append(detail.getDescription(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
                     break;

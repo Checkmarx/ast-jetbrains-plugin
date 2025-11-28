@@ -104,7 +104,12 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
 
         ApplicationManager.getApplication().getMessageBus()
                 .connect(this)
-                .subscribe(SettingsListener.SETTINGS_APPLIED, settingsCheckRunnable::run);
+                .subscribe(SettingsListener.SETTINGS_APPLIED, new SettingsListener() {
+                    @Override
+                    public void settingsApplied() {
+                        settingsCheckRunnable.run();
+                    }
+                });
 
         settingsCheckRunnable.run();
 

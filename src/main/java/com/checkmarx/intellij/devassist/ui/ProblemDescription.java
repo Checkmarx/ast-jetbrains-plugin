@@ -4,8 +4,10 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,15 +77,27 @@ public class ProblemDescription {
     public String formatDescription(ScanIssue scanIssue) {
 
         StringBuilder descBuilder = new StringBuilder();
-        descBuilder.append("<html><body><div style='display:flex;flex-direction:row;align-items:center;gap:10px;'>")
-                .append(DIV).append("<table style='border-collapse:collapse;'><tr><td style='padding:0;'>")
-                .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table></div>");
+
+        // Use different tootip style for secrets and oss to prevent scroll bars
+        if (scanIssue.getScanEngine() == ScanEngine.SECRETS) {
+            descBuilder.append("<html><body style='overflow:visible;margin:0;padding:2px;'><div style='display:flex;flex-direction:row;align-items:center;gap:10px;overflow:visible;'>")
+                    .append(DIV).append("<table style='border-collapse:collapse;'><tr><td style='padding:0;'>")
+                    .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table></div>");
+        } else {
+            descBuilder.append("<html><body><div style='display:flex;flex-direction:row;align-items:center;gap:10px;'>")
+                    .append(DIV).append("<table style='border-collapse:collapse;'><tr><td style='padding:0;'>")
+                    .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table></div>");
+        }
+
         switch (scanIssue.getScanEngine()) {
             case OSS:
                 buildOSSDescription(descBuilder, scanIssue);
                 break;
             case ASCA:
                 buildASCADescription(descBuilder, scanIssue);
+                break;
+            case SECRETS:
+                buildSecretsDescription(descBuilder, scanIssue);
                 break;
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
@@ -108,6 +122,27 @@ public class ProblemDescription {
         }
         buildPackageHeader(descBuilder, scanIssue);
         buildVulnerabilitySection(descBuilder, scanIssue);
+    }
+
+    /**
+     * Builds the Secrets description tooltip.
+     *
+     * @param descBuilder The StringBuilder to append the formatted HTML to.
+     * @param scanIssue   The ScanIssue object containing details about the secret.
+     */
+    private void buildSecretsDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
+        descBuilder.append("<div style='overflow:visible;min-width:280px;min-height:30px;width:auto;height:auto;'>")
+                .append("<table style='border-collapse:collapse;width:100%;'><tr>")
+                // Column 1: Severity Icon
+                .append("<td style='padding:0;vertical-align:middle;width:20px;'>")
+                .append(getIcon(scanIssue.getSeverity()))
+                .append("</td>")
+                // Column 2: Title and Subtitle(- Secret finding)
+                .append("<td style='padding:0;vertical-align:middle;white-space:nowrap;'>")
+                .append("<b>").append(escapeHtml(formatTitle(scanIssue.getTitle()))).append("</b>")
+                .append(" <span style='color: #808080;'>- Secret finding</span>")
+                .append("</td>")
+                .append("</tr></table></div>");
     }
 
     /**
@@ -309,5 +344,20 @@ public class ProblemDescription {
      */
     private static String getSeverityCountIconKey(String severity) {
         return severity + COUNT;
+    }
+
+    /**
+     * Formats a kebab-case title into Title-Case (e.g., "generic-api-key" -> "Generic-Api-Key").
+     *
+     * @param title The kebab-case title string.
+     * @return A formatted Title-Case string.
+     */
+    private String formatTitle(String title) {
+        if (title == null || title.isEmpty()) {
+            return "";
+        }
+        return Arrays.stream(title.split("-"))
+                .map(word -> word.isEmpty() ? "" : Character.toUpperCase(word.charAt(0)) + word.substring(1).toLowerCase())
+                .collect(Collectors.joining("-"));
     }
 }
