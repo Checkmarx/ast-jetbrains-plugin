@@ -98,22 +98,6 @@ public class TestAsca extends BaseUITest {
         Assertions.assertTrue(problems.findAllText().stream().anyMatch(t -> t.getText().contains("ASCA")));
     }
 
-    protected static void enter(String value) {
-        Keyboard keyboard = new Keyboard(remoteRobot);
-
-        keyboard.enterText(value);
-        var comp = remoteRobot.find(ComponentFixture.class, byXpath("//ProjectViewTree"));
-        System.out.println(comp.getData());
-
-        waitFor(() -> {
-            String xpath = String.format("//*[@AccessibleName='%s']", value);
-
-            return hasAnyComponent(xpath);
-        });
-
-        keyboard.enter();
-    }
-
     protected static void clickExactFileInProjectTree(String fileName) {
         Keyboard keyboard = new Keyboard(remoteRobot);
 

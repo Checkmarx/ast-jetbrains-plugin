@@ -190,16 +190,18 @@ public abstract class BaseUITest {
     }
 
     protected static void testFileNavigation() {
-        waitFor(() -> {
-            focusCxWindow();
-            findAll(LINK_LABEL).get(0).doubleClick();
-            hideToolWindows();
-            return hasAnyComponent(EDITOR);
-        });
+        focusCxWindow();
+        findAll(LINK_LABEL).get(0).doubleClick();
+        hideToolWindows(); // call once before checking editor
+
+        // Now wait for editor to appear
+        waitFor(() -> hasAnyComponent(EDITOR));
+
+        // Assert editor opened
         Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
-        //Confirming if editor is opened
         find(EditorFixture.class, EDITOR, waitDuration);
     }
+
 
     protected void getResults() {
         focusCxWindow();
