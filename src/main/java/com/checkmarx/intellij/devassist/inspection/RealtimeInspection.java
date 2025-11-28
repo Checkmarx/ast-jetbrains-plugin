@@ -68,6 +68,11 @@ public class RealtimeInspection extends LocalInspectionTool {
             resetResults(file.getProject());
             return ProblemDescriptor.EMPTY_ARRAY;
         }
+        // On remediation process GitHub Copilot generating the fake file with the name Dummy.txt, so ignoring that file.
+        if (isAgentEvent(virtualFile)) {
+            LOGGER.warn(format("RTS: Received copilot event for file: %s. Skipping file..", file.getName()));
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
         if (!Utils.isUserAuthenticated() || !DevAssistUtils.isAnyScannerEnabled()) {
             LOGGER.warn(format("RTS: User not authenticated or No scanner is enabled, skipping file: %s", file.getName()));
             resetResults(file.getProject());
@@ -86,6 +91,10 @@ public class RealtimeInspection extends LocalInspectionTool {
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(file.getProject());
+        /*
+         * Check if the file is already scanned and if the problem descriptors are valid.
+         * If a file is already scanned and problem descriptors are valid, then return the existing problem descriptors for the enabled scanners.
+         */
         if (fileTimeStamp.containsKey(virtualFile.getPath()) && fileTimeStamp.get(virtualFile.getPath()) == (file.getModificationStamp())
                 && isProblemDescriptorValid(problemHolderService, virtualFile.getPath(), file)) {
             LOGGER.info(format("RTS: File: %s is already scanned, retrieving existing results.", file.getName()));
@@ -117,13 +126,25 @@ public class RealtimeInspection extends LocalInspectionTool {
     private List<ScannerService<?>> getSupportedEnabledScanner(String filePath) {
         List<ScannerService<?>> supportedScanners = scannerFactory.getAllSupportedScanners(filePath);
         if (supportedScanners.isEmpty()) {
-            LOGGER.warn(format("RTS: No supported scanner found for this file: %s.", filePath));
+            LOGGER.warn(format("RTS: No supported scanner found for this file path: %s.", filePath));
             return Collections.emptyList();
         }
         return supportedScanners.stream()
                 .filter(scannerService ->
                         DevAssistUtils.isScannerActive(scannerService.getConfig().getEngineName()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Checks if the virtual file is a GitHub Copilot-generated file.
+     * E.g., On opening of GitHub Copilot, it's generating the fake file with the name Dummy.txt, so ignoring that file.
+     *
+     * @param virtualFile - VirtualFile object of the file.
+     * @return true if the file is a GitHub Copilot-generated file, false otherwise.
+     */
+    private boolean isAgentEvent(VirtualFile virtualFile) {
+        return Constants.RealTimeConstants.AGENT_DUMMY_FILES.stream()
+                .anyMatch(filePath -> filePath.equals(virtualFile.getPath()));
     }
 
     /**
@@ -137,14 +158,14 @@ public class RealtimeInspection extends LocalInspectionTool {
     private boolean isProblemDescriptorValid(ProblemHolderService problemHolderService, String path, PsiFile file) {
         if (file.getUserData(key) != null && !Objects.equals(file.getUserData(key), DevAssistUtils.isDarkTheme())) {
             ProblemDescription.reloadIcons(); // reload problem descriptions icons on theme change
-            LOGGER.info("RTS: Theme changed, resetting problem descriptors");
+            LOGGER.info("RTS: Theme changed, resetting problem descriptors.");
             return false;
         }
         return !problemHolderService.getProblemDescriptors(path).isEmpty();
     }
 
     /**
-     * Gets the problem descriptors for the given file path and enabled scanners.
+     * Gets the existing problem descriptors for the given file path and enabled scanners.
      *
      * @param problemHolderService the problem holder service.
      * @param filePath             the file path.
@@ -163,12 +184,13 @@ public class RealtimeInspection extends LocalInspectionTool {
                 .collect(Collectors.toList());
 
         if (problemDescriptorsList.isEmpty() || enabledScanners.isEmpty()) {
-            LOGGER.warn(format("RTS: No problem descriptors found for file: %s or no enabled scanners found.", filePath));
+            LOGGER.warn(format("RTS: No existing problem descriptors found for file: %s or no enabled scanners found.", filePath));
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
         if (scanIssueList.isEmpty()) {
-            LOGGER.warn(format("RTS: No scan issues found for file: %s.", filePath));
+            LOGGER.warn(format("RTS: No existing scan issues found for file: %s.", filePath));
+            return ProblemDescriptor.EMPTY_ARRAY;
         }
         List<ProblemDescriptor> enabledScannerProblems = new ArrayList<>();
         for (ProblemDescriptor descriptor : problemDescriptorsList) {
