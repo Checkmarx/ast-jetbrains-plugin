@@ -80,11 +80,8 @@ public class TestAsca extends BaseUITest {
         }
 
         // Navigate through the project directory to the specific file path
-        String[] path = {"Assignment5"};
         find(EXPAND_ALL_FOLDER).click();
-        for (String step : path) {
-            enter(step);
-        }
+        clickExactFileInProjectTree("Assignment5");
 
 
         // Open the Problems view and search for a specific problem
@@ -99,19 +96,37 @@ public class TestAsca extends BaseUITest {
         });
 
         Assertions.assertTrue(problems.findAllText().stream().anyMatch(t -> t.getText().contains("ASCA")));
-
-        openCxToolWindow();
     }
 
     protected static void enter(String value) {
         Keyboard keyboard = new Keyboard(remoteRobot);
 
+        keyboard.enterText(value);
+        var comp = remoteRobot.find(ComponentFixture.class, byXpath("//ProjectViewTree"));
+        System.out.println(comp.getData());
+
         waitFor(() -> {
-            keyboard.enterText(value);
-            return hasAnyComponent(String.format("//div[@visible_text='%s']", value));
+            String xpath = String.format("//*[@AccessibleName='%s']", value);
+
+            return hasAnyComponent(xpath);
         });
 
         keyboard.enter();
     }
+
+    protected static void clickExactFileInProjectTree(String fileName) {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+
+        keyboard.enterText(fileName);
+        ComponentFixture projectViewTree = find(ComponentFixture.class, "//div[@class='ProjectViewTree']", waitDuration);
+
+        RemoteText fileNode = projectViewTree.findAllText().stream()
+                .filter(t -> t.getText().equals(fileName))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("File not found: " + fileName));
+
+        projectViewTree.doubleClick(fileNode.getPoint());
+    }
+
 
 }

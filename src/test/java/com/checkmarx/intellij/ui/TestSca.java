@@ -20,6 +20,7 @@ public class TestSca extends BaseUITest {
     @Test
     @Video
     public void testScaPanel() {
+        openCxToolWindow();
         getResults();
         waitForScanIdSelection();
 
