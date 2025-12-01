@@ -205,8 +205,8 @@ public abstract class BaseUITest {
 
     protected void getResults() {
         focusCxWindow();
-        //waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
-        waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
+        waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
+        //waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
         focusCxWindow();
         JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
         scanField.setText(Environment.SCAN_ID);
