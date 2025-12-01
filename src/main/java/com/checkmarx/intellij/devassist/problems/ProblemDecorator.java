@@ -244,7 +244,7 @@ public class ProblemDecorator {
                 if (editor == null) return;
 
                 MarkupModel markupModel = editor.getMarkupModel();
-                if (Objects.nonNull(markupModel.getAllHighlighters())) {
+                if (markupModel.getAllHighlighters().length > 0) {
                     markupModel.removeAllHighlighters();
                 }
             });

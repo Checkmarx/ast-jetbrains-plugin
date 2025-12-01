@@ -220,21 +220,42 @@ public class GlobalSettingsComponent implements SettingsComponent {
         }
     }
 
+    /**
+     * Creates a GlobalSettingsState object from the current UI field values.
+     *
+     * IMPORTANT: This method must preserve ALL existing state fields that are not directly
+     * managed by this UI panel, including user preferences for realtime scanners.
+     * Failure to copy these fields will result in them being reset to default values
+     * when the state is applied, causing user preferences to be lost.
+     */
     private GlobalSettingsState getStateFromFields() {
         GlobalSettingsState state = new GlobalSettingsState();
-        // Editable fields from this panel
+
+        // Fields directly managed by this UI panel
         state.setAdditionalParameters(additionalParametersField.getText().trim());
         state.setAsca(ascaCheckBox.isSelected());
         state.setApiKeyEnabled(apiKeyRadio.isSelected());
+
+        // Preserve all other state fields from the current settings
         if (SETTINGS_STATE != null) {
+            // Realtime scanner active states
             state.setOssRealtime(SETTINGS_STATE.isOssRealtime());
             state.setSecretDetectionRealtime(SETTINGS_STATE.isSecretDetectionRealtime());
             state.setContainersRealtime(SETTINGS_STATE.isContainersRealtime());
             state.setIacRealtime(SETTINGS_STATE.isIacRealtime());
             state.setContainersTool(SETTINGS_STATE.getContainersTool());
+
+            // MCP and dialog state
             state.setWelcomeShown(SETTINGS_STATE.isWelcomeShown());
             state.setMcpEnabled(SETTINGS_STATE.isMcpEnabled());
             state.setMcpStatusChecked(SETTINGS_STATE.isMcpStatusChecked());
+
+            // User preferences for realtime scanners - CRITICAL for preference preservation
+            state.setUserPreferencesSet(SETTINGS_STATE.isUserPreferencesSet());
+            state.setUserPrefOssRealtime(SETTINGS_STATE.getUserPrefOssRealtime());
+            state.setUserPrefSecretDetectionRealtime(SETTINGS_STATE.getUserPrefSecretDetectionRealtime());
+            state.setUserPrefContainersRealtime(SETTINGS_STATE.getUserPrefContainersRealtime());
+            state.setUserPrefIacRealtime(SETTINGS_STATE.getUserPrefIacRealtime());
         }
         return state;
     }
@@ -305,17 +326,44 @@ public class GlobalSettingsComponent implements SettingsComponent {
             LOGGER.warn("Failed MCP server check", ex);
         }
 
-        // Store MCP status and all authentication state in a single apply() call
+        // Determine if MCP status has actually changed to avoid resetting user preferences on simple re-authentication
+        boolean previousMcpEnabled = SETTINGS_STATE.isMcpEnabled();
+        boolean mcpStatusPreviouslyChecked = SETTINGS_STATE.isMcpStatusChecked();
+        boolean mcpStatusChanged = mcpStatusPreviouslyChecked && (previousMcpEnabled != mcpServerEnabled);
+
+        // Store MCP status and authentication state
         SETTINGS_STATE.setMcpEnabled(mcpServerEnabled);
         SETTINGS_STATE.setMcpStatusChecked(true);
         apply();
 
-        // Configure realtime scanners and install MCP based on server status
-        if (mcpServerEnabled) {
-            autoEnableAllRealtimeScanners();
-            installMcpAsync(credential);
+        // Configure realtime scanners based on MCP status - only modify settings when necessary to preserve user preferences during routine re-authentication
+        if (!mcpStatusPreviouslyChecked) {
+            // First time checking MCP status (new user or plugin upgrade scenario)
+            if (mcpServerEnabled) {
+                autoEnableAllRealtimeScanners(); // Enable scanners with preference detection
+                installMcpAsync(credential);
+            } else {
+                disableAllRealtimeScanners(); // Disable scanners while preserving preferences
+            }
+            LOGGER.debug("[Auth] Initial MCP status setup completed for MCP enabled: " + mcpServerEnabled);
+        } else if (mcpStatusChanged) {
+            // MCP status has changed since last authentication - update scanner configuration
+            if (mcpServerEnabled) {
+                LOGGER.debug("[Auth] MCP re-enabled - restoring user preferences");
+                autoEnableAllRealtimeScanners(); // Restore user preferences
+                installMcpAsync(credential);
+            } else {
+                LOGGER.debug("[Auth] MCP disabled - preserving user preferences and disabling scanners");
+                disableAllRealtimeScanners(); // Preserve preferences before disabling
+            }
         } else {
-            disableAllRealtimeScanners();
+            // MCP status unchanged - preserve existing scanner settings and user preferences
+            if (mcpServerEnabled) {
+                installMcpAsync(credential); // Ensure MCP config is up to date
+                LOGGER.debug("[Auth] MCP unchanged (enabled) - user preferences preserved");
+            } else {
+                LOGGER.debug("[Auth] MCP unchanged (disabled) - user preferences preserved");
+            }
         }
 
         showWelcomeDialog(mcpServerEnabled);
@@ -937,35 +985,70 @@ public class GlobalSettingsComponent implements SettingsComponent {
         return false;
     }
 
-    // Enable all realtime scanner flags if not already enabled and persist+publish settings change
+    /**
+     * Configures realtime scanners when MCP is enabled, with intelligent preference handling.
+     * For existing users: restores their individual scanner preferences
+     * For new users: enables all scanners as defaults and saves as initial preferences
+     */
     private void autoEnableAllRealtimeScanners() {
         GlobalSettingsState st = GlobalSettingsState.getInstance();
         boolean changed = false;
+
+        // Priority 1: Restore existing user preferences if available
+        if (st.isUserPreferencesSet()) {
+            changed = st.applyUserPreferencesToRealtimeSettings();
+            if (changed) {
+                LOGGER.debug("[Auth] Restored user preferences for realtime scanners");
+                apply();
+                return;
+            } else {
+                LOGGER.debug("[Auth] User preferences already applied to realtime scanners");
+                return;
+            }
+        }
+
+        // Priority 2: For new users, enable all scanners as sensible defaults
         if (!st.isOssRealtime()) { st.setOssRealtime(true); changed = true; }
         if (!st.isSecretDetectionRealtime()) { st.setSecretDetectionRealtime(true); changed = true; }
         if (!st.isContainersRealtime()) { st.setContainersRealtime(true); changed = true; }
         if (!st.isIacRealtime()) { st.setIacRealtime(true); changed = true; }
+
         if (changed) {
-            LOGGER.debug("[Auth->MCP] Auto-enabled realtime scanners (OSS, Secrets, Containers, IaC)");
+            // Save the "all enabled" defaults as initial user preferences for future preservation
+            st.saveCurrentSettingsAsUserPreferences();
+            LOGGER.debug("[Auth] Enabled all scanners for new user and saved as initial preferences");
             apply();
         } else {
-            LOGGER.debug("[Auth->MCP] All realtime scanners already enabled");
+            LOGGER.debug("[Auth] All realtime scanners already enabled");
         }
     }
 
-    // Disable realtime scanner method
+    /**
+     * Disables all realtime scanners when MCP is not available, while preserving user preferences.
+     * The user's individual scanner choices are saved before disabling, ensuring they can be
+     * restored when MCP becomes available again.
+     */
     private void disableAllRealtimeScanners() {
         GlobalSettingsState st = GlobalSettingsState.getInstance();
+
+        // Preserve current scanner settings as user preferences before disabling
+        if (!st.isUserPreferencesSet()) {
+            st.saveCurrentSettingsAsUserPreferences();
+            LOGGER.debug("[Auth] Saved current scanner settings as user preferences before disabling");
+        }
+
+        // Disable all scanners for security (MCP not available)
         boolean changed = false;
         if (st.isOssRealtime()) { st.setOssRealtime(false); changed = true; }
         if (st.isSecretDetectionRealtime()) { st.setSecretDetectionRealtime(false); changed = true; }
         if (st.isContainersRealtime()) { st.setContainersRealtime(false); changed = true; }
         if (st.isIacRealtime()) { st.setIacRealtime(false); changed = true; }
+
         if (changed) {
-            LOGGER.debug("[Auth->NoMCP] Disabled all realtime scanners (OSS, Secrets, Containers, IaC)");
+            LOGGER.debug("[Auth] Disabled all realtime scanners while preserving user preferences");
             apply();
         } else {
-            LOGGER.debug("[Auth->NoMCP] Realtime scanners already disabled");
+            LOGGER.debug("[Auth] Realtime scanners already disabled");
         }
     }
 }
