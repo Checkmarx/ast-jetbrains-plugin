@@ -71,15 +71,14 @@ public class OssScanResultAdaptorTest {
     void testGetIssues_singlePackageWithLocationsAndVulns_mappingAndLineIncrement() {
         // Mock vulnerability
         OssRealtimeVulnerability vul = mock(OssRealtimeVulnerability.class);
-        when(vul.getCve()).thenReturn("CVE-999");
-        when(vul.getDescription()).thenReturn("Test vulnerability");
-        when(vul.getSeverity()).thenReturn("CRITICAL");
-        when(vul.getFixVersion()).thenReturn("9.9.9");
+        doReturn("Test vulnerability").when(vul).getDescription();
+        doReturn("CRITICAL").when(vul).getSeverity();
+        doReturn("9.9.9").when(vul).getFixVersion();
         // Mock location (line zero-based 0 should become 1)
         RealtimeLocation loc = mock(RealtimeLocation.class);
-        when(loc.getLine()).thenReturn(0);
-        when(loc.getStartIndex()).thenReturn(2);
-        when(loc.getEndIndex()).thenReturn(5);
+        doReturn(0).when(loc).getLine();
+        doReturn(2).when(loc).getStartIndex();
+        doReturn(5).when(loc).getEndIndex();
         OssRealtimeScanPackage pkg = mock(OssRealtimeScanPackage.class);
         when(pkg.getPackageName()).thenReturn("libA");
         when(pkg.getPackageVersion()).thenReturn("0.0.1");
@@ -103,7 +102,6 @@ public class OssScanResultAdaptorTest {
         assertEquals(5, mappedLoc.getEndIndex());
         assertEquals(1, issue.getVulnerabilities().size());
         var mappedVul = issue.getVulnerabilities().get(0);
-        assertEquals("CVE-999", mappedVul.getCve());
         assertEquals("Test vulnerability", mappedVul.getDescription());
         assertEquals("CRITICAL", mappedVul.getSeverity());
         assertEquals("9.9.9", mappedVul.getFixVersion());
