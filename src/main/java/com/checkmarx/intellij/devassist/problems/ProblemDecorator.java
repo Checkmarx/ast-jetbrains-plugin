@@ -56,7 +56,6 @@ public class ProblemDecorator {
      */
     public void highlightLineAddGutterIconForProblem(@NotNull Project project, @NotNull PsiFile file,
                                                      ScanIssue scanIssue, boolean isProblem, int problemLineNumber) {
-
         ApplicationManager.getApplication().invokeLater(() -> {
             Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
             if (editor == null) return;
@@ -86,7 +85,6 @@ public class ProblemDecorator {
      */
     private void highlightLocationInEditor(Editor editor, MarkupModel markupModel, int targetLine,
                                            ScanIssue scanIssue, boolean addGutterIcon, boolean isProblem, int problemLineNumber) {
-
         TextRange textRange = DevAssistUtils.getTextRangeForLine(editor.getDocument(), targetLine);
         TextAttributes textAttributes = createTextAttributes(scanIssue.getSeverity());
 
@@ -246,7 +244,7 @@ public class ProblemDecorator {
                 if (editor == null) return;
 
                 MarkupModel markupModel = editor.getMarkupModel();
-                if (Objects.nonNull(markupModel.getAllHighlighters())) {
+                if (markupModel.getAllHighlighters().length > 0) {
                     markupModel.removeAllHighlighters();
                 }
             });
@@ -267,12 +265,15 @@ public class ProblemDecorator {
         removeAllGutterIcons(project);
         for (ScanIssue scanIssue : scanIssueList) {
             try {
-                boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
                 int problemLineNumber = scanIssue.getLocations().get(0).getLine();
-                PsiElement elementAtLine = psiFile.findElementAt(document.getLineStartOffset(problemLineNumber-1));
-                if (elementAtLine != null) {
-                    highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
+                PsiElement elementAtLine = DevAssistUtils.getPsiElement(psiFile, document, problemLineNumber);
+                if (Objects.isNull(elementAtLine)) {
+                    LOGGER.debug("RTS-Decorator: Skipping to add gutter icon, Failed to find PSI element for line : {}",
+                            problemLineNumber, scanIssue.getTitle());
+                    continue;
                 }
+                boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
+                highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
             } catch (Exception e) {
                 LOGGER.debug("RTS-Decorator: Exception occurred while restoring gutter icons for: {} ",
                         psiFile.getName(), scanIssue.getTitle(), e.getMessage());

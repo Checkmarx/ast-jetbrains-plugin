@@ -30,7 +30,6 @@ public class ProblemDescription {
     private static final String COUNT = "COUNT";
     private static final String PACKAGE = "Package";
     private static final String DEV_ASSIST = "DevAssist";
-    private static final String GRAY = "<p style='color: gray; margin:0;'>";
 
     public ProblemDescription() {
         initIconsMap();
@@ -176,10 +175,10 @@ public class ProblemDescription {
 
         descBuilder.append("<tr><td style='padding:0;vertical-align:middle;'>").append(getIcon(PACKAGE)).append("</td>")
                 .append("<td style='padding:0 4px 0 4px;vertical-align:middle;'><b>").append(scanIssue.getTitle()).append("@")
-                .append(scanIssue.getPackageVersion()).append("</b></td><td style='padding:0;vertical-align:middle;'>")
-                .append(GRAY).append(" - ").append(scanIssue.getSeverity()).append(" ")
+                .append(scanIssue.getPackageVersion()).append("</b></td><td style='padding:0;vertical-align:middle;'> - ")
+                .append(scanIssue.getSeverity()).append(" ")
                 .append(Constants.RealTimeConstants.SEVERITY_PACKAGE)
-                .append("</p></td></tr></table>");
+                .append("</td></tr></table>");
     }
 
     private void buildImageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
@@ -211,8 +210,8 @@ public class ProblemDescription {
         buildMaliciousPackageHeader(descBuilder, scanIssue);
         descBuilder.append("</td></tr><tr><td>").append(getIcon(scanIssue.getSeverity())).append("</td>")
                 .append("<td><span><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b></span>")
-                .append("<span style='color: gray; margin:0;'> - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE)
-                .append("</span><td></tr></table><br>");
+                .append("<span> - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE)
+                .append("</span><td></tr></table>");
     }
 
     /**
