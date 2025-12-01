@@ -31,7 +31,6 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
     private static final Logger LOGGER = Utils.getLogger(IssueTreeRenderer.class);
 
     private int hoveredRow = -1;
-    private final Icon bulbIcon = AllIcons.Actions.IntentionBulb;
     private int currentRow = -1;
     private final List<IconWithCount> severityIconsToDraw = new ArrayList<>();
     private String fileNameText = "";
@@ -143,10 +142,6 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
                 }
                 lineColText += "]";
                 append(lineColText, SimpleTextAttributes.GRAYED_ATTRIBUTES);
-            }
-            if (hoveredRow == row) {
-                icon = bulbIcon; // show bulb on hover
-                setIcon(icon);
             }
         } else if (obj instanceof String) {
             setIcon(null);

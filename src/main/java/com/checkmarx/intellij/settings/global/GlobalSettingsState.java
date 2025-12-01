@@ -81,9 +81,9 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     private boolean welcomeShown = false;
 
     /**
-       * User preferences for realtime scanners (preserved across MCP enable/disable cycles) ---
-       * These fields store the user's individual scanner preferences and are preserved even when MCP is disabled at the tenant level.
-       * When MCP is re-enabled, these preferences are restored instead of defaulting to "all enabled", ensuring user choice is respected.
+     * User preferences for realtime scanners (preserved across MCP enable/disable cycles) ---
+     * These fields store the user's individual scanner preferences and are preserved even when MCP is disabled at the tenant level.
+     * When MCP is re-enabled, these preferences are restored instead of defaulting to "all enabled", ensuring user choice is respected.
      */
     @Attribute("userPreferencesSet")
     private boolean userPreferencesSet = false;
@@ -130,7 +130,7 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
      * @param iacRealtime Infrastructure as Code scanner preference
      */
     public void setUserPreferences(boolean ossRealtime, boolean secretDetectionRealtime,
-                                 boolean containersRealtime, boolean iacRealtime) {
+                                   boolean containersRealtime, boolean iacRealtime) {
         this.userPrefOssRealtime = ossRealtime;
         this.userPrefSecretDetectionRealtime = secretDetectionRealtime;
         this.userPrefContainersRealtime = containersRealtime;
@@ -190,10 +190,10 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
      */
     public boolean hasCustomUserPreferences() {
         return userPreferencesSet && (
-            !userPrefOssRealtime ||
-            !userPrefSecretDetectionRealtime ||
-            !userPrefContainersRealtime ||
-            !userPrefIacRealtime
+                !userPrefOssRealtime ||
+                        !userPrefSecretDetectionRealtime ||
+                        !userPrefContainersRealtime ||
+                        !userPrefIacRealtime
         );
     }
 
@@ -203,4 +203,3 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     public boolean getUserPrefContainersRealtime() { return userPrefContainersRealtime; }
     public boolean getUserPrefIacRealtime() { return userPrefIacRealtime; }
 }
-
