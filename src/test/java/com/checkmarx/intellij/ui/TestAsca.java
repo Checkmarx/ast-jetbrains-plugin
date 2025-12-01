@@ -13,17 +13,28 @@ import java.util.List;
 
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
+import static com.intellij.remoterobot.search.locators.Locators.byXpath;
 
 public class TestAsca extends BaseUITest {
 
     public void clickAscaCheckbox() {
         openSettings();
         waitFor(() -> hasAnyComponent(ASCA_CHECKBOX));
-        click(ASCA_CHECKBOX);
+        if(!isCheckBoxChecked(ASCA_CHECKBOX))
+            click(ASCA_CHECKBOX);
         waitFor(() -> hasAnyComponent(ASCA_INSTALL_SUCCESS));
         Assertions.assertTrue(hasAnyComponent(ASCA_INSTALL_SUCCESS));
     }
 
+    private boolean isCheckBoxChecked(String ascaCheckbox) {
+        ComponentFixture checkbox = remoteRobot.find(
+                ComponentFixture.class,
+                byXpath(ascaCheckbox),
+                Duration.ofSeconds(5)
+        );
+        boolean checked = (boolean) checkbox.callJs("component.isSelected()");
+        return checked;
+    }
     public void validateAscaRunning() {
         openSettings();
         waitFor(() -> hasAnyComponent(ASCA_INSTALL_SUCCESS));
@@ -34,7 +45,6 @@ public class TestAsca extends BaseUITest {
     @Video
     public void testClickAscaCheckbox() {
         clickAscaCheckbox();
-        click(ASCA_CHECKBOX);
         click(OK_BTN);
     }
 
@@ -53,6 +63,10 @@ public class TestAsca extends BaseUITest {
     @Test
     @Video
     public void AscaCheckboxEnabled_EnteringFileWithVulnerabilities_AscaVulnerabilityExist() {
+        openCxToolWindow();
+        clickAscaCheckbox();
+        click(OK_BTN);
+        hideToolWindows();
         // Attempt to find and click the project side tab button
         ComponentFixture projectSideTabButton = find(ComponentFixture.class, "//div[contains(@tooltiptext.key, 'title.project')]", waitDuration);
         try {
@@ -66,10 +80,9 @@ public class TestAsca extends BaseUITest {
         }
 
         // Navigate through the project directory to the specific file path
-        String[] path = {"webgoat-lessons", "challenge", "src", "main", "java", "challenge5", "Assignment5"};
-        for (String step : path) {
-            enter(step);
-        }
+        find(EXPAND_ALL_FOLDER).click();
+        clickExactFileInProjectTree("Assignment5");
+
 
         // Open the Problems view and search for a specific problem
         click("//div[contains(@text.key, 'toolwindow.stripe.Problems_View')]");
@@ -83,16 +96,21 @@ public class TestAsca extends BaseUITest {
         });
 
         Assertions.assertTrue(problems.findAllText().stream().anyMatch(t -> t.getText().contains("ASCA")));
-
-        openCxToolWindow();
     }
 
-    protected static void enter(String value) {
+    protected static void clickExactFileInProjectTree(String fileName) {
         Keyboard keyboard = new Keyboard(remoteRobot);
-        waitFor(() -> {
-            keyboard.enterText(value);
-            return hasAnyComponent(String.format(VISIBLE_TEXT, value));
-        });
-        keyboard.enter();
+
+        keyboard.enterText(fileName);
+        ComponentFixture projectViewTree = find(ComponentFixture.class, "//div[@class='ProjectViewTree']", waitDuration);
+
+        RemoteText fileNode = projectViewTree.findAllText().stream()
+                .filter(t -> t.getText().equals(fileName))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("File not found: " + fileName));
+
+        projectViewTree.doubleClick(fileNode.getPoint());
     }
+
+
 }

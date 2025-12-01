@@ -20,6 +20,7 @@ public class TestSca extends BaseUITest {
     @Test
     @Video
     public void testScaPanel() {
+        openCxToolWindow();
         getResults();
         waitForScanIdSelection();
 
@@ -33,13 +34,13 @@ public class TestSca extends BaseUITest {
         JTreeFixture tree = find(JTreeFixture.class, TREE);
 
         List<RemoteText> scaHighNodes = tree.getData()
-                                            .getAll()
-                                            .stream()
-                                            .filter(t -> t.getText().startsWith("HIGH"))
-                                            .collect(Collectors.toList());
+                .getAll()
+                .stream()
+                .filter(t -> t.getText().startsWith("LOW"))
+                .collect(Collectors.toList());
 
         if (scaHighNodes.size() != 0) {
-            navigate("HIGH", 4);
+            navigate("LOW", 4);
         }
 
         navigate("Maven", 2);
@@ -58,9 +59,9 @@ public class TestSca extends BaseUITest {
             waitFor(() -> {
                 tree.clickRow(dsvwRowIdx);
                 return find(MAGIC_RESOLVE).getData()
-                                          .getAll()
-                                          .stream()
-                                          .anyMatch(element -> element.getText().startsWith(UPGRADE_TO_VERSION_LABEL));
+                        .getAll()
+                        .stream()
+                        .anyMatch(element -> element.getText().startsWith(UPGRADE_TO_VERSION_LABEL));
             });
         } else {
             waitFor(() -> {
@@ -72,7 +73,3 @@ public class TestSca extends BaseUITest {
         testFileNavigation();
     }
 }
-
-
-
-

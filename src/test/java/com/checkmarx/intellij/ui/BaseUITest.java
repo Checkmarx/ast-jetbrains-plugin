@@ -190,21 +190,31 @@ public abstract class BaseUITest {
     }
 
     protected static void testFileNavigation() {
-        waitFor(() -> {
-            focusCxWindow();
-            findAll(LINK_LABEL).get(0).doubleClick();
-            return hasAnyComponent(EDITOR);
-        });
+        focusCxWindow();
+        findAll(LINK_LABEL).get(0).doubleClick();
+        hideToolWindows(); // call once before checking editor
+
+        // Now wait for editor to appear
+        waitFor(() -> hasAnyComponent(EDITOR));
+
+        // Assert editor opened
         Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
-        //Confirming if editor is opened
         find(EditorFixture.class, EDITOR, waitDuration);
     }
+
 
     protected void getResults() {
         focusCxWindow();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
+        //waitFor(() -> findSelection("Scan").isEnabled() && findSelection("Project").isEnabled() && findSelection("Branch").isEnabled() && findSelection("Scan").isEnabled());
         focusCxWindow();
-        find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
+        JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
+        scanField.setText(Environment.SCAN_ID);
+        //Wait until the text is actually set in UI
+        waitFor(() -> {
+            focusCxWindow();
+            return Environment.SCAN_ID.equals(scanField.getText());
+        });
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> {
             focusCxWindow();
@@ -350,5 +360,8 @@ public abstract class BaseUITest {
             return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
         });
     }
-
+    protected static void hideToolWindows() {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_F12);
+    }
 }
