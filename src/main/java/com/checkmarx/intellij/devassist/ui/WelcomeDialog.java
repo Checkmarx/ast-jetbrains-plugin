@@ -203,13 +203,26 @@ public class WelcomeDialog extends DialogWrapper {
     }
 
     /**
-     * Ensures all real-time scanners are enabled by default when MCP is active,
-     * unless they have already been explicitly configured.
+     * Initializes the realtime scanner state with intelligent preference handling.
+     * For new users: enables all scanners as defaults when MCP is active
+     * For existing users: preserves their individual scanner preferences
+     * This ensures user choice is respected while providing sensible defaults for new users.
      */
     private void initializeRealtimeState() {
-        if (mcpEnabled && !settingsManager.areAllEnabled()) {
+        if (!mcpEnabled) {
+            return; // No scanner configuration needed when MCP is disabled
+        }
+
+        GlobalSettingsState state = GlobalSettingsState.getInstance();
+        boolean allEnabled = settingsManager.areAllEnabled();
+        boolean hasCustomPrefs = state.hasCustomUserPreferences();
+
+        // Only modify settings for new users who need sensible defaults
+        if (!allEnabled && !hasCustomPrefs) {
+            // New user with MCP enabled - provide the convenient "all enabled" default
             settingsManager.setAll(true);
         }
+        // For existing users, their preferences have already been restored by the authentication flow
     }
 
     /**
@@ -269,6 +282,7 @@ public class WelcomeDialog extends DialogWrapper {
 
     /**
      * Default production implementation backed by {@link GlobalSettingsState}.
+     * Handles both active scanner state and user preference persistence.
      */
     private static class DefaultRealTimeSettingsManager implements RealTimeSettingsManager {
         @Override
@@ -280,10 +294,15 @@ public class WelcomeDialog extends DialogWrapper {
         @Override
         public void setAll(boolean enable) {
             GlobalSettingsState s = GlobalSettingsState.getInstance();
+
+            // Update active scanner states
             s.setOssRealtime(enable);
             s.setSecretDetectionRealtime(enable);
             s.setContainersRealtime(enable);
             s.setIacRealtime(enable);
+            s.setUserPreferences(enable, enable, enable, enable);
+
+            // Persist changes and notify listeners
             GlobalSettingsState.getInstance().apply(s);
             ApplicationManager.getApplication().getMessageBus()
                     .syncPublisher(SettingsListener.SETTINGS_APPLIED)

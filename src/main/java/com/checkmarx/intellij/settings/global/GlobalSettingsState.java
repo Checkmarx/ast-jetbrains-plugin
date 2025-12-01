@@ -80,6 +80,26 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @Attribute("welcomeShown")
     private boolean welcomeShown = false;
 
+    /**
+     * User preferences for realtime scanners (preserved across MCP enable/disable cycles) ---
+     * These fields store the user's individual scanner preferences and are preserved even when MCP is disabled at the tenant level.
+     * When MCP is re-enabled, these preferences are restored instead of defaulting to "all enabled", ensuring user choice is respected.
+     */
+    @Attribute("userPreferencesSet")
+    private boolean userPreferencesSet = false;
+
+    @Attribute("userPrefOssRealtime")
+    private boolean userPrefOssRealtime = false;
+
+    @Attribute("userPrefSecretDetectionRealtime")
+    private boolean userPrefSecretDetectionRealtime = false;
+
+    @Attribute("userPrefContainersRealtime")
+    private boolean userPrefContainersRealtime = false;
+
+    @Attribute("userPrefIacRealtime")
+    private boolean userPrefIacRealtime = false;
+
     @Override
     public @Nullable GlobalSettingsState getState() {
         return this;
@@ -90,8 +110,96 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
         XmlSerializerUtil.copyBean(state, this);
     }
 
+    /**
+     * Applies the given state to this instance, copying all fields including user preferences.
+     * This ensures that user preferences are preserved during state transitions.
+     */
     public void apply(@NotNull GlobalSettingsState state) {
         loadState(state);
     }
-}
 
+    // --- User Preference Methods ---
+
+    /**
+     * Sets user preferences for realtime scanners, preserving individual choices across MCP enable/disable cycles.
+     * These preferences are stored separately from the active scanner states and are restored when MCP is re-enabled.
+     *
+     * @param ossRealtime OSS scanner preference
+     * @param secretDetectionRealtime Secret Detection scanner preference
+     * @param containersRealtime Containers scanner preference
+     * @param iacRealtime Infrastructure as Code scanner preference
+     */
+    public void setUserPreferences(boolean ossRealtime, boolean secretDetectionRealtime,
+                                   boolean containersRealtime, boolean iacRealtime) {
+        this.userPrefOssRealtime = ossRealtime;
+        this.userPrefSecretDetectionRealtime = secretDetectionRealtime;
+        this.userPrefContainersRealtime = containersRealtime;
+        this.userPrefIacRealtime = iacRealtime;
+        this.userPreferencesSet = true;
+    }
+
+
+    /**
+     * Applies stored user preferences to the active realtime scanner settings.
+     * This is called when MCP is enabled to restore the user's individual scanner choices
+     * instead of defaulting to "all enabled".
+     *
+     * @return true if any settings were changed, false if preferences were already applied or not set
+     */
+    public boolean applyUserPreferencesToRealtimeSettings() {
+        if (!userPreferencesSet) {
+            return false; // No user preferences stored
+        }
+
+        boolean changed = false;
+        if (ossRealtime != userPrefOssRealtime) {
+            ossRealtime = userPrefOssRealtime;
+            changed = true;
+        }
+        if (secretDetectionRealtime != userPrefSecretDetectionRealtime) {
+            secretDetectionRealtime = userPrefSecretDetectionRealtime;
+            changed = true;
+        }
+        if (containersRealtime != userPrefContainersRealtime) {
+            containersRealtime = userPrefContainersRealtime;
+            changed = true;
+        }
+        if (iacRealtime != userPrefIacRealtime) {
+            iacRealtime = userPrefIacRealtime;
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    /**
+     * Saves the current realtime scanner settings as user preferences.
+     * This is typically called before disabling scanners when MCP becomes unavailable,
+     * ensuring the user's choices can be restored later.
+     */
+    public void saveCurrentSettingsAsUserPreferences() {
+        setUserPreferences(ossRealtime, secretDetectionRealtime, containersRealtime, iacRealtime);
+    }
+
+    /**
+     * Checks if the user has set any custom preferences that differ from the default "all enabled" state.
+     * This helps distinguish between new users (who should get defaults) and existing users
+     * (whose custom choices should be preserved).
+     *
+     * @return true if user has any scanners disabled in their preferences
+     */
+    public boolean hasCustomUserPreferences() {
+        return userPreferencesSet && (
+                !userPrefOssRealtime ||
+                        !userPrefSecretDetectionRealtime ||
+                        !userPrefContainersRealtime ||
+                        !userPrefIacRealtime
+        );
+    }
+
+    // Getters for user preferences (for debugging and verification)
+    public boolean getUserPrefOssRealtime() { return userPrefOssRealtime; }
+    public boolean getUserPrefSecretDetectionRealtime() { return userPrefSecretDetectionRealtime; }
+    public boolean getUserPrefContainersRealtime() { return userPrefContainersRealtime; }
+    public boolean getUserPrefIacRealtime() { return userPrefIacRealtime; }
+}
