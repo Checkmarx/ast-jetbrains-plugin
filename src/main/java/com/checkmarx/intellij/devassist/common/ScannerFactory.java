@@ -7,14 +7,13 @@ import com.intellij.psi.PsiFile;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class ScannerFactory {
 
     private final List<ScannerService<?>> scannerServices;
 
     public ScannerFactory() {
-        scannerServices = List.of(new OssScannerService());
+        scannerServices = List.of(new OssScannerService(), new ContainerScannerService());
     }
 
 

@@ -143,11 +143,11 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
     public ScanResult<ContainersRealtimeResults> scan(PsiFile psiFile, String uri) {
 
         if (!this.shouldScanFile(uri, psiFile)) {
-            LOGGER.info("Returning from here");
             return null;
         }
 
         String tempFolder = super.getTempSubFolderPath(Constants.RealTimeConstants.CONTAINER_REALTIME_SCANNER_DIRECTORY);
+        Pair<Path, Path> saveResult = null;
         try {
             Path tempFolderPath = Paths.get(tempFolder);
             this.createTempFolder(tempFolderPath);
@@ -158,7 +158,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
             String fileExtension = vFile.getExtension();
 
             String tempFilePath;
-            Pair<Path, Path> saveResult;
+           
             boolean isYamlFile = Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
             if (isYamlFile && !isDockerComposeFile(uri)) {
                 saveResult = this.saveHelmFile(tempFolderPath, psiFile);
@@ -174,6 +174,13 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
 
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);
+        }
+        finally {
+            LOGGER.info("Deleting temporary folder");
+            if(Objects.nonNull(saveResult)){
+                deleteTempFolder(saveResult.getRight());
+            }
+
         }
         return null;
 

@@ -88,7 +88,6 @@ public class ProblemDecorator {
                                            ScanIssue scanIssue, boolean addGutterIcon, boolean isProblem, int problemLineNumber) {
 
         TextRange textRange = DevAssistUtils.getTextRangeForLine(editor.getDocument(), targetLine);
-        LOGGER.info("The text range is -->"+textRange);
         TextAttributes textAttributes = createTextAttributes(scanIssue.getSeverity());
 
         RangeHighlighter highlighter = markupModel.addLineHighlighter(
@@ -270,7 +269,7 @@ public class ProblemDecorator {
             try {
                 boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
                 int problemLineNumber = scanIssue.getLocations().get(0).getLine();
-                PsiElement elementAtLine = psiFile.findElementAt(document.getLineStartOffset(problemLineNumber));
+                PsiElement elementAtLine = psiFile.findElementAt(document.getLineStartOffset(problemLineNumber-1));
                 if (elementAtLine != null) {
                     highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
                 }
