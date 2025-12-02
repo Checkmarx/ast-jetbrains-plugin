@@ -66,6 +66,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private final MessageBusConnection connection;
 
     private final JBLabel mcpStatusLabel = new JBLabel();
+    private CxLinkLabel installMcpLink;
     private boolean mcpInstallInProgress;
     private Timer mcpClearTimer;
 
@@ -139,7 +140,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mainPanel.add(new JSeparator(), "growx, wrap");
         mainPanel.add(new JBLabel(Bundle.message(Resource.MCP_DESCRIPTION)), "wrap, gapleft 15");
 
-        CxLinkLabel installMcpLink = new CxLinkLabel(Bundle.message(Resource.MCP_INSTALL_LINK), e -> installMcp());
+        installMcpLink = new CxLinkLabel(Bundle.message(Resource.MCP_INSTALL_LINK), e -> installMcp());
         mcpStatusLabel.setVisible(false);
         mcpStatusLabel.setBorder(new EmptyBorder(0, 20, 0, 0));
 
@@ -152,7 +153,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
     /**
      * Manual MCP installation invoked by the "Install MCP" link.
-     * Provides inline status feedback (successfully saved, already up to date, or auth required).
+     * Provides inline status feedback (successfully saved, already up to date, or tenant-level disabled).
+     * Note: Button is disabled when user is not authenticated, so no auth checks needed here.
      */
     private void installMcp() {
         if (mcpInstallInProgress) {
@@ -160,18 +162,16 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         }
 
         ensureState();
+
+        // Check if MCP is enabled at tenant level (this should not happen since button is disabled, but defensive check)
+        if (!state.isMcpEnabled()) {
+            showMcpStatus(Bundle.message(Resource.CXONE_ASSIST_MCP_DISABLED_MESSAGE), JBColor.RED);
+            return;
+        }
+
+        // At this point, user should be authenticated (button is disabled otherwise)
         GlobalSettingsSensitiveState sensitive = GlobalSettingsSensitiveState.getInstance();
-
-        if (!state.isAuthenticated()) {
-            showMcpStatus(Bundle.message(Resource.MCP_AUTH_REQUIRED), JBColor.RED);
-            return;
-        }
-
         String credential = state.isApiKeyEnabled() ? sensitive.getApiKey() : sensitive.getRefreshToken();
-        if (credential == null || credential.isBlank()) {
-            showMcpStatus(Bundle.message(Resource.MCP_AUTH_REQUIRED), JBColor.RED);
-            return;
-        }
 
         LOGGER.debug("[CxOneAssist] Manual MCP install started.");
         mcpInstallInProgress = true;
@@ -185,7 +185,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mcpInstallInProgress = false;
 
         if (throwable != null || changed == null) {
-            showMcpStatus(Bundle.message(Resource.MCP_AUTH_REQUIRED), JBColor.RED);
+            showMcpStatus(Bundle.message(Resource.MCP_INSTALL_ERROR), JBColor.RED);
         } else if (changed) {
             showMcpStatus(Bundle.message(Resource.MCP_CONFIG_SAVED), JBColor.GREEN);
         } else {
@@ -324,6 +324,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             ossCheckbox.setSelected(false);
             secretsCheckbox.setEnabled(false);
             secretsCheckbox.setSelected(false);
+            installMcpLink.setEnabled(false);
             // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
             // containersCheckbox.setEnabled(false);
             // containersCheckbox.setSelected(false);
@@ -344,14 +345,17 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
         // If authenticated, use the cached MCP status (determined during authentication)
         boolean mcpEnabled = state.isMcpEnabled();
-        updateUIWithMcpStatus(mcpEnabled);
+        boolean isAuthenticated = state.isAuthenticated();
+        updateUIWithMcpStatus(mcpEnabled, isAuthenticated);
     }
 
 
 
-    private void updateUIWithMcpStatus(boolean mcpEnabled) {
+    private void updateUIWithMcpStatus(boolean mcpEnabled, boolean isAuthenticated) {
         ossCheckbox.setEnabled(mcpEnabled);
         secretsCheckbox.setEnabled(mcpEnabled);
+        // Enable install MCP link only if MCP is enabled at tenant level AND user is authenticated
+        installMcpLink.setEnabled(mcpEnabled && isAuthenticated);
         // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
         // containersCheckbox.setEnabled(mcpEnabled);
         // iacCheckbox.setEnabled(mcpEnabled);
@@ -438,6 +442,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         // Disable controls while checking
         ossCheckbox.setEnabled(false);
         secretsCheckbox.setEnabled(false);
+        installMcpLink.setEnabled(false);
 
         CompletableFuture.supplyAsync(() -> {
             try {
@@ -463,7 +468,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
                 GlobalSettingsState.getInstance().apply(state);
 
                 // Update UI based on MCP availability (will restore preferences if MCP enabled)
-                updateUIWithMcpStatus(mcpEnabled);
+                boolean isAuthenticated = state.isAuthenticated();
+                updateUIWithMcpStatus(mcpEnabled, isAuthenticated);
 
                 if (throwable != null) {
                     LOGGER.warn("Error during MCP status check", throwable);

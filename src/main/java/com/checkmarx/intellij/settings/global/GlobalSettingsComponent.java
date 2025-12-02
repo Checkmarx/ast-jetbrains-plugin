@@ -381,7 +381,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             if (result instanceof Exception) {
                 Utils.showNotification(
                         Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
-                        Bundle.message(Resource.MCP_AUTH_REQUIRED),
+                        Bundle.message(Resource.MCP_INSTALL_ERROR),
                         NotificationType.ERROR,
                         project
                 );
