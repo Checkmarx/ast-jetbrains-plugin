@@ -56,7 +56,7 @@ public class SecretsScannerCommand extends BaseScannerCommand {
      * Iterates recursively through each file in the project root except excluded directories,
      * and triggers separate scan on each eligible file
      */
-    private void scanAllFilesInProject() {
+   /* private void scanAllFilesInProject() {
         List<String> matchedURIs = new ArrayList<>();
 
         for (VirtualFile vRoot : ProjectRootManager.getInstance(project).getContentRoots()) {
@@ -106,7 +106,7 @@ public class SecretsScannerCommand extends BaseScannerCommand {
                 }
             }
         }
-    }
+    }*/
 
     /**
      * Disposes the listeners automatically

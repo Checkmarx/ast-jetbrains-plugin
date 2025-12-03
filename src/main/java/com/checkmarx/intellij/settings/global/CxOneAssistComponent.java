@@ -114,10 +114,10 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mainPanel.add(new JSeparator(), "growx, wrap");
         mainPanel.add(secretsCheckbox, "wrap, gapbottom 10, gapleft 15");
 
-        // TEMPORARILY HIDDEN: Containers Realtime - Will be restored in future release
-        // mainPanel.add(containersTitle, "split 2, span");
-        // mainPanel.add(new JSeparator(), "growx, wrap");
-        // mainPanel.add(containersCheckbox, "wrap, gapbottom 10, gapleft 15");
+
+         mainPanel.add(containersTitle, "split 2, span");
+         mainPanel.add(new JSeparator(), "growx, wrap");
+         mainPanel.add(containersCheckbox, "wrap, gapbottom 10, gapleft 15");
 
         // TEMPORARILY HIDDEN: IaC Realtime - Will be restored in future release
         // mainPanel.add(iacTitle, "split 2, span");
@@ -261,9 +261,10 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     public boolean isModified() {
         ensureState();
         return ossCheckbox.isSelected() != state.isOssRealtime()
-                || secretsCheckbox.isSelected() != state.isSecretDetectionRealtime();
+                || secretsCheckbox.isSelected() != state.isSecretDetectionRealtime()
+                || containersCheckbox.isSelected() != state.isContainersRealtime();
                 // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-                // || containersCheckbox.isSelected() != state.isContainersRealtime()
+
                 // || iacCheckbox.isSelected() != state.isIacRealtime()
                 // || !Objects.equals(String.valueOf(containersToolCombo.getSelectedItem()), state.getContainersTool());
     }
@@ -275,8 +276,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         // Apply current UI selections to active scanner settings
         state.setOssRealtime(ossCheckbox.isSelected());
         state.setSecretDetectionRealtime(secretsCheckbox.isSelected());
+        state.setContainersRealtime(containersCheckbox.isSelected());
         // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-        // state.setContainersRealtime(containersCheckbox.isSelected());
         // state.setIacRealtime(iacCheckbox.isSelected());
         // state.setContainersTool(String.valueOf(containersToolCombo.getSelectedItem()));
 
@@ -286,7 +287,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         state.setUserPreferences(
             ossCheckbox.isSelected(),
             secretsCheckbox.isSelected(),
-            state.isContainersRealtime(), // Use current state for hidden fields
+            containersCheckbox.isSelected(), // Use current state for hidden fields
             state.isIacRealtime()         // Use current state for hidden fields
         );
 
@@ -303,8 +304,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         state = GlobalSettingsState.getInstance();
         ossCheckbox.setSelected(state.isOssRealtime());
         secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
+        containersCheckbox.setSelected(state.isContainersRealtime());
         // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-        // containersCheckbox.setSelected(state.isContainersRealtime());
         // iacCheckbox.setSelected(state.isIacRealtime());
         // containersToolCombo.setSelectedItem(
         //         state.getContainersTool() == null || state.getContainersTool().isBlank()
@@ -326,8 +327,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             secretsCheckbox.setSelected(false);
             installMcpLink.setEnabled(false);
             // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-            // containersCheckbox.setEnabled(false);
-            // containersCheckbox.setSelected(false);
+             containersCheckbox.setEnabled(false);
+             containersCheckbox.setSelected(false);
             // iacCheckbox.setEnabled(false);
             // iacCheckbox.setSelected(false);
 
@@ -350,14 +351,13 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     }
 
 
-
     private void updateUIWithMcpStatus(boolean mcpEnabled, boolean isAuthenticated) {
         ossCheckbox.setEnabled(mcpEnabled);
         secretsCheckbox.setEnabled(mcpEnabled);
         // Enable install MCP link only if MCP is enabled at tenant level AND user is authenticated
         installMcpLink.setEnabled(mcpEnabled && isAuthenticated);
+        containersCheckbox.setEnabled(mcpEnabled);
         // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-        // containersCheckbox.setEnabled(mcpEnabled);
         // iacCheckbox.setEnabled(mcpEnabled);
 
         if (!mcpEnabled) {
@@ -372,8 +372,9 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             // When MCP is disabled, uncheck all scanner checkboxes to prevent realtime scanning
             ossCheckbox.setSelected(false);
             secretsCheckbox.setSelected(false);
+            containersCheckbox.setSelected(false);
             // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-            // containersCheckbox.setSelected(false);
+
             // iacCheckbox.setSelected(false);
 
             boolean settingsChanged = false;
@@ -385,11 +386,12 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
                 state.setSecretDetectionRealtime(false);
                 settingsChanged = true;
             }
+
+             if (state.isContainersRealtime()) {
+                 state.setContainersRealtime(false);
+                 settingsChanged = true;
+             }
             // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-            // if (state.isContainersRealtime()) {
-            //     state.setContainersRealtime(false);
-            //     settingsChanged = true;
-            // }
             // if (state.isIacRealtime()) {
             //     state.setIacRealtime(false);
             //     settingsChanged = true;
@@ -422,7 +424,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             // Update UI to reflect current scanner state (including any restored preferences)
             ossCheckbox.setSelected(state.isOssRealtime());
             secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
-
+            containersCheckbox.setSelected(state.isContainersRealtime());
             assistMessageLabel.setVisible(false);
             assistMessageLabel.setText(""); // Clear any previous message
         }
@@ -442,6 +444,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         // Disable controls while checking
         ossCheckbox.setEnabled(false);
         secretsCheckbox.setEnabled(false);
+        containersCheckbox.setEnabled(false);
         installMcpLink.setEnabled(false);
 
         CompletableFuture.supplyAsync(() -> {

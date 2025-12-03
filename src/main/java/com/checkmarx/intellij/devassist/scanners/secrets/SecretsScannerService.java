@@ -62,8 +62,8 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
      * @param filePath absolute path to the file
      * @return {@code true} if the file should be scanned; {@code false} otherwise
      */
-    public boolean shouldScanFile(String filePath) {
-        if (!super.shouldScanFile(filePath)) {
+    public boolean shouldScanFile(String filePath, PsiFile psiFile) {
+        if (!super.shouldScanFile(filePath, psiFile)) {
             LOGGER.debug("Base shouldScanFile returned false for: " + filePath);
             return false;
         }
@@ -182,7 +182,7 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
      * @return ScanResult of type SecretsRealtimeResults (TODO: Replace with actual type)
      */
     public ScanResult<SecretsRealtimeResults> scan(@NotNull PsiFile file, @NotNull String uri) {
-        if (!this.shouldScanFile(uri)) {
+        if (!this.shouldScanFile(uri,file)) {
             return null;
         }
 
