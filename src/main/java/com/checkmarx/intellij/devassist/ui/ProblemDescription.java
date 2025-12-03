@@ -189,9 +189,9 @@ public class ProblemDescription {
         descBuilder.append("<tr><td style='padding:0;vertical-align:middle;'>").append(getIcon(PACKAGE)).append("</td>")
                 .append("<td style='padding:0 4px 0 4px;vertical-align:middle;'><b>").append(scanIssue.getTitle()).append("@")
                 .append(scanIssue.getImageTag()).append("</b></td><td style='padding:0;vertical-align:middle;'>")
-                .append(GRAY).append(" - ").append(scanIssue.getSeverity()).append(" ")
+                .append(scanIssue.getSeverity()).append(" ")
                 .append(Constants.RealTimeConstants.SEVERITY_PACKAGE)
-                .append("</p></td></tr></table>");
+                .append("</td></tr></table>");
     }
 
 

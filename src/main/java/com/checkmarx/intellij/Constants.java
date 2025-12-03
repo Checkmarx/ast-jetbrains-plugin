@@ -171,13 +171,6 @@ public final class Constants {
                 "**/*.csproj"
         );
 
-
-
-
-
-
-
-
         public  static  final List<String> CONTAINERS_FILE_PATTERNS= List.of(
                 "**/dockerfile",
                 "**/dockerfile-*",
