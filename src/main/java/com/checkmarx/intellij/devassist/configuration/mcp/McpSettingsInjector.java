@@ -60,16 +60,15 @@ public final class McpSettingsInjector {
             return Path.of(localAppData, "github-copilot", "intellij", "mcp.json");
         }
 
-        if (os.contains("mac")) {
-            return Path.of(home, "Library", "Application Support",
-                    "github-copilot", "intellij", "mcp.json");
+        // For macOS and Linux/Unix, use XDG_CONFIG_HOME if set, otherwise fallback to ~/.config
+        // This fallback logic resolves to ~/.config/github-copilot/intellij/mcp.json
+        String xdgConfig = System.getenv("XDG_CONFIG_HOME");
+        if (xdgConfig != null && !xdgConfig.isBlank()) {
+            return Path.of(xdgConfig, "github-copilot", "intellij", "mcp.json");
         }
-
-        String xdg = System.getenv("XDG_CONFIG_HOME");
-        Path base = (xdg != null && !xdg.isBlank())
-                ? Path.of(xdg)
-                : Path.of(home, ".config");
-        return base.resolve(Path.of("github-copilot", "intellij", "mcp.json"));
+        // Fallback to ~/.config/github-copilot/intellij/mcp.json (common on macOS where XDG_CONFIG_HOME is not set)
+        Path configBase = Path.of(home, ".config");
+        return configBase.resolve(Path.of("github-copilot", "intellij", "mcp.json"));
     }
 
     /* ---------- Helpers ---------- */
@@ -183,3 +182,4 @@ public final class McpSettingsInjector {
         return resolveCopilotMcpConfigPath();
     }
 }
+
