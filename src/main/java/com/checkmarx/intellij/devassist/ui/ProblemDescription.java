@@ -99,6 +99,8 @@ public class ProblemDescription {
             case SECRETS:
                 buildSecretsDescription(descBuilder, scanIssue);
                 break;
+            case CONTAINERS:
+                buildContainerDescription(descBuilder,scanIssue);
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
@@ -123,6 +125,12 @@ public class ProblemDescription {
         buildPackageHeader(descBuilder, scanIssue);
         buildVulnerabilitySection(descBuilder, scanIssue);
     }
+
+    private void buildContainerDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
+        buildImageHeader(descBuilder, scanIssue);
+        buildVulnerabilitySection(descBuilder, scanIssue);
+    }
+
 
     /**
      * Builds the Secrets description tooltip.
@@ -207,6 +215,20 @@ public class ProblemDescription {
                 .append(Constants.RealTimeConstants.SEVERITY_PACKAGE)
                 .append("</td></tr></table>");
     }
+
+    private void buildImageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
+        descBuilder.append("<table style='border-collapse:collapse;'><tr><td colspan=\"3\" style='padding:0;'><p style='font-size: 10px; margin:0;'>")
+                .append(scanIssue.getSeverity()).append("-").append(Constants.RealTimeConstants.RISK_PACKAGE)
+                .append(" :  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getImageTag()).append("</p></td></tr>");
+
+        descBuilder.append("<tr><td style='padding:0;vertical-align:middle;'>").append(getIcon(PACKAGE)).append("</td>")
+                .append("<td style='padding:0 4px 0 4px;vertical-align:middle;'><b>").append(scanIssue.getTitle()).append("@")
+                .append(scanIssue.getImageTag()).append("</b></td><td style='padding:0;vertical-align:middle;'>")
+                .append(scanIssue.getSeverity()).append(" ")
+                .append(Constants.RealTimeConstants.SEVERITY_PACKAGE)
+                .append("</td></tr></table>");
+    }
+
 
     /**
      * Builds a malicious package message and appends it to the provided StringBuilder.
