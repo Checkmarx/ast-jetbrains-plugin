@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 public class CxLinkLabel extends HyperlinkLabel {
 
     private static final Logger LOGGER = Utils.getLogger(CxLinkLabel.class);
+    private final Consumer<MouseEvent> onClickHandler;
 
     public CxLinkLabel(@NotNull Resource resource, Consumer<MouseEvent> onClick) {
         this(Bundle.message(resource), onClick);
@@ -31,15 +32,33 @@ public class CxLinkLabel extends HyperlinkLabel {
 
     public CxLinkLabel(@NotNull String text, Consumer<MouseEvent> onClick) {
         super(text);
+        this.onClickHandler = onClick;
 
         addMouseListener(new MouseAdapter() {
 
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-                onClick.accept(e);
+                if (isEnabled()) {
+                    onClick.accept(e);
+                }
             }
         });
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+
+        if (enabled) {
+            // Restore normal link appearance
+            setForeground(null); // Use default link color
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        } else {
+            // Set disabled appearance
+            setForeground(Color.GRAY);
+            setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+        }
     }
 
     /**

@@ -68,6 +68,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private final MessageBusConnection connection;
 
     private final JBLabel mcpStatusLabel = new JBLabel();
+    private CxLinkLabel installMcpLink;
     private boolean mcpInstallInProgress;
     private Timer mcpClearTimer;
 
@@ -141,7 +142,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mainPanel.add(new JSeparator(), "growx, wrap");
         mainPanel.add(new JBLabel(Bundle.message(Resource.MCP_DESCRIPTION)), "wrap, gapleft 15");
 
-        CxLinkLabel installMcpLink = new CxLinkLabel(Bundle.message(Resource.MCP_INSTALL_LINK), e -> installMcp());
+        installMcpLink = new CxLinkLabel(Bundle.message(Resource.MCP_INSTALL_LINK), e -> installMcp());
         mcpStatusLabel.setVisible(false);
         mcpStatusLabel.setBorder(new EmptyBorder(0, 20, 0, 0));
 
@@ -157,7 +158,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
      * Provides inline status feedback (successfully saved, already up to date, or auth required).
      */
     private void installMcp() {
-        if (mcpInstallInProgress) {
+        if (mcpInstallInProgress || !installMcpLink.isEnabled()) {
             return;
         }
 
@@ -324,6 +325,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             // If not authenticated, immediately show message, disable controls, and uncheck scanners
             ossCheckbox.setEnabled(false);
             ossCheckbox.setSelected(false);
+            installMcpLink.setEnabled(false);
             // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
             // secretsCheckbox.setEnabled(false);
             // secretsCheckbox.setSelected(false);
@@ -353,6 +355,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
     private void updateUIWithMcpStatus(boolean mcpEnabled) {
         ossCheckbox.setEnabled(mcpEnabled);
+        installMcpLink.setEnabled(mcpEnabled);
         // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
         // secretsCheckbox.setEnabled(mcpEnabled);
         // containersCheckbox.setEnabled(mcpEnabled);
@@ -440,6 +443,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
         // Disable controls while checking
         ossCheckbox.setEnabled(false);
+        installMcpLink.setEnabled(false);
         // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
         // secretsCheckbox.setEnabled(false);
 
