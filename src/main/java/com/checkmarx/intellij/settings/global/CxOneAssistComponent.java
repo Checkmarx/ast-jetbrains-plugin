@@ -153,8 +153,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
     /**
      * Manual MCP installation invoked by the "Install MCP" link.
-     * Provides inline status feedback (successfully saved, already up to date, or tenant-level disabled).
-     * Note: Button is disabled when user is not authenticated, so no auth checks needed here.
+     * Provides inline status feedback (successfully saved, already up to date, or installation failure).
+     * Note: Authentication is handled by disabling the button when not authenticated.
      */
     private void installMcp() {
         if (mcpInstallInProgress) {
@@ -172,6 +172,9 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         // At this point, user should be authenticated (button is disabled otherwise)
         GlobalSettingsSensitiveState sensitive = GlobalSettingsSensitiveState.getInstance();
         String credential = state.isApiKeyEnabled() ? sensitive.getApiKey() : sensitive.getRefreshToken();
+        if (credential == null || credential.isBlank()) {
+            return;
+        }
 
         LOGGER.debug("[CxOneAssist] Manual MCP install started.");
         mcpInstallInProgress = true;
