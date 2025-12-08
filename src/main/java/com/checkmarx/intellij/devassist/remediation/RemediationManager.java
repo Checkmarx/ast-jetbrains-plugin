@@ -44,6 +44,9 @@ public final class RemediationManager {
             case OSS:
                 applyOSSRemediation(project, scanIssue);
                 break;
+            case SECRETS:
+                applySecretRemediation(project, scanIssue);
+                break;
             case ASCA:
                 applyASCARemediation(project, scanIssue);
                 break;
@@ -62,6 +65,9 @@ public final class RemediationManager {
         switch (scanIssue.getScanEngine()) {
             case OSS:
                 explainOSSDetails(project, scanIssue);
+                break;
+            case SECRETS:
+                explainSecretDetails(project, scanIssue);
                 break;
             case ASCA:
                 applyASCARemediation(project, scanIssue);
@@ -82,6 +88,20 @@ public final class RemediationManager {
         if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for OSS Issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    /**
+     * Applies remediation for a Secret issue.
+     */
+    private void applySecretRemediation(Project project, ScanIssue scanIssue) {
+        LOGGER.info(format("RTS-Fix: Remediation started for file: %s for secrets issue: %s",
+                scanIssue.getFilePath(), scanIssue.getTitle()));
+        String scaPrompt = CxOneAssistFixPrompts.secretRemediationPrompt(scanIssue.getTitle(), scanIssue.getDescription(), scanIssue.getSeverity());
+        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+                Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
+            LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for secrets issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
         }
     }
@@ -111,6 +131,24 @@ public final class RemediationManager {
         if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for OSS Issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    /**
+     * Explain the details of a secret issue.
+     *
+     * @param project   the project where the fix is to be applied
+     * @param scanIssue the scan issue to view details for
+     */
+    private void explainSecretDetails(Project project, ScanIssue scanIssue) {
+        LOGGER.info(format("RTS-Fix: Viewing details for file: %s for secrets issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
+        String scaPrompt = ViewDetailsPrompts.secretsExplanationPrompt(scanIssue.getTitle(),
+                scanIssue.getDescription(),
+                scanIssue.getSeverity());
+        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+                Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
+            LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for secrets issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
         }
     }

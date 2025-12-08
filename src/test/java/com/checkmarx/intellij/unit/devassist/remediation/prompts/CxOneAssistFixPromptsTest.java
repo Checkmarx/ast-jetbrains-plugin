@@ -44,7 +44,7 @@ public class CxOneAssistFixPromptsTest {
     @DisplayName("generateSecretRemediationPrompt_NullDescriptionAndSeverity_GracefulFallback")
     void generateSecretRemediationPrompt_NullDescriptionAndSeverity_GracefulFallback() {
         String title = "HARD_CODED_SECRET";
-        String prompt = CxOneAssistFixPrompts.generateSecretRemediationPrompt(title, null, null);
+        String prompt = CxOneAssistFixPrompts.secretRemediationPrompt(title, null, null);
         assertTrue(prompt.contains("A secret has been detected: \"" + title + "\""), "Should mention title");
         assertTrue(prompt.contains("Severity level: ``"), "Severity line should show empty backticks for null severity");
         assertTrue(prompt.contains("Likely invalid"), "Fallback assessment should be for invalid secret");
@@ -53,28 +53,28 @@ public class CxOneAssistFixPromptsTest {
     @Test
     @DisplayName("generateSecretRemediationPrompt_CriticalSeverity_AssessmentBranch")
     void generateSecretRemediationPrompt_CriticalSeverity_AssessmentBranch() {
-        String prompt = CxOneAssistFixPrompts.generateSecretRemediationPrompt("DB_PASSWORD", "desc", SeverityLevel.CRITICAL.getSeverity());
+        String prompt = CxOneAssistFixPrompts.secretRemediationPrompt("DB_PASSWORD", "desc", SeverityLevel.CRITICAL.getSeverity());
         assertTrue(prompt.contains("Confirmed valid secret"), "Critical severity should map to confirmed valid");
     }
 
     @Test
     @DisplayName("generateSecretRemediationPrompt_HighSeverity_AssessmentBranch")
     void generateSecretRemediationPrompt_HighSeverity_AssessmentBranch() {
-        String prompt = CxOneAssistFixPrompts.generateSecretRemediationPrompt("API_KEY", "desc", SeverityLevel.HIGH.getSeverity());
+        String prompt = CxOneAssistFixPrompts.secretRemediationPrompt("API_KEY", "desc", SeverityLevel.HIGH.getSeverity());
         assertTrue(prompt.contains("Possibly valid"), "High severity should map to possibly valid branch");
     }
 
     @Test
     @DisplayName("generateSecretRemediationPrompt_LowSeverity_AssessmentBranch")
     void generateSecretRemediationPrompt_LowSeverity_AssessmentBranch() {
-        String prompt = CxOneAssistFixPrompts.generateSecretRemediationPrompt("TEST_KEY", "desc", SeverityLevel.LOW.getSeverity());
+        String prompt = CxOneAssistFixPrompts.secretRemediationPrompt("TEST_KEY", "desc", SeverityLevel.LOW.getSeverity());
         assertTrue(prompt.contains("Likely invalid"), "Low severity should map to likely invalid branch");
     }
 
     @Test
     @DisplayName("generateSecretRemediationPrompt_IncludesStructuredMarkdownSections")
     void generateSecretRemediationPrompt_IncludesStructuredMarkdownSections() {
-        String prompt = CxOneAssistFixPrompts.generateSecretRemediationPrompt("SECRET_TOKEN", "description here", SeverityLevel.MALICIOUS.getSeverity());
+        String prompt = CxOneAssistFixPrompts.secretRemediationPrompt("SECRET_TOKEN", "description here", SeverityLevel.MALICIOUS.getSeverity());
         assertAll(
                 () -> assertTrue(prompt.contains("Secret Remediation Summary"), "Should include summary header"),
                 () -> assertTrue(prompt.contains("Remediation Actions Taken"), "Should list remediation actions section"),

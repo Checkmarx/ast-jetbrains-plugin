@@ -133,21 +133,18 @@ public final class CxOneAssistFixPrompts {
      * @param severity    - issue severity (optional) - if null, will be empty string.
      * @return - prompt string (plain text with Markdown fragments)
      */
-    public static String generateSecretRemediationPrompt(String title, String description, String severity) {
+    public static String secretRemediationPrompt(String title, String description, String severity) {
         StringBuilder prompt = new StringBuilder()
                 .append("A secret has been detected: \"").append(title).append("\"  \n")
-                .append(description != null ? description : "").append("\n\n")
-                .append("---\n\n")
-                .append("You are the `").append(AGENT_NAME).append("`.\n\n")
-                .append("Your mission is to identify and remediate this secret using secure coding standards. Follow industry best practices, automate safely, and clearly document all actions taken.\n\n")
-                .append("---\n\n");
+                .append(description != null ? description : "").append("\n\n");
+        prompt.append("You are the `").append(AGENT_NAME).append("`.\n\n")
+                .append("Your mission is to identify and remediate this secret using secure coding standards. Follow industry best practices, automate safely, and clearly document all actions taken.\n\n");
 
         prompt.append("Step 1. SEVERITY INTERPRETATION  \n")
                 .append("Severity level: `").append(severity != null ? severity : "").append("`\n\n")
                 .append("- `Critical`: Secret is confirmed **valid**. Immediate remediation required.  \n")
                 .append("- `High`: Secret may be valid. Treat as sensitive and externalize it securely.  \n")
-                .append("- `Medium`: Likely **invalid** (e.g., test or placeholder). Still remove from code and annotate accordingly.\n\n")
-                .append("---\n\n");
+                .append("- `Medium`: Likely **invalid** (e.g., test or placeholder). Still remove from code and annotate accordingly.\n\n");
 
         prompt.append("Step 2. TOOL CALL – Remediation Plan\n\n")
                 .append("Determine the programming language of the file where the secret was detected.  \n")
@@ -165,28 +162,24 @@ public final class CxOneAssistFixPrompts {
                 .append("  - `best_practices` – explain secure alternatives\n")
                 .append("  - `description` – contextual background\n\n")
                 .append("- If the tool is **not available**, display:\n")
-                .append("`[MCP ERROR] codeRemediation tool is not available. Please check the Checkmarx MCP server.`\n\n")
-                .append("---\n\n");
+                .append("`[MCP ERROR] codeRemediation tool is not available. Please check the Checkmarx MCP server.`\n\n");
 
         prompt.append("Step 3. ANALYSIS & RISK\n\n")
                 .append("Identify the type of secret (API key, token, credential). Explain:\n")
                 .append("- Why it’s a risk (leakage, unauthorized access, compliance violations)\n")
-                .append("- What could happen if misused or left in source\n\n")
-                .append("---\n\n");
+                .append("- What could happen if misused or left in source\n\n");
 
         prompt.append("Step 4. REMEDIATION STRATEGY\n\n")
                 .append("- Parse and apply every item in `remediation_steps` sequentially\n")
                 .append("- Automatically update code/config files if safe\n")
                 .append("- If a step cannot be applied automatically, insert a clear TODO\n")
-                .append("- Replace secret with environment variable or vault reference\n\n")
-                .append("---\n\n");
+                .append("- Replace secret with environment variable or vault reference\n\n");
 
         prompt.append("Step 5. VERIFICATION\n\n")
                 .append("If applicable for the language:\n")
                 .append("- Run type checks or compile the code\n")
                 .append("- Ensure changes build and tests pass\n")
-                .append("- Fix issues if introduced by secret removal\n\n")
-                .append("---\n\n");
+                .append("- Fix issues if introduced by secret removal\n\n");
 
         prompt.append("Step 6. OUTPUT FORMAT\n\n")
                 .append("Generate a structured remediation summary:\n\n")
@@ -211,8 +204,7 @@ public final class CxOneAssistFixPrompts {
                 .append("- (From tool response, or fallback security guidelines)\n\n")
                 .append("**Description:**\n")
                 .append("- (From `description` field or fallback to original input)\n\n")
-                .append("```\n\n")
-                .append("---\n\n");
+                .append("```\n\n");
 
         prompt.append("Step 7. CONSTRAINTS\n\n")
                 .append("- ❌ Do NOT expose real secrets\n")

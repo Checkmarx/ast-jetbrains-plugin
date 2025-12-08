@@ -80,7 +80,7 @@ public final class ViewDetailsPrompts {
      * @param prompt  the prompt builder
      */
     private static void buildMaliciousContentForSCAPrompt(String version, StringBuilder prompt) {
-        prompt.append("\n---\n\n")
+        prompt.append("\n\n")
                 .append("### 🧨 Malicious Package Detected\n\n")
                 .append("This package has been flagged as **malicious**.\n\n")
                 .append("**⚠️ Never install or use this package under any circumstances.**\n\n")
@@ -121,5 +121,59 @@ public final class ViewDetailsPrompts {
         } else {
             prompt.append("\n⚠️ No CVEs were provided. Please verify if this is expected for status `").append(status).append("`.\n");
         }
+    }
+
+    /**
+     * Generates a detailed prompt for explaining a detected secret.
+     *
+     * @param title       the title of the secret
+     * @param description the description of the secret
+     * @param severity    the severity level of the secret vulnerability
+     * @return the formatted Markdown prompt
+     */
+    public static String secretsExplanationPrompt(String title, String description, String severity) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are the `").append(AGENT_NAME).append("`.\n\n")
+                .append("A potential secret has been detected: **\"").append(title).append("\"**  \n")
+                .append("Severity: **").append(severity).append("**\n\n");
+        prompt.append("### ❗ Important Instruction:\n")
+                .append("👉 **Do not change any code. Just explain the risk, validation level, and recommended actions.**\n\n");
+        prompt.append("### 🔍 Secret Overview\n\n")
+                .append("- **Secret Name:** `").append(title).append("`\n")
+                .append("- **Severity Level:** `").append(severity).append("`\n")
+                .append("- **Details:** ").append(description).append("\n\n");
+        prompt.append("### 🧠 Risk Understanding Based on Severity\n\n")
+                .append("- **Critical**:  \n")
+                .append("  The secret was **validated as active**. It is likely in use and can be exploited immediately if exposed.\n\n")
+                .append("- **High**:  \n")
+                .append("  The validation status is **unknown**. The secret may or may not be valid. Proceed with caution and treat it as potentially live.\n\n")
+                .append("- **Medium**:  \n")
+                .append("  The secret was identified as **invalid** or **mock/test value**. While not active, it may confuse developers or be reused insecurely.\n\n");
+        prompt.append("### 🔐 Why This Matters\n\n")
+                .append("Hardcoded secrets pose a serious risk:\n")
+                .append("- **Leakage** through public repositories or logs\n")
+                .append("- **Unauthorized access** to APIs, cloud providers, or infrastructure\n")
+                .append("- **Exploitation** via replay attacks, privilege escalation, or lateral movement\n\n");
+        prompt.append("### ✅ Recommended Remediation Steps (for developer action)\n\n")
+                .append("- Rotate the secret if it’s live (Critical/High)\n")
+                .append("- Move secrets to environment variables or secret managers\n")
+                .append("- Audit the commit history to ensure it hasn’t leaked publicly\n")
+                .append("- Implement secret scanning in your CI/CD pipelines\n")
+                .append("- Document safe handling procedures in your repo\n\n");
+        prompt.append("### 📋 Next Steps Checklist (Markdown)\n\n")
+                .append("```markdown\n")
+                .append("### Next Steps:\n")
+                .append("- [ ] Rotate the exposed secret if valid\n")
+                .append("- [ ] Move secret to secure storage (.env or secret manager)\n")
+                .append("- [ ] Clean secret from commit history if leaked\n")
+                .append("- [ ] Annotate clearly if it's a fake or mock value\n")
+                .append("- [ ] Implement CI/CD secret scanning and policies\n")
+                .append("```\n\n");
+        prompt.append("### ✏️ Output Format Guidelines\n\n")
+                .append("- Use Markdown with clear sections\n")
+                .append("- Do not attempt to edit or redact the code\n")
+                .append("- Be factual, concise, and helpful\n")
+                .append("- Assume this is shown to a developer unfamiliar with security tooling\n");
+        return prompt.toString();
     }
 }
