@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.problems;
 
+import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
 import com.checkmarx.intellij.devassist.remediation.IgnoreAllThisTypeFix;
 import com.checkmarx.intellij.devassist.remediation.IgnoreVulnerabilityFix;
@@ -16,7 +17,9 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -70,8 +73,7 @@ public class ProblemBuilder {
     static ProblemDescriptor build(@NotNull PsiFile file, @NotNull InspectionManager manager,
                                    @NotNull ScanIssue scanIssue, @NotNull Document document,
                                    int problemLineNumber, boolean isOnTheFly) {
-
-        TextRange problemRange = DevAssistUtils.getTextRangeForLine(document, problemLineNumber);
+        TextRange problemRange = getTextRange(document ,scanIssue.getLocations());
         String description = PROBLEM_DESCRIPTION_INSTANCE.formatDescription(scanIssue);
         ProblemHighlightType highlightType = determineHighlightType(scanIssue);
 
@@ -97,4 +99,40 @@ public class ProblemBuilder {
     private static ProblemHighlightType determineHighlightType(ScanIssue scanIssue) {
         return SEVERITY_HIGHLIGHT_TYPE_MAP.getOrDefault(scanIssue.getSeverity(), ProblemHighlightType.WEAK_WARNING);
     }
+
+
+    /**
+     * Retrieves the text range for a block of code defined by multiple locations.
+     * If multiple locations are provided, it calculates the minimum start offset
+     * and maximum end offset across all locations, trimming leading and trailing
+     * whitespace. If only one location is provided, it returns the text range
+     * for that specific line.
+     *
+     * @param document          the document from which the text range is to be retrieved
+     * @param locations         the list of locations defining the block of code
+     * @return a TextRange representing the start and end offsets of the block of code
+     */
+    public static TextRange getTextRange(Document document, List<Location> locations) {
+        if (locations.size()>1) {
+            // Ensure locations are sorted by line number (or by start index)
+            locations.sort(Comparator.comparingInt(Location::getLine));
+
+            Location first = locations.get(0);
+            Location last = locations.get(locations.size() - 1);
+
+            // FIRST location → minStartOffset
+            TextRange firstRange = DevAssistUtils.getTextRangeForLine(document, first.getLine());
+            int minStartOffset = firstRange.getStartOffset();
+
+            // LAST location → maxEndOffset
+            TextRange lastRange = DevAssistUtils.getTextRangeForLine(document, last.getLine());
+            int maxEndOffset = lastRange.getStartOffset();
+
+            return new TextRange(minStartOffset, maxEndOffset);
+        } else {
+            return DevAssistUtils.getTextRangeForLine(document, locations.get(0).getLine());
+        }
+
+    }
+
 }
