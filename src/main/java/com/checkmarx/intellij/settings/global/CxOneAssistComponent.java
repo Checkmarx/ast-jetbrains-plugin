@@ -452,7 +452,9 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
         CompletableFuture.supplyAsync(() -> {
             try {
-                return com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled();
+                GlobalSettingsState currentState = GlobalSettingsState.getInstance();
+                GlobalSettingsSensitiveState currentSensitiveState = GlobalSettingsSensitiveState.getInstance();
+                return com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled(currentState, currentSensitiveState);
             } catch (Exception ex) {
                 LOGGER.warn("Failed to check MCP status during upgrade scenario", ex);
                 return false; // Default to disabled on error

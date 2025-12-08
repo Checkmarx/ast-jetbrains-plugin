@@ -1,10 +1,11 @@
 package com.checkmarx.intellij.unit.devassist.inspection.remediation;
 
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.devassist.inspection.remediation.IgnoreAllThisTypeFix;
+import com.checkmarx.intellij.devassist.remediation.IgnoreAllThisTypeFix;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -40,7 +41,7 @@ class IgnoreAllThisTypeFixTest {
         final boolean[] called = {false};
         IgnoreAllThisTypeFix testFix = new IgnoreAllThisTypeFix(scanIssue) {
             @Override
-            public void applyFix(Project project, ProblemDescriptor descriptor) {
+            public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
                 called[0] = true;
                 super.applyFix(project, descriptor);
             }

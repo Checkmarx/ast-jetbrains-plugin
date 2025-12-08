@@ -164,7 +164,7 @@ public final class Constants {
         public static final String ERROR_SECRETS_REALTIME_SCANNER = "Failed to handle Secrets Realtime scan";
 
         //Dev Assist Fixes Constants
-        public static final String FIX_WITH_CXONE_ASSIST = "Fix with CxOne Assist";
+        public static final String FIX_WITH_CXONE_ASSIST = "Copy fix prompt";
         public static final String VIEW_DETAILS_FIX_NAME = "View details";
         public static final String IGNORE_THIS_VULNERABILITY_FIX_NAME = "Ignore this vulnerability";
         public static final String IGNORE_ALL_OF_THIS_TYPE_FIX_NAME = "Ignore all of this type";

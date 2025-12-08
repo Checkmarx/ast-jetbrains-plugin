@@ -318,10 +318,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
      * @param credential The credential to use for MCP installation (API key or refresh token)
      */
     private void completeAuthenticationSetup(String credential) {
-        // Check MCP server status once during authentication
+        // Check MCP server status using current authentication credentials
         boolean mcpServerEnabled = false;
         try {
-            mcpServerEnabled = com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled();
+            mcpServerEnabled = com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled(
+                getStateFromFields(), getSensitiveStateFromFields());
         } catch (Exception ex) {
             LOGGER.warn("Failed MCP server check", ex);
         }
