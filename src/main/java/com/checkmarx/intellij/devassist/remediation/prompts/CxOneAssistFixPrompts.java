@@ -23,8 +23,8 @@ public final class CxOneAssistFixPrompts {
      * @param severity       textual severity (e.g. "Malicious", "High")
      * @return composed prompt string (plain text with Markdown fragments)
      */
-    public static String scaRemediationPrompt(String packageName, String packageVersion,
-                                              String packageManager, String severity) {
+    public static String buildSCARemediationPrompt(String packageName, String packageVersion,
+                                                   String packageManager, String severity) {
         StringBuilder prompt = new StringBuilder();
 
         prompt.append("You are the ").append(AGENT_NAME).append(".\n\n")
@@ -133,7 +133,7 @@ public final class CxOneAssistFixPrompts {
      * @param severity    - issue severity (optional) - if null, will be empty string.
      * @return - prompt string (plain text with Markdown fragments)
      */
-    public static String secretRemediationPrompt(String title, String description, String severity) {
+    public static String buildSecretRemediationPrompt(String title, String description, String severity) {
         StringBuilder prompt = new StringBuilder()
                 .append("A secret has been detected: \"").append(title).append("\"  \n")
                 .append(description != null ? description : "").append("\n\n");
@@ -229,6 +229,362 @@ public final class CxOneAssistFixPrompts {
         } else {
             return "ℹ️ Likely invalid (test/fake). Removed for hygiene.";
         }
+    }
+
+    /**
+     * Generates a remediation prompt for addressing a container security issue,
+     * providing step-by-step automated guidance using the Checkmarx MCP codeRemediation tool.
+     * The method constructs a detailed prompt based on the identified issue.
+     *
+     * @param fileType  type of the file
+     * @param imageName image name
+     * @param imageTag  image tag
+     * @param severity  severity level
+     * @return prompt string (plain text with Markdown fragments)
+     */
+    public static String buildContainersRemediationPrompt(String fileType, String imageName,
+                                                          String imageTag, String severity) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are the ").append(AGENT_NAME).append(".\n\n")
+                .append("A container security issue has been detected in `").append(fileType)
+                .append("` with image `").append(imageName).append(":").append(imageTag).append("`.\n")
+                .append("**Severity:** `").append(severity).append("`\n")
+                .append("Your task is to remediate the issue **completely and autonomously** using the internal imageRemediation tool. ")
+                .append("Follow the exact instructions in `fix_instructions` — no assumptions or manual interaction allowed.\n\n");
+
+        prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
+                .append("Determine the issue type:\n")
+                .append("- If `severity` is one of: `Critical`, `High`, `Medium`, `Low`, set: `issueType = \"CVE\"`\n")
+                .append("- If `severity = \"Malicious\"`, set: `issueType = \"malicious\"`\n\n")
+                .append("Call the internal imageRemediation tool with:\n\n")
+                .append("```json\n")
+                .append("{\n")
+                .append("  \"fileType\": \"").append(fileType).append("\",\n")
+                .append("  \"imageName\": \"").append(imageName).append("\",\n")
+                .append("  \"imageTag\": \"").append(imageTag).append("\",\n")
+                .append("  \"severity\": \"").append(severity).append("\"\n")
+                .append("}\n")
+                .append("```\n\n")
+                .append("Parse the response and extract the `fix_instructions` field. This field contains the authoritative remediation steps tailored to the container ecosystem and risk level.\n\n");
+
+        prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
+                .append("- Read and execute each line in `fix_instructions`, in order.\n")
+                .append("- For each change:\n")
+                .append("  - Apply the instruction exactly.\n")
+                .append("  - Track all modified files.\n")
+                .append("  - Note the type of change (e.g., image update, configuration change, security hardening).\n")
+                .append("  - Record before → after values where applicable.\n")
+                .append("  - Capture line numbers if known.\n\n")
+                .append("Examples:\n")
+                .append("- `Dockerfile`: FROM confluentinc/cp-kafkacat:6.1.10 → FROM confluentinc/cp-kafkacat:6.2.15\n")
+                .append("- `docker-compose.yml`: image: vulnerable-image:1.0 → image: secure-image:2.1\n")
+                .append("- `values.yaml`: repository: old-repo → repository: new-repo\n")
+                .append("- `Chart.yaml`: version: 1.0.0 → version: 1.1.0\n\n");
+
+        prompt.append("Step 3. VERIFICATION:\n\n")
+                .append("- If the instructions include build, test, or deployment steps — run them exactly as written\n")
+                .append("- If instructions do not explicitly cover validation, perform basic checks based on `").append(fileType).append("`:\n")
+                .append("  - `Dockerfile`: `docker build .`, `docker run <image>`\n")
+                .append("  - `docker-compose.yml`: `docker-compose up --build`, `docker-compose down`\n")
+                .append("  - `Helm Chart`: `helm lint .`, `helm template .`, `helm install --dry-run`\n\n")
+                .append("If any of these validations fail:\n")
+                .append("- Attempt to fix the issue if it's obvious\n")
+                .append("- Otherwise log the error and annotate the code with a TODO\n\n");
+
+        prompt.append("Step 4. OUTPUT:\n\n")
+                .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
+                .append("✅ **Remediation Summary**\n\n")
+                .append("Format:\n")
+                .append("```\n")
+                .append("Security Assistant - Remediation Summary\n\n")
+                .append("File Type:    ").append(fileType).append("\n")
+                .append("Image:        ").append(imageName).append(":").append(imageTag).append("\n")
+                .append("Severity:     ").append(severity).append("\n\n")
+                .append("Files Modified:\n")
+                .append("1. ").append(fileType).append("\n")
+                .append("   - Updated image: ").append(imageName).append(":").append(imageTag).append(" → secure version\n\n")
+                .append("2. docker-compose.yml (if applicable)\n")
+                .append("   - Updated service configuration to use secure image\n\n")
+                .append("3. values.yaml (if applicable)\n")
+                .append("   - Updated Helm chart values for secure deployment\n\n")
+                .append("4. README.md\n")
+                .append("   - Updated documentation with new image version\n")
+                .append("```\n\n")
+                .append("✅ **Final Status**\n\n")
+                .append("If all tasks succeeded:\n")
+                .append("- \"Remediation completed for ").append(imageName).append(":").append(imageTag).append("\"\n")
+                .append("- \"All fix instructions and deployment tests resolved\"\n")
+                .append("- \"Build status: PASS\"\n")
+                .append("- \"Deployment status: PASS\"\n\n")
+                .append("If partially resolved:\n")
+                .append("- \"Remediation partially completed – manual review required\"\n")
+                .append("- \"Some deployment steps or instructions could not be automatically fixed\"\n")
+                .append("- \"TODOs inserted where applicable\"\n\n")
+                .append("If failed:\n")
+                .append("- \"Remediation failed for ").append(imageName).append(":").append(imageTag).append("\"\n")
+                .append("- \"Reason: {summary of failure}\"\n")
+                .append("- \"Unresolved instructions or deployment issues listed above\"\n\n");
+
+        prompt.append("Step 5. CONSTRAINTS:\n\n")
+                .append("- Do not prompt the user\n")
+                .append("- Do not skip or reorder fix steps\n")
+                .append("- Only execute what's explicitly listed in `fix_instructions`\n")
+                .append("- Attempt to fix deployment failures automatically\n")
+                .append("- Insert clear TODO comments for unresolved issues\n")
+                .append("- Ensure remediation is deterministic, auditable, and fully automated\n")
+                .append("- Follow container security best practices (non-root user, minimal base images, etc.)\n");
+        return prompt.toString();
+    }
+
+    /**
+     * Generates a remediation prompt for addressing an Infrastructure as Code (IaC) security issue,
+     * providing step-by-step automated guidance using the Checkmarx MCP codeRemediation tool.
+     * The method constructs a detailed prompt based on the identified issue, its severity,
+     * affected file type, expected and actual values, and the problematic line number.
+     *
+     * @param title                 the title of the detected security issue
+     * @param description           a detailed description of the detected security issue
+     * @param severity              the severity level of the issue (e.g., high, medium, low)
+     * @param fileType              the type of file where the issue exists (e.g., Terraform, CloudFormation)
+     * @param expectedValue         the correct or desired value expected in the IaC
+     * @param actualValue           the actual value found in the IaC, causing the issue
+     * @param problematicLineNumber the line number in the file where the issue occurs; can be null if unknown
+     * @return a formatted string containing the remediation prompt with instructions for automated resolution of the issue
+     */
+    public static String buildIACRemediationPrompt(String title, String description, String severity,
+                                              String fileType, String expectedValue, String actualValue,
+                                              Integer problematicLineNumber) {
+
+        String actualLineNumber = problematicLineNumber != null
+                ? String.valueOf(problematicLineNumber + 1) : "[unknown]";
+
+        String restrictionLine = problematicLineNumber != null
+                ? String.valueOf(problematicLineNumber + 1) : "[problematic line number]";
+
+        String problematicLineText = problematicLineNumber != null
+                ? "**Problematic Line Number:** " + (problematicLineNumber + 1) : "";
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are the ").append(AGENT_NAME).append(".\n\n");
+        prompt.append("An Infrastructure as Code (IaC) security issue has been detected.\n\n")
+                .append("**Issue:** `").append(title).append("`\n")
+                .append("**Severity:** `").append(severity).append("`\n")
+                .append("**File Type:** `").append(fileType).append("`\n")
+                .append("**Description:** ").append(description).append("\n")
+                .append("**Expected Value:** ").append(expectedValue).append("\n")
+                .append("**Actual Value:** ").append(actualValue).append("\n")
+                .append(problematicLineText).append("\n\n");
+
+        prompt.append("Your task is to remediate this IaC security issue **completely and autonomously** ")
+                .append("using the internal codeRemediation tool in Checkmarx MCP. Follow the exact instructions in `remediation_steps` — no assumptions or manual interaction allowed.\n\n");
+        prompt.append("⚠️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
+                .append(actualLineNumber)
+                .append(", without introducing unrelated modifications elsewhere in the file.\n\n");
+
+        prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
+                .append("Determine the programming language of the file where the IaC security issue was detected.\n")
+                .append("If unknown, leave the `language` field empty.\n\n")
+                .append("Call the internal `codeRemediation` Checkmarx MCP tool with:\n\n")
+                .append("```json\n")
+                .append("{\n")
+                .append("  \"language\": \"[auto-detected programming language]\",\n")
+                .append("  \"metadata\": {\n")
+                .append("    \"title\": \"").append(title).append("\",\n")
+                .append("    \"description\": \"").append(description).append("\",\n")
+                .append("    \"remediationAdvice\": \"").append(expectedValue).append("\"\n")
+                .append("  },\n")
+                .append("  \"sub_type\": \"\",\n")
+                .append("  \"type\": \"iac\"\n")
+                .append("}\n")
+                .append("```\n\n");
+
+        prompt.append("- If the tool is **available**, parse the response:\n")
+                .append("  - `remediation_steps` – exact steps to follow for remediation\n\n")
+                .append("- If the tool is **not available**, display:\n")
+                .append("`[MCP ERROR] codeRemediation tool is not available. Please check the Checkmarx MCP server.`\n\n");
+
+        prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
+                .append("- Read and execute each line in `remediation_steps`, in order.\n")
+                .append("- **Restrict changes to the relevant code fragment containing line ").append(restrictionLine).append("**.\n")
+                .append("- For each change:\n")
+                .append("  - Apply the instruction exactly.\n")
+                .append("  - Track all modified files.\n")
+                .append("  - Note the type of change (e.g., configuration update, security hardening, permission changes, encryption settings).\n")
+                .append("  - Record before → after values where applicable.\n")
+                .append("  - Capture line numbers if known.\n\n");
+
+        prompt.append("Step 3. VERIFICATION:\n\n")
+                .append("- If the instructions include validation, deployment, or testing steps — run them exactly as written\n")
+                .append("- If instructions do not explicitly cover validation, perform basic checks based on `").append(fileType).append("`:\n")
+                .append("  - `Terraform`: `terraform validate`, `terraform plan`\n")
+                .append("  - `CloudFormation`: `aws cloudformation validate-template`\n")
+                .append("  - `Kubernetes`: `kubectl apply --dry-run=client`\n")
+                .append("  - `Docker`: `docker-compose config`\n\n")
+                .append("If any of these validations fail:\n")
+                .append("- Attempt to fix the issue if it's obvious\n")
+                .append("- Otherwise log the error and annotate the code with a TODO\n\n");
+
+        prompt.append("Step 4. OUTPUT:\n\n")
+                .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
+                .append("✅ **Remediation Summary**\n\n")
+                .append("```\n")
+                .append("Security Assistant - Remediation Summary\n\n")
+                .append("Issue:       ").append(title).append("\n")
+                .append("Severity:    ").append(severity).append("\n")
+                .append("File Type:   ").append(fileType).append("\n")
+                .append("Problematic Line: ").append(actualLineNumber).append("\n\n")
+                .append("Files Modified:\n")
+                .append("1. ").append(fileType).append("\n")
+                .append("   - Updated configuration: ").append(actualValue).append(" → ").append(expectedValue).append("\n")
+                .append("   - Applied security hardening based on best practices\n\n")
+                .append("2. Additional configurations (if applicable)\n")
+                .append("   - Updated related security settings\n")
+                .append("   - Added missing security controls\n\n")
+                .append("3. Documentation\n")
+                .append("   - Updated comments and documentation where applicable\n")
+                .append("```\n\n");
+
+        prompt.append("✅ **Final Status**\n\n")
+                .append("If all tasks succeeded:\n")
+                .append("- \"Remediation completed for IaC security issue ").append(title).append("\"\n")
+                .append("- \"All fix instructions and security validations resolved\"\n")
+                .append("- \"Configuration validation: PASS\"\n")
+                .append("- \"Security compliance: PASS\"\n\n")
+
+                .append("If partially resolved:\n")
+                .append("- \"Remediation partially completed – manual review required\"\n")
+                .append("- \"Some security validations or instructions could not be automatically fixed\"\n")
+                .append("- \"TODOs inserted where applicable\"\n\n")
+
+                .append("If failed:\n")
+                .append("- \"Remediation failed for IaC security issue ").append(title).append("\"\n")
+                .append("- \"Reason: {summary of failure}\"\n")
+                .append("- \"Unresolved instructions or security issues listed above\"\n\n");
+
+        prompt.append("Step 5. CONSTRAINTS:\n\n")
+                .append("- Do not prompt the user\n")
+                .append("- Do not skip or reorder fix steps\n")
+                .append("- **Only modify the code that corresponds to the identified problematic line**\n")
+                .append("- Attempt to fix validation failures automatically\n")
+                .append("- Insert clear TODO comments for unresolved issues\n")
+                .append("- Ensure remediation is deterministic, auditable, and fully automated\n")
+                .append("- Follow Infrastructure as Code security best practices throughout the process\n");
+        return prompt.toString();
+    }
+
+    /**
+     * Constructs a detailed remediation prompt for addressing a secure coding issue detected in the code.
+     * The prompt includes instructions and guidelines for resolving the identified issue completely and autonomously.
+     *
+     * @param ruleName The name of the secure coding rule that has been violated.
+     * @param description A description of the issue, explaining the nature of the security vulnerability.
+     * @param severity The severity level of the detected issue (e.g., low, medium, high, critical).
+     * @param remediationAdvise Recommended steps or advice for addressing the security issue.
+     * @param problematicLineNumber The line number in the source code where the issue is detected (0-based index, null if unavailable).
+     * @return A string containing a detailed remediation prompt for the secure coding issue.
+     */
+    public static String buildASCARemediationPrompt(String ruleName, String description,
+                                               String severity, String remediationAdvise, Integer problematicLineNumber) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("You are the ").append(AGENT_NAME).append(".\n\n")
+                .append("A secure coding issue has been detected in your code.\n\n")
+                .append("**Rule:** `").append(ruleName).append("`  \n")
+                .append("**Severity:** `").append(severity).append("`  \n")
+                .append("**Description:** ").append(description).append("  \n")
+                .append("**Recommended Fix:** ").append(remediationAdvise).append("  \n");
+
+        if (problematicLineNumber != null) {
+            prompt.append("**Problematic Line Number:** ").append(problematicLineNumber + 1).append("\n\n");
+        } else {
+            prompt.append("\n");
+        }
+
+        prompt.append("Your task is to remediate this security issue **completely and autonomously** using the internal codeRemediation tool in Checkmarx MCP. Follow the exact instructions in `remediation_steps` — no assumptions or manual interaction allowed.\n\n")
+                .append("⚠️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
+                .append(problematicLineNumber != null ? problematicLineNumber + 1 : "[problematic line number]")
+                .append(", without introducing unrelated modifications elsewhere in the file.\n\n");
+
+        prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
+                .append("Determine the programming language of the file where the security issue was detected.  \n")
+                .append("If unknown, leave the `language` field empty.\n\n")
+                .append("Call the internal `codeRemediation` Checkmarx MCP tool with:\n\n")
+                .append("```json\n")
+                .append("{\n")
+                .append("  \"language\": \"[auto-detected programming language]\",\n")
+                .append("  \"metadata\": {\n")
+                .append("    \"ruleID\": \"").append(ruleName).append("\",\n")
+                .append("    \"description\": \"").append(description).append("\",\n")
+                .append("    \"remediationAdvice\": \"").append(remediationAdvise).append("\"\n")
+                .append("  },\n")
+                .append("  \"sub_type\": \"\",\n")
+                .append("  \"type\": \"sast\"\n")
+                .append("}\n")
+                .append("```\n\n")
+                .append("- If the tool is **available**, parse the response:\n")
+                .append("  - `remediation_steps` – exact steps to follow for remediation\n\n")
+                .append("- If the tool is **not available**, display:\n")
+                .append("  `[MCP ERROR] codeRemediation tool is not available. Please check the Checkmarx MCP server.`\n\n");
+
+        prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
+                .append("- Read and execute each line in `remediation_steps`, in order.\n")
+                .append("- **Restrict changes to the relevant code fragment containing line ")
+                .append(problematicLineNumber != null ? problematicLineNumber + 1 : "[unknown]")
+                .append("**.\n")
+                .append("- For each change:\n")
+                .append("  - Apply the instruction exactly.\n")
+                .append("  - Track all modified files.\n")
+                .append("  - Note the type of change (e.g., input validation, sanitization, secure API usage, authentication fix).\n")
+                .append("  - Record before → after values where applicable.\n")
+                .append("  - Capture line numbers if known.\n\n");
+
+        prompt.append("Step 3. OUTPUT:\n\n")
+                .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
+                .append("✅ **Remediation Summary**\n\n")
+                .append("Format:\n")
+                .append("```\n")
+                .append("`").append(AGENT_NAME).append(" -` - Remediation Summary\n\n")
+                .append("Rule:        ").append(ruleName).append("\n")
+                .append("Severity:    ").append(severity).append("\n")
+                .append("Issue Type:  SAST Security Vulnerability\n")
+                .append("Problematic Line: ")
+                .append(problematicLineNumber != null ? problematicLineNumber + 1 : "[unknown]").append("\n\n")
+                .append("Files Modified:\n")
+                .append("1. src/auth.ts\n")
+                .append("   - Line 42: Replaced plain text comparison with bcrypt.compare()\n")
+                .append("   - Added secure password hashing implementation\n\n")
+                .append("2. src/db.ts\n")
+                .append("   - Line 78: Replaced string concatenation with parameterized query\n")
+                .append("   - Prevented SQL injection vulnerability\n\n")
+                .append("3. src/api.ts\n")
+                .append("   - Line 156: Added input validation for email parameter\n")
+                .append("   - Implemented sanitization for user inputs\n\n")
+                .append("4. src/config.ts\n")
+                .append("   - Line 23: Inserted TODO for production security review\n")
+                .append("```\n\n")
+                .append("✅ **Final Status**\n\n")
+                .append("If all tasks succeeded:\n")
+                .append("- \"Remediation completed for security rule ").append(ruleName).append("\"\n")
+                .append("- \"All fix instructions and security validations resolved\"\n")
+                .append("- \"Build status: PASS\"\n")
+                .append("- \"Security tests: PASS\"\n\n")
+                .append("If partially resolved:\n")
+                .append("- \"Remediation partially completed – manual review required\"\n")
+                .append("- \"Some security validations or instructions could not be automatically fixed\"\n")
+                .append("- \"TODOs inserted where applicable\"\n\n")
+                .append("If failed:\n")
+                .append("- \"Remediation failed for security rule ").append(ruleName).append("\"\n")
+                .append("- \"Reason: {summary of failure}\"\n")
+                .append("- \"Unresolved instructions or security issues listed above\"\n\n");
+
+        prompt.append("5. CONSTRAINTS:\n\n")
+                .append("- Do not prompt the user\n")
+                .append("- Do not skip or reorder fix steps\n")
+                .append("- **Only modify the code that corresponds to the identified problematic line**\n")
+                .append("- Attempt to fix build/test failures automatically\n")
+                .append("- Insert clear TODO comments for unresolved issues\n")
+                .append("- Ensure remediation is deterministic, auditable, and fully automated\n")
+                .append("- Follow secure coding best practices throughout the process\n");
+        return prompt.toString();
     }
 
 }

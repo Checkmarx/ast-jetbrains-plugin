@@ -38,7 +38,7 @@ public class ViewDetailsPromptsTest {
     void generateSCAExplanationPrompt_MaliciousBranch_ContentAndVersionReference() {
         String version = "9.9.9";
         String pkg = "evil-lib";
-        String prompt = ViewDetailsPrompts.generateSCAExplanationPrompt(pkg, version, SeverityLevel.MALICIOUS.getSeverity(), List.of());
+        String prompt = ViewDetailsPrompts.buildSCAExplanationPrompt(pkg, version, SeverityLevel.MALICIOUS.getSeverity(), List.of());
         assertAll(
                 () -> assertTrue(prompt.contains("Malicious Package Detected"), "Should include malicious header"),
                 () -> assertTrue(prompt.contains("Never install or use"), "Should warn against use"),
@@ -50,7 +50,7 @@ public class ViewDetailsPromptsTest {
     @Test
     @DisplayName("generateSCAExplanationPrompt_MaliciousBranch_CaseInsensitiveMatch")
     void generateSCAExplanationPrompt_MaliciousBranch_CaseInsensitiveMatch() {
-        String prompt = ViewDetailsPrompts.generateSCAExplanationPrompt("pkg", "1.0", SeverityLevel.MALICIOUS.getSeverity().toUpperCase(), List.of());
+        String prompt = ViewDetailsPrompts.buildSCAExplanationPrompt("pkg", "1.0", SeverityLevel.MALICIOUS.getSeverity().toUpperCase(), List.of());
         assertTrue(prompt.contains("Malicious Package Detected"), "Upper-case MALICIOUS should trigger malicious branch");
     }
 
@@ -60,7 +60,7 @@ public class ViewDetailsPromptsTest {
         List<Vulnerability> vulns = new ArrayList<>();
         vulns.add(new Vulnerability("CVE-123", "desc1", "High", "adv1", "2.0.0"));
         vulns.add(new Vulnerability("CVE-456", "desc2", "Medium", "adv2", "3.0.0"));
-        String prompt = ViewDetailsPrompts.generateSCAExplanationPrompt("safe-lib", "1.2.3", "vulnerable", vulns);
+        String prompt = ViewDetailsPrompts.buildSCAExplanationPrompt("safe-lib", "1.2.3", "vulnerable", vulns);
         assertAll(
                 () -> assertTrue(prompt.contains("Known Vulnerabilities"), "Should include vulnerability section"),
                 () -> assertTrue(prompt.contains("CVE-123"), "First CVE should be listed"),
@@ -73,21 +73,21 @@ public class ViewDetailsPromptsTest {
     @Test
     @DisplayName("generateSCAExplanationPrompt_VulnerabilitiesBranch_EmptyList")
     void generateSCAExplanationPrompt_VulnerabilitiesBranch_EmptyList() {
-        String prompt = ViewDetailsPrompts.generateSCAExplanationPrompt("pkg", "0.0.1", "vulnerable", List.of());
+        String prompt = ViewDetailsPrompts.buildSCAExplanationPrompt("pkg", "0.0.1", "vulnerable", List.of());
         assertTrue(prompt.contains("No CVEs were provided"), "Empty list should trigger 'No CVEs' message");
     }
 
     @Test
     @DisplayName("generateSCAExplanationPrompt_VulnerabilitiesBranch_NullList")
     void generateSCAExplanationPrompt_VulnerabilitiesBranch_NullList() {
-        String prompt = ViewDetailsPrompts.generateSCAExplanationPrompt("pkg", "0.0.2", "vulnerable", null);
+        String prompt = ViewDetailsPrompts.buildSCAExplanationPrompt("pkg", "0.0.2", "vulnerable", null);
         assertTrue(prompt.contains("No CVEs were provided"), "Null list should trigger 'No CVEs' message");
     }
 
     @Test
     @DisplayName("generateSCAExplanationPrompt_CommonSectionsAlwaysPresent")
     void generateSCAExplanationPrompt_CommonSectionsAlwaysPresent() {
-        String prompt = ViewDetailsPrompts.generateSCAExplanationPrompt("shared-lib", "2.3.4", "vulnerable", null);
+        String prompt = ViewDetailsPrompts.buildSCAExplanationPrompt("shared-lib", "2.3.4", "vulnerable", null);
         assertAll(
                 () -> assertTrue(prompt.contains("Remediation Guidance"), "Remediation guidance section should appear"),
                 () -> assertTrue(prompt.contains("Summary Section"), "Summary section should appear"),

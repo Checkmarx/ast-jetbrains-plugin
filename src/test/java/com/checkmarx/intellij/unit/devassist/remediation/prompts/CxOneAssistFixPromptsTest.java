@@ -12,13 +12,13 @@ public class CxOneAssistFixPromptsTest {
 
     @Test
     @DisplayName("scaRemediationPrompt_IncludesAllDynamicValues")
-    void scaRemediationPrompt_IncludesAllDynamicValues() {
+    void buildSCARemediationPrompt_IncludesAllDynamicValues() {
         String pkg = "lodash";
         String version = "4.17.21";
         String manager = "npm";
         String severity = SeverityLevel.HIGH.getSeverity();
 
-        String prompt = CxOneAssistFixPrompts.scaRemediationPrompt(pkg, version, manager, severity);
+        String prompt = CxOneAssistFixPrompts.buildSCARemediationPrompt(pkg, version, manager, severity);
 
         assertAll(
                 () -> assertTrue(prompt.contains(pkg + "@" + version), "Should embed package@version"),
@@ -32,8 +32,8 @@ public class CxOneAssistFixPromptsTest {
 
     @Test
     @DisplayName("scaRemediationPrompt_ContainsJsonToolInvocationBlock")
-    void scaRemediationPrompt_ContainsJsonToolInvocationBlock() {
-        String prompt = CxOneAssistFixPrompts.scaRemediationPrompt("express", "1.2.3", "maven", "Critical");
+    void buildSCARemediationPrompt_ContainsJsonToolInvocationBlock() {
+        String prompt = CxOneAssistFixPrompts.buildSCARemediationPrompt("express", "1.2.3", "maven", "Critical");
         assertTrue(prompt.contains("```json"), "Should contain json fenced block start");
         assertTrue(prompt.contains("\"packageName\": \"express\""), "JSON should include packageName");
         assertTrue(prompt.contains("\"packageVersion\": \"1.2.3\""), "JSON should include packageVersion");
@@ -42,9 +42,9 @@ public class CxOneAssistFixPromptsTest {
 
     @Test
     @DisplayName("generateSecretRemediationPrompt_NullDescriptionAndSeverity_GracefulFallback")
-    void generateSecretRemediationPrompt_NullDescriptionAndSeverity_GracefulFallback() {
+    void generateBuildSecretRemediationPrompt_NullDescriptionAndSeverity_GracefulFallback() {
         String title = "HARD_CODED_SECRET";
-        String prompt = CxOneAssistFixPrompts.secretRemediationPrompt(title, null, null);
+        String prompt = CxOneAssistFixPrompts.buildSecretRemediationPrompt(title, null, null);
         assertTrue(prompt.contains("A secret has been detected: \"" + title + "\""), "Should mention title");
         assertTrue(prompt.contains("Severity level: ``"), "Severity line should show empty backticks for null severity");
         assertTrue(prompt.contains("Likely invalid"), "Fallback assessment should be for invalid secret");
@@ -52,29 +52,29 @@ public class CxOneAssistFixPromptsTest {
 
     @Test
     @DisplayName("generateSecretRemediationPrompt_CriticalSeverity_AssessmentBranch")
-    void generateSecretRemediationPrompt_CriticalSeverity_AssessmentBranch() {
-        String prompt = CxOneAssistFixPrompts.secretRemediationPrompt("DB_PASSWORD", "desc", SeverityLevel.CRITICAL.getSeverity());
+    void generateBuildSecretRemediationPrompt_CriticalSeverity_AssessmentBranch() {
+        String prompt = CxOneAssistFixPrompts.buildSecretRemediationPrompt("DB_PASSWORD", "desc", SeverityLevel.CRITICAL.getSeverity());
         assertTrue(prompt.contains("Confirmed valid secret"), "Critical severity should map to confirmed valid");
     }
 
     @Test
     @DisplayName("generateSecretRemediationPrompt_HighSeverity_AssessmentBranch")
-    void generateSecretRemediationPrompt_HighSeverity_AssessmentBranch() {
-        String prompt = CxOneAssistFixPrompts.secretRemediationPrompt("API_KEY", "desc", SeverityLevel.HIGH.getSeverity());
+    void generateBuildSecretRemediationPrompt_HighSeverity_AssessmentBranch() {
+        String prompt = CxOneAssistFixPrompts.buildSecretRemediationPrompt("API_KEY", "desc", SeverityLevel.HIGH.getSeverity());
         assertTrue(prompt.contains("Possibly valid"), "High severity should map to possibly valid branch");
     }
 
     @Test
     @DisplayName("generateSecretRemediationPrompt_LowSeverity_AssessmentBranch")
-    void generateSecretRemediationPrompt_LowSeverity_AssessmentBranch() {
-        String prompt = CxOneAssistFixPrompts.secretRemediationPrompt("TEST_KEY", "desc", SeverityLevel.LOW.getSeverity());
+    void generateBuildSecretRemediationPrompt_LowSeverity_AssessmentBranch() {
+        String prompt = CxOneAssistFixPrompts.buildSecretRemediationPrompt("TEST_KEY", "desc", SeverityLevel.LOW.getSeverity());
         assertTrue(prompt.contains("Likely invalid"), "Low severity should map to likely invalid branch");
     }
 
     @Test
     @DisplayName("generateSecretRemediationPrompt_IncludesStructuredMarkdownSections")
-    void generateSecretRemediationPrompt_IncludesStructuredMarkdownSections() {
-        String prompt = CxOneAssistFixPrompts.secretRemediationPrompt("SECRET_TOKEN", "description here", SeverityLevel.MALICIOUS.getSeverity());
+    void generateBuildSecretRemediationPrompt_IncludesStructuredMarkdownSections() {
+        String prompt = CxOneAssistFixPrompts.buildSecretRemediationPrompt("SECRET_TOKEN", "description here", SeverityLevel.MALICIOUS.getSeverity());
         assertAll(
                 () -> assertTrue(prompt.contains("Secret Remediation Summary"), "Should include summary header"),
                 () -> assertTrue(prompt.contains("Remediation Actions Taken"), "Should list remediation actions section"),
