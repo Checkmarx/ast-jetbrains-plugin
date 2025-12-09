@@ -225,6 +225,7 @@ public final class Constants {
         public static final String LOW_PNG = "/icons/devassist/tooltip/low";
         public static final String MALICIOUS_PNG = "/icons/devassist/tooltip/malicious";
         public static final String PACKAGE_PNG = "/icons/devassist/tooltip/package";
+        public static final String CONTAINER_PNG = "/icons/devassist/tooltip/container";
 
         // Vulnerability Severity Count Icons
         public static final String CRITICAL_16_PNG = "/icons/devassist/tooltip/severity_count/critical";
