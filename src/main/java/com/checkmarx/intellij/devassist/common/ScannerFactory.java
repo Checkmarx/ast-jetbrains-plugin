@@ -25,10 +25,14 @@ public class ScannerFactory {
      */
     public List<ScannerService<?>> getAllSupportedScanners(String file, PsiFile psiFile) {
         List<ScannerService<?>> allSupportedScanners = new ArrayList<>();
-        scannerServices.stream().filter(scanner ->
-                scanner.shouldScanFile(file,psiFile))
-                .findFirst()
-                .ifPresent(allSupportedScanners::add);
+
+        // Allow multiple scanners to handle the same file (e.g., Dockerfiles can be scanned by both Container and Secrets scanners)
+        for (ScannerService<?> scanner : scannerServices) {
+            if (scanner.shouldScanFile(file, psiFile)) {
+                allSupportedScanners.add(scanner);
+            }
+        }
+
         return allSupportedScanners;
     }
 }
