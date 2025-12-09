@@ -126,7 +126,7 @@ public final class RemediationManager {
     private void applyContainerRemediation(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Remediation started for file: %s for container issue: %s",
                 scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = CxOneAssistFixPrompts.buildContainersRemediationPrompt("",
+        String scaPrompt = CxOneAssistFixPrompts.buildContainersRemediationPrompt(scanIssue.getFileType(),
                 scanIssue.getTitle(),
                 scanIssue.getImageTag(),
                 scanIssue.getSeverity());
@@ -219,7 +219,7 @@ public final class RemediationManager {
      */
     private void explainContainerDetails(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Viewing details for file: %s for container issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = ViewDetailsPrompts.buildContainersExplanationPrompt("",
+        String scaPrompt = ViewDetailsPrompts.buildContainersExplanationPrompt(scanIssue.getFileType(),
                 scanIssue.getTitle(),
                 scanIssue.getImageTag(),
                 scanIssue.getSeverity());
