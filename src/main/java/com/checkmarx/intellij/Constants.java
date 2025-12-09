@@ -207,6 +207,7 @@ public final class Constants {
         public static final List<String> AGENT_DUMMY_FILES = List.of("/Dummy.txt", "/");
         public static final String DEV_ASSIST_COPY_PROMPT = "Remediation prompt copied to the clipboard!, please paste in the Github Copilot Chat (Agent Mode).";
         public static final String RISK_IMAGE="risk image";
+        public static final String SEVERITY_IMAGE="Severity Image";
     }
 
     /**

@@ -211,14 +211,14 @@ public class ProblemDescription {
 
     private void buildImageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
         descBuilder.append("<table style='border-collapse:collapse;'><tr><td colspan=\"3\" style='padding:0;'><p style='font-size: 10px; margin:0;'>")
-                .append(scanIssue.getSeverity()).append("-").append(Constants.RealTimeConstants.RISK_PACKAGE)
+                .append(scanIssue.getSeverity()).append("-").append(Constants.RealTimeConstants.RISK_IMAGE)
                 .append(" :  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getImageTag()).append("</p></td></tr>");
 
-        descBuilder.append("<tr><td style='padding:0;vertical-align:middle;'>").append(getIcon(PACKAGE)).append("</td>")
+        descBuilder.append("<tr><td style='padding:0;vertical-align:middle;'>").append(getIcon(CONTAINER)).append("</td>")
                 .append("<td style='padding:0 4px 0 4px;vertical-align:middle;'><b>").append(scanIssue.getTitle()).append("@")
                 .append(scanIssue.getImageTag()).append("</b></td><td style='padding:0;vertical-align:middle;'>")
                 .append(scanIssue.getSeverity()).append(" ")
-                .append(Constants.RealTimeConstants.SEVERITY_PACKAGE)
+                .append(Constants.RealTimeConstants.SEVERITY_IMAGE)
                 .append("</td></tr></table>");
     }
 
