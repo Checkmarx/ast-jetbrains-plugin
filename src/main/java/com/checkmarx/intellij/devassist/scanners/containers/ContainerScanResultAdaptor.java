@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtimeResults> {
 
     private final ContainersRealtimeResults containersRealtimeResults;
-    private static final Logger LOGGER = Utils.getLogger(ContainerScanResultAdaptor.class);
 
     public ContainerScanResultAdaptor(ContainersRealtimeResults containersRealtimeResults) {
         this.containersRealtimeResults = containersRealtimeResults;
@@ -84,12 +83,9 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
 
             case (Constants.LOW_SEVERITY):
                 return "Low-risk container image";
-
             default:
                 return severity;
         }
-
-
     }
 
     private Location createLocation(RealtimeLocation location) {
@@ -99,6 +95,5 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
     private int getLine(RealtimeLocation location) {
         return location.getLine() + 1;
     }
-
 
 }

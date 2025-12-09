@@ -163,6 +163,15 @@ public final class Constants {
         public static final String SECRETS_REALTIME_SCANNER_DIRECTORY = "Cx-secrets-realtime-scanner";
         public static final String ERROR_SECRETS_REALTIME_SCANNER = "Failed to handle Secrets Realtime scan";
 
+
+        // Iac Scanner Constants
+        public static final String ACTIVATE_IAC_REALTIME_SCANNER = "Activate IAC-Realtime";
+        public static final String IAC_REALTIME_SCANNER = "Checkmarx IAC Realtime Scanner (IAC-Realtime)";
+        public static final String IAC_REALTIME_SCANNER_START = "Realtime IAC Scanner Engine started";
+        public static final String IAC_REALTIME_SCANNER_DISABLED = "Realtime IAC Scanner Engine disabled";
+        public static final String IAC_REALTIME_SCANNER_DIRECTORY = "Cx-iac-realtime-scanner";
+        public static final String ERROR_IAC_REALTIME_SCANNER = "Failed to handle IAC Realtime scan";
+
         //Dev Assist Fixes Constants
         public static final String FIX_WITH_CXONE_ASSIST = "Fix with CxOne Assist";
         public static final String VIEW_DETAILS_FIX_NAME = "View details";
@@ -189,11 +198,26 @@ public final class Constants {
                 "**/docker-compose-*.yaml"
         );
 
-        public static final List<String>CONTAINER_HELM_EXTENSION= List.of( "yml",
+        public  static  final List<String> IAC_SUPPORTED_PATTERNS= List.of(
+                "**/Dockerfile",
+                "**/*.auto.tfvars",
+                "**/*.terraform.tfvars"
+        );
+
+        public static final  List<String> IAC_FILE_EXTENSIONS= List.of(
+                ".tf",
+                ".yaml",
+                ".yml",
+                ".json",
+                ".proto",
+                ".dockerfile"
+        );
+
+        public static final List<String>CONTAINER_HELM_EXTENSION= List.of("yml",
                 "yaml");
 
 
-        public static final List<String>CONTAINER_HELM_EXCLUDED_FILES= List.of( "chart.yml",
+        public static final List<String>CONTAINER_HELM_EXCLUDED_FILES= List.of("chart.yml",
                 "chart.yaml");
 
         //Tooltip description constants

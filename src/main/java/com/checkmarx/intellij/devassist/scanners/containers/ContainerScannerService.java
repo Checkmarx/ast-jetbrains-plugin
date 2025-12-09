@@ -12,6 +12,7 @@ import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import org.apache.commons.lang3.tuple.Pair;
@@ -36,7 +37,6 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
     /**
      * Creates a new scanner service with the  configuration.
      */
-
 
     public ContainerScannerService() {
         super(createConfig());
@@ -68,8 +68,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
         String fileExtension = vFile.getExtension();
         boolean isYamlFile = Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
         if (isYamlFile) {
-            LOGGER.info("Its yaml");
-            if (Constants.RealTimeConstants.CONTAINER_HELM_EXCLUDED_FILES.contains(psiFile.getName())) {
+            if (Constants.RealTimeConstants.CONTAINER_HELM_EXCLUDED_FILES.contains(psiFile.getName().toLowerCase())) {
                 return false;
             }
             return filePath.toLowerCase().contains("/helm/");
@@ -80,7 +79,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
     private boolean isContainersFilePatternMatching(String filePath) {
         List<PathMatcher> pathMatchers = Constants.RealTimeConstants.CONTAINERS_FILE_PATTERNS.stream().map(f -> FileSystems.getDefault().getPathMatcher("glob:" + f)).collect(Collectors.toList());
         for (PathMatcher pathMatcher : pathMatchers) {
-            if (pathMatcher.matches(Paths.get(filePath))) {
+            if (pathMatcher.matches(Paths.get(filePath.toLowerCase()))) {
                 return true;
             }
         }
@@ -118,7 +117,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
     private Pair<Path, Path> createSubFolderAndSaveFile(Path tempSubFolder, String relativePath, PsiFile psiFile) throws IOException {
         String fileText = DevAssistUtils.getFileContent(psiFile);
         if (fileText == null || fileText.isBlank()) {
-            LOGGER.warn("No content found in file");
+            LOGGER.warn("No content found in file: "+psiFile.getVirtualFile().getPath());
             return null;
         }
         this.createTempFolder(tempSubFolder);
@@ -141,11 +140,9 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
 
     @Override
     public ScanResult<ContainersRealtimeResults> scan(PsiFile psiFile, String uri) {
-
         if (!this.shouldScanFile(uri, psiFile)) {
             return null;
         }
-
         String tempFolder = super.getTempSubFolderPath(Constants.RealTimeConstants.CONTAINER_REALTIME_SCANNER_DIRECTORY);
         Pair<Path, Path> saveResult = null;
         try {
@@ -156,9 +153,8 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
                 return null;
             }
             String fileExtension = vFile.getExtension();
-
             String tempFilePath;
-           
+
             boolean isYamlFile = Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
             if (isYamlFile && !isDockerComposeFile(uri)) {
                 saveResult = this.saveHelmFile(tempFolderPath, psiFile);
@@ -180,7 +176,6 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
             if(Objects.nonNull(saveResult)){
                 deleteTempFolder(saveResult.getRight());
             }
-
         }
         return null;
 

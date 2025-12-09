@@ -11,6 +11,7 @@ import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
@@ -182,12 +183,14 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
      * @return ScanResult of type SecretsRealtimeResults (TODO: Replace with actual type)
      */
     public ScanResult<SecretsRealtimeResults> scan(@NotNull PsiFile file, @NotNull String uri) {
+        ProgressManager.checkCanceled();
         if (!this.shouldScanFile(uri,file)) {
             return null;
         }
 
         Path tempSubFolder = this.getTempSubFolderPath(file);
         try {
+            ProgressManager.checkCanceled();
             this.createTempFolder(tempSubFolder);
             Optional<String> tempFilePath = this.saveFileForScanning(tempSubFolder, uri, file);
             if (tempFilePath.isEmpty()) {
@@ -196,6 +199,7 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
             }
 
             LOGGER.info("Start Realtime Secrets Scan On File: " + uri + " (temp file: " + tempFilePath.get() + ")");
+            ProgressManager.checkCanceled();
             SecretsRealtimeResults scanResults = CxWrapperFactory.build().secretsRealtimeScan(tempFilePath.get(), "");
 
             if (scanResults == null) {
