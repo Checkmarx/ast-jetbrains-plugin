@@ -68,7 +68,6 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
         String fileExtension = vFile.getExtension();
         boolean isYamlFile = Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
         if (isYamlFile) {
-            LOGGER.info("Its yaml");
             if (Constants.RealTimeConstants.CONTAINER_HELM_EXCLUDED_FILES.contains(psiFile.getName())) {
                 return false;
             }

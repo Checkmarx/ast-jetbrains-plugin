@@ -6,6 +6,7 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -106,12 +107,12 @@ public class SecretsScannerCommandTest {
         when(root.isDirectory()).thenReturn(false);
         when(root.getPath()).thenReturn("/some/random/file.txt");
         when(root.exists()).thenReturn(true);
-
+        PsiFile psiFile = mock(PsiFile.class);
         ProjectRootManager prm = mock(ProjectRootManager.class);
         when(prm.getContentRoots()).thenReturn(new VirtualFile[]{root});
 
         // Mock shouldScanFile to return false for non-matching files
-        when(secretsScannerServiceSpy.shouldScanFile(anyString())).thenReturn(false);
+        when(secretsScannerServiceSpy.shouldScanFile(anyString(),psiFile)).thenReturn(false);
 
         try (MockedStatic<ProjectRootManager> pm = mockStatic(ProjectRootManager.class)) {
             pm.when(() -> ProjectRootManager.getInstance(project)).thenReturn(prm);
@@ -120,7 +121,7 @@ public class SecretsScannerCommandTest {
             invokePrivateScan(command);
 
             // Then - Should check if file should be scanned but not perform actual scanning
-            verify(secretsScannerServiceSpy).shouldScanFile("/some/random/file.txt");
+            verify(secretsScannerServiceSpy).shouldScanFile("/some/random/file.txt",psiFile);
             verify(secretsScannerServiceSpy, never()).scan(any(), any());
         }
     }

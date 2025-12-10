@@ -44,14 +44,15 @@ public class SecretsScannerServiceTest {
     @Test
     @DisplayName("shouldScanFile: basic inclusion/exclusion behavior")
     void testShouldScanFile() {
+        PsiFile psiFile = mock(PsiFile.class);
         // positive cases
-        assertTrue(secretsScannerService.shouldScanFile("src/app.js"));
-        assertTrue(secretsScannerService.shouldScanFile(".env"));
-        assertTrue(secretsScannerService.shouldScanFile("Dockerfile"));
+        assertTrue(secretsScannerService.shouldScanFile("src/app.js",psiFile));
+        assertTrue(secretsScannerService.shouldScanFile(".env",psiFile));
+        assertTrue(secretsScannerService.shouldScanFile("Dockerfile",psiFile));
 
         // known exclusions
-        assertFalse(secretsScannerService.shouldScanFile("project/node_modules/package.json"));
-        assertFalse(secretsScannerService.shouldScanFile("project/.vscode/.checkmarxIgnored"));
+        assertFalse(secretsScannerService.shouldScanFile("project/node_modules/package.json",psiFile));
+        assertFalse(secretsScannerService.shouldScanFile("project/.vscode/.checkmarxIgnored",psiFile));
     }
 
     @Test
