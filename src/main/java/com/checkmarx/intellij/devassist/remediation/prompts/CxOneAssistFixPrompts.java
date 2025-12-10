@@ -146,7 +146,7 @@ public final class CxOneAssistFixPrompts {
                 .append("- `High`: Secret may be valid. Treat as sensitive and externalize it securely.  \n")
                 .append("- `Medium`: Likely **invalid** (e.g., test or placeholder). Still remove from code and annotate accordingly.\n\n");
 
-        prompt.append("Step 2. TOOL CALL – Remediation Plan\n\n")
+        prompt.append("Step 2. TOOL CALL - Remediation Plan\n\n")
                 .append("Determine the programming language of the file where the secret was detected.  \n")
                 .append("If unknown, leave the `language` field empty.\n\n")
                 .append("Call the internal `codeRemediation` Checkmarx MCP tool with:\n\n")
@@ -158,9 +158,9 @@ public final class CxOneAssistFixPrompts {
                 .append("}\n")
                 .append("```\n\n")
                 .append("- If the tool is **available**, parse the response:\n")
-                .append("  - `remediation_steps` – exact steps to follow\n")
-                .append("  - `best_practices` – explain secure alternatives\n")
-                .append("  - `description` – contextual background\n\n")
+                .append("  - `remediation_steps` - exact steps to follow\n")
+                .append("  - `best_practices` - explain secure alternatives\n")
+                .append("  - `description` - contextual background\n\n")
                 .append("- If the tool is **not available**, display:\n")
                 .append("`[MCP ERROR] codeRemediation tool is not available. Please check the Checkmarx MCP server.`\n\n");
 

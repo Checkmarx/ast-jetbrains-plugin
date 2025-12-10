@@ -146,7 +146,9 @@ public final class RemediationManager {
         String scaPrompt = CxOneAssistFixPrompts.buildIACRemediationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity(),
-                "", "", "", 1);
+                scanIssue.getFileType(),
+                "", "",
+                scanIssue.getProblematicLineNumber());
         if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for IAC issue: %s",
@@ -166,7 +168,7 @@ public final class RemediationManager {
                 scanIssue.getDescription(),
                 scanIssue.getSeverity(),
                 scanIssue.getRemediationAdvise(),
-                1);
+                scanIssue.getProblematicLineNumber());
         if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for IAC issue: %s",
