@@ -205,12 +205,12 @@ public final class Constants {
         );
 
         public static final  List<String> IAC_FILE_EXTENSIONS= List.of(
-                ".tf",
-                ".yaml",
-                ".yml",
-                ".json",
-                ".proto",
-                ".dockerfile"
+                "tf",
+                "yaml",
+                "yml",
+                "json",
+                "proto",
+                "dockerfile"
         );
 
         public static final List<String>CONTAINER_HELM_EXTENSION= List.of("yml",

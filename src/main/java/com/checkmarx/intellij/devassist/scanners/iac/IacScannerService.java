@@ -57,7 +57,6 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
     }
 
     private boolean isIacFilePatternMatching(String filePath, PsiFile psiFile) {
-        LOGGER.info("I am in Iac file pattern");
         List<PathMatcher> pathMatchers = Constants.RealTimeConstants.IAC_SUPPORTED_PATTERNS.stream()
                 .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
                 .collect(Collectors.toList());
@@ -72,7 +71,6 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
             return false;
         }
         String fileExtension = vFile.getExtension();
-        LOGGER.info("The iac file extension is :"+ fileExtension);
         return Objects.nonNull(fileExtension) && Constants.RealTimeConstants.IAC_FILE_EXTENSIONS.contains(fileExtension.toLowerCase());
     }
 
@@ -132,7 +130,8 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
             if(Objects.nonNull(saveResult)){
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start IAC Realtime Scan On File: " + uri);
-                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, "docker","");
+                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, "podman","");
+                LOGGER.info("ScanResults:"+scanResults);
                 return null;
             }
         }
@@ -140,10 +139,7 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
             LOGGER.warn(this.config.getErrorMessage(), e);
         }
         finally {
-            LOGGER.info("Deleting temporary folder");
-            if(Objects.nonNull(saveResult)){
-                deleteTempFolder(saveResult.getRight());
-            }
+
         }
         return null;
     }
