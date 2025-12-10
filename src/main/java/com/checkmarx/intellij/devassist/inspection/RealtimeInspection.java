@@ -272,18 +272,22 @@ public class RealtimeInspection extends LocalInspectionTool {
      */
     private List<ProblemDescriptor> startScanAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
         ProblemHelper problemHelper = problemHelperBuilder.build();
-        List<ScanIssue> allScanIssues = new ArrayList<>();
-        List<ScanResult<?>>allScanResults = new ArrayList<>();
-        for (ScannerService<?> scannerService : problemHelper.getSupportedScanners()) {
-            ScanResult<?> scanResult = scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath());
-            if (Objects.isNull(scanResult)) continue;
-            allScanResults.add(scanResult);
-        }
-        problemHelperBuilder.scanResult(allScanResults);
+        List<ScanResult<?>> allScanResults = problemHelper.getSupportedScanners().stream()
+                .map(scannerService ->
+                        scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        problemHelperBuilder.scanResult(allScanResults); // Adding all scanner results to the builder.
+
         List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
-        allScanResults.forEach(scanResult ->allScanIssues.addAll(scanResult.getIssues()));
+        List<ScanIssue> allScanIssues = allScanResults.stream()
+                .flatMap(scanResult -> scanResult.getIssues().stream())
+                .collect(Collectors.toList());
+
         problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
         problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), allScanIssues);
+
         return allProblems;
     }
 
