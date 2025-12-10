@@ -27,7 +27,7 @@ public class ProblemHelper {
     private final boolean isOnTheFly;
     private final Document document;
     private final List<ScannerService<?>> supportedScanners;
-    private final ScanResult<?> scanResult;
+    private final List<ScanResult<?>> scanResult;
     private final ProblemHolderService problemHolderService;
 
 }
