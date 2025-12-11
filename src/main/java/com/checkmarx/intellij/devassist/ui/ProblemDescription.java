@@ -134,7 +134,9 @@ public class ProblemDescription {
                 .append("<td>").append(getIcon(scanIssue.getSeverity())).append("</td>")
                 // Column 2: Title and Subtitle(- Secret finding)
                 .append("<td>")
-                .append("<p style=\"font-size:11px;\"><b>").append(escapeHtml(formatTitle(scanIssue.getTitle()))).append("</b> - Secret finding</p>")
+                .append("<p style=\"").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("\">")
+                .append("<b>").append(escapeHtml(formatTitle(scanIssue.getTitle()))).append("</b>")
+                .append(" - <span style=\"").append(SECONDARY_COLOUR).append("\">Secret finding</span></p>")
                 .append("</td>")
                 .append("</tr></table></div>");
     }
