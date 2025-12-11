@@ -17,8 +17,24 @@ public class WelcomeDialogTest {
 
     static class FakeSettings implements WelcomeDialog.RealTimeSettingsManager {
         boolean all;
+        boolean any;
+
+        public FakeSettings() {
+            this.all = false;
+            this.any = false;
+        }
+
+        public FakeSettings(boolean all, boolean any) {
+            this.all = all;
+            this.any = any;
+        }
+
         @Override public boolean areAllEnabled() { return all; }
-        @Override public void setAll(boolean enable) { this.all = enable; }
+        @Override public boolean areAnyEnabled() { return any; }
+        @Override public void setAll(boolean enable) {
+            this.all = enable;
+            this.any = enable; // If we enable/disable all, any should match
+        }
     }
 
     private WelcomeDialog newDialogBypassCtor(boolean mcpEnabled, WelcomeDialog.RealTimeSettingsManager mgr) throws Exception {
@@ -134,14 +150,26 @@ public class WelcomeDialogTest {
     @Test
     @DisplayName("updateCheckboxTooltip shows enable/disable messages when MCP enabled")
     void testUpdateCheckboxTooltip_EnableDisableMessages() throws Exception {
-        WelcomeDialog dlg = newDialogBypassCtor(true, new FakeSettings());
-        JCheckBox box = dlg.getRealTimeScannersCheckbox();
-        box.setSelected(false);
-        invokeProtected(dlg, "updateCheckboxTooltip", new Class<?>[]{});
-        assertEquals("Enable all real-time scanners", box.getToolTipText());
-        box.setSelected(true);
-        invokeProtected(dlg, "updateCheckboxTooltip", new Class<?>[]{});
-        assertEquals("Disable all real-time scanners", box.getToolTipText());
+        // Test case 1: No scanners enabled
+        FakeSettings settingsNone = new FakeSettings(false, false);
+        WelcomeDialog dlgNone = newDialogBypassCtor(true, settingsNone);
+        JCheckBox boxNone = dlgNone.getRealTimeScannersCheckbox();
+        invokeProtected(dlgNone, "updateCheckboxTooltip", new Class<?>[]{});
+        assertEquals("Enable all real-time scanners", boxNone.getToolTipText());
+
+        // Test case 2: Some scanners enabled (any=true, all=false)
+        FakeSettings settingsSome = new FakeSettings(false, true);
+        WelcomeDialog dlgSome = newDialogBypassCtor(true, settingsSome);
+        JCheckBox boxSome = dlgSome.getRealTimeScannersCheckbox();
+        invokeProtected(dlgSome, "updateCheckboxTooltip", new Class<?>[]{});
+        assertEquals("Some scanners are enabled. Click to enable all real-time scanners", boxSome.getToolTipText());
+
+        // Test case 3: All scanners enabled
+        FakeSettings settingsAll = new FakeSettings(true, true);
+        WelcomeDialog dlgAll = newDialogBypassCtor(true, settingsAll);
+        JCheckBox boxAll = dlgAll.getRealTimeScannersCheckbox();
+        invokeProtected(dlgAll, "updateCheckboxTooltip", new Class<?>[]{});
+        assertEquals("Disable all real-time scanners", boxAll.getToolTipText());
     }
 
     @Test

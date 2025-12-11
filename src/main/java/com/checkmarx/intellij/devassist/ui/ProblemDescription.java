@@ -138,10 +138,10 @@ public class ProblemDescription {
     private void buildSecretsDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         descBuilder.append("<div><table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>")
                 // Column 1: Severity Icon
-                .append("<td>").append(getIcon(getSeverityCountIconKey(scanIssue.getSeverity()))).append("</td>")
+                .append("<td>").append(getIcon(scanIssue.getSeverity())).append("</td>")
                 // Column 2: Title and Subtitle(- Secret finding)
                 .append("<td>")
-                .append("<b>").append(escapeHtml(formatTitle(scanIssue.getTitle()))).append("</b> - Secret finding")
+                .append ("<p style=\"font-size:11px;\"><b>").append(escapeHtml(formatTitle(scanIssue.getTitle()))).append("</b> - Secret finding</p>")
                 .append("</td>")
                 .append("</tr></table></div>");
     }
