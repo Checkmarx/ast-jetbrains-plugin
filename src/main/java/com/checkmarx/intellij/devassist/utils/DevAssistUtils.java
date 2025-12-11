@@ -270,11 +270,11 @@ public class DevAssistUtils {
         }
     }
 
-    private  static boolean isDockerComposeFile(@NotNull String filePath) {
+    public static boolean isDockerComposeFile(@NotNull String filePath) {
         return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKER_COMPOSE);
     }
 
-    private static boolean isDockerFile(@NotNull String filePath){
+    public static boolean isDockerFile(@NotNull String filePath){
         return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKERFILE);
     }
 
@@ -291,26 +291,4 @@ public class DevAssistUtils {
         return Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
     }
 
-    public static boolean isHelmFile(@NotNull PsiFile psiFile,@NotNull String filePath) {
-        if (isYamlFile(psiFile)) {
-            if (Constants.RealTimeConstants.CONTAINER_HELM_EXCLUDED_FILES.contains(psiFile.getName().toLowerCase())) {
-                return false;
-            }
-            return filePath.toLowerCase().contains("/helm/");
-        }
-        return false;
-    }
-
-    public static String getContainerFileType(@NotNull PsiFile psiFile, String filePath){
-        if(isDockerComposeFile(filePath)){
-            return Constants.RealTimeConstants.DOCKER_COMPOSE;
-        }
-        if(isHelmFile(psiFile,filePath)){
-            return Constants.RealTimeConstants.HELM;
-        }
-        if(isDockerFile(filePath)){
-            return Constants.RealTimeConstants.DOCKERFILE;
-        }
-        return Constants.RealTimeConstants.UNKNOWN;
-    }
 }

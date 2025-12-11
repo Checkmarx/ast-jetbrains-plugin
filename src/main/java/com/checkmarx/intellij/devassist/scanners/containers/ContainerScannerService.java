@@ -23,13 +23,18 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+
+/**
+ * Realtime ContainerScannerService  scanner Class that does temporary file handling,
+ * and invocation of the Checkmarx container realtime scanning engine.
+ */
 public class ContainerScannerService extends BaseScannerService<ContainersRealtimeResults> {
 
     private static final Logger LOGGER = Utils.getLogger(ContainerScannerService.class);
+    private String fileType;
 
     /**
      * Creates a new scanner service with the  configuration.
@@ -38,6 +43,12 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
     public ContainerScannerService() {
         super(createConfig());
     }
+
+    /**
+     * Builds the default scanner configuration used for container realtime scanning.
+     *
+     * @return fully populated {@link ScannerConfig} instance for the container engine
+     */
 
     public static ScannerConfig createConfig() {
         return ScannerConfig.builder()
@@ -49,28 +60,39 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
                 .errorMessage(Constants.RealTimeConstants.ERROR_CONTAINER_REALTIME_SCANNER).build();
     }
 
+    /**
+     * Determines whether a file should be scanned by validating the base checks and
+     * ensuring it matches a supported container pattern.
+     *
+     * @param filePath absolute path to the file
+     * @return {@code true} if the file should be scanned; {@code false} otherwise
+     */
 
     public boolean shouldScanFile(String filePath, PsiFile psiFile) {
         if (!super.shouldScanFile(filePath, psiFile)) {
             return false;
         }
-        return isContainersFilePatternMatching(filePath) || isHelmFilePatternMatching(filePath, psiFile);
+        return isContainersFilePatternMatching(filePath) || isHelmFile(psiFile, filePath);
     }
 
-    private boolean isHelmFilePatternMatching(String filePath, PsiFile psiFile) {
-        if (DevAssistUtils.isYamlFile(psiFile)) {
-            if (Constants.RealTimeConstants.CONTAINER_HELM_EXCLUDED_FILES.contains(psiFile.getName())) {
-                return false;
-            }
-            return filePath.toLowerCase().contains("/helm/");
-        }
-        return false;
-    }
+
+    /**
+     * Checks whether the supplied file path matches any of the container file patterns .
+     *
+     * @param filePath path to evaluate
+     * @return {@code true} if a containers pattern matches; {@code false} otherwise
+     */
 
     private boolean isContainersFilePatternMatching(String filePath) {
         List<PathMatcher> pathMatchers = Constants.RealTimeConstants.CONTAINERS_FILE_PATTERNS.stream().map(f -> FileSystems.getDefault().getPathMatcher("glob:" + f)).collect(Collectors.toList());
         for (PathMatcher pathMatcher : pathMatchers) {
             if (pathMatcher.matches(Paths.get(filePath))) {
+                if(DevAssistUtils.isDockerComposeFile(filePath)){
+                    fileType=Constants.RealTimeConstants.DOCKER_COMPOSE;
+                }
+                else if(DevAssistUtils.isDockerFile(filePath)){
+                    fileType=Constants.RealTimeConstants.DOCKERFILE;
+                }
                 return true;
             }
         }
@@ -82,6 +104,12 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
         return createConfig();
     }
 
+    /**
+     * Generates a short hash based on the file path and the current time to avoid collisions.
+     *
+     * @param relativePath path whose value participates in the hash
+     * @return hexadecimal hash string suitable for filenames
+     */
     private String generateFileHash(@NotNull String relativePath) {
         try {
             LocalTime time = LocalTime.now();
@@ -100,6 +128,15 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
         }
     }
 
+
+    /**
+     * Persists the container file into the temporary directory for scanning.
+     *
+     * @param tempSubFolder    destination temp directory
+     * @param psiFile             PSI file containing the manifest contents
+     * @return pair of full file path and temp directory path
+     * @throws IOException if writing the file fails
+     */
     private Pair<Path, Path> createSubFolderAndSaveFile(Path tempSubFolder, String relativePath, PsiFile psiFile) throws IOException {
         String fileText = DevAssistUtils.getFileContent(psiFile);
         if (fileText == null || fileText.isBlank()) {
@@ -111,6 +148,13 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
         Files.writeString(fullTargetPath, fileText, StandardCharsets.UTF_8);
         return Pair.of(fullTargetPath, tempSubFolder);
     }
+
+    /**
+     * Resolves the temporary sub-folder path allocated to the supplied PSI file.
+     *
+     * @param psiFile manifest PSI file being scanned
+     * @return path pointing to a unique temp directory and fullPath of file
+     */
 
     private Pair<Path, Path> saveOtherFiles(Path tempFolder, PsiFile psiFile) throws IOException {
         String relativePath = psiFile.getName();
@@ -124,7 +168,34 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
         return createSubFolderAndSaveFile(helmSubFolderPath, helmRelativePath, file);
     }
 
+    /**
+     * Checks whether the supplied file path matches any of the helm extension .
+     *
+     * @param filePath path to evaluate
+     * @param psiFile PsiFile to evaluate
+     * @return {@code true} if a helm pattern matches; {@code false} otherwise
+     */
 
+    public  boolean isHelmFile(@NotNull PsiFile psiFile,@NotNull String filePath) {
+        if (DevAssistUtils.isYamlFile(psiFile)) {
+            if (Constants.RealTimeConstants.CONTAINER_HELM_EXCLUDED_FILES.contains(psiFile.getName().toLowerCase())) {
+                return false;
+            }
+            if(filePath.toLowerCase().contains("/helm/")){
+                fileType=Constants.RealTimeConstants.HELM;
+                return true;
+            };
+        }
+        return false;
+    }
+
+    /**
+     * Scans the given Psi file using OssScanner wrapper method.
+     *
+     * @param psiFile - the file to scan
+     * @param uri  - the file path
+     * @return ScanResult of type OssRealtimeResults
+     */
     @Override
     public ScanResult<ContainersRealtimeResults> scan(PsiFile psiFile, String uri) {
         if (!this.shouldScanFile(uri, psiFile)) {
@@ -136,7 +207,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
             Path tempFolderPath = Paths.get(tempFolder);
             this.createTempFolder(tempFolderPath);
             String tempFilePath;
-            if (DevAssistUtils.isHelmFile(psiFile, uri)) {
+            if (isHelmFile(psiFile, uri)) {
                 saveResult = this.saveHelmFile(tempFolderPath, psiFile);
             } else {
                 saveResult = this.saveOtherFiles(tempFolderPath, psiFile);
@@ -145,7 +216,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start Container Realtime Scan On File: " + uri);
                 ContainersRealtimeResults scanResults = CxWrapperFactory.build().containersRealtimeScan(tempFilePath, "");
-                return new ContainerScanResultAdaptor(scanResults, DevAssistUtils.getContainerFileType(psiFile, uri));
+                return new ContainerScanResultAdaptor(scanResults, fileType);
             }
 
         } catch (IOException | CxException | InterruptedException e) {
