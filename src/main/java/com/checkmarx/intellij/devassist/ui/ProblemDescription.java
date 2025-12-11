@@ -4,16 +4,12 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
-import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.checkmarx.intellij.Constants.RealTimeConstants.SEPERATOR;
 import static com.checkmarx.intellij.Utils.escapeHtml;
 
 /**
@@ -96,11 +92,12 @@ public class ProblemDescription {
                 buildSecretsDescription(descBuilder, scanIssue);
                 break;
             case CONTAINERS:
-                buildContainerDescription(descBuilder,scanIssue);
+                buildContainerDescription(descBuilder, scanIssue);
                 break;
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
+       // buildRemediationActionsSection(descBuilder, scanIssue);
         descBuilder.append("</div></body></html>");
         return descBuilder.toString();
     }
@@ -137,7 +134,7 @@ public class ProblemDescription {
                 .append("<td>").append(getIcon(scanIssue.getSeverity())).append("</td>")
                 // Column 2: Title and Subtitle(- Secret finding)
                 .append("<td>")
-                .append ("<p style=\"font-size:11px;\"><b>").append(escapeHtml(formatTitle(scanIssue.getTitle()))).append("</b> - Secret finding</p>")
+                .append("<p style=\"font-size:11px;\"><b>").append(escapeHtml(formatTitle(scanIssue.getTitle()))).append("</b> - Secret finding</p>")
                 .append("</td>")
                 .append("</tr></table></div>");
     }
@@ -196,7 +193,7 @@ public class ProblemDescription {
         String secondaryText = Constants.RealTimeConstants.SEVERITY_PACKAGE;
         String icon = getIcon(PACKAGE);
         if (scanIssue.getSeverity().equalsIgnoreCase(SeverityLevel.MALICIOUS.getSeverity())) {
-            secondaryText  =  PACKAGE;
+            secondaryText = PACKAGE;
             icon = getIcon(scanIssue.getSeverity());
         }
         descBuilder.append("<table style='border-collapse:collapse;'><tr><td style='padding:0;vertical-align:middle;'>")
@@ -232,7 +229,7 @@ public class ProblemDescription {
      */
     private void buildVulnerabilitySection(StringBuilder descBuilder, ScanIssue scanIssue) {
         List<Vulnerability> vulnerabilityList = scanIssue.getVulnerabilities();
-        if(Objects.isNull(vulnerabilityList) || vulnerabilityList.isEmpty()) {
+        if (Objects.isNull(vulnerabilityList) || vulnerabilityList.isEmpty()) {
             return;
         }
         descBuilder.append(DIV).append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>");
@@ -296,5 +293,18 @@ public class ProblemDescription {
         return Arrays.stream(title.split("-"))
                 .map(word -> word.isEmpty() ? "" : Character.toUpperCase(word.charAt(0)) + word.substring(1).toLowerCase())
                 .collect(Collectors.joining("-"));
+    }
+
+    private void buildRemediationActionsSection(StringBuilder descBuilder, ScanIssue scanIssue) {
+        descBuilder.append("<div><table style='border-collapse:collapse;'><tr>")
+                .append("<td><a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\">")
+                .append(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST).append("</a></td>")
+                .append("<td><a href=\"#cxonedevassist/viewdetails").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\">")
+                .append(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME).append("</a></td>")
+                .append("<td><a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\">")
+                .append(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME).append("</a></td>")
+                .append("<td><a href=\"#cxonedevassist/ignoreallofthis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\">")
+                .append(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME).append("</a></td>")
+                .append("</tr></table></div>");
     }
 }

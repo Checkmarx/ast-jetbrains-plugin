@@ -278,16 +278,18 @@ public class RealtimeInspection extends LocalInspectionTool {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        problemHelperBuilder.scanResult(allScanResults); // Adding all scanner results to the builder.
-
-        List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
         List<ScanIssue> allScanIssues = allScanResults.stream()
                 .flatMap(scanResult -> scanResult.getIssues().stream())
                 .collect(Collectors.toList());
 
-        problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
+        // Adding all scanner issues to the builder.
+        problemHelperBuilder.scanIssueList(allScanIssues);
+        //Adding problems to the CxFinding window
         problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), allScanIssues);
 
+        //Creating problems
+        List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
+        problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
         return allProblems;
     }
 
@@ -323,14 +325,13 @@ public class RealtimeInspection extends LocalInspectionTool {
         List<ProblemDescriptor> problems = new ArrayList<>();
         ProblemDecorator.removeAllGutterIcons(problemHelper.getFile().getProject());
         ScanIssueProcessor processor = new ScanIssueProcessor(problemHelper, this.problemDecorator);
-        for (ScanResult<?> scanResult: problemHelper.getScanResult()){
-            for (ScanIssue scanIssue : scanResult.getIssues()) {
-                ProblemDescriptor descriptor = processor.processScanIssue(scanIssue);
-                if (descriptor != null) {
-                    problems.add(descriptor);
-                }
+
+        for (ScanIssue scanIssue : problemHelper.getScanIssueList()) {
+            ProblemDescriptor descriptor = processor.processScanIssue(scanIssue);
+            if (descriptor != null) {
+                problems.add(descriptor);
             }
-         }
+        }
         LOGGER.info(format("RTS: Problem descriptors created: %s for file: %s", problems.size(), problemHelper.getFile().getName()));
         return problems;
     }

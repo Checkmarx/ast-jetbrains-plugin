@@ -36,6 +36,7 @@ import java.util.List;
 @NoArgsConstructor
 public class ScanIssue {
 
+    private String scanIssueId;
     private String severity;
     private String title;
     private String description;

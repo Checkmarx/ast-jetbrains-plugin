@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
-import com.checkmarx.intellij.devassist.common.ScanResult;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.psi.PsiFile;
@@ -27,7 +27,7 @@ public class ProblemHelper {
     private final boolean isOnTheFly;
     private final Document document;
     private final List<ScannerService<?>> supportedScanners;
-    private final List<ScanResult<?>> scanResult;
+    private final List<ScanIssue> scanIssueList;
     private final ProblemHolderService problemHolderService;
 
 }
