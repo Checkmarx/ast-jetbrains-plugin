@@ -22,9 +22,7 @@ import javax.swing.*;
 import java.awt.*;
 
 /**
- * Welcome dialog displayed after successful authentication.
- * Presents plugin features and allows enabling/disabling real-time scanners when MCP is available.
- * Real-time settings are abstracted via {@link RealTimeSettingsManager} for testability.
+ * Welcome dialog for managing Checkmarx One plugin features and real-time scanner settings.
  */
 public class WelcomeDialog extends DialogWrapper {
 
@@ -197,32 +195,39 @@ public class WelcomeDialog extends DialogWrapper {
     private void configureCheckboxBehavior() {
         if (realTimeScannersCheckbox == null) return;
         realTimeScannersCheckbox.addActionListener(e -> {
-            settingsManager.setAll(realTimeScannersCheckbox.isSelected());
+            boolean anyCurrentlyEnabled = settingsManager.areAnyEnabled();
+            settingsManager.setAll(!anyCurrentlyEnabled);
+
             refreshCheckboxState();
         });
     }
 
     /**
-     * Initializes the realtime scanner state with intelligent preference handling.
-     * For new users: enables all scanners as defaults when MCP is active
-     * For existing users: preserves their individual scanner preferences
-     * This ensures user choice is respected while providing sensible defaults for new users.
+     * Initializes real-time scanner state based on user preferences.
      */
     private void initializeRealtimeState() {
         if (!mcpEnabled) {
-            return; // No scanner configuration needed when MCP is disabled
+            return;
         }
 
         GlobalSettingsState state = GlobalSettingsState.getInstance();
-        boolean allEnabled = settingsManager.areAllEnabled();
-        boolean hasCustomPrefs = state.hasCustomUserPreferences();
 
-        // Only modify settings for new users who need sensible defaults
-        if (!allEnabled && !hasCustomPrefs) {
-            // New user with MCP enabled - provide the convenient "all enabled" default
+        if (state.getUserPreferencesSet()) {
+            boolean settingsChanged = state.applyUserPreferencesToRealtimeSettings();
+            if (settingsChanged) {
+                ApplicationManager.getApplication().getMessageBus()
+                        .syncPublisher(SettingsListener.SETTINGS_APPLIED)
+                        .settingsApplied();
+            }
+        }
+
+        boolean anyEnabled = settingsManager.areAnyEnabled();
+
+        if (!anyEnabled && !state.getUserPreferencesSet()) {
             settingsManager.setAll(true);
         }
-        // For existing users, their preferences have already been restored by the authentication flow
+
+        SwingUtilities.invokeLater(this::refreshCheckboxState);
     }
 
     /**
@@ -230,13 +235,13 @@ public class WelcomeDialog extends DialogWrapper {
      */
     private void refreshCheckboxState() {
         if (realTimeScannersCheckbox == null) return;
-        realTimeScannersCheckbox.setSelected(settingsManager.areAllEnabled());
+        boolean anyEnabled = settingsManager.areAnyEnabled();
+        realTimeScannersCheckbox.setSelected(anyEnabled);
         updateCheckboxTooltip();
     }
 
     /**
-     * Updates the checkbox tooltip based on the current state and MCP availability.
-     * Shows the appropriate enable/disable message when MCP is enabled, shows MCP not enabled message when MCP is disabled.
+     * Updates the checkbox tooltip based on current scanner state.
      */
     private void updateCheckboxTooltip() {
         if (realTimeScannersCheckbox == null) {
@@ -248,9 +253,17 @@ public class WelcomeDialog extends DialogWrapper {
             return;
         }
 
-        String tooltipText = realTimeScannersCheckbox.isSelected()
-                ? "Disable all real-time scanners"
-                : "Enable all real-time scanners";
+        boolean allEnabled = settingsManager.areAllEnabled();
+        boolean anyEnabled = settingsManager.areAnyEnabled();
+
+        String tooltipText;
+        if (allEnabled) {
+            tooltipText = "Disable all real-time scanners";
+        } else if (anyEnabled) {
+            tooltipText = "Some scanners are enabled. Click to enable all real-time scanners";
+        } else {
+            tooltipText = "Enable all real-time scanners";
+        }
         realTimeScannersCheckbox.setToolTipText(tooltipText);
     }
 
@@ -277,33 +290,35 @@ public class WelcomeDialog extends DialogWrapper {
      */
     public interface RealTimeSettingsManager {
         boolean areAllEnabled();
+        boolean areAnyEnabled();
         void setAll(boolean enable);
     }
 
     /**
-     * Default production implementation backed by {@link GlobalSettingsState}.
-     * Handles both active scanner state and user preference persistence.
+     * Production implementation using GlobalSettingsState.
      */
     private static class DefaultRealTimeSettingsManager implements RealTimeSettingsManager {
         @Override
         public boolean areAllEnabled() {
-            GlobalSettingsState s = GlobalSettingsState.getInstance();
-            return s.isOssRealtime() && s.isSecretDetectionRealtime() && s.isContainersRealtime() && s.isIacRealtime();
+            GlobalSettingsState state = GlobalSettingsState.getInstance();
+            return state.isOssRealtime() && state.isSecretDetectionRealtime() && state.isContainersRealtime();
+        }
+
+        @Override
+        public boolean areAnyEnabled() {
+            GlobalSettingsState state = GlobalSettingsState.getInstance();
+            return state.isOssRealtime() || state.isSecretDetectionRealtime() || state.isContainersRealtime();
         }
 
         @Override
         public void setAll(boolean enable) {
-            GlobalSettingsState s = GlobalSettingsState.getInstance();
+            GlobalSettingsState state = GlobalSettingsState.getInstance();
 
-            // Update active scanner states
-            s.setOssRealtime(enable);
-            s.setSecretDetectionRealtime(enable);
-            s.setContainersRealtime(enable);
-            s.setIacRealtime(enable);
-            s.setUserPreferences(enable, enable, enable, enable);
+            state.setOssRealtime(enable);
+            state.setSecretDetectionRealtime(enable);
+            state.setContainersRealtime(enable);
+            state.setUserPreferences(enable, enable, enable, state.getUserPrefIacRealtime());
 
-            // Persist changes and notify listeners
-            GlobalSettingsState.getInstance().apply(s);
             ApplicationManager.getApplication().getMessageBus()
                     .syncPublisher(SettingsListener.SETTINGS_APPLIED)
                     .settingsApplied();

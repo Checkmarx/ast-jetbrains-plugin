@@ -198,6 +198,7 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     }
 
     // Getters for user preferences (for debugging and verification)
+    public boolean getUserPreferencesSet() { return userPreferencesSet; }
     public boolean getUserPrefOssRealtime() { return userPrefOssRealtime; }
     public boolean getUserPrefSecretDetectionRealtime() { return userPrefSecretDetectionRealtime; }
     public boolean getUserPrefContainersRealtime() { return userPrefContainersRealtime; }
