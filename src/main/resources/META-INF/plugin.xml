@@ -9,12 +9,13 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      <b>Added OAuth2 login support for seamless authentication.</b>
+      <b> 1. Added OAuth2 login support for seamless authentication.</b>
         <ul>
             <li>Users can now log in via OAuth2 using their Checkmarx One account credential. This provides a smoother and more secure user experience.</li>
-            <li>Users can exclude development and test dependencies from SCA vulnerability scan results by applying the 'Hide Dev & Test Dependencies' filter.</li>
+            <li><b>Note:</b> Starting from plugin version 2.2.4, authentication can be done either via API key or OAuth2 login.</li>
         </ul>
-        <b>Note:</b> Starting from plugin version 2.2.4, authentication can be done either via API key or OAuth2 login.
+      <p> 2. Users can exclude <b> development and test dependencies</b> from SCA vulnerability scan results by applying the 'Hide Dev & Test Dependencies' filter.</p>
+      <b> 3. Checkmarx one Assist for real-time scanner and remediation using AI.</b>
     ]]></change-notes>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
@@ -69,6 +70,10 @@
                 enabledByDefault="true"
                 implementationClass="com.checkmarx.intellij.devassist.inspection.RealtimeInspection"/>
 
+        <!-- Register tooltip link handler -->
+        <codeInsight.linkHandler
+                prefix="#cxonedevassist/"
+                handlerClass="com.checkmarx.intellij.devassist.remediation.RemediationLinkHandler"/>
     </extensions>
 
     <applicationListeners>
