@@ -9,7 +9,7 @@ import com.checkmarx.intellij.util.SeverityLevel;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.Utils.escapeHtml;
@@ -22,14 +22,15 @@ import static com.checkmarx.intellij.Utils.escapeHtml;
  */
 public class ProblemDescription {
 
-    private static final int MAX_LINE_LENGTH = 120;
     private static final Map<String, String> DESCRIPTION_ICON = new LinkedHashMap<>();
 
     private static final String DIV = "<div>";
-    private static final String DIV_BR = "</div><br>";
     private static final String COUNT = "COUNT";
     private static final String PACKAGE = "Package";
     private static final String DEV_ASSIST = "DevAssist";
+    private static final String TITLE_FONT_FAMILY = "font-family: menlo;";
+    private static final String TITLE_FONT_SIZE = "font-size:11px;";
+    private static final String SECONDARY_COLOUR = "color:#ADADAD;";
 
     public ProblemDescription() {
         initIconsMap();
@@ -75,7 +76,7 @@ public class ProblemDescription {
     public String formatDescription(ScanIssue scanIssue) {
 
         StringBuilder descBuilder = new StringBuilder();
-        descBuilder.append("<html><body><div style='display:flex;flex-direction:row;align-items:center;gap:10px;'>")
+        descBuilder.append("<html><body><div style=';display:flex;flex-direction:row;align-items:center;gap:5px;'>")
                 .append(DIV).append("<table style='border-collapse:collapse;'><tr><td style='padding:0;'>")
                 .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table></div>");
         switch (scanIssue.getScanEngine()) {
@@ -102,11 +103,7 @@ public class ProblemDescription {
      *                    including its severity, vulnerabilities, and related details
      */
     private void buildOSSDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-        if (scanIssue.getSeverity().equalsIgnoreCase(SeverityLevel.MALICIOUS.getSeverity())) {
-            buildMaliciousPackageMessage(descBuilder, scanIssue);
-            return;
-        }
-        buildPackageHeader(descBuilder, scanIssue);
+        buildPackageMessage(descBuilder, scanIssue);
         buildVulnerabilitySection(descBuilder, scanIssue);
     }
 
@@ -160,48 +157,21 @@ public class ProblemDescription {
      * @param descBuilder the StringBuilder to which the formatted package header information will be appended
      * @param scanIssue   the ScanIssue object containing details about the issue such as severity, title, and package version
      */
-    private void buildPackageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<table style='border-collapse:collapse;'><tr><td colspan=\"3\" style='padding:0;'><p style='font-size: 10px; margin:0;'>")
-                .append(scanIssue.getSeverity()).append("-").append(Constants.RealTimeConstants.RISK_PACKAGE)
-                .append(" :  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</p></td></tr>");
-
-        descBuilder.append("<tr><td style='padding:0;vertical-align:middle;'>").append(getIcon(PACKAGE)).append("</td>")
-                .append("<td style='padding:0 4px 0 4px;vertical-align:middle;'><b>").append(scanIssue.getTitle()).append("@")
-                .append(scanIssue.getPackageVersion()).append("</b></td><td style='padding:0;vertical-align:middle;'> - ")
-                .append(scanIssue.getSeverity()).append(" ")
-                .append(Constants.RealTimeConstants.SEVERITY_PACKAGE)
+    private void buildPackageMessage(StringBuilder descBuilder, ScanIssue scanIssue) {
+        String secondaryText = Constants.RealTimeConstants.SEVERITY_PACKAGE;
+        String icon = getIcon(PACKAGE);
+        if (scanIssue.getSeverity().equalsIgnoreCase(SeverityLevel.MALICIOUS.getSeverity())) {
+            secondaryText  =  PACKAGE;
+            icon = getIcon(scanIssue.getSeverity());
+        }
+        descBuilder.append("<table style='border-collapse:collapse;'><tr><td style='padding:0;vertical-align:middle;'>")
+                .append(icon).append("</td>")
+                .append("<td style='").append(TITLE_FONT_FAMILY).append(TITLE_FONT_SIZE)
+                .append("padding:0 2px 0 2px;vertical-align:middle;'><b>").append(scanIssue.getTitle()).append("@")
+                .append(scanIssue.getPackageVersion()).append("</b></td>")
+                .append("<td style='padding:0;vertical-align:middle;").append(SECONDARY_COLOUR).append("'> - ")
+                .append(scanIssue.getSeverity()).append(" ").append(secondaryText)
                 .append("</td></tr></table>");
-    }
-
-    /**
-     * Builds a malicious package message and appends it to the provided StringBuilder.
-     * This method formats details about a detected malicious package based on its
-     * severity, title, and package version, and includes a corresponding icon representing
-     * the severity of the issue.
-     *
-     * @param descBuilder the StringBuilder to which the formatted malicious package message will be appended
-     * @param scanIssue   the ScanIssue object containing details about the malicious package, such as its severity,
-     *                    title, and package version
-     */
-    private void buildMaliciousPackageMessage(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<table style='border-collapse:collapse;'><tr><td colspan=\"3\" style='padding:0;'>");
-        buildMaliciousPackageHeader(descBuilder, scanIssue);
-        descBuilder.append("</td></tr><tr><td>").append(getIcon(scanIssue.getSeverity())).append("</td>")
-                .append("<td><span><b>").append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</b></span>")
-                .append("<span> - ").append(scanIssue.getSeverity()).append(" ").append(PACKAGE)
-                .append("</span><td></tr></table>");
-    }
-
-    /**
-     * Builds the malicious package header section of a scan issue description and appends it to the provided StringBuilder.
-     *
-     * @param descBuilder the StringBuilder to which the formatted malicious package header will be appended
-     * @param scanIssue   he ScanIssue object containing details about the malicious package
-     */
-    private void buildMaliciousPackageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<p style='font-size: 10px; margin:0;'>").append(scanIssue.getSeverity())
-                .append(" ").append(Constants.RealTimeConstants.PACKAGE_DETECTED).append(" :  ")
-                .append(scanIssue.getTitle()).append("@").append(scanIssue.getPackageVersion()).append("</p>");
     }
 
     /**
@@ -214,29 +184,20 @@ public class ProblemDescription {
      */
     private void buildVulnerabilitySection(StringBuilder descBuilder, ScanIssue scanIssue) {
         List<Vulnerability> vulnerabilityList = scanIssue.getVulnerabilities();
-        if (vulnerabilityList != null && !vulnerabilityList.isEmpty()) {
-            descBuilder.append(DIV);
-            buildVulnerabilityIconWithCountMessage(descBuilder, vulnerabilityList);
-            descBuilder.append("<p style='margin-left: 5px; margin-top:4px; margin-bottom:0;'>");
-            findVulnerabilityBySeverity(vulnerabilityList, scanIssue.getSeverity())
-                    .ifPresent(vulnerability ->
-                            descBuilder.append(escapeHtml(vulnerability.getDescription()))
-                    );
-            descBuilder.append(DIV_BR).append("<p>");
+        if(Objects.isNull(vulnerabilityList) || vulnerabilityList.isEmpty()) {
+            return;
         }
-    }
-
-    /**
-     * Finds a vulnerability matching the specified severity level.
-     *
-     * @param vulnerabilityList the list of vulnerabilities to search
-     * @param severity          the severity level to match
-     * @return an Optional containing the matching vulnerability, or empty if not found
-     */
-    private Optional<Vulnerability> findVulnerabilityBySeverity(List<Vulnerability> vulnerabilityList, String severity) {
-        return vulnerabilityList.stream()
-                .filter(vulnerability -> vulnerability.getSeverity().equalsIgnoreCase(severity))
-                .findFirst();
+        descBuilder.append(DIV).append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>");
+        Map<String, Long> vulnerabilityCount = getVulnerabilityCount(vulnerabilityList);
+        DESCRIPTION_ICON.forEach((severity, iconPath) -> {
+            Long count = vulnerabilityCount.get(severity);
+            if (count != null && count > 0) {
+                descBuilder.append("<td style='padding:0;'>").append(getIcon(getSeverityCountIconKey(severity))).append("</td>")
+                        .append("<td style='font-size:9px;color:#ADADAD;vertical-align:middle;padding:0 4px 0 1px;'>")
+                        .append(count).append("</td>");
+            }
+        });
+        descBuilder.append("</tr></table></div>");
     }
 
     /**
@@ -254,33 +215,6 @@ public class ProblemDescription {
     }
 
     /**
-     * Builds a message representing the count of vulnerabilities categorized by severity level
-     * and appends it to the provided description builder. This method uses severity icons
-     * and corresponding counts formatted in a specific style.
-     *
-     * @param descBuilder       the StringBuilder to which the formatted vulnerability count message will be appended
-     * @param vulnerabilityList the list of vulnerabilities to be processed for counting and categorizing by severity level
-     */
-    private void buildVulnerabilityIconWithCountMessage(StringBuilder descBuilder, List<Vulnerability> vulnerabilityList) {
-        if (vulnerabilityList.isEmpty()) {
-            return;
-        }
-        descBuilder.append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>");
-        Map<String, Long> vulnerabilityCount = getVulnerabilityCount(vulnerabilityList);
-        DESCRIPTION_ICON.forEach((severity, iconPath) -> {
-            Long count = vulnerabilityCount.get(severity);
-            if (count != null && count > 0) {
-                descBuilder.append("<td style='padding:0;'>").append(getIcon(getSeverityCountIconKey(severity))).append("</td>")
-                        .append("<td style='vertical-align:middle;padding:0 6px 0 2px;'>")
-                        .append(count).append("</td>");
-
-
-            }
-        });
-        descBuilder.append("</tr></table>");
-    }
-
-    /**
      * Generates an HTML image element based on the provided icon name.
      *
      * @param iconPath the path to the image file that will be used in the HTML content
@@ -289,16 +223,6 @@ public class ProblemDescription {
     private static String getImage(String iconPath) {
         // Add vertical-align:middle and remove default spacing; display:inline-block ensures tight layout.
         return iconPath.isEmpty() ? "" : "<img src='" + DevAssistUtils.themeBasedPNGIconForHtmlImage(iconPath) + "'/>";
-    }
-
-    /**
-     * Wraps the provided text at the word boundary.
-     *
-     * @param text the text to be wrapped
-     * @return the wrapped text
-     */
-    private String wrapText(String text) {
-        return text.length() < MAX_LINE_LENGTH ? text : DevAssistUtils.wrapTextAtWord(text, MAX_LINE_LENGTH);
     }
 
     /**
