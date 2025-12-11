@@ -46,6 +46,8 @@ public class ScanIssue {
     private ScanEngine scanEngine;
     private String filePath;
     private String imageTag;
+    private String fileType;
+    private Integer problematicLineNumber;
 
 
     /**

@@ -26,8 +26,7 @@ public class ScannerFactory {
      */
     public List<ScannerService<?>> getAllSupportedScanners(String file, PsiFile psiFile) {
         List<ScannerService<?>> allSupportedScanners = new ArrayList<>();
-        scannerServices.stream().filter(scanner ->
-                scanner.shouldScanFile(file,psiFile)).forEach(allSupportedScanners::add);
+        scannerServices.stream().filter(scannerService -> scannerService.shouldScanFile(file,psiFile)).forEach(allSupportedScanners::add);
         return allSupportedScanners;
     }
 }

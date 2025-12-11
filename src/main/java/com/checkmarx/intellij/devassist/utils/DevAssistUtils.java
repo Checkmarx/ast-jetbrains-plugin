@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.utils;
 
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
@@ -23,6 +24,8 @@ import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Paths;
+import java.util.Objects;
 
 import static java.lang.String.format;
 
@@ -265,5 +268,49 @@ public class DevAssistUtils {
             LOGGER.error(format("Exception occurred while getting PsiElement for line number: %s", lineNumber), e);
             return null;
         }
+    }
+
+    private  static boolean isDockerComposeFile(@NotNull String filePath) {
+        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKER_COMPOSE);
+    }
+
+    private static boolean isDockerFile(@NotNull String filePath){
+        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKERFILE);
+    }
+
+    public static String getFileExtension(@NotNull PsiFile psiFile){
+        VirtualFile vFile = psiFile.getVirtualFile();
+        if (!vFile.exists()) {
+            return null;
+        }
+        return vFile.getExtension();
+    }
+
+    public static boolean isYamlFile(@NotNull PsiFile psiFile){
+        String fileExtension= DevAssistUtils.getFileExtension(psiFile);
+        return Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
+    }
+
+    public static boolean isHelmFile(@NotNull PsiFile psiFile,@NotNull String filePath) {
+        if (isYamlFile(psiFile)) {
+            if (Constants.RealTimeConstants.CONTAINER_HELM_EXCLUDED_FILES.contains(psiFile.getName().toLowerCase())) {
+                return false;
+            }
+            return filePath.toLowerCase().contains("/helm/");
+        }
+        return false;
+    }
+
+    public static String getContainerFileType(@NotNull PsiFile psiFile, String filePath){
+        if(isDockerComposeFile(filePath)){
+            return Constants.RealTimeConstants.DOCKER_COMPOSE;
+        }
+        if(isHelmFile(psiFile,filePath)){
+            return Constants.RealTimeConstants.HELM;
+        }
+        if(isDockerFile(filePath)){
+            return Constants.RealTimeConstants.DOCKERFILE;
+        }
+        return Constants.RealTimeConstants.UNKNOWN;
     }
 }

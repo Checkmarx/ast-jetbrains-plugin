@@ -53,9 +53,10 @@ class BaseScannerServiceTest {
     @Test
     @DisplayName("shouldScanFile skips node_modules and scans valid files")
     void testShouldScanFile_skipsNodeModulesAndScansValidFiles() {
-        assertFalse(service.shouldScanFile("/foo/node_modules/bar.js"));
-        assertTrue(service.shouldScanFile("/foo/src/bar.js"));
-        assertTrue(service.shouldScanFile("bar.js"));
+        PsiFile psiFile = mock(PsiFile.class);
+        assertFalse(service.shouldScanFile("/foo/node_modules/bar.js",psiFile));
+        assertTrue(service.shouldScanFile("/foo/src/bar.js",psiFile));
+        assertTrue(service.shouldScanFile("bar.js",psiFile));
     }
 
     @Test

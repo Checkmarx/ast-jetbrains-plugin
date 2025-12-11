@@ -272,19 +272,22 @@ public class RealtimeInspection extends LocalInspectionTool {
      */
     private List<ProblemDescriptor> startScanAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
         ProblemHelper problemHelper = problemHelperBuilder.build();
-        List<ProblemDescriptor> allProblems = new ArrayList<>();
-        List<ScanIssue> allScanIssues = new ArrayList<>();
-        List<ScanResult<?>>allScanResult = new ArrayList<>();
-        for (ScannerService<?> scannerService : problemHelper.getSupportedScanners()) {
-            ScanResult<?> scanResult = scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath());
-            if (Objects.isNull(scanResult)) continue;
-            allScanResult.add(scanResult);
-        }
-        problemHelperBuilder.scanResult(allScanResult);
-        allProblems.addAll(createProblemDescriptors(problemHelperBuilder.build()));
-        allScanResult.forEach(scanResult -> allScanIssues.addAll(scanResult.getIssues()));
+        List<ScanResult<?>> allScanResults = problemHelper.getSupportedScanners().stream()
+                .map(scannerService ->
+                        scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        problemHelperBuilder.scanResult(allScanResults); // Adding all scanner results to the builder.
+
+        List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
+        List<ScanIssue> allScanIssues = allScanResults.stream()
+                .flatMap(scanResult -> scanResult.getIssues().stream())
+                .collect(Collectors.toList());
+
         problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
         problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), allScanIssues);
+
         return allProblems;
     }
 
@@ -320,15 +323,14 @@ public class RealtimeInspection extends LocalInspectionTool {
         List<ProblemDescriptor> problems = new ArrayList<>();
         ProblemDecorator.removeAllGutterIcons(problemHelper.getFile().getProject());
         ScanIssueProcessor processor = new ScanIssueProcessor(problemHelper, this.problemDecorator);
-
-        for(ScanResult<?> scanResult: problemHelper.getScanResult()) {
-            for (ScanIssue scanIssue: scanResult.getIssues() ) {
+        for (ScanResult<?> scanResult: problemHelper.getScanResult()){
+            for (ScanIssue scanIssue : scanResult.getIssues()) {
                 ProblemDescriptor descriptor = processor.processScanIssue(scanIssue);
                 if (descriptor != null) {
                     problems.add(descriptor);
                 }
             }
-        }
+         }
         LOGGER.info(format("RTS: Problem descriptors created: %s for file: %s", problems.size(), problemHelper.getFile().getName()));
         return problems;
     }

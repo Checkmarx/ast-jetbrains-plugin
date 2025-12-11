@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
  * registered in plugin.xml. On startup it auto-installs MCP configuration if:
  * <ul>
  *   <li>User is authenticated</li>
- *   <li>AI MCP server flag is enabled (TenantSetting.isAiMcpServerEnabled())</li>
+ *   <li>AI MCP server flag is enabled (TenantSetting.isAiMcpServerEnabled(state, sensitiveState))</li>
  *   <li>A credential token/API key is available</li>
  * </ul>
  * If any condition fails the auto-install silently skips (debug logged).
@@ -46,7 +46,7 @@ public final class McpInstallService implements StartupActivity.DumbAware {
 
         boolean aiMcpEnabled;
         try {
-            aiMcpEnabled = TenantSetting.isAiMcpServerEnabled();
+            aiMcpEnabled = TenantSetting.isAiMcpServerEnabled(state, sensitive);
         } catch (Exception e) {
             LOG.warn("Failed to check AI MCP server status; skipping MCP auto-install.", e);
             return;

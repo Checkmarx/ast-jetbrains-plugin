@@ -32,6 +32,7 @@ public class ProblemDescription {
     private static final String COUNT = "COUNT";
     private static final String PACKAGE = "Package";
     private static final String DEV_ASSIST = "DevAssist";
+    private static final String CONTAINER = "Container";
 
     public ProblemDescription() {
         initIconsMap();
@@ -53,7 +54,10 @@ public class ProblemDescription {
         DESCRIPTION_ICON.put(getSeverityCountIconKey(SeverityLevel.LOW.getSeverity()), getImage(Constants.ImagePaths.LOW_16_PNG));
 
         DESCRIPTION_ICON.put(PACKAGE, getImage(Constants.ImagePaths.PACKAGE_PNG));
+        DESCRIPTION_ICON.put(getSeverityCountIconKey(SeverityLevel.LOW.getSeverity()), getImage(Constants.ImagePaths.LOW_16_PNG));
+
         DESCRIPTION_ICON.put(DEV_ASSIST, getImage(Constants.ImagePaths.DEV_ASSIST_PNG));
+        DESCRIPTION_ICON.put(CONTAINER, getImage(Constants.ImagePaths.CONTAINER_PNG));
     }
 
     /**
@@ -77,17 +81,9 @@ public class ProblemDescription {
     public String formatDescription(ScanIssue scanIssue) {
 
         StringBuilder descBuilder = new StringBuilder();
-
-        // Use different tootip style for secrets and oss to prevent scroll bars
-        if (scanIssue.getScanEngine() == ScanEngine.SECRETS) {
-            descBuilder.append("<html><body style='overflow:visible;margin:0;padding:2px;'><div style='display:flex;flex-direction:row;align-items:center;gap:10px;overflow:visible;'>")
-                    .append(DIV).append("<table style='border-collapse:collapse;'><tr><td style='padding:0;'>")
-                    .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table></div>");
-        } else {
-            descBuilder.append("<html><body><div style='display:flex;flex-direction:row;align-items:center;gap:10px;'>")
-                    .append(DIV).append("<table style='border-collapse:collapse;'><tr><td style='padding:0;'>")
-                    .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table></div>");
-        }
+        descBuilder.append("<html><body style='overflow:visible;margin:0;padding:2px;'><div style='display:flex;flex-direction:row;align-items:center;gap:10px;overflow:visible;'>")
+                .append(DIV).append("<table style='border-collapse:collapse;'><tr><td style='padding:0;'>")
+                .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table></div>");
 
         switch (scanIssue.getScanEngine()) {
             case OSS:
@@ -101,6 +97,7 @@ public class ProblemDescription {
                 break;
             case CONTAINERS:
                 buildContainerDescription(descBuilder,scanIssue);
+                break;
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
@@ -139,16 +136,12 @@ public class ProblemDescription {
      * @param scanIssue   The ScanIssue object containing details about the secret.
      */
     private void buildSecretsDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<div style='overflow:visible;min-width:280px;min-height:30px;width:auto;height:auto;'>")
-                .append("<table style='border-collapse:collapse;width:100%;'><tr>")
+        descBuilder.append("<div><table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>")
                 // Column 1: Severity Icon
-                .append("<td style='padding:0;vertical-align:middle;width:20px;'>")
-                .append(getIcon(scanIssue.getSeverity()))
-                .append("</td>")
+                .append("<td>").append(getIcon(scanIssue.getSeverity())).append("</td>")
                 // Column 2: Title and Subtitle(- Secret finding)
-                .append("<td style='padding:0;vertical-align:middle;white-space:nowrap;'>")
-                .append("<b>").append(escapeHtml(formatTitle(scanIssue.getTitle()))).append("</b>")
-                .append(" <span style='color: #808080;'>- Secret finding</span>")
+                .append("<td>")
+                .append ("<p style=\"font-size:11px;\"><b>").append(escapeHtml(formatTitle(scanIssue.getTitle()))).append("</b> - Secret finding</p>")
                 .append("</td>")
                 .append("</tr></table></div>");
     }
@@ -218,14 +211,14 @@ public class ProblemDescription {
 
     private void buildImageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
         descBuilder.append("<table style='border-collapse:collapse;'><tr><td colspan=\"3\" style='padding:0;'><p style='font-size: 10px; margin:0;'>")
-                .append(scanIssue.getSeverity()).append("-").append(Constants.RealTimeConstants.RISK_PACKAGE)
+                .append(scanIssue.getSeverity()).append("-").append(Constants.RealTimeConstants.RISK_IMAGE)
                 .append(" :  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getImageTag()).append("</p></td></tr>");
 
-        descBuilder.append("<tr><td style='padding:0;vertical-align:middle;'>").append(getIcon(PACKAGE)).append("</td>")
+        descBuilder.append("<tr><td style='padding:0;vertical-align:middle;'>").append(getIcon(CONTAINER)).append("</td>")
                 .append("<td style='padding:0 4px 0 4px;vertical-align:middle;'><b>").append(scanIssue.getTitle()).append("@")
                 .append(scanIssue.getImageTag()).append("</b></td><td style='padding:0;vertical-align:middle;'>")
                 .append(scanIssue.getSeverity()).append(" ")
-                .append(Constants.RealTimeConstants.SEVERITY_PACKAGE)
+                .append(Constants.RealTimeConstants.SEVERITY_IMAGE)
                 .append("</td></tr></table>");
     }
 

@@ -24,14 +24,14 @@ public class RemediationManagerTest {
 
         try (MockedStatic<CxOneAssistFixPrompts> fixPrompts = mockStatic(CxOneAssistFixPrompts.class);
              MockedStatic<DevAssistUtils> devAssist = mockStatic(DevAssistUtils.class)) {
-            fixPrompts.when(() -> CxOneAssistFixPrompts.scaRemediationPrompt(
+            fixPrompts.when(() -> CxOneAssistFixPrompts.buildSCARemediationPrompt(
                     anyString(), anyString(), anyString(), anyString())).thenReturn("prompt");
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(true);
 
             manager.fixWithCxOneAssist(project, issue);
 
-            fixPrompts.verify(() -> CxOneAssistFixPrompts.scaRemediationPrompt(
+            fixPrompts.verify(() -> CxOneAssistFixPrompts.buildSCARemediationPrompt(
                     eq(issue.getTitle()), eq(issue.getPackageVersion()), eq(issue.getPackageManager()), eq(issue.getSeverity())));
             devAssist.verify(() -> DevAssistUtils.copyToClipboardWithNotification(eq("prompt"), anyString(), anyString(), eq(project)));
         }
@@ -46,14 +46,14 @@ public class RemediationManagerTest {
 
         try (MockedStatic<CxOneAssistFixPrompts> fixPrompts = mockStatic(CxOneAssistFixPrompts.class);
              MockedStatic<DevAssistUtils> devAssist = mockStatic(DevAssistUtils.class)) {
-            fixPrompts.when(() -> CxOneAssistFixPrompts.scaRemediationPrompt(anyString(), anyString(), anyString(), anyString()))
+            fixPrompts.when(() -> CxOneAssistFixPrompts.buildSCARemediationPrompt(anyString(), anyString(), anyString(), anyString()))
                     .thenReturn("prompt");
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(false);
 
             manager.fixWithCxOneAssist(project, issue);
 
-            fixPrompts.verify(() -> CxOneAssistFixPrompts.scaRemediationPrompt(
+            fixPrompts.verify(() -> CxOneAssistFixPrompts.buildSCARemediationPrompt(
                     eq(issue.getTitle()), eq(issue.getPackageVersion()), eq(issue.getPackageManager()), eq(issue.getSeverity())));
             devAssist.verify(() -> DevAssistUtils.copyToClipboardWithNotification(eq("prompt"), anyString(), anyString(), eq(project)));
         }
@@ -88,14 +88,14 @@ public class RemediationManagerTest {
 
         try (MockedStatic<ViewDetailsPrompts> viewPrompts = mockStatic(ViewDetailsPrompts.class);
              MockedStatic<DevAssistUtils> devAssist = mockStatic(DevAssistUtils.class)) {
-            viewPrompts.when(() -> ViewDetailsPrompts.generateSCAExplanationPrompt(anyString(), anyString(), anyString(), any()))
+            viewPrompts.when(() -> ViewDetailsPrompts.buildSCAExplanationPrompt(anyString(), anyString(), anyString(), any()))
                     .thenReturn("viewPrompt");
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(true);
 
             manager.viewDetails(project, issue);
 
-            viewPrompts.verify(() -> ViewDetailsPrompts.generateSCAExplanationPrompt(
+            viewPrompts.verify(() -> ViewDetailsPrompts.buildSCAExplanationPrompt(
                     eq(issue.getTitle()), eq(issue.getPackageVersion()), eq(issue.getSeverity()), eq(issue.getVulnerabilities())));
             devAssist.verify(() -> DevAssistUtils.copyToClipboardWithNotification(eq("viewPrompt"), anyString(), anyString(), eq(project)));
         }
@@ -110,14 +110,14 @@ public class RemediationManagerTest {
 
         try (MockedStatic<ViewDetailsPrompts> viewPrompts = mockStatic(ViewDetailsPrompts.class);
              MockedStatic<DevAssistUtils> devAssist = mockStatic(DevAssistUtils.class)) {
-            viewPrompts.when(() -> ViewDetailsPrompts.generateSCAExplanationPrompt(anyString(), anyString(), anyString(), any()))
+            viewPrompts.when(() -> ViewDetailsPrompts.buildSCAExplanationPrompt(anyString(), anyString(), anyString(), any()))
                     .thenReturn("viewPrompt");
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(false);
 
             manager.viewDetails(project, issue);
 
-            viewPrompts.verify(() -> ViewDetailsPrompts.generateSCAExplanationPrompt(
+            viewPrompts.verify(() -> ViewDetailsPrompts.buildSCAExplanationPrompt(
                     eq(issue.getTitle()), eq(issue.getPackageVersion()), eq(issue.getSeverity()), eq(issue.getVulnerabilities())));
             devAssist.verify(() -> DevAssistUtils.copyToClipboardWithNotification(eq("viewPrompt"), anyString(), anyString(), eq(project)));
         }

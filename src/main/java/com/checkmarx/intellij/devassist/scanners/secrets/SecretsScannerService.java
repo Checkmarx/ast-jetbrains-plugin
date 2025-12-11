@@ -11,7 +11,6 @@ import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
@@ -65,15 +64,15 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
      */
     public boolean shouldScanFile(String filePath, PsiFile psiFile) {
         if (!super.shouldScanFile(filePath, psiFile)) {
-            LOGGER.debug("Base shouldScanFile returned false for: " + filePath);
+            LOGGER.debug("Secrets scanner: file not eligible - " + filePath);
             return false;
         }
         boolean isExcluded = this.isExcludedFileForSecretsScanning(filePath);
         if (isExcluded) {
-            LOGGER.debug("File excluded from secrets scanning: " + filePath);
+            LOGGER.debug("Secrets scanner: file excluded - " + filePath);
             return false;
         }
-        LOGGER.debug("File eligible for secrets scanning: " + filePath);
+        LOGGER.debug("Secrets scanner: file eligible - " + filePath);
         return true;
     }
 
@@ -134,7 +133,7 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
             }
             return hexString.substring(0, 16);
         } catch (NoSuchAlgorithmException e) {
-            LOGGER.debug("Using alternative method of generating hashCode for temporary file");
+            LOGGER.debug("Secrets scanner: using fallback hash method");
             return Integer.toHexString((relativePath + System.currentTimeMillis()).hashCode());
         }
     }
@@ -164,7 +163,7 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
         String fileText = DevAssistUtils.getFileContent(file);
 
         if (fileText == null || fileText.isBlank()) {
-            LOGGER.warn("No content found in file: " + originalFilePath);
+            LOGGER.debug("Secrets scanner: no content found - " + originalFilePath);
             return Optional.empty();
         }
 
@@ -183,46 +182,44 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
      * @return ScanResult of type SecretsRealtimeResults (TODO: Replace with actual type)
      */
     public ScanResult<SecretsRealtimeResults> scan(@NotNull PsiFile file, @NotNull String uri) {
-        ProgressManager.checkCanceled();
         if (!this.shouldScanFile(uri,file)) {
             return null;
         }
 
         Path tempSubFolder = this.getTempSubFolderPath(file);
         try {
-            ProgressManager.checkCanceled();
             this.createTempFolder(tempSubFolder);
             Optional<String> tempFilePath = this.saveFileForScanning(tempSubFolder, uri, file);
             if (tempFilePath.isEmpty()) {
-                LOGGER.warn("Failed to save file for secrets scanning: " + uri);
+                LOGGER.debug("Secrets scanner: failed to save file - " + uri);
                 return null;
             }
 
-            LOGGER.info("Start Realtime Secrets Scan On File: " + uri + " (temp file: " + tempFilePath.get() + ")");
-            ProgressManager.checkCanceled();
+            LOGGER.debug("Secrets scanner: starting scan - " + uri);
             SecretsRealtimeResults scanResults = CxWrapperFactory.build().secretsRealtimeScan(tempFilePath.get(), "");
 
             if (scanResults == null) {
-                LOGGER.warn("Secrets scan returned null results for file: " + uri);
+                LOGGER.debug("Secrets scanner: no results returned - " + uri);
                 return null;
             }
 
             int secretCount = scanResults.getSecrets() != null ? scanResults.getSecrets().size() : 0;
-            LOGGER.info("Secrets scan completed for file: " + uri + " - Found " + secretCount + " secrets");
+            LOGGER.debug("Secrets scanner: scan completed - " + uri + " (" + secretCount + " secrets found)");
 
             if (secretCount > 0) {
-                for (int i = 0; i < scanResults.getSecrets().size(); i++) {
-                    var secret = scanResults.getSecrets().get(i);
-                    LOGGER.info("Secret " + (i + 1) + ": " + secret.getTitle() + " (Severity: " + secret.getSeverity() + ")");
+                var secrets = scanResults.getSecrets();
+                for (int index = 0; index < secrets.size(); index++) {
+                    var secret = secrets.get(index);
+                    LOGGER.debug("Secret " + (index + 1) + ": " + secret.getTitle() + " [" + secret.getSeverity() + "]");
                 }
             }
 
             return new SecretsScanResultAdaptor(scanResults);
 
         } catch (IOException | CxException | InterruptedException e) {
-            LOGGER.warn("Error occurred during Secrets realTime scan", e);
+            LOGGER.debug("Secrets scanner: scan error", e);
         } finally {
-            LOGGER.debug("Deleting temporary folder");
+            LOGGER.debug("Secrets scanner: cleaning up temp folder");
             deleteTempFolder(tempSubFolder);
         }
         return null;
