@@ -3,19 +3,13 @@ package com.checkmarx.intellij.devassist.scanners.containers;
 import com.checkmarx.ast.containersrealtime.ContainersRealtimeImage;
 import com.checkmarx.ast.containersrealtime.ContainersRealtimeResults;
 import com.checkmarx.ast.containersrealtime.ContainersRealtimeVulnerability;
-import com.checkmarx.ast.ossrealtime.OssRealtimeScanPackage;
 import com.checkmarx.ast.realtime.RealtimeLocation;
 import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.common.ScanResult;
-import com.checkmarx.intellij.devassist.inspection.RealtimeInspection;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
-import com.checkmarx.intellij.util.SeverityLevel;
-import com.intellij.openapi.diagnostic.Logger;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -24,10 +18,11 @@ import java.util.stream.Collectors;
 public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtimeResults> {
 
     private final ContainersRealtimeResults containersRealtimeResults;
-    private static final Logger LOGGER = Utils.getLogger(ContainerScanResultAdaptor.class);
+    private final String fileType;
 
-    public ContainerScanResultAdaptor(ContainersRealtimeResults containersRealtimeResults) {
+    public ContainerScanResultAdaptor(ContainersRealtimeResults containersRealtimeResults, String fileType) {
         this.containersRealtimeResults = containersRealtimeResults;
+        this.fileType = fileType;
     }
 
     @Override
@@ -53,6 +48,7 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
         scanIssue.setTitle(containersImageObj.getImageName());
         scanIssue.setImageTag(containersImageObj.getImageTag());
         scanIssue.setSeverity(containersImageObj.getStatus());
+        scanIssue.setFileType(this.fileType);
 
         if (!Objects.isNull(containersImageObj.getLocations()) && !containersImageObj.getLocations().isEmpty()) {
             containersImageObj.getLocations().forEach(location -> scanIssue.getLocations().add(createLocation(location)));
@@ -68,28 +64,25 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
         return new Vulnerability(vulnerabilityObj.getCve(), this.getDescription(vulnerabilityObj.getSeverity()), vulnerabilityObj.getSeverity(), "", "");
     }
 
-    private String getDescription(String severity){
-        switch (severity){
+    private String getDescription(String severity) {
+        switch (severity) {
             case (Constants.MALICIOUS_SEVERITY):
-                return "Malicious-risk container image";
+                return Constants.RealTimeConstants.MALICIOUS_RISK_CONTAINER;
 
             case (Constants.CRITICAL_SEVERITY):
-                return "Critical-risk container image";
+                return Constants.RealTimeConstants.CRITICAL_RISK_CONTAINER;
 
             case (Constants.HIGH_SEVERITY):
-                return "High-risk container image";
+                return Constants.RealTimeConstants.HIGH_RISK_CONTAINER;
 
             case (Constants.MEDIUM_SEVERITY):
-                return "Medium-risk container image";
+                return Constants.RealTimeConstants.MEDIUM_RISK_CONTAINER;
 
             case (Constants.LOW_SEVERITY):
-                return "Low-risk container image";
-
+                return Constants.RealTimeConstants.LOW_RISK_CONTAINER;
             default:
                 return severity;
         }
-
-
     }
 
     private Location createLocation(RealtimeLocation location) {
@@ -99,6 +92,5 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
     private int getLine(RealtimeLocation location) {
         return location.getLine() + 1;
     }
-
 
 }

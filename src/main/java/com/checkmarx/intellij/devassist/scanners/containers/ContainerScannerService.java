@@ -5,14 +5,12 @@ import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
-import com.checkmarx.intellij.devassist.basescanner.ScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -37,7 +35,6 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
      * Creates a new scanner service with the  configuration.
      */
 
-
     public ContainerScannerService() {
         super(createConfig());
     }
@@ -61,13 +58,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
     }
 
     private boolean isHelmFilePatternMatching(String filePath, PsiFile psiFile) {
-        VirtualFile vFile = psiFile.getVirtualFile();
-        if (!vFile.exists()) {
-            return false;
-        }
-        String fileExtension = vFile.getExtension();
-        boolean isYamlFile = Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
-        if (isYamlFile) {
+        if (DevAssistUtils.isYamlFile(psiFile)) {
             if (Constants.RealTimeConstants.CONTAINER_HELM_EXCLUDED_FILES.contains(psiFile.getName())) {
                 return false;
             }
@@ -86,10 +77,6 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
         return false;
     }
 
-    private boolean isDockerComposeFile(String filePath) {
-        return Paths.get(filePath).getFileName().toString().toLowerCase().contains("docker-compose");
-    }
-
     @Override
     public ScannerConfig getConfig() {
         return createConfig();
@@ -99,7 +86,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
         try {
             LocalTime time = LocalTime.now();
             String timeSuffix = String.format("%02d%02d", time.getMinute(), time.getSecond());
-            String combined = relativePath + timeSuffix;
+            String combined = relativePath + timeSuffix + UUID.randomUUID().toString().substring(0, 5);
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = digest.digest(combined.getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
@@ -111,7 +98,6 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
             LOGGER.debug("Using alternative method of generating hashCode for temporary file");
             return Integer.toHexString((relativePath + System.currentTimeMillis()).hashCode());
         }
-
     }
 
     private Pair<Path, Path> createSubFolderAndSaveFile(Path tempSubFolder, String relativePath, PsiFile psiFile) throws IOException {
@@ -138,28 +124,19 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
         return createSubFolderAndSaveFile(helmSubFolderPath, helmRelativePath, file);
     }
 
+
     @Override
     public ScanResult<ContainersRealtimeResults> scan(PsiFile psiFile, String uri) {
-
         if (!this.shouldScanFile(uri, psiFile)) {
             return null;
         }
-
         String tempFolder = super.getTempSubFolderPath(Constants.RealTimeConstants.CONTAINER_REALTIME_SCANNER_DIRECTORY);
         Pair<Path, Path> saveResult = null;
         try {
             Path tempFolderPath = Paths.get(tempFolder);
             this.createTempFolder(tempFolderPath);
-            VirtualFile vFile = psiFile.getVirtualFile();
-            if (!vFile.exists()) {
-                return null;
-            }
-            String fileExtension = vFile.getExtension();
-
             String tempFilePath;
-           
-            boolean isYamlFile = Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
-            if (isYamlFile && !isDockerComposeFile(uri)) {
+            if (DevAssistUtils.isHelmFile(psiFile, uri)) {
                 saveResult = this.saveHelmFile(tempFolderPath, psiFile);
             } else {
                 saveResult = this.saveOtherFiles(tempFolderPath, psiFile);
@@ -168,22 +145,18 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start Container Realtime Scan On File: " + uri);
                 ContainersRealtimeResults scanResults = CxWrapperFactory.build().containersRealtimeScan(tempFilePath, "");
-                return new ContainerScanResultAdaptor(scanResults);
+                return new ContainerScanResultAdaptor(scanResults, DevAssistUtils.getContainerFileType(psiFile, uri));
             }
 
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);
-        }
-        finally {
+        } finally {
             LOGGER.info("Deleting temporary folder");
-            if(Objects.nonNull(saveResult)){
+            if (Objects.nonNull(saveResult)) {
                 deleteTempFolder(saveResult.getRight());
             }
-
         }
         return null;
-
     }
-
 
 }
