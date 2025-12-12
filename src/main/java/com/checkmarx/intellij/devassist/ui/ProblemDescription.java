@@ -11,30 +11,30 @@ import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.Constants.RealTimeConstants.SEPERATOR;
 import static com.checkmarx.intellij.Utils.escapeHtml;
+import static com.checkmarx.intellij.devassist.ui.ProblemDescription.InlineHtml.*;
 
 /**
- * Formats descriptions for scan issues (OSS, ASCA, SECRETS, CONTAINERS).
+ * This class is responsible for handling and formatting descriptions of scan issues
+ * including their severity, associated vulnerabilities, and remediation guidance.
+ * It provides various utility methods to construct and format messages for
+ * different types of issues.
  */
 public class ProblemDescription {
 
     private static final Map<String, String> DESCRIPTION_ICON = new LinkedHashMap<>();
-
-    private static final String DIV = "<div>";
-    private static final String DIV_BR = "</div><br>";
     private static final String COUNT = "COUNT";
     private static final String PACKAGE = "Package";
     private static final String DEV_ASSIST = "DevAssist";
     private static final String CONTAINER = "Container";
-    private static final String TITLE_FONT_FAMILY = "font-family: menlo;";
-    private static final String TITLE_FONT_SIZE = "font-size:11px;";
-    private static final String SECONDARY_SPAN_STYLE = "display:inline-block;vertical-align:middle;line-height:16px;font-size:11px;color:#ADADAD;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;";
-    private static final String ICON_INLINE_STYLE = "display:inline-block;vertical-align:middle;max-height:16px;line-height:16px;";
-    private static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";
+
 
     public ProblemDescription() {
         initIconsMap();
     }
 
+    /**
+     * Initializes the mapping from severity levels to severity-specific icons.
+     */
     private static void initIconsMap() {
         DESCRIPTION_ICON.put(SeverityLevel.MALICIOUS.getSeverity(), getImage(Constants.ImagePaths.MALICIOUS_PNG));
         DESCRIPTION_ICON.put(SeverityLevel.CRITICAL.getSeverity(), getImage(Constants.ImagePaths.CRITICAL_PNG));
@@ -52,18 +52,30 @@ public class ProblemDescription {
         DESCRIPTION_ICON.put(CONTAINER, getImage(Constants.ImagePaths.CONTAINER_PNG));
     }
 
+    /**
+     * Reloads the mapping from severity levels to severity-specific icons.
+     */
     public static void reloadIcons() {
         initIconsMap();
     }
 
+    /**
+     * Formats a description for the given scan issue, incorporating details such as
+     * relevant icon, scan engine information, and issue details in an HTML structure.
+     * Depending on the scan engine type, it delegates the construction of the specific
+     * description sections to corresponding helper methods.
+     *
+     * @param scanIssue the ScanIssue object containing information about the identified issue,
+     *                  including details like its severity, title, vulnerabilities, and scan engine.
+     * @return a String representing the formatted HTML description of the scan issue,
+     * with visual elements included for improved readability.
+     */
     public String formatDescription(ScanIssue scanIssue) {
         StringBuilder descBuilder = new StringBuilder();
 
         descBuilder.append("<html><body>");
-        descBuilder.append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>")
-                .append("<td style='padding:0 6px 0 0;vertical-align:middle;'>")
-                .append(DESCRIPTION_ICON.get(DEV_ASSIST))
-                .append("</td></tr></table>");
+        descBuilder.append(TABLE_WITH_TR).append("<td style='padding:0 6px 0 0;vertical-align:middle;'>")
+                .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table>");
 
         switch (scanIssue.getScanEngine()) {
             case OSS:
@@ -81,10 +93,20 @@ public class ProblemDescription {
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
+        //buildRemediationActionsSection(descBuilder, scanIssue);
         descBuilder.append("</body></html>");
         return descBuilder.toString();
     }
 
+    /**
+     * Builds the OSS description for the provided scan issue and appends it to the given StringBuilder.
+     * This method incorporates severity-specific formatting, including handling for malicious packages,
+     * and assembles the description with the package header and vulnerability details.
+     *
+     * @param descBuilder the StringBuilder to which the formatted OSS description will be appended
+     * @param scanIssue   the ScanIssue object containing information about the scanned issue,
+     *                    including its severity, vulnerabilities, and related details
+     */
     private void buildOSSDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         buildPackageMessage(descBuilder, scanIssue);
         buildVulnerabilitySection(descBuilder, scanIssue);
@@ -95,6 +117,13 @@ public class ProblemDescription {
         buildVulnerabilitySection(descBuilder, scanIssue);
     }
 
+
+    /**
+     * Builds the Secrets description tooltip.
+     *
+     * @param descBuilder The StringBuilder to append the formatted HTML to.
+     * @param scanIssue   The ScanIssue object containing details about the secret.
+     */
     private void buildSecretsDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         // Secrets: Severity icon + Title(bold) - Secret finding
         String icon = getStyledImage(scanIssue.getSeverity(), ICON_INLINE_STYLE);
@@ -110,6 +139,15 @@ public class ProblemDescription {
                 .append("</tr></table>");
     }
 
+    /**
+     * Builds the ASCA description for the provided scan issue and appends it to the given StringBuilder.
+     * This method formats details about the scan issue, including its title, remediation advice,
+     * and scanning engine information.
+     *
+     * @param descBuilder the StringBuilder to which the formatted ASCA description will be appended
+     * @param scanIssue   the ScanIssue object containing details about the issue, such as its title,
+     *                    remediation advice, and the scanning engine responsible for detecting the issue
+     */
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         String severityIcon = getStyledImage(scanIssue.getSeverity(), ICON_INLINE_STYLE);
 
@@ -129,14 +167,35 @@ public class ProblemDescription {
                 .append("</div></td></tr></table><br>");
     }
 
+    /**
+     * Returns the icon path for the specified key.
+     *
+     * @param key the key for the icon path
+     * @return the icon path
+     */
     private String getIcon(String key) {
         return DESCRIPTION_ICON.getOrDefault(key, "");
     }
 
+    /**
+     * Builds the default description for a scan issue and appends it to the provided StringBuilder.
+     * This method formats basic details about the scan issue, including its title and description.
+     *
+     * @param descBuilder the StringBuilder to which the formatted default description will be appended
+     * @param scanIssue   the ScanIssue object containing details about the issue such as title and description
+     */
     private void buildDefaultDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         descBuilder.append("<div><b>").append(scanIssue.getTitle()).append("</b> -").append(scanIssue.getDescription());
     }
 
+    /**
+     * Builds the package header section of a description for a scan issue and appends it to the provided StringBuilder.
+     * This method formats information about the scan issue's severity, title, and package version,
+     * and includes an associated image icon representing the issue.
+     *
+     * @param descBuilder the StringBuilder to which the formatted package header information will be appended
+     * @param scanIssue   the ScanIssue object containing details about the issue such as severity, title, and package version
+     */
     private void buildPackageMessage(StringBuilder descBuilder, ScanIssue scanIssue) {
         String secondaryText = Constants.RealTimeConstants.SEVERITY_PACKAGE;
         String iconKey = PACKAGE;
@@ -201,6 +260,14 @@ public class ProblemDescription {
         }
     }
 
+    /**
+     * Builds the vulnerability section of a scan issue description and appends it to the provided StringBuilder.
+     * This method processes the list of vulnerabilities associated with the scan issue, categorizes them by severity,
+     * and includes detailed descriptions for specific vulnerabilities where applicable.
+     *
+     * @param descBuilder the StringBuilder to which the formatted vulnerability section will be appended
+     * @param scanIssue   the ScanIssue object containing details about the scan, including associated vulnerabilities
+     */
     private void buildVulnerabilitySection(StringBuilder descBuilder, ScanIssue scanIssue) {
         List<Vulnerability> vulnerabilityList = scanIssue.getVulnerabilities();
         if (Objects.isNull(vulnerabilityList) || vulnerabilityList.isEmpty()) {
@@ -219,20 +286,46 @@ public class ProblemDescription {
         descBuilder.append("</tr></table></div>");
     }
 
+    /**
+     * Calculates the count of vulnerabilities grouped by their severity levels.
+     * This method processes a list of vulnerabilities, retrieves their severity,
+     * and returns a map where the keys are severity levels and the values are the counts.
+     *
+     * @param vulnerabilityList the list of vulnerabilities to be grouped and counted by severity
+     * @return a map where the key is the severity level and the value is the count of vulnerabilities at that severity
+     */
     private Map<String, Long> getVulnerabilityCount(List<Vulnerability> vulnerabilityList) {
         return vulnerabilityList.stream()
                 .map(Vulnerability::getSeverity)
                 .collect(Collectors.groupingBy(severity -> severity, Collectors.counting()));
     }
 
+    /**
+     * Generates an HTML image element based on the provided icon name.
+     *
+     * @param iconPath the path to the image file that will be used in the HTML content
+     * @return a String representing an HTML image element with the provided icon path
+     */
     private static String getImage(String iconPath) {
         return iconPath.isEmpty() ? "" : "<img src='" + DevAssistUtils.themeBasedPNGIconForHtmlImage(iconPath) + "' style='vertical-align:middle;'/>";
     }
 
+    /**
+     * Returns the key for the icon representing the specified severity with a count suffix.
+     *
+     * @param severity the severity
+     * @return the key for the icon representing the specified severity with a count suffix
+     */
     private static String getSeverityCountIconKey(String severity) {
         return severity + COUNT;
     }
 
+    /**
+     * Formats a kebab-case title into Title-Case (e.g., "generic-api-key" -> "Generic-Api-Key").
+     *
+     * @param title The kebab-case title string.
+     * @return A formatted Title-Case string.
+     */
     private String formatTitle(String title) {
         if (title == null || title.isEmpty()) {
             return "";
@@ -242,16 +335,50 @@ public class ProblemDescription {
                 .collect(Collectors.joining("-"));
     }
 
+    /**
+     * Builds the remediation actions section of the description.
+     *
+     * @param descBuilder {@link StringBuilder} object to add the remediation actions section to.
+     * @param scanIssue   {@link ScanIssue} object containing the remediation actions section data.
+     */
     private void buildRemediationActionsSection(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<div><table style='border-collapse:collapse;'><tr>")
-                .append("<td><a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\">")
-                .append(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST).append("</a></td>")
-                .append("<td><a href=\"#cxonedevassist/viewdetails").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\">")
-                .append(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME).append("</a></td>")
-                .append("<td><a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\">")
-                .append(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME).append("</a></td>")
-                .append("<td><a href=\"#cxonedevassist/ignoreallofthis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\">")
-                .append(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME).append("</a></td>")
-                .append("</tr></table></div>");
+        descBuilder.append(TABLE_WITH_TR)
+                .append("<td>")
+                .append("<a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
+                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
+                .append(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST)
+                .append("</a></td>")
+                .append("<td style='padding: 5px;'>")
+                .append("<a href=\"#cxonedevassist/viewdetails").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
+                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
+                .append(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME)
+                .append("</a></td>")
+                .append("<td style='padding: 5px;'>")
+                .append("<a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
+                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
+                .append(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME)
+                .append("</a></td>")
+                .append("<td style='padding: 5px;'>")
+                .append("<a href=\"#cxonedevassist/ignoreallofthis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
+                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
+                .append(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME)
+                .append("</a></td>")
+                .append("</tr></table>");
+}
+
+    /**
+     * Holds inline HTML constants used for formatting descriptions.
+     */
+    static final class InlineHtml {
+
+        private InlineHtml() {}
+
+        static final String TABLE_WITH_TR = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>";
+        static final String DIV = "<div>";
+        static final String TITLE_FONT_FAMILY = "font-family: menlo;";
+        static final String TITLE_FONT_SIZE = "font-size:11px;";
+        static final String SECONDARY_SPAN_STYLE = "display:inline-block;vertical-align:middle;line-height:16px;font-size:11px;color:#ADADAD;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;";
+        static final String ICON_INLINE_STYLE = "display:inline-block;vertical-align:middle;max-height:16px;line-height:16px;";
+        static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";
     }
 }
