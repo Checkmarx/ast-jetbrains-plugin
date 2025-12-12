@@ -93,7 +93,7 @@ public class ProblemDescription {
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
-        //buildRemediationActionsSection(descBuilder, scanIssue);
+        buildRemediationActionsSection(descBuilder, scanIssue);
         descBuilder.append("</body></html>");
         return descBuilder.toString();
     }
@@ -128,7 +128,7 @@ public class ProblemDescription {
         // Secrets: Severity icon + Title(bold) - Secret finding
         String icon = getStyledImage(scanIssue.getSeverity(), ICON_INLINE_STYLE);
 
-        descBuilder.append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>")
+        descBuilder.append(TABLE_WITH_TR)
                 .append("<td style='padding:0 6px 0 0;vertical-align:middle;'>").append(icon).append("</td>")
                 .append("<td style='padding:0 2px 0 2px;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
                 .append(CELL_LINE_HEIGHT_STYLE).append("'>")
@@ -151,7 +151,7 @@ public class ProblemDescription {
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         String severityIcon = getStyledImage(scanIssue.getSeverity(), ICON_INLINE_STYLE);
 
-        descBuilder.append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>")
+        descBuilder.append(TABLE_WITH_TR)
                 .append("<td style='width:20px;padding:0 6px 0 0;vertical-align:middle;'>")
                 .append(severityIcon)
                 .append("</td>");
@@ -206,7 +206,7 @@ public class ProblemDescription {
 
         String icon = getStyledImage(iconKey, ICON_INLINE_STYLE);
 
-        descBuilder.append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>")
+        descBuilder.append(TABLE_WITH_TR)
                 .append("<td style='padding:0 6px 0 0;vertical-align:middle;'>").append(icon).append("</td>")
                 .append("<td style='padding:0 2px 0 2px;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
                 .append(CELL_LINE_HEIGHT_STYLE).append("'>")
@@ -223,7 +223,7 @@ public class ProblemDescription {
         String secondaryText = Constants.RealTimeConstants.SEVERITY_IMAGE;
         String icon = getStyledImage(CONTAINER, ICON_INLINE_STYLE);
 
-        descBuilder.append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>")
+        descBuilder.append(TABLE_WITH_TR)
                 .append("<td style='padding:0 6px 0 0;vertical-align:middle;'>").append(icon).append("</td>")
                 .append("<td style='padding:0 2px 0 2px;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
                 .append(CELL_LINE_HEIGHT_STYLE).append("'>")
@@ -273,7 +273,7 @@ public class ProblemDescription {
         if (Objects.isNull(vulnerabilityList) || vulnerabilityList.isEmpty()) {
             return;
         }
-        descBuilder.append(DIV).append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>");
+        descBuilder.append(DIV).append(TABLE_WITH_TR);
         Map<String, Long> vulnerabilityCount = getVulnerabilityCount(vulnerabilityList);
         DESCRIPTION_ICON.forEach((severity, iconPath) -> {
             Long count = vulnerabilityCount.get(severity);
