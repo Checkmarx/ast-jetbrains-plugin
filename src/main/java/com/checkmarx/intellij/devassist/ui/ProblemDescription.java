@@ -209,16 +209,25 @@ public class ProblemDescription {
     }
 
     private void buildImageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
-        descBuilder.append("<table style='border-collapse:collapse;'><tr><td colspan=\"3\" style='padding:0;'><p style='font-size: 10px; margin:0;'>")
-                .append(scanIssue.getSeverity()).append("-").append(Constants.RealTimeConstants.RISK_IMAGE)
-                .append(" :  ").append(scanIssue.getTitle()).append("@").append(scanIssue.getImageTag()).append("</p></td></tr>");
+        String secondaryText = Constants.RealTimeConstants.SEVERITY_IMAGE;
+        String icon = getIcon(CONTAINER);
+        descBuilder.append("<table style='border-collapse:collapse;'><tr><td style='padding:0;vertical-align:middle;'>")
+                .append(icon).append("</td>")
+                .append("<td style='")
+                .append(TITLE_FONT_FAMILY)
+                .append(TITLE_FONT_SIZE)
+                .append("padding:0 2px; vertical-align:middle; line-height:1;'>")
+                .append("<b>").append(scanIssue.getTitle())
+                .append("@").append(scanIssue.getImageTag())
+                .append("</b></td>")
+                .append("<td style='padding:0 2px; vertical-align:middle; line-height:1; ")
+                .append(SECONDARY_COLOUR)
+                .append("'>")
+                .append(" - ").append(scanIssue.getSeverity())
+                .append(" ").append(secondaryText)
+                .append("</td>")
+                .append("</tr></table>");
 
-        descBuilder.append("<tr><td style='padding:0;vertical-align:middle;'>").append(getIcon(CONTAINER)).append("</td>")
-                .append("<td style='padding:0 4px 0 4px;vertical-align:middle;'><b>").append(scanIssue.getTitle()).append("@")
-                .append(scanIssue.getImageTag()).append("</b></td><td style='padding:0;vertical-align:middle;'>")
-                .append(scanIssue.getSeverity()).append(" ")
-                .append(Constants.RealTimeConstants.SEVERITY_IMAGE)
-                .append("</td></tr></table>");
     }
 
     /**
