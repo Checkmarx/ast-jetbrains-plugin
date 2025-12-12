@@ -13,6 +13,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.Disposable;
 
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.util.messages.MessageBusConnection;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
@@ -48,6 +49,11 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
     private final JBLabel containersTitle = new JBLabel(formatTitle(Bundle.message(Resource.CONTAINERS_REALTIME_TITLE)));
     private final JBCheckBox containersCheckbox = new JBCheckBox(Bundle.message(Resource.CONTAINERS_REALTIME_CHECKBOX));
+
+    private final JBLabel iacTitle = new JBLabel(formatTitle(Bundle.message(Resource.IAC_REALTIME_TITLE)));
+    private final JBCheckBox iacCheckbox = new JBCheckBox(Bundle.message(Resource.CONTAINERS_REALTIME_CHECKBOX));
+
+    private final ComboBox<String> containersToolCombo = new ComboBox<>(new String[]{"docker", "podman"});
 
     private GlobalSettingsState state;
     private final MessageBusConnection connection;
@@ -102,11 +108,20 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mainPanel.add(containersTitle, "split 2, span");
         mainPanel.add(new JSeparator(), "growx, wrap");
         mainPanel.add(containersCheckbox, "wrap, gapbottom 10, gapleft 15");
-        // containersToolCombo.setPreferredSize(new Dimension(
-        //         containersLabel.getPreferredSize().width,
-        //         containersToolCombo.getPreferredSize().height
-        // ));
-        // mainPanel.add(containersToolCombo, "wrap, gapleft 15");
+
+        mainPanel.add(iacTitle, "split 2, span");
+        mainPanel.add(new JSeparator(), "growx, wrap");
+        mainPanel.add(iacCheckbox, "wrap, gapbottom 10, gapleft 15");
+        JBLabel containersLabel = new JBLabel(formatTitle(Bundle.message(Resource.IAC_REALTIME_SCANNER_PREFIX)));
+        mainPanel.add(containersLabel, "split 2, span, gaptop 10");
+        mainPanel.add(new JSeparator(), "growx, wrap");
+        mainPanel.add(new JBLabel(Bundle.message(Resource.CONTAINERS_TOOL_DESCRIPTION)), "wrap, gapleft 15");
+
+        containersToolCombo.setPreferredSize(new Dimension(
+                 containersLabel.getPreferredSize().width,
+                 containersToolCombo.getPreferredSize().height
+         ));
+         mainPanel.add(containersToolCombo, "wrap, gapleft 15");
 
         // MCP Section
         mainPanel.add(new JBLabel(formatTitle(Bundle.message(Resource.MCP_SECTION_TITLE))), "split 2, span, gaptop 10");
@@ -238,7 +253,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         ensureState();
         return ossCheckbox.isSelected() != state.isOssRealtime()
                 || secretsCheckbox.isSelected() != state.isSecretDetectionRealtime()
-                || containersCheckbox.isSelected() != state.isContainersRealtime();
+                || containersCheckbox.isSelected() != state.isContainersRealtime()
+                || iacCheckbox.isSelected() != state.isIacRealtime();
     }
 
     @Override
@@ -248,10 +264,12 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         boolean ossSelected = ossCheckbox.isSelected();
         boolean secretsSelected = secretsCheckbox.isSelected();
         boolean containersSelected = containersCheckbox.isSelected();
+        boolean iacSelected = iacCheckbox.isSelected();
 
         state.setOssRealtime(ossSelected);
         state.setSecretDetectionRealtime(secretsSelected);
         state.setContainersRealtime(containersSelected);
+        state.setIacRealtime(iacSelected);
 
         state.setUserPreferences(ossSelected, secretsSelected, containersSelected, state.getUserPrefIacRealtime());
 
@@ -267,6 +285,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         ossCheckbox.setSelected(state.isOssRealtime());
         secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
         containersCheckbox.setSelected(state.isContainersRealtime());
+        iacCheckbox.setSelected(state.isIacRealtime());
 
         updateAssistState();
     }
@@ -282,6 +301,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             secretsCheckbox.setSelected(false);
             containersCheckbox.setEnabled(false);
             containersCheckbox.setSelected(false);
+            iacCheckbox.setEnabled(false);
+            iacCheckbox.setSelected(false);
             installMcpLink.setEnabled(false);
 
             assistMessageLabel.setText(Bundle.message(Resource.CXONE_ASSIST_LOGIN_MESSAGE));
@@ -310,7 +331,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         installMcpLink.setEnabled(mcpEnabled && isAuthenticated);
         containersCheckbox.setEnabled(mcpEnabled);
         // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-        // iacCheckbox.setEnabled(mcpEnabled);
+         iacCheckbox.setEnabled(mcpEnabled);
 
         if (!mcpEnabled) {
             ensureState();
@@ -327,7 +348,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             containersCheckbox.setSelected(false);
             // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
 
-            // iacCheckbox.setSelected(false);
+             iacCheckbox.setSelected(false);
 
             boolean settingsChanged = false;
             if (state.isOssRealtime()) {
@@ -343,11 +364,10 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
                  state.setContainersRealtime(false);
                  settingsChanged = true;
              }
-            // TEMPORARILY HIDDEN: Other realtime scanners - Will be restored in future release
-            // if (state.isIacRealtime()) {
-            //     state.setIacRealtime(false);
-            //     settingsChanged = true;
-            // }
+             if (state.isIacRealtime()) {
+                 state.setIacRealtime(false);
+                 settingsChanged = true;
+             }
 
             if (settingsChanged) {
                 GlobalSettingsState.getInstance().apply(state);
@@ -377,6 +397,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             ossCheckbox.setSelected(state.isOssRealtime());
             secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
             containersCheckbox.setSelected(state.isContainersRealtime());
+            iacCheckbox.setSelected(state.isIacRealtime());
             assistMessageLabel.setVisible(false);
             assistMessageLabel.setText(""); // Clear any previous message
         }
@@ -397,6 +418,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         ossCheckbox.setEnabled(false);
         secretsCheckbox.setEnabled(false);
         containersCheckbox.setEnabled(false);
+        iacCheckbox.setEnabled(false);
         installMcpLink.setEnabled(false);
 
         CompletableFuture.supplyAsync(() -> {

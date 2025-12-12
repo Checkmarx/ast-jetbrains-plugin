@@ -139,7 +139,10 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
             LOGGER.warn(this.config.getErrorMessage(), e);
         }
         finally {
-
+            LOGGER.info("Deleting temporary folder");
+            if (Objects.nonNull(saveResult)) {
+                deleteTempFolder(saveResult.getRight());
+            }
         }
         return null;
     }
