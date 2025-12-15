@@ -52,6 +52,7 @@ public final class GlobalScannerController implements SettingsListener {
      * @param state current global settings snapshot
      */
     private void updateScannerState(GlobalSettingsState state) {
+        scannerStateMap.put(ScanEngine.ASCA, state.isAscaRealtime());
         scannerStateMap.put(ScanEngine.OSS, state.isOssRealtime());
         scannerStateMap.put(ScanEngine.SECRETS, state.isSecretDetectionRealtime());
         scannerStateMap.put(ScanEngine.CONTAINERS, state.isContainersRealtime());

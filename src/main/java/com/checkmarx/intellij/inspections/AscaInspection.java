@@ -49,7 +49,7 @@ public class AscaInspection extends LocalInspectionTool {
     @Override
     public ProblemDescriptor @NotNull [] checkFile(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly) {
         try {
-            if (!settings.isAsca()) {
+            if (!settings.isAscaRealtime()) {
                 return ProblemDescriptor.EMPTY_ARRAY;
             }
 

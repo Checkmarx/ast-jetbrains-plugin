@@ -301,23 +301,24 @@ public class WelcomeDialog extends DialogWrapper {
         @Override
         public boolean areAllEnabled() {
             GlobalSettingsState state = GlobalSettingsState.getInstance();
-            return state.isOssRealtime() && state.isSecretDetectionRealtime() && state.isContainersRealtime();
+            return state.isAscaRealtime() && state.isOssRealtime() && state.isSecretDetectionRealtime() && state.isContainersRealtime();
         }
 
         @Override
         public boolean areAnyEnabled() {
             GlobalSettingsState state = GlobalSettingsState.getInstance();
-            return state.isOssRealtime() || state.isSecretDetectionRealtime() || state.isContainersRealtime();
+            return state.isAscaRealtime() || state.isOssRealtime() || state.isSecretDetectionRealtime() || state.isContainersRealtime();
         }
 
         @Override
         public void setAll(boolean enable) {
             GlobalSettingsState state = GlobalSettingsState.getInstance();
 
+            state.setAscaRealtime(enable);
             state.setOssRealtime(enable);
             state.setSecretDetectionRealtime(enable);
             state.setContainersRealtime(enable);
-            state.setUserPreferences(enable, enable, enable, state.getUserPrefIacRealtime());
+            state.setUserPreferences(enable, enable, enable, enable, state.getUserPrefIacRealtime());
 
             ApplicationManager.getApplication().getMessageBus()
                     .syncPublisher(SettingsListener.SETTINGS_APPLIED)
