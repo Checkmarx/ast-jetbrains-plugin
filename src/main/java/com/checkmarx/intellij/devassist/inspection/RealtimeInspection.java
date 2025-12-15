@@ -389,34 +389,47 @@ public class RealtimeInspection extends LocalInspectionTool {
                 LOGGER.debug(format("RTS: Debounced scan cancelled for file: %s (project disposed)", problemHelper.getFilePath()));
                 return;
             }
-            LOGGER.info(format("RTS: Executing debounced scan for file: %s", problemHelper.getFilePath()));
-            // Execute the scan in a read action on a background thread
-            ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                try {
-                    ReadAction.run(() -> {
-                        if (problemHelper.getFile().getProject().isDisposed()) return;
-                        PsiFile psiFile = problemHelper.getFile();
-                        // Update timestamp and execute the scan
-                        fileTimeStamp.put(problemHelper.getFilePath(), psiFile.getModificationStamp());
-                        psiFile.putUserData(key, DevAssistUtils.isDarkTheme());
-
-                        // Perform the actual scan
-                        startScanAndCreateProblemDescriptors(problemHelperBuilder);
-
-                        // Clean up pending scan tracking
-                        lastScanRequestTime.remove(problemHelper.getFilePath());
-
-                        // Trigger re-inspection to update the UI with new results
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            if (!problemHelper.getFile().getProject().isDisposed() && psiFile.isValid()) {
-                                DaemonCodeAnalyzer.getInstance(problemHelper.getFile().getProject()).restart(psiFile);
-                            }
-                        });
-                    });
-                } catch (Exception e) {
-                    LOGGER.warn(format("RTS: Exception during debounced scan for file: %s", problemHelper.getFilePath()), e);
-                }
-            });
+            executeScheduledScan(problemHelperBuilder, problemHelper);
         }, DEBOUNCE_DELAY_MS);
+    }
+
+    /**
+     * Executes a scheduled scan for a given file by leveraging the {@link ProblemHelper}.
+     * This method runs the scan in a read action on a background thread, updates timestamps,
+     * starts the scanning process, and triggers re-inspection to refresh UI results.
+     *
+     * @param problemHelperBuilder the builder used to create and configure {@link ProblemHelper}; must not be null
+     * @param problemHelper the helper containing details about the file to be scanned and its context; must not be null
+     */
+    private void executeScheduledScan(ProblemHelper.ProblemHelperBuilder problemHelperBuilder, ProblemHelper problemHelper) {
+        // Execute the scan in a read action on a background thread
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                ReadAction.run(() -> {
+                    LOGGER.info(format("RTS: Running debounced scan for file: %s", problemHelper.getFilePath()));
+                    if (problemHelper.getFile().getProject().isDisposed()) return;
+                    PsiFile psiFile = problemHelper.getFile();
+                    // Update timestamp and execute the scan
+                    fileTimeStamp.put(problemHelper.getFilePath(), psiFile.getModificationStamp());
+                    psiFile.putUserData(key, DevAssistUtils.isDarkTheme());
+
+                    // Perform the actual scan
+                    startScanAndCreateProblemDescriptors(problemHelperBuilder);
+
+                    // Clean up pending scan tracking
+                    lastScanRequestTime.remove(problemHelper.getFilePath());
+
+                    // Trigger re-inspection to update the UI with new results
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        if (!problemHelper.getFile().getProject().isDisposed() && psiFile.isValid()) {
+                            DaemonCodeAnalyzer.getInstance(problemHelper.getFile().getProject()).restart(psiFile);
+                        }
+                    });
+                    LOGGER.info(format("RTS: Completed debounced scan for file: %s", problemHelper.getFilePath()));
+                });
+            } catch (Exception e) {
+                LOGGER.warn(format("RTS: Exception during debounced scan for file: %s", problemHelper.getFilePath()), e);
+            }
+        });
     }
 }

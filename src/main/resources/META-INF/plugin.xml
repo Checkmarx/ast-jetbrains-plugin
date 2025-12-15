@@ -66,6 +66,10 @@
                 enabledByDefault="true"
                 implementationClass="com.checkmarx.intellij.devassist.inspection.RealtimeInspection"/>
 
+        <!-- Register tooltip link handler -->
+        <codeInsight.linkHandler
+                prefix="#cxonedevassist/"
+                handlerClass="com.checkmarx.intellij.devassist.remediation.RemediationLinkHandler"/>
     </extensions>
 
     <applicationListeners>

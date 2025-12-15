@@ -35,19 +35,6 @@ public class ProblemDescription {
     private static final String DEV_ASSIST = "DevAssist";
     private static final String CONTAINER = "Container";
 
-
-    private static final String TITLE_FONT_FAMILY = "font-family: menlo;";
-    private static final String TITLE_FONT_SIZE = "font-size:11px;";
-    private static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";
-
-    private static final String SECONDARY_SPAN_STYLE =
-            "display:inline-block;vertical-align:middle;line-height:16px;font-size:11px;color:#ADADAD;"
-                    + "font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;";
-
-    /** Default inline icon style used consistently across all engines. */
-    private static final String ICON_INLINE_STYLE =
-            "display:inline-block;vertical-align:middle;max-height:16px;line-height:16px;";
-
     /**
      * Constructs a {@code ProblemDescription} instance and initializes icon mappings.
      */
@@ -124,13 +111,17 @@ public class ProblemDescription {
         return descBuilder.toString();
     }
 
-    /** OSS description (package + vulnerability counts). */
+    /**
+     * OSS description (package + vulnerability counts).
+     */
     private void buildOSSDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         buildPackageMessage(descBuilder, scanIssue);
         buildVulnerabilitySection(descBuilder, scanIssue);
     }
 
-    /** Container description (image header + vulnerability counts). */
+    /**
+     * Container description (image header + vulnerability counts).
+     */
     private void buildContainerDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         buildImageHeader(descBuilder, scanIssue);
         buildVulnerabilitySection(descBuilder, scanIssue);
@@ -173,7 +164,9 @@ public class ProblemDescription {
                 .append("</p></td></tr></table>");
     }
 
-    /** Default fallback description. */
+    /**
+     * Default fallback description.
+     */
     private void buildDefaultDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         descBuilder.append("<div><b>")
                 .append(scanIssue.getTitle())
@@ -182,7 +175,9 @@ public class ProblemDescription {
                 .append("</div>");
     }
 
-    /** Package header for OSS. */
+    /**
+     * Package header for OSS.
+     */
     private void buildPackageMessage(StringBuilder descBuilder, ScanIssue scanIssue) {
         String secondaryText = Constants.RealTimeConstants.SEVERITY_PACKAGE;
         String iconKey = PACKAGE;
@@ -206,7 +201,9 @@ public class ProblemDescription {
                 .append("</span></p></td></tr></table>");
     }
 
-    /** Container image header. */
+    /**
+     * Container image header.
+     */
     private void buildImageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
         String icon = getStyledImage(CONTAINER, ICON_INLINE_STYLE);
 
@@ -220,7 +217,9 @@ public class ProblemDescription {
                 .append("</p></td></tr></table>");
     }
 
-    /** Vulnerability count section. */
+    /**
+     * Vulnerability count section.
+     */
     private void buildVulnerabilitySection(StringBuilder descBuilder, ScanIssue scanIssue) {
         List<Vulnerability> vulnerabilityList = scanIssue.getVulnerabilities();
         if (Objects.isNull(vulnerabilityList) || vulnerabilityList.isEmpty()) {
@@ -340,20 +339,24 @@ public class ProblemDescription {
                 .append(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME)
                 .append("</a></td>")
                 .append("</tr></table>");
-}
+    }
 
     /**
      * Holds inline HTML constants used for formatting descriptions.
      */
     static final class InlineHtml {
 
-        private InlineHtml() {}
+        private InlineHtml() {
+        }
 
         static final String TABLE_WITH_TR = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>";
         static final String DIV = "<div>";
         static final String TITLE_FONT_FAMILY = "font-family: menlo;";
         static final String TITLE_FONT_SIZE = "font-size:11px;";
         static final String SECONDARY_SPAN_STYLE = "display:inline-block;vertical-align:middle;line-height:16px;font-size:11px;color:#ADADAD;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;";
+        /**
+         * Default inline icon style used consistently across all engines.
+         */
         static final String ICON_INLINE_STYLE = "display:inline-block;vertical-align:middle;max-height:16px;line-height:16px;";
         static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";
     }

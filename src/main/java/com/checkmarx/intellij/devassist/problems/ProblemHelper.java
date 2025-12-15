@@ -29,5 +29,4 @@ public class ProblemHelper {
     private final List<ScannerService<?>> supportedScanners;
     private final List<ScanIssue> scanIssueList;
     private final ProblemHolderService problemHolderService;
-
 }
