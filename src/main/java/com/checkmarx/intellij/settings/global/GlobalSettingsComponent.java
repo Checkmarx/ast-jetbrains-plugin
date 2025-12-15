@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.settings.global;
 
-import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
@@ -8,7 +7,6 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
-import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
@@ -23,7 +21,6 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
-import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.fields.ExpandableTextField;
@@ -41,8 +38,6 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import java.awt.*;
 import java.awt.event.ItemEvent;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Map;
@@ -234,6 +229,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         // Preserve all other state fields from the current settings
         if (SETTINGS_STATE != null) {
             // Realtime scanner active states
+            state.setAscaRealtime(SETTINGS_STATE.isAscaRealtime());
             state.setOssRealtime(SETTINGS_STATE.isOssRealtime());
             state.setSecretDetectionRealtime(SETTINGS_STATE.isSecretDetectionRealtime());
             state.setContainersRealtime(SETTINGS_STATE.isContainersRealtime());
@@ -247,6 +243,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
             // User preferences for realtime scanners - CRITICAL for preference preservation
             state.setUserPreferencesSet(SETTINGS_STATE.getUserPreferencesSet());
+            state.setUserPrefAscaRealtime(SETTINGS_STATE.getUserPrefAscaRealtime());
             state.setUserPrefOssRealtime(SETTINGS_STATE.getUserPrefOssRealtime());
             state.setUserPrefSecretDetectionRealtime(SETTINGS_STATE.getUserPrefSecretDetectionRealtime());
             state.setUserPrefContainersRealtime(SETTINGS_STATE.getUserPrefContainersRealtime());

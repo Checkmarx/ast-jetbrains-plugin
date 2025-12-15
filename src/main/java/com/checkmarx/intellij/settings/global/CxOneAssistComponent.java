@@ -5,12 +5,10 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.components.CxLinkLabel;
-import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
-import com.checkmarx.ast.wrapper.CxException;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.Disposable;
@@ -25,8 +23,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ItemEvent;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.concurrent.CompletableFuture;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
@@ -45,8 +41,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private final JPanel mainPanel = new JPanel(new MigLayout("", "[][grow]"));
     private final JBLabel assistMessageLabel = new JBLabel();
 
-    private final JBLabel ascaTitle = new JBLabel(formatTitle("ASCA (Application Security Code Analysis)"));
-    private final JBCheckBox ascaCheckbox = new JBCheckBox("Enable ASCA realtime scanning");
+    private final JBLabel ascaTitle = new JBLabel(formatTitle("Checkmarx AI Secure Coding Assistant (ASCA): Activate ASCA:"));
+    private final JBCheckBox ascaCheckbox = new JBCheckBox("Scan your file as you code");
     private final JBLabel ascaInstallationMsg = new JBLabel();
 
     private final JBLabel ossTitle = new JBLabel(formatTitle(Bundle.message(Resource.OSS_REALTIME_TITLE)));
@@ -103,7 +99,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         // ASCA Realtime - First checkbox
         mainPanel.add(ascaTitle, "split 2, span");
         mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(ascaCheckbox, "gapleft 15");
+        mainPanel.add(ascaCheckbox, "split 2, gapleft 15");
         mainPanel.add(ascaInstallationMsg, "gapleft 5, wrap, gapbottom 10");
 
         // OSS Realtime
