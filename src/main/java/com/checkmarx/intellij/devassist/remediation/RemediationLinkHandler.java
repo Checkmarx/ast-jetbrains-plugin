@@ -139,7 +139,7 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
             }
             List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(file.getPath());
             if (scanIssueList.isEmpty()) {
-                LOGGER.debug("RTS: No scan issues found for the given file scan issue-id: %s to handle the link.", issueId);
+                LOGGER.debug("RTS: No scan issues found for the given file-path: %s to handle the link.", file.getPath());
                 return null;
             }
             return scanIssueList.stream()
