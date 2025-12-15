@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.devassist.model;
 
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
@@ -33,8 +33,11 @@ import java.util.List;
 @Getter
 @Setter
 @AllArgsConstructor
-@NoArgsConstructor
 public class ScanIssue {
+
+    public ScanIssue() {
+        scanIssueId = DevAssistUtils.generateUniqueId();
+    }
 
     private String scanIssueId;
     private String severity;

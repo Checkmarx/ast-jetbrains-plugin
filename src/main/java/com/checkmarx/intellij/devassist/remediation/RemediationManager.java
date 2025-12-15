@@ -95,9 +95,9 @@ public final class RemediationManager {
     private void applyOSSRemediation(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Remediation started for file: %s for OSS Issue: %s",
                 scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = CxOneAssistFixPrompts.buildSCARemediationPrompt(scanIssue.getTitle(), scanIssue.getPackageVersion(),
+        String prompt = CxOneAssistFixPrompts.buildSCARemediationPrompt(scanIssue.getTitle(), scanIssue.getPackageVersion(),
                 scanIssue.getPackageManager(), scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for OSS Issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -110,10 +110,10 @@ public final class RemediationManager {
     private void applySecretRemediation(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Remediation started for file: %s for secrets issue: %s",
                 scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = CxOneAssistFixPrompts.buildSecretRemediationPrompt(scanIssue.getTitle(),
+        String prompt = CxOneAssistFixPrompts.buildSecretRemediationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for secrets issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -126,11 +126,11 @@ public final class RemediationManager {
     private void applyContainerRemediation(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Remediation started for file: %s for container issue: %s",
                 scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = CxOneAssistFixPrompts.buildContainersRemediationPrompt(scanIssue.getFileType(),
+        String prompt = CxOneAssistFixPrompts.buildContainersRemediationPrompt(scanIssue.getFileType(),
                 scanIssue.getTitle(),
                 scanIssue.getImageTag(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for container issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -143,13 +143,13 @@ public final class RemediationManager {
     private void applyIACRemediation(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Remediation started for file: %s for IAC issue: %s",
                 scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = CxOneAssistFixPrompts.buildIACRemediationPrompt(scanIssue.getTitle(),
+        String prompt = CxOneAssistFixPrompts.buildIACRemediationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity(),
                 scanIssue.getFileType(),
                 "", "",
                 scanIssue.getProblematicLineNumber());
-        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for IAC issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -164,12 +164,12 @@ public final class RemediationManager {
     private void applyASCARemediation(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Remediation started for file: %s for ASCA Issue: %s",
                 scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = CxOneAssistFixPrompts.buildASCARemediationPrompt(scanIssue.getTitle(),
+        String prompt = CxOneAssistFixPrompts.buildASCARemediationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity(),
                 scanIssue.getRemediationAdvise(),
                 scanIssue.getProblematicLineNumber());
-        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for IAC issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -184,11 +184,11 @@ public final class RemediationManager {
      */
     private void explainOSSDetails(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Viewing details for file: %s for OSS Issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = ViewDetailsPrompts.buildSCAExplanationPrompt(scanIssue.getTitle(),
+        String prompt = ViewDetailsPrompts.buildSCAExplanationPrompt(scanIssue.getTitle(),
                 scanIssue.getPackageVersion(),
                 scanIssue.getSeverity(),
                 scanIssue.getVulnerabilities());
-        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for OSS Issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -203,10 +203,10 @@ public final class RemediationManager {
      */
     private void explainSecretDetails(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Viewing details for file: %s for secret issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = ViewDetailsPrompts.buildSecretsExplanationPrompt(scanIssue.getTitle(),
+        String prompt = ViewDetailsPrompts.buildSecretsExplanationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for secret issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -221,11 +221,11 @@ public final class RemediationManager {
      */
     private void explainContainerDetails(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Viewing details for file: %s for container issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = ViewDetailsPrompts.buildContainersExplanationPrompt(scanIssue.getFileType(),
+        String prompt = ViewDetailsPrompts.buildContainersExplanationPrompt(scanIssue.getFileType(),
                 scanIssue.getTitle(),
                 scanIssue.getImageTag(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for container issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -240,11 +240,11 @@ public final class RemediationManager {
      */
     private void explainIACDetails(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Viewing details for file: %s for IAC issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = ViewDetailsPrompts.buildIACExplanationPrompt(scanIssue.getTitle(),
+        String prompt = ViewDetailsPrompts.buildIACExplanationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity(),
                 "", "", "");
-        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for IAC issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -259,10 +259,10 @@ public final class RemediationManager {
      */
     private void explainASCADetails(Project project, ScanIssue scanIssue) {
         LOGGER.info(format("RTS-Fix: Viewing details for file: %s for ASCA issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
-        String scaPrompt = ViewDetailsPrompts.buildASCAExplanationPrompt(scanIssue.getTitle(),
+        String prompt = ViewDetailsPrompts.buildASCAExplanationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(scaPrompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for ASCA issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));

@@ -9,6 +9,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.TextRange;
@@ -20,12 +21,12 @@ import com.intellij.psi.PsiFile;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.UUID;
 
 import static java.lang.String.format;
 
@@ -239,9 +240,8 @@ public class DevAssistUtils {
      */
     public static boolean copyToClipboardWithNotification(@NotNull String textToCopy, String notificationTitle,
                                                           String notificationContent, Project project) {
-        StringSelection stringSelection = new StringSelection(textToCopy);
         try {
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
+            CopyPasteManager.getInstance().setContents(new StringSelection(textToCopy));
             Utils.showNotification(notificationTitle, notificationContent,
                     NotificationType.INFORMATION,
                     project);
@@ -270,15 +270,24 @@ public class DevAssistUtils {
         }
     }
 
+    /**
+     * Generate a unique id for scan issue.
+     *
+     * @return a unique id
+     */
+    public static String generateUniqueId() {
+        return UUID.randomUUID().toString();
+    }
+
     public static boolean isDockerComposeFile(@NotNull String filePath) {
         return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKER_COMPOSE);
     }
 
-    public static boolean isDockerFile(@NotNull String filePath){
+    public static boolean isDockerFile(@NotNull String filePath) {
         return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKERFILE);
     }
 
-    public static String getFileExtension(@NotNull PsiFile psiFile){
+    public static String getFileExtension(@NotNull PsiFile psiFile) {
         VirtualFile vFile = psiFile.getVirtualFile();
         if (!vFile.exists()) {
             return null;
@@ -286,8 +295,8 @@ public class DevAssistUtils {
         return vFile.getExtension();
     }
 
-    public static boolean isYamlFile(@NotNull PsiFile psiFile){
-        String fileExtension= DevAssistUtils.getFileExtension(psiFile);
+    public static boolean isYamlFile(@NotNull PsiFile psiFile) {
+        String fileExtension = DevAssistUtils.getFileExtension(psiFile);
         return Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
     }
 
