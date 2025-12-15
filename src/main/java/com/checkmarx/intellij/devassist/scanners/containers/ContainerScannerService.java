@@ -86,11 +86,11 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
     private boolean isContainersFilePatternMatching(String filePath) {
         List<PathMatcher> pathMatchers = Constants.RealTimeConstants.CONTAINERS_FILE_PATTERNS.stream().map(f -> FileSystems.getDefault().getPathMatcher("glob:" + f)).collect(Collectors.toList());
         for (PathMatcher pathMatcher : pathMatchers) {
-            if (pathMatcher.matches(Paths.get(filePath))) {
-                if(DevAssistUtils.isDockerComposeFile(filePath)){
+            if (pathMatcher.matches(Paths.get(filePath.toLowerCase()))) {
+                if(DevAssistUtils.isDockerComposeFile(filePath.toLowerCase())){
                     fileType=Constants.RealTimeConstants.DOCKER_COMPOSE;
                 }
-                else if(DevAssistUtils.isDockerFile(filePath)){
+                else if(DevAssistUtils.isDockerFile(filePath.toLowerCase())){
                     fileType=Constants.RealTimeConstants.DOCKERFILE;
                 }
                 return true;
