@@ -1,10 +1,8 @@
 package com.checkmarx.intellij.devassist.problems;
 
-import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
-import com.checkmarx.intellij.devassist.remediation.IgnoreAllThisTypeFix;
-import com.checkmarx.intellij.devassist.remediation.IgnoreVulnerabilityFix;
-import com.checkmarx.intellij.devassist.remediation.ViewDetailsFix;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.remediation.ViewDetailsFix;
 import com.checkmarx.intellij.devassist.ui.ProblemDescription;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
@@ -43,7 +41,8 @@ public class ProblemBuilder {
     /**
      * Private constructor to prevent instantiation.
      */
-    private ProblemBuilder() {}
+    private ProblemBuilder() {
+    }
 
     /**
      * Initializes the mapping from severity levels to problem highlight types.
@@ -59,12 +58,12 @@ public class ProblemBuilder {
     /**
      * Builds a ProblemDescriptor for the given scan issue.
      *
-     * @param file       the PsiFile being inspected
-     * @param manager    the InspectionManager
-     * @param scanIssue  the scan issue
-     * @param document   the document
+     * @param file              the PsiFile being inspected
+     * @param manager           the InspectionManager
+     * @param scanIssue         the scan issue
+     * @param document          the document
      * @param problemLineNumber the line number where the problem was found
-     * @param isOnTheFly whether the inspection is on-the-fly
+     * @param isOnTheFly        whether the inspection is on-the-fly
      * @return a ProblemDescriptor instance
      */
     static ProblemDescriptor build(@NotNull PsiFile file, @NotNull InspectionManager manager,
@@ -82,9 +81,9 @@ public class ProblemBuilder {
                 highlightType,
                 isOnTheFly,
                 new CxOneAssistFix(scanIssue),
-                new ViewDetailsFix(scanIssue),
-                new IgnoreVulnerabilityFix(scanIssue),
-                new IgnoreAllThisTypeFix(scanIssue)
+                new ViewDetailsFix(scanIssue)
+                /*new IgnoreVulnerabilityFix(scanIssue),
+                new IgnoreAllThisTypeFix(scanIssue)*/
         );
     }
 
