@@ -30,7 +30,10 @@ public class TestTriage extends BaseTest {
 
         CompletableFuture<ResultGetState> getFuture = Results.getResults(Environment.SCAN_ID);
         ResultGetState results = Assertions.assertDoesNotThrow((ThrowingSupplier<ResultGetState>) getFuture::get);
-        Result result = results.getResultOutput().getResults().get(0);
+        Result result = results.getResultOutput().getResults().stream()
+                .filter(res -> !res.getType().equalsIgnoreCase(Constants.SCAN_TYPE_SCA))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No triage-supported results found (excluding SCA)"));
         Assertions.assertDoesNotThrow(() -> triageShow(UUID.fromString(project.getId()), result.getSimilarityId(), result.getType()));
     }
 
