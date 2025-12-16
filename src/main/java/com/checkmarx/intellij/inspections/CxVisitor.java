@@ -96,8 +96,11 @@ public class CxVisitor extends PsiElementVisitor {
      * @return start offset in the file
      */
     private static int getStartOffset(Node node) {
-        // if definitions is -1, the column field points to the end of the token so we have to subtract the length
-        return node.getColumn() - 1 + (node.getDefinitions().equals("-1") ? (node.getLength() * -1) : 0);
+        String definitions = node.getDefinitions();
+        if ("-1".equals(definitions)) {
+            return node.getColumn() - 1 - node.getLength();
+        }
+        return node.getColumn() - 1;
     }
 
     /**
@@ -107,8 +110,11 @@ public class CxVisitor extends PsiElementVisitor {
      * @return end offset in the file
      */
     private static int getEndOffset(Node node) {
-        // if definitions is not -1, the column field points to the start of the token so we have to add the length
-        return node.getColumn() - 1 + (node.getDefinitions().equals("-1") ? 0 : node.getLength());
+        String definitions = node.getDefinitions();
+        if ("-1".equals(definitions)) {
+            return node.getColumn() - 1;
+        }
+        return node.getColumn() - 1 + node.getLength();
     }
 
     /**

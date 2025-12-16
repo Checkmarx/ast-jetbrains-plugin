@@ -7,10 +7,12 @@ import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
+import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
 import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
+import com.checkmarx.intellij.devassist.ui.WelcomeDialog;
 import com.checkmarx.intellij.util.InputValidator;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -30,6 +32,10 @@ import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import com.intellij.ide.DataManager;
+import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.options.Configurable;
+import com.intellij.openapi.options.ex.Settings;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -214,11 +220,43 @@ public class GlobalSettingsComponent implements SettingsComponent {
         }
     }
 
+    /**
+     * Creates a GlobalSettingsState object from the current UI field values.
+     *
+     * IMPORTANT: This method must preserve ALL existing state fields that are not directly
+     * managed by this UI panel, including user preferences for realtime scanners.
+     * Failure to copy these fields will result in them being reset to default values
+     * when the state is applied, causing user preferences to be lost.
+     */
     private GlobalSettingsState getStateFromFields() {
         GlobalSettingsState state = new GlobalSettingsState();
+
+        // Fields directly managed by this UI panel
         state.setAdditionalParameters(additionalParametersField.getText().trim());
         state.setAsca(ascaCheckBox.isSelected());
         state.setApiKeyEnabled(apiKeyRadio.isSelected());
+
+        // Preserve all other state fields from the current settings
+        if (SETTINGS_STATE != null) {
+            // Realtime scanner active states
+            state.setOssRealtime(SETTINGS_STATE.isOssRealtime());
+            state.setSecretDetectionRealtime(SETTINGS_STATE.isSecretDetectionRealtime());
+            state.setContainersRealtime(SETTINGS_STATE.isContainersRealtime());
+            state.setIacRealtime(SETTINGS_STATE.isIacRealtime());
+            state.setContainersTool(SETTINGS_STATE.getContainersTool());
+
+            // MCP and dialog state
+            state.setWelcomeShown(SETTINGS_STATE.isWelcomeShown());
+            state.setMcpEnabled(SETTINGS_STATE.isMcpEnabled());
+            state.setMcpStatusChecked(SETTINGS_STATE.isMcpStatusChecked());
+
+            // User preferences for realtime scanners - CRITICAL for preference preservation
+            state.setUserPreferencesSet(SETTINGS_STATE.isUserPreferencesSet());
+            state.setUserPrefOssRealtime(SETTINGS_STATE.getUserPrefOssRealtime());
+            state.setUserPrefSecretDetectionRealtime(SETTINGS_STATE.getUserPrefSecretDetectionRealtime());
+            state.setUserPrefContainersRealtime(SETTINGS_STATE.getUserPrefContainersRealtime());
+            state.setUserPrefIacRealtime(SETTINGS_STATE.getUserPrefIacRealtime());
+        }
         return state;
     }
 
@@ -246,27 +284,125 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         }
                         Authentication.validateConnection(getStateFromFields(), getSensitiveStateFromFields());
                         sessionConnected = true;
-                        SwingUtilities.invokeLater(() -> {
-                            setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
-                            logoutButton.setEnabled(true);
-                            connectButton.setEnabled(false);
-                            setFieldsEditable(false);
-                            SETTINGS_STATE.setAuthenticated(true);
-                            SETTINGS_STATE.setLastValidationSuccess(true);
-                            SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
-                            apply(); // Persist the state immediately
-                            logoutButton.requestFocusInWindow();
-                        });
+                        SwingUtilities.invokeLater(() -> onAuthSuccessApiKey());
                         LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
                     } catch (Exception e) {
                         handleConnectionFailure(e);
                     }
                 });
             } else {
-                // Proceed for OAuth authentication
                 proceedOAuthAuthentication();
             }
         });
+    }
+
+    private void onAuthSuccessApiKey() {
+        // Set basic authentication success state
+        setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
+        logoutButton.setEnabled(true);
+        connectButton.setEnabled(false);
+        setFieldsEditable(false);
+        SETTINGS_STATE.setAuthenticated(true);
+        SETTINGS_STATE.setLastValidationSuccess(true);
+        SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
+        logoutButton.requestFocusInWindow();
+
+        // Complete post-authentication setup
+        completeAuthenticationSetup(String.valueOf(apiKeyField.getPassword()));
+    }
+
+    /**
+     * Common post-authentication setup logic for both API key and OAuth authentication.
+     * Checks MCP server status, configures realtime scanners, and shows welcome dialog.
+     *
+     * @param credential The credential to use for MCP installation (API key or refresh token)
+     */
+    private void completeAuthenticationSetup(String credential) {
+        // Check MCP server status using current authentication credentials
+        boolean mcpServerEnabled = false;
+        try {
+            mcpServerEnabled = com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled(
+                getStateFromFields(), getSensitiveStateFromFields());
+        } catch (Exception ex) {
+            LOGGER.warn("Failed MCP server check", ex);
+        }
+
+        // Determine if MCP status has actually changed to avoid resetting user preferences on simple re-authentication
+        boolean previousMcpEnabled = SETTINGS_STATE.isMcpEnabled();
+        boolean mcpStatusPreviouslyChecked = SETTINGS_STATE.isMcpStatusChecked();
+        boolean mcpStatusChanged = mcpStatusPreviouslyChecked && (previousMcpEnabled != mcpServerEnabled);
+
+        // Store MCP status and authentication state
+        SETTINGS_STATE.setMcpEnabled(mcpServerEnabled);
+        SETTINGS_STATE.setMcpStatusChecked(true);
+        apply();
+
+        // Configure realtime scanners based on MCP status - only modify settings when necessary to preserve user preferences during routine re-authentication
+        if (!mcpStatusPreviouslyChecked) {
+            // First time checking MCP status (new user or plugin upgrade scenario)
+            if (mcpServerEnabled) {
+                autoEnableAllRealtimeScanners(); // Enable scanners with preference detection
+                installMcpAsync(credential);
+            } else {
+                disableAllRealtimeScanners(); // Disable scanners while preserving preferences
+            }
+            LOGGER.debug("[Auth] Initial MCP status setup completed for MCP enabled: " + mcpServerEnabled);
+        } else if (mcpStatusChanged) {
+            // MCP status has changed since last authentication - update scanner configuration
+            if (mcpServerEnabled) {
+                LOGGER.debug("[Auth] MCP re-enabled - restoring user preferences");
+                autoEnableAllRealtimeScanners(); // Restore user preferences
+                installMcpAsync(credential);
+            } else {
+                LOGGER.debug("[Auth] MCP disabled - preserving user preferences and disabling scanners");
+                disableAllRealtimeScanners(); // Preserve preferences before disabling
+            }
+        } else {
+            // MCP status unchanged - preserve existing scanner settings and user preferences
+            if (mcpServerEnabled) {
+                installMcpAsync(credential); // Ensure MCP config is up to date
+                LOGGER.debug("[Auth] MCP unchanged (enabled) - user preferences preserved");
+            } else {
+                LOGGER.debug("[Auth] MCP unchanged (disabled) - user preferences preserved");
+            }
+        }
+
+        showWelcomeDialog(mcpServerEnabled);
+    }
+
+    private void installMcpAsync(String credential) {
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                // Returns Boolean.TRUE if MCP modified, Boolean.FALSE if already up-to-date
+                return McpSettingsInjector.installForCopilot(credential);
+            } catch (Exception ex) {
+                return ex;
+            }
+        }).thenAccept(result -> SwingUtilities.invokeLater(() -> {
+            if (result instanceof Exception) {
+                Utils.showNotification(
+                        Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
+                        Bundle.message(Resource.MCP_AUTH_REQUIRED),
+                        NotificationType.ERROR,
+                        project
+                );
+                LOGGER.warn("MCP install error", (Exception) result);
+            } else if (Boolean.TRUE.equals(result)) {
+                Utils.showNotification(
+                        Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
+                        Bundle.message(Resource.MCP_CONFIG_SAVED),
+                        NotificationType.INFORMATION,
+                        project
+                );
+            } else if (Boolean.FALSE.equals(result)) {
+                Utils.showNotification(
+                        Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
+                        Bundle.message(Resource.MCP_CONFIG_UP_TO_DATE),
+                        NotificationType.INFORMATION,
+                        project
+                );
+            }
+        }));
     }
 
     /**
@@ -333,14 +469,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private void handleOAuthSuccess(Map<String, Object> refreshTokenDetails) {
         SwingUtilities.invokeLater(() -> {
             sessionConnected = true;
-
             setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
             validateResult.setVisible(true);
-
             logoutButton.setEnabled(true);
             connectButton.setEnabled(false);
             setFieldsEditable(false);
-
             SETTINGS_STATE.setAuthenticated(true);
             SETTINGS_STATE.setValidationInProgress(false);
             SETTINGS_STATE.setValidationExpiry(null);
@@ -348,8 +481,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
-            apply();
-            notifyAuthSuccess(); // Even if panel is not showing now
+            notifyAuthSuccess();
+
+            // Complete post-authentication setup
+            completeAuthenticationSetup(SENSITIVE_SETTINGS_STATE.getRefreshToken());
         });
     }
 
@@ -372,6 +507,15 @@ public class GlobalSettingsComponent implements SettingsComponent {
             apply();
             notifyAuthError(error);
         });
+    }
+
+    private void showWelcomeDialog(boolean mcpEnabled) {
+        try {
+            WelcomeDialog dlg = new WelcomeDialog(project, mcpEnabled);
+            dlg.show();
+        } catch (Exception ex) {
+            LOGGER.warn("Failed to show welcome dialog", ex);
+        }
     }
 
     private void handleConnectionFailure(Exception e) {
@@ -481,6 +625,22 @@ public class GlobalSettingsComponent implements SettingsComponent {
         addSectionHeader(Resource.ASCA_DESCRIPTION, false);
         mainPanel.add(ascaCheckBox);
         mainPanel.add(ascaInstallationMsg, "gapleft 5, wrap");
+
+        // === CxOne Assist link section ===
+        CxLinkLabel assistLink = new CxLinkLabel(
+                Bundle.message(Resource.GO_TO_CXONE_ASSIST_LINK),
+                e -> {
+                    DataContext context = DataManager.getInstance().getDataContext(mainPanel);
+                    Settings settings = context.getData(Settings.KEY);
+                    if (settings == null) return;
+
+                    Configurable configurable = settings.find("settings.ast.assist");
+                    if (configurable instanceof CxOneAssistConfigurable) {
+                        settings.select(configurable);
+                    }
+                }
+        );
+        mainPanel.add(assistLink, "wrap, gapleft 5, gaptop 10");
     }
 
     private void setupFields() {
@@ -607,6 +767,18 @@ public class GlobalSettingsComponent implements SettingsComponent {
             if (userChoice == Messages.YES) {
                 setLogoutState();
                 notifyLogout();
+
+                // Ensure only the Checkmarx MCP entry is removed and log any issues.
+                java.util.concurrent.CompletableFuture.runAsync(() -> {
+                    try {
+                        boolean removed = McpSettingsInjector.uninstallFromCopilot();
+                        if (!removed) {
+                            LOGGER.debug("Logout completed, but no MCP entry was present to remove.");
+                        }
+                    } catch (Exception ex) {
+                        LOGGER.warn("Failed to remove Checkmarx MCP entry on logout.", ex);
+                    }
+                });
             }
             // else: Do nothing (user clicked Cancel)
         });
@@ -624,6 +796,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         setFieldsEditable(true);
         updateConnectButtonState();
         SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+        // Don't clear MCP status on logout - keep it for next login
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.LOGOUT_SUCCESS));
         SETTINGS_STATE.setLastValidationSuccess(true);
         if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
@@ -640,13 +813,16 @@ public class GlobalSettingsComponent implements SettingsComponent {
         connectButton.setEnabled(true);
         logoutButton.setEnabled(false);
         setFieldsEditable(true);
-        updateConnectButtonState();
-        SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+
+        // Clear authentication and MCP status
+        SETTINGS_STATE.setAuthenticated(false);
+        SETTINGS_STATE.setMcpEnabled(false);
+        SETTINGS_STATE.setMcpStatusChecked(false);
         if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
             SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
         }
         apply();
-        updateConnectButtonState(); // Ensure the Connect button state is updated
+        updateConnectButtonState(); // Update button state after all changes
     }
 
 
@@ -808,5 +984,72 @@ public class GlobalSettingsComponent implements SettingsComponent {
             return LocalDateTime.parse(SETTINGS_STATE.getValidationExpiry()).isBefore(LocalDateTime.now());
         }
         return false;
+    }
+
+    /**
+     * Configures realtime scanners when MCP is enabled, with intelligent preference handling.
+     * For existing users: restores their individual scanner preferences
+     * For new users: enables all scanners as defaults and saves as initial preferences
+     */
+    private void autoEnableAllRealtimeScanners() {
+        GlobalSettingsState st = GlobalSettingsState.getInstance();
+        boolean changed = false;
+
+        // Priority 1: Restore existing user preferences if available
+        if (st.isUserPreferencesSet()) {
+            changed = st.applyUserPreferencesToRealtimeSettings();
+            if (changed) {
+                LOGGER.debug("[Auth] Restored user preferences for realtime scanners");
+                apply();
+                return;
+            } else {
+                LOGGER.debug("[Auth] User preferences already applied to realtime scanners");
+                return;
+            }
+        }
+
+        // Priority 2: For new users, enable all scanners as sensible defaults
+        if (!st.isOssRealtime()) { st.setOssRealtime(true); changed = true; }
+        if (!st.isSecretDetectionRealtime()) { st.setSecretDetectionRealtime(true); changed = true; }
+        if (!st.isContainersRealtime()) { st.setContainersRealtime(true); changed = true; }
+        if (!st.isIacRealtime()) { st.setIacRealtime(true); changed = true; }
+
+        if (changed) {
+            // Save the "all enabled" defaults as initial user preferences for future preservation
+            st.saveCurrentSettingsAsUserPreferences();
+            LOGGER.debug("[Auth] Enabled all scanners for new user and saved as initial preferences");
+            apply();
+        } else {
+            LOGGER.debug("[Auth] All realtime scanners already enabled");
+        }
+    }
+
+    /**
+     * Disables all realtime scanners when MCP is not available, while preserving user preferences.
+     * The user's individual scanner choices are saved before disabling, ensuring they can be
+     * restored when MCP becomes available again.
+     */
+    private void disableAllRealtimeScanners() {
+        GlobalSettingsState st = GlobalSettingsState.getInstance();
+
+        // Preserve current scanner settings as user preferences before disabling
+        if (!st.isUserPreferencesSet()) {
+            st.saveCurrentSettingsAsUserPreferences();
+            LOGGER.debug("[Auth] Saved current scanner settings as user preferences before disabling");
+        }
+
+        // Disable all scanners for security (MCP not available)
+        boolean changed = false;
+        if (st.isOssRealtime()) { st.setOssRealtime(false); changed = true; }
+        if (st.isSecretDetectionRealtime()) { st.setSecretDetectionRealtime(false); changed = true; }
+        if (st.isContainersRealtime()) { st.setContainersRealtime(false); changed = true; }
+        if (st.isIacRealtime()) { st.setIacRealtime(false); changed = true; }
+
+        if (changed) {
+            LOGGER.debug("[Auth] Disabled all realtime scanners while preserving user preferences");
+            apply();
+        } else {
+            LOGGER.debug("[Auth] Realtime scanners already disabled");
+        }
     }
 }

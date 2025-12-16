@@ -1,10 +1,11 @@
 package com.checkmarx.intellij.unit.commands;
 
-import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
+import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,7 +14,6 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -68,9 +68,43 @@ class TenantSettingTest {
             when(mockWrapper.ideScansEnabled()).thenThrow(mock(CxException.class));
 
             // Act & Assert
-            assertThrows(CxException.class, () ->
-                TenantSetting.isScanAllowed()
-            );
+            assertThrows(CxException.class, TenantSetting::isScanAllowed);
         }
     }
-} 
+
+
+    @Test
+    void isAiMcpServerEnabled_WithExplicitState_ReturnsTrue() throws IOException, CxException, InterruptedException {
+        // Arrange
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        GlobalSettingsSensitiveState mockSensitiveState = mock(GlobalSettingsSensitiveState.class);
+
+        try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+            mockedFactory.when(() -> CxWrapperFactory.build(mockState, mockSensitiveState)).thenReturn(mockWrapper);
+            when(mockWrapper.aiMcpServerEnabled()).thenReturn(true);
+
+            // Act
+            boolean result = TenantSetting.isAiMcpServerEnabled(mockState, mockSensitiveState);
+
+            // Assert
+            assertTrue(result);
+            verify(mockWrapper).aiMcpServerEnabled();
+            mockedFactory.verify(() -> CxWrapperFactory.build(mockState, mockSensitiveState));
+        }
+    }
+
+    @Test
+    void isAiMcpServerEnabled_WithExplicitState_ThrowsException() throws IOException, CxException, InterruptedException {
+        // Arrange
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        GlobalSettingsSensitiveState mockSensitiveState = mock(GlobalSettingsSensitiveState.class);
+
+        try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+            mockedFactory.when(() -> CxWrapperFactory.build(mockState, mockSensitiveState)).thenReturn(mockWrapper);
+            when(mockWrapper.aiMcpServerEnabled()).thenThrow(mock(CxException.class));
+
+            // Act & Assert
+            assertThrows(CxException.class, () -> TenantSetting.isAiMcpServerEnabled(mockState, mockSensitiveState));
+        }
+    }
+}
