@@ -60,6 +60,9 @@ jobs:
       # Run verifier
       - name: Run plugin verifier
         run: ./gradlew runPluginVerifier
+        env:
+          JAVA_TOOL_OPTIONS: > 
+           -DpasswordSafe.enabled=false
       # Upload verifier report
       - name: Upload report
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 #v4
