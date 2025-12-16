@@ -3,6 +3,8 @@ package com.checkmarx.intellij.devassist.remediation.prompts;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.util.SeverityLevel;
 
+import static com.checkmarx.intellij.devassist.utils.EmojiUnicodes.*;
+
 /**
  * Checkmarx prompts for various remediation tasks.
  */
@@ -30,7 +32,7 @@ public final class CxOneAssistFixPrompts {
         prompt.append("You are the ").append(AGENT_NAME).append(".\n\n")
                 .append("A security issue has been detected in `").append(packageName).append("@").append(packageVersion).append("` (package manager: `").append(packageManager).append("`).\n")
                 .append("**Severity:** `").append(severity).append("`\n")
-                .append("Your task is to remediate the issue **completely and autonomously** using the internal PackageRemediation tool in Checkmarx MCP. Follow the exact instructions in `fix_instructions` — no assumptions or manual interaction allowed.\n\n");
+                .append("Your task is to remediate the issue **completely and autonomously** using the internal PackageRemediation tool in Checkmarx MCP. Follow the exact instructions in `fix_instructions` - no assumptions or manual interaction allowed.\n\n");
 
         prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
                 .append("Determine the issue type:\n")
@@ -57,13 +59,13 @@ public final class CxOneAssistFixPrompts {
                 .append("  - Record before → after values where applicable.\n")
                 .append("  - Capture line numbers if known.\n")
                 .append("Examples:\n")
-                .append("- `package.json`: lodash version changed from 3.10.1 → 4.17.21\n")
+                .append("- `package.json`: lodash version changed from 3.10.1 -> 4.17.21\n")
                 .append("- `src/utils/date.ts`: import updated from `lodash` to `date-fns`\n")
-                .append("- `src/main.ts:42`: `_.pluck(users, 'id')` → `users.map(u => u.id)`\n")
+                .append("- `src/main.ts:42`: `_.pluck(users, 'id')` -> `users.map(u => u.id)`\n")
                 .append("- `src/index.ts:78`: // TODO: Verify API migration from old-package to new-package\n\n");
 
         prompt.append("Step 3. VERIFICATION:\n\n")
-                .append("- If the instructions include build, test, or audit steps — run them exactly as written\n")
+                .append("- If the instructions include build, test, or audit steps - run them exactly as written\n")
                 .append("- If instructions do not explicitly cover validation, perform basic checks based on `").append(packageManager).append("`:\n")
                 .append("  - `npm`: `npx tsc --noEmit`, `npm run build`, `npm test`\n")
                 .append("  - `go`: `go build ./...`, `go test ./...`\n")
@@ -77,7 +79,7 @@ public final class CxOneAssistFixPrompts {
 
         prompt.append("Step 4. OUTPUT:\n\n").append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n");
 
-        prompt.append("✅ **Remediation Summary**\n\n")
+        prompt.append(CHECK + " **Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
                 .append("Security Assistant - Remediation Summary\n\n")
@@ -97,7 +99,7 @@ public final class CxOneAssistFixPrompts {
                 .append("   - Line 78: Inserted TODO: Verify API migration from old-package to new-package\n")
                 .append("```\n\n");
 
-        prompt.append("✅ **Final Status**\n\n")
+        prompt.append(CHECK + " **Final Status**\n\n")
                 .append("If all tasks succeeded:\n\n")
                 .append("- \"Remediation completed for ").append(packageName).append("@").append(packageVersion).append("\"\n")
                 .append("- \"All fix instructions and failing tests resolved\"\n")
@@ -105,7 +107,7 @@ public final class CxOneAssistFixPrompts {
                 .append("- \"Test results: PASS\"\n\n");
 
         prompt.append("If partially resolved:\n\n")
-                .append("- \"Remediation partially completed – manual review required\"\n")
+                .append("- \"Remediation partially completed - manual review required\"\n")
                 .append("- \"Some test failures or instructions could not be automatically fixed\"\n")
                 .append("- \"TODOs inserted where applicable\"\n\n");
 
@@ -166,7 +168,7 @@ public final class CxOneAssistFixPrompts {
 
         prompt.append("Step 3. ANALYSIS & RISK\n\n")
                 .append("Identify the type of secret (API key, token, credential). Explain:\n")
-                .append("- Why it’s a risk (leakage, unauthorized access, compliance violations)\n")
+                .append("- Why it's a risk (leakage, unauthorized access, compliance violations)\n")
                 .append("- What could happen if misused or left in source\n\n");
 
         prompt.append("Step 4. REMEDIATION STRATEGY\n\n")
@@ -192,10 +194,10 @@ public final class CxOneAssistFixPrompts {
                 .append("- `.env`: Added/updated with `SECRET_NAME`\n")
                 .append("- `src/config.ts`: Replaced hardcoded secret with `process.env.SECRET_NAME`\n\n")
                 .append("**Remediation Actions Taken:**\n")
-                .append("- ✅ Removed hardcoded secret\n")
-                .append("- ✅ Inserted environment reference\n")
-                .append("- ✅ Updated or created .env\n")
-                .append("- ✅ Added TODOs for secret rotation or vault storage\n\n")
+                .append("- " + CHECK + " Removed hardcoded secret\n")
+                .append("- " + CHECK + " Inserted environment reference\n")
+                .append("- " + CHECK + " Updated or created .env\n")
+                .append("- " + CHECK + " Added TODOs for secret rotation or vault storage\n\n")
                 .append("**Next Steps:**\n")
                 .append("- [ ] Revoke exposed secret (if applicable)\n")
                 .append("- [ ] Store securely in vault (AWS Secrets Manager, GitHub Actions, etc.)\n")
@@ -207,11 +209,11 @@ public final class CxOneAssistFixPrompts {
                 .append("```\n\n");
 
         prompt.append("Step 7. CONSTRAINTS\n\n")
-                .append("- ❌ Do NOT expose real secrets\n")
-                .append("- ❌ Do NOT generate fake-looking secrets\n")
-                .append("- ✅ Follow only what’s explicitly returned from MCP\n")
-                .append("- ✅ Use secure externalization patterns\n")
-                .append("- ✅ Respect OWASP, NIST, and GitHub best practices\n");
+                .append("- " + CROSS + "  Do NOT expose real secrets\n")
+                .append("- " + CROSS + "  Do NOT generate fake-looking secrets\n")
+                .append("- " + CHECK + "  Follow only what’s explicitly returned from MCP\n")
+                .append("- " + CHECK + "  Use secure externalization patterns\n")
+                .append("- " + CHECK + "  Respect OWASP, NIST, and GitHub best practices\n");
         return prompt.toString();
     }
 
@@ -223,11 +225,11 @@ public final class CxOneAssistFixPrompts {
      */
     private static String getAssessmentText(String severity) {
         if (SeverityLevel.CRITICAL.getSeverity().equalsIgnoreCase(severity)) {
-            return "✅ Confirmed valid secret. Immediate remediation performed.";
+            return CROSS + " Confirmed valid secret. Immediate remediation performed.";
         } else if (SeverityLevel.HIGH.getSeverity().equalsIgnoreCase(severity)) {
-            return "⚠️ Possibly valid. Handled as sensitive.";
+            return WARNING + " Possibly valid. Handled as sensitive.";
         } else {
-            return "ℹ️ Likely invalid (test/fake). Removed for hygiene.";
+            return INFO + " Likely invalid (test/fake). Removed for hygiene.";
         }
     }
 
@@ -250,7 +252,7 @@ public final class CxOneAssistFixPrompts {
                 .append("` with image `").append(imageName).append(":").append(imageTag).append("`.\n")
                 .append("**Severity:** `").append(severity).append("`\n")
                 .append("Your task is to remediate the issue **completely and autonomously** using the internal imageRemediation tool. ")
-                .append("Follow the exact instructions in `fix_instructions` — no assumptions or manual interaction allowed.\n\n");
+                .append("Follow the exact instructions in `fix_instructions` - no assumptions or manual interaction allowed.\n\n");
 
         prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
                 .append("Determine the issue type:\n")
@@ -273,16 +275,16 @@ public final class CxOneAssistFixPrompts {
                 .append("  - Apply the instruction exactly.\n")
                 .append("  - Track all modified files.\n")
                 .append("  - Note the type of change (e.g., image update, configuration change, security hardening).\n")
-                .append("  - Record before → after values where applicable.\n")
+                .append("  - Record before -> after values where applicable.\n")
                 .append("  - Capture line numbers if known.\n\n")
                 .append("Examples:\n")
-                .append("- `Dockerfile`: FROM confluentinc/cp-kafkacat:6.1.10 → FROM confluentinc/cp-kafkacat:6.2.15\n")
-                .append("- `docker-compose.yml`: image: vulnerable-image:1.0 → image: secure-image:2.1\n")
-                .append("- `values.yaml`: repository: old-repo → repository: new-repo\n")
-                .append("- `Chart.yaml`: version: 1.0.0 → version: 1.1.0\n\n");
+                .append("- `Dockerfile`: FROM confluentinc/cp-kafkacat:6.1.10 -> FROM confluentinc/cp-kafkacat:6.2.15\n")
+                .append("- `docker-compose.yml`: image: vulnerable-image:1.0 -> image: secure-image:2.1\n")
+                .append("- `values.yaml`: repository: old-repo -> repository: new-repo\n")
+                .append("- `Chart.yaml`: version: 1.0.0 -> version: 1.1.0\n\n");
 
         prompt.append("Step 3. VERIFICATION:\n\n")
-                .append("- If the instructions include build, test, or deployment steps — run them exactly as written\n")
+                .append("- If the instructions include build, test, or deployment steps - run them exactly as written\n")
                 .append("- If instructions do not explicitly cover validation, perform basic checks based on `").append(fileType).append("`:\n")
                 .append("  - `Dockerfile`: `docker build .`, `docker run <image>`\n")
                 .append("  - `docker-compose.yml`: `docker-compose up --build`, `docker-compose down`\n")
@@ -293,7 +295,7 @@ public final class CxOneAssistFixPrompts {
 
         prompt.append("Step 4. OUTPUT:\n\n")
                 .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
-                .append("✅ **Remediation Summary**\n\n")
+                .append(CHECK + " **Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
                 .append("Security Assistant - Remediation Summary\n\n")
@@ -310,14 +312,14 @@ public final class CxOneAssistFixPrompts {
                 .append("4. README.md\n")
                 .append("   - Updated documentation with new image version\n")
                 .append("```\n\n")
-                .append("✅ **Final Status**\n\n")
+                .append(CHECK + " **Final Status**\n\n")
                 .append("If all tasks succeeded:\n")
                 .append("- \"Remediation completed for ").append(imageName).append(":").append(imageTag).append("\"\n")
                 .append("- \"All fix instructions and deployment tests resolved\"\n")
                 .append("- \"Build status: PASS\"\n")
                 .append("- \"Deployment status: PASS\"\n\n")
                 .append("If partially resolved:\n")
-                .append("- \"Remediation partially completed – manual review required\"\n")
+                .append("- \"Remediation partially completed - manual review required\"\n")
                 .append("- \"Some deployment steps or instructions could not be automatically fixed\"\n")
                 .append("- \"TODOs inserted where applicable\"\n\n")
                 .append("If failed:\n")
@@ -352,8 +354,8 @@ public final class CxOneAssistFixPrompts {
      * @return a formatted string containing the remediation prompt with instructions for automated resolution of the issue
      */
     public static String buildIACRemediationPrompt(String title, String description, String severity,
-                                              String fileType, String expectedValue, String actualValue,
-                                              Integer problematicLineNumber) {
+                                                   String fileType, String expectedValue, String actualValue,
+                                                   Integer problematicLineNumber) {
 
         String actualLineNumber = problematicLineNumber != null
                 ? String.valueOf(problematicLineNumber + 1) : "[unknown]";
@@ -376,8 +378,8 @@ public final class CxOneAssistFixPrompts {
                 .append(problematicLineText).append("\n\n");
 
         prompt.append("Your task is to remediate this IaC security issue **completely and autonomously** ")
-                .append("using the internal codeRemediation tool in Checkmarx MCP. Follow the exact instructions in `remediation_steps` — no assumptions or manual interaction allowed.\n\n");
-        prompt.append("⚠️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
+                .append("using the internal codeRemediation tool in Checkmarx MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n");
+        prompt.append(WARNING + "️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
                 .append(actualLineNumber)
                 .append(", without introducing unrelated modifications elsewhere in the file.\n\n");
 
@@ -399,7 +401,7 @@ public final class CxOneAssistFixPrompts {
                 .append("```\n\n");
 
         prompt.append("- If the tool is **available**, parse the response:\n")
-                .append("  - `remediation_steps` – exact steps to follow for remediation\n\n")
+                .append("  - `remediation_steps` - exact steps to follow for remediation\n\n")
                 .append("- If the tool is **not available**, display:\n")
                 .append("`[MCP ERROR] codeRemediation tool is not available. Please check the Checkmarx MCP server.`\n\n");
 
@@ -414,7 +416,7 @@ public final class CxOneAssistFixPrompts {
                 .append("  - Capture line numbers if known.\n\n");
 
         prompt.append("Step 3. VERIFICATION:\n\n")
-                .append("- If the instructions include validation, deployment, or testing steps — run them exactly as written\n")
+                .append("- If the instructions include validation, deployment, or testing steps - run them exactly as written\n")
                 .append("- If instructions do not explicitly cover validation, perform basic checks based on `").append(fileType).append("`:\n")
                 .append("  - `Terraform`: `terraform validate`, `terraform plan`\n")
                 .append("  - `CloudFormation`: `aws cloudformation validate-template`\n")
@@ -426,7 +428,7 @@ public final class CxOneAssistFixPrompts {
 
         prompt.append("Step 4. OUTPUT:\n\n")
                 .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
-                .append("✅ **Remediation Summary**\n\n")
+                .append(CHECK + " **Remediation Summary**\n\n")
                 .append("```\n")
                 .append("Security Assistant - Remediation Summary\n\n")
                 .append("Issue:       ").append(title).append("\n")
@@ -444,7 +446,7 @@ public final class CxOneAssistFixPrompts {
                 .append("   - Updated comments and documentation where applicable\n")
                 .append("```\n\n");
 
-        prompt.append("✅ **Final Status**\n\n")
+        prompt.append(CHECK + " **Final Status**\n\n")
                 .append("If all tasks succeeded:\n")
                 .append("- \"Remediation completed for IaC security issue ").append(title).append("\"\n")
                 .append("- \"All fix instructions and security validations resolved\"\n")
@@ -452,7 +454,7 @@ public final class CxOneAssistFixPrompts {
                 .append("- \"Security compliance: PASS\"\n\n")
 
                 .append("If partially resolved:\n")
-                .append("- \"Remediation partially completed – manual review required\"\n")
+                .append("- \"Remediation partially completed - manual review required\"\n")
                 .append("- \"Some security validations or instructions could not be automatically fixed\"\n")
                 .append("- \"TODOs inserted where applicable\"\n\n")
 
@@ -476,15 +478,15 @@ public final class CxOneAssistFixPrompts {
      * Constructs a detailed remediation prompt for addressing a secure coding issue detected in the code.
      * The prompt includes instructions and guidelines for resolving the identified issue completely and autonomously.
      *
-     * @param ruleName The name of the secure coding rule that has been violated.
-     * @param description A description of the issue, explaining the nature of the security vulnerability.
-     * @param severity The severity level of the detected issue (e.g., low, medium, high, critical).
-     * @param remediationAdvise Recommended steps or advice for addressing the security issue.
+     * @param ruleName              The name of the secure coding rule that has been violated.
+     * @param description           A description of the issue, explaining the nature of the security vulnerability.
+     * @param severity              The severity level of the detected issue (e.g., low, medium, high, critical).
+     * @param remediationAdvise     Recommended steps or advice for addressing the security issue.
      * @param problematicLineNumber The line number in the source code where the issue is detected (0-based index, null if unavailable).
      * @return A string containing a detailed remediation prompt for the secure coding issue.
      */
     public static String buildASCARemediationPrompt(String ruleName, String description,
-                                               String severity, String remediationAdvise, Integer problematicLineNumber) {
+                                                    String severity, String remediationAdvise, Integer problematicLineNumber) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("You are the ").append(AGENT_NAME).append(".\n\n")
                 .append("A secure coding issue has been detected in your code.\n\n")
@@ -499,8 +501,8 @@ public final class CxOneAssistFixPrompts {
             prompt.append("\n");
         }
 
-        prompt.append("Your task is to remediate this security issue **completely and autonomously** using the internal codeRemediation tool in Checkmarx MCP. Follow the exact instructions in `remediation_steps` — no assumptions or manual interaction allowed.\n\n")
-                .append("⚠️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
+        prompt.append("Your task is to remediate this security issue **completely and autonomously** using the internal codeRemediation tool in Checkmarx MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n")
+                .append(WARNING + "️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
                 .append(problematicLineNumber != null ? problematicLineNumber + 1 : "[problematic line number]")
                 .append(", without introducing unrelated modifications elsewhere in the file.\n\n");
 
@@ -521,7 +523,7 @@ public final class CxOneAssistFixPrompts {
                 .append("}\n")
                 .append("```\n\n")
                 .append("- If the tool is **available**, parse the response:\n")
-                .append("  - `remediation_steps` – exact steps to follow for remediation\n\n")
+                .append("  - `remediation_steps` - exact steps to follow for remediation\n\n")
                 .append("- If the tool is **not available**, display:\n")
                 .append("  `[MCP ERROR] codeRemediation tool is not available. Please check the Checkmarx MCP server.`\n\n");
 
@@ -539,7 +541,7 @@ public final class CxOneAssistFixPrompts {
 
         prompt.append("Step 3. OUTPUT:\n\n")
                 .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
-                .append("✅ **Remediation Summary**\n\n")
+                .append(CHECK + " ** Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
                 .append("`").append(AGENT_NAME).append(" -` - Remediation Summary\n\n")
@@ -561,14 +563,14 @@ public final class CxOneAssistFixPrompts {
                 .append("4. src/config.ts\n")
                 .append("   - Line 23: Inserted TODO for production security review\n")
                 .append("```\n\n")
-                .append("✅ **Final Status**\n\n")
+                .append(CHECK + " **Final Status**\n\n")
                 .append("If all tasks succeeded:\n")
                 .append("- \"Remediation completed for security rule ").append(ruleName).append("\"\n")
                 .append("- \"All fix instructions and security validations resolved\"\n")
                 .append("- \"Build status: PASS\"\n")
                 .append("- \"Security tests: PASS\"\n\n")
                 .append("If partially resolved:\n")
-                .append("- \"Remediation partially completed – manual review required\"\n")
+                .append("- \"Remediation partially completed - manual review required\"\n")
                 .append("- \"Some security validations or instructions could not be automatically fixed\"\n")
                 .append("- \"TODOs inserted where applicable\"\n\n")
                 .append("If failed:\n")

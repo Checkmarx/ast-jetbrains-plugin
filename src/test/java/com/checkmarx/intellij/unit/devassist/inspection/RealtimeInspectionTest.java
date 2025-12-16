@@ -7,7 +7,7 @@ import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
-import com.checkmarx.intellij.devassist.common.ScanResult;
+
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -303,9 +303,7 @@ class RealtimeInspectionTest {
         ProblemHolderService holderService = mock(ProblemHolderService.class);
         when(helper.getProblemHolderService()).thenReturn(holderService);
         when(helper.getFile()).thenReturn(mock(PsiFile.class));
-        ScanResult<?> scanResult = mock(ScanResult.class);
-        when(scanResult.getIssues()).thenReturn(Collections.emptyList());
-        doReturn(scanResult).when(helper).getScanResult();
+        when(helper.getScanIssueList()).thenReturn(Collections.emptyList());
         when(helper.getFilePath()).thenReturn("/path/to/file.java");
         @SuppressWarnings("unchecked")
         List<ProblemDescriptor> result = (List<ProblemDescriptor>) invokePrivateMethod(

@@ -81,6 +81,15 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 
 -   AI Secure Coding Assistant (ASCA) - A lightweight scan engine that runs in the background while you work, enabling developers to identify and remediate secure coding best practice violations  **as they code**.
 
+## Checkmarx One Developer Assist – AI guided remediation
+- An advanced security agent that delivers real-time context-aware prevention, remediation, and guidance to developers from the IDE.
+- OSS Realtime scanner identifies risks in open source packages used in your project.
+- MCP-based agentic AI remediation.
+- AI powered explanation of risk details
+
+  **COMING SOON** - additional realtime scanners for identifying risks in container images, as well as exposed secrets and IaC risks.
+
+
 ## Prerequisites
 
 -   You are running IntelliJ version 2022.2+ or another JetBrains IDE that is based on a supported version of IntelliJ.
@@ -93,6 +102,11 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 > -   CxOne role  `view-policy-management`
 > -   IAM role  `default-roles`
 
+To use **Dev Assist**, you need the following additional prerequisites:
+- A Checkmarx One account with a Checkmarx One Assist license
+- The Checkmarx MCP must be activated for your tenant account in the Checkmarx One UI under Settings → Plugins. This must be done by an account admin.
+- You must have GitHub Copilot Chat (AI Agent) installed
+
 ## Initial Setup
 
 -   Verify that all prerequisites are in place.
@@ -100,11 +114,11 @@ This plugin provides easy integration with JetBrains and is compatible with all 
 -   Install the **Checkmarx One** plugin and configure the settings as
     described [here](https://docs.checkmarx.com/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-pluging-68734.html#UUID-8d3bdd51-782c-2816-65e2-38d7529651c8_section-idm449017032697283334758018635).
 
+**Note:** To use Dev Assist, you need to Start the Checkmarx MCP server.
 
 ## Usage
 
 To see how you can use our tool, please refer to the [Documentation](https://docs.checkmarx.com/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-pluging.html)
-
 
 
 ## Feedback

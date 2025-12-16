@@ -20,9 +20,18 @@ public class ContainerScannerCommand extends BaseScannerCommand {
        this(disposable, project, new ContainerScannerService());
     }
 
+    /**
+     * Initializes the scanner , invoked after registration of the scanner
+     */
+
     @Override
     public void initializeScanner(){
     }
+
+    /**
+     * Disposes the listeners automatically
+     * Triggered when project is closed
+     */
 
     @Override
     public void dispose(){
