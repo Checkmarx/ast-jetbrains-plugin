@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.Constants.RealTimeConstants.SEPERATOR;
 import static com.checkmarx.intellij.Utils.escapeHtml;
-import static com.checkmarx.intellij.devassist.ui.ProblemDescription.InlineHtml.*;
+//import static com.checkmarx.intellij.devassist.ui.ProblemDescription.InlineHtml.*;
 
 /**
  * This class is responsible for handling and formatting descriptions of scan issues
@@ -23,21 +23,19 @@ public class ProblemDescription {
 
     private static final Map<String, String> DESCRIPTION_ICON = new LinkedHashMap<>();
 
-    private static final String DIV = "<div>";
     private static final String COUNT = "COUNT";
     private static final String PACKAGE = "Package";
     private static final String DEV_ASSIST = "DevAssist";
     private static final String CONTAINER = "Container";
-
+    private static final String TABLE_WITH_TR = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>";
     private static final String TITLE_FONT_FAMILY = "font-family: menlo;";
     private static final String TITLE_FONT_SIZE = "font-size:11px;";
     private static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";
-
     private static final String SECONDARY_SPAN_STYLE =
             "display:inline-block;vertical-align:middle;line-height:16px;font-size:11px;color:#ADADAD;"
                     + "font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;";
 
-    /** Default inline icon style used consistently across all engines. */
+    /** Default inline severity icon style used consistently across all engines. */
     private static final String ICON_INLINE_STYLE =
             "display:inline-block;vertical-align:middle;max-height:16px;line-height:16px;";
 
@@ -163,7 +161,7 @@ public class ProblemDescription {
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         String icon = getStyledImage(scanIssue.getSeverity(), ICON_INLINE_STYLE);
 
-        descBuilder.append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>")
+        descBuilder.append(TABLE_WITH_TR)
                 .append("<td style='padding:0 6px 0 0;vertical-align:middle;'>").append(icon).append("</td>")
                 .append("<td style='padding:0 2px 0 2px;")
                 .append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append(CELL_LINE_HEIGHT_STYLE).append("'>")
@@ -224,38 +222,29 @@ public class ProblemDescription {
     }
 
     /**
-     * Injects inline styles into an existing HTML image tag.
+     * Builds the vulnerability section of a scan issue description and appends it to the provided StringBuilder.
+     * This method processes the list of vulnerabilities associated with the scan issue, categorizes them by severity,
+     * and includes detailed descriptions for specific vulnerabilities where applicable.
+     *
+     * @param descBuilder the StringBuilder to which the formatted vulnerability section will be appended
+     * @param scanIssue   the ScanIssue object containing details about the scan, including associated vulnerabilities
      */
-    private String getStyledImage(String key, String extraStyle) {
-        String imgTag = DESCRIPTION_ICON.getOrDefault(key, "");
-        if (imgTag == null || imgTag.isEmpty()) {
-            return "";
-        }
-        if (imgTag.contains("style='")) {
-            return imgTag.replaceFirst("style='", "style='" + extraStyle);
-        } else if (imgTag.contains("style=\"")) {
-            return imgTag.replaceFirst("style=\"", "style=\"" + extraStyle);
-        } else {
-            int insertPos = imgTag.indexOf("/>");
-            return insertPos > 0
-                    ? imgTag.substring(0, insertPos) + " style='" + extraStyle + "'" + imgTag.substring(insertPos)
-                    : imgTag;
-        }
-    }
-
     private void buildVulnerabilitySection(StringBuilder descBuilder, ScanIssue scanIssue) {
         List<Vulnerability> vulnerabilityList = scanIssue.getVulnerabilities();
-        if (Objects.isNull(vulnerabilityList) || vulnerabilityList.isEmpty()) {
+        if (vulnerabilityList == null || vulnerabilityList.isEmpty()) {
             return;
         }
-        descBuilder.append(DIV).append("<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>");
+        descBuilder.append("<div>").append(TABLE_WITH_TR);
         Map<String, Long> vulnerabilityCount = getVulnerabilityCount(vulnerabilityList);
         DESCRIPTION_ICON.forEach((severity, iconPath) -> {
             Long count = vulnerabilityCount.get(severity);
             if (count != null && count > 0) {
-                descBuilder.append("<td style='padding:0;'>").append(getIcon(getSeverityCountIconKey(severity))).append("</td>")
+                descBuilder.append("<td style='padding:0;'>")
+                        .append(DESCRIPTION_ICON.get(getSeverityCountIconKey(severity)))
+                        .append("</td>")
                         .append("<td style='font-size:9px;color:#ADADAD;vertical-align:middle;padding:0 4px 0 1px;'>")
-                        .append(count).append("</td>");
+                        .append(count)
+                        .append("</td>");
             }
         });
         descBuilder.append("</tr></table></div>");
@@ -313,6 +302,26 @@ public class ProblemDescription {
     }
 
     /**
+     * Injects inline styles into an existing HTML image tag.
+     */
+    private String getStyledImage(String key, String extraStyle) {
+        String imgTag = DESCRIPTION_ICON.getOrDefault(key, "");
+        if (imgTag == null || imgTag.isEmpty()) {
+            return "";
+        }
+        if (imgTag.contains("style='")) {
+            return imgTag.replaceFirst("style='", "style='" + extraStyle);
+        } else if (imgTag.contains("style=\"")) {
+            return imgTag.replaceFirst("style=\"", "style=\"" + extraStyle);
+        } else {
+            int insertPos = imgTag.indexOf("/>");
+            return insertPos > 0
+                    ? imgTag.substring(0, insertPos) + " style='" + extraStyle + "'" + imgTag.substring(insertPos)
+                    : imgTag;
+        }
+    }
+
+    /**
      * Builds the remediation actions section of the description.
      *
      * @param descBuilder {@link StringBuilder} object to add the remediation actions section to.
@@ -341,21 +350,5 @@ public class ProblemDescription {
                 .append(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME)
                 .append("</a></td>")
                 .append("</tr></table>");
-}
-
-    /**
-     * Holds inline HTML constants used for formatting descriptions.
-     */
-    static final class InlineHtml {
-
-        private InlineHtml() {}
-
-        static final String TABLE_WITH_TR = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>";
-        static final String DIV = "<div>";
-        static final String TITLE_FONT_FAMILY = "font-family: menlo;";
-        static final String TITLE_FONT_SIZE = "font-size:11px;";
-        static final String SECONDARY_SPAN_STYLE = "display:inline-block;vertical-align:middle;line-height:16px;font-size:11px;color:#ADADAD;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;";
-        static final String ICON_INLINE_STYLE = "display:inline-block;vertical-align:middle;max-height:16px;line-height:16px;";
-        static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";
     }
 }
