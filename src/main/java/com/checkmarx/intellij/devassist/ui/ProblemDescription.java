@@ -1,11 +1,14 @@
 package com.checkmarx.intellij.devassist.ui;
 
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.scanners.oss.OssScannerService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
+import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -26,6 +29,7 @@ public class ProblemDescription {
 
     private static final int MAX_LINE_LENGTH = 120;
     private static final Map<String, String> DESCRIPTION_ICON = new LinkedHashMap<>();
+    private static final Logger LOGGER = Utils.getLogger(ProblemDescription.class);
 
     private static final String DIV = "<div>";
     private static final String DIV_BR = "</div><br>";
@@ -79,12 +83,10 @@ public class ProblemDescription {
      * with visual elements included for improved readability.
      */
     public String formatDescription(ScanIssue scanIssue) {
-
         StringBuilder descBuilder = new StringBuilder();
         descBuilder.append("<html><body style='overflow:visible;margin:0;padding:2px;'><div style='display:flex;flex-direction:row;align-items:center;gap:10px;overflow:visible;'>")
                 .append(DIV).append("<table style='border-collapse:collapse;'><tr><td style='padding:0;'>")
                 .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table></div>");
-
         switch (scanIssue.getScanEngine()) {
             case OSS:
                 buildOSSDescription(descBuilder, scanIssue);
@@ -94,6 +96,9 @@ public class ProblemDescription {
                 break;
             case SECRETS:
                 buildSecretsDescription(descBuilder, scanIssue);
+                break;
+            case IAC:
+                buildIACDescription(descBuilder, scanIssue);
                 break;
             case CONTAINERS:
                 buildContainerDescription(descBuilder,scanIssue);
@@ -126,6 +131,27 @@ public class ProblemDescription {
     private void buildContainerDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         buildImageHeader(descBuilder, scanIssue);
         buildVulnerabilitySection(descBuilder, scanIssue);
+    }
+
+
+    private void buildIACDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
+        for(Vulnerability vulnerability : scanIssue.getVulnerabilities()) {
+            descBuilder.append("<table style='table-layout:fixed;border-collapse:collapse;'><tr>")
+                    .append("<td style='vertical-align:middle;padding:0;'>")
+                    .append(getIcon(vulnerability.getSeverity(), 14))
+                    .append("</td>")
+                    .append("<td style='vertical-align:middle;padding:0 8px;'>")
+                    .append("<span style='font-weight:bold;'>")
+                    .append(escapeHtml(vulnerability.getTitle()))
+                    .append(" - ")
+                    .append(escapeHtml(vulnerability.getDescription()))
+                    .append("</span><br>")
+                    .append("<span style='color: gray; margin:0;'>")
+                    .append(scanIssue.getScanEngine().name())
+                    .append("</span>")
+                    .append("</td>")
+                    .append("</tr></table><br>");
+        }
     }
 
 
@@ -175,6 +201,14 @@ public class ProblemDescription {
      */
     private String getIcon(String key) {
         return DESCRIPTION_ICON.getOrDefault(key, "");
+    }
+
+    private String getIcon(String key, int sizePx) {
+        String iconHtml = getIcon(key);
+        if (iconHtml.isEmpty()) {
+            return iconHtml;
+        }
+        return iconHtml.replaceFirst("<img ", "<img style='width:" + sizePx + "px;height:" + sizePx + "px;vertical-align:middle;' ");
     }
 
     /**

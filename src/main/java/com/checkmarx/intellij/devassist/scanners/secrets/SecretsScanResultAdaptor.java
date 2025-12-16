@@ -101,7 +101,7 @@ public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResul
             secret.getDescription(),
             secret.getSeverity(),
             secret.getSecretValue(), // Using secretValue as the ID/reference
-            "" // No fix version for secrets
+            "","","" ,""// No fix version for secrets
         );
         scanIssue.getVulnerabilities().add(vulnerability);
 

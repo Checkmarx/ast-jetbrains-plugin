@@ -33,6 +33,7 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
     private static final Logger LOGGER = Utils.getLogger(IacScannerService.class);
 
 
+
     public  IacScannerService(){
         super(IacScannerService.createConfig());
     }
@@ -130,9 +131,9 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
             if(Objects.nonNull(saveResult)){
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start IAC Realtime Scan On File: " + uri);
-                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, "podman","");
+                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(),"");
                 LOGGER.info("ScanResults:"+scanResults);
-                return null;
+                return new IacScanResultAdaptor(scanResults);
             }
         }
         catch (IOException | CxException | InterruptedException e) {

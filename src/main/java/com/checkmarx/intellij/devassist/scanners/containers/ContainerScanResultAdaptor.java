@@ -61,7 +61,7 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
     }
 
     private Vulnerability createVulnerability(ContainersRealtimeVulnerability vulnerabilityObj) {
-        return new Vulnerability(vulnerabilityObj.getCve(), this.getDescription(vulnerabilityObj.getSeverity()), vulnerabilityObj.getSeverity(), "", "");
+        return new Vulnerability(vulnerabilityObj.getCve(), this.getDescription(vulnerabilityObj.getSeverity()), vulnerabilityObj.getSeverity(), "", "","","","");
     }
 
     private String getDescription(String severity) {
