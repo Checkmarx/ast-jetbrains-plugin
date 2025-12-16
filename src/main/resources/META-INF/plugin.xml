@@ -9,13 +9,14 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      <b> 1. Added OAuth2 login support for seamless authentication.</b>
+      <b>Checkmarx One Developer Assist – AI guided remediation.</b>
         <ul>
-            <li>Users can now log in via OAuth2 using their Checkmarx One account credential. This provides a smoother and more secure user experience.</li>
-            <li><b>Note:</b> Starting from plugin version 2.2.4, authentication can be done either via API key or OAuth2 login.</li>
+            <li>An advanced security agent that delivers real-time context-aware prevention, remediation, and guidance to developers from the IDE.</li>
+            <li><b>OSS</b> Realtime scanner identifies risks in open source packages used in your project.</li>
+            <li>MCP-based agentic AI remediation.</li>
+            <li>AI-powered explanation of risk details.</li>
         </ul>
-      <p> 2. Users can exclude <b> development and test dependencies</b> from SCA vulnerability scan results by applying the 'Hide Dev & Test Dependencies' filter.</p>
-      <b> 3. Checkmarx one Assist for real-time scanner and remediation using AI.</b>
+        <b>Note:</b> COMING SOON - additional realtime scanners for identifying risks in container images, as well as exposed secrets and IaC risks..
     ]]></change-notes>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html

@@ -110,7 +110,7 @@ public class ProblemDescription {
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
-        //buildRemediationActionsSection(descBuilder, scanIssue);
+        buildRemediationActionsSection(descBuilder, scanIssue);
         descBuilder.append("</body></html>");
         return descBuilder.toString();
     }
