@@ -58,13 +58,12 @@
                          level="WARNING"
                          implementationClass="com.checkmarx.intellij.inspections.CxInspection"/>
 
-
         <localInspection
-                displayName="OSS"
-                groupName="OSS"
+                displayName="CxOneAssist"
+                groupName="CxOneAssist"
                 groupPath="Checkmarx"
                 enabledByDefault="true"
-                implementationClass="com.checkmarx.intellij.devassist.inspection.RealtimeInspection"/>
+                implementationClass="com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection"/>
 
         <!-- Register tooltip link handler -->
         <codeInsight.linkHandler

@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 
 /**
- * The RealtimeInspection class extends LocalInspectionTool and is responsible for
+ * The CxOneAssistInspection class extends LocalInspectionTool and is responsible for
  * performing real-time inspections of files within a project. It uses various
  * utility classes to scan files, identify issues, and provide problem descriptors
  * for on-the-fly or manual inspections.
@@ -47,9 +47,9 @@ import static java.lang.String.format;
  * with real-time scanner services and provides problem highlights and fixes for
  * identified issues.
  */
-public class RealtimeInspection extends LocalInspectionTool {
+public class CxOneAssistInspection extends LocalInspectionTool {
 
-    private static final Logger LOGGER = Utils.getLogger(RealtimeInspection.class);
+    private static final Logger LOGGER = Utils.getLogger(CxOneAssistInspection.class);
     /**
      * Debounce delay in milliseconds. Scans will only trigger after the user stops typing for this duration.
      * This prevents lag during typing by avoiding scans on every keystroke.
@@ -95,7 +95,7 @@ public class RealtimeInspection extends LocalInspectionTool {
             resetResults(file.getProject());
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        List<ScannerService<?>> supportedScanners = getSupportedEnabledScanner(virtualFile.getPath(),file);
+        List<ScannerService<?>> supportedScanners = getSupportedEnabledScanner(virtualFile.getPath(), file);
         if (supportedScanners.isEmpty()) {
             LOGGER.warn(format("RTS: No supported scanner enabled for this file: %s.", file.getName()));
             resetResults(file.getProject());
@@ -371,7 +371,7 @@ public class RealtimeInspection extends LocalInspectionTool {
      *
      * @param problemHelperBuilder - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
      */
-    private void scheduleDebouncedScan(ProblemHelper.ProblemHelperBuilder  problemHelperBuilder) {
+    private void scheduleDebouncedScan(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
 
         ProblemHelper problemHelper = problemHelperBuilder.build();
         long requestTime = System.currentTimeMillis();
@@ -395,8 +395,9 @@ public class RealtimeInspection extends LocalInspectionTool {
 
     /**
      * Executes a debounced scan for the given file. This method is invoked after the specified delay
+     *
      * @param problemHelperBuilder - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
-     * @param problemHelper - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
+     * @param problemHelper        - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
      */
     private void executeScheduledScan(ProblemHelper.ProblemHelperBuilder problemHelperBuilder, ProblemHelper problemHelper) {
         // Execute the scan in a read action on a background thread
