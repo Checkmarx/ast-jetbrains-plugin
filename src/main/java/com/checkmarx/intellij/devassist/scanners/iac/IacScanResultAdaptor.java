@@ -8,6 +8,7 @@ import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import org.jetbrains.annotations.NotNull;
 
 import java.security.Key;
 import java.util.Collections;
@@ -46,34 +47,33 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
 
 
       return groupedIssues.values().stream().map(this::createScanIssue).collect(Collectors.toList());
-
       // return iacIssuesList.stream().map(this::createScanIssue).collect(Collectors.toList());
-
     }
 
     private ScanIssue createScanIssue(List<IacRealtimeResults.Issue> iacScanIssue) {
-        ScanIssue scanIssue = new ScanIssue();
-        if(iacScanIssue.size()>1){
-            for (IacRealtimeResults.Issue issue : iacScanIssue) {
-                scanIssue.getVulnerabilities().add(createVulnerability(issue));
-            }
-            scanIssue.setTitle(iacScanIssue.size() +" IAC issues detected on this line");
-            scanIssue.setDescription(iacScanIssue.get(0).getDescription());
-            scanIssue.setSeverity(iacScanIssue.get(0).getSeverity());
-            scanIssue.setFilePath(iacScanIssue.get(0).getFilePath());
-            scanIssue.setScanEngine(ScanEngine.IAC);
-        }
-        else{
-            scanIssue.setTitle(iacScanIssue.get(0).getTitle());
-            scanIssue.setDescription(iacScanIssue.get(0).getDescription());
-            scanIssue.setSeverity(iacScanIssue.get(0).getSeverity());
-            scanIssue.setFilePath(iacScanIssue.get(0).getFilePath());
-            scanIssue.setScanEngine(ScanEngine.IAC);
+        ScanIssue scanIssue = getScanIssue(iacScanIssue);
+        for (IacRealtimeResults.Issue issue : iacScanIssue) {
+            scanIssue.getVulnerabilities().add(createVulnerability(issue));
         }
 
         if(Objects.nonNull(iacScanIssue.get(0).getLocations()) && !iacScanIssue.get(0).getLocations().isEmpty()){
             iacScanIssue.get(0).getLocations().forEach(location -> scanIssue.getLocations().add(createLocation(location)));
         }
+        return scanIssue;
+    }
+
+    private static @NotNull ScanIssue getScanIssue(List<IacRealtimeResults.Issue> iacScanIssue) {
+        ScanIssue scanIssue = new ScanIssue();
+        if(iacScanIssue.size()>1){
+            scanIssue.setTitle(iacScanIssue.size() +" IAC issues detected on this line");
+        }
+        else{
+            scanIssue.setTitle(iacScanIssue.get(0).getTitle());
+        }
+        scanIssue.setDescription(iacScanIssue.get(0).getDescription());
+        scanIssue.setSeverity(iacScanIssue.get(0).getSeverity());
+        scanIssue.setFilePath(iacScanIssue.get(0).getFilePath());
+        scanIssue.setScanEngine(ScanEngine.IAC);
         return scanIssue;
     }
 

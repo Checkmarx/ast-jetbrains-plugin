@@ -130,22 +130,27 @@ public class ProblemDescription {
 
 
     private void buildIACDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
+
         for(Vulnerability vulnerability : scanIssue.getVulnerabilities()) {
-            descBuilder.append("<table style='table-layout:fixed;border-collapse:collapse;'><tr>")
-                    .append("<td style='vertical-align:middle;padding:0;'>")
-                    .append(getIcon(vulnerability.getSeverity(), 14))
-                    .append("</td>")
-                    .append("<td style='vertical-align:middle;padding:0 8px;'>")
-                    .append("<span style='font-weight:bold;'>")
-                    .append(escapeHtml(vulnerability.getTitle()))
+            String severityIcon = getStyledImage(vulnerability.getSeverity(), ICON_INLINE_STYLE);
+            descBuilder.append(TABLE_WITH_TR)
+                .append("<td style='width:20px;padding:0 6px 0 0;vertical-align:middle;'>")
+                .append(severityIcon)
+                .append("</td>");
+            descBuilder.append("<td style='padding:0 8px 0 6px;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
+                    .append(CELL_LINE_HEIGHT_STYLE).append("'>")
+                    .append("<div style='display:flex;flex-direction:row;align-items:center;gap:6px;'>")
+                    .append("<p style=\"").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("\">")
+                    .append("<b>").append(escapeHtml(vulnerability.getTitle()))
                     .append(" - ")
-                    .append(escapeHtml(vulnerability.getDescription()))
-                    .append("</span><br>")
-                    .append("<span style='color: gray; margin:0;'>")
-                    .append(scanIssue.getScanEngine().name())
+                    .append(escapeHtml(vulnerability.getDescription())).append("</b>")
+                    .append(" - <span style='").append(SECONDARY_SPAN_STYLE).append("'>")
+                    .append(scanIssue.getScanEngine().name()).append(" vulnerability")
+                    .append("</span></p>")
+                    .append(escapeHtml(vulnerability.getRemediationAdvise()))
+                    .append("<span style='").append(SECONDARY_SPAN_STYLE).append(" margin:0;'>")
                     .append("</span>")
-                    .append("</td>")
-                    .append("</tr></table><br>");
+                    .append("</div></td></tr></table><br>");
         }
     }
 
@@ -209,13 +214,7 @@ public class ProblemDescription {
         return DESCRIPTION_ICON.getOrDefault(key, "");
     }
 
-    private String getIcon(String key, int sizePx) {
-        String iconHtml = getIcon(key);
-        if (iconHtml.isEmpty()) {
-            return iconHtml;
-        }
-        return iconHtml.replaceFirst("<img ", "<img style='width:" + sizePx + "px;height:" + sizePx + "px;vertical-align:middle;' ");
-    }
+
 
     /**
      * Builds the default description for a scan issue and appends it to the provided StringBuilder.
