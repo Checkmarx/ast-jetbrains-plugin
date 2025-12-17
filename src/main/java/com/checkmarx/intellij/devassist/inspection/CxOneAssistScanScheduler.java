@@ -113,7 +113,7 @@ public class CxOneAssistScanScheduler {
         if (isProjectDisposed()) {
             return;
         }
-        List<ScanIssue> allScanIssues = RealtimeInspection.scanFileAndGetAllIssues(problemHelper);
+        List<ScanIssue> allScanIssues = CxOneAssistInspection.scanFileAndGetAllIssues(problemHelper);
         if (allScanIssues.isEmpty()) {
             LOGGER.warn(format("RTS: No scan issues found for file: %s", problemHelper.getFilePath()));
             return;

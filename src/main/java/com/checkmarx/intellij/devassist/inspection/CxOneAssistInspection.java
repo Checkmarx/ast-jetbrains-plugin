@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 
 /**
- * The RealtimeInspection class extends LocalInspectionTool and is responsible for
+ * The CxOneAssistInspection class extends LocalInspectionTool and is responsible for
  * performing real-time inspections of files within a project. It uses various
  * utility classes to scan files, identify issues, and provide problem descriptors
  * for on-the-fly or manual inspections.
@@ -43,9 +43,9 @@ import static java.lang.String.format;
  * with real-time scanner services and provides problem highlights and fixes for
  * identified issues.
  */
-public class RealtimeInspection extends LocalInspectionTool {
+public class CxOneAssistInspection extends LocalInspectionTool {
 
-    private static final Logger LOGGER = Utils.getLogger(RealtimeInspection.class);
+    private static final Logger LOGGER = Utils.getLogger(CxOneAssistInspection.class);
 
     private final Map<String, Long> fileTimeStamp = new ConcurrentHashMap<>();
     private final ScannerFactory scannerFactory = new ScannerFactory();

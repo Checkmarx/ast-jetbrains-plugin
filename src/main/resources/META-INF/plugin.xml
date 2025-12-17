@@ -13,10 +13,12 @@
         <ul>
             <li>An advanced security agent that delivers real-time context-aware prevention, remediation, and guidance to developers from the IDE.</li>
             <li><b>OSS</b> Realtime scanner identifies risks in open source packages used in your project.</li>
+            <li><b>Secrets</b> Realtime scanner identifies risks in detected secrets used in your project.</li>
+            <li><b>Container</b> Realtime scanner identifies risks in container images used in your project.</li>
             <li>MCP-based agentic AI remediation.</li>
             <li>AI-powered explanation of risk details.</li>
         </ul>
-        <b>Note:</b> COMING SOON - additional realtime scanners for identifying risks in container images, as well as exposed secrets and IaC risks..
+        <b>Note:</b> COMING SOON - additional realtime scanners for identifying risks in IaC..
     ]]></change-notes>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
@@ -65,11 +67,11 @@
                 implementationClass="com.checkmarx.intellij.inspections.AscaInspection"/>
 
         <localInspection
-                displayName="OSS"
-                groupName="OSS"
+                displayName="CxOneAssist"
+                groupName="CxOneAssist"
                 groupPath="Checkmarx"
                 enabledByDefault="true"
-                implementationClass="com.checkmarx.intellij.devassist.inspection.RealtimeInspection"/>
+                implementationClass="com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection"/>
 
         <!-- Register tooltip link handler -->
         <codeInsight.linkHandler
