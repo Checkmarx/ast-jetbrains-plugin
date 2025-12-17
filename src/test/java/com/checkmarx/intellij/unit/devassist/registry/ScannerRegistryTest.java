@@ -1,10 +1,19 @@
 package com.checkmarx.intellij.unit.devassist.registry;
 
+import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
+import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.checkmarx.intellij.devassist.basescanner.ScannerCommand;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.*;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+
 import java.lang.reflect.*;
 import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,6 +22,9 @@ import static org.mockito.Mockito.*;
 public class ScannerRegistryTest {
     private Project project;
     private ScannerRegistry registry;
+    static MockedStatic<DevAssistUtils> devAssistUtilsMock;
+    static MockedStatic<ProblemHolderService> problemHolderServiceMock;
+    static ProblemHolderService mockProblemHolderService;
 
     private static class FakeScanner implements ScannerCommand {
         int registerCalls;
@@ -42,6 +54,31 @@ public class ScannerRegistryTest {
         } catch (Exception e) {
             fail("Reflection setup failed: " + e.getMessage());
         }
+    }
+
+    @BeforeAll
+    static void setupApplicationManager() throws Exception {
+        Application mockApp = mock(Application.class, RETURNS_DEEP_STUBS);
+        GlobalSettingsState mockSettings = mock(GlobalSettingsState.class, RETURNS_DEEP_STUBS);
+        when(mockApp.getService(GlobalSettingsState.class)).thenReturn(mockSettings);
+
+        Field appField = ApplicationManager.class.getDeclaredField("ourApplication");
+        appField.setAccessible(true);
+        appField.set(null, mockApp);
+        mockProblemHolderService = mock(ProblemHolderService.class, RETURNS_DEEP_STUBS);
+        problemHolderServiceMock = mockStatic(ProblemHolderService.class, CALLS_REAL_METHODS);
+        problemHolderServiceMock.when(() -> ProblemHolderService.getInstance(any())).thenReturn(mockProblemHolderService);
+
+        GlobalScannerController mockController = mock(GlobalScannerController.class, RETURNS_DEEP_STUBS);
+        devAssistUtilsMock = mockStatic(DevAssistUtils.class, CALLS_REAL_METHODS);
+        devAssistUtilsMock.when(DevAssistUtils::globalScannerController).thenReturn(mockController);
+        when(mockController.isRegistered(any(), any())).thenReturn(true);
+    }
+
+    @AfterAll
+    static void tearDownStaticMocks() {
+        if (devAssistUtilsMock != null) devAssistUtilsMock.close();
+        if (problemHolderServiceMock != null) problemHolderServiceMock.close();
     }
 
     @SuppressWarnings("unchecked")

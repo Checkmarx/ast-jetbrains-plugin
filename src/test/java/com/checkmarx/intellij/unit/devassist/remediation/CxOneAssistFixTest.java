@@ -6,10 +6,14 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.ProblemDescriptor;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationGroup;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.mockito.MockedStatic;
 
 import javax.swing.*;
 
@@ -21,11 +25,42 @@ public class CxOneAssistFixTest {
     private Project project;
     private ProblemDescriptor descriptor;
 
+    static MockedStatic<ApplicationManager> appManagerMock;
+    static Application mockApp;
+    static MockedStatic<NotificationGroupManager> notificationGroupManagerMock;
+    static NotificationGroupManager mockNotificationGroupManager;
+    static NotificationGroup mockNotificationGroup;
+
     @BeforeEach
     void setUp() {
         project = mock(Project.class, RETURNS_DEEP_STUBS);
         descriptor = mock(ProblemDescriptor.class);
     }
+
+    @BeforeAll
+    static void setupStaticMocks() throws Exception {
+        // Mock ApplicationManager.getApplication()
+        mockApp = mock(Application.class, RETURNS_DEEP_STUBS);
+        appManagerMock = mockStatic(ApplicationManager.class, CALLS_REAL_METHODS);
+        appManagerMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+
+        // Mock NotificationGroupManager.getInstance()
+        mockNotificationGroupManager = mock(NotificationGroupManager.class, RETURNS_DEEP_STUBS);
+        notificationGroupManagerMock = mockStatic(NotificationGroupManager.class, CALLS_REAL_METHODS);
+        notificationGroupManagerMock.when(NotificationGroupManager::getInstance).thenReturn(mockNotificationGroupManager);
+
+        // Mock NotificationGroup and Notification if needed
+        mockNotificationGroup = mock(NotificationGroup.class, RETURNS_DEEP_STUBS);
+        when(mockNotificationGroupManager.getNotificationGroup(anyString())).thenReturn(mockNotificationGroup);
+       // when(mockNotificationGroup.createNotification(anyString(), anyString(), any(), any())).thenReturn(mock(Notification.class));
+    }
+
+    @AfterAll
+    static void tearDownStaticMocks() {
+        if (appManagerMock != null) appManagerMock.close();
+        if (notificationGroupManagerMock != null) notificationGroupManagerMock.close();
+    }
+
 
     @Test
     @DisplayName("Constructor stores scanIssue reference")
@@ -52,13 +87,13 @@ public class CxOneAssistFixTest {
     }
 
     @Test
-    @DisplayName("applyFix OSS branch throws NPE in headless env (notification requires Application)")
+    @DisplayName("applyFix OSS branch executes without exception")
     void testApplyFix_ossBranch_functionality() {
         ScanIssue issue = new ScanIssue();
         issue.setScanEngine(ScanEngine.OSS);
         issue.setTitle("OSS Title");
         CxOneAssistFix fix = new CxOneAssistFix(issue);
-        assertThrows(NullPointerException.class, () -> fix.applyFix(project, descriptor));
+        assertDoesNotThrow(() -> fix.applyFix(project, descriptor));
     }
 
     @Test
