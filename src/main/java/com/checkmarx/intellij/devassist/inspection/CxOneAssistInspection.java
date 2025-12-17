@@ -14,12 +14,9 @@ import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
 import com.checkmarx.intellij.devassist.ui.ProblemDescription;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
-import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
@@ -27,7 +24,6 @@ import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
-import com.intellij.util.Alarm;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -50,17 +46,11 @@ import static java.lang.String.format;
 public class CxOneAssistInspection extends LocalInspectionTool {
 
     private static final Logger LOGGER = Utils.getLogger(CxOneAssistInspection.class);
-    /**
-     * Debounce delay in milliseconds. Scans will only trigger after the user stops typing for this duration.
-     * This prevents lag during typing by avoiding scans on every keystroke.
-     */
-    private static final int DEBOUNCE_DELAY_MS = 1000;
+
     private final Map<String, Long> fileTimeStamp = new ConcurrentHashMap<>();
-    private final Map<String, Long> lastScanRequestTime = new ConcurrentHashMap<>();
     private final ScannerFactory scannerFactory = new ScannerFactory();
     private final ProblemDecorator problemDecorator = new ProblemDecorator();
     private final Key<Boolean> key = Key.create(Constants.RealTimeConstants.THEME);
-    private final Alarm scanDebounceAlarm = new Alarm(Alarm.ThreadToUse.POOLED_THREAD);
 
     /**
      * Inspects the given PSI file and identifies potential issues or problems by leveraging
@@ -266,24 +256,24 @@ public class CxOneAssistInspection extends LocalInspectionTool {
 
         ProblemHelper.ProblemHelperBuilder problemHelperBuilder = buildHelper(file, manager, isOnTheFly, document,
                 supportedScanners, virtualFile.getPath(), problemHolderService);
-        /*
-         * Debounce logic: Instead of scanning immediately on every keystroke (which causes lag),
-         * we schedule a delayed scan. This allows the user to type smoothly while still getting
-         * up-to-date scan results after they pause typing.
-         */
-        if (isOnTheFly) {
-            // Schedule a debounced scan
-            scheduleDebouncedScan(problemHelperBuilder);
-            // Return existing cached results immediately (no blocking) to avoid lag
-            if (problemHolderService.getProblemDescriptors(virtualFile.getPath()) != null
-                    && !problemHolderService.getProblemDescriptors(virtualFile.getPath()).isEmpty()) {
-                LOGGER.info(format("RTS: Scan is pending for modified file: %s, returning existing results ", file.getName()));
-                return getExistingProblemsForEnabledScanners(problemHolderService, virtualFile.getPath(), document, file, supportedScanners);
+
+        // Schedule a debounced scan to avoid excessive scanning during rapid file changes
+        boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(file.getProject())
+                .scheduleScan(virtualFile.getPath(), problemHelperBuilder.build());
+        if (isScanScheduled) {
+            List<ScanIssue> cachedIssues = problemHolderService.getScanIssueByFile(virtualFile.getPath());
+            if (cachedIssues == null || cachedIssues.isEmpty()) {
+                LOGGER.info(format("RTS: No cached issues yet for file: %s.", file.getName()));
+                return ProblemDescriptor.EMPTY_ARRAY;
             }
-            // No cached results available, return empty array (scan will run after debounce delay)
-            LOGGER.info(format("RTS: Scan scheduled for modified file: %s.", file.getName()));
-            return ProblemDescriptor.EMPTY_ARRAY;
+            problemHelperBuilder.scanIssueList(cachedIssues);
+
+            List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
+            problemHolderService.addProblemDescriptors(virtualFile.getPath(), allProblems);
+            return allProblems.toArray(new ProblemDescriptor[0]);
         }
+        LOGGER.info(format("RTS: Failed to schedule the scan for file: %s. Now scanning file..", file.getName()));
+
         List<ProblemDescriptor> scanResultDescriptors = startScanAndCreateProblemDescriptors(problemHelperBuilder);
         if (scanResultDescriptors.isEmpty()) {
             LOGGER.info(format("RTS: No issues found for file: %s ", file.getName()));
@@ -300,15 +290,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
      */
     private List<ProblemDescriptor> startScanAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
         ProblemHelper problemHelper = problemHelperBuilder.build();
-        List<ScanResult<?>> allScanResults = problemHelper.getSupportedScanners().stream()
-                .map(scannerService ->
-                        scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath()))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        List<ScanIssue> allScanIssues = allScanResults.stream()
-                .flatMap(scanResult -> scanResult.getIssues().stream())
-                .collect(Collectors.toList());
+        List<ScanIssue> allScanIssues = scanFileAndGetAllIssues(problemHelper);
 
         // Adding all scanner issues to the builder.
         problemHelperBuilder.scanIssueList(allScanIssues);
@@ -331,7 +313,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
      * @return a {@link ScanResult} instance containing the results of the scan, or null if no
      * active and suitable scanner is found
      */
-    private ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
+    public static ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
         try {
             LOGGER.info(format("RTS: Started scanning file: %s using scanner: %s", path, scannerService.getConfig().getEngineName()));
             return scannerService.scan(file, path);
@@ -365,69 +347,19 @@ public class CxOneAssistInspection extends LocalInspectionTool {
     }
 
     /**
-     * Schedules a debounced scan for the given file. If a scan is already pending for this file,
-     * the previous request is cancelled and a new one is scheduled. The scan will only execute
-     * after {@link #DEBOUNCE_DELAY_MS} milliseconds of no new scan requests for this file.
-     *
-     * @param problemHelperBuilder - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
+     * Scans the given file using all available scanner services and returns all issues found.
+     * @param problemHelper - The {@link ProblemHelper}
+     * @return a list of {@link ScanIssue}
      */
-    private void scheduleDebouncedScan(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
+    public static List<ScanIssue> scanFileAndGetAllIssues(ProblemHelper problemHelper) {
+        List<ScanResult<?>> allScanResults = problemHelper.getSupportedScanners().stream()
+                .map(scannerService ->
+                        scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
-        ProblemHelper problemHelper = problemHelperBuilder.build();
-        long requestTime = System.currentTimeMillis();
-        lastScanRequestTime.put(problemHelper.getFilePath(), requestTime);
-
-        scanDebounceAlarm.addRequest(() -> {
-            // Check if this is still the latest request for this file
-            Long latestRequestTime = lastScanRequestTime.get(problemHelper.getFilePath());
-            if (latestRequestTime == null || latestRequestTime != requestTime) {
-                LOGGER.debug(format("RTS: Debounced scan cancelled for file: %s (newer request pending)", problemHelper.getFilePath()));
-                return;
-            }
-            // Check if the project is still valid
-            if (problemHelper.getFile().getProject().isDisposed()) {
-                LOGGER.debug(format("RTS: Debounced scan cancelled for file: %s (project disposed)", problemHelper.getFilePath()));
-                return;
-            }
-            executeScheduledScan(problemHelperBuilder, problemHelper);
-        }, DEBOUNCE_DELAY_MS);
-    }
-
-    /**
-     * Executes a debounced scan for the given file. This method is invoked after the specified delay
-     *
-     * @param problemHelperBuilder - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
-     * @param problemHelper        - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
-     */
-    private void executeScheduledScan(ProblemHelper.ProblemHelperBuilder problemHelperBuilder, ProblemHelper problemHelper) {
-        // Execute the scan in a read action on a background thread
-        ApplicationManager.getApplication().executeOnPooledThread(() -> {
-            try {
-                LOGGER.info(format("RTS: Executing debounced scan for file: %s", problemHelper.getFilePath()));
-                ReadAction.run(() -> {
-                    if (problemHelper.getFile().getProject().isDisposed()) return;
-                    PsiFile psiFile = problemHelper.getFile();
-                    // Update timestamp and execute the scan
-                    fileTimeStamp.put(problemHelper.getFilePath(), psiFile.getModificationStamp());
-                    psiFile.putUserData(key, DevAssistUtils.isDarkTheme());
-
-                    // Perform the actual scan
-                    startScanAndCreateProblemDescriptors(problemHelperBuilder);
-
-                    // Clean up pending scan tracking
-                    lastScanRequestTime.remove(problemHelper.getFilePath());
-
-                    // Trigger re-inspection to update the UI with new results
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        if (!problemHelper.getFile().getProject().isDisposed() && psiFile.isValid()) {
-                            DaemonCodeAnalyzer.getInstance(problemHelper.getFile().getProject()).restart(psiFile);
-                        }
-                    });
-                    LOGGER.info(format("RTS: Debounced scan completed for file: %s", problemHelper.getFilePath()));
-                });
-            } catch (Exception e) {
-                LOGGER.warn(format("RTS: Exception during debounced scan for file: %s", problemHelper.getFilePath()), e);
-            }
-        });
+        return allScanResults.stream()
+                .flatMap(scanResult -> scanResult.getIssues().stream())
+                .collect(Collectors.toList());
     }
 }

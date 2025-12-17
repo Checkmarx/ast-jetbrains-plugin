@@ -25,7 +25,9 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -303,6 +305,25 @@ public class DevAssistUtils {
         return Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
     }
 
+    /**
+     * Encode the input string using Base64.
+     *
+     * @param input String to be encoded
+     * @return Base64 encoded string
+     */
+    public static String encodeBase64(String input) {
+        return Base64.getEncoder().encodeToString(input.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Decode the Base64 encoded string.
+     *
+     * @param input Base64 encoded string
+     * @return Decoded string
+     */
+    public static String decodeBase64(String input) {
+        return new String(Base64.getDecoder().decode(input));
+    }
     /**
      * Determines the severity of an issue based on precedence by comparing the given severity
      * level with the severities of issues in the provided list. It returns the least severe
