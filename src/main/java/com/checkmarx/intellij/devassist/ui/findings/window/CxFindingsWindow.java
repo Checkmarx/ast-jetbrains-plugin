@@ -401,13 +401,13 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
         copyDescription.setIcon(CxIcons.STAR_ACTION);
         popup.add(copyDescription);
 
-        JMenuItem ignoreOption = new JMenuItem(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME);
-        ignoreOption.setIcon(CxIcons.STAR_ACTION);
-        popup.add(ignoreOption);
-
-        JMenuItem ignoreAllOption = new JMenuItem(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME);
-        ignoreAllOption.setIcon(CxIcons.STAR_ACTION);
-        popup.add(ignoreAllOption);
+//        JMenuItem ignoreOption = new JMenuItem(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME);
+//        ignoreOption.setIcon(CxIcons.STAR_ACTION);
+//        popup.add(ignoreOption);
+//
+//        JMenuItem ignoreAllOption = new JMenuItem(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME);
+//        ignoreAllOption.setIcon(CxIcons.STAR_ACTION);
+//        popup.add(ignoreAllOption);
         popup.add(new JSeparator());
 
         JMenuItem copyFix = new JMenuItem("Copy");
