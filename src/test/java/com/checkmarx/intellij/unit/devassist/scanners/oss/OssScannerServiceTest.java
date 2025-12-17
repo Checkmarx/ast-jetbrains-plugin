@@ -51,7 +51,7 @@ public class OssScannerServiceTest {
 
     @Test @DisplayName("shouldScanFile_nonManifestPath_returnsFalse")
     void testShouldScanFile_nonManifestPath_returnsFalse() {
-        PsiFile psi = mockPsiFile("package.json");
+        PsiFile psi = mockPsiFile("README.md");
         assertFalse(new OssScannerService().shouldScanFile("/project/README.md",psi));
     }
     @Test @DisplayName("shouldScanFile_nodeModulesPath_returnsFalse")
@@ -69,15 +69,15 @@ public class OssScannerServiceTest {
     void testScan_shouldScanFileFalse_returnsNull() {
         OssScannerService service = spy(new OssScannerService());
         PsiFile psi = mockPsiFile("package.json");
-        doReturn(false).when(service).shouldScanFile(anyString(),psi);
-        assertNull(service.scan(mockPsiFile("package.json"), "/project/package.json"));
+        doReturn(false).when(service).shouldScanFile("package.json",psi);
+        assertNull(service.scan(psi, "package.json"));
     }
 
     @Test @DisplayName("scan_blankContent_returnsNull")
     void testScan_blankContent_returnsNull() {
         OssScannerService service = spy(new OssScannerService());
         PsiFile psi = mockPsiFile("package.json");
-        doReturn(true).when(service).shouldScanFile(anyString(),psi);
+        doReturn(true).when(service).shouldScanFile("package.json",psi);
         try(MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("   ");
             assertNull(service.scan(psi, "/project/package.json"));
@@ -88,7 +88,7 @@ public class OssScannerServiceTest {
     void testScan_nullContent_returnsNull() {
         OssScannerService service = spy(new OssScannerService());
         PsiFile psi = mockPsiFile("package.json");
-        doReturn(true).when(service).shouldScanFile(anyString(),psi);
+        doReturn(true).when(service).shouldScanFile("/project/package.json",psi);
         try(MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn(null);
             assertNull(service.scan(psi, "/project/package.json"));
@@ -100,7 +100,7 @@ public class OssScannerServiceTest {
         Path temp = Files.createTempDirectory("oss-no-packages");
         OssScannerService service = spy(new TestableOssScannerService(temp));
         PsiFile psi = mockPsiFile("package.json");
-        doReturn(true).when(service).shouldScanFile(anyString(),psi);
+        doReturn(true).when(service).shouldScanFile("package.json",psi);
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
              MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class)) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
@@ -120,7 +120,7 @@ public class OssScannerServiceTest {
         Path temp = Files.createTempDirectory("oss-with-packages");
         OssScannerService service = spy(new TestableOssScannerService(temp));
         PsiFile psi = mockPsiFile("package.json");
-        doReturn(true).when(service).shouldScanFile(anyString(),psi);
+        doReturn(true).when(service).shouldScanFile("package.json",psi);
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
              MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class)) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
@@ -166,7 +166,7 @@ public class OssScannerServiceTest {
         Path forcedTemp = Files.createTempDirectory("oss-companion-target");
         OssScannerService service = spy(new NoDeleteOssScannerService(forcedTemp));
         PsiFile psi = mockPsiFile("package.json");
-        doReturn(true).when(service).shouldScanFile(anyString(),psi);
+        doReturn(true).when(service).shouldScanFile("package.json",psi);
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
              MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class)) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
@@ -185,7 +185,7 @@ public class OssScannerServiceTest {
         Path temp = Files.createTempDirectory("oss-ioe");
         OssScannerService service = spy(new TestableOssScannerService(temp));
         PsiFile psi = mockPsiFile("package.json");
-        doReturn(true).when(service).shouldScanFile(anyString(),psi);
+        doReturn(true).when(service).shouldScanFile("package.json",psi);
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
              MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class)) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
