@@ -3,6 +3,7 @@ package com.checkmarx.intellij.devassist.remediation;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.intellij.codeInsight.highlighting.TooltipLinkHandler;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
@@ -127,6 +128,7 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
      */
     private ScanIssue getScanIssue(@NotNull Editor editor, Project project, String issueId) {
         try {
+            String decodedString = DevAssistUtils.decodeBase64(issueId);
             VirtualFile file = FileDocumentManager.getInstance().getFile(editor.getDocument());
             if (Objects.isNull(file)) {
                 LOGGER.debug("RTS: VirtualFile not found for the given editor to handle the link.");
@@ -143,7 +145,7 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
                 return null;
             }
             return scanIssueList.stream()
-                    .filter(issue -> issue.getScanIssueId().equals(issueId))
+                    .filter(issue -> issue.getTitle().equals(decodedString))
                     .findFirst()
                     .orElse(null);
         } catch (Exception exception) {
