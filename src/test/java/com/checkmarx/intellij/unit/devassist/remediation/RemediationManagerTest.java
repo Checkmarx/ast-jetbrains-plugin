@@ -6,6 +6,10 @@ import com.checkmarx.intellij.devassist.remediation.prompts.CxOneAssistFixPrompt
 import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.notification.NotificationGroup;
+import com.intellij.notification.NotificationGroupManager;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.*;
 import org.mockito.MockedStatic;
@@ -14,6 +18,37 @@ import static org.mockito.Mockito.*;
 
 @DisplayName("RemediationManager unit tests covering all branches")
 public class RemediationManagerTest {
+
+    static MockedStatic<ApplicationManager> appManagerMock;
+    static Application mockApp;
+    static MockedStatic<NotificationGroupManager> notificationGroupManagerMock;
+    static NotificationGroupManager mockNotificationGroupManager;
+    static NotificationGroup mockNotificationGroup;
+
+    @BeforeAll
+    static void setupStaticMocks() {
+        // Mock ApplicationManager.getApplication()
+        mockApp = mock(Application.class, RETURNS_DEEP_STUBS);
+        appManagerMock = mockStatic(ApplicationManager.class, CALLS_REAL_METHODS);
+        appManagerMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+
+        // Mock NotificationGroupManager.getInstance()
+        mockNotificationGroupManager = mock(NotificationGroupManager.class, RETURNS_DEEP_STUBS);
+        notificationGroupManagerMock = mockStatic(NotificationGroupManager.class, CALLS_REAL_METHODS);
+        notificationGroupManagerMock.when(NotificationGroupManager::getInstance).thenReturn(mockNotificationGroupManager);
+
+        // Mock NotificationGroup and Notification if needed
+        mockNotificationGroup = mock(NotificationGroup.class, RETURNS_DEEP_STUBS);
+        when(mockNotificationGroupManager.getNotificationGroup(anyString())).thenReturn(mockNotificationGroup);
+//        when(mockNotificationGroup.createNotification(anyString(), anyString(), any(NotificationType.class), any(NotificationListener.class)))
+//            .thenReturn(mock(Notification.class));
+    }
+
+    @AfterAll
+    static void tearDownStaticMocks() {
+        if (appManagerMock != null) appManagerMock.close();
+        if (notificationGroupManagerMock != null) notificationGroupManagerMock.close();
+    }
 
     @Test
     @DisplayName("testFixWithCxOneAssist_OSS_CopySuccess")
