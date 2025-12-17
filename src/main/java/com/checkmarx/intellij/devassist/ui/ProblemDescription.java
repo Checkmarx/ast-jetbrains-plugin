@@ -6,12 +6,15 @@ import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.Constants.RealTimeConstants.SEPERATOR;
 import static com.checkmarx.intellij.Utils.escapeHtml;
-//import static com.checkmarx.intellij.devassist.ui.ProblemDescription.InlineHtml.*;
+import static com.checkmarx.intellij.devassist.ui.ProblemDescription.InlineStyle.*;
 
 /**
  * This class is responsible for handling and formatting descriptions of scan issues
@@ -27,17 +30,6 @@ public class ProblemDescription {
     private static final String PACKAGE = "Package";
     private static final String DEV_ASSIST = "DevAssist";
     private static final String CONTAINER = "Container";
-    private static final String TABLE_WITH_TR = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>";
-    private static final String TITLE_FONT_FAMILY = "font-family: menlo;";
-    private static final String TITLE_FONT_SIZE = "font-size:11px;";
-    private static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";
-    private static final String SECONDARY_SPAN_STYLE =
-            "display:inline-block;vertical-align:middle;line-height:16px;font-size:11px;color:#ADADAD;"
-                    + "font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;";
-
-    /** Default inline severity icon style used consistently across all engines. */
-    private static final String ICON_INLINE_STYLE =
-            "display:inline-block;vertical-align:middle;max-height:16px;line-height:16px;";
 
     /**
      * Constructs a {@code ProblemDescription} instance and initializes icon mappings.
@@ -86,8 +78,6 @@ public class ProblemDescription {
      */
     public String formatDescription(ScanIssue scanIssue) {
         StringBuilder descBuilder = new StringBuilder();
-
-        descBuilder.append("<html><body>");
 
         // DevAssist image
         descBuilder.append("<html><body>");
@@ -340,16 +330,39 @@ public class ProblemDescription {
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
                 .append(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME)
                 .append("</a></td>")
-           /*     .append("<td style='padding: 5px;'>")
-                .append("<a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
-                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
-                .append(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME)
-                .append("</a></td>")
-                .append("<td style='padding: 5px;'>")
-                .append("<a href=\"#cxonedevassist/ignoreallofthis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
-                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
-                .append(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME)
-                .append("</a></td>")*/
+                /*     .append("<td style='padding: 5px;'>")
+                     .append("<a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
+                     .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
+                     .append(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME)
+                     .append("</a></td>")
+                     .append("<td style='padding: 5px;'>")
+                     .append("<a href=\"#cxonedevassist/ignoreallofthis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
+                     .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
+                     .append(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME)
+                     .append("</a></td>")*/
                 .append("</tr></table>");
+    }
+
+    /**
+     * Inline styles used in the problem description HTML formatting.
+     */
+    static class InlineStyle {
+
+        private InlineStyle() {
+        }
+
+        static final String TABLE_WITH_TR = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>";
+        static final String TITLE_FONT_FAMILY = "font-family: menlo;";
+        static final String TITLE_FONT_SIZE = "font-size:11px;";
+        static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";
+        static final String SECONDARY_SPAN_STYLE =
+                "display:inline-block;vertical-align:middle;line-height:16px;font-size:11px;color:#ADADAD;"
+                        + "font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;";
+
+        /**
+         * Default inline severity icon style used consistently across all engines.
+         */
+        static final String ICON_INLINE_STYLE =
+                "display:inline-block;vertical-align:middle;max-height:16px;line-height:16px;";
     }
 }
