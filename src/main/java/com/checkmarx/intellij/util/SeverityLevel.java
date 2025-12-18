@@ -5,7 +5,7 @@ import lombok.Getter;
 
 /**
  * Enum representing various levels of severity.
- *
+ * <p>
  * Each severity level is associated with a specific string value. The levels defined are:
  * LOW, MEDIUM, HIGH, CRITICAL, MALICIOUS, UNKNOWN, and OK.
  * These levels are generally used to categorize the severity of certain events, conditions, or states.
@@ -13,18 +13,20 @@ import lombok.Getter;
 @Getter
 public enum SeverityLevel {
 
-    LOW(Constants.LOW_SEVERITY),
-    MEDIUM(Constants.MEDIUM_SEVERITY),
-    HIGH(Constants.HIGH_SEVERITY),
-    CRITICAL(Constants.CRITICAL_SEVERITY),
-    MALICIOUS(Constants.MALICIOUS_SEVERITY),
-    UNKNOWN(Constants.UNKNOWN),
-    OK(Constants.OK);
+    MALICIOUS(Constants.MALICIOUS_SEVERITY, 1),
+    CRITICAL(Constants.CRITICAL_SEVERITY, 2),
+    HIGH(Constants.HIGH_SEVERITY, 3),
+    MEDIUM(Constants.MEDIUM_SEVERITY, 4),
+    LOW(Constants.LOW_SEVERITY, 5),
+    UNKNOWN(Constants.UNKNOWN, 6),
+    OK(Constants.OK, 7);
 
     private final String severity;
+    private final int precedence;
 
-    SeverityLevel(String severity) {
+    SeverityLevel(String severity, int precedence) {
         this.severity = severity;
+        this.precedence = precedence;
     }
 
     /**

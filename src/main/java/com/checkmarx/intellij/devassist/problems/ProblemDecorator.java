@@ -22,10 +22,14 @@ import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import lombok.Getter;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.lang.String.format;
 
 /**
  * ProblemDecorator class responsible to provides utility methods for managing problem, highlighting and gutter icons.
@@ -54,22 +58,35 @@ public class ProblemDecorator {
     /**
      * Adds a gutter icon at the line of the given PsiElement.
      */
-    public void highlightLineAddGutterIconForProblem(@NotNull Project project, @NotNull PsiFile file,
-                                                     ScanIssue scanIssue, boolean isProblem, int problemLineNumber) {
+    public void highlightLineAddGutterIconForProblem(ProblemHelper problemHelper, ScanIssue scanIssue, boolean isProblem, int problemLineNumber) {
         ApplicationManager.getApplication().invokeLater(() -> {
-            Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
-            if (editor == null) return;
+            try {
+                Editor editor = FileEditorManager.getInstance(problemHelper.getProject()).getSelectedTextEditor();
+                if (editor == null) return;
 
-            if (!Objects.equals(editor.getDocument(), PsiDocumentManager.getInstance(project).getDocument(file))) {
-                // Only decorate the active editor of this file
-                return;
-            }
-            MarkupModel markupModel = editor.getMarkupModel();
-            boolean isFirstLocation = true;
-            for (Location location : scanIssue.getLocations()) {
-                int targetLine = location.getLine();
-                highlightLocationInEditor(editor, markupModel, targetLine, scanIssue, isFirstLocation, isProblem, problemLineNumber);
-                isFirstLocation = false;
+                if (!Objects.equals(editor.getDocument(), PsiDocumentManager.getInstance(problemHelper.getProject())
+                        .getDocument(problemHelper.getFile()))) {
+                    // Only decorate the active editor of this file
+                    return;
+                }
+                MarkupModel markupModel = editor.getMarkupModel();
+                // Create a new instance of ProblemDecoratorHelper
+                ProblemDecoratorHelper decoratorHelper = new ProblemDecoratorHelper(scanIssue);
+                decoratorHelper.setMarkupModel(markupModel);
+                decoratorHelper.setEditor(editor);
+                decoratorHelper.setDocument(editor.getDocument());
+                decoratorHelper.setAddGutterIcon(true);
+                decoratorHelper.setProblemLineNumber(problemLineNumber);
+                decoratorHelper.setProblem(isProblem);
+
+                for (Location location : scanIssue.getLocations()) {
+                    decoratorHelper.setHighlightLineNumber(location.getLine());
+                    highlightLocationInEditor(problemHelper, decoratorHelper);
+                    decoratorHelper.setAddGutterIcon(false);
+                }
+            } catch (Exception exception) {
+                LOGGER.warn(format("RTS-Decorator: Exception occurred while highlighting or adding gutter icon for line: %s , Exception: {} ",
+                        problemLineNumber), exception);
             }
         });
     }
@@ -77,38 +94,37 @@ public class ProblemDecorator {
     /**
      * Highlights a specific location in the editor and optionally adds a gutter icon.
      *
-     * @param editor        the editor instance
-     * @param markupModel   the markup model for highlighting
-     * @param targetLine    the line number to highlight (1-based)
-     * @param scanIssue     the scan package containing severity information
-     * @param addGutterIcon whether to add a gutter icon for this location
+     * @param problemHelper   the problem helper containing relevant scan issue information
+     * @param decoratorHelper the decorator helper containing editor and markup model information
      */
-    private void highlightLocationInEditor(Editor editor, MarkupModel markupModel, int targetLine,
-                                           ScanIssue scanIssue, boolean addGutterIcon, boolean isProblem, int problemLineNumber) {
+    private void highlightLocationInEditor(ProblemHelper problemHelper, ProblemDecoratorHelper decoratorHelper) {
         try {
-            TextRange textRange = DevAssistUtils.getTextRangeForLine(editor.getDocument(), targetLine);
-            TextAttributes textAttributes = createTextAttributes(scanIssue.getSeverity());
+            TextRange textRange = DevAssistUtils.getTextRangeForLine(decoratorHelper.getDocument(), decoratorHelper.getHighlightLineNumber());
+            TextAttributes textAttributes = createTextAttributes(decoratorHelper.getScanIssue().getSeverity());
 
-            RangeHighlighter highlighter = markupModel.addLineHighlighter(
-                    targetLine - 1, 0, null);
+            RangeHighlighter highlighter = decoratorHelper.getMarkupModel().addLineHighlighter(
+                    decoratorHelper.getHighlightLineNumber() - 1, 0, null);
 
-            if (isProblem) {
-                highlighter = markupModel.addRangeHighlighter(
+            if (decoratorHelper.isProblem()) {
+                highlighter = decoratorHelper.getMarkupModel().addRangeHighlighter(
                         textRange.getStartOffset(),
                         textRange.getEndOffset(),
-                        determineHighlighterLayer(scanIssue),
+                        determineHighlighterLayer(decoratorHelper.getScanIssue()),
                         textAttributes,
                         HighlighterTargetArea.EXACT_RANGE
                 );
             }
-            boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(markupModel, editor, problemLineNumber);
-            if (addGutterIcon && !alreadyHasGutterIcon) {
-                addGutterIcon(highlighter, scanIssue.getSeverity());
+            boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(decoratorHelper.getMarkupModel(), decoratorHelper.getEditor(),
+                    decoratorHelper.getProblemLineNumber());
+
+            if (decoratorHelper.isAddGutterIcon() && !alreadyHasGutterIcon) {
+                String severity = getMostSeverity(problemHelper.getScanIssueList(), decoratorHelper.getScanIssue(),
+                        decoratorHelper.getProblemLineNumber());
+                addGutterIcon(highlighter, severity);
             }
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             LOGGER.debug("RTS-Decorator: Exception occurred while highlighting line: {} , Exception: {} ",
-                    targetLine, e.getMessage());
+                    decoratorHelper.getHighlightLineNumber(), e.getMessage());
         }
     }
 
@@ -144,6 +160,30 @@ public class ProblemDecorator {
             return CodeInsightColors.WARNINGS_ATTRIBUTES;
         } else {
             return CodeInsightColors.WEAK_WARNING_ATTRIBUTES;
+        }
+    }
+
+    /**
+     * Gets the most severe severity among scan issues located on the same line.
+     *
+     * @param allScanIssueList  the list of all scan issues for the file including all scan engines
+     * @param scanIssue         the scan issue containing severity and other details
+     * @param problemLineNumber the line number in the editor where the scan issue is located
+     */
+    private String getMostSeverity(List<ScanIssue> allScanIssueList, ScanIssue scanIssue, int problemLineNumber) {
+        try {
+            List<ScanIssue> sameLineIssueList = allScanIssueList.stream()
+                    .filter(issue -> issue.getLocations().get(0).getLine() == problemLineNumber
+                            && !Objects.equals(issue.getScanIssueId(), scanIssue.getScanIssueId())
+                            && !Objects.equals(issue.getSeverity(), scanIssue.getSeverity()))
+                    .collect(Collectors.toList());
+
+            return !sameLineIssueList.isEmpty()
+                    ? DevAssistUtils.getSeverityBasedOnPrecedence(sameLineIssueList, scanIssue.getSeverity())
+                    : scanIssue.getSeverity();
+        } catch (Exception exception) {
+            LOGGER.debug("RTS: Exception occurred while retrieving most severity to update gutter icon.", exception);
+            return scanIssue.getSeverity();
         }
     }
 
@@ -269,6 +309,10 @@ public class ProblemDecorator {
      */
     public void restoreGutterIcons(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, Document document) {
         removeAllGutterIcons(project);
+        ProblemHelper problemHelper = ProblemHelper.builder(psiFile, project)
+                .scanIssueList(scanIssueList)
+                .document(document)
+                .build();
         for (ScanIssue scanIssue : scanIssueList) {
             try {
                 int problemLineNumber = scanIssue.getLocations().get(0).getLine();
@@ -279,12 +323,33 @@ public class ProblemDecorator {
                     continue;
                 }
                 boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
-                highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
+                highlightLineAddGutterIconForProblem(problemHelper, scanIssue, isProblem, problemLineNumber);
             } catch (Exception e) {
                 LOGGER.debug("RTS-Decorator: Exception occurred while restoring gutter icons for: {} ",
                         psiFile.getName(), scanIssue.getTitle(), e.getMessage());
             }
         }
 
+    }
+
+    /**
+     * Helper class to hold relevant information for problem decoration.
+     */
+    @Setter
+    @Getter
+    public static class ProblemDecoratorHelper {
+
+        ProblemDecoratorHelper(ScanIssue scanIssue) {
+            this.scanIssue = scanIssue;
+        }
+
+        private ScanIssue scanIssue;
+        private MarkupModel markupModel;
+        private Editor editor;
+        private Document document;
+        private boolean addGutterIcon;
+        private int problemLineNumber;
+        private boolean isProblem;
+        private int highlightLineNumber;
     }
 }

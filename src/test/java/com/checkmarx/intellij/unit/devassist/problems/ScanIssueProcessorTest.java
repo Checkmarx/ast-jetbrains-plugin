@@ -133,7 +133,7 @@ public class ScanIssueProcessorTest {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(8, document)).thenReturn(false);
             utils.when(() -> DevAssistUtils.isProblem("low")).thenReturn(false);
             assertNull(processorViaHelper.processScanIssue(issue));
-            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), any(), anyBoolean(), anyInt());
+            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
     }
 
@@ -147,7 +147,7 @@ public class ScanIssueProcessorTest {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(9, document)).thenReturn(false);
             utils.when(() -> DevAssistUtils.isProblem("low")).thenReturn(false);
             assertNull(processorViaHelper.processScanIssue(issue));
-            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), any(), anyBoolean(), anyInt());
+            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
     }
 
@@ -163,7 +163,7 @@ public class ScanIssueProcessorTest {
             utils.when(() -> DevAssistUtils.isProblem("high")).thenReturn(false); // force skip
             ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
             assertNull(result);
-            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), any(), anyBoolean(), anyInt());
+            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
     }
 
@@ -178,7 +178,7 @@ public class ScanIssueProcessorTest {
             utils.when(() -> DevAssistUtils.isProblem("high")).thenReturn(false);
             ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
             assertNull(result);
-            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), any(), anyBoolean(), anyInt());
+            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
     }
 
@@ -194,7 +194,7 @@ public class ScanIssueProcessorTest {
             utils.when(() -> DevAssistUtils.isProblem("high")).thenReturn(false); // skip
             ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
             assertNull(result);
-            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), any(), anyBoolean(), anyInt());
+            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
     }
 
@@ -209,7 +209,7 @@ public class ScanIssueProcessorTest {
             utils.when(() -> DevAssistUtils.isProblem("high")).thenReturn(false);
             ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
             assertNull(result);
-            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), any(), anyBoolean(), anyInt());
+            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
     }
 
@@ -229,7 +229,7 @@ public class ScanIssueProcessorTest {
             utils.when(() -> DevAssistUtils.isProblem("critical")).thenReturn(false); // skip descriptor
             ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
             assertNull(result);
-            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), any(), anyBoolean(), anyInt());
+            verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
     }
 
@@ -242,7 +242,7 @@ public class ScanIssueProcessorTest {
     @Test
     @DisplayName("Direct constructor should initialize processor")
     void testConstructor_direct() {
-        ScanIssueProcessor direct = new ScanIssueProcessor(problemDecorator, psiFile, inspectionManager, document, false);
+        ScanIssueProcessor direct = new ScanIssueProcessor(problemHelper, problemDecorator);
         assertNotNull(direct);
     }
     

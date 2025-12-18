@@ -27,6 +27,7 @@ public class ScanIssueProcessor {
     private final InspectionManager manager;
     private final Document document;
     private final boolean isOnTheFly;
+    private final ProblemHelper problemHelper;
 
     public ScanIssueProcessor(ProblemHelper problemHelper, ProblemDecorator problemDecorator) {
         this.problemDecorator = problemDecorator;
@@ -34,6 +35,7 @@ public class ScanIssueProcessor {
         this.manager = problemHelper.getManager();
         this.document = problemHelper.getDocument();
         this.isOnTheFly = problemHelper.isOnTheFly();
+        this.problemHelper = problemHelper;
     }
 
     /**
@@ -113,8 +115,6 @@ public class ScanIssueProcessor {
             LOGGER.debug("RTS: Skipping to add gutter icon, Failed to find PSI element for line : {}", problemLineNumber, scanIssue.getTitle());
             return;
         }
-        problemDecorator.highlightLineAddGutterIconForProblem(
-                file.getProject(), file, scanIssue, isProblem, problemLineNumber
-        );
+        problemDecorator.highlightLineAddGutterIconForProblem(problemHelper, scanIssue, isProblem, problemLineNumber);
     }
 }

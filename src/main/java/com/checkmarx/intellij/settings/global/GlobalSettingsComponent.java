@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.settings.global;
 
-import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
@@ -8,7 +7,6 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.Authentication;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
-import com.checkmarx.intellij.service.AscaService;
 import com.checkmarx.intellij.service.AuthService;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
@@ -23,7 +21,6 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
-import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.fields.ExpandableTextField;
@@ -41,8 +38,6 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import java.awt.*;
 import java.awt.event.ItemEvent;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Map;
@@ -77,9 +72,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private final JButton connectButton = new JButton(Bundle.message(Resource.CONNECT_BUTTON));
     private final JBLabel validateResult = new JBLabel();
 
-    @Getter
-    private final JBCheckBox ascaCheckBox = new JBCheckBox(Bundle.message(Resource.ASCA_CHECKBOX));
-    private final JBLabel ascaInstallationMsg = new JBLabel();
+
     private boolean sessionConnected = false;
 
     public GlobalSettingsComponent() {
@@ -90,7 +83,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE = GlobalSettingsSensitiveState.getInstance();
         }
         addValidateConnectionListener();
-        addAscaCheckBoxListener();
 
         setupFields();
         buildGUI();
@@ -111,9 +103,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             return true;
         }
 
-        if (ascaCheckBox.isSelected() != SETTINGS_STATE.isAsca()) {
-            return true;
-        }
+
 
         if (apiKeyRadio.isSelected() != SETTINGS_STATE.isApiKeyEnabled()) {
             return true;
@@ -182,6 +172,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             logoutButton.setEnabled(true);
             logoutButton.requestFocusInWindow();
         }
+
         SwingUtilities.invokeLater(() -> {
             if (useApiKey) {
                 apiKeyField.requestFocusInWindow();
@@ -194,7 +185,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     // Getting existing saved input details from the setting state.
     private void setInputFields() {
         additionalParametersField.setText(SETTINGS_STATE.getAdditionalParameters());
-        ascaCheckBox.setSelected(SETTINGS_STATE.isAsca());
+
         apiKeyField.setText(SENSITIVE_SETTINGS_STATE.getApiKey());
         baseUrlField.setText(SETTINGS_STATE.getBaseUrl());
         tenantField.setText(SETTINGS_STATE.getTenant());
@@ -232,12 +223,13 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
         // Fields directly managed by this UI panel
         state.setAdditionalParameters(additionalParametersField.getText().trim());
-        state.setAsca(ascaCheckBox.isSelected());
+
         state.setApiKeyEnabled(apiKeyRadio.isSelected());
 
         // Preserve all other state fields from the current settings
         if (SETTINGS_STATE != null) {
             // Realtime scanner active states
+            state.setAscaRealtime(SETTINGS_STATE.isAscaRealtime());
             state.setOssRealtime(SETTINGS_STATE.isOssRealtime());
             state.setSecretDetectionRealtime(SETTINGS_STATE.isSecretDetectionRealtime());
             state.setContainersRealtime(SETTINGS_STATE.isContainersRealtime());
@@ -251,6 +243,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
             // User preferences for realtime scanners - CRITICAL for preference preservation
             state.setUserPreferencesSet(SETTINGS_STATE.getUserPreferencesSet());
+            state.setUserPrefAscaRealtime(SETTINGS_STATE.getUserPrefAscaRealtime());
             state.setUserPrefOssRealtime(SETTINGS_STATE.getUserPrefOssRealtime());
             state.setUserPrefSecretDetectionRealtime(SETTINGS_STATE.getUserPrefSecretDetectionRealtime());
             state.setUserPrefContainersRealtime(SETTINGS_STATE.getUserPrefContainersRealtime());
@@ -278,9 +271,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
             if (apiKeyRadio.isSelected()) {
                 CompletableFuture.runAsync(() -> {
                     try {
-                        if (ascaCheckBox.isSelected()) {
-                            runAscaScanInBackground();
-                        }
                         Authentication.validateConnection(getStateFromFields(), getSensitiveStateFromFields());
                         sessionConnected = true;
                         SwingUtilities.invokeLater(() -> onAuthSuccessApiKey());
@@ -308,9 +298,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
         // Complete post-authentication setup
         completeAuthenticationSetup(String.valueOf(apiKeyField.getPassword()));
-        if (ascaCheckBox.isSelected()) {
-            runAscaScanInBackground();
-        }
     }
 
     /**
@@ -528,66 +515,14 @@ public class GlobalSettingsComponent implements SettingsComponent {
         LOGGER.error("Connection failed", e);
     }
 
-    private void addAscaCheckBoxListener() {
-        ascaCheckBox.addItemListener(e -> {
-            if (e.getStateChange() != ItemEvent.SELECTED) {
-                ascaInstallationMsg.setVisible(false);
-                return;
-            }
-            runAscaScanInBackground();
-        });
-    }
 
-    private void runAscaScanInBackground() {
-        if (!SETTINGS_STATE.isAuthenticated()) {
-            ascaInstallationMsg.setVisible(true);
-            setAscaInstallationMsg(Bundle.message(Resource.ASCA_LOGIN_REQUIRED), JBColor.RED);
-            return;
-        }
-
-        new SwingWorker<Void, Void>() {
-            @Override
-            protected Void doInBackground() {
-                try {
-                    ascaInstallationMsg.setVisible(false);
-                    boolean installed = new AscaService().installAsca();
-                    if (installed) {
-                        setAscaInstallationMsg(Bundle.message(Resource.ASCA_STARTED_MSG), JBColor.GREEN);
-                    } else {
-                        setAscaInstallationMsg(Bundle.message(Resource.FAILED_INSTALL_ASCA), JBColor.RED);
-                    }
-                } catch (IOException | URISyntaxException | InterruptedException ex) {
-                    LOGGER.warn(Bundle.message(Resource.ASCA_SCAN_WARNING), ex);
-                    setAscaInstallationMsg(ex.getMessage(), JBColor.RED);
-                } catch (CxException ex) {
-                    String msg = ex.getMessage().trim();
-                    int lastLineIndex = Math.max(msg.lastIndexOf('\n'), 0);
-                    setAscaInstallationMsg(msg.substring(lastLineIndex).trim(), JBColor.RED);
-                    LOGGER.warn(Bundle.message(Resource.ASCA_SCAN_WARNING, msg.substring(lastLineIndex).trim()));
-                } finally {
-                    if (ascaCheckBox.isSelected()) {
-                        ascaInstallationMsg.setVisible(true);
-                    }
-                }
-                return null;
-            }
-
-            @Override
-            protected void done() {
-                LOGGER.debug("ASCA scan completed.");
-            }
-        }.execute();
-    }
 
     private void setValidationResult(String message, JBColor color) {
         validateResult.setText(String.format("<html>%s</html>", message));
         validateResult.setForeground(color);
     }
 
-    private void setAscaInstallationMsg(String message, JBColor color) {
-        ascaInstallationMsg.setText(String.format("<html>%s</html>", message));
-        ascaInstallationMsg.setForeground(color);
-    }
+
 
     private void buildGUI() {
         mainPanel.setLayout(new MigLayout("", "[][grow]", ""));
@@ -630,9 +565,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
                 "gapleft 5,gapbottom 10, wrap");
 
-        addSectionHeader(Resource.ASCA_DESCRIPTION, false);
-        mainPanel.add(ascaCheckBox);
-        mainPanel.add(ascaInstallationMsg, "gapleft 5, wrap");
+
 
         // === CxOne Assist link section ===
         CxLinkLabel assistLink = new CxLinkLabel(
@@ -705,7 +638,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
         logoutButton.setName("logoutButton");
         additionalParametersField.setName(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS);
-        ascaCheckBox.setName(Constants.FIELD_NAME_ASCA);
+
 
         // Set initial field states
         baseUrlField.setEnabled(true);
@@ -1017,6 +950,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         }
 
         // Priority 2: For new users, enable all scanners as sensible defaults
+        if (!st.isAscaRealtime()) { st.setAscaRealtime(true); changed = true; }
         if (!st.isOssRealtime()) { st.setOssRealtime(true); changed = true; }
         if (!st.isSecretDetectionRealtime()) { st.setSecretDetectionRealtime(true); changed = true; }
         if (!st.isContainersRealtime()) { st.setContainersRealtime(true); changed = true; }
@@ -1048,6 +982,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
         // Disable all scanners for security (MCP not available)
         boolean changed = false;
+        if (st.isAscaRealtime()) { st.setAscaRealtime(false); changed = true; }
         if (st.isOssRealtime()) { st.setOssRealtime(false); changed = true; }
         if (st.isSecretDetectionRealtime()) { st.setSecretDetectionRealtime(false); changed = true; }
         if (st.isContainersRealtime()) { st.setContainersRealtime(false); changed = true; }

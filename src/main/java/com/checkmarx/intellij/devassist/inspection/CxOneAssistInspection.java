@@ -228,8 +228,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
     private ProblemHelper.ProblemHelperBuilder buildHelper(@NotNull PsiFile file, @NotNull InspectionManager manager,
                                                            boolean isOnTheFly, Document document, List<ScannerService<?>> supportedScanners,
                                                            String path, ProblemHolderService problemHolderService) {
-        return ProblemHelper.builder()
-                .file(file)
+        return ProblemHelper.builder(file, file.getProject())
                 .manager(manager)
                 .isOnTheFly(isOnTheFly)
                 .document(document)
@@ -348,6 +347,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
 
     /**
      * Scans the given file using all available scanner services and returns all issues found.
+     *
      * @param problemHelper - The {@link ProblemHelper}
      * @return a list of {@link ScanIssue}
      */

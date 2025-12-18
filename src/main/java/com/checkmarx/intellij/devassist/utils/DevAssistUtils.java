@@ -3,6 +3,7 @@ package com.checkmarx.intellij.devassist.utils;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.notification.NotificationType;
@@ -27,6 +28,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -325,5 +328,25 @@ public class DevAssistUtils {
      */
     public static String decodeBase64(String input) {
         return new String(Base64.getDecoder().decode(input));
+    }
+    /**
+     * Determines the severity of an issue based on precedence by comparing the given severity
+     * level with the severities of issues in the provided list. It returns the least severe
+     * level that has a higher precedence than the provided severity.
+     *
+     * @param scanIssueList the list of {@code ScanIssue} objects, each containing a severity level
+     * @param severity      the severity level to compare against, such as "Critical", "High", "Medium", etc.
+     * @return the severity level from the list that has the highest precedence (lower number),
+     * or the provided {@code severity} if no such severity exists in the list
+     */
+    public static String getSeverityBasedOnPrecedence(List<ScanIssue> scanIssueList, String severity) {
+        int existingSeverityPrecedence = SeverityLevel.fromValue(severity).getPrecedence();
+        return scanIssueList.stream()
+                .map(ScanIssue::getSeverity)
+                .map(SeverityLevel::fromValue)
+                .filter(level -> level.getPrecedence() < existingSeverityPrecedence)
+                .min(Comparator.comparingInt(SeverityLevel::getPrecedence))
+                .map(SeverityLevel::getSeverity)
+                .orElse(severity);
     }
 }

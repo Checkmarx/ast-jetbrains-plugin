@@ -58,14 +58,15 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
             LOGGER.warn(format("RTS: Scan issue id not found for remediation action: %s.", link));
             return false;
         }
-        LOGGER.info(format("RTS: Remediation action: %s is called for problem with issue-id: %s.", link, scanIssueId));
+        String action = extractAction(linkData);
+        LOGGER.info(format("RTS: Remediation action: %s is called for problem with issue-id: %s.", action, scanIssueId));
 
         ScanIssue scanIssue = getScanIssue(editor, project, scanIssueId);
         if (Objects.isNull(scanIssue)) {
             LOGGER.warn(format("RTS: Remediation action failed. Scan issue is not found for the given issue-id: %s.", scanIssueId));
             return false;
         }
-        return handleActions(extractAction(linkData), project, scanIssue);
+        return handleActions(action, project, scanIssue);
     }
 
     /**
@@ -103,7 +104,7 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
      * @return scan issue id
      */
     private String extractIssueId(String[] linkData) {
-        return Objects.nonNull(linkData) ? linkData[1] : "";
+        return Objects.nonNull(linkData) && linkData.length > 0 ? linkData[1] : "";
     }
 
     /**
@@ -113,7 +114,7 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
      * @return remediation action
      */
     private String extractAction(String[] linkData) {
-        return Objects.nonNull(linkData) ? linkData[0] : "";
+        return Objects.nonNull(linkData) && linkData.length > 0 ? linkData[0] : "";
     }
 
     /**

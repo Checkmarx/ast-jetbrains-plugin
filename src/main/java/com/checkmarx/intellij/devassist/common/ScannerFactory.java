@@ -1,6 +1,8 @@
 package com.checkmarx.intellij.devassist.common;
 
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
+import com.checkmarx.intellij.devassist.scanners.asca.AscaScannerService;
+import com.checkmarx.intellij.devassist.scanners.asca.AscaScannerService;
 import com.checkmarx.intellij.devassist.scanners.containers.ContainerScannerService;
 import com.checkmarx.intellij.devassist.scanners.iac.IacScannerService;
 import com.checkmarx.intellij.devassist.scanners.oss.OssScannerService;
@@ -15,7 +17,7 @@ public class ScannerFactory {
     private final List<ScannerService<?>> scannerServices;
 
     public ScannerFactory() {
-        scannerServices = List.of(new OssScannerService(), new ContainerScannerService(), new SecretsScannerService(), new IacScannerService());
+        scannerServices = List.of(new OssScannerService(), new ContainerScannerService(), new SecretsScannerService(), new IacScannerService(), new AscaScannerService());
     }
 
 

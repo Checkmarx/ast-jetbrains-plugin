@@ -24,6 +24,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.Objects;
+import java.awt.event.ItemEvent;
 import java.util.concurrent.CompletableFuture;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
@@ -41,6 +42,10 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
     private final JPanel mainPanel = new JPanel(new MigLayout("", "[][grow]"));
     private final JBLabel assistMessageLabel = new JBLabel();
+
+    private final JBLabel ascaTitle = new JBLabel(formatTitle("Checkmarx AI Secure Coding Assistant (ASCA): Activate ASCA:"));
+    private final JBCheckBox ascaCheckbox = new JBCheckBox("Scan your file as you code");
+    private final JBLabel ascaInstallationMsg = new JBLabel();
 
     private final JBLabel ossTitle = new JBLabel(formatTitle(Bundle.message(Resource.OSS_REALTIME_TITLE)));
     private final JBCheckBox ossCheckbox = new JBCheckBox(Bundle.message(Resource.OSS_REALTIME_CHECKBOX));
@@ -67,6 +72,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     public CxOneAssistComponent() {
         buildUI();
         reset();
+        addAscaCheckBoxListener();
 
         connection = ApplicationManager.getApplication().getMessageBus().connect();
         connection.subscribe(SettingsListener.SETTINGS_APPLIED, new SettingsListener() {
@@ -91,14 +97,17 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         }
     }
 
-    // In CxOneAssistComponent.java
-
-
     private void buildUI() {
         assistMessageLabel.setForeground(JBColor.RED);
         assistMessageLabel.setHorizontalAlignment(SwingConstants.LEFT);
         assistMessageLabel.setVisible(false);
         mainPanel.add(assistMessageLabel, "hidemode 3, growx, alignx left, wrap, gapbottom 5");
+
+        // ASCA Realtime - First checkbox
+        mainPanel.add(ascaTitle, "split 2, span");
+        mainPanel.add(new JSeparator(), "growx, wrap");
+        mainPanel.add(ascaCheckbox, "split 2, gapleft 15");
+        mainPanel.add(ascaInstallationMsg, "gapleft 5, wrap, gapbottom 10");
 
         // OSS Realtime
         mainPanel.add(ossTitle, "split 2, span");
@@ -257,7 +266,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     @Override
     public boolean isModified() {
         ensureState();
-        return ossCheckbox.isSelected() != state.isOssRealtime()
+        return ascaCheckbox.isSelected() != state.isAscaRealtime()
+                || ossCheckbox.isSelected() != state.isOssRealtime()
                 || secretsCheckbox.isSelected() != state.isSecretDetectionRealtime()
                 || containersCheckbox.isSelected() != state.isContainersRealtime()
                 || iacCheckbox.isSelected() != state.isIacRealtime()
@@ -268,11 +278,15 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     public void apply() {
         ensureState();
 
+        boolean ascaSelected = ascaCheckbox.isSelected();
         boolean ossSelected = ossCheckbox.isSelected();
         boolean secretsSelected = secretsCheckbox.isSelected();
         boolean containersSelected = containersCheckbox.isSelected();
         boolean iacSelected = iacCheckbox.isSelected();
 
+        state.setAscaRealtime(ascaSelected);
+        // Sync legacy ASCA setting for compatibility with existing code
+        state.setAsca(ascaSelected);
         state.setOssRealtime(ossSelected);
         state.setSecretDetectionRealtime(secretsSelected);
         state.setContainersRealtime(containersSelected);
@@ -280,7 +294,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         String selectedValue = (String) containersToolCombo.getSelectedItem();
         state.setContainersTool(selectedValue);
 
-        state.setUserPreferences(ossSelected, secretsSelected, containersSelected, iacSelected);
+        state.setUserPreferences(ascaSelected,ossSelected, secretsSelected, containersSelected, iacSelected);
 
         ApplicationManager.getApplication().getMessageBus()
                 .syncPublisher(SettingsListener.SETTINGS_APPLIED)
@@ -290,6 +304,10 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     @Override
     public void reset() {
         state = GlobalSettingsState.getInstance();
+
+        // Initialize ASCA checkbox - use realtime setting or fallback to legacy setting for compatibility
+        boolean ascaState = state.isAscaRealtime() || state.isAsca();
+        ascaCheckbox.setSelected(ascaState);
 
         ossCheckbox.setSelected(state.isOssRealtime());
         secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
@@ -305,6 +323,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         boolean authenticated = state.isAuthenticated();
 
         if (!authenticated) {
+            ascaCheckbox.setEnabled(false);
+            ascaCheckbox.setSelected(false);
             ossCheckbox.setEnabled(false);
             ossCheckbox.setSelected(false);
             secretsCheckbox.setEnabled(false);
@@ -336,6 +356,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
 
     private void updateUIWithMcpStatus(boolean mcpEnabled, boolean isAuthenticated) {
+        ascaCheckbox.setEnabled(mcpEnabled);
         ossCheckbox.setEnabled(mcpEnabled);
         secretsCheckbox.setEnabled(mcpEnabled);
         // Enable install MCP link only if MCP is enabled at tenant level AND user is authenticated
@@ -354,6 +375,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             }
 
             // When MCP is disabled, uncheck all scanner checkboxes to prevent realtime scanning
+            ascaCheckbox.setSelected(false);
             ossCheckbox.setSelected(false);
             secretsCheckbox.setSelected(false);
             containersCheckbox.setSelected(false);
@@ -361,6 +383,10 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             containersToolCombo.setSelectedItem(state.getContainersTool());
 
             boolean settingsChanged = false;
+            if (state.isAscaRealtime()) {
+                state.setAscaRealtime(false);
+                settingsChanged = true;
+            }
             if (state.isOssRealtime()) {
                 state.setOssRealtime(false);
                 settingsChanged = true;
@@ -404,6 +430,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             }
 
             // Update UI to reflect current scanner state (including any restored preferences)
+            ascaCheckbox.setSelected(state.isAscaRealtime());
             ossCheckbox.setSelected(state.isOssRealtime());
             secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
             containersCheckbox.setSelected(state.isContainersRealtime());
@@ -426,6 +453,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         assistMessageLabel.setVisible(true);
 
         // Disable controls while checking
+        ascaCheckbox.setEnabled(false);
         ossCheckbox.setEnabled(false);
         secretsCheckbox.setEnabled(false);
         containersCheckbox.setEnabled(false);
@@ -485,5 +513,28 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         String after = raw.substring(idx + 1).trim();
         String html = String.format("%s <b>%s</b>", before, after);
         return String.format(Constants.HTML_WRAPPER_FORMAT, html);
+    }
+
+    private void addAscaCheckBoxListener() {
+        ascaCheckbox.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                // Show success message when enabled
+                setAscaInstallationMsg(Bundle.message(Resource.ASCA_STARTED_MSG), JBColor.GREEN);
+                ascaInstallationMsg.setVisible(true);
+
+                // Auto-hide message after 3 seconds
+                Timer timer = new Timer(3000, event -> ascaInstallationMsg.setVisible(false));
+                timer.setRepeats(false);
+                timer.start();
+            } else {
+                // Hide message when disabled
+                ascaInstallationMsg.setVisible(false);
+            }
+        });
+    }
+
+    private void setAscaInstallationMsg(String message, JBColor color) {
+        ascaInstallationMsg.setText(String.format("<html>%s</html>", message));
+        ascaInstallationMsg.setForeground(color);
     }
 }
