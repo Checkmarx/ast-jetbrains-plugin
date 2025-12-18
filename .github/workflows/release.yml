@@ -51,6 +51,12 @@ jobs:
       # Check out current repository
       - name: Checkout Code
         uses: actions/checkout@v4
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          sudo docker system prune -af 
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@v3.13.0
@@ -60,6 +66,9 @@ jobs:
       # Run verifier
       - name: Run plugin verifier
         run: ./gradlew runPluginVerifier
+        env:
+          JAVA_TOOL_OPTIONS: > 
+           -DpasswordSafe.enabled=false
       # Upload verifier report
       - name: Upload report
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 #v4

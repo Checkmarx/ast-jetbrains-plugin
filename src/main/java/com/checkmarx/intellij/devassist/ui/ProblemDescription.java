@@ -381,18 +381,19 @@ public class ProblemDescription {
      * @param scanIssue   {@link ScanIssue} object containing the remediation actions section data.
      */
     private void buildRemediationActionsSection(StringBuilder descBuilder, ScanIssue scanIssue) {
+        String encodedTitle = DevAssistUtils.encodeBase64(scanIssue.getTitle());
         descBuilder.append(TABLE_WITH_TR)
                 .append("<td>")
-                .append("<a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
+                .append("<a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(encodedTitle).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
                 .append(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST)
                 .append("</a></td>")
                 .append("<td style='padding: 5px;'>")
-                .append("<a href=\"#cxonedevassist/viewdetails").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
+                .append("<a href=\"#cxonedevassist/viewdetails").append(SEPERATOR).append(encodedTitle).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
                 .append(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME)
                 .append("</a></td>")
-                .append("<td style='padding: 5px;'>")
+           /*     .append("<td style='padding: 5px;'>")
                 .append("<a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
                 .append(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME)
@@ -401,7 +402,7 @@ public class ProblemDescription {
                 .append("<a href=\"#cxonedevassist/ignoreallofthis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
                 .append(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME)
-                .append("</a></td>")
+                .append("</a></td>")*/
                 .append("</tr></table>");
 }
 

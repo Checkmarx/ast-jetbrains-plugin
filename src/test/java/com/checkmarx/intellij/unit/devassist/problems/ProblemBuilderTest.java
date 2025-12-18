@@ -50,7 +50,7 @@ class ProblemBuilderTest {
                             ProblemHighlightType.GENERIC_ERROR :
                             level == SeverityLevel.MEDIUM ? ProblemHighlightType.WARNING :
                                     ProblemHighlightType.WEAK_WARNING;
-            when(manager.createProblemDescriptor(eq(psiFile), any(TextRange.class), anyString(), eq(expectedType), eq(isOnTheFly), any(CxOneAssistFix.class), any(ViewDetailsFix.class), any(IgnoreVulnerabilityFix.class), any(IgnoreAllThisTypeFix.class))).thenReturn(mock(ProblemDescriptor.class));
+            when(manager.createProblemDescriptor(eq(psiFile), any(TextRange.class), anyString(), eq(expectedType), eq(isOnTheFly), any(CxOneAssistFix.class), any(ViewDetailsFix.class))).thenReturn(mock(ProblemDescriptor.class));
             ProblemDescriptor descriptor = (ProblemDescriptor) buildMethod.invoke(
                     null, psiFile, manager, scanIssue, document, lineNumber, isOnTheFly);
             assertNotNull(descriptor);
@@ -62,7 +62,7 @@ class ProblemBuilderTest {
         when(unknownIssue.getTitle()).thenReturn("title");
         when(unknownIssue.getFilePath()).thenReturn("file.java");
         when(unknownIssue.getScanEngine()).thenReturn(ScanEngine.OSS);
-        when(manager.createProblemDescriptor(eq(psiFile), any(TextRange.class), anyString(), eq(ProblemHighlightType.WEAK_WARNING), eq(isOnTheFly), any(CxOneAssistFix.class), any(ViewDetailsFix.class), any(IgnoreVulnerabilityFix.class), any(IgnoreAllThisTypeFix.class))).thenReturn(mock(ProblemDescriptor.class));
+        when(manager.createProblemDescriptor(eq(psiFile), any(TextRange.class), anyString(), eq(ProblemHighlightType.WEAK_WARNING), eq(isOnTheFly), any(CxOneAssistFix.class), any(ViewDetailsFix.class))).thenReturn(mock(ProblemDescriptor.class));
         ProblemDescriptor unknownDescriptor = (ProblemDescriptor) buildMethod.invoke(
                 null, psiFile, manager, unknownIssue, document, lineNumber, isOnTheFly);
         assertNotNull(unknownDescriptor);

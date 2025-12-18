@@ -53,6 +53,63 @@ public class ContainerScannerServiceTest {
         assertFalse(service.shouldScanFile(path, psiFile), "chart.yaml should be excluded from helm scanning");
     }
 
+    @Test
+    void shouldScanFileReturnsTrueForUppercaseDockerfile() {
+        String path = "/workspace/DOCKERFILE";
+        PsiFile psiFile = mockPsiFile("DOCKERFILE", null, path, true);
+        assertTrue(service.shouldScanFile(path, psiFile), "Uppercase DOCKERFILE should be scanned");
+    }
+
+    @Test
+    void shouldScanFileReturnsFalseForUnrelatedExtension() {
+        String path = "/workspace/file.txt";
+        PsiFile psiFile = mockPsiFile("file.txt", "txt", path, true);
+        assertFalse(service.shouldScanFile(path, psiFile), "Unrelated extension should not be scanned");
+    }
+
+    @Test
+    void shouldScanFileReturnsTrueForValidComposeFile() {
+        String path = "/workspace/docker-compose.yaml";
+        PsiFile psiFile = mockPsiFile("docker-compose.yaml", "yaml", path, true);
+        assertTrue(service.shouldScanFile(path, psiFile), "docker-compose.yaml should be scanned");
+    }
+
+    @Test
+    void shouldScanFileReturnsFalseForComposeOverrideFile() {
+        String path = "/workspace/docker-compose.override.yaml";
+        PsiFile psiFile = mockPsiFile("docker-compose.override.yaml", "yaml", path, true);
+        assertFalse(service.shouldScanFile(path, psiFile), "docker-compose.override.yaml should not be scanned");
+    }
+
+    @Test
+    void shouldScanFileReturnsTrueForDockerfileWithExtension() {
+        String path = "/workspace/Dockerfile.dev";
+        PsiFile psiFile = mockPsiFile("Dockerfile.dev", "dev", path, true);
+        assertTrue(service.shouldScanFile(path, psiFile), "Dockerfile with extension should be scanned");
+    }
+
+    @Test
+    void shouldScanFileReturnsTrueForComposeFileInSubdirectory() {
+        String path = "/workspace/sub/docker-compose.yaml";
+        PsiFile psiFile = mockPsiFile("docker-compose.yaml", "yaml", path, true);
+        assertTrue(service.shouldScanFile(path, psiFile), "docker-compose.yaml in subdirectory should be scanned");
+    }
+
+
+    @Test
+    void shouldScanFileReturnsTrueForComposeFileWithUppercaseExtension() {
+        String path = "/workspace/docker-compose.YAML";
+        PsiFile psiFile = mockPsiFile("docker-compose.YAML", "YAML", path, true);
+        assertTrue(service.shouldScanFile(path, psiFile), "docker-compose.YAML should be scanned");
+    }
+
+    @Test
+    void shouldScanFileReturnsFalseForEmptyName() {
+        String path = "/workspace/";
+        PsiFile psiFile = mockPsiFile("", null, path, true);
+        assertFalse(service.shouldScanFile(path, psiFile), "Empty file name should not be scanned");
+    }
+
     private PsiFile mockPsiFile(String name, String extension, String path, boolean exists) {
         PsiFile psiFile = mock(PsiFile.class);
         VirtualFile virtualFile = mock(VirtualFile.class);

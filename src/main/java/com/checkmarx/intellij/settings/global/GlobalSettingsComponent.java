@@ -182,7 +182,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
             logoutButton.setEnabled(true);
             logoutButton.requestFocusInWindow();
         }
-        ascaInstallationMsg.setVisible(false);
         SwingUtilities.invokeLater(() -> {
             if (useApiKey) {
                 apiKeyField.requestFocusInWindow();
@@ -309,6 +308,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
         // Complete post-authentication setup
         completeAuthenticationSetup(String.valueOf(apiKeyField.getPassword()));
+        if (ascaCheckBox.isSelected()) {
+            runAscaScanInBackground();
+        }
     }
 
     /**
@@ -537,6 +539,12 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     private void runAscaScanInBackground() {
+        if (!SETTINGS_STATE.isAuthenticated()) {
+            ascaInstallationMsg.setVisible(true);
+            setAscaInstallationMsg(Bundle.message(Resource.ASCA_LOGIN_REQUIRED), JBColor.RED);
+            return;
+        }
+
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() {
