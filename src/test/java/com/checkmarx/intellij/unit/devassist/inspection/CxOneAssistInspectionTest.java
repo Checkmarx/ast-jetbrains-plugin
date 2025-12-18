@@ -26,7 +26,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class RealtimeInspectionTest {
+class CxOneAssistInspectionTest {
     @Test
     @DisplayName("Returns empty array when file path is empty or no enabled scanners")
     void testCheckFile_noPathOrNoEnabledScanners_returnsEmptyArray() {
@@ -71,7 +71,7 @@ class RealtimeInspectionTest {
         GlobalScannerController globalScannerController = mock(GlobalScannerController.class);
         when(globalScannerController.getEnabledScanners()).thenReturn(Collections.singletonList(mock(com.checkmarx.intellij.devassist.utils.ScanEngine.class)));
         ScannerFactory scannerFactory = mock(ScannerFactory.class);
-        doReturn(Collections.emptyList()).when(scannerFactory).getAllSupportedScanners(anyString(),file);
+        doReturn(Collections.emptyList()).when(scannerFactory).getAllSupportedScanners(anyString(),eq(file));
         setPrivateField(inspection, "scannerFactory", scannerFactory);
         try (
                 MockedStatic<ApplicationManager> appManagerMock = mockStatic(ApplicationManager.class);
@@ -107,7 +107,7 @@ class RealtimeInspectionTest {
         when(scannerService.getConfig()).thenReturn(mock(com.checkmarx.intellij.devassist.configuration.ScannerConfig.class));
         when(scannerService.getConfig().getEngineName()).thenReturn("OtherEngine");
         ScannerFactory scannerFactory = mock(ScannerFactory.class);
-        doReturn(Collections.singletonList(scannerService)).when(scannerFactory).getAllSupportedScanners(anyString(),file);
+        doReturn(Collections.singletonList(scannerService)).when(scannerFactory).getAllSupportedScanners(anyString(),eq(file));
         setPrivateField(inspection, "scannerFactory", scannerFactory);
         try (
                 MockedStatic<ApplicationManager> appManagerMock = mockStatic(ApplicationManager.class);
@@ -164,7 +164,7 @@ class RealtimeInspectionTest {
             devAssistUtilsMock.when(DevAssistUtils::globalScannerController).thenReturn(globalScannerController);
             problemHolderServiceMock.when(() -> ProblemHolderService.getInstance(project)).thenReturn(problemHolderService);
             ScannerFactory scannerFactory = mock(ScannerFactory.class);
-            doReturn(supportedScanners).when(scannerFactory).getAllSupportedScanners(anyString(),file);
+            doReturn(supportedScanners).when(scannerFactory).getAllSupportedScanners(anyString(),eq(file));
             setPrivateField(inspection, "scannerFactory", scannerFactory);
             java.util.Map<String, Long> fileTimeStamp = new java.util.HashMap<>();
             fileTimeStamp.put("TestFile.java", 123L);

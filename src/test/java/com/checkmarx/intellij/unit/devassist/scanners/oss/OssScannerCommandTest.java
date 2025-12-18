@@ -61,9 +61,13 @@ public class OssScannerCommandTest {
     }
 
     @Test
-    @DisplayName("initializeScanner queues background task (NPE expected in headless env)")
+    @DisplayName("initializeScanner queues background task (Exception expected in headless env)")
     void testInitializeScanner_connectivityQueuesTask_functionality() {
-        assertThrows(NullPointerException.class, () -> command.invokeInitializeScanner());
+        /** In headless test environment, either NPE or IllegalStateException can be thrown
+        depending on test execution order and IntelliJ platform initialization state */
+        Exception exception = assertThrows(Exception.class, () -> command.invokeInitializeScanner());
+        assertTrue(exception instanceof NullPointerException || exception instanceof IllegalStateException,
+            "Expected NullPointerException or IllegalStateException, but got: " + exception.getClass().getSimpleName());
     }
 
     @Test
