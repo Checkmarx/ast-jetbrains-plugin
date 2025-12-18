@@ -14,6 +14,7 @@ import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.*;
 import org.mockito.MockedStatic;
 
+import static com.checkmarx.intellij.Constants.RealTimeConstants.QUICK_FIX;
 import static org.mockito.Mockito.*;
 
 @DisplayName("RemediationManager unit tests covering all branches")
@@ -64,7 +65,7 @@ public class RemediationManagerTest {
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(true);
 
-            manager.fixWithCxOneAssist(project, issue);
+            manager.fixWithCxOneAssist(project, issue, QUICK_FIX);
 
             fixPrompts.verify(() -> CxOneAssistFixPrompts.buildSCARemediationPrompt(
                     eq(issue.getTitle()), eq(issue.getPackageVersion()), eq(issue.getPackageManager()), eq(issue.getSeverity())));
@@ -86,7 +87,7 @@ public class RemediationManagerTest {
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(false);
 
-            manager.fixWithCxOneAssist(project, issue);
+            manager.fixWithCxOneAssist(project, issue, QUICK_FIX);
 
             fixPrompts.verify(() -> CxOneAssistFixPrompts.buildSCARemediationPrompt(
                     eq(issue.getTitle()), eq(issue.getPackageVersion()), eq(issue.getPackageManager()), eq(issue.getSeverity())));
@@ -100,7 +101,7 @@ public class RemediationManagerTest {
         Project project = mock(Project.class);
         ScanIssue issue = buildScanIssue(ScanEngine.ASCA);
         RemediationManager manager = new RemediationManager();
-        manager.fixWithCxOneAssist(project, issue);
+        manager.fixWithCxOneAssist(project, issue, QUICK_FIX);
     }
 
     @Test
@@ -110,7 +111,7 @@ public class RemediationManagerTest {
         RemediationManager manager = new RemediationManager();
         for (ScanEngine engine : new ScanEngine[]{ScanEngine.SECRETS, ScanEngine.CONTAINERS, ScanEngine.IAC}) {
             ScanIssue issue = buildScanIssue(engine);
-            manager.fixWithCxOneAssist(project, issue);
+            manager.fixWithCxOneAssist(project, issue, QUICK_FIX);
         }
     }
 
@@ -128,7 +129,7 @@ public class RemediationManagerTest {
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(true);
 
-            manager.viewDetails(project, issue);
+            manager.viewDetails(project, issue, QUICK_FIX);
 
             viewPrompts.verify(() -> ViewDetailsPrompts.buildSCAExplanationPrompt(
                     eq(issue.getTitle()), eq(issue.getPackageVersion()), eq(issue.getSeverity()), eq(issue.getVulnerabilities())));
@@ -150,7 +151,7 @@ public class RemediationManagerTest {
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(false);
 
-            manager.viewDetails(project, issue);
+            manager.viewDetails(project, issue, QUICK_FIX);
 
             viewPrompts.verify(() -> ViewDetailsPrompts.buildSCAExplanationPrompt(
                     eq(issue.getTitle()), eq(issue.getPackageVersion()), eq(issue.getSeverity()), eq(issue.getVulnerabilities())));
@@ -164,7 +165,7 @@ public class RemediationManagerTest {
         Project project = mock(Project.class);
         ScanIssue issue = buildScanIssue(ScanEngine.ASCA);
         RemediationManager manager = new RemediationManager();
-        manager.viewDetails(project, issue);
+        manager.viewDetails(project, issue, QUICK_FIX);
     }
 
     private static ScanIssue buildScanIssue(ScanEngine engine) {

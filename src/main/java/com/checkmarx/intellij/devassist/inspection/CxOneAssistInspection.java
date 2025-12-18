@@ -92,9 +92,14 @@ public class CxOneAssistInspection extends LocalInspectionTool {
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(file.getProject());
+        if (Objects.isNull(problemHolderService)) {
+            LOGGER.warn(format("RTS: Problem holder service not found for project: %s.", file.getProject().getName()));
+            resetResults(file.getProject());
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
         /*
-         * Check if the file is already scanned and if the problem descriptors are valid.
-         * If a file is already scanned and problem descriptors are valid, then return the existing problem descriptors for the enabled scanners.
+         * Check if a file is already scanned and not modified and problem descriptors are valid,
+         * then return the existing problem descriptors for the enabled scanners.
          */
         if (fileTimeStamp.containsKey(virtualFile.getPath()) && fileTimeStamp.get(virtualFile.getPath()) == (file.getModificationStamp())
                 && isProblemDescriptorValid(problemHolderService, virtualFile.getPath(), file)) {
@@ -104,6 +109,144 @@ public class CxOneAssistInspection extends LocalInspectionTool {
         fileTimeStamp.put(virtualFile.getPath(), file.getModificationStamp());
         file.putUserData(key, DevAssistUtils.isDarkTheme());
         return scanFileAndCreateProblemDescriptors(file, manager, isOnTheFly, supportedScanners, document, problemHolderService, virtualFile);
+    }
+
+    /**
+     * Scans the given PSI file and creates problem descriptors for any identified issues.
+     *
+     * @param file                 the PsiFile representing the file to be scanned; must not be null
+     * @param manager              the inspection manager used to create problem descriptors; must not be null
+     * @param isOnTheFly           a flag that indicates whether the inspection is executed on-the-fly
+     * @param supportedScanners    the list of supported scanner services
+     * @param document             the document containing the file to be scanned
+     * @param problemHolderService the problem holder service
+     * @param virtualFile          the virtual file
+     * @return ProblemDescriptor[] array of problem descriptors
+     */
+    private ProblemDescriptor[] scanFileAndCreateProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly,
+                                                                    List<ScannerService<?>> supportedScanners, Document document,
+                                                                    ProblemHolderService problemHolderService, VirtualFile virtualFile) {
+        try {
+            ProblemHelper.ProblemHelperBuilder problemHelperBuilder = buildHelper(file, manager, isOnTheFly, document,
+                    supportedScanners, virtualFile.getPath(), problemHolderService);
+
+            // Schedule a debounced scan to avoid excessive scanning during rapid file changes (background scan)
+            boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(file.getProject())
+                    .scheduleScan(virtualFile.getPath(), problemHelperBuilder.build());
+            if (isScanScheduled) {
+                List<ScanIssue> cachedScanIssues = problemHolderService.getScanIssueByFile(virtualFile.getPath());
+                if (Objects.isNull(cachedScanIssues) || cachedScanIssues.isEmpty()) {
+                    // This condition will true for the first scan or file doesn't have any issues
+                    LOGGER.info(format("RTS: Scan has been scheduled for file: %s and currently no cached scan issues found. " +
+                            "Results will automatically update on completion of scheduled scan.", file.getName()));
+                    return ProblemDescriptor.EMPTY_ARRAY;
+                }
+                problemHelperBuilder.scanIssueList(cachedScanIssues);
+                List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
+                if (cachedScanIssues.isEmpty()){
+                    LOGGER.info(format("RTS: Problem not found for file: %s.", file.getName()));
+                    return ProblemDescriptor.EMPTY_ARRAY;
+                }
+                problemHolderService.addProblemDescriptors(virtualFile.getPath(), allProblems);
+                return allProblems.toArray(new ProblemDescriptor[0]);
+            }
+            LOGGER.info(format("RTS: Failed to schedule the scan for file: %s. Now scanning file using fallback..", file.getName()));
+            return startScanAndCreateProblemDescriptors(problemHelperBuilder);
+        } catch (Exception exception) {
+            LOGGER.warn(format("RTS: Exception occurred while scanning file: %s", virtualFile.getPath()), exception);
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
+    }
+
+    /**
+     * Scans the given PSI file and creates problem descriptors for any identified issues.
+     *
+     * @param problemHelperBuilder - The {@link ProblemHelper}
+     * @return an array of {@link ProblemDescriptor} representing the detected issues, or an empty array if no issues were found
+     */
+    private ProblemDescriptor[] startScanAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
+        ProblemHelper problemHelper = problemHelperBuilder.build();
+        List<ScanIssue> allScanIssues = scanFileAndGetAllIssues(problemHelper);
+
+        if (allScanIssues.isEmpty()) {
+            LOGGER.info(format("RTS: No scan issues found for file: %s.", problemHelper.getFile().getName()));
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
+        problemHelperBuilder.scanIssueList(allScanIssues);
+        //Caching all the issues in the problem holder service
+        problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), allScanIssues);
+
+        //Creating problems
+        List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
+        if (allProblems.isEmpty()) {
+            LOGGER.info(format("RTS: Problem not found for file: %s. ", problemHelper.getFile().getName()));
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
+        //Caching all the problem descriptor in the problem holder service
+        problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
+        LOGGER.info(format("RTS: Scanning completed for file: %s and %s problem descriptors created.", problemHelper.getFile().getName(), allProblems.size()));
+        return allProblems.toArray(new ProblemDescriptor[0]);
+    }
+
+    /**
+     * Creates a list of {@link ProblemDescriptor} objects based on the issues identified in the scan result.
+     * This method processes the scan issues for the specified file and uses the provided InspectionManager
+     * to generate corresponding problem descriptors, if applicable.
+     *
+     * @param problemHelper - The {@link ProblemHelper}} instance containing necessary context for creating problem descriptors
+     * @return a list of {@link ProblemDescriptor}; an empty list is returned if no issues are found or processed successfully
+     */
+    private List<ProblemDescriptor> createProblemDescriptors(ProblemHelper problemHelper) {
+        List<ProblemDescriptor> problems = new ArrayList<>();
+        ProblemDecorator.removeAllGutterIcons(problemHelper.getFile().getProject());
+        ScanIssueProcessor processor = new ScanIssueProcessor(problemHelper, this.problemDecorator);
+
+        for (ScanIssue scanIssue : problemHelper.getScanIssueList()) {
+            ProblemDescriptor descriptor = processor.processScanIssue(scanIssue);
+            if (descriptor != null) {
+                problems.add(descriptor);
+            }
+        }
+        LOGGER.info(format("RTS: Problem descriptors created: %s for file: %s", problems.size(), problemHelper.getFile().getName()));
+        return problems;
+    }
+
+    /**
+     * Scans the given file using all available scanner services and returns all issues found.
+     *
+     * @param problemHelper - The {@link ProblemHelper}
+     * @return a list of {@link ScanIssue}
+     */
+    public static List<ScanIssue> scanFileAndGetAllIssues(ProblemHelper problemHelper) {
+        List<ScanResult<?>> allScanResults = problemHelper.getSupportedScanners().stream()
+                .map(scannerService ->
+                        scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        return allScanResults.stream()
+                .flatMap(scanResult -> scanResult.getIssues().stream())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Scans the given PSI file at the specified path using an appropriate real-time scanner,
+     * if available and active.
+     *
+     * @param scannerService - ScannerService object of found scan engine
+     * @param file           the PsiFile representing the file to be scanned; must not be null
+     * @param path           the string representation of the file path to be scanned; must not be null or empty
+     * @return a {@link ScanResult} instance containing the results of the scan, or null if no
+     * active and suitable scanner is found
+     */
+    public static ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
+        try {
+            LOGGER.info(format("RTS: Started scanning file: %s using scanner: %s", path, scannerService.getConfig().getEngineName()));
+            return scannerService.scan(file, path);
+        } catch (Exception e) {
+            LOGGER.debug("RTS: Exception occurred while scanning file: {} ", path, e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -235,131 +378,5 @@ public class CxOneAssistInspection extends LocalInspectionTool {
                 .supportedScanners(supportedScanners)
                 .filePath(path)
                 .problemHolderService(problemHolderService);
-    }
-
-    /**
-     * Scans the given PSI file and creates problem descriptors for any identified issues.
-     *
-     * @param file                 the PsiFile representing the file to be scanned; must not be null
-     * @param manager              the inspection manager used to create problem descriptors; must not be null
-     * @param isOnTheFly           a flag that indicates whether the inspection is executed on-the-fly
-     * @param supportedScanners    the list of supported scanner services
-     * @param document             the document containing the file to be scanned
-     * @param problemHolderService the problem holder service
-     * @param virtualFile          the virtual file
-     * @return ProblemDescriptor[] array of problem descriptors
-     */
-    private ProblemDescriptor[] scanFileAndCreateProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly,
-                                                                    List<ScannerService<?>> supportedScanners, Document document,
-                                                                    ProblemHolderService problemHolderService, VirtualFile virtualFile) {
-
-        ProblemHelper.ProblemHelperBuilder problemHelperBuilder = buildHelper(file, manager, isOnTheFly, document,
-                supportedScanners, virtualFile.getPath(), problemHolderService);
-
-        // Schedule a debounced scan to avoid excessive scanning during rapid file changes
-        boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(file.getProject())
-                .scheduleScan(virtualFile.getPath(), problemHelperBuilder.build());
-        if (isScanScheduled) {
-            List<ScanIssue> cachedIssues = problemHolderService.getScanIssueByFile(virtualFile.getPath());
-            if (cachedIssues == null || cachedIssues.isEmpty()) {
-                LOGGER.info(format("RTS: No cached issues yet for file: %s.", file.getName()));
-                return ProblemDescriptor.EMPTY_ARRAY;
-            }
-            problemHelperBuilder.scanIssueList(cachedIssues);
-
-            List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
-            problemHolderService.addProblemDescriptors(virtualFile.getPath(), allProblems);
-            return allProblems.toArray(new ProblemDescriptor[0]);
-        }
-        LOGGER.info(format("RTS: Failed to schedule the scan for file: %s. Now scanning file..", file.getName()));
-
-        List<ProblemDescriptor> scanResultDescriptors = startScanAndCreateProblemDescriptors(problemHelperBuilder);
-        if (scanResultDescriptors.isEmpty()) {
-            LOGGER.info(format("RTS: No issues found for file: %s ", file.getName()));
-        }
-        LOGGER.info(format("RTS: Scanning completed and descriptors created: %s for file: %s", scanResultDescriptors.size(), file.getName()));
-        return scanResultDescriptors.toArray(new ProblemDescriptor[0]);
-    }
-
-    /**
-     * Scans the given PSI file and creates problem descriptors for any identified issues.
-     *
-     * @param problemHelperBuilder - The {@link ProblemHelper}
-     * @return a list of {@link ProblemDescriptor} representing the detected issues, or an empty list if no issues were found
-     */
-    private List<ProblemDescriptor> startScanAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
-        ProblemHelper problemHelper = problemHelperBuilder.build();
-        List<ScanIssue> allScanIssues = scanFileAndGetAllIssues(problemHelper);
-
-        // Adding all scanner issues to the builder.
-        problemHelperBuilder.scanIssueList(allScanIssues);
-        //Adding problems to the CxFinding window
-        problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), allScanIssues);
-
-        //Creating problems
-        List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
-        problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
-        return allProblems;
-    }
-
-    /**
-     * Scans the given PSI file at the specified path using an appropriate real-time scanner,
-     * if available and active.
-     *
-     * @param scannerService - ScannerService object of found scan engine
-     * @param file           the PsiFile representing the file to be scanned; must not be null
-     * @param path           the string representation of the file path to be scanned; must not be null or empty
-     * @return a {@link ScanResult} instance containing the results of the scan, or null if no
-     * active and suitable scanner is found
-     */
-    public static ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
-        try {
-            LOGGER.info(format("RTS: Started scanning file: %s using scanner: %s", path, scannerService.getConfig().getEngineName()));
-            return scannerService.scan(file, path);
-        } catch (Exception e) {
-            LOGGER.debug("RTS: Exception occurred while scanning file: {} ", path, e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Creates a list of {@link ProblemDescriptor} objects based on the issues identified in the scan result.
-     * This method processes the scan issues for the specified file and uses the provided InspectionManager
-     * to generate corresponding problem descriptors, if applicable.
-     *
-     * @param problemHelper - The {@link ProblemHelper}} instance containing necessary context for creating problem descriptors
-     * @return a list of {@link ProblemDescriptor}; an empty list is returned if no issues are found or processed successfully
-     */
-    private List<ProblemDescriptor> createProblemDescriptors(ProblemHelper problemHelper) {
-        List<ProblemDescriptor> problems = new ArrayList<>();
-        ProblemDecorator.removeAllGutterIcons(problemHelper.getFile().getProject());
-        ScanIssueProcessor processor = new ScanIssueProcessor(problemHelper, this.problemDecorator);
-
-        for (ScanIssue scanIssue : problemHelper.getScanIssueList()) {
-            ProblemDescriptor descriptor = processor.processScanIssue(scanIssue);
-            if (descriptor != null) {
-                problems.add(descriptor);
-            }
-        }
-        LOGGER.info(format("RTS: Problem descriptors created: %s for file: %s", problems.size(), problemHelper.getFile().getName()));
-        return problems;
-    }
-
-    /**
-     * Scans the given file using all available scanner services and returns all issues found.
-     *
-     * @param problemHelper - The {@link ProblemHelper}
-     * @return a list of {@link ScanIssue}
-     */
-    public static List<ScanIssue> scanFileAndGetAllIssues(ProblemHelper problemHelper) {
-        List<ScanResult<?>> allScanResults = problemHelper.getSupportedScanners().stream()
-                .map(scannerService ->
-                        scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath()))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        return allScanResults.stream()
-                .flatMap(scanResult -> scanResult.getIssues().stream())
-                .collect(Collectors.toList());
     }
 }

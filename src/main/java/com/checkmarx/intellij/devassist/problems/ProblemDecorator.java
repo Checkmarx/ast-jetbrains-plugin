@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.devassist.problems;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.Location;
@@ -48,11 +47,11 @@ public class ProblemDecorator {
      * Initializes the mapping from severity levels to highlighter layers.
      */
     private void initSeverityHighlighterLayerMap() {
-        severityHighlighterLayerMap.put(Constants.MALICIOUS_SEVERITY, HighlighterLayer.ERROR);
-        severityHighlighterLayerMap.put(Constants.CRITICAL_SEVERITY, HighlighterLayer.ERROR);
-        severityHighlighterLayerMap.put(Constants.HIGH_SEVERITY, HighlighterLayer.ERROR);
-        severityHighlighterLayerMap.put(Constants.MEDIUM_SEVERITY, HighlighterLayer.WARNING);
-        severityHighlighterLayerMap.put(Constants.LOW_SEVERITY, HighlighterLayer.WEAK_WARNING);
+        severityHighlighterLayerMap.put(SeverityLevel.MALICIOUS.getSeverity(), HighlighterLayer.ERROR);
+        severityHighlighterLayerMap.put(SeverityLevel.CRITICAL.getSeverity(), HighlighterLayer.ERROR);
+        severityHighlighterLayerMap.put(SeverityLevel.HIGH.getSeverity(), HighlighterLayer.ERROR);
+        severityHighlighterLayerMap.put(SeverityLevel.MEDIUM.getSeverity(), HighlighterLayer.WARNING);
+        severityHighlighterLayerMap.put(SeverityLevel.LOW.getSeverity(), HighlighterLayer.WEAK_WARNING);
     }
 
     /**

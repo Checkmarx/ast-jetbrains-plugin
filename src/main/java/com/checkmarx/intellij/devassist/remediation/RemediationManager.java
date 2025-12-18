@@ -5,6 +5,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.remediation.prompts.CxOneAssistFixPrompts;
 import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
@@ -12,12 +13,15 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Objects;
+
+import static com.checkmarx.intellij.Constants.RealTimeConstants.QUICK_FIX;
 import static java.lang.String.format;
 
 /**
  * RemediationManager provides remediation options for issues identified during a real-time scan.
  * <p>
- * This class supports applying fixes, viewing details etc for scan issues detected by different scan engines,
+ * This class supports applying fixes, viewing details etc. for scan issues detected by different scan engines,
  * such as OSS, ASCA, etc. It interacts with IntelliJ IDEA's project context and uses utility classes
  * for logging, clipboard operations, and prompt generation.
  * <p>
@@ -39,7 +43,7 @@ public final class RemediationManager {
      * @param project   the project where the fix is to be applied
      * @param scanIssue the scan issue to fix
      */
-    public void fixWithCxOneAssist(@NotNull Project project, @NotNull ScanIssue scanIssue) {
+    public void fixWithCxOneAssist(@NotNull Project project, @NotNull ScanIssue scanIssue, String actionId) {
         switch (scanIssue.getScanEngine()) {
             case OSS:
                 applyOSSRemediation(project, scanIssue);
@@ -51,7 +55,7 @@ public final class RemediationManager {
                 applyContainerRemediation(project, scanIssue);
                 break;
             case IAC:
-                applyIACRemediation(project, scanIssue);
+                applyIACRemediation(project, scanIssue, actionId);
                 break;
             case ASCA:
                 applyASCARemediation(project, scanIssue);
@@ -67,7 +71,7 @@ public final class RemediationManager {
      * @param project   the project where the fix is to be applied
      * @param scanIssue the scan issue to view details for
      */
-    public void viewDetails(@NotNull Project project, @NotNull ScanIssue scanIssue) {
+    public void viewDetails(@NotNull Project project, @NotNull ScanIssue scanIssue, String actionId) {
         switch (scanIssue.getScanEngine()) {
             case OSS:
                 explainOSSDetails(project, scanIssue);
@@ -79,7 +83,7 @@ public final class RemediationManager {
                 explainContainerDetails(project, scanIssue);
                 break;
             case IAC:
-                explainIACDetails(project, scanIssue);
+                explainIACDetails(project, scanIssue, actionId);
                 break;
             case ASCA:
                 explainASCADetails(project, scanIssue);
@@ -140,15 +144,31 @@ public final class RemediationManager {
     /**
      * Applies remediation for a IAC issue.
      */
-    private void applyIACRemediation(Project project, ScanIssue scanIssue) {
+    private void applyIACRemediation(Project project, ScanIssue scanIssue, String actionId) {
+        if (Objects.isNull(actionId) || actionId.isEmpty()) {
+            LOGGER.warn(format("RTS-Fix: Remediation failed. Action id is not found for IAC issue: %s.", scanIssue.getTitle()));
+            return;
+        }
+        Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
+                actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
+
+        if (Objects.isNull(vulnerability)) {
+            LOGGER.warn(format("RTS-Fix: Remediation failed. Vulnerability details not found for IAC issue: %s.", actionId));
+            return;
+        }
+
         LOGGER.info(format("RTS-Fix: Remediation started for file: %s for IAC issue: %s",
-                scanIssue.getFilePath(), scanIssue.getTitle()));
-        String prompt = CxOneAssistFixPrompts.buildIACRemediationPrompt(scanIssue.getTitle(),
-                scanIssue.getDescription(),
-                scanIssue.getSeverity(),
+                scanIssue.getFilePath(), actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle()));
+
+        String prompt = CxOneAssistFixPrompts.buildIACRemediationPrompt(
+                actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),
                 scanIssue.getFileType(),
-                "", "",
-                scanIssue.getProblematicLineNumber());
+                vulnerability.getExpectedValue(),
+                vulnerability.getActualValue(),
+                scanIssue.getProblematicLineNumber()
+        );
         if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for IAC issue: %s",
@@ -238,12 +258,29 @@ public final class RemediationManager {
      * @param project   the project where the fix is to be applied
      * @param scanIssue the scan issue to view details for
      */
-    private void explainIACDetails(Project project, ScanIssue scanIssue) {
-        LOGGER.info(format("RTS-Fix: Viewing details for file: %s for IAC issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
-        String prompt = ViewDetailsPrompts.buildIACExplanationPrompt(scanIssue.getTitle(),
-                scanIssue.getDescription(),
-                scanIssue.getSeverity(),
-                "", "", "");
+    private void explainIACDetails(Project project, ScanIssue scanIssue, String actionId) {
+        if (Objects.isNull(actionId) || actionId.isEmpty()) {
+            LOGGER.warn(format("RTS-Fix: Explain IAC issue failed. Action id is not found for IAC issue: %s.", scanIssue.getTitle()));
+            return;
+        }
+        Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
+                actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
+
+        if (Objects.isNull(vulnerability)) {
+            LOGGER.warn(format("RTS-Fix: Explain IAC issue failed. Vulnerability details not found for IAC issue: %s.", actionId));
+            return;
+        }
+        LOGGER.info(format("RTS-Fix: Viewing details for file: %s for IAC issue is started: %s",
+                scanIssue.getFilePath(), actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle()));
+
+        String prompt = ViewDetailsPrompts.buildIACExplanationPrompt(
+                actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),
+                scanIssue.getFileType(),
+                vulnerability.getExpectedValue(),
+                vulnerability.getActualValue()
+        );
         if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for IAC issue: %s",

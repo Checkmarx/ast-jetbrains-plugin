@@ -4,7 +4,6 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
-import com.checkmarx.intellij.devassist.scanners.oss.OssScannerService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
@@ -30,9 +29,6 @@ public class ProblemDescription {
 
     private static final Map<String, String> DESCRIPTION_ICON = new LinkedHashMap<>();
     private static final Logger LOGGER = Utils.getLogger(ProblemDescription.class);
-
-    private static final String DIV = "<div>";
-    private static final String DIV_BR = "</div><br>";
 
     private static final String COUNT = "COUNT";
     private static final String PACKAGE = "Package";
@@ -70,6 +66,7 @@ public class ProblemDescription {
      * Reloads the mapping from severity levels to severity-specific icons.
      */
     public static void reloadIcons() {
+        LOGGER.info("Reloading icons on theme change.");
         initIconsMap();
     }
 
@@ -111,8 +108,8 @@ public class ProblemDescription {
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
-        if(scanIssue.getScanEngine()!= ScanEngine.IAC){
-            buildRemediationActionsSection(descBuilder, scanIssue.getTitle());
+        if (scanIssue.getScanEngine() != ScanEngine.IAC) {
+            buildRemediationActionsSection(descBuilder, scanIssue.getScanIssueId(), scanIssue.getScanEngine().name());
         }
         descBuilder.append("</body></html>");
         return descBuilder.toString();
@@ -132,7 +129,9 @@ public class ProblemDescription {
         buildVulnerabilitySection(descBuilder, scanIssue);
     }
 
-    /** Container description (image header + vulnerability counts). */
+    /**
+     * Container description (image header + vulnerability counts).
+     */
     private void buildContainerDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         buildImageHeader(descBuilder, scanIssue);
         buildVulnerabilitySection(descBuilder, scanIssue);
@@ -140,12 +139,12 @@ public class ProblemDescription {
 
 
     private void buildIACDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-        for(Vulnerability vulnerability : scanIssue.getVulnerabilities()) {
+        for (Vulnerability vulnerability : scanIssue.getVulnerabilities()) {
             String severityIcon = getStyledImage(vulnerability.getSeverity(), ICON_INLINE_STYLE);
             descBuilder.append(TABLE_WITH_TR)
-                .append("<td style='width:20px;padding:0 6px 0 0;vertical-align:middle;'>")
-                .append(severityIcon)
-                .append("</td>");
+                    .append("<td style='width:20px;padding:0 6px 0 0;vertical-align:middle;'>")
+                    .append(severityIcon)
+                    .append("</td>");
             descBuilder.append("<td style='padding:0 6px 0 6px;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
                     .append(CELL_LINE_HEIGHT_STYLE).append("'>")
                     .append("<div style='display:flex;flex-direction:row;align-items:center;gap:6px;'>")
@@ -156,7 +155,7 @@ public class ProblemDescription {
                     .append("<span style='").append(SECONDARY_SPAN_STYLE).append("'>")
                     .append(" IaC vulnerability")
                     .append("</div></td></tr></table><br>");
-            buildRemediationActionsSection(descBuilder, vulnerability.getTitle());
+            buildRemediationActionsSection(descBuilder, vulnerability.getVulnerabilityId(), scanIssue.getScanEngine().name());
         }
     }
 
@@ -209,7 +208,6 @@ public class ProblemDescription {
     }
 
 
-
     /**
      * Builds the default description for a scan issue and appends it to the provided StringBuilder.
      * This method formats basic details about the scan issue, including its title and description.
@@ -217,7 +215,9 @@ public class ProblemDescription {
      * @param descBuilder the StringBuilder to which the formatted default description will be appended
      * @param scanIssue   the ScanIssue object containing details about the issue such as title and description
      */
-    /** Default fallback description. */
+    /**
+     * Default fallback description.
+     */
     private void buildDefaultDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         descBuilder.append("<div><b>").append(scanIssue.getTitle()).append("</b> -").append(scanIssue.getDescription());
     }
@@ -252,7 +252,9 @@ public class ProblemDescription {
                 .append("</span></p></td></tr></table>");
     }
 
-    /** Container image header. */
+    /**
+     * Container image header.
+     */
     private void buildImageHeader(StringBuilder descBuilder, ScanIssue scanIssue) {
         String icon = getStyledImage(CONTAINER, ICON_INLINE_STYLE);
 
@@ -370,18 +372,17 @@ public class ProblemDescription {
      * Builds the remediation actions section of the description.
      *
      * @param descBuilder {@link StringBuilder} object to add the remediation actions section to.
-     * @param scanIssueTitle   {@link String} object containing the remediation actions section data.
+     * @param scanIssueId {@link String} object containing the remediation actions section data.
      */
-    private void buildRemediationActionsSection(StringBuilder descBuilder, String scanIssueTitle) {
-        String encodedTitle = DevAssistUtils.encodeBase64(scanIssueTitle);
+    private void buildRemediationActionsSection(StringBuilder descBuilder, String scanIssueId, String engineName) {
         descBuilder.append(TABLE_WITH_TR)
                 .append("<td>")
-                .append("<a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(encodedTitle).append("\" ")
+                .append("<a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
                 .append(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST)
                 .append("</a></td>")
                 .append("<td style='padding: 5px;'>")
-                .append("<a href=\"#cxonedevassist/viewdetails").append(SEPERATOR).append(encodedTitle).append("\" ")
+                .append("<a href=\"#cxonedevassist/viewdetails").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
                 .append(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME)
                 .append("</a></td>")

@@ -1,12 +1,12 @@
 package com.checkmarx.intellij.devassist.scanners.secrets;
 
-import com.checkmarx.intellij.devassist.common.ScanResult;
-import com.checkmarx.ast.secretsrealtime.SecretsRealtimeResults;
 import com.checkmarx.ast.realtime.RealtimeLocation;
+import com.checkmarx.ast.secretsrealtime.SecretsRealtimeResults;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 
 import java.util.Collections;
@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
  */
 public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResults> {
     private final SecretsRealtimeResults secretsRealtimeResults;
+    private final List<ScanIssue> scanIssues;
 
     /**
      * Constructs an instance of {@code SecretsScanResultAdaptor} with the specified Secrets real-time results.
@@ -31,6 +32,7 @@ public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResul
      */
     public SecretsScanResultAdaptor(SecretsRealtimeResults secretsRealtimeResults) {
         this.secretsRealtimeResults = secretsRealtimeResults;
+        this.scanIssues = buildIssues();
     }
 
     /**
@@ -45,6 +47,16 @@ public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResul
 
     /**
      * Retrieves a list of scan issues discovered in the Secrets real-time scan.
+     *
+     * @return a list of {@code ScanIssue} objects representing the secrets found during the scan,
+     */
+    @Override
+    public List<ScanIssue> getIssues() {
+        return scanIssues;
+    }
+
+    /**
+     * Retrieves a list of scan issues discovered in the Secrets real-time scan.
      * This method processes the secrets obtained from the scan results,
      * converts them into standardized scan issues, and returns the list.
      * If no secrets are found, an empty list is returned.
@@ -52,8 +64,7 @@ public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResul
      * @return a list of {@code ScanIssue} objects representing the secrets found during the scan,
      * or an empty list if no secrets are detected.
      */
-    @Override
-    public List<ScanIssue> getIssues() {
+    public List<ScanIssue> buildIssues() {
         if (Objects.isNull(getResults())) {
             return Collections.emptyList();
         }
@@ -72,7 +83,7 @@ public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResul
      * Creates a {@code ScanIssue} object based on the provided secret result.
      * The method processes the secret details and converts them into a structured format to
      * represent a scan issue.
-     *
+     * <p>
      * Creates a {@code ScanIssue} object based on the provided secret result.
      *
      * @param secret the secret result containing information about the detected secret,
@@ -100,8 +111,10 @@ public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResul
         vulnerability.setTitle(secret.getTitle());
         vulnerability.setDescription(secret.getDescription());
         vulnerability.setSeverity(secret.getSeverity());
-        scanIssue.getVulnerabilities().add(vulnerability);
 
+        scanIssue.getVulnerabilities().add(vulnerability);
+        scanIssue.setScanIssueId(DevAssistUtils.generateUniqueId(scanIssue.getLocations().get(0).getLine(),
+                scanIssue.getTitle(), scanIssue.getDescription()));
         return scanIssue;
     }
 
@@ -109,8 +122,6 @@ public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResul
      * Creates a {@code Location} object based on the provided location information.
      * This method extracts the line, start index, and end index from the given
      * location and constructs a new {@code Location} instance.
-     *
-     * TODO: Implement this method when the actual location type is available
      *
      * @param location the location containing details such as line,
      *                 start index, and end index for the location.

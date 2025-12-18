@@ -4,6 +4,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.notification.NotificationType;
@@ -31,7 +32,6 @@ import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 import static java.lang.String.format;
 
@@ -70,8 +70,8 @@ public class DevAssistUtils {
     }
 
 
-    public static String getContainerTool(){
-       return GlobalSettingsState.getInstance().getContainersTool();
+    public static String getContainerTool() {
+        return GlobalSettingsState.getInstance().getContainersTool();
     }
 
     /**
@@ -251,10 +251,12 @@ public class DevAssistUtils {
     public static boolean copyToClipboardWithNotification(@NotNull String textToCopy, String notificationTitle,
                                                           String notificationContent, Project project) {
         try {
-            CopyPasteManager.getInstance().setContents(new StringSelection(textToCopy));
-            Utils.showNotification(notificationTitle, notificationContent,
-                    NotificationType.INFORMATION,
-                    project);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                CopyPasteManager.getInstance().setContents(new StringSelection(textToCopy));
+                Utils.showNotification(notificationTitle, notificationContent,
+                        NotificationType.INFORMATION,
+                        project);
+            });
             return true;
         } catch (Exception exception) {
             LOGGER.debug("Failed to copy text to clipboard: ", exception);
@@ -285,8 +287,10 @@ public class DevAssistUtils {
      *
      * @return a unique id
      */
-    public static String generateUniqueId() {
-        return UUID.randomUUID().toString();
+    public static String generateUniqueId(int line, String title, String description) {
+        //return UUID.randomUUID().toString();
+        String input = line + title + description;
+        return DevAssistUtils.encodeBase64(input);
     }
 
     public static boolean isDockerComposeFile(@NotNull String filePath) {
@@ -321,15 +325,6 @@ public class DevAssistUtils {
     }
 
     /**
-     * Decode the Base64 encoded string.
-     *
-     * @param input Base64 encoded string
-     * @return Decoded string
-     */
-    public static String decodeBase64(String input) {
-        return new String(Base64.getDecoder().decode(input));
-    }
-    /**
      * Determines the severity of an issue based on precedence by comparing the given severity
      * level with the severities of issues in the provided list. It returns the least severe
      * level that has a higher precedence than the provided severity.
@@ -348,5 +343,23 @@ public class DevAssistUtils {
                 .min(Comparator.comparingInt(SeverityLevel::getPrecedence))
                 .map(SeverityLevel::getSeverity)
                 .orElse(severity);
+    }
+
+    /**
+     * Returns the vulnerability details for the given vulnerability id.
+     *
+     * @param scanIssue       scan issue containing vulnerabilities details
+     * @param vulnerabilityId - vulnerability id
+     * @return Vulnerability - vulnerability details
+     */
+    public static Vulnerability getVulnerabilityDetails(ScanIssue scanIssue, String vulnerabilityId) {
+        if (Objects.isNull(scanIssue.getVulnerabilities()) || scanIssue.getVulnerabilities().isEmpty()) {
+            LOGGER.warn(format("RTS-Fix: No vulnerabilities found for IAC scan issue: %s", scanIssue.getScanIssueId()));
+            return null;
+        }
+        return scanIssue.getVulnerabilities().stream()
+                .filter(vulnerability -> vulnerability.getVulnerabilityId().equals(vulnerabilityId))
+                .findFirst()
+                .orElse(null);
     }
 }

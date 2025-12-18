@@ -8,6 +8,7 @@ import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 
 import java.util.Collections;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
  */
 public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
     private final OssRealtimeResults ossRealtimeResults;
+    private final List<ScanIssue> scanIssues;
 
     /**
      * Constructs an instance of {@code OssScanResultAdaptor} with the specified OSS real-time results.
@@ -32,6 +34,7 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
      */
     public OssScanResultAdaptor(OssRealtimeResults ossRealtimeResults) {
         this.ossRealtimeResults = ossRealtimeResults;
+        this.scanIssues = buildIssues();
     }
 
     /**
@@ -44,6 +47,17 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
         return ossRealtimeResults;
     }
 
+
+    /**
+     * Retrieves a list of scan issues discovered in the OSS real-time scan.
+     *
+     * @return a list of {@code ScanIssue} objects representing the vulnerabilities found during the scan,
+     */
+    @Override
+    public List<ScanIssue> getIssues() {
+        return scanIssues;
+    }
+
     /**
      * Retrieves a list of scan issues discovered in the OSS real-time scan.
      * This method processes the packages obtained from the scan results,
@@ -53,8 +67,7 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
      * @return a list of {@code ScanIssue} objects representing the vulnerabilities found during the scan,
      * or an empty list if no vulnerabilities are detected.
      */
-    @Override
-    public List<ScanIssue> getIssues() {
+    private List<ScanIssue> buildIssues() {
         List<OssRealtimeScanPackage> packages = Objects.nonNull(getResults()) ? getResults().getPackages() : null;
         if (Objects.isNull(packages) || packages.isEmpty()) {
             return Collections.emptyList();
@@ -92,6 +105,8 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
             packageObj.getVulnerabilities().forEach(vulnerability ->
                     scanIssue.getVulnerabilities().add(createVulnerability(vulnerability)));
         }
+        scanIssue.setScanIssueId(DevAssistUtils.generateUniqueId(scanIssue.getLocations().get(0).getLine(),
+                scanIssue.getTitle(), scanIssue.getPackageVersion()));
         return scanIssue;
     }
 
@@ -101,18 +116,18 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
      * from the provided {@code OssRealtimeVulnerability} object and uses it to construct a new
      * {@code Vulnerability}.
      *
-     * @param vulnerability the {@code OssRealtimeVulnerability} object containing details of the vulnerability
-     *                      identified during the real-time scan, including ID, description, severity,
-     *                      and fix version
+     * @param vulnerabilityObj the {@code OssRealtimeVulnerability} object containing details of the vulnerability
+     *                         identified during the real-time scan, including ID, description, severity,
+     *                         and fix version
      * @return a new {@code Vulnerability} instance encapsulating the details from the given {@code OssRealtimeVulnerability}
      */
     private Vulnerability createVulnerability(OssRealtimeVulnerability vulnerabilityObj) {
-        Vulnerability vulnerability= new Vulnerability();
+        Vulnerability vulnerability = new Vulnerability();
         vulnerability.setCve(vulnerabilityObj.getCve());
         vulnerability.setDescription(vulnerabilityObj.getDescription());
         vulnerability.setSeverity(vulnerabilityObj.getSeverity());
         vulnerability.setFixVersion(vulnerabilityObj.getFixVersion());
-         return vulnerability;
+        return vulnerability;
     }
 
     /**

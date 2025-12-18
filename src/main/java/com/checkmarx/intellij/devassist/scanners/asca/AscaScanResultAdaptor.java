@@ -1,12 +1,14 @@
 package com.checkmarx.intellij.devassist.scanners.asca;
 
-import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.ast.asca.ScanDetail;
+import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.Collections;
@@ -24,17 +26,19 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
     private static final Logger LOGGER = Utils.getLogger(AscaScanResultAdaptor.class);
     private final ScanResult ascaScanResult;
     private final String filePath;
+    private final List<ScanIssue> scanIssues;
 
     /**
      * Constructs an instance of {@code AscaScanResultAdaptor} with the specified ASCA scan results.
      * This adapter allows conversion and processing of ASCA scan results into a standardized format.
      *
      * @param ascaScanResult the ASCA scan results to be wrapped by this adapter
-     * @param filePath the path of the file being scanned (needed for UI display)
+     * @param filePath       the path of the file being scanned (needed for UI display)
      */
     public AscaScanResultAdaptor(ScanResult ascaScanResult, String filePath) {
         this.ascaScanResult = ascaScanResult;
         this.filePath = filePath;
+        this.scanIssues = buildIssues();
     }
 
     /**
@@ -57,6 +61,15 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
      */
     @Override
     public List<ScanIssue> getIssues() {
+        return scanIssues;
+    }
+
+    /**
+     * Builds a list of ScanIssue objects from the ASCA scan results.
+     *
+     * @return a list of ScanIssue objects
+     */
+    private List<ScanIssue> buildIssues() {
         if (ascaScanResult == null || ascaScanResult.getScanDetails() == null) {
             LOGGER.debug("ASCA adaptor: No scan results or scan details available");
             return Collections.emptyList();
@@ -84,8 +97,8 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
             String mappedSeverity = mapSeverity(originalSeverity);
 
             LOGGER.debug("ASCA adaptor: Converting scan detail - Rule: " + scanDetail.getRuleName() +
-                        ", Original Severity: " + originalSeverity + ", Mapped Severity: " + mappedSeverity +
-                        ", Line: " + scanDetail.getLine());
+                    ", Original Severity: " + originalSeverity + ", Mapped Severity: " + mappedSeverity +
+                    ", Line: " + scanDetail.getLine());
 
             ScanIssue issue = new ScanIssue();
 
@@ -99,8 +112,8 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
 
             // Create vulnerability with ASCA-specific information - properly populate all fields
             Vulnerability vulnerability = new Vulnerability();
-            vulnerability.setCve( scanDetail.getRuleName());
-            vulnerability.setId(scanDetail.getRuleName());
+            vulnerability.setCve(scanDetail.getRuleName());
+            vulnerability.setVulnerabilityId(scanDetail.getRuleName());
             vulnerability.setDescription(scanDetail.getDescription());
             vulnerability.setSeverity(mappedSeverity);
             vulnerability.setRemediationAdvise(scanDetail.getRemediationAdvise());
@@ -112,8 +125,11 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
             location.setLine(scanDetail.getLine());
             issue.getLocations().add(location);
 
+            issue.setProblematicLineNumber(location.getLine());
+            issue.setScanIssueId(DevAssistUtils.generateUniqueId(location.getLine(), issue.getTitle(), issue.getDescription()));
+
             LOGGER.debug("ASCA adaptor: Successfully created ScanIssue for " + scanDetail.getRuleName() +
-                        " with severity " + mappedSeverity);
+                    " with severity " + mappedSeverity);
             return issue;
         } catch (Exception e) {
             LOGGER.warn("ASCA adaptor: Failed to convert scan detail to ScanIssue", e);
@@ -129,23 +145,14 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
      */
     private String mapSeverity(String ascaSeverity) {
         if (ascaSeverity == null) {
-            return "Medium";
+            return SeverityLevel.MEDIUM.getSeverity();
+        } else if (ascaSeverity.equalsIgnoreCase("info")) {
+            return SeverityLevel.LOW.getSeverity(); // Map info to Low for icon display
         }
-
-        String severity = ascaSeverity.toLowerCase();
-        switch (severity) {
-            case "critical":
-                return "Critical";
-            case "high":
-                return "High";
-            case "medium":
-                return "Medium";
-            case "low":
-                return "Low";
-            case "info":
-                return "Low"; // Map info to Low for icon display
-            default:
-                return "Medium";
-        }
+        // retrieve the severity from enum to ensure valid severity levels
+        SeverityLevel severityLevel = SeverityLevel.fromValue(ascaSeverity.toLowerCase()); // Validate severity
+        return severityLevel == SeverityLevel.UNKNOWN
+                ? SeverityLevel.MEDIUM.getSeverity()
+                : severityLevel.getSeverity();
     }
 }
