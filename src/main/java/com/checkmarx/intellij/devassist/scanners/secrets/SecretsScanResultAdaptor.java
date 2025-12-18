@@ -96,13 +96,10 @@ public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResul
         }
 
         // Create vulnerability with secret details
-        Vulnerability vulnerability = new Vulnerability(
-            secret.getTitle(),
-            secret.getDescription(),
-            secret.getSeverity(),
-            secret.getSecretValue(), // Using secretValue as the ID/reference
-            "" // No fix version for secrets
-        );
+        Vulnerability vulnerability = new Vulnerability();
+        vulnerability.setTitle(secret.getTitle());
+        vulnerability.setDescription(secret.getDescription());
+        vulnerability.setSeverity(secret.getSeverity());
         scanIssue.getVulnerabilities().add(vulnerability);
 
         return scanIssue;

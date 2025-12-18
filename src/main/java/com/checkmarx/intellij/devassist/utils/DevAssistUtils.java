@@ -69,6 +69,11 @@ public class DevAssistUtils {
         return false;
     }
 
+
+    public static String getContainerTool(){
+       return GlobalSettingsState.getInstance().getContainersTool();
+    }
+
     /**
      * Checks if any scanner is enabled.
      *

@@ -1,10 +1,14 @@
 package com.checkmarx.intellij.devassist.ui;
 
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.scanners.oss.OssScannerService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
+import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -25,6 +29,10 @@ import static com.checkmarx.intellij.devassist.ui.ProblemDescription.InlineStyle
 public class ProblemDescription {
 
     private static final Map<String, String> DESCRIPTION_ICON = new LinkedHashMap<>();
+    private static final Logger LOGGER = Utils.getLogger(ProblemDescription.class);
+
+    private static final String DIV = "<div>";
+    private static final String DIV_BR = "</div><br>";
 
     private static final String COUNT = "COUNT";
     private static final String PACKAGE = "Package";
@@ -94,13 +102,18 @@ public class ProblemDescription {
             case SECRETS:
                 buildSecretsDescription(descBuilder, scanIssue);
                 break;
+            case IAC:
+                buildIACDescription(descBuilder, scanIssue);
+                break;
             case CONTAINERS:
                 buildContainerDescription(descBuilder, scanIssue);
                 break;
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
-        buildRemediationActionsSection(descBuilder, scanIssue);
+        if(scanIssue.getScanEngine()!= ScanEngine.IAC){
+            buildRemediationActionsSection(descBuilder, scanIssue.getTitle());
+        }
         descBuilder.append("</body></html>");
         return descBuilder.toString();
     }
@@ -124,6 +137,29 @@ public class ProblemDescription {
         buildImageHeader(descBuilder, scanIssue);
         buildVulnerabilitySection(descBuilder, scanIssue);
     }
+
+
+    private void buildIACDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
+        for(Vulnerability vulnerability : scanIssue.getVulnerabilities()) {
+            String severityIcon = getStyledImage(vulnerability.getSeverity(), ICON_INLINE_STYLE);
+            descBuilder.append(TABLE_WITH_TR)
+                .append("<td style='width:20px;padding:0 6px 0 0;vertical-align:middle;'>")
+                .append(severityIcon)
+                .append("</td>");
+            descBuilder.append("<td style='padding:0 6px 0 6px;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
+                    .append(CELL_LINE_HEIGHT_STYLE).append("'>")
+                    .append("<div style='display:flex;flex-direction:row;align-items:center;gap:6px;'>")
+                    .append("<p style=\"").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("\">")
+                    .append("<b>").append(escapeHtml(vulnerability.getTitle()))
+                    .append(" - ")
+                    .append(escapeHtml(vulnerability.getDescription())).append("</b>")
+                    .append("<span style='").append(SECONDARY_SPAN_STYLE).append("'>")
+                    .append(" IaC vulnerability")
+                    .append("</div></td></tr></table><br>");
+            buildRemediationActionsSection(descBuilder, vulnerability.getTitle());
+        }
+    }
+
 
     /**
      * Secrets description.
@@ -162,6 +198,25 @@ public class ProblemDescription {
                 .append("</p></td></tr></table>");
     }
 
+    /**
+     * Returns the icon path for the specified key.
+     *
+     * @param key the key for the icon path
+     * @return the icon path
+     */
+    private String getIcon(String key) {
+        return DESCRIPTION_ICON.getOrDefault(key, "");
+    }
+
+
+
+    /**
+     * Builds the default description for a scan issue and appends it to the provided StringBuilder.
+     * This method formats basic details about the scan issue, including its title and description.
+     *
+     * @param descBuilder the StringBuilder to which the formatted default description will be appended
+     * @param scanIssue   the ScanIssue object containing details about the issue such as title and description
+     */
     /** Default fallback description. */
     private void buildDefaultDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         descBuilder.append("<div><b>").append(scanIssue.getTitle()).append("</b> -").append(scanIssue.getDescription());
@@ -315,10 +370,10 @@ public class ProblemDescription {
      * Builds the remediation actions section of the description.
      *
      * @param descBuilder {@link StringBuilder} object to add the remediation actions section to.
-     * @param scanIssue   {@link ScanIssue} object containing the remediation actions section data.
+     * @param scanIssueTitle   {@link String} object containing the remediation actions section data.
      */
-    private void buildRemediationActionsSection(StringBuilder descBuilder, ScanIssue scanIssue) {
-        String encodedTitle = DevAssistUtils.encodeBase64(scanIssue.getTitle());
+    private void buildRemediationActionsSection(StringBuilder descBuilder, String scanIssueTitle) {
+        String encodedTitle = DevAssistUtils.encodeBase64(scanIssueTitle);
         descBuilder.append(TABLE_WITH_TR)
                 .append("<td>")
                 .append("<a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(encodedTitle).append("\" ")

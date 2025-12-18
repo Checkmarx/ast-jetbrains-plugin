@@ -98,13 +98,13 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
             issue.setFilePath(this.filePath);
 
             // Create vulnerability with ASCA-specific information - properly populate all fields
-            Vulnerability vulnerability = new Vulnerability(
-                scanDetail.getRuleName(), // Use rule name as CVE/ID
-                scanDetail.getDescription(),
-                mappedSeverity,
-                scanDetail.getRemediationAdvise(),
-                "" // No fix version for ASCA
-            );
+            Vulnerability vulnerability = new Vulnerability();
+            vulnerability.setCve( scanDetail.getRuleName());
+            vulnerability.setId(scanDetail.getRuleName());
+            vulnerability.setDescription(scanDetail.getDescription());
+            vulnerability.setSeverity(mappedSeverity);
+            vulnerability.setRemediationAdvise(scanDetail.getRemediationAdvise());
+
             issue.getVulnerabilities().add(vulnerability);
 
             // Create location information
