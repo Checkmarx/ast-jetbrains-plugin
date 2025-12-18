@@ -7,11 +7,10 @@ import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.checkmarx.intellij.util.SeverityLevel;
 import org.jetbrains.annotations.NotNull;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
@@ -54,10 +53,13 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
                 .collect(Collectors.groupingBy(entry -> {
                     RealtimeLocation loc = entry.location;
                     return entry.issue.getFilePath() + ":" + loc.getLine() + ":" + loc.getStartIndex() + ":" + loc.getEndIndex();
-                }));
+                },Collectors.collectingAndThen(Collectors.toList(),entries->{
+                    entries.sort(Comparator.comparingInt(e-> SeverityLevel.fromValue(e.issue.getSeverity()).getPrecedence()));
+                    return entries;
+                })));
 
       return groupedIssues.values().stream().map(this::createScanIssue).collect(Collectors.toList());
-      // return iacIssuesList.stream().map(this::createScanIssue).collect(Collectors.toList());
+
     }
 
     private ScanIssue createScanIssue(List<IssueLocationEntry> iacScanIssue) {
