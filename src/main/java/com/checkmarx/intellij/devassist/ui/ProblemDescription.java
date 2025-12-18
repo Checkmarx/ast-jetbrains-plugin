@@ -86,7 +86,6 @@ public class ProblemDescription {
      */
     public String formatDescription(ScanIssue scanIssue) {
         StringBuilder descBuilder = new StringBuilder();
-
         // DevAssist image
         descBuilder.append("<html><body>");
         descBuilder.append(TABLE_WITH_TR).append("<td style='padding:0 6px 0 0;vertical-align:middle;'>")
@@ -143,19 +142,20 @@ public class ProblemDescription {
         for(Vulnerability vulnerability : scanIssue.getVulnerabilities()) {
             String severityIcon = getStyledImage(vulnerability.getSeverity(), ICON_INLINE_STYLE);
             descBuilder.append(TABLE_WITH_TR)
-                .append("<td style='width:20px;padding:0 6px 0 0;vertical-align:middle;'>")
+                .append("<td style='width:15px;padding:0 6px 0 0;vertical-align:middle;'>")
                 .append(severityIcon)
                 .append("</td>");
-            descBuilder.append("<td style='padding:0 6px 0 6px;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
+            descBuilder.append("<td style='padding:0 6px 0 6px;max-width:335px;overflow-wrap:break-word;word-break:break-word;white-space:normal;")
+                    .append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
                     .append(CELL_LINE_HEIGHT_STYLE).append("'>")
-                    .append("<div style='display:flex;flex-direction:row;align-items:center;gap:6px;'>")
-                    .append("<p style=\"").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("\">")
+                    .append("<p style=\"margin:0;max-width:335px;overflow-wrap:break-word;word-break:break-word;white-space:normal;")
+                    .append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("\">")
                     .append("<b>").append(escapeHtml(vulnerability.getTitle()))
                     .append(" - ")
                     .append(escapeHtml(vulnerability.getDescription())).append("</b>")
                     .append("<span style='").append(SECONDARY_SPAN_STYLE).append("'>")
                     .append(" IaC vulnerability")
-                    .append("</div></td></tr></table><br>");
+                    .append("</span></p></td></tr></table><br>");
             buildRemediationActionsSection(descBuilder, vulnerability.getTitle());
         }
     }
@@ -186,7 +186,6 @@ public class ProblemDescription {
      */
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         String icon = getStyledImage(scanIssue.getSeverity(), ICON_INLINE_STYLE);
-
         descBuilder.append(TABLE_WITH_TR)
                 .append("<td style='padding:0 6px 0 0;vertical-align:middle;'>").append(icon).append("</td>")
                 .append("<td style='padding:0 2px 0 2px;")
@@ -406,7 +405,7 @@ public class ProblemDescription {
         private InlineStyle() {
         }
 
-        static final String TABLE_WITH_TR = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>";
+        static final String TABLE_WITH_TR = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;max-width:350px;table-layout:fixed;'><tr>";
         static final String TITLE_FONT_FAMILY = "font-family: menlo;";
         static final String TITLE_FONT_SIZE = "font-size:11px;";
         static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";

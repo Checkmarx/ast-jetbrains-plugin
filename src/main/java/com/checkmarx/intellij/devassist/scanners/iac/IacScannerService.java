@@ -31,8 +31,7 @@ import java.util.stream.Collectors;
 public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
 
     private static final Logger LOGGER = Utils.getLogger(IacScannerService.class);
-
-
+    private String fileType;
 
     public  IacScannerService(){
         super(IacScannerService.createConfig());
@@ -61,9 +60,14 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
         List<PathMatcher> pathMatchers = Constants.RealTimeConstants.IAC_SUPPORTED_PATTERNS.stream()
                 .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
                 .collect(Collectors.toList());
-
         for (PathMatcher pathMatcher : pathMatchers) {
             if (pathMatcher.matches(Paths.get(filePath.toLowerCase()))) {
+                if(DevAssistUtils.isDockerFile(filePath.toLowerCase())){
+                    fileType=Constants.RealTimeConstants.DOCKERFILE;
+                }
+                else{
+                    fileType= psiFile.getVirtualFile().getExtension();
+                }
                 return true;
             }
         }
@@ -71,8 +75,11 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
         if (!vFile.exists()) {
             return false;
         }
-        String fileExtension = vFile.getExtension();
-        return Objects.nonNull(fileExtension) && Constants.RealTimeConstants.IAC_FILE_EXTENSIONS.contains(fileExtension.toLowerCase());
+        String extension = vFile.getExtension();
+        if (extension == null) return false;
+        extension = extension.toLowerCase();
+        fileType = extension;
+        return Constants.RealTimeConstants.IAC_FILE_EXTENSIONS.contains(extension);
     }
 
     private Pair<Path, Path> createSubFolderAndSaveFile(Path tempSubFolder, String relativePath, PsiFile psiFile) throws IOException {
@@ -132,15 +139,14 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start IAC Realtime Scan On File: " + uri);
                 IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(),"");
-                LOGGER.info("ScanResults:"+scanResults);
-                return new IacScanResultAdaptor(scanResults);
+                return new IacScanResultAdaptor(scanResults,fileType);
             }
         }
         catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);
         }
         finally {
-            LOGGER.info("Deleting temporary folder");
+            LOGGER.debug("Deleting temporary folder");
             if (Objects.nonNull(saveResult)) {
                 deleteTempFolder(saveResult.getRight());
             }

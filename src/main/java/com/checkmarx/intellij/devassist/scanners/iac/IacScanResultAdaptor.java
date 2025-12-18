@@ -2,6 +2,7 @@ package com.checkmarx.intellij.devassist.scanners.iac;
 
 import com.checkmarx.ast.iacrealtime.IacRealtimeResults;
 import com.checkmarx.ast.realtime.RealtimeLocation;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
@@ -28,9 +29,11 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
 
 
     private final IacRealtimeResults iacRealtimeResults;
+    private final String fileType;
 
-    public  IacScanResultAdaptor(IacRealtimeResults iacRealtimeResults) {
+    public  IacScanResultAdaptor(IacRealtimeResults iacRealtimeResults, String fileType) {
         this.iacRealtimeResults = iacRealtimeResults;
+        this.fileType = fileType;
     }
 
     @Override
@@ -73,10 +76,10 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
         return scanIssue;
     }
 
-    private static @NotNull ScanIssue getScanIssue(List<IssueLocationEntry> iacScanIssue) {
+    private @NotNull ScanIssue getScanIssue(List<IssueLocationEntry> iacScanIssue) {
         ScanIssue scanIssue = new ScanIssue();
         if(iacScanIssue.size()>1){
-            scanIssue.setTitle(iacScanIssue.size() +" IAC issues detected on this line");
+            scanIssue.setTitle(iacScanIssue.size() + Constants.RealTimeConstants.MULTIPLE_IAC_ISSUES);
         }
         else{
             scanIssue.setTitle(iacScanIssue.get(0).issue.getTitle());
@@ -85,6 +88,7 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
         scanIssue.setSeverity(iacScanIssue.get(0).issue.getSeverity());
         scanIssue.setFilePath(iacScanIssue.get(0).issue.getFilePath());
         scanIssue.setScanEngine(ScanEngine.IAC);
+        scanIssue.setFileType(this.fileType);
         return scanIssue;
     }
 

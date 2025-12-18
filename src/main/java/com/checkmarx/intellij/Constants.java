@@ -214,9 +214,9 @@ public final class Constants {
                 "dockerfile"
         );
 
+        public static final String MULTIPLE_IAC_ISSUES = " IAC issues detected on this line";
         public static final List<String>CONTAINER_HELM_EXTENSION= List.of("yml",
                 "yaml");
-
 
         public static final List<String>CONTAINER_HELM_EXCLUDED_FILES= List.of( "chart.yml",
                 "chart.yaml");
