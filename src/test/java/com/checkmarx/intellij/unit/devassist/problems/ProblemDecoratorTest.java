@@ -3,20 +3,21 @@ package com.checkmarx.intellij.unit.devassist.problems;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
-import com.checkmarx.intellij.util.SeverityLevel;
+import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.util.SeverityLevel;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.RangeHighlighter;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.Application;
-import com.intellij.openapi.util.TextRange;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,10 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import javax.swing.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -105,7 +109,7 @@ public class ProblemDecoratorTest {
             FileEditorManager fileMgr = mock(FileEditorManager.class);
             fileEditorManager.when(() -> FileEditorManager.getInstance(project)).thenReturn(fileMgr);
             when(fileMgr.getSelectedTextEditor()).thenReturn(null); // null editor path
-            decorator.highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
+            decorator.highlightLineAddGutterIconForProblem(getProblemHelper(psiFile, project), scanIssue, isProblem, problemLineNumber);
             // Non-null editor but mismatched document
             Editor editor = mock(Editor.class);
             when(fileMgr.getSelectedTextEditor()).thenReturn(editor);
@@ -115,7 +119,7 @@ public class ProblemDecoratorTest {
             PsiDocumentManager psiDocMgr = mock(PsiDocumentManager.class);
             psiDocManager.when(() -> PsiDocumentManager.getInstance(project)).thenReturn(psiDocMgr);
             when(psiDocMgr.getDocument(psiFile)).thenReturn(mock(Document.class)); // different document so early return
-            decorator.highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
+            decorator.highlightLineAddGutterIconForProblem(getProblemHelper(psiFile, project), scanIssue, isProblem, problemLineNumber);
         }
     }
 
@@ -189,12 +193,16 @@ public class ProblemDecoratorTest {
              MockedStatic<PsiDocumentManager> psiDocManager = Mockito.mockStatic(PsiDocumentManager.class);
              MockedStatic<DevAssistUtils> devUtilsMock = Mockito.mockStatic(DevAssistUtils.class)) {
             devUtilsMock.when(() -> DevAssistUtils.getTextRangeForLine(any(Document.class), anyInt()))
-                    .thenReturn(new TextRange(0,1));
+                    .thenReturn(new TextRange(0, 1));
             Application application = mock(Application.class);
             appManager.when(ApplicationManager::getApplication).thenReturn(application);
             Application capturedAppRestore = ApplicationManager.getApplication();
             assertSame(application, capturedAppRestore);
-            doAnswer(inv -> { Runnable r = inv.getArgument(0); r.run(); return null; }).when(application).invokeLater(any(Runnable.class));
+            doAnswer(inv -> {
+                Runnable r = inv.getArgument(0);
+                r.run();
+                return null;
+            }).when(application).invokeLater(any(Runnable.class));
             FileEditorManager fileMgr = mock(FileEditorManager.class);
             fileEditorManager.when(() -> FileEditorManager.getInstance(project)).thenReturn(fileMgr);
             Editor editor = mock(Editor.class);
@@ -267,7 +275,11 @@ public class ProblemDecoratorTest {
             appManager.when(ApplicationManager::getApplication).thenReturn(application);
             Application capturedApp = ApplicationManager.getApplication();
             assertSame(application, capturedApp);
-            doAnswer(inv -> { Runnable r = inv.getArgument(0); r.run(); return null; }).when(application).invokeLater(any(Runnable.class));
+            doAnswer(inv -> {
+                Runnable r = inv.getArgument(0);
+                r.run();
+                return null;
+            }).when(application).invokeLater(any(Runnable.class));
             FileEditorManager fileMgr = mock(FileEditorManager.class);
             fileEditorManager.when(() -> FileEditorManager.getInstance(project)).thenReturn(fileMgr);
             Editor editor = mock(Editor.class);
@@ -311,7 +323,7 @@ public class ProblemDecoratorTest {
             FileEditorManager fileMgr = mock(FileEditorManager.class);
             fileEditorManager.when(() -> FileEditorManager.getInstance(project)).thenReturn(fileMgr);
             when(fileMgr.getSelectedTextEditor()).thenReturn(null); // null editor path
-            decorator.highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
+            decorator.highlightLineAddGutterIconForProblem(getProblemHelper(psiFile, project), scanIssue, isProblem, problemLineNumber);
             // Non-null editor but mismatched document
             Editor editor = mock(Editor.class);
             when(fileMgr.getSelectedTextEditor()).thenReturn(editor);
@@ -321,7 +333,11 @@ public class ProblemDecoratorTest {
             PsiDocumentManager psiDocMgr = mock(PsiDocumentManager.class);
             psiDocManager.when(() -> PsiDocumentManager.getInstance(project)).thenReturn(psiDocMgr);
             when(psiDocMgr.getDocument(psiFile)).thenReturn(mock(Document.class)); // different document so early return
-            decorator.highlightLineAddGutterIconForProblem(project, psiFile, scanIssue, isProblem, problemLineNumber);
+            decorator.highlightLineAddGutterIconForProblem(getProblemHelper(psiFile, project), scanIssue, isProblem, problemLineNumber);
         }
+    }
+
+    private ProblemHelper getProblemHelper(PsiFile psiFile, Project project) {
+        return ProblemHelper.builder(psiFile, project).scanIssueList(Collections.emptyList()).build();
     }
 }
