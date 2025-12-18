@@ -64,8 +64,10 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
 
     private ScanIssue createScanIssue(List<IssueLocationEntry> iacScanIssue) {
         ScanIssue scanIssue = getScanIssue(iacScanIssue);
-        for (IssueLocationEntry entry : iacScanIssue) {
-            scanIssue.getVulnerabilities().add(createVulnerability(entry.issue));
+        for (int i = 0; i < iacScanIssue.size(); i++) {
+            IssueLocationEntry entry = iacScanIssue.get(i);
+            String vulnerabilityId = (i == 0) ? scanIssue.getScanIssueId() : null;
+            scanIssue.getVulnerabilities().add(createVulnerability(entry.issue, vulnerabilityId));
         }
         scanIssue.getLocations().add(createLocation(iacScanIssue.get(0).location));
         return scanIssue;
@@ -86,8 +88,17 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
         return scanIssue;
     }
 
-    private Vulnerability createVulnerability(IacRealtimeResults.Issue vulnerabilityObj) {
-        return new Vulnerability("",vulnerabilityObj.getDescription(),vulnerabilityObj.getSeverity(),"","",vulnerabilityObj.getActualValue(),vulnerabilityObj.getExpectedValue(),vulnerabilityObj.getTitle());
+    private Vulnerability createVulnerability(IacRealtimeResults.Issue vulnerabilityObj, String overrideId) {
+        Vulnerability vulnerability = new Vulnerability();
+        if (overrideId != null && !overrideId.isBlank()) {
+            vulnerability.setId(overrideId);
+        }
+        vulnerability.setDescription(vulnerabilityObj.getDescription());
+        vulnerability.setSeverity(vulnerabilityObj.getSeverity());
+        vulnerability.setActualValue(vulnerabilityObj.getActualValue());
+        vulnerability.setExpectedValue(vulnerabilityObj.getExpectedValue());
+        vulnerability.setTitle(vulnerabilityObj.getTitle());
+        return vulnerability;
     }
 
 

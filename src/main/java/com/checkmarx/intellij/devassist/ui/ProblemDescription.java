@@ -6,6 +6,7 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.scanners.oss.OssScannerService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.diagnostic.Logger;
 
@@ -110,7 +111,9 @@ public class ProblemDescription {
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
-        buildRemediationActionsSection(descBuilder, scanIssue);
+        if(scanIssue.getScanEngine()!= ScanEngine.IAC){
+            buildRemediationActionsSection(descBuilder, scanIssue.getTitle());
+        }
         descBuilder.append("</body></html>");
         return descBuilder.toString();
     }
@@ -137,27 +140,23 @@ public class ProblemDescription {
 
 
     private void buildIACDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-
         for(Vulnerability vulnerability : scanIssue.getVulnerabilities()) {
             String severityIcon = getStyledImage(vulnerability.getSeverity(), ICON_INLINE_STYLE);
             descBuilder.append(TABLE_WITH_TR)
                 .append("<td style='width:20px;padding:0 6px 0 0;vertical-align:middle;'>")
                 .append(severityIcon)
                 .append("</td>");
-            descBuilder.append("<td style='padding:0 8px 0 6px;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
+            descBuilder.append("<td style='padding:0 6px 0 6px;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
                     .append(CELL_LINE_HEIGHT_STYLE).append("'>")
                     .append("<div style='display:flex;flex-direction:row;align-items:center;gap:6px;'>")
                     .append("<p style=\"").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("\">")
                     .append("<b>").append(escapeHtml(vulnerability.getTitle()))
                     .append(" - ")
                     .append(escapeHtml(vulnerability.getDescription())).append("</b>")
-                    .append(" - <span style='").append(SECONDARY_SPAN_STYLE).append("'>")
-                    .append(scanIssue.getScanEngine().name()).append(" vulnerability")
-                    .append("</span></p>")
-                    .append(escapeHtml(vulnerability.getRemediationAdvise()))
-                    .append("<span style='").append(SECONDARY_SPAN_STYLE).append(" margin:0;'>")
-                    .append("</span>")
+                    .append("<span style='").append(SECONDARY_SPAN_STYLE).append("'>")
+                    .append(" IaC vulnerability")
                     .append("</div></td></tr></table><br>");
+            buildRemediationActionsSection(descBuilder, vulnerability.getTitle());
         }
     }
 
@@ -371,10 +370,10 @@ public class ProblemDescription {
      * Builds the remediation actions section of the description.
      *
      * @param descBuilder {@link StringBuilder} object to add the remediation actions section to.
-     * @param scanIssue   {@link ScanIssue} object containing the remediation actions section data.
+     * @param scanIssueTitle   {@link String} object containing the remediation actions section data.
      */
-    private void buildRemediationActionsSection(StringBuilder descBuilder, ScanIssue scanIssue) {
-        String encodedTitle = DevAssistUtils.encodeBase64(scanIssue.getTitle());
+    private void buildRemediationActionsSection(StringBuilder descBuilder, String scanIssueTitle) {
+        String encodedTitle = DevAssistUtils.encodeBase64(scanIssueTitle);
         descBuilder.append(TABLE_WITH_TR)
                 .append("<td>")
                 .append("<a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(encodedTitle).append("\" ")
