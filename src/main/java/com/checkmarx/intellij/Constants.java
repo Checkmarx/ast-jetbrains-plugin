@@ -18,7 +18,7 @@ public final class Constants {
     public static final String BUNDLE_PATH = "messages.CxBundle";
 
     public static final String LOGGER_CAT_PREFIX = "CX#";
-    public static final String CXONE_ASSIST = "CxOne Assist";
+    public static final String CXONE_ASSIST = "Checkmarx One Assist";
 
     public static final String GLOBAL_SETTINGS_ID = "settings.ast";
     public static final String TOOL_WINDOW_ID = "Checkmarx";
@@ -138,7 +138,7 @@ public final class Constants {
         }
 
         // Tab Name Constants
-        public static final String DEVASSIST_TAB = "CxOne Assist Findings";
+        public static final String DEVASSIST_TAB = "Checkmarx One Assist Findings";
 
         // OSS Scanner Constants
         public static final String ACTIVATE_OSS_REALTIME_SCANNER = "Activate OSS-Realtime";
