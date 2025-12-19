@@ -154,7 +154,7 @@ public class ProblemDescription {
                     .append(escapeHtml(vulnerability.getDescription())).append("</b>")
                     .append("<span style='").append(SECONDARY_SPAN_STYLE).append("'>")
                     .append(" IaC vulnerability")
-                    .append("</div></td></tr></table><br>");
+                    .append("</div></td></tr></table>");
             buildRemediationActionsSection(descBuilder, vulnerability.getVulnerabilityId(), scanIssue.getScanEngine().name());
         }
     }
@@ -375,28 +375,28 @@ public class ProblemDescription {
      * @param scanIssueId {@link String} object containing the remediation actions section data.
      */
     private void buildRemediationActionsSection(StringBuilder descBuilder, String scanIssueId, String engineName) {
-        descBuilder.append(TABLE_WITH_TR)
-                .append("<td>")
+        descBuilder.append("<table style='display:block;margin:0;border-collapse:collapse;border-spacing:0;padding:0;'><tr>")
+                .append("<td style='padding:0 5px 0 0;margin:0;'>")
                 .append("<a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
-                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
+                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
                 .append(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST)
                 .append("</a></td>")
-                .append("<td style='padding: 5px;'>")
+                .append("<td style='padding:0 5px 0 0;margin:0;'>")
                 .append("<a href=\"#cxonedevassist/viewdetails").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
-                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
+                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
                 .append(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME)
                 .append("</a></td>")
-                /*     .append("<td style='padding: 5px;'>")
-                     .append("<a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
-                     .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
+                /*   .append("<td style='padding:0 5px 0 0;margin:0;'>")
+                     .append("<a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append(SEPERATOR).append(engineName).append("\" ")
+                     .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
                      .append(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME)
                      .append("</a></td>")
-                     .append("<td style='padding: 5px;'>")
-                     .append("<a href=\"#cxonedevassist/ignoreallofthis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append("\" ")
-                     .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap;'>")
+                     .append("<td style='padding:0 5px 0 0;margin:0;'>")
+                     .append("<a href=\"#cxonedevassist/ignoreallofthis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append(SEPERATOR).append(engineName).append("\" ")
+                     .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
                      .append(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME)
                      .append("</a></td>")*/
-                .append("</tr></table>");
+                .append("</tr></table><br>");
     }
 
     /**
