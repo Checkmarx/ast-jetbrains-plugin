@@ -171,6 +171,13 @@ public final class Constants {
         public static final String IAC_REALTIME_SCANNER_DIRECTORY = "Cx-iac-realtime-scanner";
         public static final String ERROR_IAC_REALTIME_SCANNER = "Failed to handle IAC Realtime scan";
 
+        // ASCA Scanner Constants
+        public static final String ACTIVATE_ASCA_REALTIME_SCANNER = "Activate ASCA-Realtime";
+        public static final String ASCA_REALTIME_SCANNER = "Checkmarx Al Secure Coding Assistant (ASCA)";
+        public static final String ASCA_REALTIME_SCANNER_START = "AI Secure Coding Assistant Engine started.";
+        public static final String ASCA_REALTIME_SCANNER_DISABLED = "AI Secure Coding Assistant Engine disabled.";
+        public static final String ERROR_ASCA_REALTIME_SCANNER = "Failed to handle ASCA Realtime scan";
+
         //Dev Assist Fixes Constants
         public static final String FIX_WITH_CXONE_ASSIST = "Copy fix prompt";
         public static final String VIEW_DETAILS_FIX_NAME = "View details";
