@@ -214,6 +214,7 @@ public final class Constants {
         );
 
         public static final String MULTIPLE_IAC_ISSUES = " IAC issues detected on this line";
+        public static final String MULTIPLE_ASCA_ISSUES = " ASCA violations detected on this line";
         public static final List<String>CONTAINER_HELM_EXTENSION= List.of("yml",
                 "yaml");
 

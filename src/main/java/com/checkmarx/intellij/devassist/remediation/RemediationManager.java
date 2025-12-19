@@ -58,7 +58,7 @@ public final class RemediationManager {
                 applyIACRemediation(project, scanIssue, actionId);
                 break;
             case ASCA:
-                applyASCARemediation(project, scanIssue);
+                applyASCARemediation(project, scanIssue, actionId);
                 break;
             default:
                 break;
@@ -86,7 +86,7 @@ public final class RemediationManager {
                 explainIACDetails(project, scanIssue, actionId);
                 break;
             case ASCA:
-                explainASCADetails(project, scanIssue);
+                explainASCADetails(project, scanIssue, actionId);
                 break;
             default:
                 break;
@@ -176,22 +176,42 @@ public final class RemediationManager {
         }
     }
 
+
+
     /**
      * Applies remediation for an ASCA issue.
      *
+     * @param project   the project where the fix is to be applied
      * @param scanIssue the scan issue to fix
+     * @param actionId  the specific vulnerability ID to fix, or QUICK_FIX for general remediation
      */
-    private void applyASCARemediation(Project project, ScanIssue scanIssue) {
-        LOGGER.info(format("RTS-Fix: Remediation started for file: %s for ASCA Issue: %s",
-                scanIssue.getFilePath(), scanIssue.getTitle()));
-        String prompt = CxOneAssistFixPrompts.buildASCARemediationPrompt(scanIssue.getTitle(),
-                scanIssue.getDescription(),
-                scanIssue.getSeverity(),
-                scanIssue.getRemediationAdvise(),
+    private void applyASCARemediation(Project project, ScanIssue scanIssue, String actionId) {
+        if (Objects.isNull(actionId) || actionId.isEmpty()) {
+            LOGGER.warn(format("RTS-Fix: Remediation failed. Action id is not found for ASCA issue: %s.", scanIssue.getTitle()));
+            return;
+        }
+
+        Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
+                actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
+
+        if (Objects.isNull(vulnerability)) {
+            LOGGER.warn(format("RTS-Fix: Remediation failed. Vulnerability details not found for ASCA issue: %s.", actionId));
+            return;
+        }
+
+        LOGGER.info(format("RTS-Fix: Remediation started for file: %s for ASCA issue: %s",
+                scanIssue.getFilePath(), actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle()));
+
+        String prompt = CxOneAssistFixPrompts.buildASCARemediationPrompt(
+                actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getRemediationAdvise() : vulnerability.getRemediationAdvise(),
                 scanIssue.getProblematicLineNumber());
+
         if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
-            LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for IAC issue: %s",
+            LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for ASCA issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
         }
     }
@@ -288,17 +308,36 @@ public final class RemediationManager {
         }
     }
 
+
     /**
-     * Explain the details of a ASCA issue.
+     * Explain the details of an ASCA issue.
      *
      * @param project   the project where the fix is to be applied
      * @param scanIssue the scan issue to view details for
+     * @param actionId  the specific vulnerability ID to view details for, or QUICK_FIX for general explanation
      */
-    private void explainASCADetails(Project project, ScanIssue scanIssue) {
-        LOGGER.info(format("RTS-Fix: Viewing details for file: %s for ASCA issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
-        String prompt = ViewDetailsPrompts.buildASCAExplanationPrompt(scanIssue.getTitle(),
-                scanIssue.getDescription(),
-                scanIssue.getSeverity());
+    private void explainASCADetails(Project project, ScanIssue scanIssue, String actionId) {
+        if (Objects.isNull(actionId) || actionId.isEmpty()) {
+            LOGGER.warn(format("RTS-Fix: Explain ASCA issue failed. Action id is not found for ASCA issue: %s.", scanIssue.getTitle()));
+            return;
+        }
+
+        Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
+                actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
+
+        if (Objects.isNull(vulnerability)) {
+            LOGGER.warn(format("RTS-Fix: Explain ASCA issue failed. Vulnerability details not found for ASCA issue: %s.", actionId));
+            return;
+        }
+
+        LOGGER.info(format("RTS-Fix: Viewing details for file: %s for ASCA issue is started: %s",
+                scanIssue.getFilePath(), actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle()));
+
+        String prompt = ViewDetailsPrompts.buildASCAExplanationPrompt(
+                actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity());
+
         if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for ASCA issue: %s",

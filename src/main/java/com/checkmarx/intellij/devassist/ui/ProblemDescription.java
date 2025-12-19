@@ -83,9 +83,20 @@ public class ProblemDescription {
      */
     public String formatDescription(ScanIssue scanIssue) {
         StringBuilder descBuilder = new StringBuilder();
+        descBuilder.append("<html><body>");
+
+        // For ASCA multiple violations, add title before the DevAssist image
+        if (scanIssue.getScanEngine() == ScanEngine.ASCA &&
+            scanIssue.getVulnerabilities() != null && scanIssue.getVulnerabilities().size() > 1) {
+            descBuilder.append(TABLE_WITH_TR)
+                    .append("<td style='padding:0 6px 0 0;'>")
+                    .append("<p style='margin:0;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("'>")
+                    .append(escapeHtml(scanIssue.getTitle()))
+                    .append(" <span style='").append(SECONDARY_SPAN_STYLE).append("'>Checkmarx One Assist</span>")
+                    .append("</p></td></tr></table>");
+        }
 
         // DevAssist image
-        descBuilder.append("<html><body>");
         descBuilder.append(TABLE_WITH_TR).append("<td style='padding:0 6px 0 0;vertical-align:middle;'>")
                 .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table>");
 
@@ -108,7 +119,7 @@ public class ProblemDescription {
             default:
                 buildDefaultDescription(descBuilder, scanIssue);
         }
-        if (scanIssue.getScanEngine() != ScanEngine.IAC) {
+        if (scanIssue.getScanEngine() != ScanEngine.IAC && scanIssue.getScanEngine() != ScanEngine.ASCA) {
             buildRemediationActionsSection(descBuilder, scanIssue.getScanIssueId(), scanIssue.getScanEngine().name());
         }
         descBuilder.append("</body></html>");
@@ -181,20 +192,30 @@ public class ProblemDescription {
     /**
      * ASCA description.
      * Format:
-     * [Severity Icon] Title (bold) - remediation advice - SAST vulnerability
+     * [Title for multiple issues]
+     * [Severity Icon] Title (bold) - RemediationAdvise - SAST vulnerability
      */
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-        String icon = getStyledImage(scanIssue.getSeverity(), ICON_INLINE_STYLE);
 
-        descBuilder.append(TABLE_WITH_TR)
-                .append("<td style='padding:0 6px 0 0;vertical-align:middle;'>").append(icon).append("</td>")
-                .append("<td style='padding:0 2px 0 2px;")
-                .append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append(CELL_LINE_HEIGHT_STYLE).append("'>")
-                .append("<p style='margin:0;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("'>")
-                .append("<b>").append(escapeHtml(scanIssue.getTitle())).append("</b>")
-                .append(" - ").append(escapeHtml(scanIssue.getRemediationAdvise()))
-                .append(" - <span style='").append(SECONDARY_SPAN_STYLE).append("'>SAST vulnerability</span>")
-                .append("</p></td></tr></table>");
+
+        for (Vulnerability vulnerability : scanIssue.getVulnerabilities()) {
+            String severityIcon = getStyledImage(vulnerability.getSeverity(), ICON_INLINE_STYLE);
+            descBuilder.append(TABLE_WITH_TR)
+                    .append("<td style='width:20px;padding:0 6px 0 0;vertical-align:middle;'>")
+                    .append(severityIcon)
+                    .append("</td>");
+            descBuilder.append("<td style='padding:0 6px 0 6px;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
+                    .append(CELL_LINE_HEIGHT_STYLE).append("'>")
+                    .append("<div style='display:flex;flex-direction:row;align-items:center;gap:6px;'>")
+                    .append("<p style=\"").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("\">")
+                    .append("<b>").append(escapeHtml(vulnerability.getTitle())).append("</b>")
+                    .append(" - ")
+                    .append(escapeHtml(vulnerability.getRemediationAdvise()))
+                    .append(" - <span style='").append(SECONDARY_SPAN_STYLE).append("'>SAST vulnerability</span>")
+                    .append("</p>")
+                    .append("</div></td></tr></table>");
+            buildRemediationActionsSection(descBuilder, vulnerability.getVulnerabilityId(), scanIssue.getScanEngine().name());
+        }
     }
 
     /**
