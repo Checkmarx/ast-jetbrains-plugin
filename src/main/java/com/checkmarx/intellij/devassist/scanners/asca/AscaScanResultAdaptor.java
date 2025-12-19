@@ -2,6 +2,7 @@ package com.checkmarx.intellij.devassist.scanners.asca;
 
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
+import com.checkmarx.ast.iacrealtime.IacRealtimeResults;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.Location;
@@ -164,11 +165,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         scanIssue.setScanEngine(ScanEngine.ASCA);
 
         // Generate unique ID based on line, title, and description
-        scanIssue.setScanIssueId(DevAssistUtils.generateUniqueId(
-                firstDetail.getLine(),
-                scanIssue.getTitle(),
-                scanIssue.getDescription()
-        ));
+        scanIssue.setScanIssueId(getUniqueId(firstDetail));
 
         return scanIssue;
     }
@@ -184,11 +181,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         Vulnerability vulnerability = new Vulnerability();
 
         // Generate or use provided vulnerability ID
-        String vulnerabilityId = DevAssistUtils.generateUniqueId(
-                scanDetail.getLine(),
-                scanDetail.getRuleName(),
-                scanDetail.getDescription()
-        );
+        String vulnerabilityId = getUniqueId(scanDetail);
         if (overrideId != null && !overrideId.isBlank()) {
             vulnerabilityId = overrideId;
         }
@@ -220,5 +213,16 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         return severityLevel == SeverityLevel.UNKNOWN
                 ? SeverityLevel.MEDIUM.getSeverity()
                 : severityLevel.getSeverity();
+    }
+
+    /**
+     * Generates a unique ID for the given scan issue.
+     */
+    private String getUniqueId(ScanDetail scanIssue) {
+        if (Objects.nonNull(scanIssue)) {
+            return DevAssistUtils.generateUniqueId(scanIssue.getLine(),
+                    scanIssue.getRuleID()+scanIssue.getRuleName(), scanIssue.getFileName());
+        }
+        return ScanEngine.ASCA.name();
     }
 }

@@ -176,8 +176,6 @@ public final class RemediationManager {
         }
     }
 
-
-
     /**
      * Applies remediation for an ASCA issue.
      *
@@ -190,7 +188,6 @@ public final class RemediationManager {
             LOGGER.warn(format("RTS-Fix: Remediation failed. Action id is not found for ASCA issue: %s.", scanIssue.getTitle()));
             return;
         }
-
         Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
                 actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
 
@@ -198,7 +195,6 @@ public final class RemediationManager {
             LOGGER.warn(format("RTS-Fix: Remediation failed. Vulnerability details not found for ASCA issue: %s.", actionId));
             return;
         }
-
         LOGGER.info(format("RTS-Fix: Remediation started for file: %s for ASCA issue: %s",
                 scanIssue.getFilePath(), actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle()));
 
@@ -321,7 +317,6 @@ public final class RemediationManager {
             LOGGER.warn(format("RTS-Fix: Explain ASCA issue failed. Action id is not found for ASCA issue: %s.", scanIssue.getTitle()));
             return;
         }
-
         Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
                 actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
 
@@ -329,7 +324,6 @@ public final class RemediationManager {
             LOGGER.warn(format("RTS-Fix: Explain ASCA issue failed. Vulnerability details not found for ASCA issue: %s.", actionId));
             return;
         }
-
         LOGGER.info(format("RTS-Fix: Viewing details for file: %s for ASCA issue is started: %s",
                 scanIssue.getFilePath(), actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle()));
 
