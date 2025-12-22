@@ -198,9 +198,6 @@ public class ProblemDescription {
      * [Severity Icon] Title (bold) - RemediationAdvise - SAST vulnerability
      */
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
-        String icon = getStyledImage(scanIssue.getSeverity(), ICON_INLINE_STYLE);
-
-
         for (Vulnerability vulnerability : scanIssue.getVulnerabilities()) {
             String severityIcon = getStyledImage(vulnerability.getSeverity(), ICON_INLINE_STYLE);
             descBuilder.append(TABLE_WITH_TR_IAC_ASCA)
