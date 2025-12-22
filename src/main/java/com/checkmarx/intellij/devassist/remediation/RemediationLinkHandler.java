@@ -162,10 +162,6 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
                 LOGGER.debug("RTS-Fix: No scan issues found for the given file scan issue-id: %s to handle the link.", issueId);
                 return null;
             }
-            if (Objects.isNull(engineName) || engineName.isEmpty()) {
-                LOGGER.debug("RTS-Fix: Scan engine name is not found for the given scan issue-id: %s to handle the link.", issueId);
-                return null;
-            }
             ScanIssue scanIssue = getScanIssueUsingScanIssueId(scanIssueList, issueId, engineName);
             if (Objects.isNull(scanIssue)) {
                 return getScanIssueUsingVulnerabilityId(scanIssueList, issueId, engineName);

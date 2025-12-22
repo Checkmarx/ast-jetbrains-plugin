@@ -9,6 +9,7 @@ import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.remediation.prompts.CxOneAssistFixPrompts;
 import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
@@ -35,7 +36,6 @@ import static java.lang.String.format;
 public final class RemediationManager {
 
     private static final Logger LOGGER = Utils.getLogger(RemediationManager.class);
-    private static final String CX_AGENT_NAME = Constants.RealTimeConstants.CX_AGENT_NAME;
 
     /**
      * Apply remediation for a given scan issue.
@@ -101,7 +101,7 @@ public final class RemediationManager {
                 scanIssue.getFilePath(), scanIssue.getTitle()));
         String prompt = CxOneAssistFixPrompts.buildSCARemediationPrompt(scanIssue.getTitle(), scanIssue.getPackageVersion(),
                 scanIssue.getPackageManager(), scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for OSS Issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -117,7 +117,7 @@ public final class RemediationManager {
         String prompt = CxOneAssistFixPrompts.buildSecretRemediationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for secrets issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -134,7 +134,7 @@ public final class RemediationManager {
                 scanIssue.getTitle(),
                 scanIssue.getImageTag(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for container issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -169,7 +169,7 @@ public final class RemediationManager {
                 vulnerability.getActualValue(),
                 scanIssue.getProblematicLineNumber()
         );
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for IAC issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -205,7 +205,7 @@ public final class RemediationManager {
                 actionId.equals(QUICK_FIX) ? scanIssue.getRemediationAdvise() : vulnerability.getRemediationAdvise(),
                 scanIssue.getProblematicLineNumber());
 
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
                 Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for ASCA issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -224,7 +224,7 @@ public final class RemediationManager {
                 scanIssue.getPackageVersion(),
                 scanIssue.getSeverity(),
                 scanIssue.getVulnerabilities());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for OSS Issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -242,7 +242,7 @@ public final class RemediationManager {
         String prompt = ViewDetailsPrompts.buildSecretsExplanationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for secret issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -261,7 +261,7 @@ public final class RemediationManager {
                 scanIssue.getTitle(),
                 scanIssue.getImageTag(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for container issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -297,7 +297,7 @@ public final class RemediationManager {
                 vulnerability.getExpectedValue(),
                 vulnerability.getActualValue()
         );
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for IAC issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
@@ -332,10 +332,17 @@ public final class RemediationManager {
                 actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity());
 
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, CX_AGENT_NAME,
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
                 Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
             LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for ASCA issue: %s",
                     scanIssue.getFilePath(), scanIssue.getTitle()));
         }
+    }
+
+    /**
+     * Get the notification title for the given scan engine.
+     */
+    private String getNotificationTitle(ScanEngine scanEngine) {
+        return Constants.RealTimeConstants.CX_AGENT_NAME + " - " + scanEngine.name();
     }
 }
