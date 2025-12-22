@@ -105,8 +105,7 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
             packageObj.getVulnerabilities().forEach(vulnerability ->
                     scanIssue.getVulnerabilities().add(createVulnerability(vulnerability)));
         }
-        scanIssue.setScanIssueId(DevAssistUtils.generateUniqueId(scanIssue.getLocations().get(0).getLine(),
-                scanIssue.getTitle(), scanIssue.getPackageVersion()));
+        scanIssue.setScanIssueId(getUniqueId(scanIssue));
         return scanIssue;
     }
 
@@ -153,5 +152,16 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
      */
     private int getLine(RealtimeLocation location) {
         return location.getLine() + 1;
+    }
+
+
+    /**
+     * Generates a unique ID for the given scan issue.
+     */
+    private String getUniqueId(ScanIssue scanIssue){
+        int line = (Objects.nonNull(scanIssue.getLocations()) && !scanIssue.getLocations().isEmpty())
+                ? scanIssue.getLocations().get(0).getLine() : 0;
+        return DevAssistUtils.generateUniqueId(line, scanIssue.getPackageManager()+scanIssue.getTitle(),
+                scanIssue.getPackageVersion());
     }
 }

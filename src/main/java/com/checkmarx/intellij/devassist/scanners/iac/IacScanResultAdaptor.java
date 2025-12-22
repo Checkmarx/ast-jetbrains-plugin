@@ -104,16 +104,13 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
         scanIssue.setFilePath(iacScanIssue.get(0).issue.getFilePath());
         scanIssue.setScanEngine(ScanEngine.IAC);
         scanIssue.setFileType(this.fileType);
-        scanIssue.setScanIssueId(DevAssistUtils.generateUniqueId(iacScanIssue.get(0).issue.getLocations().get(0).getLine(),
-                iacScanIssue.get(0).issue.getTitle(),
-                iacScanIssue.get(0).issue.getDescription()));
+        scanIssue.setScanIssueId(getUniqueId(iacScanIssue.get(0).issue));
         return scanIssue;
     }
 
     private Vulnerability createVulnerability(IacRealtimeResults.Issue vulnerabilityObj, String overrideId) {
         Vulnerability vulnerability = new Vulnerability();
-        vulnerability.setVulnerabilityId(DevAssistUtils.generateUniqueId(vulnerabilityObj.getLocations().get(0).getLine(),
-                vulnerabilityObj.getTitle(), vulnerabilityObj.getDescription()));
+        vulnerability.setVulnerabilityId(getUniqueId(vulnerabilityObj));
         if (overrideId != null && !overrideId.isBlank()) {
             vulnerability.setVulnerabilityId(overrideId);
         }
@@ -132,5 +129,14 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
 
     private int getLine(RealtimeLocation location) {
         return location.getLine() + 1;
+    }
+
+    /**
+     * Generates a unique ID for the given scan issue.
+     */
+    private String getUniqueId(IacRealtimeResults.Issue scanIssue) {
+        int line = (Objects.nonNull(scanIssue.getLocations()) && !scanIssue.getLocations().isEmpty())
+                ? scanIssue.getLocations().get(0).getLine() : 0;
+        return DevAssistUtils.generateUniqueId(line, scanIssue.getTitle(), scanIssue.getSimilarityId());
     }
 }

@@ -110,8 +110,7 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
         if (!Objects.isNull(containersImageObj.getVulnerabilities()) && !containersImageObj.getVulnerabilities().isEmpty()) {
             containersImageObj.getVulnerabilities().forEach(vulnerability -> scanIssue.getVulnerabilities().add(createVulnerability(vulnerability)));
         }
-        scanIssue.setScanIssueId(DevAssistUtils.generateUniqueId(scanIssue.getLocations().get(0).getLine(),
-                scanIssue.getTitle(), scanIssue.getImageTag()));
+        scanIssue.setScanIssueId(getUniqueId(scanIssue));
         return scanIssue;
     }
 
@@ -187,4 +186,12 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
         return location.getLine() + 1;
     }
 
+    /**
+     * Generates a unique ID for the given scan issue.
+     */
+    private String getUniqueId(ScanIssue scanIssue) {
+        int line = (Objects.nonNull(scanIssue.getLocations()) && !scanIssue.getLocations().isEmpty())
+                ? scanIssue.getLocations().get(0).getLine() : 0;
+        return DevAssistUtils.generateUniqueId(line, scanIssue.getTitle(), scanIssue.getImageTag());
+    }
 }

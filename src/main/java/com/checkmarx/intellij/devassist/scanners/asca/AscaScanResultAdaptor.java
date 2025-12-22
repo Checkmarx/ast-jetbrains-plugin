@@ -2,6 +2,8 @@ package com.checkmarx.intellij.devassist.scanners.asca;
 
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
+import com.checkmarx.ast.iacrealtime.IacRealtimeResults;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
@@ -10,10 +12,9 @@ import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.diagnostic.Logger;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -66,6 +67,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
 
     /**
      * Builds a list of ScanIssue objects from the ASCA scan results.
+     * Groups multiple vulnerabilities on the same line and sorts them by severity.
      *
      * @return a list of ScanIssue objects
      */
@@ -75,66 +77,123 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
             return Collections.emptyList();
         }
 
-        List<ScanIssue> issues = ascaScanResult.getScanDetails().stream()
+        List<ScanDetail> scanDetails = ascaScanResult.getScanDetails();
+        if (scanDetails.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Group scan details by line number, then sort by severity precedence
+        Map<Integer, List<ScanDetail>> groupedIssues = scanDetails.stream()
                 .filter(Objects::nonNull)
-                .map(this::convertToScanIssue)
+                .collect(Collectors.groupingBy(
+                        ScanDetail::getLine,
+                        Collectors.collectingAndThen(Collectors.toList(), detailsList -> {
+                            detailsList.sort(Comparator.comparingInt(detail ->
+                                    SeverityLevel.fromValue(mapSeverity(detail.getSeverity())).getPrecedence()));
+                            return detailsList;
+                        })
+                ));
+
+        List<ScanIssue> issues = groupedIssues.values().stream()
+                .map(this::createScanIssueForGroup)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        LOGGER.debug("ASCA adaptor: Converted " + issues.size() + " scan details to issues for file: " + filePath);
+        LOGGER.debug("ASCA adaptor: Converted " + issues.size() + " grouped scan issues for file: " + filePath);
         return issues;
     }
 
     /**
-     * Converts a single ASCA scan detail into a standardized {@link ScanIssue}.
+     * Creates a ScanIssue from a group of ASCA scan details that are on the same line.
+     * If multiple details are present, creates one ScanIssue with multiple vulnerabilities.
      *
-     * @param scanDetail the ASCA scan detail to convert
-     * @return a {@link ScanIssue} representing the ASCA finding, or {@code null} if conversion fails
+     * @param ascaScanDetails the list of ASCA scan details for the same line (already sorted by severity)
+     * @return a {@link ScanIssue} representing the ASCA finding(s), or {@code null} if conversion fails
      */
-    private ScanIssue convertToScanIssue(ScanDetail scanDetail) {
-        try {
-            String originalSeverity = scanDetail.getSeverity();
-            String mappedSeverity = mapSeverity(originalSeverity);
-
-            LOGGER.debug("ASCA adaptor: Converting scan detail - Rule: " + scanDetail.getRuleName() +
-                    ", Original Severity: " + originalSeverity + ", Mapped Severity: " + mappedSeverity +
-                    ", Line: " + scanDetail.getLine());
-
-            ScanIssue issue = new ScanIssue();
-
-            // Set basic issue information
-            issue.setScanEngine(ScanEngine.ASCA);
-            issue.setTitle(scanDetail.getRuleName());
-            issue.setDescription(scanDetail.getDescription());
-            issue.setSeverity(mappedSeverity);
-            issue.setRemediationAdvise(scanDetail.getRemediationAdvise());
-            issue.setFilePath(this.filePath);
-
-            // Create vulnerability with ASCA-specific information - properly populate all fields
-            Vulnerability vulnerability = new Vulnerability();
-            vulnerability.setCve(scanDetail.getRuleName());
-            vulnerability.setVulnerabilityId(scanDetail.getRuleName());
-            vulnerability.setDescription(scanDetail.getDescription());
-            vulnerability.setSeverity(mappedSeverity);
-            vulnerability.setRemediationAdvise(scanDetail.getRemediationAdvise());
-
-            issue.getVulnerabilities().add(vulnerability);
-
-            // Create location information
-            Location location = new Location();
-            location.setLine(scanDetail.getLine());
-            issue.getLocations().add(location);
-
-            issue.setProblematicLineNumber(location.getLine());
-            issue.setScanIssueId(DevAssistUtils.generateUniqueId(location.getLine(), issue.getTitle(), issue.getDescription()));
-
-            LOGGER.debug("ASCA adaptor: Successfully created ScanIssue for " + scanDetail.getRuleName() +
-                    " with severity " + mappedSeverity);
-            return issue;
-        } catch (Exception e) {
-            LOGGER.warn("ASCA adaptor: Failed to convert scan detail to ScanIssue", e);
+    private ScanIssue createScanIssueForGroup(List<ScanDetail> ascaScanDetails) {
+        if (ascaScanDetails == null || ascaScanDetails.isEmpty()) {
             return null;
         }
+
+        try {
+            ScanIssue scanIssue = getScanIssue(ascaScanDetails);
+
+            // Add all vulnerabilities to the scan issue
+            for (int i = 0; i < ascaScanDetails.size(); i++) {
+                ScanDetail detail = ascaScanDetails.get(i);
+                String vulnerabilityId = (i == 0) ? scanIssue.getScanIssueId() : null;
+                scanIssue.getVulnerabilities().add(createVulnerability(detail, vulnerabilityId));
+            }
+
+            // Add location information (use the first detail's line number)
+            Location location = new Location();
+            location.setLine(ascaScanDetails.get(0).getLine());
+            scanIssue.getLocations().add(location);
+            scanIssue.setProblematicLineNumber(location.getLine());
+
+            LOGGER.debug("ASCA adaptor: Successfully created ScanIssue group with " +
+                    ascaScanDetails.size() + " vulnerabilities on line " + location.getLine());
+            return scanIssue;
+        } catch (Exception e) {
+            LOGGER.warn("ASCA adaptor: Failed to convert scan details group to ScanIssue", e);
+            return null;
+        }
+    }
+
+    /**
+     * Creates a ScanIssue with appropriate title and basic properties from a group of ASCA scan details.
+     *
+     * @param ascaScanDetails the list of ASCA scan details (already sorted by severity)
+     * @return a ScanIssue with basic properties set
+     */
+    private @NotNull ScanIssue getScanIssue(List<ScanDetail> ascaScanDetails) {
+        ScanIssue scanIssue = new ScanIssue();
+        ScanDetail firstDetail = ascaScanDetails.get(0); // Highest severity (already sorted)
+
+        // Set title based on whether there are multiple issues on the same line
+        if (ascaScanDetails.size() > 1) {
+            scanIssue.setTitle(ascaScanDetails.size() + Constants.RealTimeConstants.MULTIPLE_ASCA_ISSUES);
+        } else {
+            scanIssue.setTitle(firstDetail.getRuleName());
+        }
+
+        // Use the first (highest severity) detail for primary issue properties
+        scanIssue.setDescription(firstDetail.getDescription());
+        scanIssue.setSeverity(mapSeverity(firstDetail.getSeverity()));
+        scanIssue.setRemediationAdvise(firstDetail.getRemediationAdvise());
+        scanIssue.setFilePath(this.filePath);
+        scanIssue.setScanEngine(ScanEngine.ASCA);
+
+        // Generate unique ID based on line, title, and description
+        scanIssue.setScanIssueId(getUniqueId(firstDetail));
+
+        return scanIssue;
+    }
+
+    /**
+     * Creates a Vulnerability object from a ASCA scan detail.
+     *
+     * @param scanDetail the ASCA scan detail
+     * @param overrideId optional vulnerability ID to use instead of generating one
+     * @return a Vulnerability object
+     */
+    private Vulnerability createVulnerability(ScanDetail scanDetail, String overrideId) {
+        Vulnerability vulnerability = new Vulnerability();
+
+        // Generate or use provided vulnerability ID
+        String vulnerabilityId = getUniqueId(scanDetail);
+        if (overrideId != null && !overrideId.isBlank()) {
+            vulnerabilityId = overrideId;
+        }
+
+        vulnerability.setVulnerabilityId(vulnerabilityId);
+        vulnerability.setCve(scanDetail.getRuleName());
+        vulnerability.setDescription(scanDetail.getDescription());
+        vulnerability.setSeverity(mapSeverity(scanDetail.getSeverity()));
+        vulnerability.setRemediationAdvise(scanDetail.getRemediationAdvise());
+        vulnerability.setTitle(scanDetail.getRuleName());
+
+        return vulnerability;
     }
 
     /**
@@ -154,5 +213,16 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         return severityLevel == SeverityLevel.UNKNOWN
                 ? SeverityLevel.MEDIUM.getSeverity()
                 : severityLevel.getSeverity();
+    }
+
+    /**
+     * Generates a unique ID for the given scan issue.
+     */
+    private String getUniqueId(ScanDetail scanIssue) {
+        if (Objects.nonNull(scanIssue)) {
+            return DevAssistUtils.generateUniqueId(scanIssue.getLine(),
+                    scanIssue.getRuleID()+scanIssue.getRuleName(), scanIssue.getFileName());
+        }
+        return ScanEngine.ASCA.name();
     }
 }

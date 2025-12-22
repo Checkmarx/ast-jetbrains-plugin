@@ -41,11 +41,11 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
     public static ScannerConfig createConfig() {
         return ScannerConfig.builder()
                 .engineName(ScanEngine.ASCA.name())
-                .configSection("ASCA Realtime Scanner")
-                .activateKey("Activate ASCA Realtime Scanner")
-                .errorMessage("Error in ASCA Realtime Scanner")
-                .disabledMessage("ASCA Realtime Scanner Disabled")
-                .enabledMessage("ASCA Realtime Scanner Started")
+                .configSection(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER)
+                .activateKey(Constants.RealTimeConstants.ACTIVATE_ASCA_REALTIME_SCANNER)
+                .errorMessage(Constants.RealTimeConstants.ERROR_ASCA_REALTIME_SCANNER)
+                .disabledMessage(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER_DISABLED)
+                .enabledMessage(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER_START)
                 .build();
     }
 

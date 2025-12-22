@@ -354,7 +354,7 @@ public class DevAssistUtils {
      */
     public static Vulnerability getVulnerabilityDetails(ScanIssue scanIssue, String vulnerabilityId) {
         if (Objects.isNull(scanIssue.getVulnerabilities()) || scanIssue.getVulnerabilities().isEmpty()) {
-            LOGGER.warn(format("RTS-Fix: No vulnerabilities found for IAC scan issue: %s", scanIssue.getScanIssueId()));
+            LOGGER.warn(format("No vulnerabilities found in scan issue object for scan engine: %s.", scanIssue.getScanEngine().name()));
             return null;
         }
         return scanIssue.getVulnerabilities().stream()
