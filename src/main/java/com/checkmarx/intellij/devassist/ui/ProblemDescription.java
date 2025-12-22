@@ -141,7 +141,7 @@ public class ProblemDescription {
     private void buildIACDescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         for (Vulnerability vulnerability : scanIssue.getVulnerabilities()) {
             String severityIcon = getStyledImage(vulnerability.getSeverity(), ICON_INLINE_STYLE);
-            descBuilder.append(TABLE_WITH_TR)
+            descBuilder.append(TABLE_WITH_TR_IAC_ASCA)
                     .append("<td style='width:20px;padding:0 6px 0 0;vertical-align:middle;'>")
                     .append(severityIcon)
                     .append("</td>");
@@ -149,9 +149,9 @@ public class ProblemDescription {
                     .append(CELL_LINE_HEIGHT_STYLE).append("'>")
                     .append("<div style='display:flex;flex-direction:row;align-items:center;gap:6px;'>")
                     .append("<p style=\"").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("\">")
-                    .append("<b>").append(escapeHtml(vulnerability.getTitle()))
+                    .append("<b>").append(escapeHtml(vulnerability.getTitle())).append("</b>")
                     .append(" - ")
-                    .append(escapeHtml(vulnerability.getDescription())).append("</b>")
+                    .append(escapeHtml(vulnerability.getActualValue())).append(escapeHtml(vulnerability.getDescription()))
                     .append("<span style='").append(SECONDARY_SPAN_STYLE).append("'>")
                     .append(" IaC vulnerability")
                     .append("</div></td></tr></table>");
@@ -186,7 +186,7 @@ public class ProblemDescription {
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         String icon = getStyledImage(scanIssue.getSeverity(), ICON_INLINE_STYLE);
 
-        descBuilder.append(TABLE_WITH_TR)
+        descBuilder.append(TABLE_WITH_TR_IAC_ASCA)
                 .append("<td style='padding:0 6px 0 0;vertical-align:middle;'>").append(icon).append("</td>")
                 .append("<td style='padding:0 2px 0 2px;")
                 .append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append(CELL_LINE_HEIGHT_STYLE).append("'>")
@@ -408,6 +408,7 @@ public class ProblemDescription {
         }
 
         static final String TABLE_WITH_TR = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>";
+        static final String TABLE_WITH_TR_IAC_ASCA = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse; width:310px;'><tr>";
         static final String TITLE_FONT_FAMILY = "font-family: menlo;";
         static final String TITLE_FONT_SIZE = "font-size:11px;";
         static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";
