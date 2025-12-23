@@ -178,6 +178,16 @@ public final class Constants {
         public static final String ASCA_REALTIME_SCANNER_DISABLED = "AI Secure Coding Assistant Engine disabled.";
         public static final String ERROR_ASCA_REALTIME_SCANNER = "Failed to handle ASCA Realtime scan";
 
+        // ASCA Supported File Extensions (based on VSCode implementation)
+        public static final List<String> ASCA_SUPPORTED_EXTENSIONS = List.of(
+                "java",
+                "cs",
+                "go",
+                "py",
+                "js",
+                "jsx"
+        );
+
         //Dev Assist Fixes Constants
         public static final String FIX_WITH_CXONE_ASSIST = "Copy fix prompt";
         public static final String VIEW_DETAILS_FIX_NAME = "View details";
