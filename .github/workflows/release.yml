@@ -185,7 +185,7 @@ jobs:
       product_name: JetBrains Plugin
       release_version: ${{ needs.release.outputs.TAG_NAME }}
       cli_release_version: ${{ needs.release.outputs.CLI_VERSION }}
-      release_author: "Phoenix Team"
+      release_author: "Sypher Team"
       release_url: https://github.com/Checkmarx/ast-jetbrains-plugin/releases/tag/${{ needs.release.outputs.TAG_NAME }}
       jira_product_name: JetBrains
     secrets: inherit
