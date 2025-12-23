@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 
+import static com.checkmarx.intellij.Constants.RealTimeConstants.QUICK_FIX;
 import static java.lang.String.format;
 
 /**
@@ -78,6 +79,6 @@ public class CxOneAssistFix implements LocalQuickFix, Iconable {
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
         LOGGER.info(format("RTS-Fix: Remediation called: %s for issue: %s", getFamilyName(), scanIssue.getTitle()));
-        new RemediationManager().fixWithCxOneAssist(project, scanIssue);
+        new RemediationManager().fixWithCxOneAssist(project, scanIssue, QUICK_FIX);
     }
 }

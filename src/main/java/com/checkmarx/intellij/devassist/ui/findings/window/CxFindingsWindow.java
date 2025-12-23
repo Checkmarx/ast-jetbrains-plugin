@@ -12,13 +12,15 @@ import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.checkmarx.intellij.Constants;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.*;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.LogicalPosition;
+import com.intellij.openapi.editor.ScrollType;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
@@ -54,6 +56,8 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.checkmarx.intellij.Constants.RealTimeConstants.QUICK_FIX;
 
 
 /**
@@ -397,12 +401,12 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
         JPopupMenu popup = new JPopupMenu();
 
         JMenuItem fixWithCxOneAssist = new JMenuItem(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST);
-        fixWithCxOneAssist.addActionListener(ev -> remediationManager.fixWithCxOneAssist(project, detail));
+        fixWithCxOneAssist.addActionListener(ev -> remediationManager.fixWithCxOneAssist(project, detail, QUICK_FIX));
         fixWithCxOneAssist.setIcon(CxIcons.STAR_ACTION);
         popup.add(fixWithCxOneAssist);
 
         JMenuItem copyDescription = new JMenuItem(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME);
-        copyDescription.addActionListener(ev -> remediationManager.viewDetails(project, detail));
+        copyDescription.addActionListener(ev -> remediationManager.viewDetails(project, detail, QUICK_FIX));
         copyDescription.setIcon(CxIcons.STAR_ACTION);
         popup.add(copyDescription);
 
@@ -475,8 +479,8 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
         if (count > 0) {
             JBColor jbColor = new JBColor(Gray._10, Gray._190);
             String hexColor = "#" + Integer.toHexString(jbColor.getRGB()).substring(2);
-            content.setDisplayName("<html>" + Constants.RealTimeConstants.DEVASSIST_TAB + " <span style='color:" + hexColor+"'>" + count + "</span></html>");
-        }else {
+            content.setDisplayName("<html>" + Constants.RealTimeConstants.DEVASSIST_TAB + " <span style='color:" + hexColor + "'>" + count + "</span></html>");
+        } else {
             content.setDisplayName(Constants.RealTimeConstants.DEVASSIST_TAB);
         }
     }
