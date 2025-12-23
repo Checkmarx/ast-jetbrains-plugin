@@ -85,20 +85,12 @@ public class ProblemDescription {
         StringBuilder descBuilder = new StringBuilder();
         descBuilder.append("<html><body>");
 
-        // For ASCA multiple violations, add title before the DevAssist image
-        if (scanIssue.getScanEngine() == ScanEngine.ASCA &&
-            scanIssue.getVulnerabilities() != null && scanIssue.getVulnerabilities().size() > 1) {
-            descBuilder.append(TABLE_WITH_TR)
-                    .append("<td style='padding:0 6px 0 0;'>")
-                    .append("<p style='margin:0;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("'>")
-                    .append(escapeHtml(scanIssue.getTitle()))
-                    .append(" <span style='").append(SECONDARY_SPAN_STYLE).append("'>Checkmarx One Assist</span>")
-                    .append("</p></td></tr></table>");
-        }
-
         // DevAssist image
         descBuilder.append(TABLE_WITH_TR).append("<td style='padding:0 6px 0 0;vertical-align:middle;'>")
                 .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table>");
+
+        // For ASCA and IAC multiple violations
+        appendMultipleViolationsTitle(descBuilder, scanIssue);
 
         switch (scanIssue.getScanEngine()) {
             case OSS:
@@ -124,6 +116,31 @@ public class ProblemDescription {
         }
         descBuilder.append("</body></html>");
         return descBuilder.toString();
+    }
+
+    /**
+     * Appends multiple violations title for ASCA and IAC engines when there are multiple vulnerabilities.
+     * This method adds a formatted title showing the number of violations detected.
+     *
+     * @param descBuilder the StringBuilder to append the title to
+     * @param scanIssue   the ScanIssue containing information about vulnerabilities
+     */
+    private void appendMultipleViolationsTitle(StringBuilder descBuilder, ScanIssue scanIssue) {
+        if (scanIssue.getVulnerabilities() == null || scanIssue.getVulnerabilities().size() <= 1) {
+            return;
+        }
+
+        boolean isASCAOrIAC = scanIssue.getScanEngine() == ScanEngine.ASCA ||
+                             scanIssue.getScanEngine() == ScanEngine.IAC;
+
+        if (isASCAOrIAC) {
+            descBuilder.append(TABLE_WITH_TR)
+                    .append("<td style='padding:0 6px 0 0;'>")
+                    .append("<p style='margin:0;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("'>")
+                    .append(escapeHtml(scanIssue.getTitle()))
+                    .append(" <span style='").append(SECONDARY_SPAN_STYLE).append("'>Checkmarx One Assist</span>")
+                    .append("</p></td></tr></table>");
+        }
     }
 
     /**
@@ -195,7 +212,7 @@ public class ProblemDescription {
      * ASCA description.
      * Format:
      * [Title for multiple issues]
-     * [Severity Icon] Title (bold) - RemediationAdvise - SAST vulnerability
+     * [Severity Icon] Title (bold) - description - SAST vulnerability
      */
     private void buildASCADescription(StringBuilder descBuilder, ScanIssue scanIssue) {
         for (Vulnerability vulnerability : scanIssue.getVulnerabilities()) {
@@ -210,7 +227,7 @@ public class ProblemDescription {
                     .append("<p style=\"").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("\">")
                     .append("<b>").append(escapeHtml(vulnerability.getTitle())).append("</b>")
                     .append(" - ")
-                    .append(escapeHtml(vulnerability.getRemediationAdvise()))
+                    .append(escapeHtml(vulnerability.getDescription()))
                     .append(" - <span style='").append(SECONDARY_SPAN_STYLE).append("'>SAST vulnerability</span>")
                     .append("</p>")
                     .append("</div></td></tr></table>");
