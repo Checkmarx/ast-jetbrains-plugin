@@ -70,8 +70,7 @@ import static com.checkmarx.intellij.Constants.RealTimeConstants.QUICK_FIX;
  * Uses a timer to periodically update the tab title with the current problem count.
  * Refactored to have separate drawAuthPanel() and drawMainPanel() following pattern in CxToolWindowPanel.
  */
-public class CxFindingsWindow extends SimpleToolWindowPanel
-        implements Disposable {
+public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposable {
 
     private static final Logger LOGGER = Utils.getLogger(CxFindingsWindow.class);
 
@@ -155,7 +154,7 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
         // Trigger initial refresh with existing scan results if any (on EDT)
         SwingUtilities.invokeLater(() -> {
             Map<String, List<ScanIssue>> existingIssues = ProblemHolderService.getInstance(project).getAllIssues();
-            if (existingIssues != null && !existingIssues.isEmpty()) {
+            if (!existingIssues.isEmpty()) {
                 triggerRefreshTree();
             }
         });
@@ -223,12 +222,11 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
      */
     private void triggerRefreshTree() {
         Map<String, List<ScanIssue>> allIssues = ProblemHolderService.getInstance(project).getAllIssues();
-        if (allIssues == null) {
+        if (allIssues.isEmpty()) {
             return;
         }
 
         Set<Filterable> activeFilters = VulnerabilityFilterState.getInstance().getFilters();
-
         Map<String, List<ScanIssue>> filteredIssues = new HashMap<>();
 
         for (Map.Entry<String, List<ScanIssue>> entry : allIssues.entrySet()) {
@@ -274,6 +272,18 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
                     })
                     .collect(Collectors.toList());
 
+            ApplicationManager.getApplication().runReadAction(() ->
+                    createFileNode(filePath, filteredScanDetails, fileName));
+        }
+        ((DefaultTreeModel) tree.getModel()).reload();
+        expandNodesByFilePath();
+    }
+
+    /**
+     * Creating file node
+     */
+    private void createFileNode(String filePath, List<ScanIssue> filteredScanDetails, String fileName) {
+        try {
             VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
             Icon icon = virtualFile != null ? virtualFile.getFileType().getIcon() : null;
             PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
@@ -299,12 +309,10 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
             for (ScanIssue detail : filteredScanDetails) {
                 fileNode.add(new DefaultMutableTreeNode(new ScanDetailWithPath(detail, filePath)));
             }
-
             rootNode.add(fileNode);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to create file node for file: " + filePath, e);
         }
-        ((DefaultTreeModel) tree.getModel()).reload();
-
-        expandNodesByFilePath();
     }
 
     /**

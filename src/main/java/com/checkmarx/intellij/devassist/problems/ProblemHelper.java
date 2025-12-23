@@ -32,6 +32,7 @@ public class ProblemHelper {
     private final List<ScannerService<?>> supportedScanners;
     private final List<ScanIssue> scanIssueList;
     private final ProblemHolderService problemHolderService;
+    private final ProblemDecorator problemDecorator;
 
 
     /**
@@ -44,5 +45,23 @@ public class ProblemHelper {
         return new ProblemHelperBuilder()
                 .file(file)
                 .project(project);
+    }
+
+    /**
+     * Creates a new builder instance based on the provided problem helper.
+     *
+     * @param problemHelper - the problem helper to copy from
+     * @return a new builder instance
+     */
+    public ProblemHelperBuilder toBuilder(ProblemHelper problemHelper) {
+        return builder(problemHelper.getFile(), problemHelper.getProject())
+                .scanIssueList(problemHelper.getScanIssueList())
+                .problemHolderService(problemHelper.getProblemHolderService())
+                .problemDecorator(problemHelper.getProblemDecorator())
+                .supportedScanners(problemHelper.getSupportedScanners())
+                .filePath(problemHelper.getFilePath())
+                .manager(problemHelper.getManager())
+                .isOnTheFly(problemHelper.isOnTheFly())
+                .document(problemHelper.getDocument());
     }
 }

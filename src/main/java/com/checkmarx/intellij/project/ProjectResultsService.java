@@ -7,11 +7,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
 
 /**
  * Service for indexing results of a scan in a given project
@@ -90,10 +88,16 @@ public class ProjectResultsService {
         List<Node> nodes = Collections.emptyList();
 
         if (this.project.getBasePath() != null) {
+            String relativePath;
             try {
-                Path projectRoot = Paths.get(this.project.getBasePath());
-                Path absolute = Paths.get(file);
-                String relativePath = projectRoot.relativize(absolute).toString();
+                relativePath = Paths.get(this.project.getBasePath())
+                        .relativize(Paths.get(file))
+                        .toString();
+            } catch (IllegalArgumentException e) {
+                LOGGER.warn("Failed to relativize path: " + file, e);
+                relativePath = Paths.get(file).toAbsolutePath().normalize().toString();
+            }
+            if (!relativePath.isEmpty()) {
                 Map<Integer, List<Node>> nodesByLine = nodesByFile.get(relativePath);
                 if (nodesByLine != null) {
                     List<Node> nodesForLine = nodesByLine.get(lineNumber);
@@ -101,8 +105,6 @@ public class ProjectResultsService {
                         nodes = nodesForLine;
                     }
                 }
-            } catch (IllegalArgumentException e) {
-                LOGGER.warn("Failed to relativize path: " + file, e);
             }
         }
         return nodes;

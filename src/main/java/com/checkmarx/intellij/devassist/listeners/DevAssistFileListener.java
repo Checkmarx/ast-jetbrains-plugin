@@ -89,7 +89,7 @@ public class DevAssistFileListener {
 
         Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
         if (document == null) return;
-        PROBLEM_DECORATOR_INSTANCE.restoreGutterIcons(project, psiFile, enabledEngineScanIssues, document);
+        PROBLEM_DECORATOR_INSTANCE.decorateUI(project, psiFile, enabledEngineScanIssues, document);
     }
 
     /**

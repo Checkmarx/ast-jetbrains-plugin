@@ -306,7 +306,7 @@ public class ProblemDecorator {
      * @param psiFile       the psi file
      * @param scanIssueList the scan issue list
      */
-    public void restoreGutterIcons(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, Document document) {
+    public void decorateUI(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, Document document) {
         removeAllGutterIcons(project);
         ProblemHelper problemHelper = ProblemHelper.builder(psiFile, project)
                 .scanIssueList(scanIssueList)

@@ -160,13 +160,13 @@ public class ProblemDecoratorTest {
     // test restoreGutterIcons (corner cases: empty scanIssueList, null elementAtLine)
     @Test
     @DisplayName("Test restoreGutterIcons with corner cases")
-    void testRestoreGutterIcons_CornerCases() {
+    void testDecorateUI_CornerCases() {
         Project project = mock(Project.class);
         PsiFile psiFile = mock(PsiFile.class);
         Document document = mock(Document.class);
         when(document.getCharsSequence()).thenReturn("a".repeat(200));
         List<ScanIssue> scanIssueList = new ArrayList<>();
-        decorator.restoreGutterIcons(project, psiFile, scanIssueList, document); // empty list path
+        decorator.decorateUI(project, psiFile, scanIssueList, document); // empty list path
         // One scanIssue, elementAtLine null
         ScanIssue issue = new ScanIssue();
         issue.setSeverity("High");
@@ -176,7 +176,7 @@ public class ProblemDecoratorTest {
         scanIssueList.add(issue);
         when(document.getLineStartOffset(anyInt())).thenReturn(0);
         when(psiFile.findElementAt(anyInt())).thenReturn(null); // null element path
-        decorator.restoreGutterIcons(project, psiFile, scanIssueList, document);
+        decorator.decorateUI(project, psiFile, scanIssueList, document);
         // Second scenario: elementAtLine non-null triggers highlightLineAddGutterIconForProblem
         PsiFile psiFile2 = mock(PsiFile.class);
         when(psiFile2.getProject()).thenReturn(project);
@@ -217,7 +217,7 @@ public class ProblemDecoratorTest {
             when(doc2.getLineEndOffset(location.getLine())).thenReturn(5);
             when(doc2.getTextLength()).thenReturn(10);
             when(doc2.getLineCount()).thenReturn(2);
-            decorator.restoreGutterIcons(project, psiFile2, list2, doc2);
+            decorator.decorateUI(project, psiFile2, list2, doc2);
         }
     }
 
@@ -249,7 +249,7 @@ public class ProblemDecoratorTest {
 
     @Test
     @DisplayName("Test restoreGutterIcons catch block")
-    void testRestoreGutterIcons_CatchBlock() {
+    void testDecorateUI_CatchBlock() {
         Project project = mock(Project.class);
         PsiFile psiFile = mock(PsiFile.class);
         Document document = mock(Document.class);
@@ -259,7 +259,7 @@ public class ProblemDecoratorTest {
         issue.setLocations(Collections.emptyList());
         issue.setTitle("Title");
         List<ScanIssue> list = Collections.singletonList(issue);
-        decorator.restoreGutterIcons(project, psiFile, list, document); // should hit catch and continue
+        decorator.decorateUI(project, psiFile, list, document); // should hit catch and continue
     }
 
     @Test

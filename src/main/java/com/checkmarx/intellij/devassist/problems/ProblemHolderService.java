@@ -81,7 +81,7 @@ public final class ProblemHolderService {
      * @param filePath the file path.
      * @return the problem descriptors.
      */
-    public List<ProblemDescriptor> getProblemDescriptors(String filePath) {
+    public synchronized List<ProblemDescriptor> getProblemDescriptors(String filePath) {
         return fileProblemDescriptor.getOrDefault(filePath, Collections.emptyList());
     }
 
@@ -90,7 +90,7 @@ public final class ProblemHolderService {
      * @param filePath the file path.
      * @param problemDescriptors the problem descriptors.
      */
-    public void addProblemDescriptors(String filePath, List<ProblemDescriptor> problemDescriptors) {
+    public synchronized void addProblemDescriptors(String filePath, List<ProblemDescriptor> problemDescriptors) {
         fileProblemDescriptor.put(filePath, new ArrayList<>(problemDescriptors));
     }
 

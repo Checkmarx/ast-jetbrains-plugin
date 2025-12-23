@@ -44,7 +44,7 @@ public class ScanIssueProcessor {
      * @param scanIssue the scan issue to process
      * @return a ProblemDescriptor if the issue is valid and should be reported, null otherwise
      */
-    public ProblemDescriptor processScanIssue(@NotNull ScanIssue scanIssue) {
+    public ProblemDescriptor processScanIssue(@NotNull ScanIssue scanIssue, boolean isDecoratorEnabled) {
         if (!isValidLocation(scanIssue)) {
             LOGGER.debug("RTS: Scan issue does not have location: {}", scanIssue.getTitle());
             return null;
@@ -56,7 +56,7 @@ public class ScanIssueProcessor {
             return null;
         }
         try {
-            return processValidIssue(scanIssue, problemLineNumber);
+            return processValidIssue(scanIssue, problemLineNumber, isDecoratorEnabled);
         } catch (Exception e) {
             LOGGER.error("RTS: Exception occurred while processing scan issue: {}, Exception: {}", scanIssue.getTitle(), e.getMessage());
             return null;
@@ -83,14 +83,16 @@ public class ScanIssueProcessor {
     /**
      * Processes a valid scan issue, creates problem descriptor and adds gutter icon.
      */
-    private ProblemDescriptor processValidIssue(ScanIssue scanIssue, int problemLineNumber) {
+    private ProblemDescriptor processValidIssue(ScanIssue scanIssue, int problemLineNumber, boolean isDecoratorEnabled) {
         boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
 
         ProblemDescriptor problemDescriptor = null;
         if (isProblem) {
             problemDescriptor = createProblemDescriptor(scanIssue, problemLineNumber);
         }
-        highlightIssueIfNeeded(scanIssue, problemLineNumber, isProblem);
+        if (isDecoratorEnabled) { // Decorator is enabled, decorating the issue.
+            highlightIssueIfNeeded(scanIssue, problemLineNumber, isProblem);
+        }
         return problemDescriptor;
     }
 
