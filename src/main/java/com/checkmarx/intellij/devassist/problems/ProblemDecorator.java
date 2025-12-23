@@ -85,24 +85,30 @@ public class ProblemDecorator {
      */
     private void highlightLocationInEditor(Editor editor, MarkupModel markupModel, int targetLine,
                                            ScanIssue scanIssue, boolean addGutterIcon, boolean isProblem, int problemLineNumber) {
-        TextRange textRange = DevAssistUtils.getTextRangeForLine(editor.getDocument(), targetLine);
-        TextAttributes textAttributes = createTextAttributes(scanIssue.getSeverity());
+        try {
+            TextRange textRange = DevAssistUtils.getTextRangeForLine(editor.getDocument(), targetLine);
+            TextAttributes textAttributes = createTextAttributes(scanIssue.getSeverity());
 
-        RangeHighlighter highlighter = markupModel.addLineHighlighter(
-                targetLine - 1, 0, null);
+            RangeHighlighter highlighter = markupModel.addLineHighlighter(
+                    targetLine - 1, 0, null);
 
-        if (isProblem) {
-            highlighter = markupModel.addRangeHighlighter(
-                    textRange.getStartOffset(),
-                    textRange.getEndOffset(),
-                    determineHighlighterLayer(scanIssue),
-                    textAttributes,
-                    HighlighterTargetArea.EXACT_RANGE
-            );
+            if (isProblem) {
+                highlighter = markupModel.addRangeHighlighter(
+                        textRange.getStartOffset(),
+                        textRange.getEndOffset(),
+                        determineHighlighterLayer(scanIssue),
+                        textAttributes,
+                        HighlighterTargetArea.EXACT_RANGE
+                );
+            }
+            boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(markupModel, editor, problemLineNumber);
+            if (addGutterIcon && !alreadyHasGutterIcon) {
+                addGutterIcon(highlighter, scanIssue.getSeverity());
+            }
         }
-        boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(markupModel, editor, problemLineNumber);
-        if (addGutterIcon && !alreadyHasGutterIcon) {
-            addGutterIcon(highlighter, scanIssue.getSeverity());
+        catch (Exception e){
+            LOGGER.debug("RTS-Decorator: Exception occurred while highlighting line: {} , Exception: {} ",
+                    targetLine, e.getMessage());
         }
     }
 

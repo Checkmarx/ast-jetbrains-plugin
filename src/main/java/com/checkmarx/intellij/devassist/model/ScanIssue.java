@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.devassist.model;
 
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
@@ -33,9 +33,13 @@ import java.util.List;
 @Getter
 @Setter
 @AllArgsConstructor
-@NoArgsConstructor
 public class ScanIssue {
 
+    public ScanIssue() {
+        scanIssueId = DevAssistUtils.generateUniqueId();
+    }
+
+    private String scanIssueId;
     private String severity;
     private String title;
     private String description;
@@ -45,6 +49,10 @@ public class ScanIssue {
     private String cve;
     private ScanEngine scanEngine;
     private String filePath;
+    private String imageTag;
+    private String fileType;
+    private Integer problematicLineNumber;
+
 
     /**
      * A list of specific locations within the file that are related to the scan issue.

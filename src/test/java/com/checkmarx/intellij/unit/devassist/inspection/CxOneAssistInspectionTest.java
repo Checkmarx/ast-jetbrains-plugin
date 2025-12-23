@@ -1,13 +1,13 @@
 package com.checkmarx.intellij.unit.devassist.inspection;
 
-import com.checkmarx.intellij.devassist.inspection.RealtimeInspection;
+import com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection;
 import com.checkmarx.intellij.devassist.common.ScannerFactory;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
-import com.checkmarx.intellij.devassist.common.ScanResult;
+
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -26,7 +26,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class RealtimeInspectionTest {
+class CxOneAssistInspectionTest {
     @Test
     @DisplayName("Returns empty array when file path is empty or no enabled scanners")
     void testCheckFile_noPathOrNoEnabledScanners_returnsEmptyArray() {
@@ -34,7 +34,7 @@ class RealtimeInspectionTest {
         InspectionManager manager = mock(InspectionManager.class);
         com.intellij.openapi.project.Project project = mock(com.intellij.openapi.project.Project.class);
         when(manager.getProject()).thenReturn(project);
-        RealtimeInspection inspection = spy(new RealtimeInspection());
+        CxOneAssistInspection inspection = spy(new CxOneAssistInspection());
         when(file.getVirtualFile()).thenReturn(mock(com.intellij.openapi.vfs.VirtualFile.class));
         when(file.getVirtualFile().getPath()).thenReturn("");
         when(file.getProject()).thenReturn(project);
@@ -64,14 +64,14 @@ class RealtimeInspectionTest {
         InspectionManager manager = mock(InspectionManager.class);
         com.intellij.openapi.project.Project project = mock(com.intellij.openapi.project.Project.class);
         when(manager.getProject()).thenReturn(project);
-        RealtimeInspection inspection = spy(new RealtimeInspection());
+        CxOneAssistInspection inspection = spy(new CxOneAssistInspection());
         when(file.getVirtualFile()).thenReturn(mock(com.intellij.openapi.vfs.VirtualFile.class));
         when(file.getVirtualFile().getPath()).thenReturn("/path/to/file");
         when(file.getProject()).thenReturn(project);
         GlobalScannerController globalScannerController = mock(GlobalScannerController.class);
         when(globalScannerController.getEnabledScanners()).thenReturn(Collections.singletonList(mock(com.checkmarx.intellij.devassist.utils.ScanEngine.class)));
         ScannerFactory scannerFactory = mock(ScannerFactory.class);
-        doReturn(Collections.emptyList()).when(scannerFactory).getAllSupportedScanners(anyString());
+        doReturn(Collections.emptyList()).when(scannerFactory).getAllSupportedScanners(anyString(),eq(file));
         setPrivateField(inspection, "scannerFactory", scannerFactory);
         try (
                 MockedStatic<ApplicationManager> appManagerMock = mockStatic(ApplicationManager.class);
@@ -97,7 +97,7 @@ class RealtimeInspectionTest {
         InspectionManager manager = mock(InspectionManager.class);
         com.intellij.openapi.project.Project project = mock(com.intellij.openapi.project.Project.class);
         when(manager.getProject()).thenReturn(project);
-        RealtimeInspection inspection = spy(new RealtimeInspection());
+        CxOneAssistInspection inspection = spy(new CxOneAssistInspection());
         when(file.getVirtualFile()).thenReturn(mock(com.intellij.openapi.vfs.VirtualFile.class));
         when(file.getVirtualFile().getPath()).thenReturn("/path/to/file");
         when(file.getProject()).thenReturn(project);
@@ -107,7 +107,7 @@ class RealtimeInspectionTest {
         when(scannerService.getConfig()).thenReturn(mock(com.checkmarx.intellij.devassist.configuration.ScannerConfig.class));
         when(scannerService.getConfig().getEngineName()).thenReturn("OtherEngine");
         ScannerFactory scannerFactory = mock(ScannerFactory.class);
-        doReturn(Collections.singletonList(scannerService)).when(scannerFactory).getAllSupportedScanners(anyString());
+        doReturn(Collections.singletonList(scannerService)).when(scannerFactory).getAllSupportedScanners(anyString(),eq(file));
         setPrivateField(inspection, "scannerFactory", scannerFactory);
         try (
                 MockedStatic<ApplicationManager> appManagerMock = mockStatic(ApplicationManager.class);
@@ -129,7 +129,7 @@ class RealtimeInspectionTest {
     @Test
     @DisplayName("Returns problems when valid problem descriptor is present")
     void testCheckFile_problemDescriptorValid_returnsProblems() {
-        RealtimeInspection inspection = spy(new RealtimeInspection());
+        CxOneAssistInspection inspection = spy(new CxOneAssistInspection());
         ScannerService<?> scannerService = mock(ScannerService.class);
         com.checkmarx.intellij.devassist.configuration.ScannerConfig config = mock(com.checkmarx.intellij.devassist.configuration.ScannerConfig.class);
         when(scannerService.getConfig()).thenReturn(config);
@@ -164,7 +164,7 @@ class RealtimeInspectionTest {
             devAssistUtilsMock.when(DevAssistUtils::globalScannerController).thenReturn(globalScannerController);
             problemHolderServiceMock.when(() -> ProblemHolderService.getInstance(project)).thenReturn(problemHolderService);
             ScannerFactory scannerFactory = mock(ScannerFactory.class);
-            doReturn(supportedScanners).when(scannerFactory).getAllSupportedScanners(anyString());
+            doReturn(supportedScanners).when(scannerFactory).getAllSupportedScanners(anyString(),eq(file));
             setPrivateField(inspection, "scannerFactory", scannerFactory);
             java.util.Map<String, Long> fileTimeStamp = new java.util.HashMap<>();
             fileTimeStamp.put("TestFile.java", 123L);
@@ -183,7 +183,7 @@ class RealtimeInspectionTest {
     @Test
     @DisplayName("Returns null when scanFile throws exception")
     void testScanFile_handlesException_returnsNull() {
-        RealtimeInspection inspection = new RealtimeInspection();
+        CxOneAssistInspection inspection = new CxOneAssistInspection();
         ScannerService<?> scannerService = mock(ScannerService.class);
         PsiFile file = mock(PsiFile.class);
         String path = "testPath";
@@ -200,7 +200,7 @@ class RealtimeInspectionTest {
     @Test
     @DisplayName("Public flow handles descriptor exception gracefully")
     void testCheckFile_descriptorException_publicFlow() {
-        RealtimeInspection inspection = new RealtimeInspection();
+        CxOneAssistInspection inspection = new CxOneAssistInspection();
         PsiFile file = mock(PsiFile.class);
         InspectionManager manager = mock(InspectionManager.class);
         when(file.getVirtualFile()).thenReturn(mock(com.intellij.openapi.vfs.VirtualFile.class));
@@ -228,7 +228,7 @@ class RealtimeInspectionTest {
     @Test
     @DisplayName("Returns false for invalid problem descriptor with theme change using reflection")
     void testIsProblemDescriptorValid_themeChange_reflective() {
-        RealtimeInspection inspection = new RealtimeInspection();
+        CxOneAssistInspection inspection = new CxOneAssistInspection();
         ProblemHolderService holderService = mock(ProblemHolderService.class);
         PsiFile file = mock(PsiFile.class);
         String path = "testPath";
@@ -246,7 +246,7 @@ class RealtimeInspectionTest {
     @Test
     @DisplayName("Bypass private getProblemsForEnabledScanners: use public checkFile path when timestamp cached")
     void testCheckFile_fileTimeStampLogic_publicFlow() {
-        RealtimeInspection inspection = new RealtimeInspection();
+        CxOneAssistInspection inspection = new CxOneAssistInspection();
         PsiFile file = mock(PsiFile.class);
         InspectionManager manager = mock(InspectionManager.class);
         com.intellij.openapi.vfs.VirtualFile vf = mock(com.intellij.openapi.vfs.VirtualFile.class);
@@ -271,7 +271,7 @@ class RealtimeInspectionTest {
     @Test
     @DisplayName("Triggers icon reload on theme change in checkFile")
     void testCheckFile_themeChange_triggersIconReload() {
-        RealtimeInspection inspection = new RealtimeInspection();
+        CxOneAssistInspection inspection = new CxOneAssistInspection();
         PsiFile file = mock(PsiFile.class);
         InspectionManager manager = mock(InspectionManager.class);
         when(file.getVirtualFile()).thenReturn(mock(com.intellij.openapi.vfs.VirtualFile.class));
@@ -298,14 +298,12 @@ class RealtimeInspectionTest {
     @Test
     @DisplayName("Returns empty list when createProblemDescriptors handles empty issues")
     void testCreateProblemDescriptors_handlesEmptyIssues() {
-        RealtimeInspection inspection = new RealtimeInspection();
+        CxOneAssistInspection inspection = new CxOneAssistInspection();
         ProblemHelper helper = mock(ProblemHelper.class);
         ProblemHolderService holderService = mock(ProblemHolderService.class);
         when(helper.getProblemHolderService()).thenReturn(holderService);
         when(helper.getFile()).thenReturn(mock(PsiFile.class));
-        ScanResult<?> scanResult = mock(ScanResult.class);
-        when(scanResult.getIssues()).thenReturn(Collections.emptyList());
-        doReturn(scanResult).when(helper).getScanResult();
+        when(helper.getScanIssueList()).thenReturn(Collections.emptyList());
         when(helper.getFilePath()).thenReturn("/path/to/file.java");
         @SuppressWarnings("unchecked")
         List<ProblemDescriptor> result = (List<ProblemDescriptor>) invokePrivateMethod(

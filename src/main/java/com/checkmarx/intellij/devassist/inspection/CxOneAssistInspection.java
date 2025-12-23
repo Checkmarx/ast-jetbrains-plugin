@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 
 /**
- * The RealtimeInspection class extends LocalInspectionTool and is responsible for
+ * The CxOneAssistInspection class extends LocalInspectionTool and is responsible for
  * performing real-time inspections of files within a project. It uses various
  * utility classes to scan files, identify issues, and provide problem descriptors
  * for on-the-fly or manual inspections.
@@ -43,9 +43,10 @@ import static java.lang.String.format;
  * with real-time scanner services and provides problem highlights and fixes for
  * identified issues.
  */
-public class RealtimeInspection extends LocalInspectionTool {
+public class CxOneAssistInspection extends LocalInspectionTool {
 
-    private static final Logger LOGGER = Utils.getLogger(RealtimeInspection.class);
+    private static final Logger LOGGER = Utils.getLogger(CxOneAssistInspection.class);
+
     private final Map<String, Long> fileTimeStamp = new ConcurrentHashMap<>();
     private final ScannerFactory scannerFactory = new ScannerFactory();
     private final ProblemDecorator problemDecorator = new ProblemDecorator();
@@ -84,7 +85,7 @@ public class RealtimeInspection extends LocalInspectionTool {
             resetResults(file.getProject());
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        List<ScannerService<?>> supportedScanners = getSupportedEnabledScanner(virtualFile.getPath());
+        List<ScannerService<?>> supportedScanners = getSupportedEnabledScanner(virtualFile.getPath(), file);
         if (supportedScanners.isEmpty()) {
             LOGGER.warn(format("RTS: No supported scanner enabled for this file: %s.", file.getName()));
             resetResults(file.getProject());
@@ -123,8 +124,8 @@ public class RealtimeInspection extends LocalInspectionTool {
      * @param filePath the path of the file as a string, used to identify an applicable scanner service; must not be null or empty
      * @return an {@link Optional} containing the matching {@link ScannerService} if found, or an empty {@link Optional} if no appropriate service exists
      */
-    private List<ScannerService<?>> getSupportedEnabledScanner(String filePath) {
-        List<ScannerService<?>> supportedScanners = scannerFactory.getAllSupportedScanners(filePath);
+    private List<ScannerService<?>> getSupportedEnabledScanner(String filePath, PsiFile psiFile) {
+        List<ScannerService<?>> supportedScanners = scannerFactory.getAllSupportedScanners(filePath, psiFile);
         if (supportedScanners.isEmpty()) {
             LOGGER.warn(format("RTS: No supported scanner found for this file path: %s.", filePath));
             return Collections.emptyList();
@@ -256,6 +257,23 @@ public class RealtimeInspection extends LocalInspectionTool {
         ProblemHelper.ProblemHelperBuilder problemHelperBuilder = buildHelper(file, manager, isOnTheFly, document,
                 supportedScanners, virtualFile.getPath(), problemHolderService);
 
+        // Schedule a debounced scan to avoid excessive scanning during rapid file changes
+        boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(file.getProject())
+                .scheduleScan(virtualFile.getPath(), problemHelperBuilder.build());
+        if (isScanScheduled) {
+            List<ScanIssue> cachedIssues = problemHolderService.getScanIssueByFile(virtualFile.getPath());
+            if (cachedIssues == null || cachedIssues.isEmpty()) {
+                LOGGER.info(format("RTS: No cached issues yet for file: %s.", file.getName()));
+                return ProblemDescriptor.EMPTY_ARRAY;
+            }
+            problemHelperBuilder.scanIssueList(cachedIssues);
+
+            List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
+            problemHolderService.addProblemDescriptors(virtualFile.getPath(), allProblems);
+            return allProblems.toArray(new ProblemDescriptor[0]);
+        }
+        LOGGER.info(format("RTS: Failed to schedule the scan for file: %s. Now scanning file..", file.getName()));
+
         List<ProblemDescriptor> scanResultDescriptors = startScanAndCreateProblemDescriptors(problemHelperBuilder);
         if (scanResultDescriptors.isEmpty()) {
             LOGGER.info(format("RTS: No issues found for file: %s ", file.getName()));
@@ -272,18 +290,16 @@ public class RealtimeInspection extends LocalInspectionTool {
      */
     private List<ProblemDescriptor> startScanAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
         ProblemHelper problemHelper = problemHelperBuilder.build();
-        List<ProblemDescriptor> allProblems = new ArrayList<>();
-        List<ScanIssue> allScanIssues = new ArrayList<>();
+        List<ScanIssue> allScanIssues = scanFileAndGetAllIssues(problemHelper);
 
-        for (ScannerService<?> scannerService : problemHelper.getSupportedScanners()) {
-            ScanResult<?> scanResult = scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath());
-            if (Objects.isNull(scanResult)) continue;
-            problemHelperBuilder.scanResult(scanResult);
-            allProblems.addAll(createProblemDescriptors(problemHelperBuilder.build()));
-            allScanIssues.addAll(scanResult.getIssues());
-        }
-        problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
+        // Adding all scanner issues to the builder.
+        problemHelperBuilder.scanIssueList(allScanIssues);
+        //Adding problems to the CxFinding window
         problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), allScanIssues);
+
+        //Creating problems
+        List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
+        problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
         return allProblems;
     }
 
@@ -297,7 +313,7 @@ public class RealtimeInspection extends LocalInspectionTool {
      * @return a {@link ScanResult} instance containing the results of the scan, or null if no
      * active and suitable scanner is found
      */
-    private ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
+    public static ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
         try {
             LOGGER.info(format("RTS: Started scanning file: %s using scanner: %s", path, scannerService.getConfig().getEngineName()));
             return scannerService.scan(file, path);
@@ -320,7 +336,7 @@ public class RealtimeInspection extends LocalInspectionTool {
         ProblemDecorator.removeAllGutterIcons(problemHelper.getFile().getProject());
         ScanIssueProcessor processor = new ScanIssueProcessor(problemHelper, this.problemDecorator);
 
-        for (ScanIssue scanIssue : problemHelper.getScanResult().getIssues()) {
+        for (ScanIssue scanIssue : problemHelper.getScanIssueList()) {
             ProblemDescriptor descriptor = processor.processScanIssue(scanIssue);
             if (descriptor != null) {
                 problems.add(descriptor);
@@ -328,5 +344,22 @@ public class RealtimeInspection extends LocalInspectionTool {
         }
         LOGGER.info(format("RTS: Problem descriptors created: %s for file: %s", problems.size(), problemHelper.getFile().getName()));
         return problems;
+    }
+
+    /**
+     * Scans the given file using all available scanner services and returns all issues found.
+     * @param problemHelper - The {@link ProblemHelper}
+     * @return a list of {@link ScanIssue}
+     */
+    public static List<ScanIssue> scanFileAndGetAllIssues(ProblemHelper problemHelper) {
+        List<ScanResult<?>> allScanResults = problemHelper.getSupportedScanners().stream()
+                .map(scannerService ->
+                        scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        return allScanResults.stream()
+                .flatMap(scanResult -> scanResult.getIssues().stream())
+                .collect(Collectors.toList());
     }
 }

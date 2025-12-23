@@ -44,7 +44,7 @@ public class BaseScannerService<T> implements ScannerService<T> {
      * @param filePath absolute or project-relative file path
      * @return {@code true} if the file should be scanned; {@code false} otherwise
      */
-    public boolean shouldScanFile(String filePath) {
+    public boolean shouldScanFile(String filePath, PsiFile psiFile) {
         return !filePath.contains("/node_modules/");
     }
 
@@ -88,6 +88,8 @@ public class BaseScannerService<T> implements ScannerService<T> {
             LOGGER.warn("Failed to create temporary folder:"+ folderPath, e);
         }
     }
+
+
 
 
 

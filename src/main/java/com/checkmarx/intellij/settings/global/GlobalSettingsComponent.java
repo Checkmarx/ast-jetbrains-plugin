@@ -250,7 +250,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             state.setMcpStatusChecked(SETTINGS_STATE.isMcpStatusChecked());
 
             // User preferences for realtime scanners - CRITICAL for preference preservation
-            state.setUserPreferencesSet(SETTINGS_STATE.isUserPreferencesSet());
+            state.setUserPreferencesSet(SETTINGS_STATE.getUserPreferencesSet());
             state.setUserPrefOssRealtime(SETTINGS_STATE.getUserPrefOssRealtime());
             state.setUserPrefSecretDetectionRealtime(SETTINGS_STATE.getUserPrefSecretDetectionRealtime());
             state.setUserPrefContainersRealtime(SETTINGS_STATE.getUserPrefContainersRealtime());
@@ -384,7 +384,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             if (result instanceof Exception) {
                 Utils.showNotification(
                         Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
-                        Bundle.message(Resource.MCP_AUTH_REQUIRED),
+                        Bundle.message(Resource.MCP_INSTALL_ERROR),
                         NotificationType.ERROR,
                         project
                 );
@@ -1004,7 +1004,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         boolean changed = false;
 
         // Priority 1: Restore existing user preferences if available
-        if (st.isUserPreferencesSet()) {
+        if (st.getUserPreferencesSet()) {
             changed = st.applyUserPreferencesToRealtimeSettings();
             if (changed) {
                 LOGGER.debug("[Auth] Restored user preferences for realtime scanners");
@@ -1041,7 +1041,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         GlobalSettingsState st = GlobalSettingsState.getInstance();
 
         // Preserve current scanner settings as user preferences before disabling
-        if (!st.isUserPreferencesSet()) {
+        if (!st.getUserPreferencesSet()) {
             st.saveCurrentSettingsAsUserPreferences();
             LOGGER.debug("[Auth] Saved current scanner settings as user preferences before disabling");
         }

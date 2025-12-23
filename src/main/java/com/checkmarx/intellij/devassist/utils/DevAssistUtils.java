@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.utils;
 
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
@@ -8,6 +9,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.TextRange;
@@ -19,10 +21,14 @@ import com.intellij.psi.PsiFile;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.util.Base64;
+import java.util.Objects;
+import java.util.UUID;
 
 import static java.lang.String.format;
 
@@ -236,9 +242,8 @@ public class DevAssistUtils {
      */
     public static boolean copyToClipboardWithNotification(@NotNull String textToCopy, String notificationTitle,
                                                           String notificationContent, Project project) {
-        StringSelection stringSelection = new StringSelection(textToCopy);
         try {
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stringSelection, null);
+            CopyPasteManager.getInstance().setContents(new StringSelection(textToCopy));
             Utils.showNotification(notificationTitle, notificationContent,
                     NotificationType.INFORMATION,
                     project);
@@ -265,5 +270,55 @@ public class DevAssistUtils {
             LOGGER.error(format("Exception occurred while getting PsiElement for line number: %s", lineNumber), e);
             return null;
         }
+    }
+
+    /**
+     * Generate a unique id for scan issue.
+     *
+     * @return a unique id
+     */
+    public static String generateUniqueId() {
+        return UUID.randomUUID().toString();
+    }
+
+    public static boolean isDockerComposeFile(@NotNull String filePath) {
+        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKER_COMPOSE);
+    }
+
+    public static boolean isDockerFile(@NotNull String filePath) {
+        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKERFILE);
+    }
+
+    public static String getFileExtension(@NotNull PsiFile psiFile) {
+        VirtualFile vFile = psiFile.getVirtualFile();
+        if (!vFile.exists()) {
+            return null;
+        }
+        return vFile.getExtension();
+    }
+
+    public static boolean isYamlFile(@NotNull PsiFile psiFile) {
+        String fileExtension = DevAssistUtils.getFileExtension(psiFile);
+        return Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
+    }
+
+    /**
+     * Encode the input string using Base64.
+     *
+     * @param input String to be encoded
+     * @return Base64 encoded string
+     */
+    public static String encodeBase64(String input) {
+        return Base64.getEncoder().encodeToString(input.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Decode the Base64 encoded string.
+     *
+     * @param input Base64 encoded string
+     * @return Decoded string
+     */
+    public static String decodeBase64(String input) {
+        return new String(Base64.getDecoder().decode(input));
     }
 }
