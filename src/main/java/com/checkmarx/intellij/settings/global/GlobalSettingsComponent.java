@@ -471,7 +471,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
             notifyAuthSuccess();
-
+            runAscaScanInBackground();
             // Complete post-authentication setup
             completeAuthenticationSetup(SENSITIVE_SETTINGS_STATE.getRefreshToken());
         });
