@@ -11,6 +11,7 @@ import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.psi.PsiFile;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -40,7 +41,7 @@ public class OssScannerServiceTest {
             return overrideTemp;
         }
         @Override
-        protected void deleteTempFolder(Path tempFolder) { /* no-op for test visibility */ }
+        protected void deleteTempFolder(@NotNull Path tempFolder) { /* no-op for test visibility */ }
     }
 
     private PsiFile mockPsiFile(String name) {
