@@ -11,6 +11,7 @@ import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
+import com.checkmarx.intellij.util.SeverityLevel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.Disposable;
@@ -280,38 +281,32 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
     }
 
     /**
-     * Creating file node
+     * Creating file node with its issues as child nodes.
      */
     private void createFileNode(String filePath, List<ScanIssue> filteredScanDetails, String fileName) {
         try {
             VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
             Icon icon = virtualFile != null ? virtualFile.getFileType().getIcon() : null;
-            PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
+            PsiFile psiFile = virtualFile != null ? PsiManager.getInstance(project).findFile(virtualFile) : null;
             if (psiFile != null) {
                 icon = psiFile.getIcon(Iconable.ICON_FLAG_VISIBILITY | Iconable.ICON_FLAG_READ_STATUS);
             }
-
             // Count issues by severity and sort them based on severity order
             Map<String, Long> severityCounts = filteredScanDetails.stream()
                     .collect(Collectors.groupingBy(ScanIssue::getSeverity, Collectors.counting()));
-            severityCounts = List.of(Constants.MALICIOUS_SEVERITY, Constants.CRITICAL_SEVERITY, Constants.HIGH_SEVERITY,
-                            Constants.MEDIUM_SEVERITY, Constants.LOW_SEVERITY).stream()
-                    .filter(severityCounts::containsKey)
-                    .collect(Collectors.toMap(
-                            s -> s,
-                            severityCounts::get,
-                            (a, b) -> a,
-                            LinkedHashMap::new
-                    ));
-            DefaultMutableTreeNode fileNode = new DefaultMutableTreeNode(
-                    new FileNodeLabel(fileName, filePath, severityCounts, icon));
+
+            severityCounts = getSeverityList().stream().filter(severityCounts::containsKey)
+                    .collect(Collectors.toMap(severity -> severity, severityCounts::get,
+                            (a, b) -> a, LinkedHashMap::new));
+
+            DefaultMutableTreeNode fileNode = new DefaultMutableTreeNode(new FileNodeLabel(fileName, filePath, severityCounts, icon));
 
             for (ScanIssue detail : filteredScanDetails) {
                 fileNode.add(new DefaultMutableTreeNode(new ScanDetailWithPath(detail, filePath)));
             }
             rootNode.add(fileNode);
         } catch (Exception e) {
-            LOGGER.warn("Failed to create file node for file: " + filePath, e);
+            LOGGER.warn("Exception occurred! Failed to create file node for file: " + filePath, e);
         }
     }
 
@@ -549,5 +544,15 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         vulnerabilityCountToIcon.put(Constants.HIGH_SEVERITY, CxIcons.Medium.HIGH);
         vulnerabilityCountToIcon.put(Constants.MEDIUM_SEVERITY, CxIcons.Medium.MEDIUM);
         vulnerabilityCountToIcon.put(Constants.LOW_SEVERITY, CxIcons.Medium.LOW);
+    }
+
+    /**
+     * Get a list of severity levels as strings in defined order.
+     *
+     * @return List<String> of severity levels
+     */
+    private List<String> getSeverityList() {
+        return Arrays.stream(SeverityLevel.values())
+                .map(SeverityLevel::toString).collect(Collectors.toList());
     }
 }

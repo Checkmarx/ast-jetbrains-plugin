@@ -2,7 +2,6 @@ package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
-import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -22,19 +21,13 @@ public class ScanIssueProcessor {
 
     private static final Logger LOGGER = Logger.getInstance(ScanIssueProcessor.class);
 
-    private final ProblemDecorator problemDecorator;
     private final PsiFile file;
-    private final InspectionManager manager;
     private final Document document;
-    private final boolean isOnTheFly;
     private final ProblemHelper problemHelper;
 
-    public ScanIssueProcessor(ProblemHelper problemHelper, ProblemDecorator problemDecorator) {
-        this.problemDecorator = problemDecorator;
+    public ScanIssueProcessor(ProblemHelper problemHelper) {
         this.file = problemHelper.getFile();
-        this.manager = problemHelper.getManager();
         this.document = problemHelper.getDocument();
-        this.isOnTheFly = problemHelper.isOnTheFly();
         this.problemHelper = problemHelper;
     }
 
@@ -101,7 +94,7 @@ public class ScanIssueProcessor {
      */
     private ProblemDescriptor createProblemDescriptor(ScanIssue scanIssue, int problemLineNumber) {
         try {
-            return ProblemBuilder.build(file, manager, scanIssue, document, problemLineNumber, isOnTheFly);
+            return ProblemBuilder.build(problemHelper, scanIssue, problemLineNumber);
         } catch (Exception e) {
             LOGGER.error("RTS: Failed to create problem descriptor for: {} ", scanIssue.getTitle(), e.getMessage());
             return null;
@@ -116,6 +109,10 @@ public class ScanIssueProcessor {
         if (Objects.isNull(elementAtLine)) {
             LOGGER.debug("RTS: Skipping to add gutter icon, Failed to find PSI element for line : {}", problemLineNumber, scanIssue.getTitle());
             return;
+        }
+        ProblemDecorator problemDecorator = problemHelper.getProblemDecorator();
+        if (Objects.isNull(problemDecorator)) {
+            problemDecorator = new ProblemDecorator();
         }
         problemDecorator.highlightLineAddGutterIconForProblem(problemHelper, scanIssue, isProblem, problemLineNumber);
     }

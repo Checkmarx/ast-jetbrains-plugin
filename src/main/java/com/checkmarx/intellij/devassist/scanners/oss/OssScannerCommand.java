@@ -4,13 +4,9 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerCommand;
-import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
-import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
@@ -57,7 +53,7 @@ public class OssScannerCommand extends BaseScannerCommand {
     protected void initializeScanner() {
         new Task.Backgroundable(project, Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN), false) {
             @Override
-            public void run(@NotNull ProgressIndicator indicator){
+            public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
                 indicator.setText(Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN));
                 scanAllManifestFilesInFolder();
@@ -80,7 +76,7 @@ public class OssScannerCommand extends BaseScannerCommand {
                 .collect(Collectors.toList());
 
         for (VirtualFile vRoot : ProjectRootManager.getInstance(project).getContentRoots()) {
-            if(Objects.nonNull(vRoot)){
+            if (Objects.nonNull(vRoot)) {
                 VfsUtilCore.iterateChildrenRecursively(vRoot, null, file -> {
                     if (!file.isDirectory() && !file.getPath().contains("/node_modules/") && file.exists()) {
                         String path = file.getPath();
@@ -99,7 +95,7 @@ public class OssScannerCommand extends BaseScannerCommand {
             Optional<VirtualFile> file = Optional.ofNullable(this.findVirtualFile(uri));
             if (file.isPresent()) {
                 try {
-                    PsiFile psiFile = ReadAction.compute(()->
+                    PsiFile psiFile = ReadAction.compute(() ->
                             PsiManager.getInstance(project).findFile(file.get()));
                     if (Objects.isNull(psiFile)) {
                         continue;

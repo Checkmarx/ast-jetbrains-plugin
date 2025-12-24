@@ -54,12 +54,12 @@
         <notificationGroup id="Checkmarx.Notifications" displayType="BALLOON"
                            bundle="messages.CxBundle" key="NOTIFICATION_GROUP_NAME" isLogByDefault="true"/>
 
-        <localInspection displayName="Checkmarx AST"
+        <!--<localInspection displayName="Checkmarx AST"
                          groupName="Checkmarx AST"
                          groupPath="Checkmarx"
                          enabledByDefault="true"
                          level="WARNING"
-                         implementationClass="com.checkmarx.intellij.inspections.CxInspection"/>
+                         implementationClass="com.checkmarx.intellij.inspections.CxInspection"/>-->
 
         <localInspection
                 displayName="CxOneAssist"

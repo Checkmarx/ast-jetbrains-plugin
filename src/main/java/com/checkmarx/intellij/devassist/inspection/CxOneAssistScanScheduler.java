@@ -2,17 +2,17 @@ package com.checkmarx.intellij.devassist.inspection;
 
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.util.ProgressIndicatorBase;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
 import com.intellij.util.Alarm;
 import org.jetbrains.annotations.NotNull;
-
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.util.ProgressIndicatorBase;
 
 import java.util.Collections;
 import java.util.List;
@@ -23,8 +23,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import static java.lang.String.format;
 
 /**
- * Manages and schedules debounced scans for files in a project, ensuring that scan requests are handled efficiently
- * to reduce redundant processing. The class uses a delay mechanism to debounce repeated scan requests for the same file.
+ * Schedule and execute debounced scans for files in the background.
+ * If multiple scan requests are made for the same file within a short period,
+ * only the latest request will be executed after a delay. This helps to avoid
+ * redundant scans and improves performance.
  */
 public class CxOneAssistScanScheduler {
 
@@ -38,12 +40,19 @@ public class CxOneAssistScanScheduler {
 
     // Track running scan indicators per file for cancellation
     private final Map<String, ProgressIndicator> scanIndicators = new ConcurrentHashMap<>();
+    private final CxOneAssistInspectionMgr cxOneAssistInspectionMgr = new CxOneAssistInspectionMgr();
 
     private CxOneAssistScanScheduler(@NotNull Project project) {
         this.project = project;
         this.alarm = new Alarm(Alarm.ThreadToUse.POOLED_THREAD, project);
     }
 
+    /**
+     * Returns the singleton instance of CxOneAssistScanScheduler for the given project.
+     *
+     * @param project - The IntelliJ Project instance
+     * @return the singleton CxOneAssistScanScheduler instance for the project
+     */
     static CxOneAssistScanScheduler getInstance(Project project) {
         CxOneAssistScanScheduler existingScanScheduler = project.getUserData(INSTANCE_KEY);
         if (Objects.nonNull(existingScanScheduler)) {
@@ -66,7 +75,7 @@ public class CxOneAssistScanScheduler {
         try {
             if (isProjectDisposed()) {
                 LOGGER.debug("RTS: Project {} is disposed while scheduling scan, skipping background scan for file: {}",
-                        filePath, project.getName());
+                        project.getName(), filePath);
                 return false;
             }
             int cancelledRequestCount = alarm.cancelAllRequests();
@@ -79,10 +88,9 @@ public class CxOneAssistScanScheduler {
                 prevIndicator.cancel();
                 LOGGER.debug("RTS: Cancelled previous running scan for file: {}", filePath);
             }
-
             long scanRequestTimeMillis = System.currentTimeMillis();
             this.scanRequestTimeMap.put(filePath, scanRequestTimeMillis);
-            alarm.addRequest(() -> executeScan(filePath, problemHelper, scanRequestTimeMillis), SCHEDULED_DELAY);
+            alarm.addRequest(() -> executeBackgroundScan(filePath, problemHelper, scanRequestTimeMillis), SCHEDULED_DELAY);
             return true;
         } catch (Exception exception) {
             LOGGER.warn(format("RTS: Exception occurred while scheduling scan for %s", filePath), exception);
@@ -96,7 +104,7 @@ public class CxOneAssistScanScheduler {
      * @param filePath      - The path of the file to be scanned
      * @param problemHelper - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
      */
-    private void executeScan(@NotNull String filePath, ProblemHelper problemHelper, long scanRequestTimeMillis) {
+    private void executeBackgroundScan(@NotNull String filePath, ProblemHelper problemHelper, long scanRequestTimeMillis) {
         try {
             synchronized (scanRequestTimeMap) {
                 long latestScanRequestTimeMillis = scanRequestTimeMap.getOrDefault(filePath, 0L);
@@ -119,15 +127,8 @@ public class CxOneAssistScanScheduler {
                     if (Objects.isNull(problemHelper.getFile()) || !problemHelper.getFile().isValid()) {
                         LOGGER.debug("RTS: Schedule-Scan: PsiFile is invalid for file: {}", filePath);
                     }
-                    // Always clear previous results before scan
-                    problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), Collections.emptyList());
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        if (!project.isDisposed() && problemHelper.getFile().isValid()) {
-                            DaemonCodeAnalyzer.getInstance(project).restart(problemHelper.getFile());
-                        }
-                    });
-                    // Run heavy scanner work outside read action, with cancellation support
-                    runBackgroundScan(problemHelper, project, filePath, indicator);
+                    // Run scan in the background
+                    runScan(problemHelper, indicator);
                     LOGGER.info(format("RTS: Completed scheduled scan for file: %s", filePath));
                 } catch (Exception e) {
                     LOGGER.warn(format("RTS: Schedule-Scan: Exception occurred while scanning file in background. File: %s", filePath), e);
@@ -144,48 +145,64 @@ public class CxOneAssistScanScheduler {
      * Scans the given file in the background and adds the scan issues to the problem holder.
      * The scan is performed in a separate thread to avoid blocking the UI thread.
      */
-    private void runBackgroundScan(ProblemHelper problemHelper, Project project, String filePath, ProgressIndicator indicator) {
+    private void runScan(ProblemHelper problemHelper, ProgressIndicator indicator) {
         if (indicator.isCanceled()) return;
-        List<ScanIssue> allScanIssues = CxOneAssistInspection.scanFileAndGetAllIssues(problemHelper);
+        List<ScanIssue> allScanIssues = cxOneAssistInspectionMgr.scanFile(problemHelper.getFilePath(), problemHelper.getFile(), ScanEngine.ALL);
         if (indicator.isCanceled()) return;
-        // Always clear previous results, even if no issues found
-        // Remove issues for this file
-        problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), Collections.emptyList());
-        // Remove problem descriptors for this file
-        problemHelper.getProblemHolderService().removeProblemDescriptorsForFile(problemHelper.getFilePath());
+
         if (allScanIssues.isEmpty()) {
             LOGGER.debug(format("RTS: Schedule-Scan: No scan issues found from scanner service for file: %s.",
                     problemHelper.getFile().getName()));
-            // Refresh UI to remove stale highlights
-            ApplicationManager.getApplication().invokeLater(() -> {
-                if (!project.isDisposed() && problemHelper.getFile().isValid()) {
-                    DaemonCodeAnalyzer.getInstance(project).restart(problemHelper.getFile());
-                }
-            });
+            resetCachedData(problemHelper);
+            restartDaemonCodeAnalyzer(problemHelper);
             return;
         }
         ProblemHelper.ProblemHelperBuilder problemHelperBuilder = problemHelper.toBuilder(problemHelper);
         problemHelperBuilder.scanIssueList(allScanIssues);
-        // Caching all scan issues
-        problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), allScanIssues);
-        List<ProblemDescriptor> allProblems = CxOneAssistInspection.createProblemDescriptors(problemHelperBuilder.build(), false);
+
+        // Creating problem descriptors from scan issues
+        List<ProblemDescriptor> allProblems = cxOneAssistInspectionMgr.createProblemDescriptors(problemHelperBuilder.build(), false);
         if (indicator.isCanceled()) return;
         if (allProblems.isEmpty()) {
             LOGGER.debug(format("RTS: Schedule-Scan: No Problem found and created for file: %s. ", problemHelper.getFile().getName()));
-            // UI already refreshed above
+            resetCachedData(problemHelper);
+            restartDaemonCodeAnalyzer(problemHelper);
             return;
         }
+        // Caching all updated scan issues
+        problemHelper.getProblemHolderService().addScanIssues(problemHelper.getFilePath(), allScanIssues);
         // Caching all problem descriptors
         problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
+        restartDaemonCodeAnalyzer(problemHelper);
+    }
 
-        scanRequestTimeMap.remove(filePath);
+    /**
+     * Resets cached scan issues and problem descriptors for the given file in the ProblemHolderService.
+     *
+     * @param problemHelper - The {@link ProblemHelper} instance containing necessary context for the file
+     */
+    private void resetCachedData(ProblemHelper problemHelper) {
+        // Reset scan issues to empty list
+        problemHelper.getProblemHolderService().addScanIssues(problemHelper.getFilePath(), Collections.emptyList());
+        // Reset problem descriptors to empty list
+        problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), Collections.emptyList());
+    }
+
+    /**
+     * Restarts the DaemonCodeAnalyzer for the given file to refresh inspections and display updated problems.
+     *
+     * @param problemHelper - The {@link ProblemHelper} instance containing necessary context for the file
+     */
+    private void restartDaemonCodeAnalyzer(ProblemHelper problemHelper) {
+        scanRequestTimeMap.remove(problemHelper.getFilePath());
         ApplicationManager.getApplication().invokeLater(() -> {
             if (!project.isDisposed() && problemHelper.getFile().isValid()) {
                 DaemonCodeAnalyzer.getInstance(project).restart(problemHelper.getFile());
+                LOGGER.debug("RTS: Restarted DaemonCodeAnalyzer (inspection) after scheduled scan for file: {}",
+                        problemHelper.getFile().getName());
             }
         });
     }
-
 
     /**
      * Checks if the project is disposed.

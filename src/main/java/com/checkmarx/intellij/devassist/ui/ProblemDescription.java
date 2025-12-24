@@ -25,7 +25,7 @@ import static com.checkmarx.intellij.devassist.ui.ProblemDescription.InlineStyle
  * It provides various utility methods to construct and format messages for
  * different types of issues.
  */
-public class ProblemDescription {
+public final class ProblemDescription {
 
     private static final Map<String, String> DESCRIPTION_ICON = new LinkedHashMap<>();
     private static final Logger LOGGER = Utils.getLogger(ProblemDescription.class);
@@ -66,8 +66,8 @@ public class ProblemDescription {
      * Reloads the mapping from severity levels to severity-specific icons.
      */
     public static void reloadIcons() {
-        LOGGER.info("Reloading icons on theme change.");
         initIconsMap();
+        LOGGER.info("RTS: Icons reloading completed.");
     }
 
     /**

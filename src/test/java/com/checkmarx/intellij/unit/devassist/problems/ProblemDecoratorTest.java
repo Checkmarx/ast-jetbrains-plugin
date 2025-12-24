@@ -126,7 +126,7 @@ public class ProblemDecoratorTest {
     // test removeAllGutterIcons (corner cases: null editor, null highlighters)
     @Test
     @DisplayName("Test removeAllGutterIcons with corner cases")
-    void testRemoveAllGutterIcons_CornerCases() {
+    void testRemoveAllHighlighters_CornerCases() {
         PsiFile psiFile = mock(PsiFile.class);
         Project project = mock(Project.class);
         when(psiFile.getProject()).thenReturn(project);
@@ -145,7 +145,7 @@ public class ProblemDecoratorTest {
             FileEditorManager fileMgr = mock(FileEditorManager.class);
             fileEditorManager.when(() -> FileEditorManager.getInstance(project)).thenReturn(fileMgr);
             when(fileMgr.getSelectedTextEditor()).thenReturn(null); // null editor path
-            decorator.removeAllGutterIcons(psiFile.getProject());
+            decorator.removeAllHighlighters(psiFile.getProject());
             // Non-null editor, empty highlighters array
             Editor editor = mock(Editor.class);
             when(fileMgr.getSelectedTextEditor()).thenReturn(editor);
@@ -153,7 +153,7 @@ public class ProblemDecoratorTest {
             when(editor.getMarkupModel()).thenReturn(markupModel);
             RangeHighlighter[] empty = new RangeHighlighter[0];
             when(markupModel.getAllHighlighters()).thenReturn(empty);
-            decorator.removeAllGutterIcons(psiFile.getProject());
+            decorator.removeAllHighlighters(psiFile.getProject());
         }
     }
 
@@ -223,7 +223,7 @@ public class ProblemDecoratorTest {
 
     @Test
     @DisplayName("Test removeAllGutterIcons exception path")
-    void testRemoveAllGutterIcons_ExceptionPath() {
+    void testRemoveAllHighlighters_ExceptionPath() {
         PsiFile psiFile = mock(PsiFile.class);
         Project project = mock(Project.class);
         when(psiFile.getProject()).thenReturn(project);
@@ -243,7 +243,7 @@ public class ProblemDecoratorTest {
                 return null;
             }).when(application).invokeLater(any(Runnable.class));
             fileEditorManager.when(() -> FileEditorManager.getInstance(project)).thenThrow(new RuntimeException("manager fail"));
-            decorator.removeAllGutterIcons(psiFile.getProject()); // ensure no exception escapes
+            decorator.removeAllHighlighters(psiFile.getProject()); // ensure no exception escapes
         }
     }
 
@@ -289,7 +289,7 @@ public class ProblemDecoratorTest {
             RangeHighlighter h1 = mock(RangeHighlighter.class);
             RangeHighlighter h2 = mock(RangeHighlighter.class);
             when(markupModel.getAllHighlighters()).thenReturn(new RangeHighlighter[]{h1, h2});
-            decorator.removeAllGutterIcons(psiFile.getProject());
+            decorator.removeAllHighlighters(psiFile.getProject());
             verify(markupModel, times(1)).removeAllHighlighters();
         }
     }
