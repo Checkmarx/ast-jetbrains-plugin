@@ -96,6 +96,16 @@ public class ResultNode extends DefaultMutableTreeNode {
 
     public static final String UPGRADE_TO_VERSION_LABEL = "Upgrade to version: ";
 
+//Add method helper for selector logic for all engine types
+    private static JEditorPane createSelectableHtmlPane(String htmlContent) {
+        JEditorPane pane = new JEditorPane();
+        pane.setContentType("text/html");
+        pane.setText(htmlContent);
+        pane.setEditable(false);
+        pane.setOpaque(false);
+        pane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+        return pane;
+    }
     /**
      * Set node title and store the associated result
      *
@@ -187,22 +197,26 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         // Populate Learn More tab with ruleDescription
         if (Utils.isNotBlank(result.getData().getRuleDescription())) {
-            learnMorePanel.add(new JBLabel(String.format(
+            learnMorePanel.add(
+                    createSelectableHtmlPane(String.format(
                             Constants.HTML_WRAPPER_FORMAT,
                             result.getData().getRuleDescription().replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
         } else {
-            learnMorePanel.add(new JBLabel("No information available"), "wrap, gapbottom 3, gapleft 0");
+            learnMorePanel.add(
+                    createSelectableHtmlPane(String.format(Constants.HTML_WRAPPER_FORMAT, "No information available")),
+                    "wrap, gapbottom 3, gapleft 0");
         }
 
         // Populate Remediation Examples tab with remediation content
         if (Utils.isNotBlank(result.getData().getRemediation())) {
-            remediationPanel.add(new JBLabel(String.format(
+            remediationPanel.add(
+                    createSelectableHtmlPane(String.format(
                             Constants.HTML_WRAPPER_FORMAT,
-                            result.getData().getRemediation().replaceAll("\n", "<br/>"))),
-                    "wrap, gapbottom 3, gapleft 0");
+                            result.getData().getRuleDescription().replaceAll("\n", "<br/>"))),
+                    "wrap, gapbottom 3, gapleft 0");;
         } else {
-            remediationPanel.add(new JBLabel(Bundle.message(Resource.NO_REMEDIATION_EXAMPLES)),
+            remediationPanel.add(createSelectableHtmlPane(Bundle.message(Resource.NO_REMEDIATION_EXAMPLES)),
                     "wrap, gapbottom 3, gapleft 0");
         }
 
@@ -669,7 +683,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                 }
 
                 if (Utils.isNotBlank(preamble)) {
-                    descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, preamble)),
+                    descriptionPanel.add(createSelectableHtmlPane(String.format(Constants.HTML_WRAPPER_FORMAT, preamble)),
                             "wrap, gapbottom 5");
                 }
 
@@ -688,17 +702,17 @@ public class ResultNode extends DefaultMutableTreeNode {
                 }
             } else {
                 // Non-SCS: default behavior (render full description)
-                descriptionPanel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, description)),
+                descriptionPanel.add(createSelectableHtmlPane(String.format(Constants.HTML_WRAPPER_FORMAT, description)),
                         "wrap, gapbottom 5");
             }
         }
         if (Utils.isNotBlank(result.getData().getValue()) && Utils.isNotBlank(result.getData()
                 .getExpectedValue())) {
 
-            descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
+            descriptionPanel.add(createSelectableHtmlPane(String.format(Constants.VALUE_FORMAT,
                     Bundle.message(Resource.ACTUAL_VALUE),
                     result.getData().getValue())), "span, growx, wrap");
-            descriptionPanel.add(new JBLabel(String.format(Constants.VALUE_FORMAT,
+            descriptionPanel.add(createSelectableHtmlPane(String.format(Constants.VALUE_FORMAT,
                     Bundle.message(Resource.EXPECTED_VALUE),
                     result.getData().getExpectedValue())), "span, growx, wrap");
         }
@@ -722,7 +736,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         }).thenAccept(triageChangesList -> ApplicationManager.getApplication().invokeLater(() -> {
             if (triageChangesList == null || triageChangesList.isEmpty()) {
                 // Show message only when there is nothing else to display
-                triageChanges.add(new JBLabel(Bundle.message(Resource.NO_CHANGES)), "wrap");
+                triageChanges.add(createSelectableHtmlPane(Bundle.message(Resource.NO_CHANGES)), "wrap");
             } else {
                 for (Predicate predicate : triageChangesList) {
                     createChangesPanels(triageChanges, predicate);
@@ -1123,32 +1137,32 @@ public class ResultNode extends DefaultMutableTreeNode {
         String risk = learnMore.getRisk();
         if (Utils.isNotBlank(risk)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, risk.replaceAll("\n", "<br/>"))),
+            panel.add(createSelectableHtmlPane(String.format(Constants.HTML_WRAPPER_FORMAT, risk.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
         }
 
-        JLabel causeTitle = new JLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel(Bundle.message(Resource.CAUSE)).getText()));
+        JEditorPane causeTitle = createSelectableHtmlPane(String.format(Constants.HTML_BOLD_FORMAT, boldLabel(Bundle.message(Resource.CAUSE)).getText()));
         panel.add(causeTitle, "span, growx");
 
         String cause = learnMore.getCause();
         if (Utils.isNotBlank(cause)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, cause.replaceAll("\n", "<br/>"))),
+            panel.add(createSelectableHtmlPane(String.format(Constants.HTML_WRAPPER_FORMAT, cause.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
         }
 
-        JLabel recommendationsTitle = new JLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel(Bundle.message(Resource.GENERAL_RECOMMENDATIONS)).getText()));
+        JEditorPane recommendationsTitle = createSelectableHtmlPane(String.format(Constants.HTML_BOLD_FORMAT, boldLabel(Bundle.message(Resource.GENERAL_RECOMMENDATIONS)).getText()));
         panel.add(recommendationsTitle, "span, growx");
 
         String recommendations = learnMore.getGeneralRecommendations();
         if (Utils.isNotBlank(cause)) {
             // wrapping the description in html tags auto wraps the text when it reaches the parent component size
-            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, recommendations.replaceAll("\n", "<br/>"))),
+            panel.add(createSelectableHtmlPane(String.format(Constants.HTML_WRAPPER_FORMAT, recommendations.replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
         }
 
         //[AST-96753] Add CWE link to the learn more section
-        JBLabel cweLinkTitle = new JBLabel(String.format(Constants.HTML_BOLD_FORMAT, boldLabel("CWE Link").getText()));
+        JEditorPane cweLinkTitle = createSelectableHtmlPane(String.format(Constants.HTML_BOLD_FORMAT, boldLabel("CWE Link").getText()));
         panel.add(cweLinkTitle, "span, growx");
 
         VulnerabilityDetails vulnerabilityDetails = result.getVulnerabilityDetails();
@@ -1188,7 +1202,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         if (samples.size() > 0) {
             for (Sample sample : samples) {
                 String title = sample.getTitle();
-                panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, title + Constants.REMEDIATION_EXAMPLES_USING + sample.getProgLanguage())),
+                panel.add(createSelectableHtmlPane(String.format(Constants.HTML_WRAPPER_FORMAT, title + Constants.REMEDIATION_EXAMPLES_USING + sample.getProgLanguage())),
                         "wrap, gapbottom 3, gapleft 0");
                 JEditorPane editor = new JEditorPane();
                 editor.setEditable(false);
@@ -1198,7 +1212,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                 panel.add(editor, "wrap, gapbottom 3, gapleft 0");
             }
         } else {
-            panel.add(new JBLabel(String.format(Constants.HTML_WRAPPER_FORMAT, Resource.NO_REMEDIATION_EXAMPLES)),
+            panel.add(createSelectableHtmlPane(String.format(Constants.HTML_WRAPPER_FORMAT, Resource.NO_REMEDIATION_EXAMPLES)),
                     "wrap, gapbottom 3, gapleft 0");
         }
     }
