@@ -203,9 +203,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                             result.getData().getRuleDescription().replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");
         } else {
-            learnMorePanel.add(
-                    createSelectableHtmlPane(String.format(Constants.HTML_WRAPPER_FORMAT, "No information available")),
-                    "wrap, gapbottom 3, gapleft 0");
+            learnMorePanel.add(createSelectableHtmlPane("No information available"), "wrap, gapbottom 3, gapleft 0");
         }
 
         // Populate Remediation Examples tab with remediation content
