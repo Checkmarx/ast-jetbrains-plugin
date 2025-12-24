@@ -7,6 +7,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.application.ApplicationManager;
@@ -143,7 +144,9 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
             int issueCount = ascaResult.getScanDetails() != null ? ascaResult.getScanDetails().size() : 0;
             LOGGER.debug("ASCA scanner: scan completed - " + uri + " (" + issueCount + " issues found)");
 
-            return new AscaScanResultAdaptor(ascaResult, uri);
+            AscaScanResultAdaptor scanResultAdaptor = new AscaScanResultAdaptor(ascaResult, uri);
+            TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.ASCA);
+            return scanResultAdaptor;
 
         } catch (Exception e) {
             LOGGER.warn("ASCA scanner: scan error for file: " + uri, e);
@@ -203,7 +206,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      */
     private ScanResult scanAscaFile(String path, boolean ascaLatestVersion, String agent)
             throws IOException, CxException, InterruptedException {
-        return CxWrapperFactory.build().ScanAsca(path, ascaLatestVersion, agent);
+        return CxWrapperFactory.build().ScanAsca(path, ascaLatestVersion, agent, "");
     }
 
     /**
@@ -405,7 +408,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      */
     public boolean installAsca() {
         try {
-            ScanResult res = CxWrapperFactory.build().ScanAsca("", true, Constants.JET_BRAINS_AGENT_NAME);
+            ScanResult res = CxWrapperFactory.build().ScanAsca("", true, Constants.JET_BRAINS_AGENT_NAME, "");
             if (res.getError() != null) {
                 LOGGER.warn(Strings.join("ASCA installation error: ", res.getError().getDescription()));
                 return false;
