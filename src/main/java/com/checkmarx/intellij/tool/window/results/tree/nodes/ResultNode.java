@@ -212,7 +212,7 @@ public class ResultNode extends DefaultMutableTreeNode {
                     createSelectableHtmlPane(String.format(
                             Constants.HTML_WRAPPER_FORMAT,
                             result.getData().getRemediation().replaceAll("\n", "<br/>"))),
-                    "wrap, gapbottom 3, gapleft 0");;
+                    "wrap, gapbottom 3, gapleft 0");
         } else {
             remediationPanel.add(createSelectableHtmlPane(Bundle.message(Resource.NO_REMEDIATION_EXAMPLES)),
                     "wrap, gapbottom 3, gapleft 0");
