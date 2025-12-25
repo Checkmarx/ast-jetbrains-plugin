@@ -33,7 +33,7 @@ public class ScanManager {
      * @param scanEngine the scan engine to be used for scanning; if null or ScanEngine.ALL, all supported scanners will be used
      * @return a list of ScanIssue objects representing the issues found during the scan
      */
-    public final List<ScanIssue> initiateScan(String filePath, PsiFile psiFile, ScanEngine scanEngine) {
+    public final List<ScanIssue> scanFile(String filePath, PsiFile psiFile, ScanEngine scanEngine) {
         if (Objects.isNull(scanEngine) || scanEngine == ScanEngine.ALL) {
             return scanFileUsingAllSupportedScanners(filePath, psiFile);
         }
@@ -70,8 +70,6 @@ public class ScanManager {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        LOGGER.info(format("RTS: Scan completed for all the enabled scanners for file: %s ", psiFile.getName()));
-
         return allScanResults.stream()
                 .flatMap(scanResult -> scanResult.getIssues().stream())
                 .collect(Collectors.toList());
@@ -89,10 +87,12 @@ public class ScanManager {
      */
     private ScanResult<?> initiateScan(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
         try {
-            LOGGER.info(format("RTS: Scan initiated for engine: %s for file: %s.", scannerService.getConfig().getEngineName(), path));
-            return scannerService.scan(file, path);
+            LOGGER.info(format("RTS: Scan initiated using engine: %s for file: %s.", scannerService.getConfig().getEngineName(), path));
+            ScanResult<?> scanResult = scannerService.scan(file, path);
+            LOGGER.info(format("RTS: Scan completed using engine: %s for file: %s.", scannerService.getConfig().getEngineName(), path));
+            return scanResult;
         } catch (Exception e) {
-            LOGGER.debug("RTS: Exception occurred while scanning file: {} ", path, e.getMessage());
+            LOGGER.warn(format("RTS: Exception occurred while scanning file: %s ", path), e);
             return null;
         }
     }

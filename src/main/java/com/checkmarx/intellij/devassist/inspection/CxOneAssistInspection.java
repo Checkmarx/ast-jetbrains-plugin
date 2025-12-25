@@ -81,7 +81,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(file.getProject());
-        FileTimeStampHolder timeStampHolder = FileTimeStampHolder.getInstance(file.getProject());
+        CxOneAssistScanStateHolder timeStampHolder = CxOneAssistScanStateHolder.getInstance(file.getProject());
         if (Objects.isNull(problemHolderService) || Objects.isNull(timeStampHolder)) {
             LOGGER.warn(format("RTS: Problem holder or timestamp holder not found for project: %s.", file.getProject().getName()));
             resetEditorAndResults(file.getProject(), filePath);
@@ -139,13 +139,8 @@ public class CxOneAssistInspection extends LocalInspectionTool {
      */
     private ProblemDescriptor[] getExistingProblemDescriptors(ProblemHolderService problemHolderService, String filePath, Document document,
                                                               PsiFile file, List<ScannerService<?>> supportedScanners, InspectionManager manager) {
-        ProblemDescriptor[] problemDescriptors = this.cxOneAssistInspectionMgr
+       return this.cxOneAssistInspectionMgr
                 .getExistingProblems(problemHolderService, filePath, document, file, supportedScanners, manager);
-        if (Objects.isNull(problemDescriptors) || problemDescriptors.length == 0) {
-            resetEditorAndResults(file.getProject(), filePath);
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
-        return problemDescriptors;
     }
 
     /**
@@ -187,8 +182,17 @@ public class CxOneAssistInspection extends LocalInspectionTool {
      * @return true if the problem descriptor is valid, false otherwise
      */
     private boolean isProblemDescriptorValid(ProblemHolderService problemHolderService, String filePath) {
-        return !problemHolderService.getProblemDescriptors(filePath).isEmpty()
-                && !problemHolderService.getScanIssueByFile(filePath).isEmpty();
+        boolean hasProblemDescriptors = !problemHolderService.getProblemDescriptors(filePath).isEmpty();
+        boolean hasScanIssues = !problemHolderService.getScanIssueByFile(filePath).isEmpty();
+        /*
+         * Return true if:
+         * - Both scan issues and problem descriptors exist, or
+         * - Only scan issues exist (problem descriptors may be added later) for an unknown and ok status result
+         * Return false if:
+         * - Both scan issues and problem descriptors do not exist, or
+         * - Only problem descriptors exist without scan issues
+         */
+        return (hasProblemDescriptors && hasScanIssues) || (!hasProblemDescriptors && hasScanIssues);
     }
 
     /**
