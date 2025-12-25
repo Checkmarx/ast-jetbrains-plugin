@@ -211,7 +211,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             remediationPanel.add(
                     createSelectableHtmlPane(String.format(
                             Constants.HTML_WRAPPER_FORMAT,
-                            result.getData().getRuleDescription().replaceAll("\n", "<br/>"))),
+                            result.getData().getRemediation().replaceAll("\n", "<br/>"))),
                     "wrap, gapbottom 3, gapleft 0");;
         } else {
             remediationPanel.add(createSelectableHtmlPane(Bundle.message(Resource.NO_REMEDIATION_EXAMPLES)),
