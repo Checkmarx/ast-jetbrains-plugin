@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.devassist.inspection;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
 import com.checkmarx.intellij.devassist.common.ScanManager;
@@ -17,7 +16,6 @@ import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.util.Key;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,6 +25,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.Keys.SCAN_SOURCE_KEY;
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.Keys.THEME_KEY;
 import static java.lang.String.format;
 
 /**
@@ -35,8 +35,6 @@ import static java.lang.String.format;
 public final class CxOneAssistInspectionMgr extends ScanManager {
 
     private static final Logger LOGGER = Utils.getLogger(CxOneAssistInspectionMgr.class);
-    private static final Key<Boolean> SCAN_SOURCE = Key.create("SCAN_SOURCE");
-    public static final Key<Boolean> THEME_KEY = Key.create(Constants.RealTimeConstants.THEME);
     private final ProblemDecorator problemDecorator = new ProblemDecorator();
 
     /**
@@ -50,7 +48,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
 
         LOGGER.info(format("RTS: Scan started for file: %s.", problemHelper.getFile().getName()));
 
-        List<ScanIssue> allScanIssues = scanFile(problemHelper.getFilePath(), problemHelper.getFile(), ScanEngine.ALL);
+        List<ScanIssue> allScanIssues = initiateScan(problemHelper.getFilePath(), problemHelper.getFile(), ScanEngine.ALL);
         if (allScanIssues.isEmpty()) {
             LOGGER.info(format("RTS: No scan issues found for file: %s.", problemHelper.getFile().getName()));
             return ProblemDescriptor.EMPTY_ARRAY;
@@ -121,7 +119,8 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
     public ProblemDescriptor[] getExistingProblems(ProblemHolderService problemHolderService, String filePath, Document document,
                                                    PsiFile file, List<ScannerService<?>> supportedEnabledScanners, InspectionManager manager) {
 
-        boolean isFromScheduledScan = file.getUserData(SCAN_SOURCE) != null && Objects.equals(file.getUserData(SCAN_SOURCE), Boolean.TRUE);
+        boolean isFromScheduledScan = file.getUserData(SCAN_SOURCE_KEY) != null
+                && Objects.equals(file.getUserData(SCAN_SOURCE_KEY), Boolean.TRUE);
         if (isFromScheduledScan) {
             LOGGER.info(format("RTS: Retrieving existing results after scheduled scan completes for file: %s.", file.getName()));
             return getCachedProblemsOnScheduledScanCompletion(problemHolderService, filePath, document, file);
@@ -193,7 +192,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         }
         // Update gutter icons and problem descriptors for the file according to the latest state of scan settings.
         problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
-        file.putUserData(SCAN_SOURCE, Boolean.FALSE);
+        file.putUserData(SCAN_SOURCE_KEY, Boolean.FALSE);
         return problemDescriptorsList.toArray(new ProblemDescriptor[0]);
     }
 
@@ -251,7 +250,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
      * @param flag boolean flag indicating if the scan is from scheduled scan
      */
     public void putScanSourceFlag(PsiFile file, Boolean flag) {
-        file.putUserData(SCAN_SOURCE, flag);
+        file.putUserData(SCAN_SOURCE_KEY, flag);
     }
 
     /**

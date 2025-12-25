@@ -4,6 +4,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.checkmarx.intellij.Constants.RealTimeConstants.SEPERATOR;
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.SEPERATOR;
 import static com.checkmarx.intellij.Utils.escapeHtml;
 import static com.checkmarx.intellij.devassist.ui.ProblemDescription.InlineStyle.*;
 
@@ -269,7 +270,7 @@ public final class ProblemDescription {
      * @param scanIssue   the ScanIssue object containing details about the issue such as severity, title, and package version
      */
     private void buildPackageMessage(StringBuilder descBuilder, ScanIssue scanIssue) {
-        String secondaryText = Constants.RealTimeConstants.SEVERITY_PACKAGE;
+        String secondaryText = DevAssistConstants.SEVERITY_PACKAGE;
         String iconKey = PACKAGE;
         if (scanIssue.getSeverity().equalsIgnoreCase(SeverityLevel.MALICIOUS.getSeverity())) {
             secondaryText = PACKAGE;
@@ -417,12 +418,12 @@ public final class ProblemDescription {
                 .append("<td style='padding:0 10px 0 0;margin:0;'>")
                 .append("<a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
-                .append(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST)
+                .append(DevAssistConstants.FIX_WITH_CXONE_ASSIST)
                 .append("</a></td>")
                 .append("<td style='padding:0 10px 0 0;margin:0;'>")
                 .append("<a href=\"#cxonedevassist/viewdetails").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
-                .append(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME)
+                .append(DevAssistConstants.VIEW_DETAILS_FIX_NAME)
                 .append("</a></td>")
                 /*   .append("<td style='padding:0 10px 0 0;margin:0;'>")
                      .append("<a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append(SEPERATOR).append(engineName).append("\" ")

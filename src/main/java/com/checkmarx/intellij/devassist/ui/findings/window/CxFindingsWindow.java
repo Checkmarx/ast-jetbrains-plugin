@@ -7,6 +7,7 @@ import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterState;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
@@ -58,7 +59,7 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.checkmarx.intellij.Constants.RealTimeConstants.QUICK_FIX;
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
 
 
 /**
@@ -403,12 +404,12 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
     private JPopupMenu createPopupMenu(ScanIssue detail) {
         JPopupMenu popup = new JPopupMenu();
 
-        JMenuItem fixWithCxOneAssist = new JMenuItem(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST);
+        JMenuItem fixWithCxOneAssist = new JMenuItem(DevAssistConstants.FIX_WITH_CXONE_ASSIST);
         fixWithCxOneAssist.addActionListener(ev -> remediationManager.fixWithCxOneAssist(project, detail, QUICK_FIX));
         fixWithCxOneAssist.setIcon(CxIcons.STAR_ACTION);
         popup.add(fixWithCxOneAssist);
 
-        JMenuItem copyDescription = new JMenuItem(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME);
+        JMenuItem copyDescription = new JMenuItem(DevAssistConstants.VIEW_DETAILS_FIX_NAME);
         copyDescription.addActionListener(ev -> remediationManager.viewDetails(project, detail, QUICK_FIX));
         copyDescription.setIcon(CxIcons.STAR_ACTION);
         popup.add(copyDescription);
@@ -482,9 +483,9 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         if (count > 0) {
             JBColor jbColor = new JBColor(Gray._10, Gray._190);
             String hexColor = "#" + Integer.toHexString(jbColor.getRGB()).substring(2);
-            content.setDisplayName("<html>" + Constants.RealTimeConstants.DEVASSIST_TAB + " <span style='color:" + hexColor + "'>" + count + "</span></html>");
+            content.setDisplayName("<html>" + DevAssistConstants.DEVASSIST_TAB + " <span style='color:" + hexColor + "'>" + count + "</span></html>");
         } else {
-            content.setDisplayName(Constants.RealTimeConstants.DEVASSIST_TAB);
+            content.setDisplayName(DevAssistConstants.DEVASSIST_TAB);
         }
     }
 

@@ -10,7 +10,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.util.ProgressIndicatorBase;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Key;
 import com.intellij.util.Alarm;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.Keys.SCHEDULER_INSTANCE_KEY;
 import static java.lang.String.format;
 
 /**
@@ -36,7 +36,6 @@ public class CxOneAssistScanScheduler {
     private final Project project;
     private final Alarm alarm;
     private final Map<String, Long> scanRequestTimeMap = new ConcurrentHashMap<>();
-    private static final Key<CxOneAssistScanScheduler> INSTANCE_KEY = Key.create("CX_ONE_ASSIST_SCAN_SCHEDULER");
 
     // Track running scan indicators per file for cancellation
     private final Map<String, ProgressIndicator> scanIndicators = new ConcurrentHashMap<>();
@@ -54,13 +53,13 @@ public class CxOneAssistScanScheduler {
      * @return the singleton CxOneAssistScanScheduler instance for the project
      */
     static CxOneAssistScanScheduler getInstance(Project project) {
-        CxOneAssistScanScheduler existingScanScheduler = project.getUserData(INSTANCE_KEY);
+        CxOneAssistScanScheduler existingScanScheduler = project.getUserData(SCHEDULER_INSTANCE_KEY);
         if (Objects.nonNull(existingScanScheduler)) {
             LOGGER.debug("RTS: Schedule-Scan: CxOneAssistScanScheduler instance already exists for project: {}", project.getName());
             return existingScanScheduler;
         }
         CxOneAssistScanScheduler cxOneAssistScanScheduler = new CxOneAssistScanScheduler(project);
-        project.putUserData(INSTANCE_KEY, cxOneAssistScanScheduler);
+        project.putUserData(SCHEDULER_INSTANCE_KEY, cxOneAssistScanScheduler);
         return cxOneAssistScanScheduler;
     }
 
@@ -147,7 +146,7 @@ public class CxOneAssistScanScheduler {
      */
     private void runScan(ProblemHelper problemHelper, ProgressIndicator indicator) {
         if (indicator.isCanceled()) return;
-        List<ScanIssue> allScanIssues = cxOneAssistInspectionMgr.scanFile(problemHelper.getFilePath(), problemHelper.getFile(), ScanEngine.ALL);
+        List<ScanIssue> allScanIssues = cxOneAssistInspectionMgr.initiateScan(problemHelper.getFilePath(), problemHelper.getFile(), ScanEngine.ALL);
         if (indicator.isCanceled()) return;
 
         if (allScanIssues.isEmpty()) {

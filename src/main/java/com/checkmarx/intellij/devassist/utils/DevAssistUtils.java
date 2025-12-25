@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.devassist.utils;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
@@ -294,11 +293,11 @@ public class DevAssistUtils {
     }
 
     public static boolean isDockerComposeFile(@NotNull String filePath) {
-        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKER_COMPOSE);
+        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(DevAssistConstants.DOCKER_COMPOSE);
     }
 
     public static boolean isDockerFile(@NotNull String filePath) {
-        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKERFILE);
+        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(DevAssistConstants.DOCKERFILE);
     }
 
     public static String getFileExtension(@NotNull PsiFile psiFile) {
@@ -311,7 +310,7 @@ public class DevAssistUtils {
 
     public static boolean isYamlFile(@NotNull PsiFile psiFile) {
         String fileExtension = DevAssistUtils.getFileExtension(psiFile);
-        return Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
+        return Objects.nonNull(fileExtension) && DevAssistConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
     }
 
     /**

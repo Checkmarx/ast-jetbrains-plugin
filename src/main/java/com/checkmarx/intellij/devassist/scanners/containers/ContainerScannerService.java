@@ -2,11 +2,11 @@ package com.checkmarx.intellij.devassist.scanners.containers;
 
 import com.checkmarx.ast.containersrealtime.ContainersRealtimeResults;
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
@@ -53,11 +53,11 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
     public static ScannerConfig createConfig() {
         return ScannerConfig.builder()
                 .engineName(ScanEngine.CONTAINERS.name())
-                .configSection(Constants.RealTimeConstants.CONTAINER_REALTIME_SCANNER)
-                .activateKey(Constants.RealTimeConstants.ACTIVATE_CONTAINER_REALTIME_SCANNER)
-                .enabledMessage(Constants.RealTimeConstants.CONTAINER_REALTIME_SCANNER_START)
-                .disabledMessage(Constants.RealTimeConstants.CONTAINER_REALTIME_SCANNER_DISABLED)
-                .errorMessage(Constants.RealTimeConstants.ERROR_CONTAINER_REALTIME_SCANNER).build();
+                .configSection(DevAssistConstants.CONTAINER_REALTIME_SCANNER)
+                .activateKey(DevAssistConstants.ACTIVATE_CONTAINER_REALTIME_SCANNER)
+                .enabledMessage(DevAssistConstants.CONTAINER_REALTIME_SCANNER_START)
+                .disabledMessage(DevAssistConstants.CONTAINER_REALTIME_SCANNER_DISABLED)
+                .errorMessage(DevAssistConstants.ERROR_CONTAINER_REALTIME_SCANNER).build();
     }
 
     /**
@@ -84,14 +84,14 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
      */
 
     private boolean isContainersFilePatternMatching(String filePath) {
-        List<PathMatcher> pathMatchers = Constants.RealTimeConstants.CONTAINERS_FILE_PATTERNS.stream().map(f -> FileSystems.getDefault().getPathMatcher("glob:" + f)).collect(Collectors.toList());
+        List<PathMatcher> pathMatchers = DevAssistConstants.CONTAINERS_FILE_PATTERNS.stream().map(f -> FileSystems.getDefault().getPathMatcher("glob:" + f)).collect(Collectors.toList());
         for (PathMatcher pathMatcher : pathMatchers) {
             if (pathMatcher.matches(Paths.get(filePath.toLowerCase()))) {
                 if(DevAssistUtils.isDockerComposeFile(filePath.toLowerCase())){
-                    fileType=Constants.RealTimeConstants.DOCKER_COMPOSE;
+                    fileType= DevAssistConstants.DOCKER_COMPOSE;
                 }
                 else if(DevAssistUtils.isDockerFile(filePath.toLowerCase())){
-                    fileType=Constants.RealTimeConstants.DOCKERFILE;
+                    fileType= DevAssistConstants.DOCKERFILE;
                 }
                 return true;
             }
@@ -178,11 +178,11 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
 
     public  boolean isHelmFile(@NotNull PsiFile psiFile,@NotNull String filePath) {
         if (DevAssistUtils.isYamlFile(psiFile)) {
-            if (Constants.RealTimeConstants.CONTAINER_HELM_EXCLUDED_FILES.contains(psiFile.getName().toLowerCase())) {
+            if (DevAssistConstants.CONTAINER_HELM_EXCLUDED_FILES.contains(psiFile.getName().toLowerCase())) {
                 return false;
             }
             if(filePath.toLowerCase().contains("/helm/")){
-                fileType=Constants.RealTimeConstants.HELM;
+                fileType= DevAssistConstants.HELM;
                 return true;
             };
         }
@@ -201,7 +201,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
         if (!this.shouldScanFile(uri, psiFile)) {
             return null;
         }
-        String tempFolder = super.getTempSubFolderPath(Constants.RealTimeConstants.CONTAINER_REALTIME_SCANNER_DIRECTORY);
+        String tempFolder = super.getTempSubFolderPath(DevAssistConstants.CONTAINER_REALTIME_SCANNER_DIRECTORY);
         Pair<Path, Path> saveResult = null;
         try {
             Path tempFolderPath = Paths.get(tempFolder);

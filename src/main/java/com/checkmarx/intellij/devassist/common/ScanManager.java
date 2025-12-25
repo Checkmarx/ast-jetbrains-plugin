@@ -33,7 +33,7 @@ public class ScanManager {
      * @param scanEngine the scan engine to be used for scanning; if null or ScanEngine.ALL, all supported scanners will be used
      * @return a list of ScanIssue objects representing the issues found during the scan
      */
-    public final List<ScanIssue> scanFile(String filePath, PsiFile psiFile, ScanEngine scanEngine) {
+    public final List<ScanIssue> initiateScan(String filePath, PsiFile psiFile, ScanEngine scanEngine) {
         if (Objects.isNull(scanEngine) || scanEngine == ScanEngine.ALL) {
             return scanFileUsingAllSupportedScanners(filePath, psiFile);
         }
@@ -49,7 +49,7 @@ public class ScanManager {
                 .findFirst();
         if (scannerServiceOptional.isPresent()) {
             ScannerService<?> scannerService = scannerServiceOptional.get();
-            ScanResult<?> scanResult = scanFile(scannerService, psiFile, filePath);
+            ScanResult<?> scanResult = initiateScan(scannerService, psiFile, filePath);
             if (Objects.isNull(scanResult)) {
                 LOGGER.debug(format("RTS: No issues found for engine: %s for file: %s ", scannerService.getConfig().getEngineName(), psiFile.getName()));
                 return Collections.emptyList();
@@ -66,7 +66,7 @@ public class ScanManager {
      */
     private List<ScanIssue> scanFileUsingAllSupportedScanners(String filePath, PsiFile psiFile) {
         List<ScanResult<?>> allScanResults = getSupportedEnabledScanner(filePath, psiFile).stream()
-                .map(scannerService -> scanFile(scannerService, psiFile, filePath))
+                .map(scannerService -> initiateScan(scannerService, psiFile, filePath))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -87,7 +87,7 @@ public class ScanManager {
      * @return a {@link ScanResult} instance containing the results of the scan, or null if no
      * active and suitable scanner is found
      */
-    private ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
+    private ScanResult<?> initiateScan(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
         try {
             LOGGER.info(format("RTS: Scan initiated for engine: %s for file: %s.", scannerService.getConfig().getEngineName(), path));
             return scannerService.scan(file, path);

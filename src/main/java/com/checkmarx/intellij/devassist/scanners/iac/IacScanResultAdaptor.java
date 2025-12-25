@@ -2,11 +2,11 @@ package com.checkmarx.intellij.devassist.scanners.iac;
 
 import com.checkmarx.ast.iacrealtime.IacRealtimeResults;
 import com.checkmarx.ast.realtime.RealtimeLocation;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
@@ -95,7 +95,7 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
     private @NotNull ScanIssue getScanIssue(List<IssueLocationEntry> iacScanIssue) {
         ScanIssue scanIssue = new ScanIssue();
         if (iacScanIssue.size() > 1) {
-            scanIssue.setTitle(iacScanIssue.size() + Constants.RealTimeConstants.MULTIPLE_IAC_ISSUES);
+            scanIssue.setTitle(iacScanIssue.size() + DevAssistConstants.MULTIPLE_IAC_ISSUES);
         } else {
             scanIssue.setTitle(iacScanIssue.get(0).issue.getTitle());
         }

@@ -1,12 +1,12 @@
 package com.checkmarx.intellij.devassist.scanners.oss;
 
 import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerCommand;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
@@ -71,7 +71,7 @@ public class OssScannerCommand extends BaseScannerCommand {
     private void scanAllManifestFilesInFolder() {
         List<String> matchedURIs = new ArrayList<>();
 
-        List<PathMatcher> pathMatchers = Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
+        List<PathMatcher> pathMatchers = DevAssistConstants.MANIFEST_FILE_PATTERNS.stream()
                 .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
                 .collect(Collectors.toList());
 

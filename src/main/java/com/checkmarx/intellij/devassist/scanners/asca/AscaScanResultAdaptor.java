@@ -2,12 +2,11 @@ package com.checkmarx.intellij.devassist.scanners.asca;
 
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.ast.iacrealtime.IacRealtimeResults;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
@@ -152,7 +151,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
 
         // Set title based on whether there are multiple issues on the same line
         if (ascaScanDetails.size() > 1) {
-            scanIssue.setTitle(ascaScanDetails.size() + Constants.RealTimeConstants.MULTIPLE_ASCA_ISSUES);
+            scanIssue.setTitle(ascaScanDetails.size() + DevAssistConstants.MULTIPLE_ASCA_ISSUES);
         } else {
             scanIssue.setTitle(firstDetail.getRuleName());
         }

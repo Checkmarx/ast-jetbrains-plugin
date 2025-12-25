@@ -1,11 +1,11 @@
 package com.checkmarx.intellij.devassist.inspection;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
@@ -21,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Objects;
 
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.Keys.THEME_KEY;
 import static java.lang.String.format;
 
 /**
@@ -95,7 +96,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
             return getExistingProblemDescriptors(problemHolderService, filePath, document, file, supportedScanners, manager);
         }
         timeStampHolder.updateTimeStamp(filePath, compositeStamp);
-        file.putUserData(CxOneAssistInspectionMgr.THEME_KEY, DevAssistUtils.isDarkTheme());
+        file.putUserData(THEME_KEY, DevAssistUtils.isDarkTheme());
         return scanFileAndCreateProblemDescriptors(file, manager, isOnTheFly, supportedScanners, document, problemHolderService, filePath);
     }
 
@@ -174,7 +175,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
      * @return true if the file is a GitHub Copilot-generated file, false otherwise.
      */
     private boolean isAgentEvent(VirtualFile virtualFile) {
-        return Constants.RealTimeConstants.AGENT_DUMMY_FILES.stream()
+        return DevAssistConstants.AGENT_DUMMY_FILES.stream()
                 .anyMatch(filePath -> filePath.equals(virtualFile.getPath()));
     }
 
