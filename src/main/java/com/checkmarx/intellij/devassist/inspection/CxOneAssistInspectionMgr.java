@@ -120,91 +120,108 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
     public ProblemDescriptor[] getExistingProblems(ProblemHolderService problemHolderService, String filePath, Document document,
                                                    PsiFile file, List<ScannerService<?>> supportedEnabledScanners, InspectionManager manager) {
 
-        boolean isFromScheduledScan = file.getUserData(SCAN_SOURCE_KEY) != null
-                && Objects.equals(file.getUserData(SCAN_SOURCE_KEY), Boolean.TRUE);
+        boolean isFromScheduledScan = file.getUserData(SCAN_SOURCE_KEY) != null && Objects.equals(file.getUserData(SCAN_SOURCE_KEY), Boolean.TRUE);
         if (isFromScheduledScan) {
             LOGGER.info(format("RTS: Retrieving existing results after scheduled scan completes for file: %s.", file.getName()));
             return getCachedProblemsOnScheduledScanCompletion(problemHolderService, filePath, document, file);
         }
-        if (isThemeChanged(file)) {
-            LOGGER.info(format("RTS: Theme has been changed, reloading the icons and creating the problem descriptors" +
-                    " with new icons for the file: %s using existing scan results.", file.getName()));
-            return createProblemDescriptorsOnThemeChanged(problemHolderService, filePath, document, file, supportedEnabledScanners, manager);
-        }
-        return getCachedProblemDescriptorsForNonModifiedFile(problemHolderService, filePath, document, file, supportedEnabledScanners);
+        ProblemHelper problemHelper = ProblemHelper.builder(file, file.getProject())
+                .manager(manager)
+                .isOnTheFly(true)
+                .document(document)
+                .filePath(filePath)
+                .problemHolderService(problemHolderService)
+                .supportedScanners(supportedEnabledScanners)
+                .problemDecorator(new ProblemDecorator())
+                .build();
+
+        return getCachedProblemDescriptorsForNonModifiedFile(problemHelper, filePath, file);
     }
 
     /**
      * Gets the existing problem descriptors for the given file path and enabled scanners.
      * This method is used when the file is not modified after scheduled scan completion.
      */
-    private ProblemDescriptor @NotNull [] getCachedProblemDescriptorsForNonModifiedFile(ProblemHolderService problemHolderService, String filePath,
-                                                                                        Document document, PsiFile file, List<ScannerService<?>> supportedEnabledScanners) {
+    private ProblemDescriptor @NotNull [] getCachedProblemDescriptorsForNonModifiedFile(ProblemHelper problemHelper, String filePath, PsiFile file) {
         LOGGER.info(format("RTS: Started retrieving problem descriptor for non modified file: %s.", file.getName()));
         /*
          * If a file already scanned and after that if scanner settings are changed (enabled/disabled),
          * we need to filter the existing problems and return only those which are related to enabled scanners
          */
-        List<ScanEngine> enabledScanners = supportedEnabledScanners.stream()
+        List<ScanEngine> enabledScanEngines = problemHelper.getSupportedScanners().stream()
                 .map(scannerService ->
                         ScanEngine.valueOf(scannerService.getConfig().getEngineName().toUpperCase()))
                 .collect(Collectors.toList());
 
-        if (enabledScanners.isEmpty()) {
-            LOGGER.warn(format("RTS: No enabled scanners found for file: %s.", filePath));
+        if (enabledScanEngines.isEmpty()) {
+            LOGGER.warn(format("RTS: No enabled scan engines found for file: %s.", filePath));
             resetEditorAndResults(file.getProject(), filePath);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
+        List<ScanIssue> scanIssueList = problemHelper.getProblemHolderService().getScanIssueByFile(filePath);
         if (scanIssueList.isEmpty()) {
             LOGGER.warn(format("RTS: No existing scan issues found for file: %s.", filePath));
             resetEditorAndResults(file.getProject(), filePath);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        List<ProblemDescriptor> problemDescriptorsList = problemHolderService.getProblemDescriptors(filePath);
-
+        List<ProblemDescriptor> problemDescriptorsList = problemHelper.getProblemHolderService().getProblemDescriptors(filePath);
         if (problemDescriptorsList.isEmpty()) {
             // File dose doesn't have any existing problem descriptors, but it may have existing scan results (unknown or ok).
             LOGGER.warn(format("RTS: No existing problem descriptors found for file: %s or no enabled scanners found.", filePath));
             return ProblemDescriptor.EMPTY_ARRAY;
         }
+        // Check if any new scanner is enabled or any scanner is disabled by a user
         // Get all scan engines from existing scan issues
-        List<ScanEngine> scanEngineList = scanIssueList.stream().map(ScanIssue::getScanEngine).collect(Collectors.toList());
+        List<ScanEngine> existingScanEngineList = scanIssueList.stream().map(ScanIssue::getScanEngine).collect(Collectors.toList());
 
-        // Check if any engine from scanEngineList is not present in enabledScanners
-        boolean hasDisabledEngines = scanEngineList.stream().anyMatch(engine -> !enabledScanners.contains(engine));
+        // Check if any engine from existing scan results is not present in current enabled scan engine list
+        boolean hasDisabledEngines = existingScanEngineList.stream().anyMatch(engine -> !enabledScanEngines.contains(engine));
 
-        // Check if any new scanner is present in enabledScanners
-        boolean hasNewEnabledEngines = enabledScanners.stream().anyMatch(engine -> !scanEngineList.contains(engine));
+        // Check if any new scan engine is enabled
+        boolean hasNewEnabledEngines = enabledScanEngines.stream().anyMatch(engine -> !existingScanEngineList.contains(engine));
+        boolean isThemeChanged = isThemeChanged(file); // Check if the theme has changed
 
-        // If both lists have the same elements, return the problem descriptor list
-        if (!hasDisabledEngines && !hasNewEnabledEngines) {
-            LOGGER.info(format("RTS: No change in enabled scanners for file: %s. Returning existing problem descriptors.", file.getName()));
+        // if scan engines state and theme are not changed, return the existing problem descriptor list
+        if (!hasDisabledEngines && !hasNewEnabledEngines && !isThemeChanged) {
+            LOGGER.info(format("RTS: No change in scanners state and theme, Returning existing problem descriptors for file: %s.", file.getName()));
             return problemDescriptorsList.toArray(new ProblemDescriptor[0]);
         }
-        // If any new scanner is present in enabledScanners, create problem descriptors for those
+        List<ProblemDescriptor> updatedScannerProblems = new ArrayList<>(problemDescriptorsList);
+        List<ScanIssue> updatedScanIssueList = new ArrayList<>(scanIssueList);
+
+        // If any new scanner is enabled, create problem descriptors for those
         if (hasNewEnabledEngines) {
-            LOGGER.info(format("RTS: New enabled scanners detected for file: %s. Creating problem descriptors for new scanners.", file.getName()));
-            // need to trigger a scan or create descriptors for new scanners here
-            // For now, just return the enabledScannerProblems as before
-            // Implement additional logic as needed
+            LOGGER.info(format("RTS: New enabled scanners detected! Creating problem descriptors for new scanners for file: %s." +
+                    " (This functionality currently not supported))", file.getName()));
+            // need to trigger a scan for new scanners here
         }
-        // Proceed with further logic if any engine from scanEngineList is not present in enabledScanners
+        /*
+         * If some of the scan engines disabled and results already loaded with the old state,
+         *  then update results and problem descriptors with the new state of scan engines.
+         */
         if (hasDisabledEngines) {
-            LOGGER.info(format("RTS: Some scan engines are now disabled for file: %s. Proceeding with further logic.", file.getName()));
+            LOGGER.info(format("RTS: Some scan engines are now disabled for file: %s.", file.getName()));
+            updatedScanIssueList = scanIssueList.stream()
+                    .filter(scanIssue -> enabledScanEngines.contains(scanIssue.getScanEngine()))
+                    .collect(Collectors.toList());
         }
-        LOGGER.info(format("RTS: Some scan engines are now disabled for file: %s. Proceeding with further logic.", file.getName()));
-        List<ProblemDescriptor> enabledScannerProblems = getEnabledScannerProblems(filePath, problemDescriptorsList, enabledScanners);
-        List<ScanIssue> enabledScanIssueList = scanIssueList.stream()
-                .filter(scanIssue -> enabledScanners.contains(scanIssue.getScanEngine()))
-                .collect(Collectors.toList());
+        if (isThemeChanged) {
+            ProblemHelper updatedHelper = problemHelper.toBuilder(problemHelper).scanIssueList(updatedScanIssueList).build();
+            updatedScannerProblems = createProblemDescriptorsOnThemeChanged(updatedHelper);
+        } else if (hasDisabledEngines) {
+            updatedScannerProblems = getEnabledScannerProblems(filePath, problemDescriptorsList, enabledScanEngines);
+        }
+        LOGGER.info(format("RTS: Decorating UI as per the latest state of the scanners using existing results for file: %s.", file.getName()));
 
         // Update gutter icons and problem descriptors for the file according to the latest state of scan settings.
-        problemDecorator.decorateUI(file.getProject(), file, enabledScanIssueList, document);
-        problemHolderService.addProblemDescriptors(filePath, enabledScannerProblems);
+        problemDecorator.decorateUI(file.getProject(), file, updatedScanIssueList, problemHelper.getDocument());
+
+        problemHelper.getProblemHolderService().addScanIssues(filePath, updatedScanIssueList);
+        problemHelper.getProblemHolderService().addProblemDescriptors(filePath, updatedScannerProblems);
+        updateScanSourceFlag(file, Boolean.FALSE);
 
         LOGGER.info(format("RTS: Completed retrieving problem descriptor for non modified file: %s.", file.getName()));
-        return enabledScannerProblems.toArray(new ProblemDescriptor[0]);
+        return !updatedScannerProblems.isEmpty() ? updatedScannerProblems.toArray(new ProblemDescriptor[0]) : ProblemDescriptor.EMPTY_ARRAY;
     }
 
     /**
@@ -216,58 +233,49 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
      */
     private ProblemDescriptor[] getCachedProblemsOnScheduledScanCompletion(ProblemHolderService problemHolderService, String filePath, Document document, PsiFile file) {
 
-        List<ProblemDescriptor> problemDescriptorsList = problemHolderService.getProblemDescriptors(filePath);
-        if (problemDescriptorsList.isEmpty()) {
-            LOGGER.warn(format("RTS: No problem descriptors found for file: %s after schedule scan completion.", filePath));
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
         List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
         if (scanIssueList.isEmpty()) {
-            LOGGER.warn(format("RTS: No existing scan issues found for file: %s after schedule scan completion.", filePath));
+            LOGGER.warn(format("RTS: No existing scan issues found after schedule scan completion for file: %s.", filePath));
+            resetEditorAndResults(file.getProject(), filePath);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         // Update gutter icons and problem descriptors for the file according to the latest state of scan settings.
         problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
-        file.putUserData(SCAN_SOURCE_KEY, Boolean.FALSE);
+        updateScanSourceFlag(file, Boolean.FALSE);
+
+        // Problem descriptors already cached, if no problem descriptor found means all results received with OK or Unknown status
+        List<ProblemDescriptor> problemDescriptorsList = problemHolderService.getProblemDescriptors(filePath);
+        if (problemDescriptorsList.isEmpty()) {
+            LOGGER.warn(format("RTS: No problem descriptors found after schedule scan completion." +
+                    " Only Ok or Unknow results available for the file: %s .", filePath));
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
         return problemDescriptorsList.toArray(new ProblemDescriptor[0]);
     }
 
     /**
      * Creates problem descriptors when the theme has changed. As the inspection tooltip doesn't support dynamic icon change in the tooltip description
      */
-    private ProblemDescriptor[] createProblemDescriptorsOnThemeChanged(ProblemHolderService problemHolderService, String filePath, Document document,
-                                                                       PsiFile file, List<ScannerService<?>> supportedScanners, InspectionManager manager) {
-        LOGGER.info(format("RTS: Started problem descriptor creation using existing scan results on theme changed for the file: %s.", file.getName()));
+    private List<ProblemDescriptor> createProblemDescriptorsOnThemeChanged(ProblemHelper problemHelper) {
+        LOGGER.info(format("RTS: Started problem descriptor creation using existing scan results on theme changed for the file: %s.", problemHelper.getFile().getName()));
         // Reload problem descriptions icons on theme change, as the inspection tooltip doesn't support dynamic icon change in the tooltip description.
         ProblemDescription.reloadIcons();
 
-        ProblemHelper problemHelper = ProblemHelper.builder(file, file.getProject())
-                .manager(manager)
-                .isOnTheFly(true)
-                .document(document)
-                .supportedScanners(supportedScanners)
-                .filePath(filePath)
-                .problemHolderService(problemHolderService)
-                .problemDecorator(new ProblemDecorator())
-                .scanIssueList(problemHolderService.getScanIssueByFile(filePath))
-                .build();
-
-        List<ProblemDescriptor> problemList = createProblemDescriptors(problemHelper, true);
-        problemHolderService.addProblemDescriptors(filePath, problemList);
-        LOGGER.info(format("RTS: Completed problem descriptor creation using existing scan results on theme changed for the file: %s.", file.getName()));
-        return problemList.toArray(new ProblemDescriptor[0]);
+        List<ProblemDescriptor> problemList = createProblemDescriptors(problemHelper, false);
+        LOGGER.info(format("RTS: Completed problem descriptor creation using existing scan results on theme changed for the file: %s.", problemHelper.getFile().getName()));
+        return problemList;
     }
 
     /**
      * Gets the existing problem descriptors for the given file path and enabled scanners.
      */
     private @NotNull List<ProblemDescriptor> getEnabledScannerProblems(String filePath, List<ProblemDescriptor> problemDescriptorsList,
-                                                                       List<ScanEngine> enabledScanners) {
+                                                                       List<ScanEngine> enabledScanEngines) {
         List<ProblemDescriptor> enabledScannerProblems = new ArrayList<>();
         for (ProblemDescriptor descriptor : problemDescriptorsList) {
             try {
                 CxOneAssistFix cxOneAssistFix = (CxOneAssistFix) descriptor.getFixes()[0];
-                if (Objects.nonNull(cxOneAssistFix) && enabledScanners.contains(cxOneAssistFix.getScanIssue().getScanEngine())) {
+                if (Objects.nonNull(cxOneAssistFix) && enabledScanEngines.contains(cxOneAssistFix.getScanIssue().getScanEngine())) {
                     enabledScannerProblems.add(descriptor);
                 }
             } catch (Exception e) {
@@ -285,7 +293,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
      * @param file {@link PsiFile} to set the flag for
      * @param flag boolean flag indicating if the scan is from scheduled scan
      */
-    public void putScanSourceFlag(PsiFile file, Boolean flag) {
+    public void updateScanSourceFlag(PsiFile file, Boolean flag) {
         file.putUserData(SCAN_SOURCE_KEY, flag);
     }
 
@@ -300,9 +308,10 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
     /**
      * Clears all problem descriptors and gutter icons for the given project.
      *
-     * @param project the project to reset results for
+     * @param project  the project to reset results for
+     * @param filePath the file path to reset results for
      */
-    private void resetEditorAndResults(Project project, String filePath) {
+    public void resetEditorAndResults(Project project, String filePath) {
         if (project.isDisposed()) {
             return;
         }
@@ -315,4 +324,31 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         }
         LOGGER.debug(format("RTS: Resetting editor state (remove icons and problems) for project: %s.", project.getName()));
     }
+
+    /*private List<ScanEngine> getNewEnabledScanners(List<ScanEngine> enabledScanners, List<ScanEngine> scanEngineList) {
+        List<ScanEngine> newScanEngines = scanEngineList.stream()
+                .filter(engine -> !enabledScanners.contains(engine))
+                .collect(Collectors.toList());
+        List<ScanIssue> newEngineScanIssueList = new ArrayList<>();
+        for (ScanEngine newEngine : newScanEngines) {
+            List<ScanIssue> newEngineScanIssue = scanFile(filePath, file, newEngine);
+            if (!newEngineScanIssue.isEmpty()) {
+                newEngineScanIssueList.addAll(newEngineScanIssue);
+            }
+        }
+        List<ScanIssue> newScanIssues = scanFile(filePath, file, ScanEngine.ALL).stream()
+                .filter(scanIssue -> newEnabledScanners.contains(scanIssue.getScanEngine()))
+                .collect(Collectors.toList());
+        if (!newScanIssues.isEmpty()) {
+            ProblemHelper problemHelper = ProblemHelper.builder(file, file.getProject())
+                    .manager(ProblemHelper.getInspectionManager(file.getProject()))
+                    .isOnTheFly(true)
+                    .document(document)
+                    .supportedScanners(supportedEnabledScanners)
+                    .filePath(filePath)
+                    .problemHolderService(problemHolderService)
+                    .problemDecorator(problemDecorator)
+                    .scanIssueList(newScanIssues)
+                    .build();
+    }*/
 }

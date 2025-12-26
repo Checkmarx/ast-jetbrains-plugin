@@ -271,6 +271,7 @@ public class CxOneAssistScanScheduler {
     private boolean isProjectDisposed(String action, String fileName) {
         if (project.isDisposed()) {
             LOGGER.warn(format("RTS: Project disposed during %s. for file: %s", action, fileName));
+            removeProgressIndicator(fileName);
             return true;
         }
         return false;

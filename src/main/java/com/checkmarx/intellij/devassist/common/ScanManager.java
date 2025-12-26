@@ -44,21 +44,17 @@ public class ScanManager {
      * Scans the given file using a specific scanner service based on the provided scan engine.
      */
     private List<ScanIssue> scanFileUsingSpecificScanner(String filePath, PsiFile psiFile, ScanEngine scanEngine) {
-        Optional<ScannerService<?>> scannerServiceOptional = getSupportedEnabledScanner(filePath, psiFile).stream()
-                .filter(scannerService -> scannerService.getConfig().getEngineName().equalsIgnoreCase(scanEngine.name()))
-                .findFirst();
-        if (scannerServiceOptional.isPresent()) {
-            ScannerService<?> scannerService = scannerServiceOptional.get();
-            ScanResult<?> scanResult = initiateScan(scannerService, psiFile, filePath);
-            if (Objects.isNull(scanResult)) {
-                LOGGER.debug(format("RTS: No issues found for engine: %s for file: %s ", scannerService.getConfig().getEngineName(), psiFile.getName()));
-                return Collections.emptyList();
-            }
-            LOGGER.info(format("RTS: Scan completed for engine: %s for file: %s ", scannerService.getConfig().getEngineName(), psiFile.getName()));
-            return scanResult.getIssues();
+        ScannerService<?> scannerService = getSpecificSupportedEnabledScanner(filePath, psiFile, scanEngine);
+        if (Objects.isNull(scannerService)) {
+            LOGGER.warn(format("RTS: %s Scanner not supported or enabled for file path: %s.", scanEngine.name(), filePath));
+            return Collections.emptyList();
         }
-        LOGGER.warn(format("RTS: No supported and enabled scanner found for engine: %s for file path: %s.", scanEngine.name(), filePath));
-        return Collections.emptyList();
+        ScanResult<?> scanResult = initiateScan(scannerService, psiFile, filePath);
+        if (Objects.isNull(scanResult)) {
+            LOGGER.warn(format("RTS: No issues found for engine: %s for file: %s ", scannerService.getConfig().getEngineName(), psiFile.getName()));
+            return Collections.emptyList();
+        }
+        return scanResult.getIssues();
     }
 
     /**
@@ -115,5 +111,28 @@ public class ScanManager {
                 .filter(scannerService ->
                         DevAssistUtils.isScannerActive(scannerService.getConfig().getEngineName()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves a specific supported and enabled scanner service for the given file path and scan engine.
+     * If no supported scanner is found or the scanner is not active, this method returns null.
+     *
+     * @param filePath   the path of the file to be scanned; must not be null or empty
+     * @param psiFile    the PsiFile representation of the file to be scanned; must not be null
+     * @param scanEngine the scan engine to be used for scanning; must not be null
+     * @return the specific {@link ScannerService} instance that is supported and enabled for the given
+     * file path and scan engine, or null if no such service is available
+     */
+    private ScannerService<?> getSpecificSupportedEnabledScanner(String filePath, PsiFile psiFile, ScanEngine scanEngine) {
+        ScannerService<?> scannerService = this.scannerFactory.getSupportedScannerUsingScanEngine(filePath, psiFile, scanEngine);
+        if (Objects.isNull(scannerService)) {
+            LOGGER.warn(format("RTS: No supported scanner found for engine: %s for file path: %s.", scanEngine.name(), filePath));
+            return null;
+        }
+        if (!DevAssistUtils.isScannerActive(scannerService.getConfig().getEngineName())) {
+            LOGGER.warn(format("RTS: %s Scanner is not active for file path: %s.", scanEngine.name(), filePath));
+            return null;
+        }
+        return scannerService;
     }
 }
