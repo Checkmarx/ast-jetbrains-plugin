@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service(Service.Level.PROJECT)
 public final class CxOneAssistScanStateHolder {
 
-    private final Map<String, Long> fileTimeStamp = new ConcurrentHashMap<>();
+    private final Map<String, Long> fileModifiedTimeStamp = new ConcurrentHashMap<>();
 
     /**
      * Returns the instance of this service for the given project.
@@ -24,12 +24,11 @@ public final class CxOneAssistScanStateHolder {
 
     // Utility method to get a single timestamp using virtual file path
     public Long getTimeStamp(String filePath) {
-        return fileTimeStamp.get(filePath);
+        return fileModifiedTimeStamp.get(filePath);
     }
 
     // Utility method to update a single timestamp
     public void updateTimeStamp(String filePath, Long compositeStamp) {
-        fileTimeStamp.put(filePath, compositeStamp);
+        fileModifiedTimeStamp.put(filePath, compositeStamp);
     }
-
 }

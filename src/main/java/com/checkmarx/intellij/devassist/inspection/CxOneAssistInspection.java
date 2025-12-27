@@ -2,6 +2,7 @@ package com.checkmarx.intellij.devassist.inspection;
 
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
@@ -39,6 +40,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
 
     private static final Logger LOGGER = Utils.getLogger(CxOneAssistInspection.class);
     private final CxOneAssistInspectionMgr cxOneAssistInspectionMgr = new CxOneAssistInspectionMgr();
+    private final ProblemDecorator problemDecorator = new ProblemDecorator();
 
     /**
      * Inspects the given PSI file and identifies potential issues or problems by leveraging
@@ -123,7 +125,11 @@ public class CxOneAssistInspection extends LocalInspectionTool {
                     .scheduleScan(filePath, problemHelperBuilder.build());
             if (isScanScheduled) {
                 cxOneAssistInspectionMgr.updateScanSourceFlag(file, Boolean.TRUE); // To identify the scan source
-                return ProblemDescriptor.EMPTY_ARRAY; // Return empty array as problems will be added after the scheduled scan completes
+                List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
+                if (scanIssueList.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
+
+                problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
+                return problemHolderService.getProblemDescriptors(filePath).toArray(new ProblemDescriptor[0]);
             }
             LOGGER.info(format("RTS: Failed to schedule the scan for file: %s. Now scanning file using fallback..", file.getName()));
             return cxOneAssistInspectionMgr.startScanAndCreateProblemDescriptors(problemHelperBuilder);
@@ -182,7 +188,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
                 .supportedScanners(supportedScanners)
                 .filePath(path)
                 .problemHolderService(problemHolderService)
-                .problemDecorator(new ProblemDecorator());
+                .problemDecorator(this.problemDecorator);
     }
 
     /**

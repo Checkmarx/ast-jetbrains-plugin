@@ -97,7 +97,7 @@ public class ProblemDecorator {
                         HighlighterTargetArea.EXACT_RANGE
                 );
             }
-            boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(decoratorHelper.getMarkupModel(), decoratorHelper.getEditor(),
+            boolean alreadyHasGutterIcon = isAlreadyHasGutterIconOnLine(decoratorHelper.getMarkupModel(), decoratorHelper.getEditor(),
                     decoratorHelper.getProblemLineNumber());
 
             if (decoratorHelper.isAddGutterIcon() && !alreadyHasGutterIcon) {
@@ -198,7 +198,7 @@ public class ProblemDecorator {
      * @return true if the highlighter already has a gutter icon for the given line, false otherwise
      * @apiNote this method is particularly used to avoid adding duplicate gutter icons in the file for duplicate dependencies.
      */
-    private boolean isAlreadyHasGutterIcon(MarkupModel markupModel, Editor editor, int line) {
+    private boolean isAlreadyHasGutterIconOnLine(MarkupModel markupModel, Editor editor, int line) {
         return Arrays.stream(markupModel.getAllHighlighters())
                 .anyMatch(highlighter -> {
                     GutterIconRenderer renderer = highlighter.getGutterIconRenderer();

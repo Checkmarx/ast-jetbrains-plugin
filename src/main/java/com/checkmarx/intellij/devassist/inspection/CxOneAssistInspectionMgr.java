@@ -59,7 +59,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         problemHelper.getProblemHolderService().addScanIssues(problemHelper.getFilePath(), allScanIssues);
 
         //Creating problems
-        List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build(), true));
+        List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build(), Boolean.TRUE));
         if (allProblems.isEmpty()) {
             LOGGER.info(format("RTS: Problem not found for file: %s. ", problemHelper.getFile().getName()));
             return ProblemDescriptor.EMPTY_ARRAY;
@@ -144,6 +144,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
      */
     private ProblemDescriptor @NotNull [] getCachedProblemDescriptorsForNonModifiedFile(ProblemHelper problemHelper, String filePath, PsiFile file) {
         LOGGER.info(format("RTS: Started retrieving problem descriptor for non modified file: %s.", file.getName()));
+        updateScanSourceFlag(file, Boolean.FALSE);
         /*
          * If a file already scanned and after that if scanner settings are changed (enabled/disabled),
          * we need to filter the existing problems and return only those which are related to enabled scanners
@@ -218,7 +219,6 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
 
         problemHelper.getProblemHolderService().addScanIssues(filePath, updatedScanIssueList);
         problemHelper.getProblemHolderService().addProblemDescriptors(filePath, updatedScannerProblems);
-        updateScanSourceFlag(file, Boolean.FALSE);
 
         LOGGER.info(format("RTS: Completed retrieving problem descriptor for non modified file: %s.", file.getName()));
         return !updatedScannerProblems.isEmpty() ? updatedScannerProblems.toArray(new ProblemDescriptor[0]) : ProblemDescriptor.EMPTY_ARRAY;
@@ -261,7 +261,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         // Reload problem descriptions icons on theme change, as the inspection tooltip doesn't support dynamic icon change in the tooltip description.
         ProblemDescription.reloadIcons();
 
-        List<ProblemDescriptor> problemList = createProblemDescriptors(problemHelper, false);
+        List<ProblemDescriptor> problemList = createProblemDescriptors(problemHelper, Boolean.FALSE);
         LOGGER.info(format("RTS: Completed problem descriptor creation using existing scan results on theme changed for the file: %s.", problemHelper.getFile().getName()));
         return problemList;
     }

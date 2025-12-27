@@ -34,20 +34,20 @@ import static java.lang.String.format;
 public class CxOneAssistScanScheduler {
 
     private static final Logger LOGGER = Logger.getInstance(CxOneAssistScanScheduler.class);
-
-    private static final int SCHEDULED_DELAY = 1000; // 1-second debounce delay
+    private static final int SCHEDULED_DELAY = 1000;
 
     private final Project project;
-    private final Alarm alarm;
-    private final Map<String, Long> scanRequestTimeMap = new ConcurrentHashMap<>();
+    // Use per-file Alarm for precise debouncing and cancellation
+    private final Map<String, Alarm> fileAlarms = new ConcurrentHashMap<>();
+    // Use per-file ProgressIndicator for cancellation and progress feedback
     private final Map<String, ProgressIndicator> scanIndicators = new ConcurrentHashMap<>();
-    private final CxOneAssistInspectionMgr cxOneAssistInspectionMgr = new CxOneAssistInspectionMgr();
-
+    private final Map<String, Long> scanRequestTimeMap = new ConcurrentHashMap<>();
+    private final Map<String, Long> lastRestartTimeMap = new ConcurrentHashMap<>(); // Track last restart per file
     private final ReentrantLock lock = new ReentrantLock();
+    private final CxOneAssistInspectionMgr cxOneAssistInspectionMgr = new CxOneAssistInspectionMgr();
 
     private CxOneAssistScanScheduler(@NotNull Project project) {
         this.project = project;
-        this.alarm = new Alarm(Alarm.ThreadToUse.POOLED_THREAD, project);
     }
 
     /**
@@ -81,14 +81,13 @@ public class CxOneAssistScanScheduler {
             }
             lock.lock();
             try {
-                // Avoid scheduling a new scan if one is already in progress for the same file
-                if (scanIndicators.containsKey(filePath)) {
-                    LOGGER.info(format("RTS: A scan is already in progress for file: %s. Skipping.", filePath));
-                    return false;
-                }
-                cancelPendingScan(filePath); // Ensure only the latest request runs
+                // Cancel any pending/running scan for this file
+                cancelPendingAndRunningScan(filePath);
                 long requestTime = System.currentTimeMillis();
                 scanRequestTimeMap.put(filePath, requestTime);
+                // Use per-file Alarm for debouncing
+                Alarm alarm = fileAlarms.computeIfAbsent(filePath, k -> new Alarm(Alarm.ThreadToUse.POOLED_THREAD, project));
+                alarm.cancelAllRequests();
                 alarm.addRequest(() -> executeBackgroundScan(filePath, problemHelper, requestTime), SCHEDULED_DELAY);
             } finally {
                 lock.unlock();
@@ -97,6 +96,20 @@ public class CxOneAssistScanScheduler {
         } catch (Exception e) {
             LOGGER.warn(format("RTS: Failed to schedule scan for %s", filePath), e);
             return false;
+        }
+    }
+
+    // Cancels any pending and running scan for the given file
+    private void cancelPendingAndRunningScan(@NotNull String filePath) {
+        lock.lock();
+        try {
+            Alarm alarm = fileAlarms.get(filePath);
+            if (alarm != null) {
+                alarm.cancelAllRequests();
+                removeProgressIndicator(filePath);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -123,7 +136,6 @@ public class CxOneAssistScanScheduler {
                 } catch (Exception e) {
                     LOGGER.warn(format("RTS: Error occurred while executing scan for file: %s", filePath), e);
                 } finally {
-                    // Ensure progress indicator is cleaned up after the scan
                     removeProgressIndicator(filePath);
                 }
             }
@@ -131,10 +143,7 @@ public class CxOneAssistScanScheduler {
             // Add cancellation support through ProgressIndicator stop
             @Override
             public void onCancel() {
-                ProgressIndicator runningIndicator = scanIndicators.get(filePath);
-                if (runningIndicator != null && !runningIndicator.isCanceled()) {
-                    runningIndicator.cancel();
-                }
+                removeProgressIndicator(filePath);
                 LOGGER.info(format("RTS: Scan was canceled for file: %s.", filePath));
             }
         }.queue();
@@ -152,7 +161,10 @@ public class CxOneAssistScanScheduler {
             LOGGER.info(format("RTS: Scan started for file: %s", filePath));
             List<ScanIssue> scanIssues = cxOneAssistInspectionMgr.scanFile(
                     problemHelper.getFilePath(), problemHelper.getFile(), ScanEngine.ALL);
-
+            if (isScanCanceled(indicator, filePath)) {
+                removeProgressIndicator(filePath);
+                return;
+            }
             if (scanIssues.isEmpty()) {
                 LOGGER.debug(format("RTS: No scan issues for file: %s", filePath));
                 resetCachedData(problemHelper);
@@ -160,48 +172,20 @@ public class CxOneAssistScanScheduler {
                 removeProgressIndicator(filePath);
                 return;
             }
-            if (isScanCanceled(indicator, filePath)) {
-                removeProgressIndicator(filePath);
-                return;
-            }
             List<ProblemDescriptor> problemDescriptors = cxOneAssistInspectionMgr.createProblemDescriptors(
-                    problemHelper.toBuilder(problemHelper).scanIssueList(scanIssues).build(), false);
-
-            if (problemDescriptors.isEmpty()) {
-                // Scan descriptor will not be created if there are no problems, all results are received with ok or unknown status
-                LOGGER.debug(format("RTS: No problems found for file: %s", filePath));
-            }
+                    problemHelper.toBuilder(problemHelper).scanIssueList(scanIssues).build(), Boolean.FALSE);
             if (isScanCanceled(indicator, filePath)) {
                 removeProgressIndicator(filePath);
                 return;
             }
-            // Scan results are cached for future use
             cacheScanResults(problemHelper, filePath, scanIssues, problemDescriptors);
             restartFileAfterScan(problemHelper);
             LOGGER.info(format("RTS: Scan completed for file: %s", filePath));
         } catch (Exception e) {
             LOGGER.warn(format("RTS: Exception occurred during scanning file: %s", filePath), e);
         } finally {
-            // Always remove the indicator at the end
             removeProgressIndicator(filePath);
         }
-    }
-
-    /**
-     * Cancels any pending scan requests for the given file.
-     *
-     * @param filePath - The file path for which to cancel any pending scans
-     */
-    private void cancelPendingScan(@NotNull String filePath) {
-        try {
-            // Cancel scheduled alarms specific to this file
-            lock.lock();
-            alarm.cancelAllRequests();
-            removeProgressIndicator(filePath); // Cancel the corresponding progress indicator
-        } finally {
-            lock.unlock();
-        }
-
     }
 
     /**
@@ -210,7 +194,7 @@ public class CxOneAssistScanScheduler {
     private void removeProgressIndicator(@NotNull String filePath) {
         ProgressIndicator runningIndicator = scanIndicators.remove(filePath);
         if (runningIndicator != null && !runningIndicator.isCanceled()) {
-            runningIndicator.cancel();
+            // runningIndicator.cancel();
             LOGGER.warn(format("RTS: Previous scan for file %s canceled.", filePath));
         }
     }
@@ -254,6 +238,14 @@ public class CxOneAssistScanScheduler {
      * Restarts the file to update the result on UI scan after completion.
      */
     private void restartFileAfterScan(@NotNull ProblemHelper problemHelper) {
+        String filePath = problemHelper.getFilePath();
+        long now = System.currentTimeMillis();
+        Long lastRestart = lastRestartTimeMap.get(filePath);
+        // Avoid redundant restarts within the 500 ms window
+        if (lastRestart != null && now - lastRestart < 500) {
+            return;
+        }
+        lastRestartTimeMap.put(filePath, now);
         ApplicationManager.getApplication().invokeLater(() -> {
             if (!isProjectDisposed("restarting file after scan", problemHelper.getFile().getName())
                     && problemHelper.getFile().isValid()) {
