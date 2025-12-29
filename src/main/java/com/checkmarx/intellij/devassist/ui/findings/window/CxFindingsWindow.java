@@ -10,18 +10,22 @@ import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterState;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
+import com.checkmarx.intellij.util.SeverityLevel;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.checkmarx.intellij.Constants;
 import com.intellij.ide.DataManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.*;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.LogicalPosition;
+import com.intellij.openapi.editor.ScrollType;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
@@ -58,6 +62,8 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
+
 
 /**
  * Handles drawing of the Checkmarx vulnerability tool window.
@@ -69,8 +75,7 @@ import java.util.stream.Collectors;
  * Uses a timer to periodically update the tab title with the current problem count.
  * Refactored to have separate drawAuthPanel() and drawMainPanel() following pattern in CxToolWindowPanel.
  */
-public class CxFindingsWindow extends SimpleToolWindowPanel
-        implements Disposable {
+public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposable {
 
     private static final Logger LOGGER = Utils.getLogger(CxFindingsWindow.class);
 
@@ -156,7 +161,7 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
         // Trigger initial refresh with existing scan results if any (on EDT)
         SwingUtilities.invokeLater(() -> {
             Map<String, List<ScanIssue>> existingIssues = ProblemHolderService.getInstance(project).getAllIssues();
-            if (existingIssues != null && !existingIssues.isEmpty()) {
+            if (!existingIssues.isEmpty()) {
                 triggerRefreshTree();
             }
         });
@@ -224,12 +229,11 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
      */
     private void triggerRefreshTree() {
         Map<String, List<ScanIssue>> allIssues = ProblemHolderService.getInstance(project).getAllIssues();
-        if (allIssues == null) {
+        if (allIssues.isEmpty()) {
             return;
         }
 
         Set<Filterable> activeFilters = VulnerabilityFilterState.getInstance().getFilters();
-
         Map<String, List<ScanIssue>> filteredIssues = new HashMap<>();
 
         for (Map.Entry<String, List<ScanIssue>> entry : allIssues.entrySet()) {
@@ -275,37 +279,41 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
                     })
                     .collect(Collectors.toList());
 
+            ApplicationManager.getApplication().runReadAction(() ->
+                    createFileNode(filePath, filteredScanDetails, fileName));
+        }
+        ((DefaultTreeModel) tree.getModel()).reload();
+        expandNodesByFilePath();
+    }
+
+    /**
+     * Creating file node with its issues as child nodes.
+     */
+    private void createFileNode(String filePath, List<ScanIssue> filteredScanDetails, String fileName) {
+        try {
             VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
             Icon icon = virtualFile != null ? virtualFile.getFileType().getIcon() : null;
-            PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
+            PsiFile psiFile = virtualFile != null ? PsiManager.getInstance(project).findFile(virtualFile) : null;
             if (psiFile != null) {
                 icon = psiFile.getIcon(Iconable.ICON_FLAG_VISIBILITY | Iconable.ICON_FLAG_READ_STATUS);
             }
-
             // Count issues by severity and sort them based on severity order
             Map<String, Long> severityCounts = filteredScanDetails.stream()
                     .collect(Collectors.groupingBy(ScanIssue::getSeverity, Collectors.counting()));
-            severityCounts = List.of(Constants.MALICIOUS_SEVERITY, Constants.CRITICAL_SEVERITY, Constants.HIGH_SEVERITY,
-                            Constants.MEDIUM_SEVERITY, Constants.LOW_SEVERITY).stream()
-                    .filter(severityCounts::containsKey)
-                    .collect(Collectors.toMap(
-                            s -> s,
-                            severityCounts::get,
-                            (a, b) -> a,
-                            LinkedHashMap::new
-                    ));
-            DefaultMutableTreeNode fileNode = new DefaultMutableTreeNode(
-                    new FileNodeLabel(fileName, filePath, severityCounts, icon));
+
+            severityCounts = getSeverityList().stream().filter(severityCounts::containsKey)
+                    .collect(Collectors.toMap(severity -> severity, severityCounts::get,
+                            (a, b) -> a, LinkedHashMap::new));
+
+            DefaultMutableTreeNode fileNode = new DefaultMutableTreeNode(new FileNodeLabel(fileName, filePath, severityCounts, icon));
 
             for (ScanIssue detail : filteredScanDetails) {
                 fileNode.add(new DefaultMutableTreeNode(new ScanDetailWithPath(detail, filePath)));
             }
-
             rootNode.add(fileNode);
+        } catch (Exception e) {
+            LOGGER.warn("Exception occurred! Failed to create file node for file: " + filePath, e);
         }
-        ((DefaultTreeModel) tree.getModel()).reload();
-
-        expandNodesByFilePath();
     }
 
     /**
@@ -401,13 +409,13 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
     private JPopupMenu createPopupMenu(ScanIssue detail) {
         JPopupMenu popup = new JPopupMenu();
 
-        JMenuItem fixWithCxOneAssist = new JMenuItem(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST);
-        fixWithCxOneAssist.addActionListener(ev -> remediationManager.fixWithCxOneAssist(project, detail));
+        JMenuItem fixWithCxOneAssist = new JMenuItem(DevAssistConstants.FIX_WITH_CXONE_ASSIST);
+        fixWithCxOneAssist.addActionListener(ev -> remediationManager.fixWithCxOneAssist(project, detail, QUICK_FIX));
         fixWithCxOneAssist.setIcon(CxIcons.STAR_ACTION);
         popup.add(fixWithCxOneAssist);
 
-        JMenuItem copyDescription = new JMenuItem(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME);
-        copyDescription.addActionListener(ev -> remediationManager.viewDetails(project, detail));
+        JMenuItem copyDescription = new JMenuItem(DevAssistConstants.VIEW_DETAILS_FIX_NAME);
+        copyDescription.addActionListener(ev -> remediationManager.viewDetails(project, detail, QUICK_FIX));
         copyDescription.setIcon(CxIcons.STAR_ACTION);
         popup.add(copyDescription);
 
@@ -485,9 +493,9 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
         if (count > 0) {
             JBColor jbColor = new JBColor(Gray._10, Gray._190);
             String hexColor = "#" + Integer.toHexString(jbColor.getRGB()).substring(2);
-            content.setDisplayName("<html>" + Constants.RealTimeConstants.DEVASSIST_TAB + " <span style='color:" + hexColor+"'>" + count + "</span></html>");
-        }else {
-            content.setDisplayName(Constants.RealTimeConstants.DEVASSIST_TAB);
+            content.setDisplayName("<html>" + DevAssistConstants.DEVASSIST_TAB + " <span style='color:" + hexColor + "'>" + count + "</span></html>");
+        } else {
+            content.setDisplayName(DevAssistConstants.DEVASSIST_TAB);
         }
     }
 
@@ -547,5 +555,15 @@ public class CxFindingsWindow extends SimpleToolWindowPanel
         vulnerabilityCountToIcon.put(Constants.HIGH_SEVERITY, CxIcons.Medium.HIGH);
         vulnerabilityCountToIcon.put(Constants.MEDIUM_SEVERITY, CxIcons.Medium.MEDIUM);
         vulnerabilityCountToIcon.put(Constants.LOW_SEVERITY, CxIcons.Medium.LOW);
+    }
+
+    /**
+     * Get a list of severity levels as strings in defined order.
+     *
+     * @return List<String> of severity levels
+     */
+    private List<String> getSeverityList() {
+        return Arrays.stream(SeverityLevel.values())
+                .map(SeverityLevel::toString).collect(Collectors.toList());
     }
 }

@@ -58,8 +58,8 @@ public class ViewDetailsPromptsTest {
     @DisplayName("generateSCAExplanationPrompt_VulnerabilitiesBranch_WithList")
     void generateSCAExplanationPrompt_VulnerabilitiesBranch_WithList() {
         List<Vulnerability> vulns = new ArrayList<>();
-        vulns.add(new Vulnerability("CVE-123", "desc1", "High", "adv1", "2.0.0"));
-        vulns.add(new Vulnerability("CVE-456", "desc2", "Medium", "adv2", "3.0.0"));
+        vulns.add(new Vulnerability("vuln-id-1", "CVE-123", "desc1", "High", "adv1", "2.0.0", null, null, "CVE-123 Title"));
+        vulns.add(new Vulnerability("vuln-id-2", "CVE-456", "desc2", "Medium", "adv2", "3.0.0", null, null, "CVE-456 Title"));
         String prompt = ViewDetailsPrompts.buildSCAExplanationPrompt("safe-lib", "1.2.3", "vulnerable", vulns);
         assertAll(
                 () -> assertTrue(prompt.contains("Known Vulnerabilities"), "Should include vulnerability section"),

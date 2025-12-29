@@ -3,7 +3,6 @@ package com.checkmarx.intellij.devassist.remediation;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
-import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.intellij.codeInsight.highlighting.TooltipLinkHandler;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
@@ -15,7 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Objects;
 
-import static com.checkmarx.intellij.Constants.RealTimeConstants.SEPERATOR;
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.SEPERATOR;
 import static java.lang.String.format;
 
 /**
@@ -45,28 +44,37 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
     public boolean handleLink(@NotNull String link, @NotNull Editor editor) {
         Project project = editor.getProject();
         if (Objects.isNull(project)) {
-            LOGGER.debug("RTS: Remediation action failed. project object is null.");
+            LOGGER.debug("RTS-Fix: Remediation action failed, Project object is null.", link);
             return false;
         }
         if (!link.contains(SEPERATOR)) {
-            LOGGER.warn(format("RTS: Remediation action link is not valid: %s.", link));
+            LOGGER.debug("RTS-Fix: Remediation action failed, Link is not valid: {}.", link);
             return false;
         }
         String[] linkData = link.split(SEPERATOR);
         String scanIssueId = extractIssueId(linkData);
         if (scanIssueId.isEmpty()) {
-            LOGGER.warn(format("RTS: Scan issue id not found for remediation action: %s.", link));
+            LOGGER.debug("RTS-Fix: Remediation action failed, Scan issue id not found in remediation link: {}.", link);
             return false;
         }
         String action = extractAction(linkData);
-        LOGGER.info(format("RTS: Remediation action: %s is called for problem with issue-id: %s.", action, scanIssueId));
-
-        ScanIssue scanIssue = getScanIssue(editor, project, scanIssueId);
-        if (Objects.isNull(scanIssue)) {
-            LOGGER.warn(format("RTS: Remediation action failed. Scan issue is not found for the given issue-id: %s.", scanIssueId));
+        if (action.isEmpty()) {
+            LOGGER.debug("RTS-Fix: Remediation action failed, Action not found in remediation link: {}", link);
             return false;
         }
-        return handleActions(action, project, scanIssue);
+        String engineName = extractEngineName(linkData);
+        if (Objects.isNull(engineName) || engineName.isEmpty()) {
+            LOGGER.debug("RTS-Fix: Remediation action failed, Scan engine name not found in remediation link: {}", link);
+            return false;
+        }
+        LOGGER.info(format("RTS-Fix: %s Remediation action called for engine: %s with issue id: %s.", action, engineName, scanIssueId));
+
+        ScanIssue scanIssue = getScanIssue(editor, project, scanIssueId, engineName);
+        if (Objects.isNull(scanIssue)) {
+            LOGGER.warn(format("RTS-Fix: %s Remediation action failed. Scan issue is not found for the given issue-id: %s.", action, scanIssueId));
+            return false;
+        }
+        return handleActions(action, project, scanIssue, scanIssueId);
     }
 
     /**
@@ -79,22 +87,32 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
      * @param scanIssue the scan issue on which the action is performed
      * @return true if the action is successfully handled, false otherwise
      */
-    private boolean handleActions(String link, Project project, ScanIssue scanIssue) {
+    private boolean handleActions(String link, Project project, ScanIssue scanIssue, String actionId) {
         switch (link) {
             case FIX:
-                remediationManager.fixWithCxOneAssist(project, scanIssue);
+                remediationManager.fixWithCxOneAssist(project, scanIssue, actionId);
                 break;
             case VIEW_DETAILS:
-                remediationManager.viewDetails(project, scanIssue);
+                remediationManager.viewDetails(project, scanIssue, actionId);
                 break;
             case IGNORE_THIS_TYPE:
             case IGNORE_ALL_OF_THIS_TYPE:
                 break;
             default:
-                LOGGER.warn(format("RTS: Remediation action %s is not supported.", link));
+                LOGGER.warn(format("RTS-Fix: Remediation action %s is not supported.", link));
                 return false;
         }
         return true;
+    }
+
+    /**
+     * Extracts the engine name from the link.
+     *
+     * @param linkData action link with issue id
+     * @return scan engine name
+     */
+    private String extractEngineName(String[] linkData) {
+        return Objects.nonNull(linkData) && linkData.length > 1 ? linkData[2] : "";
     }
 
     /**
@@ -127,31 +145,68 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
      * @param issueId the unique identifier of the scan issue to retrieve
      * @return the {@link ScanIssue} matching the given issue ID, or null if no match is found
      */
-    private ScanIssue getScanIssue(@NotNull Editor editor, Project project, String issueId) {
+    private ScanIssue getScanIssue(@NotNull Editor editor, Project project, String issueId, String engineName) {
         try {
-            String decodedString = DevAssistUtils.decodeBase64(issueId);
             VirtualFile file = FileDocumentManager.getInstance().getFile(editor.getDocument());
             if (Objects.isNull(file)) {
-                LOGGER.debug("RTS: VirtualFile not found for the given editor to handle the link.");
+                LOGGER.debug("RTS-Fix: VirtualFile not found for the given editor to handle the link.");
                 return null;
             }
             ProblemHolderService problemHolderService = ProblemHolderService.getInstance(project);
             if (Objects.isNull(problemHolderService)) {
-                LOGGER.debug("RTS: ProblemHolderService not found for the given project to handle the link.");
+                LOGGER.debug("RTS-Fix: ProblemHolderService not found for the given project to handle the link.");
                 return null;
             }
             List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(file.getPath());
             if (scanIssueList.isEmpty()) {
-                LOGGER.debug("RTS: No scan issues found for the given file scan issue-id: %s to handle the link.", issueId);
+                LOGGER.debug("RTS-Fix: No scan issues found for the given file scan issue-id: %s to handle the link.", issueId);
                 return null;
             }
-            return scanIssueList.stream()
-                    .filter(issue -> issue.getTitle().equals(decodedString))
-                    .findFirst()
-                    .orElse(null);
+            ScanIssue scanIssue = getScanIssueUsingScanIssueId(scanIssueList, issueId, engineName);
+            if (Objects.isNull(scanIssue)) {
+                return getScanIssueUsingVulnerabilityId(scanIssueList, issueId, engineName);
+            }
+            return scanIssue;
         } catch (Exception exception) {
-            LOGGER.debug("RTS: Exception occurred while retrieving scan issue", exception);
+            LOGGER.debug("RTS-Fix: Exception occurred while retrieving scan issue", exception);
             return null;
         }
+    }
+
+    /**
+     * Retrieves the ScanIssue corresponding to the given issueId from the provided list of scan issues.
+     *
+     * @param scanIssueList list of scan issues
+     * @param issueId       issue id
+     * @return the ScanIssue matching the given issueId, or null if no match is found
+     */
+    private ScanIssue getScanIssueUsingScanIssueId(List<ScanIssue> scanIssueList, String issueId, String engineName) {
+        return scanIssueList.stream()
+                .filter(issue -> Objects.nonNull(issue)
+                        && issue.getScanIssueId().equals(issueId)
+                        && issue.getScanEngine().name().equalsIgnoreCase(engineName))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Retrieves the ScanIssue corresponding to the given vulnerabilityId from the provided list of scan issues.
+     *
+     * @param scanIssueList list of scan issues
+     * @param issueId       the unique identifier of the scan issue to retrieve
+     * @return the ScanIssue matching the given issueId, or null if no match is found
+     */
+    private ScanIssue getScanIssueUsingVulnerabilityId(List<ScanIssue> scanIssueList, String issueId, String engineName) {
+        for (ScanIssue scanIssue : scanIssueList) {
+            if (Objects.nonNull(scanIssue) && scanIssue.getScanEngine().name().equalsIgnoreCase(engineName)
+                    && Objects.nonNull(scanIssue.getVulnerabilities()) && !scanIssue.getVulnerabilities().isEmpty()) {
+                for (var vulnerability : scanIssue.getVulnerabilities()) {
+                    if (vulnerability.getVulnerabilityId().equals(issueId)) {
+                        return scanIssue;
+                    }
+                }
+            }
+        }
+        return null;
     }
 }

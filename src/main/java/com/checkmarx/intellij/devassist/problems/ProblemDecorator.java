@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.devassist.problems;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.Location;
@@ -14,7 +13,6 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.colors.CodeInsightColors;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
-import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
@@ -27,7 +25,9 @@ import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -35,26 +35,9 @@ import static java.lang.String.format;
 /**
  * ProblemDecorator class responsible to provides utility methods for managing problem, highlighting and gutter icons.
  */
-@Getter
 public class ProblemDecorator {
 
     private static final Logger LOGGER = Utils.getLogger(ProblemDecorator.class);
-    private final Map<String, Integer> severityHighlighterLayerMap = new HashMap<>();
-
-    public ProblemDecorator() {
-        initSeverityHighlighterLayerMap();
-    }
-
-    /**
-     * Initializes the mapping from severity levels to highlighter layers.
-     */
-    private void initSeverityHighlighterLayerMap() {
-        severityHighlighterLayerMap.put(Constants.MALICIOUS_SEVERITY, HighlighterLayer.ERROR);
-        severityHighlighterLayerMap.put(Constants.CRITICAL_SEVERITY, HighlighterLayer.ERROR);
-        severityHighlighterLayerMap.put(Constants.HIGH_SEVERITY, HighlighterLayer.ERROR);
-        severityHighlighterLayerMap.put(Constants.MEDIUM_SEVERITY, HighlighterLayer.WARNING);
-        severityHighlighterLayerMap.put(Constants.LOW_SEVERITY, HighlighterLayer.WEAK_WARNING);
-    }
 
     /**
      * Adds a gutter icon at the line of the given PsiElement.
@@ -101,7 +84,7 @@ public class ProblemDecorator {
     private void highlightLocationInEditor(ProblemHelper problemHelper, ProblemDecoratorHelper decoratorHelper) {
         try {
             TextRange textRange = DevAssistUtils.getTextRangeForLine(decoratorHelper.getDocument(), decoratorHelper.getHighlightLineNumber());
-            TextAttributes textAttributes = createTextAttributes(decoratorHelper.getScanIssue().getSeverity());
+            TextAttributes textAttributes = createTextAttributes();
 
             RangeHighlighter highlighter = decoratorHelper.getMarkupModel().addLineHighlighter(
                     decoratorHelper.getHighlightLineNumber() - 1, 0, null);
@@ -110,12 +93,12 @@ public class ProblemDecorator {
                 highlighter = decoratorHelper.getMarkupModel().addRangeHighlighter(
                         textRange.getStartOffset(),
                         textRange.getEndOffset(),
-                        determineHighlighterLayer(decoratorHelper.getScanIssue()),
+                        HighlighterLayer.ERROR,
                         textAttributes,
                         HighlighterTargetArea.EXACT_RANGE
                 );
             }
-            boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(decoratorHelper.getMarkupModel(), decoratorHelper.getEditor(),
+            boolean alreadyHasGutterIcon = isAlreadyHasGutterIconOnLine(decoratorHelper.getMarkupModel(), decoratorHelper.getEditor(),
                     decoratorHelper.getProblemLineNumber());
 
             if (decoratorHelper.isAddGutterIcon() && !alreadyHasGutterIcon) {
@@ -134,9 +117,9 @@ public class ProblemDecorator {
      *
      * @return the configured text attributes
      */
-    private TextAttributes createTextAttributes(String severity) {
+    private TextAttributes createTextAttributes() {
         TextAttributes errorAttrs = EditorColorsManager.getInstance()
-                .getGlobalScheme().getAttributes(getCodeInsightColors(severity));
+                .getGlobalScheme().getAttributes(CodeInsightColors.ERRORS_ATTRIBUTES);
 
         TextAttributes attr = new TextAttributes();
         attr.setEffectType(EffectType.WAVE_UNDERSCORE);
@@ -146,23 +129,6 @@ public class ProblemDecorator {
         return attr;
     }
 
-    /**
-     * Gets the CodeInsightColors key based on severity.
-     *
-     * @param severity the severity
-     * @return the text attributes key for the given severity
-     */
-    private TextAttributesKey getCodeInsightColors(String severity) {
-        if (severity.equalsIgnoreCase(SeverityLevel.MALICIOUS.getSeverity()) ||
-                severity.equalsIgnoreCase(SeverityLevel.CRITICAL.getSeverity())
-                || severity.equalsIgnoreCase(SeverityLevel.HIGH.getSeverity())) {
-            return CodeInsightColors.ERRORS_ATTRIBUTES;
-        } else if (severity.equalsIgnoreCase(SeverityLevel.MEDIUM.getSeverity())) {
-            return CodeInsightColors.WARNINGS_ATTRIBUTES;
-        } else {
-            return CodeInsightColors.WEAK_WARNING_ATTRIBUTES;
-        }
-    }
 
     /**
      * Gets the most severe severity among scan issues located on the same line.
@@ -233,7 +199,7 @@ public class ProblemDecorator {
      * @return true if the highlighter already has a gutter icon for the given line, false otherwise
      * @apiNote this method is particularly used to avoid adding duplicate gutter icons in the file for duplicate dependencies.
      */
-    private boolean isAlreadyHasGutterIcon(MarkupModel markupModel, Editor editor, int line) {
+    private boolean isAlreadyHasGutterIconOnLine(MarkupModel markupModel, Editor editor, int line) {
         return Arrays.stream(markupModel.getAllHighlighters())
                 .anyMatch(highlighter -> {
                     GutterIconRenderer renderer = highlighter.getGutterIconRenderer();
@@ -270,21 +236,11 @@ public class ProblemDecorator {
     }
 
     /**
-     * Determines the highlighter layer for a specific scan detail.
-     *
-     * @param scanIssue the scan detail
-     * @return the highlighter layer
-     */
-    public Integer determineHighlighterLayer(ScanIssue scanIssue) {
-        return severityHighlighterLayerMap.getOrDefault(scanIssue.getSeverity(), HighlighterLayer.WEAK_WARNING);
-    }
-
-    /**
      * Removes all existing gutter icons from the markup model in the given editor.
      *
      * @param project the file to remove the gutter icons from.
      */
-    public static void removeAllGutterIcons(Project project) {
+    public static void removeAllHighlighters(Project project) {
         try {
             ApplicationManager.getApplication().invokeLater(() -> {
                 Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
@@ -296,42 +252,47 @@ public class ProblemDecorator {
                 }
             });
         } catch (Exception e) {
-            LOGGER.debug("RTS-Decorator: Exception occurred while removing gutter icons for: {} ",
+            LOGGER.debug("RTS-Decorator: Exception occurred while removing highlighter with gutter icons for: {} ",
                     e.getMessage());
         }
     }
 
     /**
-     * Restores problems for the given file.
+     * Decorating the UI for the given file.
      *
      * @param project       the project
      * @param psiFile       the psi file
      * @param scanIssueList the scan issue list
      */
-    public void restoreGutterIcons(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, Document document) {
-        removeAllGutterIcons(project);
-        ProblemHelper problemHelper = ProblemHelper.builder(psiFile, project)
-                .scanIssueList(scanIssueList)
-                .document(document)
-                .build();
-        for (ScanIssue scanIssue : scanIssueList) {
+    public void decorateUI(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, Document document) {
+        ApplicationManager.getApplication().invokeLater(() -> {
             try {
-                int problemLineNumber = scanIssue.getLocations().get(0).getLine();
-                PsiElement elementAtLine = DevAssistUtils.getPsiElement(psiFile, document, problemLineNumber);
-                if (Objects.isNull(elementAtLine)) {
-                    LOGGER.debug("RTS-Decorator: Skipping to add gutter icon, Failed to find PSI element for line : {}",
-                            problemLineNumber, scanIssue.getTitle());
-                    continue;
+                // Update UI, highlight, or trigger inspection
+                removeAllHighlighters(project);
+                ProblemHelper problemHelper = ProblemHelper.builder(psiFile, project)
+                        .scanIssueList(scanIssueList)
+                        .document(document)
+                        .build();
+                for (ScanIssue scanIssue : scanIssueList) {
+                    try {
+                        int problemLineNumber = scanIssue.getLocations().get(0).getLine();
+                        PsiElement elementAtLine = DevAssistUtils.getPsiElement(psiFile, document, problemLineNumber);
+                        if (Objects.isNull(elementAtLine)) {
+                            LOGGER.warn(format("RTS-Decorator: Skipping to add gutter icon, Failed to find PSI element for line : %s , Issue: %s",
+                                    problemLineNumber, scanIssue.getTitle()));
+                            continue;
+                        }
+                        boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
+                        highlightLineAddGutterIconForProblem(problemHelper, scanIssue, isProblem, problemLineNumber);
+                    } catch (Exception e) {
+                        LOGGER.debug("RTS-Decorator: Exception occurred while restoring gutter icons for: {} ",
+                                psiFile.getName(), scanIssue.getTitle(), e.getMessage());
+                    }
                 }
-                boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
-            //    highlightLineAddGutterIconForProblem(problemHelper, scanIssue, isProblem, problemLineNumber);
             } catch (Exception e) {
-                LOGGER.debug("RTS-Decorator: Exception occurred while restoring gutter icons for: {} ",
-                        psiFile.getName(), scanIssue.getTitle(), e.getMessage());
+                LOGGER.warn(format("RTS-Decorator: Exception occurred while removing all highlighters for file: %s", psiFile.getName()), e);
             }
-        }
-        DaemonCodeAnalyzer.getInstance(project).restart(psiFile);
-
+        });
     }
 
     /**

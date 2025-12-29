@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.devassist.remediation;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.util.IntentionFamilyName;
@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
 import static java.lang.String.format;
 
 /**
@@ -56,7 +57,7 @@ public class ViewDetailsFix implements LocalQuickFix, Iconable {
      */
     @Override
     public @IntentionFamilyName @NotNull String getFamilyName() {
-        return Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME;
+        return DevAssistConstants.VIEW_DETAILS_FIX_NAME;
     }
 
     /**
@@ -77,7 +78,7 @@ public class ViewDetailsFix implements LocalQuickFix, Iconable {
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
         LOGGER.info(format("RTS-Fix: Remediation called: %s for issue: %s", getFamilyName(), scanIssue.getTitle()));
-        new RemediationManager().viewDetails(project, scanIssue);
+        new RemediationManager().viewDetails(project, scanIssue, QUICK_FIX);
     }
 
 }

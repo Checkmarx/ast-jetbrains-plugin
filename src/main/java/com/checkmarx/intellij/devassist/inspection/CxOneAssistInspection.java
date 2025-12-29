@@ -1,35 +1,28 @@
 package com.checkmarx.intellij.devassist.inspection;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
-import com.checkmarx.intellij.devassist.common.ScanResult;
-import com.checkmarx.intellij.devassist.common.ScannerFactory;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
-import com.checkmarx.intellij.devassist.problems.ScanIssueProcessor;
-import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
-import com.checkmarx.intellij.devassist.ui.ProblemDescription;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
-import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Objects;
 
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.Keys.THEME_KEY;
 import static java.lang.String.format;
 
 /**
@@ -46,11 +39,8 @@ import static java.lang.String.format;
 public class CxOneAssistInspection extends LocalInspectionTool {
 
     private static final Logger LOGGER = Utils.getLogger(CxOneAssistInspection.class);
-
-    private final Map<String, Long> fileTimeStamp = new ConcurrentHashMap<>();
-    private final ScannerFactory scannerFactory = new ScannerFactory();
+    private final CxOneAssistInspectionMgr cxOneAssistInspectionMgr = new CxOneAssistInspectionMgr();
     private final ProblemDecorator problemDecorator = new ProblemDecorator();
-    private final Key<Boolean> key = Key.create(Constants.RealTimeConstants.THEME);
 
     /**
      * Inspects the given PSI file and identifies potential issues or problems by leveraging
@@ -66,7 +56,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
         VirtualFile virtualFile = file.getVirtualFile();
         if (Objects.isNull(virtualFile)) {
             LOGGER.warn(format("RTS: VirtualFile object not found for file: %s.", file.getName()));
-            resetResults(file.getProject());
+            resetEditorAndResults(file.getProject(), null);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         // On remediation process GitHub Copilot generating the fake file with the name Dummy.txt, so ignoring that file.
@@ -74,36 +64,88 @@ public class CxOneAssistInspection extends LocalInspectionTool {
             LOGGER.warn(format("RTS: Received copilot event for file: %s. Skipping file..", file.getName()));
             return ProblemDescriptor.EMPTY_ARRAY;
         }
+        String filePath = virtualFile.getPath();
         if (!Utils.isUserAuthenticated() || !DevAssistUtils.isAnyScannerEnabled()) {
             LOGGER.warn(format("RTS: User not authenticated or No scanner is enabled, skipping file: %s", file.getName()));
-            resetResults(file.getProject());
+            resetEditorAndResults(file.getProject(), filePath);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         Document document = PsiDocumentManager.getInstance(file.getProject()).getDocument(file);
         if (Objects.isNull(document)) {
             LOGGER.warn(format("RTS: Document not found for file: %s.", file.getName()));
-            resetResults(file.getProject());
+            resetEditorAndResults(file.getProject(), filePath);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        List<ScannerService<?>> supportedScanners = getSupportedEnabledScanner(virtualFile.getPath(), file);
+        List<ScannerService<?>> supportedScanners = this.cxOneAssistInspectionMgr.getSupportedScanner(filePath, file);
         if (supportedScanners.isEmpty()) {
             LOGGER.warn(format("RTS: No supported scanner enabled for this file: %s.", file.getName()));
-            resetResults(file.getProject());
+            resetEditorAndResults(file.getProject(), filePath);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(file.getProject());
-        /*
-         * Check if the file is already scanned and if the problem descriptors are valid.
-         * If a file is already scanned and problem descriptors are valid, then return the existing problem descriptors for the enabled scanners.
-         */
-        if (fileTimeStamp.containsKey(virtualFile.getPath()) && fileTimeStamp.get(virtualFile.getPath()) == (file.getModificationStamp())
-                && isProblemDescriptorValid(problemHolderService, virtualFile.getPath(), file)) {
-            LOGGER.info(format("RTS: File: %s is already scanned, retrieving existing results.", file.getName()));
-            return getExistingProblemsForEnabledScanners(problemHolderService, virtualFile.getPath(), document, file, supportedScanners);
+        CxOneAssistScanStateHolder scanStateHolder = CxOneAssistScanStateHolder.getInstance(file.getProject());
+        if (Objects.isNull(problemHolderService) || Objects.isNull(scanStateHolder)) {
+            LOGGER.warn(format("RTS: Problem holder or timestamp holder not found for project: %s.", file.getProject().getName()));
+            resetEditorAndResults(file.getProject(), filePath);
+            return ProblemDescriptor.EMPTY_ARRAY;
         }
-        fileTimeStamp.put(virtualFile.getPath(), file.getModificationStamp());
-        file.putUserData(key, DevAssistUtils.isDarkTheme());
-        return scanFileAndCreateProblemDescriptors(file, manager, isOnTheFly, supportedScanners, document, problemHolderService, virtualFile);
+        // Check if a file is modified and a file already scanned from inspection
+        Long cachedStamp = scanStateHolder.getTimeStamp(filePath); // This value present means a file is already scanned.
+        Long compositeStamp = getCompositeTimeStamp(file, virtualFile, document);
+        if (Objects.nonNull(cachedStamp) && cachedStamp.longValue() == compositeStamp.longValue()) {
+            LOGGER.info(format("RTS: File: %s is already scanned and retrieving existing results.", file.getName()));
+            return getExistingProblemDescriptors(problemHolderService, filePath, document, file, supportedScanners, manager);
+        }
+        scanStateHolder.updateTimeStamp(filePath, compositeStamp);
+        file.putUserData(THEME_KEY, DevAssistUtils.isDarkTheme());
+        return scanFileAndCreateProblemDescriptors(file, manager, isOnTheFly, supportedScanners, document, problemHolderService, filePath);
+    }
+
+    /**
+     * Scans the given PSI file and creates problem descriptors for any identified issues.
+     *
+     * @param file                 the PsiFile representing the file to be scanned; must not be null
+     * @param manager              the inspection manager used to create problem descriptors; must not be null
+     * @param isOnTheFly           a flag that indicates whether the inspection is executed on-the-fly
+     * @param supportedScanners    the list of supported scanner services
+     * @param document             the document containing the file to be scanned
+     * @param problemHolderService the problem holder service
+     * @param filePath             the virtual file path of the file to be scanned
+     * @return ProblemDescriptor[] array of problem descriptors
+     */
+    private ProblemDescriptor[] scanFileAndCreateProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly,
+                                                                    List<ScannerService<?>> supportedScanners, Document document,
+                                                                    ProblemHolderService problemHolderService, String filePath) {
+        try {
+            ProblemHelper.ProblemHelperBuilder problemHelperBuilder = buildHelper(file, manager, isOnTheFly, document,
+                    supportedScanners, filePath, problemHolderService);
+
+            // Schedule a debounced scan to avoid excessive scanning during rapid file changes (background scan)
+            boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(file.getProject())
+                    .scheduleScan(filePath, problemHelperBuilder.build());
+            if (isScanScheduled) {
+                cxOneAssistInspectionMgr.updateScanSourceFlag(file, Boolean.TRUE); // To identify the scan source
+                List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
+                if (scanIssueList.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
+
+                problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
+                return problemHolderService.getProblemDescriptors(filePath).toArray(new ProblemDescriptor[0]);
+            }
+            LOGGER.info(format("RTS: Failed to schedule the scan for file: %s. Now scanning file using fallback..", file.getName()));
+            return cxOneAssistInspectionMgr.startScanAndCreateProblemDescriptors(problemHelperBuilder);
+        } catch (Exception exception) {
+            LOGGER.warn(format("RTS: Exception occurred while scanning file: %s", filePath), exception);
+            return ProblemDescriptor.EMPTY_ARRAY;
+        }
+    }
+
+    /**
+     * Retrieves existing problem descriptors for the given file.
+     */
+    private ProblemDescriptor[] getExistingProblemDescriptors(ProblemHolderService problemHolderService, String filePath, Document document,
+                                                              PsiFile file, List<ScannerService<?>> supportedScanners, InspectionManager manager) {
+        return this.cxOneAssistInspectionMgr
+                .getExistingProblems(problemHolderService, filePath, document, file, supportedScanners, manager);
     }
 
     /**
@@ -111,29 +153,8 @@ public class CxOneAssistInspection extends LocalInspectionTool {
      *
      * @param project the project to reset results for
      */
-    private void resetResults(Project project) {
-        ProblemDecorator.removeAllGutterIcons(project);
-        ProblemHolderService.getInstance(project).removeAllProblemDescriptors();
-    }
-
-    /**
-     * Retrieves all supported instances of {@link ScannerService} for handling real-time scanning
-     * of the specified file. The method checks available scanner services to determine if
-     * any of them is suited to handle the given file path.
-     *
-     * @param filePath the path of the file as a string, used to identify an applicable scanner service; must not be null or empty
-     * @return an {@link Optional} containing the matching {@link ScannerService} if found, or an empty {@link Optional} if no appropriate service exists
-     */
-    private List<ScannerService<?>> getSupportedEnabledScanner(String filePath, PsiFile psiFile) {
-        List<ScannerService<?>> supportedScanners = scannerFactory.getAllSupportedScanners(filePath, psiFile);
-        if (supportedScanners.isEmpty()) {
-            LOGGER.warn(format("RTS: No supported scanner found for this file path: %s.", filePath));
-            return Collections.emptyList();
-        }
-        return supportedScanners.stream()
-                .filter(scannerService ->
-                        DevAssistUtils.isScannerActive(scannerService.getConfig().getEngineName()))
-                .collect(Collectors.toList());
+    private void resetEditorAndResults(Project project, String filePath) {
+        this.cxOneAssistInspectionMgr.resetEditorAndResults(project, filePath);
     }
 
     /**
@@ -144,76 +165,8 @@ public class CxOneAssistInspection extends LocalInspectionTool {
      * @return true if the file is a GitHub Copilot-generated file, false otherwise.
      */
     private boolean isAgentEvent(VirtualFile virtualFile) {
-        return Constants.RealTimeConstants.AGENT_DUMMY_FILES.stream()
+        return DevAssistConstants.AGENT_DUMMY_FILES.stream()
                 .anyMatch(filePath -> filePath.equals(virtualFile.getPath()));
-    }
-
-    /**
-     * Checks if the problem descriptor for the given file path is valid.
-     * Scan file on theme change, as the inspection tooltip doesn't support dynamic icon change in the tooltip description.
-     *
-     * @param problemHolderService the problem holder service
-     * @param path                 the file path
-     * @return true if the problem descriptor is valid, false otherwise
-     */
-    private boolean isProblemDescriptorValid(ProblemHolderService problemHolderService, String path, PsiFile file) {
-        if (file.getUserData(key) != null && !Objects.equals(file.getUserData(key), DevAssistUtils.isDarkTheme())) {
-            ProblemDescription.reloadIcons(); // reload problem descriptions icons on theme change
-            LOGGER.info("RTS: Theme changed, resetting problem descriptors.");
-            return false;
-        }
-        return !problemHolderService.getProblemDescriptors(path).isEmpty();
-    }
-
-    /**
-     * Gets the existing problem descriptors for the given file path and enabled scanners.
-     *
-     * @param problemHolderService the problem holder service.
-     * @param filePath             the file path.
-     * @return the problem descriptors.
-     */
-    private ProblemDescriptor[] getExistingProblemsForEnabledScanners(ProblemHolderService problemHolderService, String filePath, Document document,
-                                                                      PsiFile file, List<ScannerService<?>> supportedEnabledScanners) {
-        List<ProblemDescriptor> problemDescriptorsList = problemHolderService.getProblemDescriptors(filePath);
-        /*
-         * If a file already scanned and after that if scanner settings are changed (enabled/disabled),
-         * we need to filter the existing problems and return only those which are related to enabled scanners
-         */
-        List<ScanEngine> enabledScanners = supportedEnabledScanners.stream()
-                .map(scannerService ->
-                        ScanEngine.valueOf(scannerService.getConfig().getEngineName().toUpperCase()))
-                .collect(Collectors.toList());
-
-        if (problemDescriptorsList.isEmpty() || enabledScanners.isEmpty()) {
-            LOGGER.warn(format("RTS: No existing problem descriptors found for file: %s or no enabled scanners found.", filePath));
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
-        List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
-        if (scanIssueList.isEmpty()) {
-            LOGGER.warn(format("RTS: No existing scan issues found for file: %s.", filePath));
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
-        List<ProblemDescriptor> enabledScannerProblems = new ArrayList<>();
-        for (ProblemDescriptor descriptor : problemDescriptorsList) {
-            try {
-                CxOneAssistFix cxOneAssistFix = (CxOneAssistFix) descriptor.getFixes()[0];
-                if (Objects.nonNull(cxOneAssistFix) && enabledScanners.contains(cxOneAssistFix.getScanIssue().getScanEngine())) {
-                    enabledScannerProblems.add(descriptor);
-                }
-            } catch (Exception e) {
-                LOGGER.debug("RTS: Exception occurred while getting existing problems for enabled scanner for file: {} ",
-                        filePath, e.getMessage());
-                enabledScannerProblems.add(descriptor);
-            }
-        }
-        List<ScanIssue> enabledScanIssueList = scanIssueList.stream()
-                .filter(scanIssue -> enabledScanners.contains(scanIssue.getScanEngine()))
-                .collect(Collectors.toList());
-
-        // Update gutter icons and problem descriptors for the file according to the latest state of scan settings.
-        problemDecorator.restoreGutterIcons(file.getProject(), file, enabledScanIssueList, document);
-        problemHolderService.addProblemDescriptors(filePath, enabledScannerProblems);
-        return enabledScannerProblems.toArray(new ProblemDescriptor[0]);
     }
 
     /**
@@ -234,132 +187,17 @@ public class CxOneAssistInspection extends LocalInspectionTool {
                 .document(document)
                 .supportedScanners(supportedScanners)
                 .filePath(path)
-                .problemHolderService(problemHolderService);
+                .problemHolderService(problemHolderService)
+                .problemDecorator(this.problemDecorator);
     }
 
     /**
-     * Scans the given PSI file and creates problem descriptors for any identified issues.
-     *
-     * @param file                 the PsiFile representing the file to be scanned; must not be null
-     * @param manager              the inspection manager used to create problem descriptors; must not be null
-     * @param isOnTheFly           a flag that indicates whether the inspection is executed on-the-fly
-     * @param supportedScanners    the list of supported scanner services
-     * @param document             the document containing the file to be scanned
-     * @param problemHolderService the problem holder service
-     * @param virtualFile          the virtual file
-     * @return ProblemDescriptor[] array of problem descriptors
+     * Builds a single “composite” stamp by XORing three stamps: PSI modificationStamp, Document modificationStamp, and VFS timeStamp.
+     * By combining the modification information from the PSI (), in-memory content (), and the physical file ()
+     * to produce a single "composite" value representing all possible sources of file changes. `file``document``virtualFile`
      */
-    private ProblemDescriptor[] scanFileAndCreateProblemDescriptors(@NotNull PsiFile file, @NotNull InspectionManager manager, boolean isOnTheFly,
-                                                                    List<ScannerService<?>> supportedScanners, Document document,
-                                                                    ProblemHolderService problemHolderService, VirtualFile virtualFile) {
-
-        ProblemHelper.ProblemHelperBuilder problemHelperBuilder = buildHelper(file, manager, isOnTheFly, document,
-                supportedScanners, virtualFile.getPath(), problemHolderService);
-
-        // Schedule a debounced scan to avoid excessive scanning during rapid file changes
-        boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(file.getProject())
-                .scheduleScan(virtualFile.getPath(), problemHelperBuilder.build());
-        if (isScanScheduled) {
-            List<ScanIssue> cachedIssues = problemHolderService.getScanIssueByFile(virtualFile.getPath());
-            if (cachedIssues == null || cachedIssues.isEmpty()) {
-                LOGGER.info(format("RTS: No cached issues yet for file: %s.", file.getName()));
-                return ProblemDescriptor.EMPTY_ARRAY;
-            }
-            problemHelperBuilder.scanIssueList(cachedIssues);
-
-            List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
-            problemHolderService.addProblemDescriptors(virtualFile.getPath(), allProblems);
-            return allProblems.toArray(new ProblemDescriptor[0]);
-        }
-        LOGGER.info(format("RTS: Failed to schedule the scan for file: %s. Now scanning file..", file.getName()));
-
-        List<ProblemDescriptor> scanResultDescriptors = startScanAndCreateProblemDescriptors(problemHelperBuilder);
-        if (scanResultDescriptors.isEmpty()) {
-            LOGGER.info(format("RTS: No issues found for file: %s ", file.getName()));
-        }
-        LOGGER.info(format("RTS: Scanning completed and descriptors created: %s for file: %s", scanResultDescriptors.size(), file.getName()));
-        return scanResultDescriptors.toArray(new ProblemDescriptor[0]);
-    }
-
-    /**
-     * Scans the given PSI file and creates problem descriptors for any identified issues.
-     *
-     * @param problemHelperBuilder - The {@link ProblemHelper}
-     * @return a list of {@link ProblemDescriptor} representing the detected issues, or an empty list if no issues were found
-     */
-    private List<ProblemDescriptor> startScanAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
-        ProblemHelper problemHelper = problemHelperBuilder.build();
-        List<ScanIssue> allScanIssues = scanFileAndGetAllIssues(problemHelper);
-
-        // Adding all scanner issues to the builder.
-        problemHelperBuilder.scanIssueList(allScanIssues);
-        //Adding problems to the CxFinding window
-        problemHelper.getProblemHolderService().addProblems(problemHelper.getFilePath(), allScanIssues);
-
-        //Creating problems
-        List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build()));
-        problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
-        return allProblems;
-    }
-
-    /**
-     * Scans the given PSI file at the specified path using an appropriate real-time scanner,
-     * if available and active.
-     *
-     * @param scannerService - ScannerService object of found scan engine
-     * @param file           the PsiFile representing the file to be scanned; must not be null
-     * @param path           the string representation of the file path to be scanned; must not be null or empty
-     * @return a {@link ScanResult} instance containing the results of the scan, or null if no
-     * active and suitable scanner is found
-     */
-    public static ScanResult<?> scanFile(ScannerService<?> scannerService, @NotNull PsiFile file, @NotNull String path) {
-        try {
-            LOGGER.info(format("RTS: Started scanning file: %s using scanner: %s", path, scannerService.getConfig().getEngineName()));
-            return scannerService.scan(file, path);
-        } catch (Exception e) {
-            LOGGER.debug("RTS: Exception occurred while scanning file: {} ", path, e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * Creates a list of {@link ProblemDescriptor} objects based on the issues identified in the scan result.
-     * This method processes the scan issues for the specified file and uses the provided InspectionManager
-     * to generate corresponding problem descriptors, if applicable.
-     *
-     * @param problemHelper - The {@link ProblemHelper}} instance containing necessary context for creating problem descriptors
-     * @return a list of {@link ProblemDescriptor}; an empty list is returned if no issues are found or processed successfully
-     */
-    private List<ProblemDescriptor> createProblemDescriptors(ProblemHelper problemHelper) {
-        List<ProblemDescriptor> problems = new ArrayList<>();
-        ProblemDecorator.removeAllGutterIcons(problemHelper.getFile().getProject());
-        ScanIssueProcessor processor = new ScanIssueProcessor(problemHelper, this.problemDecorator);
-
-        for (ScanIssue scanIssue : problemHelper.getScanIssueList()) {
-            ProblemDescriptor descriptor = processor.processScanIssue(scanIssue);
-            if (descriptor != null) {
-                problems.add(descriptor);
-            }
-        }
-        LOGGER.info(format("RTS: Problem descriptors created: %s for file: %s", problems.size(), problemHelper.getFile().getName()));
-        return problems;
-    }
-
-    /**
-     * Scans the given file using all available scanner services and returns all issues found.
-     *
-     * @param problemHelper - The {@link ProblemHelper}
-     * @return a list of {@link ScanIssue}
-     */
-    public static List<ScanIssue> scanFileAndGetAllIssues(ProblemHelper problemHelper) {
-        List<ScanResult<?>> allScanResults = problemHelper.getSupportedScanners().stream()
-                .map(scannerService ->
-                        scanFile(scannerService, problemHelper.getFile(), problemHelper.getFilePath()))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        return allScanResults.stream()
-                .flatMap(scanResult -> scanResult.getIssues().stream())
-                .collect(Collectors.toList());
+    private Long getCompositeTimeStamp(PsiFile file, VirtualFile virtualFile, Document document) {
+        // Build a composite stamp that reflects PSI, Document, and VFS changes
+        return file.getModificationStamp() ^ document.getModificationStamp() ^ virtualFile.getTimeStamp();
     }
 }

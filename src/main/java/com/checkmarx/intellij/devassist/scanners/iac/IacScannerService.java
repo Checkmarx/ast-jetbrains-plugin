@@ -1,13 +1,12 @@
 package com.checkmarx.intellij.devassist.scanners.iac;
 
-import com.checkmarx.ast.containersrealtime.ContainersRealtimeResults;
 import com.checkmarx.ast.iacrealtime.IacRealtimeResults;
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.scanners.containers.ContainerScanResultAdaptor;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
@@ -32,8 +31,7 @@ import java.util.stream.Collectors;
 public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
 
     private static final Logger LOGGER = Utils.getLogger(IacScannerService.class);
-
-
+    private String fileType;
 
     public  IacScannerService(){
         super(IacScannerService.createConfig());
@@ -42,11 +40,11 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
     public static ScannerConfig createConfig(){
         return ScannerConfig.builder()
                 .engineName(ScanEngine.IAC.name())
-                .configSection(Constants.RealTimeConstants.IAC_REALTIME_SCANNER)
-                .activateKey(Constants.RealTimeConstants.ACTIVATE_IAC_REALTIME_SCANNER)
-                .errorMessage(Constants.RealTimeConstants.ERROR_IAC_REALTIME_SCANNER)
-                .disabledMessage(Constants.RealTimeConstants.IAC_REALTIME_SCANNER_DISABLED)
-                .enabledMessage(Constants.RealTimeConstants.IAC_REALTIME_SCANNER_START)
+                .configSection(DevAssistConstants.IAC_REALTIME_SCANNER)
+                .activateKey(DevAssistConstants.ACTIVATE_IAC_REALTIME_SCANNER)
+                .errorMessage(DevAssistConstants.ERROR_IAC_REALTIME_SCANNER)
+                .disabledMessage(DevAssistConstants.IAC_REALTIME_SCANNER_DISABLED)
+                .enabledMessage(DevAssistConstants.IAC_REALTIME_SCANNER_START)
                 .build();
     }
 
@@ -59,12 +57,17 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
     }
 
     private boolean isIacFilePatternMatching(String filePath, PsiFile psiFile) {
-        List<PathMatcher> pathMatchers = Constants.RealTimeConstants.IAC_SUPPORTED_PATTERNS.stream()
+        List<PathMatcher> pathMatchers = DevAssistConstants.IAC_SUPPORTED_PATTERNS.stream()
                 .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
                 .collect(Collectors.toList());
-
         for (PathMatcher pathMatcher : pathMatchers) {
             if (pathMatcher.matches(Paths.get(filePath.toLowerCase()))) {
+                if(DevAssistUtils.isDockerFile(filePath.toLowerCase())){
+                    fileType= DevAssistConstants.DOCKERFILE;
+                }
+                else{
+                    fileType= psiFile.getVirtualFile().getExtension();
+                }
                 return true;
             }
         }
@@ -72,8 +75,11 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
         if (!vFile.exists()) {
             return false;
         }
-        String fileExtension = vFile.getExtension();
-        return Objects.nonNull(fileExtension) && Constants.RealTimeConstants.IAC_FILE_EXTENSIONS.contains(fileExtension.toLowerCase());
+        String extension = vFile.getExtension();
+        if (extension == null) return false;
+        extension = extension.toLowerCase();
+        fileType = extension;
+        return DevAssistConstants.IAC_FILE_EXTENSIONS.contains(extension);
     }
 
     private Pair<Path, Path> createSubFolderAndSaveFile(Path tempSubFolder, String relativePath, PsiFile psiFile) throws IOException {
@@ -118,7 +124,7 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
         if (!this.shouldScanFile(uri, psiFile)) {
             return null;
         }
-        String tempFolder = super.getTempSubFolderPath(Constants.RealTimeConstants.IAC_REALTIME_SCANNER_DIRECTORY);
+        String tempFolder = super.getTempSubFolderPath(DevAssistConstants.IAC_REALTIME_SCANNER_DIRECTORY);
         Pair<Path, Path> saveResult = null;
         try{
             Path tempFolderPath= Paths.get(tempFolder);
@@ -134,16 +140,15 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
                 LOGGER.info("Start IAC Realtime Scan On File: " + uri);
                 IgnoreManager ignoreManager = IgnoreManager.getInstance(psiFile.getProject());
                 String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
-                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(),ignoreFilePath);
-                LOGGER.info("ScanResults:"+scanResults);
-                return new IacScanResultAdaptor(scanResults);
+                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(), ignoreFilePath);
+                return new IacScanResultAdaptor(scanResults,fileType);
             }
         }
         catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);
         }
         finally {
-            LOGGER.info("Deleting temporary folder");
+            LOGGER.debug("Deleting temporary folder");
             if (Objects.nonNull(saveResult)) {
                 deleteTempFolder(saveResult.getRight());
             }

@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.devassist.remediation.prompts;
 
-import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.util.SeverityLevel;
 
 import static com.checkmarx.intellij.devassist.utils.EmojiUnicodes.*;
@@ -10,7 +10,7 @@ import static com.checkmarx.intellij.devassist.utils.EmojiUnicodes.*;
  */
 public final class CxOneAssistFixPrompts {
 
-    private static final String AGENT_NAME = Constants.RealTimeConstants.CX_AGENT_NAME;
+    private static final String AGENT_NAME = DevAssistConstants.CX_AGENT_NAME;
 
     private CxOneAssistFixPrompts() {
         throw new IllegalStateException("Cannot instantiate CxOneAssistFixPrompts class");
@@ -379,7 +379,7 @@ public final class CxOneAssistFixPrompts {
 
         prompt.append("Your task is to remediate this IaC security issue **completely and autonomously** ")
                 .append("using the internal codeRemediation tool in Checkmarx MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n");
-        prompt.append(WARNING + "️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
+        prompt.append(WARNING +"️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
                 .append(actualLineNumber)
                 .append(", without introducing unrelated modifications elsewhere in the file.\n\n");
 

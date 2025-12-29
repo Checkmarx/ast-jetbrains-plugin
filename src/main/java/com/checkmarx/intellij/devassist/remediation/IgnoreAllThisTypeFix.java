@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.devassist.remediation;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.util.IntentionFamilyName;
@@ -50,7 +50,7 @@ public class IgnoreAllThisTypeFix implements LocalQuickFix, Iconable {
      */
     @Override
     public @IntentionFamilyName @NotNull String getFamilyName() {
-        return Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME;
+        return DevAssistConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME;
     }
 
     /**

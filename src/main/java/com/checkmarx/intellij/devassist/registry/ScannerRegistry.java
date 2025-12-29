@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.registry;
 
+import com.checkmarx.intellij.devassist.scanners.asca.AscaScannerCommand;
 import com.checkmarx.intellij.devassist.scanners.containers.ContainerScannerCommand;
 import com.checkmarx.intellij.devassist.scanners.iac.IacScannerCommand;
 import com.checkmarx.intellij.devassist.scanners.oss.OssScannerCommand;
@@ -50,6 +51,7 @@ public final class ScannerRegistry implements Disposable {
         this.setScanner(ScanEngine.CONTAINERS.name(),new ContainerScannerCommand(this,project));
         this.setScanner(ScanEngine.SECRETS.name(), new SecretsScannerCommand(this,project));
         this.setScanner(ScanEngine.IAC.name(), new IacScannerCommand(this,project));
+        this.setScanner(ScanEngine.ASCA.name(), new AscaScannerCommand(this,project));
     }
 
     /**

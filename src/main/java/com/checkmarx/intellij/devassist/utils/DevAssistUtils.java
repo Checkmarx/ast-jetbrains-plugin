@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.devassist.utils;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.notification.NotificationType;
@@ -31,7 +31,6 @@ import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 import static java.lang.String.format;
 
@@ -70,8 +69,8 @@ public class DevAssistUtils {
     }
 
 
-    public static String getContainerTool(){
-       return GlobalSettingsState.getInstance().getContainersTool();
+    public static String getContainerTool() {
+        return GlobalSettingsState.getInstance().getContainersTool();
     }
 
     /**
@@ -251,10 +250,12 @@ public class DevAssistUtils {
     public static boolean copyToClipboardWithNotification(@NotNull String textToCopy, String notificationTitle,
                                                           String notificationContent, Project project) {
         try {
-            CopyPasteManager.getInstance().setContents(new StringSelection(textToCopy));
-            Utils.showNotification(notificationTitle, notificationContent,
-                    NotificationType.INFORMATION,
-                    project);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                CopyPasteManager.getInstance().setContents(new StringSelection(textToCopy));
+                Utils.showNotification(notificationTitle, notificationContent,
+                        NotificationType.INFORMATION,
+                        project);
+            });
             return true;
         } catch (Exception exception) {
             LOGGER.debug("Failed to copy text to clipboard: ", exception);
@@ -285,16 +286,18 @@ public class DevAssistUtils {
      *
      * @return a unique id
      */
-    public static String generateUniqueId() {
-        return UUID.randomUUID().toString();
+    public static String generateUniqueId(int line, String title, String description) {
+        //return UUID.randomUUID().toString();
+        String input = line + title + description;
+        return DevAssistUtils.encodeBase64(input);
     }
 
     public static boolean isDockerComposeFile(@NotNull String filePath) {
-        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKER_COMPOSE);
+        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(DevAssistConstants.DOCKER_COMPOSE);
     }
 
     public static boolean isDockerFile(@NotNull String filePath) {
-        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(Constants.RealTimeConstants.DOCKERFILE);
+        return Paths.get(filePath).getFileName().toString().toLowerCase().contains(DevAssistConstants.DOCKERFILE);
     }
 
     public static String getFileExtension(@NotNull PsiFile psiFile) {
@@ -307,7 +310,7 @@ public class DevAssistUtils {
 
     public static boolean isYamlFile(@NotNull PsiFile psiFile) {
         String fileExtension = DevAssistUtils.getFileExtension(psiFile);
-        return Objects.nonNull(fileExtension) && Constants.RealTimeConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
+        return Objects.nonNull(fileExtension) && DevAssistConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
     }
 
     /**
@@ -320,15 +323,6 @@ public class DevAssistUtils {
         return Base64.getEncoder().encodeToString(input.getBytes(StandardCharsets.UTF_8));
     }
 
-    /**
-     * Decode the Base64 encoded string.
-     *
-     * @param input Base64 encoded string
-     * @return Decoded string
-     */
-    public static String decodeBase64(String input) {
-        return new String(Base64.getDecoder().decode(input));
-    }
     /**
      * Determines the severity of an issue based on precedence by comparing the given severity
      * level with the severities of issues in the provided list. It returns the least severe
@@ -348,5 +342,23 @@ public class DevAssistUtils {
                 .min(Comparator.comparingInt(SeverityLevel::getPrecedence))
                 .map(SeverityLevel::getSeverity)
                 .orElse(severity);
+    }
+
+    /**
+     * Returns the vulnerability details for the given vulnerability id.
+     *
+     * @param scanIssue       scan issue containing vulnerabilities details
+     * @param vulnerabilityId - vulnerability id
+     * @return Vulnerability - vulnerability details
+     */
+    public static Vulnerability getVulnerabilityDetails(ScanIssue scanIssue, String vulnerabilityId) {
+        if (Objects.isNull(scanIssue.getVulnerabilities()) || scanIssue.getVulnerabilities().isEmpty()) {
+            LOGGER.warn(format("No vulnerabilities found in scan issue object for scan engine: %s.", scanIssue.getScanEngine().name()));
+            return null;
+        }
+        return scanIssue.getVulnerabilities().stream()
+                .filter(vulnerability -> vulnerability.getVulnerabilityId().equals(vulnerabilityId))
+                .findFirst()
+                .orElse(null);
     }
 }

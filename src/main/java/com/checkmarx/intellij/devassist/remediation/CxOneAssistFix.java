@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.devassist.remediation;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
 import static java.lang.String.format;
 
 /**
@@ -58,7 +59,7 @@ public class CxOneAssistFix implements LocalQuickFix, Iconable {
     @NotNull
     @Override
     public String getFamilyName() {
-        return Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST;
+        return DevAssistConstants.FIX_WITH_CXONE_ASSIST;
     }
 
     /**
@@ -78,6 +79,6 @@ public class CxOneAssistFix implements LocalQuickFix, Iconable {
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
         LOGGER.info(format("RTS-Fix: Remediation called: %s for issue: %s", getFamilyName(), scanIssue.getTitle()));
-        new RemediationManager().fixWithCxOneAssist(project, scanIssue);
+        new RemediationManager().fixWithCxOneAssist(project, scanIssue, QUICK_FIX);
     }
 }

@@ -9,16 +9,17 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      <b>Checkmarx One Developer Assist – AI guided remediation.</b>
+      <b>Checkmarx One Assist – AI guided remediation.</b>
         <ul>
             <li>An advanced security agent that delivers real-time context-aware prevention, remediation, and guidance to developers from the IDE.</li>
             <li><b>OSS</b> Realtime scanner identifies risks in open source packages used in your project.</li>
             <li><b>Secrets</b> Realtime scanner identifies risks in detected secrets used in your project.</li>
             <li><b>Container</b> Realtime scanner identifies risks in container images used in your project.</li>
+            <li><b>IAC</b> Realtime scanner identifies infrastructure configuration risks in your project.</li>
+            <li><b>ASCA</b> Realtime scanner identifies insecure patterns in your project source code.</li>
             <li>MCP-based agentic AI remediation.</li>
             <li>AI-powered explanation of risk details.</li>
         </ul>
-        <b>Note:</b> COMING SOON - additional realtime scanners for identifying risks in IaC..
     ]]></change-notes>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
@@ -53,12 +54,12 @@
         <notificationGroup id="Checkmarx.Notifications" displayType="BALLOON"
                            bundle="messages.CxBundle" key="NOTIFICATION_GROUP_NAME" isLogByDefault="true"/>
 
-        <localInspection displayName="Checkmarx AST"
+        <!--<localInspection displayName="Checkmarx AST"
                          groupName="Checkmarx AST"
                          groupPath="Checkmarx"
                          enabledByDefault="true"
                          level="WARNING"
-                         implementationClass="com.checkmarx.intellij.inspections.CxInspection"/>
+                         implementationClass="com.checkmarx.intellij.inspections.CxInspection"/>-->
 
         <localInspection
                 displayName="CxOneAssist"
