@@ -1,13 +1,13 @@
 package com.checkmarx.intellij.devassist.remediation;
 
 import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.remediation.prompts.CxOneAssistFixPrompts;
 import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.diagnostic.Logger;
@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 
-import static com.checkmarx.intellij.Constants.RealTimeConstants.QUICK_FIX;
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
 import static java.lang.String.format;
 
 /**
@@ -343,6 +343,6 @@ public final class RemediationManager {
      * Get the notification title for the given scan engine.
      */
     private String getNotificationTitle(ScanEngine scanEngine) {
-        return Constants.RealTimeConstants.CX_AGENT_NAME + " - " + scanEngine.name();
+        return DevAssistConstants.CX_AGENT_NAME + " - " + scanEngine.name();
     }
 }

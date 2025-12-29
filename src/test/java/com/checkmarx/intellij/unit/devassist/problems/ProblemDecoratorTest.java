@@ -126,7 +126,7 @@ public class ProblemDecoratorTest {
     // test removeAllGutterIcons (corner cases: null editor, null highlighters)
     @Test
     @DisplayName("Test removeAllGutterIcons with corner cases")
-    void testRemoveAllGutterIcons_CornerCases() {
+    void testRemoveAllHighlighters_CornerCases() {
         PsiFile psiFile = mock(PsiFile.class);
         Project project = mock(Project.class);
         when(psiFile.getProject()).thenReturn(project);
@@ -145,7 +145,7 @@ public class ProblemDecoratorTest {
             FileEditorManager fileMgr = mock(FileEditorManager.class);
             fileEditorManager.when(() -> FileEditorManager.getInstance(project)).thenReturn(fileMgr);
             when(fileMgr.getSelectedTextEditor()).thenReturn(null); // null editor path
-            decorator.removeAllGutterIcons(psiFile.getProject());
+            decorator.removeAllHighlighters(psiFile.getProject());
             // Non-null editor, empty highlighters array
             Editor editor = mock(Editor.class);
             when(fileMgr.getSelectedTextEditor()).thenReturn(editor);
@@ -153,20 +153,20 @@ public class ProblemDecoratorTest {
             when(editor.getMarkupModel()).thenReturn(markupModel);
             RangeHighlighter[] empty = new RangeHighlighter[0];
             when(markupModel.getAllHighlighters()).thenReturn(empty);
-            decorator.removeAllGutterIcons(psiFile.getProject());
+            decorator.removeAllHighlighters(psiFile.getProject());
         }
     }
 
     // test restoreGutterIcons (corner cases: empty scanIssueList, null elementAtLine)
     @Test
     @DisplayName("Test restoreGutterIcons with corner cases")
-    void testRestoreGutterIcons_CornerCases() {
+    void testDecorateUI_CornerCases() {
         Project project = mock(Project.class);
         PsiFile psiFile = mock(PsiFile.class);
         Document document = mock(Document.class);
         when(document.getCharsSequence()).thenReturn("a".repeat(200));
         List<ScanIssue> scanIssueList = new ArrayList<>();
-        decorator.restoreGutterIcons(project, psiFile, scanIssueList, document); // empty list path
+        decorator.decorateUI(project, psiFile, scanIssueList, document); // empty list path
         // One scanIssue, elementAtLine null
         ScanIssue issue = new ScanIssue();
         issue.setSeverity("High");
@@ -176,7 +176,7 @@ public class ProblemDecoratorTest {
         scanIssueList.add(issue);
         when(document.getLineStartOffset(anyInt())).thenReturn(0);
         when(psiFile.findElementAt(anyInt())).thenReturn(null); // null element path
-        decorator.restoreGutterIcons(project, psiFile, scanIssueList, document);
+        decorator.decorateUI(project, psiFile, scanIssueList, document);
         // Second scenario: elementAtLine non-null triggers highlightLineAddGutterIconForProblem
         PsiFile psiFile2 = mock(PsiFile.class);
         when(psiFile2.getProject()).thenReturn(project);
@@ -217,13 +217,13 @@ public class ProblemDecoratorTest {
             when(doc2.getLineEndOffset(location.getLine())).thenReturn(5);
             when(doc2.getTextLength()).thenReturn(10);
             when(doc2.getLineCount()).thenReturn(2);
-            decorator.restoreGutterIcons(project, psiFile2, list2, doc2);
+            decorator.decorateUI(project, psiFile2, list2, doc2);
         }
     }
 
     @Test
     @DisplayName("Test removeAllGutterIcons exception path")
-    void testRemoveAllGutterIcons_ExceptionPath() {
+    void testRemoveAllHighlighters_ExceptionPath() {
         PsiFile psiFile = mock(PsiFile.class);
         Project project = mock(Project.class);
         when(psiFile.getProject()).thenReturn(project);
@@ -243,13 +243,13 @@ public class ProblemDecoratorTest {
                 return null;
             }).when(application).invokeLater(any(Runnable.class));
             fileEditorManager.when(() -> FileEditorManager.getInstance(project)).thenThrow(new RuntimeException("manager fail"));
-            decorator.removeAllGutterIcons(psiFile.getProject()); // ensure no exception escapes
+            decorator.removeAllHighlighters(psiFile.getProject()); // ensure no exception escapes
         }
     }
 
     @Test
     @DisplayName("Test restoreGutterIcons catch block")
-    void testRestoreGutterIcons_CatchBlock() {
+    void testDecorateUI_CatchBlock() {
         Project project = mock(Project.class);
         PsiFile psiFile = mock(PsiFile.class);
         Document document = mock(Document.class);
@@ -259,7 +259,7 @@ public class ProblemDecoratorTest {
         issue.setLocations(Collections.emptyList());
         issue.setTitle("Title");
         List<ScanIssue> list = Collections.singletonList(issue);
-        decorator.restoreGutterIcons(project, psiFile, list, document); // should hit catch and continue
+        decorator.decorateUI(project, psiFile, list, document); // should hit catch and continue
     }
 
     @Test
@@ -289,7 +289,7 @@ public class ProblemDecoratorTest {
             RangeHighlighter h1 = mock(RangeHighlighter.class);
             RangeHighlighter h2 = mock(RangeHighlighter.class);
             when(markupModel.getAllHighlighters()).thenReturn(new RangeHighlighter[]{h1, h2});
-            decorator.removeAllGutterIcons(psiFile.getProject());
+            decorator.removeAllHighlighters(psiFile.getProject());
             verify(markupModel, times(1)).removeAllHighlighters();
         }
     }

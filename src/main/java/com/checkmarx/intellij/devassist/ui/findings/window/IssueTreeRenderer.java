@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.devassist.ui.findings.window;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.ColoredTreeCellRenderer;
 import com.intellij.ui.Gray;
@@ -139,7 +139,7 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
                     append(detail.getDescription(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
                     break;
             }
-            append(" " + Constants.RealTimeConstants.CX_AGENT_NAME + " ", SimpleTextAttributes.GRAYED_ATTRIBUTES);
+            append(" " + DevAssistConstants.CX_AGENT_NAME + " ", SimpleTextAttributes.GRAYED_ATTRIBUTES);
 
             if (detail.getLocations() != null && !detail.getLocations().isEmpty()) {
                 var targetLoc = detail.getLocations().get(0);

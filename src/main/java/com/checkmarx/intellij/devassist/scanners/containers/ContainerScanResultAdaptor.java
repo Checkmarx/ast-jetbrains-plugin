@@ -4,11 +4,11 @@ import com.checkmarx.ast.containersrealtime.ContainersRealtimeImage;
 import com.checkmarx.ast.containersrealtime.ContainersRealtimeResults;
 import com.checkmarx.ast.containersrealtime.ContainersRealtimeVulnerability;
 import com.checkmarx.ast.realtime.RealtimeLocation;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.util.SeverityLevel;
@@ -142,19 +142,19 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
         SeverityLevel severityLevel = SeverityLevel.fromValue(severity);
         switch (severityLevel) {
             case MALICIOUS:
-                return Constants.RealTimeConstants.MALICIOUS_RISK_CONTAINER;
+                return DevAssistConstants.MALICIOUS_RISK_CONTAINER;
 
             case CRITICAL:
-                return Constants.RealTimeConstants.CRITICAL_RISK_CONTAINER;
+                return DevAssistConstants.CRITICAL_RISK_CONTAINER;
 
             case HIGH:
-                return Constants.RealTimeConstants.HIGH_RISK_CONTAINER;
+                return DevAssistConstants.HIGH_RISK_CONTAINER;
 
             case MEDIUM:
-                return Constants.RealTimeConstants.MEDIUM_RISK_CONTAINER;
+                return DevAssistConstants.MEDIUM_RISK_CONTAINER;
 
             case LOW:
-                return Constants.RealTimeConstants.LOW_RISK_CONTAINER;
+                return DevAssistConstants.LOW_RISK_CONTAINER;
             default:
                 return severity;
         }

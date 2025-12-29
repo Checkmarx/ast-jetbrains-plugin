@@ -1,12 +1,12 @@
 package com.checkmarx.intellij.devassist.scanners.asca;
 
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
@@ -52,11 +52,11 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
     public static ScannerConfig createConfig() {
         return ScannerConfig.builder()
                 .engineName(ScanEngine.ASCA.name())
-                .configSection(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER)
-                .activateKey(Constants.RealTimeConstants.ACTIVATE_ASCA_REALTIME_SCANNER)
-                .errorMessage(Constants.RealTimeConstants.ERROR_ASCA_REALTIME_SCANNER)
-                .disabledMessage(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER_DISABLED)
-                .enabledMessage(Constants.RealTimeConstants.ASCA_REALTIME_SCANNER_START)
+                .configSection(DevAssistConstants.ASCA_REALTIME_SCANNER)
+                .activateKey(DevAssistConstants.ACTIVATE_ASCA_REALTIME_SCANNER)
+                .errorMessage(DevAssistConstants.ERROR_ASCA_REALTIME_SCANNER)
+                .disabledMessage(DevAssistConstants.ASCA_REALTIME_SCANNER_DISABLED)
+                .enabledMessage(DevAssistConstants.ASCA_REALTIME_SCANNER_START)
                 .build();
     }
 
@@ -107,11 +107,11 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
             return false;
         }
 
-        boolean isSupported = Constants.RealTimeConstants.ASCA_SUPPORTED_EXTENSIONS.contains(extension.toLowerCase());
+        boolean isSupported = DevAssistConstants.ASCA_SUPPORTED_EXTENSIONS.contains(extension.toLowerCase());
 
         if (!isSupported) {
             LOGGER.debug("ASCA scanner: extension '" + extension + "' not in supported list: " +
-                Constants.RealTimeConstants.ASCA_SUPPORTED_EXTENSIONS);
+                DevAssistConstants.ASCA_SUPPORTED_EXTENSIONS);
         }
 
         return isSupported;
@@ -206,7 +206,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      */
     private ScanResult scanAscaFile(String path, boolean ascaLatestVersion, String agent)
             throws IOException, CxException, InterruptedException {
-        return CxWrapperFactory.build().ScanAsca(path, ascaLatestVersion, agent, "");
+        return CxWrapperFactory.build().ScanAsca(path, ascaLatestVersion, agent);
     }
 
     /**
@@ -408,7 +408,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      */
     public boolean installAsca() {
         try {
-            ScanResult res = CxWrapperFactory.build().ScanAsca("", true, Constants.JET_BRAINS_AGENT_NAME, "");
+            ScanResult res = CxWrapperFactory.build().ScanAsca("", true, Constants.JET_BRAINS_AGENT_NAME);
             if (res.getError() != null) {
                 LOGGER.warn(Strings.join("ASCA installation error: ", res.getError().getDescription()));
                 return false;

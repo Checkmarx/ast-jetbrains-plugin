@@ -196,7 +196,7 @@ class DevAssistFileListenerTest {
             psiDocumentManagerMock.when(() -> PsiDocumentManager.getInstance(project)).thenReturn(psiDocumentManager);
             when(psiDocumentManager.getDocument(psiFile)).thenReturn(document);
             ProblemDecorator decorator = mock(ProblemDecorator.class);
-            doNothing().when(decorator).restoreGutterIcons(any(), any(), any(), any());
+            doNothing().when(decorator).decorateUI(any(), any(), any(), any());
             // Should reach the decorator call
             DevAssistFileListenerTestHelper.invokeRestoreGutterIcons(project, psiFile, "/path/to/file.java");
         }

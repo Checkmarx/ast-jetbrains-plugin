@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Objects;
 
-import static com.checkmarx.intellij.Constants.RealTimeConstants.SEPERATOR;
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.SEPERATOR;
 import static java.lang.String.format;
 
 /**

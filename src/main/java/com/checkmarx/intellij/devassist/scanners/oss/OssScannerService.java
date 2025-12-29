@@ -1,12 +1,12 @@
 package com.checkmarx.intellij.devassist.scanners.oss;
 
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
@@ -49,11 +49,11 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
     public static ScannerConfig createConfig() {
         return ScannerConfig.builder()
                 .engineName(ScanEngine.OSS.name())
-                .configSection(Constants.RealTimeConstants.OSS_REALTIME_SCANNER)
-                .activateKey(Constants.RealTimeConstants.ACTIVATE_OSS_REALTIME_SCANNER)
-                .errorMessage(Constants.RealTimeConstants.ERROR_OSS_REALTIME_SCANNER)
-                .disabledMessage(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DISABLED)
-                .enabledMessage(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_START)
+                .configSection(DevAssistConstants.OSS_REALTIME_SCANNER)
+                .activateKey(DevAssistConstants.ACTIVATE_OSS_REALTIME_SCANNER)
+                .errorMessage(DevAssistConstants.ERROR_OSS_REALTIME_SCANNER)
+                .disabledMessage(DevAssistConstants.OSS_REALTIME_SCANNER_DISABLED)
+                .enabledMessage(DevAssistConstants.OSS_REALTIME_SCANNER_START)
                 .build();
     }
 
@@ -80,7 +80,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
      * @return {@code true} if a manifest pattern matches; {@code false} otherwise
      */
     private boolean isManifestFilePatternMatching(String filePath) {
-        List<PathMatcher> pathMatchers = Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
+        List<PathMatcher> pathMatchers = DevAssistConstants.MANIFEST_FILE_PATTERNS.stream()
                 .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
                 .collect(Collectors.toList());
         for (PathMatcher pathMatcher : pathMatchers) {
@@ -134,7 +134,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
      * @return path pointing to a unique temp directory per file
      */
     protected Path getTempSubFolderPath(@NotNull PsiFile file) {
-        String baseTempPath = super.getTempSubFolderPath(Constants.RealTimeConstants.OSS_REALTIME_SCANNER_DIRECTORY);
+        String baseTempPath = super.getTempSubFolderPath(DevAssistConstants.OSS_REALTIME_SCANNER_DIRECTORY);
         String relativePath = file.getName();
         return Paths.get(baseTempPath, toSafeTempFileName(relativePath));
     }

@@ -54,7 +54,7 @@ public class ScanIssueProcessorTest {
         when(problemHelper.isOnTheFly()).thenReturn(true);
         when(psiFile.getProject()).thenReturn(project);
 
-        processorViaHelper = new ScanIssueProcessor(problemHelper, problemDecorator);
+        processorViaHelper = new ScanIssueProcessor(problemHelper);
     }
 
     private ScanIssue buildIssue(int line, String severity, String title) {
@@ -74,7 +74,7 @@ public class ScanIssueProcessorTest {
         ScanIssue issue = new ScanIssue();
         issue.setTitle("noLoc");
         issue.setLocations(null);
-        assertNull(processorViaHelper.processScanIssue(issue));
+        assertNull(processorViaHelper.processScanIssue(issue, true));
         verifyNoInteractions(problemDecorator);
     }
 
@@ -84,7 +84,7 @@ public class ScanIssueProcessorTest {
         ScanIssue issue = new ScanIssue();
         issue.setTitle("emptyLoc");
         issue.setLocations(Collections.emptyList());
-        assertNull(processorViaHelper.processScanIssue(issue));
+        assertNull(processorViaHelper.processScanIssue(issue, true));
         verifyNoInteractions(problemDecorator);
     }
 
@@ -94,7 +94,7 @@ public class ScanIssueProcessorTest {
         ScanIssue issue = buildIssue(5, "HIGH", "outOfRange");
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(5, document)).thenReturn(true);
-            assertNull(processorViaHelper.processScanIssue(issue));
+            assertNull(processorViaHelper.processScanIssue(issue, true));
             utils.verify(() -> DevAssistUtils.isLineOutOfRange(5, document));
         }
         verifyNoInteractions(problemDecorator);
@@ -106,7 +106,7 @@ public class ScanIssueProcessorTest {
         ScanIssue issue = buildIssue(1, "   ", "blankSeverity");
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(1, document)).thenReturn(false);
-            assertNull(processorViaHelper.processScanIssue(issue));
+            assertNull(processorViaHelper.processScanIssue(issue, true));
         }
         verifyNoInteractions(problemDecorator);
     }
@@ -117,7 +117,7 @@ public class ScanIssueProcessorTest {
         ScanIssue issue = buildIssue(2, null, "nullSeverity");
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(2, document)).thenReturn(false);
-            assertNull(processorViaHelper.processScanIssue(issue));
+            assertNull(processorViaHelper.processScanIssue(issue, true));
         }
         verifyNoInteractions(problemDecorator);
     }
@@ -132,7 +132,7 @@ public class ScanIssueProcessorTest {
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(8, document)).thenReturn(false);
             utils.when(() -> DevAssistUtils.isProblem("low")).thenReturn(false);
-            assertNull(processorViaHelper.processScanIssue(issue));
+            assertNull(processorViaHelper.processScanIssue(issue, true));
             verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
     }
@@ -146,7 +146,7 @@ public class ScanIssueProcessorTest {
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(9, document)).thenReturn(false);
             utils.when(() -> DevAssistUtils.isProblem("low")).thenReturn(false);
-            assertNull(processorViaHelper.processScanIssue(issue));
+            assertNull(processorViaHelper.processScanIssue(issue, true));
             verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
     }
@@ -161,7 +161,7 @@ public class ScanIssueProcessorTest {
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(3, document)).thenReturn(false);
             utils.when(() -> DevAssistUtils.isProblem("high")).thenReturn(false); // force skip
-            ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
+            ProblemDescriptor result = processorViaHelper.processScanIssue(issue, true);
             assertNull(result);
             verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
@@ -176,7 +176,7 @@ public class ScanIssueProcessorTest {
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(6, document)).thenReturn(false);
             utils.when(() -> DevAssistUtils.isProblem("high")).thenReturn(false);
-            ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
+            ProblemDescriptor result = processorViaHelper.processScanIssue(issue, true);
             assertNull(result);
             verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
@@ -192,7 +192,7 @@ public class ScanIssueProcessorTest {
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(5, document)).thenReturn(false);
             utils.when(() -> DevAssistUtils.isProblem("high")).thenReturn(false); // skip
-            ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
+            ProblemDescriptor result = processorViaHelper.processScanIssue(issue, true);
             assertNull(result);
             verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
@@ -207,7 +207,7 @@ public class ScanIssueProcessorTest {
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(15, document)).thenReturn(false);
             utils.when(() -> DevAssistUtils.isProblem("high")).thenReturn(false);
-            ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
+            ProblemDescriptor result = processorViaHelper.processScanIssue(issue, true);
             assertNull(result);
             verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
@@ -227,7 +227,7 @@ public class ScanIssueProcessorTest {
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
             utils.when(() -> DevAssistUtils.isLineOutOfRange(20, document)).thenReturn(false);
             utils.when(() -> DevAssistUtils.isProblem("critical")).thenReturn(false); // skip descriptor
-            ProblemDescriptor result = processorViaHelper.processScanIssue(issue);
+            ProblemDescriptor result = processorViaHelper.processScanIssue(issue, true);
             assertNull(result);
             verify(problemDecorator, never()).highlightLineAddGutterIconForProblem(any(), any(), anyBoolean(), anyInt());
         }
@@ -242,7 +242,7 @@ public class ScanIssueProcessorTest {
     @Test
     @DisplayName("Direct constructor should initialize processor")
     void testConstructor_direct() {
-        ScanIssueProcessor direct = new ScanIssueProcessor(problemHelper, problemDecorator);
+        ScanIssueProcessor direct = new ScanIssueProcessor(problemHelper);
         assertNotNull(direct);
     }
     

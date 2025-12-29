@@ -14,7 +14,7 @@ import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.*;
 import org.mockito.MockedStatic;
 
-import static com.checkmarx.intellij.Constants.RealTimeConstants.QUICK_FIX;
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
 import static org.mockito.Mockito.*;
 
 @DisplayName("RemediationManager unit tests covering all branches")

@@ -2,12 +2,12 @@ package com.checkmarx.intellij.devassist.scanners.secrets;
 
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.secretsrealtime.SecretsRealtimeResults;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
@@ -48,11 +48,11 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
     public static ScannerConfig createConfig() {
         return ScannerConfig.builder()
                 .engineName(ScanEngine.SECRETS.name())
-                .configSection(Constants.RealTimeConstants.SECRETS_REALTIME_SCANNER)
-                .activateKey(Constants.RealTimeConstants.ACTIVATE_SECRETS_REALTIME_SCANNER)
-                .errorMessage(Constants.RealTimeConstants.ERROR_SECRETS_REALTIME_SCANNER)
-                .disabledMessage(Constants.RealTimeConstants.SECRETS_REALTIME_SCANNER_DISABLED)
-                .enabledMessage(Constants.RealTimeConstants.SECRETS_REALTIME_SCANNER_START)
+                .configSection(DevAssistConstants.SECRETS_REALTIME_SCANNER)
+                .activateKey(DevAssistConstants.ACTIVATE_SECRETS_REALTIME_SCANNER)
+                .errorMessage(DevAssistConstants.ERROR_SECRETS_REALTIME_SCANNER)
+                .disabledMessage(DevAssistConstants.SECRETS_REALTIME_SCANNER_DISABLED)
+                .enabledMessage(DevAssistConstants.SECRETS_REALTIME_SCANNER_START)
                 .build();
     }
 
@@ -86,7 +86,7 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
      */
     private boolean isExcludedFileForSecretsScanning(String filePath) {
         // Check if it's a manifest file (similar to TypeScript implementation)
-        List<PathMatcher> manifestMatchers = Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
+        List<PathMatcher> manifestMatchers = DevAssistConstants.MANIFEST_FILE_PATTERNS.stream()
                 .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
                 .collect(Collectors.toList());
 
@@ -146,7 +146,7 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
      * @return path pointing to a unique temp directory per file
      */
     protected Path getTempSubFolderPath(@NotNull PsiFile file) {
-        String baseTempPath = super.getTempSubFolderPath(Constants.RealTimeConstants.SECRETS_REALTIME_SCANNER_DIRECTORY);
+        String baseTempPath = super.getTempSubFolderPath(DevAssistConstants.SECRETS_REALTIME_SCANNER_DIRECTORY);
         String relativePath = file.getName();
         return Paths.get(baseTempPath, toSafeTempFileName(relativePath));
     }
