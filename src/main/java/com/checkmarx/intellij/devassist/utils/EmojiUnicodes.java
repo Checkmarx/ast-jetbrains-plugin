@@ -4,9 +4,9 @@ package com.checkmarx.intellij.devassist.utils;
  * The EmojiUnicodes class provides a set of Unicode constants that represent various commonly
  * used emoji symbols. These symbols can be used for UI elements, logging, messages, and other
  * text-based functionality where emoji representations are needed.
- *
+ * <p>
  * This is a utility class and is not meant to be instantiated.
- *
+ * <p>
  * All emoji constants are defined as public static final fields and are immutable.
  */
 public final class EmojiUnicodes {

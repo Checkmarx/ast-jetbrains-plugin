@@ -177,25 +177,16 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
 
         // Check if any engine from existing scan results is not present in current enabled scan engine list
         boolean hasDisabledEngines = existingScanEngineList.stream().anyMatch(engine -> !enabledScanEngines.contains(engine));
-
-        // Check if any new scan engine is enabled
-        boolean hasNewEnabledEngines = enabledScanEngines.stream().anyMatch(engine -> !existingScanEngineList.contains(engine));
         boolean isThemeChanged = isThemeChanged(file); // Check if the theme has changed
 
         // if scan engines state and theme are not changed, return the existing problem descriptor list
-        if (!hasDisabledEngines && !hasNewEnabledEngines && !isThemeChanged) {
+        if (!hasDisabledEngines && !isThemeChanged) {
             LOGGER.info(format("RTS: No change in scanners state and theme, Returning existing problem descriptors for file: %s.", file.getName()));
+            problemDecorator.decorateUI(file.getProject(), file, scanIssueList, problemHelper.getDocument());
             return problemDescriptorsList.toArray(new ProblemDescriptor[0]);
         }
-        List<ProblemDescriptor> updatedScannerProblems = new ArrayList<>(problemDescriptorsList);
+        List<ProblemDescriptor> updatedScannerProblems;
         List<ScanIssue> updatedScanIssueList = new ArrayList<>(scanIssueList);
-
-        // If any new scanner is enabled, create problem descriptors for those
-        if (hasNewEnabledEngines) {
-            LOGGER.info(format("RTS: New enabled scanners detected! Creating problem descriptors for new scanners for file: %s." +
-                    " (This functionality currently not supported))", file.getName()));
-            // need to trigger a scan for new scanners here
-        }
         /*
          * If some of the scan engines disabled and results already loaded with the old state,
          *  then update results and problem descriptors with the new state of scan engines.
@@ -209,7 +200,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         if (isThemeChanged) {
             ProblemHelper updatedHelper = problemHelper.toBuilder(problemHelper).scanIssueList(updatedScanIssueList).build();
             updatedScannerProblems = createProblemDescriptorsOnThemeChanged(updatedHelper);
-        } else if (hasDisabledEngines) {
+        }else {
             updatedScannerProblems = getEnabledScannerProblems(filePath, problemDescriptorsList, enabledScanEngines);
         }
         LOGGER.info(format("RTS: Decorating UI as per the latest state of the scanners using existing results for file: %s.", file.getName()));
@@ -324,31 +315,4 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         }
         LOGGER.debug(format("RTS: Resetting editor state (remove icons and problems) for project: %s.", project.getName()));
     }
-
-    /*private List<ScanEngine> getNewEnabledScanners(List<ScanEngine> enabledScanners, List<ScanEngine> scanEngineList) {
-        List<ScanEngine> newScanEngines = scanEngineList.stream()
-                .filter(engine -> !enabledScanners.contains(engine))
-                .collect(Collectors.toList());
-        List<ScanIssue> newEngineScanIssueList = new ArrayList<>();
-        for (ScanEngine newEngine : newScanEngines) {
-            List<ScanIssue> newEngineScanIssue = scanFile(filePath, file, newEngine);
-            if (!newEngineScanIssue.isEmpty()) {
-                newEngineScanIssueList.addAll(newEngineScanIssue);
-            }
-        }
-        List<ScanIssue> newScanIssues = scanFile(filePath, file, ScanEngine.ALL).stream()
-                .filter(scanIssue -> newEnabledScanners.contains(scanIssue.getScanEngine()))
-                .collect(Collectors.toList());
-        if (!newScanIssues.isEmpty()) {
-            ProblemHelper problemHelper = ProblemHelper.builder(file, file.getProject())
-                    .manager(ProblemHelper.getInspectionManager(file.getProject()))
-                    .isOnTheFly(true)
-                    .document(document)
-                    .supportedScanners(supportedEnabledScanners)
-                    .filePath(filePath)
-                    .problemHolderService(problemHolderService)
-                    .problemDecorator(problemDecorator)
-                    .scanIssueList(newScanIssues)
-                    .build();
-    }*/
 }
