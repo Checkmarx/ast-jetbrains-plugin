@@ -31,11 +31,11 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
     private static final Logger LOGGER = Utils.getLogger(IacScannerService.class);
     private String fileType;
 
-    public  IacScannerService(){
+    public IacScannerService() {
         super(IacScannerService.createConfig());
     }
 
-    public static ScannerConfig createConfig(){
+    public static ScannerConfig createConfig() {
         return ScannerConfig.builder()
                 .engineName(ScanEngine.IAC.name())
                 .configSection(DevAssistConstants.IAC_REALTIME_SCANNER)
@@ -57,11 +57,12 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
      * @param psiFile  the PSI (Program Structure Interface) representation of the file.
      * @return {@code true} if the file should be scanned; {@code false} otherwise.
      */
+    @Override
     public boolean shouldScanFile(String filePath, PsiFile psiFile) {
-        if (!super.shouldScanFile(filePath,psiFile)) {
+        if (!super.shouldScanFile(filePath, psiFile)) {
             return false;
         }
-        return this.isIacFilePatternMatching(filePath,psiFile);
+        return this.isIacFilePatternMatching(filePath, psiFile);
     }
 
     /**
@@ -71,7 +72,7 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
      * @param filePath the path of the file to check for pattern matching, given as a string.
      * @param psiFile  an instance of {@link PsiFile}, representing the file to be checked.
      * @return {@code true} if the file matches the defined IAC patterns or supported extensions.
-     *         Returns {@code false} otherwise.
+     * Returns {@code false} otherwise.
      */
     private boolean isIacFilePatternMatching(String filePath, PsiFile psiFile) {
         List<PathMatcher> pathMatchers = DevAssistConstants.IAC_SUPPORTED_PATTERNS.stream()
@@ -79,7 +80,7 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
                 .collect(Collectors.toList());
         for (PathMatcher pathMatcher : pathMatchers) {
             if (pathMatcher.matches(Paths.get(filePath.toLowerCase()))) {
-                fileType=DevAssistUtils.isDockerFile(filePath.toLowerCase())?DevAssistConstants.DOCKERFILE:psiFile.getVirtualFile().getExtension();
+                fileType = DevAssistUtils.isDockerFile(filePath.toLowerCase()) ? DevAssistConstants.DOCKERFILE : psiFile.getVirtualFile().getExtension();
                 return true;
             }
         }
@@ -95,16 +96,16 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
      * If the file content is empty or null, a warning is logged and the method returns null.
      *
      * @param tempSubFolder the path to the base temporary folder where the subfolder will be created
-     * @param relativePath the relative path for the new file under the temporary subfolder
-     * @param psiFile the file whose content is to be saved in the created subfolder
+     * @param relativePath  the relative path for the new file under the temporary subfolder
+     * @param psiFile       the file whose content is to be saved in the created subfolder
      * @return a pair containing the full path of the newly saved file and the path of the subfolder;
-     *         returns null if the file content is empty or null
+     * returns null if the file content is empty or null
      * @throws IOException if an error occurs while creating the folder or writing the file
      */
     private Pair<Path, Path> createSubFolderAndSaveFile(Path tempSubFolder, String relativePath, PsiFile psiFile) throws IOException {
         String fileText = DevAssistUtils.getFileContent(psiFile);
         if (fileText == null || fileText.isBlank()) {
-            LOGGER.warn("No content found in file: "+psiFile.getVirtualFile().getPath());
+            LOGGER.warn("No content found in file: " + psiFile.getVirtualFile().getPath());
             return null;
         }
         this.createTempFolder(tempSubFolder);
@@ -146,12 +147,12 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
      * generated hash.
      *
      * @param tempFolder the base temporary folder where the subfolder will be created
-     * @param psiFile the PSI (Program Structure Interface) representation of the file to be saved
+     * @param psiFile    the PSI (Program Structure Interface) representation of the file to be saved
      * @return a pair containing the path to the newly created subfolder and the full path of the saved file;
-     *         returns null if the file content is empty or null
+     * returns null if the file content is empty or null
      * @throws IOException if an error occurs while creating the folder or saving the file
      */
-    private Pair<Path,Path>saveTempFiles(Path tempFolder, PsiFile psiFile) throws  IOException{
+    private Pair<Path, Path> saveTempFiles(Path tempFolder, PsiFile psiFile) throws IOException {
         String relativePath = psiFile.getName();
         Path tempSubFolder = Paths.get(tempFolder.toString(), psiFile.getName() + "-" + this.generateFileHash(relativePath));
         return this.createSubFolderAndSaveFile(tempSubFolder, relativePath, psiFile);
@@ -167,34 +168,34 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
      *                Must not be null.
      * @param uri     the absolute or project-relative URI of the file to be scanned. Must not be null.
      * @return an instance of {@link ScanResult} containing the scan results as {@link IacRealtimeResults},
-     *         or {@code null} if the*/
+     * or {@code null} if the
+     */
     @Override
-    public ScanResult<IacRealtimeResults> scan(@NotNull PsiFile psiFile, @NotNull String uri){
+    public ScanResult<IacRealtimeResults> scan(@NotNull PsiFile psiFile, @NotNull String uri) {
         if (!this.shouldScanFile(uri, psiFile)) {
             return null;
         }
         String tempFolder = super.getTempSubFolderPath(DevAssistConstants.IAC_REALTIME_SCANNER_DIRECTORY);
         Pair<Path, Path> saveResult = null;
-        try{
-            Path tempFolderPath= Paths.get(tempFolder);
+        try {
+            Path tempFolderPath = Paths.get(tempFolder);
             this.createTempFolder(tempFolderPath);
             VirtualFile vFile = psiFile.getVirtualFile();
             if (!vFile.exists()) {
                 return null;
-            } String tempFilePath;
+            }
+            String tempFilePath;
 
             saveResult = this.saveTempFiles(tempFolderPath, psiFile);
-            if(Objects.nonNull(saveResult)){
+            if (Objects.nonNull(saveResult)) {
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start IAC Realtime Scan On File: " + uri);
-                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(),"");
-                return new IacScanResultAdaptor(scanResults,fileType);
+                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(), "");
+                return new IacScanResultAdaptor(scanResults, fileType);
             }
-        }
-        catch (IOException | CxException | InterruptedException e) {
+        } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);
-        }
-        finally {
+        } finally {
             LOGGER.debug("Deleting temporary folder");
             if (Objects.nonNull(saveResult)) {
                 deleteTempFolder(saveResult.getRight());
