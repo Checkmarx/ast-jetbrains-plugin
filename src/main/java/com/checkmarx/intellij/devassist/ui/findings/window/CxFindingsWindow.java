@@ -419,14 +419,14 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         copyDescription.setIcon(CxIcons.STAR_ACTION);
         popup.add(copyDescription);
 
-        JMenuItem ignoreOption = new JMenuItem(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME);
+        JMenuItem ignoreOption = new JMenuItem(DevAssistConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME);
         ignoreOption.setIcon(CxIcons.STAR_ACTION);
         ignoreOption.addActionListener(ev -> ignoreManager.addIgnoredEntry(detail));
         popup.add(ignoreOption);
 
         // Only show "Ignore all of this type" for container and oss
         if (ScanEngine.CONTAINERS.toString().equalsIgnoreCase(detail.getScanEngine().toString()) || ScanEngine.OSS.toString().equalsIgnoreCase(detail.getScanEngine().toString())) {
-            JMenuItem ignoreAllOption = new JMenuItem(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME);
+            JMenuItem ignoreAllOption = new JMenuItem(DevAssistConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME);
             ignoreAllOption.setIcon(CxIcons.STAR_ACTION);
             ignoreAllOption.addActionListener(ev -> ignoreManager.addAllIgnoredEntry(detail));
             popup.add(ignoreAllOption);
