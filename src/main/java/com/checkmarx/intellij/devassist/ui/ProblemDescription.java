@@ -84,7 +84,11 @@ public final class ProblemDescription {
      */
     public String formatDescription(ScanIssue scanIssue) {
         StringBuilder descBuilder = new StringBuilder();
-        descBuilder.append("<html><body>");
+        descBuilder.append("<html><head><style>")
+                .append("body { max-width: 500px; max-height: 400px; width: auto; height: auto; margin: 0; padding: 0; overflow-wrap: break-word; overflow-y: auto; } ")
+                .append("img { max-width: 16px; max-height: 16px; width: auto; height: auto; object-fit: contain; } ")
+                .append("table { max-width: 100%; } ")
+                .append("</style></head><body><div style='max-width: 500px; max-height: 400px; width: auto; height: auto; overflow-y: auto;'>");
 
         // DevAssist image
         descBuilder.append(TABLE_WITH_TR).append("<td style='padding:0 6px 0 0;vertical-align:middle;'>")
@@ -115,7 +119,7 @@ public final class ProblemDescription {
         if (scanIssue.getScanEngine() != ScanEngine.IAC && scanIssue.getScanEngine() != ScanEngine.ASCA) {
             buildRemediationActionsSection(descBuilder, scanIssue.getScanIssueId(), scanIssue.getScanEngine().name());
         }
-        descBuilder.append("</body></html>");
+        descBuilder.append("</div></body></html>");
         return descBuilder.toString();
     }
 
@@ -357,7 +361,7 @@ public final class ProblemDescription {
      * @return a String representing an HTML image element with the provided icon path
      */
     private static String getImage(String iconPath) {
-        return iconPath.isEmpty() ? "" : "<img src='" + DevAssistUtils.themeBasedPNGIconForHtmlImage(iconPath) + "' style='vertical-align:middle;'/>";
+        return iconPath.isEmpty() ? "" : "<img src='" + DevAssistUtils.themeBasedPNGIconForHtmlImage(iconPath) + "' style='vertical-align:middle;max-width:16px;max-height:16px;width:auto;height:auto;object-fit:contain;'/>";
     }
 
     /**
@@ -447,7 +451,7 @@ public final class ProblemDescription {
         }
 
         static final String TABLE_WITH_TR = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>";
-        static final String TABLE_WITH_TR_IAC_ASCA = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse; width:310px;'><tr>";
+        static final String TABLE_WITH_TR_IAC_ASCA = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;max-width:310px;width:auto;'><tr>";
         static final String TITLE_FONT_FAMILY = "font-family: menlo;";
         static final String TITLE_FONT_SIZE = "font-size:11px;";
         static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";
@@ -459,6 +463,6 @@ public final class ProblemDescription {
          * Default inline severity icon style used consistently across all engines.
          */
         static final String ICON_INLINE_STYLE =
-                "display:inline-block;vertical-align:middle;max-height:16px;line-height:16px;";
+                "display:inline-block;vertical-align:middle;max-width:16px;max-height:16px;width:auto;height:auto;line-height:16px;object-fit:contain;";
     }
 }
