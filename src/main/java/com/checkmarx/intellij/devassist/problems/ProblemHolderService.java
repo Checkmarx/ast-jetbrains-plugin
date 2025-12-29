@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.messages.Topic;
 
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -66,6 +67,27 @@ public final class ProblemHolderService {
         }
         project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
     }
+
+    public void removeProblemsFromFile(ScanIssue scanIssueToRemove) {
+        if (scanIssueToRemove == null) return;
+        String targetPath = scanIssueToRemove.getFilePath();
+        Iterator<Map.Entry<String, List<ScanIssue>>> iterator = fileToIssues.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, List<ScanIssue>> entry = iterator.next();
+            String mapPath = entry.getKey();
+            // Match if both paths end with same filename
+            if (targetPath.endsWith(new File(mapPath).getName()) ||
+                    mapPath.endsWith(new File(targetPath).getName())) {
+                List<ScanIssue> issues = entry.getValue();
+                issues.removeIf(issue -> issue.equals(scanIssueToRemove));
+                if (issues.isEmpty()) {
+                    iterator.remove();  // Safe removal during iteration
+                }
+            }
+        }
+        project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
+    }
+
 
     /**
      * Returns the scan issues for the given file.

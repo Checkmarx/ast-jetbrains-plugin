@@ -115,6 +115,6 @@ public class ScanIssueProcessor {
             LOGGER.debug("RTS: Skipping to add gutter icon, Failed to find PSI element for line : {}", problemLineNumber, scanIssue.getTitle());
             return;
         }
-        problemDecorator.highlightLineAddGutterIconForProblem(problemHelper, scanIssue, isProblem, problemLineNumber);
+       // problemDecorator.highlightLineAddGutterIconForProblem(problemHelper, scanIssue, isProblem, problemLineNumber);
     }
 }

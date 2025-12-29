@@ -7,6 +7,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
@@ -196,7 +197,9 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
             }
 
             LOGGER.debug("Secrets scanner: starting scan - " + uri);
-            SecretsRealtimeResults scanResults = CxWrapperFactory.build().secretsRealtimeScan(tempFilePath.get(), "");
+            IgnoreManager ignoreManager = IgnoreManager.getInstance(file.getProject());
+            String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
+            SecretsRealtimeResults scanResults = CxWrapperFactory.build().secretsRealtimeScan(tempFilePath.get(), ignoreFilePath);
 
             if (scanResults == null) {
                 LOGGER.debug("Secrets scanner: no results returned - " + uri);

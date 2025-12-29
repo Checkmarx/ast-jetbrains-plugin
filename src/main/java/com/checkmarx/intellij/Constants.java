@@ -139,6 +139,8 @@ public final class Constants {
 
         // Tab Name Constants
         public static final String DEVASSIST_TAB = "CxOne Assist Findings";
+        public static final String SCAN_RESULTS_TAB = "Scan Results";
+        public static final String IGNORED_FINDINGS_TAB = "Ignored Findings";
 
         // OSS Scanner Constants
         public static final String ACTIVATE_OSS_REALTIME_SCANNER = "Activate OSS-Realtime";
