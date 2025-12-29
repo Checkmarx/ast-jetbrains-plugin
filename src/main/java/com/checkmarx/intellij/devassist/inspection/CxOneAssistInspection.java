@@ -124,7 +124,6 @@ public class CxOneAssistInspection extends LocalInspectionTool {
             boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(file.getProject())
                     .scheduleScan(filePath, problemHelperBuilder.build());
             if (isScanScheduled) {
-                cxOneAssistInspectionMgr.updateScanSourceFlag(file, Boolean.TRUE); // To identify the scan source
                 List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
                 if (scanIssueList.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
 
