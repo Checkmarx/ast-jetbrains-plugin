@@ -47,6 +47,16 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
     }
 
 
+    /**
+     * Determines whether the given file should be scanned based on specific conditions.
+     * The method first checks the result of the parent class's {@code shouldScanFile} method.
+     * If that result is {@code false}, the file should not be scanned.
+     * Otherwise, it evaluates whether the file matches specific IAC (Infrastructure as Code) file patterns.
+     *
+     * @param filePath the absolute or project-relative path of the file to be considered for scanning.
+     * @param psiFile  the PSI (Program Structure Interface) representation of the file.
+     * @return {@code true} if the file should be scanned; {@code false} otherwise.
+     */
     public boolean shouldScanFile(String filePath, PsiFile psiFile) {
         if (!super.shouldScanFile(filePath,psiFile)) {
             return false;
@@ -54,32 +64,43 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
         return this.isIacFilePatternMatching(filePath,psiFile);
     }
 
+    /**
+     * Checks if the provided file path and PsiFile correspond to a supported
+     * Infrastructure as Code (IAC) file based on predefined patterns and extensions.
+     *
+     * @param filePath the path of the file to check for pattern matching, given as a string.
+     * @param psiFile  an instance of {@link PsiFile}, representing the file to be checked.
+     * @return {@code true} if the file matches the defined IAC patterns or supported extensions.
+     *         Returns {@code false} otherwise.
+     */
     private boolean isIacFilePatternMatching(String filePath, PsiFile psiFile) {
         List<PathMatcher> pathMatchers = DevAssistConstants.IAC_SUPPORTED_PATTERNS.stream()
                 .map(p -> FileSystems.getDefault().getPathMatcher("glob:" + p))
                 .collect(Collectors.toList());
         for (PathMatcher pathMatcher : pathMatchers) {
             if (pathMatcher.matches(Paths.get(filePath.toLowerCase()))) {
-                if(DevAssistUtils.isDockerFile(filePath.toLowerCase())){
-                    fileType= DevAssistConstants.DOCKERFILE;
-                }
-                else{
-                    fileType= psiFile.getVirtualFile().getExtension();
-                }
+                fileType=DevAssistUtils.isDockerFile(filePath.toLowerCase())?DevAssistConstants.DOCKERFILE:psiFile.getVirtualFile().getExtension();
                 return true;
             }
         }
-        VirtualFile vFile = psiFile.getVirtualFile();
-        if (!vFile.exists()) {
-            return false;
-        }
-        String extension = vFile.getExtension();
+        String extension = DevAssistUtils.getFileExtension(psiFile);
         if (extension == null) return false;
-        extension = extension.toLowerCase();
-        fileType = extension;
+        fileType = extension.toLowerCase();
         return DevAssistConstants.IAC_FILE_EXTENSIONS.contains(extension);
     }
 
+    /**
+     * Creates a subfolder under the specified temporary folder, saves the content of the file
+     * into it, and returns the paths for both the newly created file and its parent folder.
+     * If the file content is empty or null, a warning is logged and the method returns null.
+     *
+     * @param tempSubFolder the path to the base temporary folder where the subfolder will be created
+     * @param relativePath the relative path for the new file under the temporary subfolder
+     * @param psiFile the file whose content is to be saved in the created subfolder
+     * @return a pair containing the full path of the newly saved file and the path of the subfolder;
+     *         returns null if the file content is empty or null
+     * @throws IOException if an error occurs while creating the folder or writing the file
+     */
     private Pair<Path, Path> createSubFolderAndSaveFile(Path tempSubFolder, String relativePath, PsiFile psiFile) throws IOException {
         String fileText = DevAssistUtils.getFileContent(psiFile);
         if (fileText == null || fileText.isBlank()) {
@@ -92,6 +113,14 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
         return Pair.of(fullTargetPath, tempSubFolder);
     }
 
+    /**
+     * Generates a hash for the specified file based on its relative path and the current time.
+     * The resulting hash can be used to uniquely identify the file in a temporary context.
+     * In case of an exception during hash generation, an alternative fallback approach is used.
+     *
+     * @param relativePath the relative path of the file used to generate the hash; must not be null
+     * @return a 16-character hexadecimal string representing the generated hash
+     */
     private String generateFileHash(@NotNull String relativePath) {
         try {
             LocalTime time = LocalTime.now();
@@ -111,12 +140,34 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
 
     }
 
+    /**
+     * Saves the content of a PSI file into a newly created temporary subfolder under the specified
+     * temporary folder. The method derives a subfolder name based on the PSI file's name and a
+     * generated hash.
+     *
+     * @param tempFolder the base temporary folder where the subfolder will be created
+     * @param psiFile the PSI (Program Structure Interface) representation of the file to be saved
+     * @return a pair containing the path to the newly created subfolder and the full path of the saved file;
+     *         returns null if the file content is empty or null
+     * @throws IOException if an error occurs while creating the folder or saving the file
+     */
     private Pair<Path,Path>saveTempFiles(Path tempFolder, PsiFile psiFile) throws  IOException{
         String relativePath = psiFile.getName();
         Path tempSubFolder = Paths.get(tempFolder.toString(), psiFile.getName() + "-" + this.generateFileHash(relativePath));
         return this.createSubFolderAndSaveFile(tempSubFolder, relativePath, psiFile);
     }
 
+    /**
+     * Performs an IAC (Infrastructure as Code) real-time scan on the given file.
+     * This method evaluates whether the file is eligible for scanning, creates a temporary
+     * folder to store the file content, executes the scan using a scan engine, and then cleans up
+     * the temporary resources upon completion.
+     *
+     * @param psiFile the PSI (Program Structure Interface) representation of the file to be scanned.
+     *                Must not be null.
+     * @param uri     the absolute or project-relative URI of the file to be scanned. Must not be null.
+     * @return an instance of {@link ScanResult} containing the scan results as {@link IacRealtimeResults},
+     *         or {@code null} if the*/
     @Override
     public ScanResult<IacRealtimeResults> scan(@NotNull PsiFile psiFile, @NotNull String uri){
         if (!this.shouldScanFile(uri, psiFile)) {

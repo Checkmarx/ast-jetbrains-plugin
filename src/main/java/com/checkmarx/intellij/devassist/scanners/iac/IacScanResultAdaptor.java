@@ -15,19 +15,14 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Adapter class for handling IAC scan results and converting them into a standardized format
+ * using the {@link ScanResult} interface.
+ * This class wraps an {@code IacRealtimeResults} instance and provides methods to process and extract
+ * meaningful scan issues based on vulnerabilities detected in the images.
+ */
+
 public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
-
-
-    private static final class IssueLocationEntry {
-        final IacRealtimeResults.Issue issue;
-        final RealtimeLocation location;
-
-        IssueLocationEntry(IacRealtimeResults.Issue issue, RealtimeLocation location) {
-            this.issue = issue;
-            this.location = location;
-        }
-    }
-
 
     private final IacRealtimeResults iacRealtimeResults;
     private final String fileType;
@@ -39,6 +34,31 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
         this.scanIssues = buildIssues();
     }
 
+
+    /**
+     * Represents an entry containing an issue and its associated real-time location
+     * within an IaC (Infrastructure as Code) scan result.
+     *
+     * This class is used internally to encapsulate information about specific issues
+     * discovered during the scanning process alongside their corresponding locations in the source.
+     */
+    private static final class IssueLocationEntry {
+        final IacRealtimeResults.Issue issue;
+        final RealtimeLocation location;
+
+        IssueLocationEntry(IacRealtimeResults.Issue issue, RealtimeLocation location) {
+            this.issue = issue;
+            this.location = location;
+        }
+    }
+
+
+
+    /**
+     * Retrieves the real-time results of the Infrastructure as Code (IaC) scan.
+     *
+     * @return an {@code IacRealtimeResults} object representing the real-time scan results of the IaC analysis.
+     */
     @Override
     public IacRealtimeResults getResults() {
         return this.iacRealtimeResults;
@@ -56,9 +76,16 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
     }
 
     /**
-     * Builds a list of ScanIssue objects from the IaC real-time results.
+     * Builds a list of {@code ScanIssue} objects by processing and grouping issues from the
+     * Infrastructure as Code (IaC) real-time scan results.
      *
-     * @return a list of ScanIssue objects
+     * This method filters and organizes the issues based on their respective locations
+     * and severity levels. It ensures that the issues are grouped by unique identifiers
+     * generated from the file path, line number, and character index range. The highest
+     * severity issue within each group is prioritized for inclusion in the result.
+     *
+     * @return a list of {@code ScanIssue} objects representing the identified vulnerabilities;
+     * returns an empty list if no issues are present or valid in the scan results.
      */
     private List<ScanIssue> buildIssues() {
         List<IacRealtimeResults.Issue> iacIssuesList = Objects.nonNull(getResults()) ? getResults().getResults() : null;
@@ -70,17 +97,53 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
                 .flatMap(issue -> issue.getLocations().stream()
                         .filter(Objects::nonNull)
                         .map(location -> new IssueLocationEntry(issue, location)))
-                .collect(Collectors.groupingBy(entry -> {
-                    RealtimeLocation loc = entry.location;
-                    return entry.issue.getFilePath() + ":" + loc.getLine() + ":" + loc.getStartIndex() + ":" + loc.getEndIndex();
-                }, Collectors.collectingAndThen(Collectors.toList(), entries -> {
-                    entries.sort(Comparator.comparingInt(e -> SeverityLevel.fromValue(e.issue.getSeverity()).getPrecedence()));
-                    return entries;
-                })));
+                .collect(Collectors.groupingBy(this::getGroupingKey, Collectors.collectingAndThen(Collectors.toList(), this::sortEntriesBySeverity)));
 
         return groupedIssues.values().stream().map(this::createScanIssue).collect(Collectors.toList());
     }
 
+    /**
+     * Generates a unique grouping key for the given {@code IssueLocationEntry}.
+     * The key is constructed using the file path of the issue, along with the line number,
+     * start index, and end index of its associated location.
+     *
+     * @param entry the {@code IssueLocationEntry} object containing an issue and its associated
+     *              real-time location. Must not be null.
+     * @return a {@code String} representing the unique grouping key for the provided issue location.
+     */
+    private  String getGroupingKey(IssueLocationEntry entry) {
+        RealtimeLocation loc = entry.location;
+        return entry.issue.getFilePath() + ":" + loc.getLine() + ":" + loc.getStartIndex() + ":" + loc.getEndIndex();
+    }
+
+    /**
+     * Sorts a list of {@code IssueLocationEntry} objects based on the severity of the issues they represent.
+     * The severity is determined by mapping the issue's severity string value to a {@code SeverityLevel}
+     * and using its precedence for ordering.
+     *
+     * @param entries the list of {@code IssueLocationEntry} objects to be sorted, where each entry
+     *                contains an issue and its associated real-time location. Must not be null.
+     * @return a sorted list of {@code IssueLocationEntry} objects, ordered by the severity of the issues
+     *         in ascending order of precedence.
+     */
+    private List<IssueLocationEntry> sortEntriesBySeverity(List<IssueLocationEntry> entries) {
+        entries.sort(Comparator.comparingInt(e -> SeverityLevel.fromValue(e.issue.getSeverity()).getPrecedence()));
+        return entries;
+    }
+
+    /**
+     * Creates a {@code ScanIssue} object representing a collection of vulnerabilities
+     * and locations associated with the given list of issue location entries.
+     *
+     * This method processes the provided list of {@code IssueLocationEntry}, generates
+     * corresponding vulnerabilities, assigns a unique vulnerability ID for the primary issue,
+     * and creates a location entry for the first location in the list.
+     *
+     * @param iacScanIssue a list of {@code IssueLocationEntry} objects representing issues
+     *                     with their associated locations in the IaC scan results.
+     * @return a {@code ScanIssue} object containing aggregated information about vulnerabilities
+     *         and their associated locations.
+     */
     private ScanIssue createScanIssue(List<IssueLocationEntry> iacScanIssue) {
         ScanIssue scanIssue = getScanIssue(iacScanIssue);
         for (int i = 0; i < iacScanIssue.size(); i++) {
@@ -92,6 +155,22 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
         return scanIssue;
     }
 
+    /**
+     * Constructs a ScanIssue object based on a list of IssueLocationEntry objects obtained
+     * from an Infrastructure as Code (IaC) scan result.
+     *
+     * This method processes the list of IssueLocationEntry, aggregates information from
+     * the first entry, and assigns appropriate attributes to the ScanIssue object.
+     * If the list contains more than one entry, the title of the ScanIssue indicates
+     * multiple issues; otherwise, it uses the title of the first issue in the list.
+     *
+     * @param iacScanIssue a list of IssueLocationEntry objects representing issues
+     *                     and their associated locations in the IaC scan results.
+     *                     Must not be null or empty.
+     *
+     * @return a ScanIssue object containing aggregated details about the issues in
+     *         the specified IssueLocationEntry list.
+     */
     private @NotNull ScanIssue getScanIssue(List<IssueLocationEntry> iacScanIssue) {
         ScanIssue scanIssue = new ScanIssue();
         if (iacScanIssue.size() > 1) {
@@ -108,6 +187,19 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
         return scanIssue;
     }
 
+    /**
+     * Creates a {@code Vulnerability} object based on the information provided in the given {@code IacRealtimeResults.Issue}.
+     *
+     * This method constructs a vulnerability by populating its attributes, such as ID, description, severity,
+     * actual and expected values, and title, using the details of the specified issue.
+     * If an override ID is provided and is not blank, it will replace the generated vulnerability ID.
+     *
+     * @param vulnerabilityObj the {@code IacRealtimeResults.Issue} object containing the details of the vulnerability.
+     *                         Must not be null.
+     * @param overrideId       an optional string to override the generated vulnerability ID. Can be null or blank.
+     *
+     * @return a {@code Vulnerability} object populated with the relevant details from the provided issue.
+     */
     private Vulnerability createVulnerability(IacRealtimeResults.Issue vulnerabilityObj, String overrideId) {
         Vulnerability vulnerability = new Vulnerability();
         vulnerability.setVulnerabilityId(getUniqueId(vulnerabilityObj));
