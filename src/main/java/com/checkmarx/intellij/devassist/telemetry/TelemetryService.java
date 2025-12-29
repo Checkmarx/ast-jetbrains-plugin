@@ -35,6 +35,8 @@ public final class TelemetryService {
     // Sub Types
     private static final String SUB_TYPE_FIX_WITH_AI_CHAT = "fixWithAIChat";
     private static final String SUB_TYPE_VIEW_DETAILS = "viewDetails";
+    private static final String SUB_TYPE_IGNORE_PACKAGE = "ignorePackage";
+    private static final String SUB_TYPE_IGNORE_ALL = "ignoreAll";
 
     // Engine Names
     private static final String ENGINE_OSS = "oss";
@@ -102,7 +104,7 @@ public final class TelemetryService {
                                  scanType, status, totalCount));
 
                 CxWrapperFactory.build().telemetryAIEvent(
-                    "",                   // aiProvider
+                    "",          // aiProvider
                     "",                   // agent
                     "",                   // eventType
                     "",                   // subType
@@ -121,20 +123,31 @@ public final class TelemetryService {
     }
 
     /**
-     * Logs user action for "Fix with CxOne Assist".
+     * Logs user action for scan issue remediation activities.
      *
      * @param scanIssue the scan issue being acted upon
+     * @param actionSubType the specific action sub-type for telemetry
+     * @param actionName the action name for logging purposes
      */
-    public static void logFixWithCxOneAssistAction(ScanIssue scanIssue) {
+    private static void logUserAction(ScanIssue scanIssue, String actionSubType, String actionName) {
         if (Objects.isNull(scanIssue)) {
-            LOGGER.warn("Telemetry: Cannot log Fix with CxOne Assist action - scan issue is null");
+            LOGGER.warn("Telemetry: Cannot log " + actionName + " action - scan issue is null");
             return;
         }
 
         String engine = mapScanEngineToTelemetryEngine(scanIssue.getScanEngine());
         String severity = normalizeSeverity(scanIssue.getSeverity());
 
-        setUserEventDataForLogs(EVENT_TYPE_CLICK, SUB_TYPE_FIX_WITH_AI_CHAT, engine, severity);
+        setUserEventDataForLogs(EVENT_TYPE_CLICK, actionSubType, engine, severity);
+    }
+
+    /**
+     * Logs user action for "Fix with CxOne Assist".
+     *
+     * @param scanIssue the scan issue being acted upon
+     */
+    public static void logFixWithCxOneAssistAction(ScanIssue scanIssue) {
+        logUserAction(scanIssue, SUB_TYPE_FIX_WITH_AI_CHAT, "Fix with CxOne Assist");
     }
 
     /**
@@ -143,15 +156,25 @@ public final class TelemetryService {
      * @param scanIssue the scan issue being acted upon
      */
     public static void logViewDetailsAction(ScanIssue scanIssue) {
-        if (Objects.isNull(scanIssue)) {
-            LOGGER.warn("Telemetry: Cannot log View Details action - scan issue is null");
-            return;
-        }
+        logUserAction(scanIssue, SUB_TYPE_VIEW_DETAILS, "View Details");
+    }
 
-        String engine = mapScanEngineToTelemetryEngine(scanIssue.getScanEngine());
-        String severity = normalizeSeverity(scanIssue.getSeverity());
+    /**
+     * Logs user action for "Ignore Package" (for future implementation).
+     *
+     * @param scanIssue the scan issue being acted upon
+     */
+    public static void logIgnorePackageAction(ScanIssue scanIssue) {
+        logUserAction(scanIssue, SUB_TYPE_IGNORE_PACKAGE, "Ignore Package");
+    }
 
-        setUserEventDataForLogs(EVENT_TYPE_CLICK, SUB_TYPE_VIEW_DETAILS, engine, severity);
+    /**
+     * Logs user action for "Ignore All" (for future implementation).
+     *
+     * @param scanIssue the scan issue being acted upon
+     */
+    public static void logIgnoreAllAction(ScanIssue scanIssue) {
+        logUserAction(scanIssue, SUB_TYPE_IGNORE_ALL, "Ignore All");
     }
 
     /**
@@ -287,7 +310,6 @@ public final class TelemetryService {
             if (appInfo != null) {
                 String appName = appInfo.getVersionName();
                 if (appName != null) {
-                    // Use existing constant and append IDE-specific name
                     return Constants.JET_BRAINS_AGENT_NAME + " " + appName.trim();
                 }
             }
