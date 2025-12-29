@@ -6,6 +6,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -213,8 +214,9 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
                     LOGGER.debug("Secret " + (index + 1) + ": " + secret.getTitle() + " [" + secret.getSeverity() + "]");
                 }
             }
-
-            return new SecretsScanResultAdaptor(scanResults);
+            SecretsScanResultAdaptor scanResultAdaptor = new SecretsScanResultAdaptor(scanResults);
+            TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.SECRETS);
+            return scanResultAdaptor;
 
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.debug("Secrets scanner: scan error", e);

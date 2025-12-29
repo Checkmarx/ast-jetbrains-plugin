@@ -6,6 +6,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -191,7 +192,9 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start IAC Realtime Scan On File: " + uri);
                 IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(), "");
-                return new IacScanResultAdaptor(scanResults, fileType);
+                IacScanResultAdaptor scanResultAdaptor = new IacScanResultAdaptor(scanResults,fileType);
+                TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.IAC);
+                return scanResultAdaptor;
             }
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);

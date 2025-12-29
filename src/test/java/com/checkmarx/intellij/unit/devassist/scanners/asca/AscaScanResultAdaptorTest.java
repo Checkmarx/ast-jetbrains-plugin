@@ -5,6 +5,7 @@ import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.scanners.asca.AscaScanResultAdaptor;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -101,7 +102,7 @@ class AscaScanResultAdaptorTest {
         assertEquals(1, issues.size(), "Same line entries should be grouped");
 
         ScanIssue grouped = issues.get(0);
-        assertEquals("2" + Constants.RealTimeConstants.MULTIPLE_ASCA_ISSUES, grouped.getTitle());
+        assertEquals("2" + DevAssistConstants.MULTIPLE_ASCA_ISSUES, grouped.getTitle());
         assertEquals("Critical", grouped.getSeverity(),
                 "Highest severity should drive grouped issue severity");
         assertEquals(2, grouped.getVulnerabilities().size());

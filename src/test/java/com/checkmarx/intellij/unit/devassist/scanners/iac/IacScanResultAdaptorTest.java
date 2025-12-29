@@ -5,6 +5,7 @@ import com.checkmarx.ast.realtime.RealtimeLocation;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.scanners.iac.IacScanResultAdaptor;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -124,7 +125,7 @@ public class IacScanResultAdaptorTest {
         assertEquals(1, issues.size(), "Issues with identical locations should be grouped");
         ScanIssue grouped = issues.get(0);
 
-        assertEquals("2" + Constants.RealTimeConstants.MULTIPLE_IAC_ISSUES, grouped.getTitle());
+        assertEquals("2" + DevAssistConstants.MULTIPLE_IAC_ISSUES, grouped.getTitle());
         assertEquals(Constants.CRITICAL_SEVERITY, grouped.getSeverity(),
                 "The most severe entry should define the grouped issue severity");
         assertEquals(2, grouped.getVulnerabilities().size());

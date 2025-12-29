@@ -3,6 +3,7 @@ package com.checkmarx.intellij.devassist.remediation;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.intellij.codeInsight.highlighting.TooltipLinkHandler;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
@@ -90,13 +91,17 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
     private boolean handleActions(String link, Project project, ScanIssue scanIssue, String actionId) {
         switch (link) {
             case FIX:
+                TelemetryService.logFixWithCxOneAssistAction(scanIssue);
                 remediationManager.fixWithCxOneAssist(project, scanIssue, actionId);
                 break;
             case VIEW_DETAILS:
+                TelemetryService.logViewDetailsAction(scanIssue);
                 remediationManager.viewDetails(project, scanIssue, actionId);
                 break;
             case IGNORE_THIS_TYPE:
+                TelemetryService.logIgnorePackageAction(scanIssue);
             case IGNORE_ALL_OF_THIS_TYPE:
+                TelemetryService.logIgnoreAllAction(scanIssue);
                 break;
             default:
                 LOGGER.warn(format("RTS-Fix: Remediation action %s is not supported.", link));

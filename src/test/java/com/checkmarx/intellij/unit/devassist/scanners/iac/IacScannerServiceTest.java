@@ -7,6 +7,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.scanners.iac.IacScannerService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -69,7 +70,7 @@ public class IacScannerServiceTest {
     @DisplayName("shouldScanFile sets docker file type when Dockerfile matches pattern")
     void shouldScanFileDetectsDockerfile() throws Exception {
         assertTrue(service.shouldScanFile("/repo/Dockerfile", psiFile));
-        assertEquals(Constants.RealTimeConstants.DOCKERFILE, readFileType(service));
+        assertEquals(DevAssistConstants.DOCKERFILE, readFileType(service));
     }
 
     @Test
@@ -206,8 +207,8 @@ public class IacScannerServiceTest {
     void createConfigHasIacEngineName() {
         var config = IacScannerService.createConfig();
         assertEquals(ScanEngine.IAC.name(), config.getEngineName());
-        assertEquals(Constants.RealTimeConstants.IAC_REALTIME_SCANNER, config.getConfigSection());
-        assertEquals(Constants.RealTimeConstants.ACTIVATE_IAC_REALTIME_SCANNER, config.getActivateKey());
+        assertEquals(DevAssistConstants.IAC_REALTIME_SCANNER, config.getConfigSection());
+        assertEquals(DevAssistConstants.ACTIVATE_IAC_REALTIME_SCANNER, config.getActivateKey());
     }
 }
 
