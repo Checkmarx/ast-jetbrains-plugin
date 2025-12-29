@@ -21,6 +21,7 @@
 <br />
 <a href="https://plugins.jetbrains.com/plugin/17672-checkmarx-ast"><strong>Marketplace »</strong></a>
 </p>
+</p>
 
 <p  align="center">
 The Checkmarx One JetBrains plugin enables you to import results from a Checkmarx One scan directly into your IDE and run new scans from the IDE.
@@ -60,7 +61,7 @@ You can run new scans, or import results from scans run in your Checkmarx One ac
 
 This extension also includes **​Checkmarx One Developer Assist**, an agentic AI tool that delivers real-time context-aware prevention, remediation, and guidance to developers inside the IDE.
 
-This plugin provides easy integration with JetBrains IDEs. It is officially supported for IntelliJ IDEA. It may work effectively for other JetBrains IDEs such as Rider, WebStorm, RubyMine, PyCharm, MPS, etc. However, Checkmarx does not guarantee full functionality and stability for these IDEs.
+> This plugin provides easy integration with JetBrains IDEs. It is officially supported for IntelliJ IDEA. It may work effectively for other JetBrains IDEs such as Rider, WebStorm, RubyMine, PyCharm, MPS, etc. However, Checkmarx does not guarantee full functionality and stability for these IDEs.
 
 **GIF - Triaging Results in the IDE**
 ![Triaging Results in the IDE](https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/JetBrains_Triaging_Results.gif "Triaging Results in the IDE")
