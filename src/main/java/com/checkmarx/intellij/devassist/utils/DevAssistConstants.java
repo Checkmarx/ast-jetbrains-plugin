@@ -96,7 +96,7 @@ public final class DevAssistConstants {
     );
 
     public static final List<String> IAC_SUPPORTED_PATTERNS = List.of(
-            "**/Dockerfile",
+            "**/dockerfile",
             "**/*.auto.tfvars",
             "**/*.terraform.tfvars"
     );
