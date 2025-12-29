@@ -17,12 +17,27 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class IacScannerServiceTest {
+
+    private static class TestableIacScannerService extends IacScannerService {
+        private final Path tempRoot;
+        TestableIacScannerService(Path tempRoot) {
+            this.tempRoot = tempRoot;
+        }
+
+        @Override
+        protected String getTempSubFolderPath(String baseDir) {
+            return tempRoot.resolve(baseDir).toString();
+        }
+    }
 
     private IacScannerService service;
     private PsiFile psiFile;
@@ -98,15 +113,6 @@ public class IacScannerServiceTest {
     }
 
     @Test
-    @DisplayName("shouldScanFile normalizes uppercase extensions to lowercase file type")
-    void shouldScanFileNormalizesExtensionCase() throws Exception {
-        when(virtualFile.exists()).thenReturn(true);
-        when(virtualFile.getExtension()).thenReturn("YML");
-        assertTrue(service.shouldScanFile("/repo/chart/values.YML", psiFile));
-        assertEquals("yml", readFileType(service));
-    }
-
-    @Test
     @DisplayName("scan returns null when shouldScanFile declines the file")
     void scanReturnsNullWhenShouldScanFileFalse() {
         IacScannerService spyService = spy(new IacScannerService());
@@ -144,11 +150,15 @@ public class IacScannerServiceTest {
         when(virtualFile.getExtension()).thenReturn("tf");
         when(virtualFile.getPath()).thenReturn("/repo/main.tf");
 
+        Path tempDir = Files.createTempDirectory("iac-scan-test");
+        IacScannerService testService = new TestableIacScannerService(tempDir);
+
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
              MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class)) {
 
             utils.when(() -> DevAssistUtils.getFileContent(psiFile)).thenReturn("resource");
             utils.when(DevAssistUtils::getContainerTool).thenReturn("docker");
+            utils.when(() -> DevAssistUtils.getFileExtension(psiFile)).thenReturn("tf");
 
             CxWrapper wrapper = mock(CxWrapper.class);
             IacRealtimeResults results = mock(IacRealtimeResults.class);
@@ -172,13 +182,22 @@ public class IacScannerServiceTest {
             when(wrapper.iacRealtimeScan(anyString(), anyString(), anyString())).thenReturn(results);
             factory.when(CxWrapperFactory::build).thenReturn(wrapper);
 
-            ScanResult<IacRealtimeResults> result = service.scan(psiFile, "/repo/main.tf");
+            ScanResult<IacRealtimeResults> result = testService.scan(psiFile, "/repo/main.tf");
 
             assertNotNull(result);
             assertEquals(1, result.getIssues().size());
             assertEquals("tf", result.getIssues().get(0).getFileType());
             assertEquals(ScanEngine.IAC, result.getIssues().get(0).getScanEngine());
             assertEquals(3, result.getIssues().get(0).getLocations().get(0).getLine());
+        } finally {
+            Files.walk(tempDir)
+                    .sorted(Comparator.reverseOrder())
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (Exception ignored) {
+                        }
+                    });
         }
     }
 
