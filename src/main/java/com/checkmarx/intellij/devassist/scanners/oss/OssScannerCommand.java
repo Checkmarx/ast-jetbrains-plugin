@@ -51,11 +51,11 @@ public class OssScannerCommand extends BaseScannerCommand {
 
     @Override
     protected void initializeScanner() {
-        new Task.Backgroundable(project, Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN), false) {
+        new Task.Backgroundable(project, Bundle.message(Resource.STARTING_CHECKMARX_SCAN), false) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
-                indicator.setText(Bundle.message(Resource.STARTING_CHECKMARX_OSS_SCAN));
+                indicator.setText(Bundle.message(Resource.STARTING_CHECKMARX_SCAN));
                 scanAllManifestFilesInFolder();
             }
         }.queue();

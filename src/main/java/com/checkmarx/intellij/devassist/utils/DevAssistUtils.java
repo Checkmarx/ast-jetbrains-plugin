@@ -276,7 +276,7 @@ public class DevAssistUtils {
         try {
             return file.findElementAt(document.getLineStartOffset(lineNumber - 1)); // Convert to 0-based index
         } catch (Exception e) {
-            LOGGER.error(format("Exception occurred while getting PsiElement for line number: %s", lineNumber), e);
+            LOGGER.warn(format("Exception occurred while getting PsiElement for line number: %s", lineNumber), e);
             return null;
         }
     }

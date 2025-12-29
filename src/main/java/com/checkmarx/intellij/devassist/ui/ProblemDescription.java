@@ -91,7 +91,7 @@ public final class ProblemDescription {
                 .append("</style></head><body><div style='max-width: 500px; max-height: 400px; width: auto; height: auto; overflow-y: auto;'>");
 
         // DevAssist image
-        descBuilder.append(TABLE_WITH_TR).append("<td style='padding:0 6px 0 0;vertical-align:middle;'>")
+        descBuilder.append(TABLE_WITH_TR).append("<td style='vertical-align:middle;'>")
                 .append(DESCRIPTION_ICON.get(DEV_ASSIST)).append("</td></tr></table>");
 
         // For ASCA and IAC multiple violations
@@ -180,16 +180,34 @@ public final class ProblemDescription {
                     .append("<td style='width:20px;padding:0 6px 0 0;vertical-align:middle;'>")
                     .append(severityIcon)
                     .append("</td>");
-            descBuilder.append("<td style='padding:0 6px 0 6px;").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY)
-                    .append(CELL_LINE_HEIGHT_STYLE).append("'>")
-                    .append("<div style='display:flex;flex-direction:row;align-items:center;gap:6px;'>")
-                    .append("<p style=\"").append(TITLE_FONT_SIZE).append(TITLE_FONT_FAMILY).append("\">")
-                    .append("<b>").append(escapeHtml(vulnerability.getTitle())).append("</b>")
+
+            descBuilder.append("<td style='"
+                    + "padding:0 4px;"
+                    + "white-space:normal;"
+                    + TITLE_FONT_SIZE
+                    + TITLE_FONT_FAMILY
+                    + CELL_LINE_HEIGHT_STYLE
+                    + "'>");
+
+            descBuilder.append("<div style='"
+                    + "display:block;"
+                    + "word-break:break-word;"
+                    + "overflow-wrap:anywhere;"
+                    + "'>");
+
+            descBuilder.append("<b>")
+                    .append(escapeHtml(vulnerability.getTitle()))
+                    .append("</b>")
                     .append(" - ")
-                    .append(escapeHtml(vulnerability.getActualValue())).append(escapeHtml(vulnerability.getDescription()))
-                    .append("<span style='").append(SECONDARY_SPAN_STYLE).append("'>")
-                    .append(" IaC vulnerability")
-                    .append("</div></td></tr></table>");
+                    .append(escapeHtml(vulnerability.getActualValue()))
+                    .append(" ")
+                    .append(escapeHtml(vulnerability.getDescription()));
+
+            descBuilder.append("<span style='")
+                    .append(SECONDARY_SPAN_STYLE)
+                    .append("'> IaC vulnerability</span>");
+
+            descBuilder.append("</div></td></tr></table>");
             buildRemediationActionsSection(descBuilder, vulnerability.getVulnerabilityId(), scanIssue.getScanEngine().name());
         }
     }
@@ -451,7 +469,11 @@ public final class ProblemDescription {
         }
 
         static final String TABLE_WITH_TR = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;'><tr>";
-        static final String TABLE_WITH_TR_IAC_ASCA = "<table style='display:inline-table;vertical-align:middle;border-collapse:collapse;max-width:310px;width:auto;'><tr>";
+        static final String TABLE_WITH_TR_IAC_ASCA = "<table cellspacing='0' cellpadding='0' " +
+                "style='display:table;" +
+                "border-collapse:collapse;" +
+                "table-layout:fixed;" +
+                "width:460px;'><tr>";
         static final String TITLE_FONT_FAMILY = "font-family: menlo;";
         static final String TITLE_FONT_SIZE = "font-size:11px;";
         static final String CELL_LINE_HEIGHT_STYLE = "line-height:16px;vertical-align:middle;";

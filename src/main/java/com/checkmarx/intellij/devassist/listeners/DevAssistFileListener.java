@@ -56,7 +56,7 @@ public class DevAssistFileListener {
 
             @Override
             public void fileClosed(@NotNull FileEditorManager source, @NotNull VirtualFile file) {
-                removeProblemDescriptor(source.getProject(), file.getPath());
+                //removeProblemDescriptor(source.getProject(), file.getPath());
             }
         });
     }
@@ -77,10 +77,7 @@ public class DevAssistFileListener {
             return;
         }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(project);
-        List<ProblemDescriptor> problemDescriptorList = problemHolderService.getProblemDescriptors(filePath);
-        if (problemDescriptorList.isEmpty()) {
-            return;
-        }
+
         List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
         if (scanIssueList.isEmpty()) return;
 
@@ -90,6 +87,7 @@ public class DevAssistFileListener {
         Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
         if (document == null) return;
         PROBLEM_DECORATOR_INSTANCE.decorateUI(project, psiFile, enabledEngineScanIssues, document);
+        LOGGER.warn(format("RTS-Listener: UI decorated successfully on file open for file: %s", psiFile.getName()));
     }
 
     /**

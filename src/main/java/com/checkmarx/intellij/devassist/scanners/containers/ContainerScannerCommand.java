@@ -4,6 +4,10 @@ import com.checkmarx.intellij.devassist.basescanner.BaseScannerCommand;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
+/**
+ * Container Scanner Command that manages the lifecycle of container realtime scanning.
+ * Integrates with the scanner registry system to handle enabling/disabling of container scanning.
+ */
 
 public class ContainerScannerCommand extends BaseScannerCommand {
 
@@ -21,7 +25,7 @@ public class ContainerScannerCommand extends BaseScannerCommand {
     }
 
     /**
-     * Initializes the scanner , invoked after registration of the scanner
+     * Initializes the scanner, invoked after registration of the scanner
      */
 
     @Override

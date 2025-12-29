@@ -4,6 +4,7 @@ import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
@@ -80,5 +81,10 @@ public class CxOneAssistFix implements LocalQuickFix, Iconable {
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
         LOGGER.info(format("RTS-Fix: Remediation called: %s for issue: %s", getFamilyName(), scanIssue.getTitle()));
         new RemediationManager().fixWithCxOneAssist(project, scanIssue, QUICK_FIX);
+    }
+
+    @Override
+    public @NotNull IntentionPreviewInfo generatePreview(@NotNull Project project, @NotNull ProblemDescriptor previewDescriptor) {
+        return IntentionPreviewInfo.EMPTY;
     }
 }

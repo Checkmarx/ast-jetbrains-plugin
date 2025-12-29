@@ -97,7 +97,7 @@ public class ProblemDecorator {
                         HighlighterTargetArea.EXACT_RANGE
                 );
             }
-            boolean alreadyHasGutterIcon = isAlreadyHasGutterIcon(decoratorHelper.getMarkupModel(), decoratorHelper.getEditor(),
+            boolean alreadyHasGutterIcon = isAlreadyHasGutterIconOnLine(decoratorHelper.getMarkupModel(), decoratorHelper.getEditor(),
                     decoratorHelper.getProblemLineNumber());
 
             if (decoratorHelper.isAddGutterIcon() && !alreadyHasGutterIcon) {
@@ -198,7 +198,7 @@ public class ProblemDecorator {
      * @return true if the highlighter already has a gutter icon for the given line, false otherwise
      * @apiNote this method is particularly used to avoid adding duplicate gutter icons in the file for duplicate dependencies.
      */
-    private boolean isAlreadyHasGutterIcon(MarkupModel markupModel, Editor editor, int line) {
+    private boolean isAlreadyHasGutterIconOnLine(MarkupModel markupModel, Editor editor, int line) {
         return Arrays.stream(markupModel.getAllHighlighters())
                 .anyMatch(highlighter -> {
                     GutterIconRenderer renderer = highlighter.getGutterIconRenderer();
@@ -257,35 +257,41 @@ public class ProblemDecorator {
     }
 
     /**
-     * Restores problems for the given file.
+     * Decorating the UI for the given file.
      *
      * @param project       the project
      * @param psiFile       the psi file
      * @param scanIssueList the scan issue list
      */
     public void decorateUI(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, Document document) {
-        removeAllHighlighters(project);
-        ProblemHelper problemHelper = ProblemHelper.builder(psiFile, project)
-                .scanIssueList(scanIssueList)
-                .document(document)
-                .build();
-        for (ScanIssue scanIssue : scanIssueList) {
+        ApplicationManager.getApplication().invokeLater(() -> {
             try {
-                int problemLineNumber = scanIssue.getLocations().get(0).getLine();
-                PsiElement elementAtLine = DevAssistUtils.getPsiElement(psiFile, document, problemLineNumber);
-                if (Objects.isNull(elementAtLine)) {
-                    LOGGER.debug("RTS-Decorator: Skipping to add gutter icon, Failed to find PSI element for line : {}",
-                            problemLineNumber, scanIssue.getTitle());
-                    continue;
+                // Update UI, highlight, or trigger inspection
+                removeAllHighlighters(project);
+                ProblemHelper problemHelper = ProblemHelper.builder(psiFile, project)
+                        .scanIssueList(scanIssueList)
+                        .document(document)
+                        .build();
+                for (ScanIssue scanIssue : scanIssueList) {
+                    try {
+                        int problemLineNumber = scanIssue.getLocations().get(0).getLine();
+                        PsiElement elementAtLine = DevAssistUtils.getPsiElement(psiFile, document, problemLineNumber);
+                        if (Objects.isNull(elementAtLine)) {
+                            LOGGER.warn(format("RTS-Decorator: Skipping to add gutter icon, Failed to find PSI element for line : %s , Issue: %s",
+                                    problemLineNumber, scanIssue.getTitle()));
+                            continue;
+                        }
+                        boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
+                        highlightLineAddGutterIconForProblem(problemHelper, scanIssue, isProblem, problemLineNumber);
+                    } catch (Exception e) {
+                        LOGGER.debug("RTS-Decorator: Exception occurred while restoring gutter icons for: {} ",
+                                psiFile.getName(), scanIssue.getTitle(), e.getMessage());
+                    }
                 }
-                boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
-                highlightLineAddGutterIconForProblem(problemHelper, scanIssue, isProblem, problemLineNumber);
             } catch (Exception e) {
-                LOGGER.debug("RTS-Decorator: Exception occurred while restoring gutter icons for: {} ",
-                        psiFile.getName(), scanIssue.getTitle(), e.getMessage());
+                LOGGER.warn(format("RTS-Decorator: Exception occurred while removing all highlighters for file: %s", psiFile.getName()), e);
             }
-        }
-
+        });
     }
 
     /**

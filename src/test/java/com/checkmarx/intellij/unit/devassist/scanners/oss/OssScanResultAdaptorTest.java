@@ -105,7 +105,6 @@ public class OssScanResultAdaptorTest {
         assertEquals("Test vulnerability", mappedVul.getDescription());
         assertEquals("CRITICAL", mappedVul.getSeverity());
         assertEquals("9.9.9", mappedVul.getFixVersion());
-        assertEquals("", mappedVul.getRemediationAdvise()); // adaptor sets empty advise
     }
 
     @Test

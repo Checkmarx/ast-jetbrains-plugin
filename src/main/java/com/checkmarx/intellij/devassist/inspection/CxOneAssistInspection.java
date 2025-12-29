@@ -2,6 +2,7 @@ package com.checkmarx.intellij.devassist.inspection;
 
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
@@ -39,6 +40,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
 
     private static final Logger LOGGER = Utils.getLogger(CxOneAssistInspection.class);
     private final CxOneAssistInspectionMgr cxOneAssistInspectionMgr = new CxOneAssistInspectionMgr();
+    private final ProblemDecorator problemDecorator = new ProblemDecorator();
 
     /**
      * Inspects the given PSI file and identifies potential issues or problems by leveraging
@@ -81,21 +83,20 @@ public class CxOneAssistInspection extends LocalInspectionTool {
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(file.getProject());
-        FileTimeStampHolder timeStampHolder = FileTimeStampHolder.getInstance(file.getProject());
-        if (Objects.isNull(problemHolderService) || Objects.isNull(timeStampHolder)) {
+        CxOneAssistScanStateHolder scanStateHolder = CxOneAssistScanStateHolder.getInstance(file.getProject());
+        if (Objects.isNull(problemHolderService) || Objects.isNull(scanStateHolder)) {
             LOGGER.warn(format("RTS: Problem holder or timestamp holder not found for project: %s.", file.getProject().getName()));
             resetEditorAndResults(file.getProject(), filePath);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        // Check if a file is modified and existing problem descriptors are valid
-        Long cachedStamp = timeStampHolder.getTimeStamp(filePath);
+        // Check if a file is modified and a file already scanned from inspection
+        Long cachedStamp = scanStateHolder.getTimeStamp(filePath); // This value present means a file is already scanned.
         Long compositeStamp = getCompositeTimeStamp(file, virtualFile, document);
-        if (Objects.nonNull(cachedStamp) && cachedStamp.longValue() == compositeStamp.longValue()
-                && isProblemDescriptorValid(problemHolderService, filePath)) {
-            LOGGER.info(format("RTS: File: %s is already scanned and file not modified, retrieving existing results.", file.getName()));
+        if (Objects.nonNull(cachedStamp) && cachedStamp.longValue() == compositeStamp.longValue()) {
+            LOGGER.info(format("RTS: File: %s is already scanned and retrieving existing results.", file.getName()));
             return getExistingProblemDescriptors(problemHolderService, filePath, document, file, supportedScanners, manager);
         }
-        timeStampHolder.updateTimeStamp(filePath, compositeStamp);
+        scanStateHolder.updateTimeStamp(filePath, compositeStamp);
         file.putUserData(THEME_KEY, DevAssistUtils.isDarkTheme());
         return scanFileAndCreateProblemDescriptors(file, manager, isOnTheFly, supportedScanners, document, problemHolderService, filePath);
     }
@@ -123,8 +124,11 @@ public class CxOneAssistInspection extends LocalInspectionTool {
             boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(file.getProject())
                     .scheduleScan(filePath, problemHelperBuilder.build());
             if (isScanScheduled) {
-                cxOneAssistInspectionMgr.putScanSourceFlag(file, Boolean.TRUE); // To identify the scan source
-                return ProblemDescriptor.EMPTY_ARRAY; // Return empty array as problems will be added after the scheduled scan completes
+                List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
+                if (scanIssueList.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
+
+                problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
+                return problemHolderService.getProblemDescriptors(filePath).toArray(new ProblemDescriptor[0]);
             }
             LOGGER.info(format("RTS: Failed to schedule the scan for file: %s. Now scanning file using fallback..", file.getName()));
             return cxOneAssistInspectionMgr.startScanAndCreateProblemDescriptors(problemHelperBuilder);
@@ -139,13 +143,8 @@ public class CxOneAssistInspection extends LocalInspectionTool {
      */
     private ProblemDescriptor[] getExistingProblemDescriptors(ProblemHolderService problemHolderService, String filePath, Document document,
                                                               PsiFile file, List<ScannerService<?>> supportedScanners, InspectionManager manager) {
-        ProblemDescriptor[] problemDescriptors = this.cxOneAssistInspectionMgr
+        return this.cxOneAssistInspectionMgr
                 .getExistingProblems(problemHolderService, filePath, document, file, supportedScanners, manager);
-        if (Objects.isNull(problemDescriptors) || problemDescriptors.length == 0) {
-            resetEditorAndResults(file.getProject(), filePath);
-            return ProblemDescriptor.EMPTY_ARRAY;
-        }
-        return problemDescriptors;
     }
 
     /**
@@ -154,17 +153,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
      * @param project the project to reset results for
      */
     private void resetEditorAndResults(Project project, String filePath) {
-        if (project.isDisposed()) {
-            return;
-        }
-        ProblemDecorator.removeAllHighlighters(project);
-        ProblemHolderService problemHolderService = ProblemHolderService.getInstance(project);
-
-        if (Objects.nonNull(problemHolderService) && Objects.nonNull(filePath) && !filePath.isEmpty()) {
-            problemHolderService.removeProblemDescriptorsForFile(filePath);
-            problemHolderService.removeScanIssues(filePath);
-        }
-        LOGGER.debug(format("RTS: Resetting editor state (remove icons and problems) for project: %s.", project.getName()));
+        this.cxOneAssistInspectionMgr.resetEditorAndResults(project, filePath);
     }
 
     /**
@@ -177,18 +166,6 @@ public class CxOneAssistInspection extends LocalInspectionTool {
     private boolean isAgentEvent(VirtualFile virtualFile) {
         return DevAssistConstants.AGENT_DUMMY_FILES.stream()
                 .anyMatch(filePath -> filePath.equals(virtualFile.getPath()));
-    }
-
-    /**
-     * Checks if the problem descriptor for the given file path is valid.
-     *
-     * @param problemHolderService the problem holder service
-     * @param filePath             the file path
-     * @return true if the problem descriptor is valid, false otherwise
-     */
-    private boolean isProblemDescriptorValid(ProblemHolderService problemHolderService, String filePath) {
-        return !problemHolderService.getProblemDescriptors(filePath).isEmpty()
-                && !problemHolderService.getScanIssueByFile(filePath).isEmpty();
     }
 
     /**
@@ -210,7 +187,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
                 .supportedScanners(supportedScanners)
                 .filePath(path)
                 .problemHolderService(problemHolderService)
-                .problemDecorator(new ProblemDecorator());
+                .problemDecorator(this.problemDecorator);
     }
 
     /**
