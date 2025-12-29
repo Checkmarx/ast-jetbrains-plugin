@@ -2,6 +2,7 @@ package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.devassist.ui.findings.window.CxFindingsWindow;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
@@ -27,14 +28,19 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
         ContentManager contentManager = toolWindow.getContentManager();
         // First tab
         contentManager.addContent(
-                contentManager.getFactory().createContent(cxToolWindowPanel, "Scan Results", false)
+                contentManager.getFactory().createContent(cxToolWindowPanel, Constants.RealTimeConstants.SCAN_RESULTS_TAB, false)
         );
         // Second tab
         Content customProblemContent = contentManager.getFactory().createContent(null, DevAssistConstants.DEVASSIST_TAB, false);
         final CxFindingsWindow vulnerabilityToolWindow = new CxFindingsWindow(project, customProblemContent);
         customProblemContent.setComponent(vulnerabilityToolWindow);
         contentManager.addContent(customProblemContent);
-
+        // Third tab
+        Content ignoredVulnerabilities = contentManager.getFactory().createContent(null, Constants.RealTimeConstants.IGNORED_FINDINGS_TAB, false);
+        final CxIgnoredFindings ignoredVulnerabilitiesWindow = new CxIgnoredFindings(project, ignoredVulnerabilities);
+        ignoredVulnerabilities.setComponent(ignoredVulnerabilitiesWindow);
+        contentManager.addContent(ignoredVulnerabilities);
+        // Register disposables
         Disposer.register(project, cxToolWindowPanel);
         Disposer.register(project, vulnerabilityToolWindow);
     }

@@ -6,6 +6,8 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
+import com.checkmarx.intellij.devassist.scanners.containers.ContainerScanResultAdaptor;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
@@ -195,6 +197,11 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
                 IacScanResultAdaptor scanResultAdaptor = new IacScanResultAdaptor(scanResults,fileType);
                 TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.IAC);
                 return scanResultAdaptor;
+                IgnoreManager ignoreManager = IgnoreManager.getInstance(psiFile.getProject());
+                String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
+                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(),ignoreFilePath);
+                LOGGER.info("ScanResults:"+scanResults);
+                return new IacScanResultAdaptor(scanResults);
             }
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);

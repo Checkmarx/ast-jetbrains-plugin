@@ -102,6 +102,7 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
         scanIssue.setImageTag(containersImageObj.getImageTag());
         scanIssue.setSeverity(containersImageObj.getStatus());
         scanIssue.setFileType(this.fileType);
+        scanIssue.setFilePath(containersImageObj.getFilePath());
 
         if (!Objects.isNull(containersImageObj.getLocations()) && !containersImageObj.getLocations().isEmpty()) {
             containersImageObj.getLocations().forEach(location -> scanIssue.getLocations().add(createLocation(location)));

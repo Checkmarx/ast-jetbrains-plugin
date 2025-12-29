@@ -72,6 +72,9 @@
         <codeInsight.linkHandler
                 prefix="#cxonedevassist/"
                 handlerClass="com.checkmarx.intellij.devassist.remediation.RemediationLinkHandler"/>
+        <codeInsight.lineMarkerProvider
+                language="any"
+                implementationClass="com.checkmarx.intellij.devassist.problems.CxLineMarkerProvider"/>
     </extensions>
 
     <applicationListeners>

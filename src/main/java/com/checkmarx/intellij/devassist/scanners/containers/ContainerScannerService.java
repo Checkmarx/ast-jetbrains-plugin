@@ -6,6 +6,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -215,7 +216,9 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
             if (Objects.nonNull(saveResult)) {
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start Container Realtime Scan On File: " + uri);
-                ContainersRealtimeResults scanResults = CxWrapperFactory.build().containersRealtimeScan(tempFilePath, "");
+                IgnoreManager ignoreManager = IgnoreManager.getInstance(psiFile.getProject());
+                String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
+                ContainersRealtimeResults scanResults = CxWrapperFactory.build().containersRealtimeScan(tempFilePath, ignoreFilePath);
                 return new ContainerScanResultAdaptor(scanResults, fileType);
             }
 
