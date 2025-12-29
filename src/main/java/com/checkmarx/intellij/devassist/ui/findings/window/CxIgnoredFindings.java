@@ -5,6 +5,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.ignore.IgnoreEntry;
 import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
@@ -89,9 +90,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
     private void updateTabTitle(int count) {
         if (count > 0) {
-            content.setDisplayName(Constants.RealTimeConstants.IGNORED_FINDINGS_TAB + " " + count );
+            content.setDisplayName(DevAssistConstants.IGNORED_FINDINGS_TAB + " " + count );
         } else {
-            content.setDisplayName(Constants.RealTimeConstants.IGNORED_FINDINGS_TAB);
+            content.setDisplayName(DevAssistConstants.IGNORED_FINDINGS_TAB);
         }
     }
 

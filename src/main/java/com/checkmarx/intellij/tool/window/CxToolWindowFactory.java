@@ -28,7 +28,7 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
         ContentManager contentManager = toolWindow.getContentManager();
         // First tab
         contentManager.addContent(
-                contentManager.getFactory().createContent(cxToolWindowPanel, Constants.RealTimeConstants.SCAN_RESULTS_TAB, false)
+                contentManager.getFactory().createContent(cxToolWindowPanel, DevAssistConstants.SCAN_RESULTS_TAB, false)
         );
         // Second tab
         Content customProblemContent = contentManager.getFactory().createContent(null, DevAssistConstants.DEVASSIST_TAB, false);
@@ -36,7 +36,7 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
         customProblemContent.setComponent(vulnerabilityToolWindow);
         contentManager.addContent(customProblemContent);
         // Third tab
-        Content ignoredVulnerabilities = contentManager.getFactory().createContent(null, Constants.RealTimeConstants.IGNORED_FINDINGS_TAB, false);
+        Content ignoredVulnerabilities = contentManager.getFactory().createContent(null, DevAssistConstants.IGNORED_FINDINGS_TAB, false);
         final CxIgnoredFindings ignoredVulnerabilitiesWindow = new CxIgnoredFindings(project, ignoredVulnerabilities);
         ignoredVulnerabilities.setComponent(ignoredVulnerabilitiesWindow);
         contentManager.addContent(ignoredVulnerabilities);

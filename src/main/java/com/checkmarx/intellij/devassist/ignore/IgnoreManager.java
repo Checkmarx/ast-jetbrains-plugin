@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.devassist.ignore;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 
@@ -23,7 +23,7 @@ public final class IgnoreManager {
     private final Project project;
 
     private static final List<PathMatcher> MANIFEST_MATCHERS =
-            Constants.RealTimeConstants.MANIFEST_FILE_PATTERNS.stream()
+            DevAssistConstants.MANIFEST_FILE_PATTERNS.stream()
                     .map(pattern ->
                             FileSystems.getDefault()
                                     .getPathMatcher("glob:" + pattern))
