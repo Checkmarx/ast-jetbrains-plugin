@@ -180,12 +180,12 @@ public final class TelemetryService {
     /**
      * Logs scan results for telemetry.
      *
-     * @param scanType the type of scan
+     * @param engineName the engine name (e.g., "Oss", "Secrets", "IaC", "Asca", "Containers")
      * @param scanIssues list of scan issues found during the scan
      */
-    public static void logScanResults(String scanType, List<ScanIssue> scanIssues) {
+    public static void logScanResults(String engineName, List<ScanIssue> scanIssues) {
         if (Objects.isNull(scanIssues) || scanIssues.isEmpty()) {
-            LOGGER.debug(format("Telemetry: No scan issues to log for scan type: %s", scanType));
+            LOGGER.debug(format("Telemetry: No scan issues to log for engine: %s", engineName));
             return;
         }
 
@@ -197,7 +197,7 @@ public final class TelemetryService {
                 ));
 
         LOGGER.debug(format("Telemetry: Logging scan detection results for %s - total issues: %d",
-                scanType, scanIssues.size()));
+                engineName, scanIssues.size()));
 
         // Log each severity level separately
         for (String severity : List.of(Constants.CRITICAL_SEVERITY, Constants.HIGH_SEVERITY,
@@ -205,7 +205,7 @@ public final class TelemetryService {
             Long count = severityMap.getOrDefault(severity, 0L);
 
             if (count > 0) {
-                setUserEventDataForDetectionLogs(scanType, severity, count.intValue());
+                setUserEventDataForDetectionLogs(engineName, severity, count.intValue());
             }
         }
     }
@@ -226,8 +226,8 @@ public final class TelemetryService {
             return;
         }
 
-        String scanType = mapScanEngineToScanType(scanEngine);
-        logScanResults(scanType, scanIssues);
+        String engineName = mapScanEngineToTelemetryEngine(scanEngine);
+        logScanResults(engineName, scanIssues);
     }
 
     /**
@@ -254,25 +254,6 @@ public final class TelemetryService {
         }
     }
 
-    /**
-     * Maps ScanEngine enum to the scan type string used in telemetry.
-     */
-    private static String mapScanEngineToScanType(ScanEngine scanEngine) {
-        switch (scanEngine) {
-            case OSS:
-                return "oss";
-            case SECRETS:
-                return "secrets";
-            case IAC:
-                return "iac";
-            case ASCA:
-                return "asca";
-            case CONTAINERS:
-                return "containers";
-            default:
-                return "unknown";
-        }
-    }
 
     /**
      * Normalizes severity strings to match the existing Constants format.
