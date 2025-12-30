@@ -39,11 +39,11 @@ public final class TelemetryService {
     private static final String SUB_TYPE_IGNORE_ALL = "ignoreAll";
 
     // Engine Names
-    private static final String ENGINE_OSS = "oss";
-    private static final String ENGINE_SECRETS = "secrets";
-    private static final String ENGINE_IAC = "iac";
-    private static final String ENGINE_ASCA = "asca";
-    private static final String ENGINE_CONTAINERS = "containers";
+    private static final String ENGINE_OSS = "Oss";
+    private static final String ENGINE_SECRETS = "Secrets";
+    private static final String ENGINE_IAC = "IaC";
+    private static final String ENGINE_ASCA = "Asca";
+    private static final String ENGINE_CONTAINERS = "Containers";
 
     // Private constructor to prevent instantiation - using static methods
     private TelemetryService() {}
