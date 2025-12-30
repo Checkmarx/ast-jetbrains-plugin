@@ -50,7 +50,7 @@ dependencies {
     implementation 'com.miglayout:miglayout-swing:11.3'
 
     if (javaWrapperVersion == "" || javaWrapperVersion == null) {
-        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.4.17.2-telemetry'){
+        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.4.17'){
             exclude group: 'junit', module: 'junit'
         }
     } else {
