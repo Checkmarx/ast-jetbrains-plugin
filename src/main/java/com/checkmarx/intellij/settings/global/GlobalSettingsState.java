@@ -80,13 +80,19 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @Attribute("welcomeShown")
     private boolean welcomeShown = false;
 
+    // --- Realtime Scanner Settings ---
+    private boolean ascaRealtime = false;
+
+    // --- User preferences for realtime scanners (preserved across MCP enable/disable cycles) ---
     /**
-     * User preferences for realtime scanners (preserved across MCP enable/disable cycles) ---
      * These fields store the user's individual scanner preferences and are preserved even when MCP is disabled at the tenant level.
-     * When MCP is re-enabled, these preferences are restored instead of defaulting to "all enabled", ensuring user choice is respected.
      */
+
     @Attribute("userPreferencesSet")
     private boolean userPreferencesSet = false;
+
+    @Attribute("userPrefAscaRealtime")
+    private boolean userPrefAscaRealtime = false;
 
     @Attribute("userPrefOssRealtime")
     private boolean userPrefOssRealtime = false;
@@ -121,16 +127,18 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     // --- User Preference Methods ---
 
     /**
+    /**
      * Sets user preferences for realtime scanners, preserving individual choices across MCP enable/disable cycles.
-     * These preferences are stored separately from the active scanner states and are restored when MCP is re-enabled.
      *
+     * @param ascaRealtime ASCA scanner preference
      * @param ossRealtime OSS scanner preference
      * @param secretDetectionRealtime Secret Detection scanner preference
      * @param containersRealtime Containers scanner preference
      * @param iacRealtime Infrastructure as Code scanner preference
      */
-    public void setUserPreferences(boolean ossRealtime, boolean secretDetectionRealtime,
+    public void setUserPreferences(boolean ascaRealtime, boolean ossRealtime, boolean secretDetectionRealtime,
                                    boolean containersRealtime, boolean iacRealtime) {
+        this.userPrefAscaRealtime = ascaRealtime;
         this.userPrefOssRealtime = ossRealtime;
         this.userPrefSecretDetectionRealtime = secretDetectionRealtime;
         this.userPrefContainersRealtime = containersRealtime;
@@ -152,6 +160,10 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
         }
 
         boolean changed = false;
+        if (ascaRealtime != userPrefAscaRealtime) {
+            ascaRealtime = userPrefAscaRealtime;
+            changed = true;
+        }
         if (ossRealtime != userPrefOssRealtime) {
             ossRealtime = userPrefOssRealtime;
             changed = true;
@@ -178,7 +190,7 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
      * ensuring the user's choices can be restored later.
      */
     public void saveCurrentSettingsAsUserPreferences() {
-        setUserPreferences(ossRealtime, secretDetectionRealtime, containersRealtime, iacRealtime);
+        setUserPreferences(ascaRealtime, ossRealtime, secretDetectionRealtime, containersRealtime, iacRealtime);
     }
 
     /**
@@ -190,15 +202,21 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
      */
     public boolean hasCustomUserPreferences() {
         return userPreferencesSet && (
-                !userPrefOssRealtime ||
+                !userPrefAscaRealtime ||
+                        !userPrefOssRealtime ||
                         !userPrefSecretDetectionRealtime ||
                         !userPrefContainersRealtime ||
                         !userPrefIacRealtime
         );
     }
 
+    // Getters and setters for ASCA realtime
+    public boolean isAscaRealtime() { return ascaRealtime; }
+    public void setAscaRealtime(boolean ascaRealtime) { this.ascaRealtime = ascaRealtime; }
+
     // Getters for user preferences (for debugging and verification)
     public boolean getUserPreferencesSet() { return userPreferencesSet; }
+    public boolean getUserPrefAscaRealtime() { return userPrefAscaRealtime; }
     public boolean getUserPrefOssRealtime() { return userPrefOssRealtime; }
     public boolean getUserPrefSecretDetectionRealtime() { return userPrefSecretDetectionRealtime; }
     public boolean getUserPrefContainersRealtime() { return userPrefContainersRealtime; }

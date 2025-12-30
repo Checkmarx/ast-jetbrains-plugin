@@ -2,15 +2,14 @@ package com.checkmarx.intellij.inspections;
 
 import com.checkmarx.ast.results.result.Node;
 import com.checkmarx.ast.results.result.Result;
+import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.project.ProjectResultsService;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.ProblemsHolder;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiElementVisitor;
-import com.intellij.psi.PsiFile;
+import com.intellij.psi.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
@@ -22,6 +21,7 @@ import java.util.Set;
  */
 public class CxVisitor extends PsiElementVisitor {
 
+    private static final Logger LOGGER = Utils.getLogger(CxVisitor.class);
     private final Set<Integer> registeredNodes = new HashSet<>();
     private static final String descriptionFormat = "%s - %s - %s";
 
@@ -60,22 +60,26 @@ public class CxVisitor extends PsiElementVisitor {
         // lineNumber is 0-based, AST line number is 1-based
         int lineNumber = doc.getLineNumber(element.getTextOffset());
 
-        List<Node> nodes = element.getProject().getService(ProjectResultsService.class)
-                                  .getResultsForFileAndLine(element.getProject(),
-                                                            file.getVirtualFile()
-                                                                .getPath(), lineNumber + 1);
+        try {
+            List<Node> nodes = element.getProject().getService(ProjectResultsService.class)
+                                      .getResultsForFileAndLine(element.getProject(),
+                                                                file.getVirtualFile()
+                                                                    .getName(), lineNumber + 1);
 
-        for (Node node : nodes) {
-            int startOffset = doc.getLineStartOffset(lineNumber) + getStartOffset(node);
-            int endOffset = doc.getLineStartOffset(lineNumber) + getEndOffset(node);
-            if (startOffset == element.getTextRange().getStartOffset()
-                && endOffset == element.getTextRange().getEndOffset()
-                && !alreadyRegistered(node)) {
-                registeredNodes.add(node.getNodeId());
-                holder.registerProblem(element,
-                                       getDescriptionTemplate(element.getProject(), node),
-                                       ProblemHighlightType.GENERIC_ERROR_OR_WARNING);
+            for (Node node : nodes) {
+                int startOffset = doc.getLineStartOffset(lineNumber) + getStartOffset(node);
+                int endOffset = doc.getLineStartOffset(lineNumber) + getEndOffset(node);
+                if (startOffset == element.getTextRange().getStartOffset()
+                    && endOffset == element.getTextRange().getEndOffset()
+                    && !alreadyRegistered(node)) {
+                    registeredNodes.add(node.getNodeId());
+                    holder.registerProblem(element,
+                                           getDescriptionTemplate(element.getProject(), node),
+                                           ProblemHighlightType.GENERIC_ERROR_OR_WARNING);
+                }
             }
+        } catch (Exception e) {
+            LOGGER.warn("Exception occurred, Failed to get scan results for file: " + file.getVirtualFile().getPath(), e);
         }
     }
 

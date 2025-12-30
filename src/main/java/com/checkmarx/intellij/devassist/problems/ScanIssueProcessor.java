@@ -2,7 +2,6 @@ package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
-import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -22,18 +21,14 @@ public class ScanIssueProcessor {
 
     private static final Logger LOGGER = Logger.getInstance(ScanIssueProcessor.class);
 
-    private final ProblemDecorator problemDecorator;
     private final PsiFile file;
-    private final InspectionManager manager;
     private final Document document;
-    private final boolean isOnTheFly;
+    private final ProblemHelper problemHelper;
 
-    public ScanIssueProcessor(ProblemHelper problemHelper, ProblemDecorator problemDecorator) {
-        this.problemDecorator = problemDecorator;
+    public ScanIssueProcessor(ProblemHelper problemHelper) {
         this.file = problemHelper.getFile();
-        this.manager = problemHelper.getManager();
         this.document = problemHelper.getDocument();
-        this.isOnTheFly = problemHelper.isOnTheFly();
+        this.problemHelper = problemHelper;
     }
 
     /**
@@ -42,7 +37,7 @@ public class ScanIssueProcessor {
      * @param scanIssue the scan issue to process
      * @return a ProblemDescriptor if the issue is valid and should be reported, null otherwise
      */
-    public ProblemDescriptor processScanIssue(@NotNull ScanIssue scanIssue) {
+    public ProblemDescriptor processScanIssue(@NotNull ScanIssue scanIssue, boolean isDecoratorEnabled) {
         if (!isValidLocation(scanIssue)) {
             LOGGER.debug("RTS: Scan issue does not have location: {}", scanIssue.getTitle());
             return null;
@@ -54,7 +49,7 @@ public class ScanIssueProcessor {
             return null;
         }
         try {
-            return processValidIssue(scanIssue, problemLineNumber);
+            return processValidIssue(scanIssue, problemLineNumber, isDecoratorEnabled);
         } catch (Exception e) {
             LOGGER.error("RTS: Exception occurred while processing scan issue: {}, Exception: {}", scanIssue.getTitle(), e.getMessage());
             return null;
@@ -81,14 +76,16 @@ public class ScanIssueProcessor {
     /**
      * Processes a valid scan issue, creates problem descriptor and adds gutter icon.
      */
-    private ProblemDescriptor processValidIssue(ScanIssue scanIssue, int problemLineNumber) {
+    private ProblemDescriptor processValidIssue(ScanIssue scanIssue, int problemLineNumber, boolean isDecoratorEnabled) {
         boolean isProblem = DevAssistUtils.isProblem(scanIssue.getSeverity().toLowerCase());
 
         ProblemDescriptor problemDescriptor = null;
         if (isProblem) {
             problemDescriptor = createProblemDescriptor(scanIssue, problemLineNumber);
         }
-        highlightIssueIfNeeded(scanIssue, problemLineNumber, isProblem);
+        if (isDecoratorEnabled) { // Decorator is enabled, decorating the issue.
+            highlightIssueIfNeeded(scanIssue, problemLineNumber, isProblem);
+        }
         return problemDescriptor;
     }
 
@@ -97,7 +94,7 @@ public class ScanIssueProcessor {
      */
     private ProblemDescriptor createProblemDescriptor(ScanIssue scanIssue, int problemLineNumber) {
         try {
-            return ProblemBuilder.build(file, manager, scanIssue, document, problemLineNumber, isOnTheFly);
+            return ProblemBuilder.build(problemHelper, scanIssue, problemLineNumber);
         } catch (Exception e) {
             LOGGER.error("RTS: Failed to create problem descriptor for: {} ", scanIssue.getTitle(), e.getMessage());
             return null;
@@ -113,8 +110,10 @@ public class ScanIssueProcessor {
             LOGGER.debug("RTS: Skipping to add gutter icon, Failed to find PSI element for line : {}", problemLineNumber, scanIssue.getTitle());
             return;
         }
-        problemDecorator.highlightLineAddGutterIconForProblem(
-                file.getProject(), file, scanIssue, isProblem, problemLineNumber
-        );
+        ProblemDecorator problemDecorator = problemHelper.getProblemDecorator();
+        if (Objects.isNull(problemDecorator)) {
+            problemDecorator = new ProblemDecorator();
+        }
+        problemDecorator.highlightLineAddGutterIconForProblem(problemHelper, scanIssue, isProblem, problemLineNumber);
     }
 }
