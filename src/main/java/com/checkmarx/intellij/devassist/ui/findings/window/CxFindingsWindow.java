@@ -7,6 +7,7 @@ import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.remediation.RemediationManager;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterState;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -410,12 +411,18 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         JPopupMenu popup = new JPopupMenu();
 
         JMenuItem fixWithCxOneAssist = new JMenuItem(DevAssistConstants.FIX_WITH_CXONE_ASSIST);
-        fixWithCxOneAssist.addActionListener(ev -> remediationManager.fixWithCxOneAssist(project, detail, QUICK_FIX));
+        fixWithCxOneAssist.addActionListener(ev -> {
+            TelemetryService.logFixWithCxOneAssistAction(detail);
+            remediationManager.fixWithCxOneAssist(project, detail, QUICK_FIX);
+        });
         fixWithCxOneAssist.setIcon(CxIcons.STAR_ACTION);
         popup.add(fixWithCxOneAssist);
 
         JMenuItem copyDescription = new JMenuItem(DevAssistConstants.VIEW_DETAILS_FIX_NAME);
-        copyDescription.addActionListener(ev -> remediationManager.viewDetails(project, detail, QUICK_FIX));
+        copyDescription.addActionListener(ev -> {
+            TelemetryService.logViewDetailsAction(detail);
+            remediationManager.viewDetails(project, detail, QUICK_FIX);
+        });
         copyDescription.setIcon(CxIcons.STAR_ACTION);
         popup.add(copyDescription);
 

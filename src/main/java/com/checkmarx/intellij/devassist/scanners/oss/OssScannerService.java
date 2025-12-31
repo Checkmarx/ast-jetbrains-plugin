@@ -6,6 +6,7 @@ import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -242,6 +243,10 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
             }
             this.saveCompanionFile(tempSubFolder, uri);
             LOGGER.info("Start Realtime Scan On File: " + uri);
+            OssRealtimeResults scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath.get(), "");
+            OssScanResultAdaptor scanResultAdaptor = new OssScanResultAdaptor(scanResults);
+            TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.OSS);
+            return scanResultAdaptor;
             IgnoreManager ignoreManager = IgnoreManager.getInstance(file.getProject());
             String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
             OssRealtimeResults scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath.get(), ignoreFilePath);

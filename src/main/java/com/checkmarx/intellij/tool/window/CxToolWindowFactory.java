@@ -4,6 +4,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.ui.findings.window.CxFindingsWindow;
 import com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;

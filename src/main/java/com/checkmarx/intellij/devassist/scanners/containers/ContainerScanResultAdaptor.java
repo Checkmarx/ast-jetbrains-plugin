@@ -19,7 +19,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Adapter class for handling OSS scan results and converting them into a standardized format
+ * Adapter class for handling container scan results and converting them into a standardized format
  * using the {@link ScanResult} interface.
  * This class wraps an {@code ContainersRealtimeResults} instance and provides methods to process and extract
  * meaningful scan issues based on vulnerabilities detected in the images.

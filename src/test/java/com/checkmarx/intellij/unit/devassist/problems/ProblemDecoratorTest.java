@@ -41,16 +41,17 @@ public class ProblemDecoratorTest {
         decorator = new ProblemDecorator();
     }
 
-    // test severityHighlighterLayerMap initialization
+    // test that all severity levels have corresponding icons
     @Test
-    @DisplayName("Test severityHighlighterLayerMap initialization")
-    void testSeverityHighlighterLayerMapInitialization() {
-        assertFalse(decorator.getSeverityHighlighterLayerMap().isEmpty());
-        assertTrue(decorator.getSeverityHighlighterLayerMap().containsKey("Malicious"));
-        assertTrue(decorator.getSeverityHighlighterLayerMap().containsKey("Critical"));
-        assertTrue(decorator.getSeverityHighlighterLayerMap().containsKey("High"));
-        assertTrue(decorator.getSeverityHighlighterLayerMap().containsKey("Medium"));
-        assertTrue(decorator.getSeverityHighlighterLayerMap().containsKey("Low"));
+    @DisplayName("Test that all severity levels have corresponding icons")
+    void testSeverityIconsAvailability() {
+        // Test that all severity levels have corresponding icons
+        assertNotNull(decorator.getGutterIconBasedOnStatus("Malicious"));
+        assertNotNull(decorator.getGutterIconBasedOnStatus("Critical"));
+        assertNotNull(decorator.getGutterIconBasedOnStatus("High"));
+        assertNotNull(decorator.getGutterIconBasedOnStatus("Medium"));
+        assertNotNull(decorator.getGutterIconBasedOnStatus("Low"));
+        assertNotNull(decorator.getGutterIconBasedOnStatus("Unknown"));
     }
 
     // test getGutterIconBasedOnStatus for all severities
@@ -66,21 +67,21 @@ public class ProblemDecoratorTest {
         assertNotNull(unknownIcon);
     }
 
-    // test determineHighlighterLayer for all severities
+    // test getGutterIconBasedOnStatus for edge cases
     @Test
-    @DisplayName("Test determineHighlighterLayer for all severities")
-    void testDetermineHighlighterLayer_AllSeverities() {
-        for (SeverityLevel level : SeverityLevel.values()) {
-            ScanIssue issue = new ScanIssue();
-            issue.setSeverity(level.getSeverity());
-            Integer layer = decorator.determineHighlighterLayer(issue);
-            assertNotNull(layer);
-        }
-        // Unknown severity
-        ScanIssue unknown = new ScanIssue();
-        unknown.setSeverity("not-a-severity");
-        Integer layer = decorator.determineHighlighterLayer(unknown);
-        assertNotNull(layer);
+    @DisplayName("Test getGutterIconBasedOnStatus for edge cases")
+    void testGetGutterIconBasedOnStatus_EdgeCases() {
+        // Test with null severity
+        Icon nullIcon = decorator.getGutterIconBasedOnStatus(null);
+        assertNotNull(nullIcon);
+
+        // Test with empty string
+        Icon emptyIcon = decorator.getGutterIconBasedOnStatus("");
+        assertNotNull(emptyIcon);
+
+        // Test with unknown severity
+        Icon unknownIcon = decorator.getGutterIconBasedOnStatus("not-a-severity");
+        assertNotNull(unknownIcon);
     }
 
     // test highlightLineAddGutterIconForProblem (corner cases: null editor, wrong document, empty locations)

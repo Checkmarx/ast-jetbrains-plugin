@@ -6,6 +6,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
@@ -141,7 +142,9 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
             int issueCount = ascaResult.getScanDetails() != null ? ascaResult.getScanDetails().size() : 0;
             LOGGER.debug("ASCA scanner: scan completed - " + uri + " (" + issueCount + " issues found)");
 
-            return new AscaScanResultAdaptor(ascaResult, uri);
+            AscaScanResultAdaptor scanResultAdaptor = new AscaScanResultAdaptor(ascaResult, uri);
+            TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.ASCA);
+            return scanResultAdaptor;
 
         } catch (Exception e) {
             LOGGER.warn("ASCA scanner: scan error for file: " + uri, e);
