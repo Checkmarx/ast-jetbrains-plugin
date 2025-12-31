@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.devassist.remediation;
 
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.intellij.codeInsight.highlighting.TooltipLinkHandler;
@@ -88,6 +89,7 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
      * @return true if the action is successfully handled, false otherwise
      */
     private boolean handleActions(String link, Project project, ScanIssue scanIssue, String actionId) {
+        IgnoreManager ignoremanager = IgnoreManager.getInstance(project);
         switch (link) {
             case FIX:
                 remediationManager.fixWithCxOneAssist(project, scanIssue, actionId);
@@ -96,7 +98,10 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
                 remediationManager.viewDetails(project, scanIssue, actionId);
                 break;
             case IGNORE_THIS_TYPE:
+                ignoremanager.addIgnoredEntry(scanIssue);
+                break;
             case IGNORE_ALL_OF_THIS_TYPE:
+                ignoremanager.addAllIgnoredEntry(scanIssue);
                 break;
             default:
                 LOGGER.warn(format("RTS-Fix: Remediation action %s is not supported.", link));

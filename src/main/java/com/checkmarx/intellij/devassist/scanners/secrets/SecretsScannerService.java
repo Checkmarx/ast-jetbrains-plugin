@@ -217,7 +217,7 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
                 }
             }
 
-            return new SecretsScanResultAdaptor(scanResults);
+            return new SecretsScanResultAdaptor(scanResults, uri);
 
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.debug("Secrets scanner: scan error", e);
