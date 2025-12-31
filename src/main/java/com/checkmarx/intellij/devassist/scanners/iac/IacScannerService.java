@@ -198,16 +198,9 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
                 IgnoreManager ignoreManager = IgnoreManager.getInstance(psiFile.getProject());
                 String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
                 IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(), ignoreFilePath);
-                return new IacScanResultAdaptor(scanResults,fileType);
-                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(), "");
                 IacScanResultAdaptor scanResultAdaptor = new IacScanResultAdaptor(scanResults,fileType);
                 TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.IAC);
                 return scanResultAdaptor;
-                IgnoreManager ignoreManager = IgnoreManager.getInstance(psiFile.getProject());
-                String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
-                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(),ignoreFilePath);
-                LOGGER.info("ScanResults:"+scanResults);
-                return new IacScanResultAdaptor(scanResults);
             }
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);

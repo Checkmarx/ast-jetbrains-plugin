@@ -136,6 +136,7 @@ public final class IgnoreManager extends ScanManager {
                 ));
             }
         }
+        ignoreEntry.setFiles(fileRefs);
         IgnoreFileManager.getInstance(project)
                 .updateIgnoreData(vulnerabilityKey, ignoreEntry);
     }

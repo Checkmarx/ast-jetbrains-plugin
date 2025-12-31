@@ -217,12 +217,9 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
                     LOGGER.debug("Secret " + (index + 1) + ": " + secret.getTitle() + " [" + secret.getSeverity() + "]");
                 }
             }
-            SecretsScanResultAdaptor scanResultAdaptor = new SecretsScanResultAdaptor(scanResults);
+            SecretsScanResultAdaptor scanResultAdaptor = new SecretsScanResultAdaptor(scanResults, uri);
             TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.SECRETS);
             return scanResultAdaptor;
-
-            return new SecretsScanResultAdaptor(scanResults, uri);
-
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.debug("Secrets scanner: scan error", e);
         } finally {
