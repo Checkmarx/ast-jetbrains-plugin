@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
  */
 public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResults> {
     private final SecretsRealtimeResults secretsRealtimeResults;
+    private final String filePath;
     private final List<ScanIssue> scanIssues;
 
     /**
@@ -30,8 +31,9 @@ public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResul
      *
      * @param secretsRealtimeResults the Secrets real-time scan results to be wrapped by this adapter
      */
-    public SecretsScanResultAdaptor(SecretsRealtimeResults secretsRealtimeResults) {
+    public SecretsScanResultAdaptor(SecretsRealtimeResults secretsRealtimeResults, String filePath) {
         this.secretsRealtimeResults = secretsRealtimeResults;
+        this.filePath =filePath;
         this.scanIssues = buildIssues();
     }
 
@@ -97,8 +99,9 @@ public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResul
         scanIssue.setTitle(secret.getTitle());
         scanIssue.setScanEngine(ScanEngine.SECRETS);
         scanIssue.setSeverity(secret.getSeverity());
-        scanIssue.setFilePath(secret.getFilePath());
+        scanIssue.setFilePath(this.filePath);
         scanIssue.setDescription(secret.getDescription()); // Set description on ScanIssue for tooltip display
+        scanIssue.setSecretValue(secret.getSecretValue());
 
         // Add locations if available
         if (Objects.nonNull(secret.getLocations()) && !secret.getLocations().isEmpty()) {

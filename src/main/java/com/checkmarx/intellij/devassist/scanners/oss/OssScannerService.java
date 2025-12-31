@@ -250,7 +250,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
             IgnoreManager ignoreManager = IgnoreManager.getInstance(file.getProject());
             String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
             OssRealtimeResults scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath.get(), ignoreFilePath);
-            return new OssScanResultAdaptor(scanResults);
+            return new OssScanResultAdaptor(scanResults, uri);
 
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);

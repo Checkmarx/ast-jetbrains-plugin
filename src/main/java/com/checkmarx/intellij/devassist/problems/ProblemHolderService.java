@@ -4,6 +4,7 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.messages.Topic;
 
@@ -166,4 +167,38 @@ public final class ProblemHolderService {
     private void syncWithCxOneFindings() {
         project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
     }
+
+    /**
+     * Removes a specific problem descriptor from the given file by line number.
+     *
+     * @param filePath the file path.
+     * @param lineNumber the line number of the problem descriptor to remove (1-based).
+     */
+    public void removeProblemDescriptorByLine(String filePath, int lineNumber) {
+        List<ProblemDescriptor> descriptors = fileProblemDescriptor.get(filePath);
+        if (descriptors == null || descriptors.isEmpty()) {
+            return;
+        }
+
+        // Use ProblemDescriptor.getLineNumber() directly (0-based)
+        Iterator<ProblemDescriptor> iterator = descriptors.iterator();
+        boolean removed = false;
+        while (iterator.hasNext()) {
+            ProblemDescriptor descriptor = iterator.next();
+            if (descriptor.getLineNumber() == lineNumber - 1) {  // Convert 1-based to 0-based
+                iterator.remove();
+                removed = true;
+                break;  // Remove only first match per line
+            }
+        }
+
+        // Clean up empty list and notify listeners
+        if (descriptors.isEmpty()) {
+            fileProblemDescriptor.remove(filePath);
+        } else if (removed) {
+            fileProblemDescriptor.put(filePath, descriptors);
+            syncWithCxOneFindings();
+        }
+    }
+
 }

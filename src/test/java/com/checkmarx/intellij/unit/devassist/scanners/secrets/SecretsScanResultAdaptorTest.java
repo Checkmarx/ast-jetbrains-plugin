@@ -26,7 +26,7 @@ public class SecretsScanResultAdaptorTest {
     @BeforeEach
     void setUp() {
         mockResults = mock(SecretsRealtimeResults.class);
-        adaptor = new SecretsScanResultAdaptor(mockResults);
+        adaptor = new SecretsScanResultAdaptor(mockResults, "");
     }
 
     @Test
@@ -43,7 +43,7 @@ public class SecretsScanResultAdaptorTest {
     @DisplayName("Should return empty list for null or empty results")
     void testGetIssues_EmptyScenarios() {
         // Test null results
-        SecretsScanResultAdaptor nullAdaptor = new SecretsScanResultAdaptor(null);
+        SecretsScanResultAdaptor nullAdaptor = new SecretsScanResultAdaptor(null, "");
         List<ScanIssue> nullIssues = nullAdaptor.getIssues();
         assertNotNull(nullIssues);
         assertTrue(nullIssues.isEmpty());

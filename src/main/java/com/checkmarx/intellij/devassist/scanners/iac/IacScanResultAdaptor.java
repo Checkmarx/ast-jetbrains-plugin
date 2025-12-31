@@ -183,6 +183,7 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
         scanIssue.setFilePath(iacScanIssue.get(0).issue.getFilePath());
         scanIssue.setScanEngine(ScanEngine.IAC);
         scanIssue.setFileType(this.fileType);
+        scanIssue.setSimilarityId(iacScanIssue.get(0).issue.getSimilarityId());
         scanIssue.setScanIssueId(getUniqueId(iacScanIssue.get(0).issue));
         return scanIssue;
     }

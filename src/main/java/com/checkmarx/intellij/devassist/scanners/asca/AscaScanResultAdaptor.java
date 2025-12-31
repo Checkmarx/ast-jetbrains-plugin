@@ -162,6 +162,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         scanIssue.setRemediationAdvise(firstDetail.getRemediationAdvise());
         scanIssue.setFilePath(this.filePath);
         scanIssue.setScanEngine(ScanEngine.ASCA);
+        scanIssue.setRuleId(firstDetail.getRuleID());
 
         // Generate unique ID based on line, title, and description
         scanIssue.setScanIssueId(getUniqueId(firstDetail));

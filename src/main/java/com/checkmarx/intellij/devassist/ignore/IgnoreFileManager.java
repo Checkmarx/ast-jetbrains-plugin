@@ -202,19 +202,13 @@ public final class IgnoreFileManager {
     }
 
     public String normalizePath(String filePath) {
-        Path base = Paths.get(workspaceRootPath);
-        Path target = Paths.get(filePath);
-        // If target is relative, resolve against base
-        if (target.isAbsolute() == false) {
-            target = base.resolve(target);
-        }
-        try {
-            // Now both are absolute with same root
-            return base.relativize(target).toString().replace("\\", "/");
-        } catch (IllegalArgumentException e) {
-            // Different filesystem - return filename only
-            return Paths.get(filePath).getFileName().toString();
-        }
+        Path workspaceRoot = Paths.get(workspaceRootPath);
+        Path file = Paths.get(filePath);
+
+        return workspaceRoot
+                .relativize(file)
+                .toString()
+                .replace("\\", "/");
     }
 
 

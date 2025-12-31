@@ -221,6 +221,8 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
             TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.SECRETS);
             return scanResultAdaptor;
 
+            return new SecretsScanResultAdaptor(scanResults, uri);
+
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.debug("Secrets scanner: scan error", e);
         } finally {

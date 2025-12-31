@@ -51,6 +51,9 @@ public class ScanIssue {
     private String filePath;
     private String imageTag;
     private String fileType;
+    private String secretValue;
+    private String similarityId;
+    private Integer ruleId;
     private Integer problematicLineNumber;
 
 
