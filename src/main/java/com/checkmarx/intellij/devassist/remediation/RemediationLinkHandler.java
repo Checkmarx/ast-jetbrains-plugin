@@ -102,8 +102,8 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
                 break;
             case IGNORE_THIS_TYPE:
                 ignoremanager.addIgnoredEntry(scanIssue);
-                break;
                 TelemetryService.logIgnorePackageAction(scanIssue);
+                break;
             case IGNORE_ALL_OF_THIS_TYPE:
                 ignoremanager.addAllIgnoredEntry(scanIssue);
                 TelemetryService.logIgnoreAllAction(scanIssue);
