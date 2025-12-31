@@ -132,9 +132,8 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
                 .filePath(filePath)
                 .problemHolderService(problemHolderService)
                 .supportedScanners(supportedEnabledScanners)
-                .problemDecorator(new ProblemDecorator())
+                .problemDecorator(this.problemDecorator)
                 .build();
-
         return getCachedProblemDescriptorsForNonModifiedFile(problemHelper, filePath, file);
     }
 
@@ -175,14 +174,14 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         // Get all scan engines from existing scan issues
         List<ScanEngine> existingScanEngineList = scanIssueList.stream().map(ScanIssue::getScanEngine).collect(Collectors.toList());
 
-        // Check if any engine from existing scan results is not present in current enabled scan engine list
+        // Check if any engine from existing scan results is not present in the current enabled scan engine list
         boolean hasDisabledEngines = existingScanEngineList.stream().anyMatch(engine -> !enabledScanEngines.contains(engine));
         boolean isThemeChanged = isThemeChanged(file); // Check if the theme has changed
 
         // if scan engines state and theme are not changed, return the existing problem descriptor list
         if (!hasDisabledEngines && !isThemeChanged) {
             LOGGER.info(format("RTS: No change in scanners state and theme, Returning existing problem descriptors for file: %s.", file.getName()));
-            problemDecorator.decorateUI(file.getProject(), file, scanIssueList, problemHelper.getDocument());
+            decorateUI(problemHelper.getDocument(), file, scanIssueList);
             return problemDescriptorsList.toArray(new ProblemDescriptor[0]);
         }
         List<ProblemDescriptor> updatedScannerProblems;
@@ -200,19 +199,26 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         if (isThemeChanged) {
             ProblemHelper updatedHelper = problemHelper.toBuilder(problemHelper).scanIssueList(updatedScanIssueList).build();
             updatedScannerProblems = createProblemDescriptorsOnThemeChanged(updatedHelper);
-        }else {
+        } else {
             updatedScannerProblems = getEnabledScannerProblems(filePath, problemDescriptorsList, enabledScanEngines);
         }
         LOGGER.info(format("RTS: Decorating UI as per the latest state of the scanners using existing results for file: %s.", file.getName()));
 
         // Update gutter icons and problem descriptors for the file according to the latest state of scan settings.
-        problemDecorator.decorateUI(file.getProject(), file, updatedScanIssueList, problemHelper.getDocument());
+        decorateUI(problemHelper.getDocument(), file, updatedScanIssueList);
 
         problemHelper.getProblemHolderService().addScanIssues(filePath, updatedScanIssueList);
         problemHelper.getProblemHolderService().addProblemDescriptors(filePath, updatedScannerProblems);
 
         LOGGER.info(format("RTS: Completed retrieving problem descriptor for non modified file: %s.", file.getName()));
         return !updatedScannerProblems.isEmpty() ? updatedScannerProblems.toArray(new ProblemDescriptor[0]) : ProblemDescriptor.EMPTY_ARRAY;
+    }
+
+    /**
+     * Decorating UI, - ensure all UI modifications (e.g., adding gutter icons) are executed in a write-safe, non-blocking context.
+     */
+    private void decorateUI(Document document, PsiFile file, List<ScanIssue> scanIssueList) {
+        problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
     }
 
     /**
@@ -223,6 +229,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
      * @return the problem descriptors.
      */
     private ProblemDescriptor[] getCachedProblemsOnScheduledScanCompletion(ProblemHolderService problemHolderService, String filePath, Document document, PsiFile file) {
+        updateScanSourceFlag(file, Boolean.FALSE);
 
         List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
         if (scanIssueList.isEmpty()) {
@@ -231,8 +238,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         // Update gutter icons and problem descriptors for the file according to the latest state of scan settings.
-        problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
-        updateScanSourceFlag(file, Boolean.FALSE);
+        decorateUI(document, file, scanIssueList);
 
         // Problem descriptors already cached, if no problem descriptor found means all results received with OK or Unknown status
         List<ProblemDescriptor> problemDescriptorsList = problemHolderService.getProblemDescriptors(filePath);
