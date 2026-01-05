@@ -12,15 +12,17 @@ import lombok.Setter;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class TempItem {
-    public String Title;
-    public String SecretValue;
-    public String SimilarityID;
-    public String FileName;
-    public Integer Line;
-    public Integer RuleID;
-    public String PackageManager;
-    public String PackageName;
-    public String PackageVersion;
+    private String Title;
+    private String SecretValue;
+    private String SimilarityID;
+    private String FileName;
+    private Integer Line;
+    private Integer RuleID;
+    private String PackageManager;
+    private String PackageName;
+    private String PackageVersion;
+    private String ImageName;
+    private String ImageTag;
 
     public TempItem() {
     }
@@ -45,6 +47,13 @@ public final class TempItem {
         TempItem t = new TempItem();
         t.Title = title;
         t.SimilarityID = similarityId;
+        return t;
+    }
+
+    public static TempItem forContainer(String imageName, String imageTag) {
+        TempItem t = new TempItem();
+        t.ImageName = imageName;
+        t.ImageTag = imageTag;
         return t;
     }
 

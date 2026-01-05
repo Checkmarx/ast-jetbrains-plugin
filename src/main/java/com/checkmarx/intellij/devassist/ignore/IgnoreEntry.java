@@ -18,19 +18,24 @@ import java.util.List;
 public final class IgnoreEntry {
     public List<FileRef> files = new ArrayList<>();
     public ScanEngine type; // or enum
-    public String secretValue;
     public String similarityId;
-    public Integer ruleId;
     public String packageManager;
     public String packageName;
     public String packageVersion;
+    public Integer ruleId;
+    public String imageName;
+    public String imageTag;
     public String severity;
     public String description;
     public String dateAdded;
+    public String title;
+    public String secretValue;
 
     public IgnoreEntry() {
     }
 
+    @Getter
+    @Setter
     public static final class FileRef {
         public String path;
         public boolean active;

@@ -219,7 +219,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
                 IgnoreManager ignoreManager = IgnoreManager.getInstance(psiFile.getProject());
                 String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
                 ContainersRealtimeResults scanResults = CxWrapperFactory.build().containersRealtimeScan(tempFilePath, ignoreFilePath);
-                return new ContainerScanResultAdaptor(scanResults, fileType);
+                return new ContainerScanResultAdaptor(scanResults, fileType, uri);
             }
 
         } catch (IOException | CxException | InterruptedException e) {

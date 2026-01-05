@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.problems;
 
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.components.Service;
@@ -97,12 +98,37 @@ public final class ProblemHolderService {
                 List<ScanIssue> issues = entry.getValue();
                 issues.removeIf(issue -> issue.equals(scanIssueToRemove));
                 if (issues.isEmpty()) {
-                    iterator.remove();  // Safe removal during iteration
+                    iterator.remove();
                 }
             }
         }
         project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
     }
+
+    /**
+     * Update the severity of the scan issue to ignore.
+     * This will mark the issue as ignored in the UI and not appear in the problem window
+     * @param scanIssueToIgnore
+     */
+    public void ignoreProblemsInFile(ScanIssue scanIssueToIgnore) {
+        String targetPath = scanIssueToIgnore.getFilePath();
+        for (Map.Entry<String, List<ScanIssue>> entry : fileToIssues.entrySet()) {
+            String mapPath = entry.getKey();
+            if (targetPath.endsWith(new File(mapPath).getName()) || mapPath.endsWith(new File(targetPath).getName())) {
+                List<ScanIssue> issues = entry.getValue();
+                issues.replaceAll(issue -> {
+                    if (issue.equals(scanIssueToIgnore)) {
+                        issue.setSeverity(Constants.IGNORE_LABEL);
+                        return issue;
+                    }
+                    return issue;
+                });
+            }
+        }
+        project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
+    }
+
+
 
 
     /**

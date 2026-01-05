@@ -3,13 +3,11 @@ package com.checkmarx.intellij.devassist.ignore;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.common.ScanManager;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
-import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerEx;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.CaretModel;
 import com.intellij.openapi.editor.Editor;
@@ -18,26 +16,29 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 
 import java.nio.file.FileSystems;
 import java.nio.file.PathMatcher;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 
+/**
+ * Manages the ignore file (.checkmarxIgnored) within the project's workspace.
+ * Handles reading, writing, and updating ignore entries.
+ * Monitors the ignore file for changes and updates internal state accordingly.
+ * Provides methods to ignore issues and update temporary ignore lists.
+ */
 public final class IgnoreManager extends ScanManager {
     private static final Logger LOG = Utils.getLogger(IgnoreManager.class);
     private static IgnoreManager instance;
-
     private final Project project;
+    private final ProblemHolderService problemHolder;
+    private final IgnoreFileManager ignoreFileManager;
 
     private static final List<PathMatcher> MANIFEST_MATCHERS =
             DevAssistConstants.MANIFEST_FILE_PATTERNS.stream()
@@ -55,6 +56,8 @@ public final class IgnoreManager extends ScanManager {
 
     private IgnoreManager(Project project) {
         this.project = project;
+        this.problemHolder = ProblemHolderService.getInstance(project);
+        this.ignoreFileManager = IgnoreFileManager.getInstance(project);
     }
 
     public static synchronized IgnoreManager getInstance(Project project) {
@@ -74,12 +77,10 @@ public final class IgnoreManager extends ScanManager {
         IgnoreEntry newEntry = convertToIgnoreEntry(detail);
         // Update via IgnoreFileManager
         String vulnerabilityKey = createVulnerabilityKey(detail);
-        IgnoreFileManager.getInstance(project).updateIgnoreData(vulnerabilityKey, newEntry);
-        ProblemHolderService.getInstance(project).removeProblemsFromFile(detail);
-
+        ignoreFileManager.updateIgnoreData(vulnerabilityKey, newEntry);
+        problemHolder.ignoreProblemsInFile(detail);
         VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(detail.getFilePath());
-        ProblemHolderService.getInstance(project).removeProblemDescriptorByLine(detail.getFilePath(), detail.getLocations().get(0).getLine());
-
+        problemHolder.removeProblemDescriptorByLine(detail.getFilePath(), detail.getLocations().get(0).getLine());
         if (virtualFile != null) {
             PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
             refreshAfterIgnore(psiFile, detail.getFilePath(), detail.getLocations().get(0).getLine());
@@ -109,36 +110,145 @@ public final class IgnoreManager extends ScanManager {
      * @param issueToIgnore
      */
     public void addAllIgnoredEntry(ScanIssue issueToIgnore) {
-
         String vulnerabilityKey = createVulnerabilityKey(issueToIgnore);
         LOG.info("Adding all ignore entry for vulnerability : " + vulnerabilityKey);
-
-        ProblemHolderService problemHolder = ProblemHolderService.getInstance(project);
         Map<String, List<ScanIssue>> allIssues = problemHolder.getAllIssues();
         if (allIssues.isEmpty()) return;
-
         IgnoreEntry ignoreEntry = convertToIgnoreEntry(issueToIgnore);
         List<IgnoreEntry.FileRef> fileRefs = new ArrayList<>();
         for (List<ScanIssue> issues : allIssues.values()) {
             Iterator<ScanIssue> issueIterator = issues.iterator();
-
             while (issueIterator.hasNext()) {
                 ScanIssue issue = issueIterator.next();
-
                 if (!createVulnerabilityKey(issue).equals(vulnerabilityKey)) continue;
-
                 issueIterator.remove();  // Safe on mutable List
-                problemHolder.removeProblemsFromFile(issue);
+                problemHolder.ignoreProblemsInFile(issue);
                 fileRefs.add(new IgnoreEntry.FileRef(
-                        IgnoreFileManager.getInstance(project).normalizePath(issue.getFilePath()),
+                        ignoreFileManager.normalizePath(issue.getFilePath()),
                         true,
-                        issue.getLocations().get(0).getLine()
-                ));
+                        issue.getLocations().get(0).getLine()));
             }
         }
         ignoreEntry.setFiles(fileRefs);
-        IgnoreFileManager.getInstance(project)
+        ignoreFileManager
                 .updateIgnoreData(vulnerabilityKey, ignoreEntry);
+    }
+
+    public List<IgnoreEntry> getIgnoredEntries() {
+        return ignoreFileManager.getAllIgnoreEntries();
+    }
+
+    public String getIgnoreTempFilePath() {
+        return ignoreFileManager.getTempListPath().toString();
+    }
+
+    /**
+     * Converts a scan issue to an ignore entry.
+     * @param detail
+     * @return
+     */
+    private IgnoreEntry convertToIgnoreEntry(ScanIssue detail) {
+        if(detail.getScanEngine() == ScanEngine.CONTAINERS) {
+            return convertToIgnoredEntryContainers(detail);
+        }
+        String relativePath = ignoreFileManager.normalizePath(detail.getFilePath());
+        int line = detail.getLocations().get(0).getLine();
+        String vulnerabilityKey = createVulnerabilityKey(detail);
+
+        IgnoreEntry entry = IgnoreFileManager.ignoreData.computeIfAbsent(vulnerabilityKey, k -> {
+
+            IgnoreEntry.FileRef fileRef = new IgnoreEntry.FileRef(relativePath, true, line);
+            ArrayList<IgnoreEntry.FileRef> fileRefs = new ArrayList<>();
+            fileRefs.add(fileRef);
+
+            IgnoreEntry ignoreEntry = new IgnoreEntry();
+            ignoreEntry.setType(detail.getScanEngine());
+            ignoreEntry.setPackageManager(detail.getPackageManager());
+            ignoreEntry.setPackageName(detail.getTitle());
+            ignoreEntry.setPackageVersion(detail.getPackageVersion());
+            ignoreEntry.setSimilarityId(detail.getSimilarityId());
+            ignoreEntry.setRuleId(detail.getRuleId());
+            ignoreEntry.setFiles(fileRefs);
+            ignoreEntry.setSecretValue(detail.getSecretValue());
+
+            return ignoreEntry;
+        });
+        ifExistingIssue(detail, entry);
+        Optional.ofNullable(detail.getSeverity()).ifPresent(entry::setSeverity);
+        Optional.ofNullable(detail.getDescription()).ifPresent(entry::setDescription);
+        entry.setDateAdded(Instant.now().toString());
+
+        return entry;
+    }
+
+
+    /**
+     * Converts a scan issue to an ignored entry for containers.
+     * If entry is issue is existing, then update the file and line number.
+     * @param detail
+     * @return
+     */
+    public IgnoreEntry convertToIgnoredEntryContainers(ScanIssue detail) {
+        String relativePath = ignoreFileManager.normalizePath(detail.getFilePath());
+        String packageKey = detail.getTitle() + ":" + detail.getImageTag();
+        int line = detail.getLocations().get(0).getLine();
+
+        IgnoreEntry entry = IgnoreFileManager.ignoreData.computeIfAbsent(packageKey, k -> {
+            IgnoreEntry ignoreEntry = new IgnoreEntry();
+            ignoreEntry.setType(detail.getScanEngine());
+            ignoreEntry.setPackageName(packageKey);
+            ignoreEntry.setImageName(detail.getTitle());
+            ignoreEntry.setImageTag(detail.getImageTag());
+            ignoreEntry.setFiles(List.of(new IgnoreEntry.FileRef(relativePath, true, line)));
+            return ignoreEntry;
+        });
+        ifExistingIssue(detail, entry);
+        Optional.ofNullable(detail.getSeverity()).ifPresent(entry::setSeverity);
+        Optional.ofNullable(detail.getDescription()).ifPresent(entry::setDescription);
+        entry.setDateAdded(Instant.now().toString());
+
+        return entry;
+    }
+
+    private void ifExistingIssue(ScanIssue detail, IgnoreEntry entry) {
+        String relativePath = ignoreFileManager.normalizePath(detail.getFilePath());
+        int line = detail.getLocations().get(0).getLine();
+        Optional<IgnoreEntry.FileRef> existing = entry.getFiles().stream()
+                .filter(f -> f.getPath().equals(relativePath) && f.getLine() == line)
+                .findFirst();
+        if (existing.isPresent()) {
+            existing.get().setActive(true);
+        } else {
+            entry.getFiles().add(new IgnoreEntry.FileRef(relativePath, true, line));
+        }
+    }
+
+    /**
+     * Creates a unique key for the given scan issue.
+     * @param detail
+     * @return
+     */
+    private String createVulnerabilityKey(ScanIssue detail) {
+        String relativePath = ignoreFileManager.normalizePath(detail.getFilePath());
+        switch (detail.getScanEngine()) {
+            case OSS:
+                return format("%s:%s:%s", detail.getPackageManager(), detail.getTitle(), detail.getPackageVersion());
+            case CONTAINERS:
+                // imageName:imageTag
+                return format("%s:%s", detail.getTitle(), detail.getImageTag());
+            case SECRETS:
+                // title:secretValue:filePath
+                return format("%s:%s:%s", detail.getTitle(), detail.getSecretValue(), relativePath);
+            case ASCA:
+                // ruleName:ruleId:filePath
+                return format("%s:%s:%s", detail.getTitle(), detail.getRuleId(),  relativePath);
+            case IAC:
+                // title:similarityId:filePath
+                return format("%s:%s:%s", detail.getTitle(), detail.getSimilarityId(), relativePath);
+            default:
+                LOG.warn("Unknown scan engine: " + detail.getScanEngine() + ", using fallback key");
+                return format("%s:%s", detail.getScanEngine(), detail.getTitle());
+        }
     }
 
     private static boolean matchesManifestPattern(String filePath) {
@@ -154,75 +264,4 @@ public final class IgnoreManager extends ScanManager {
                 .anyMatch(matcher ->
                         matcher.matches(java.nio.file.Path.of(filePath)));
     }
-
-    public List<IgnoreEntry> getIgnoredEntries() {
-        return IgnoreFileManager.getInstance(project).getAllIgnoreEntries();
-    }
-
-    public String getIgnoreTempFilePath() {
-        return IgnoreFileManager.getInstance(project).getTempListPath().toString();
-    }
-
-    private IgnoreEntry convertToIgnoreEntry(ScanIssue detail) {
-        String relativePath = IgnoreFileManager.getInstance(project).normalizePath(detail.getFilePath());
-        int lineNumber = detail.getLocations().get(0).getLine();
-
-        IgnoreEntry.FileRef fileRef = new IgnoreEntry.FileRef(relativePath, true, lineNumber);
-        ArrayList<IgnoreEntry.FileRef> fileRefs = new ArrayList<>();
-        fileRefs.add(fileRef);
-        IgnoreEntry ignoreEntry = new IgnoreEntry();
-        ignoreEntry.setFiles(fileRefs);
-        ignoreEntry.setType(detail.getScanEngine());
-        ignoreEntry.setPackageManager(detail.getPackageManager());
-        ignoreEntry.setPackageName(detail.getTitle());
-        ignoreEntry.setPackageVersion(detail.getPackageVersion());
-        ignoreEntry.setSeverity(detail.getSeverity());
-        ignoreEntry.setDescription(detail.getDescription());
-        ignoreEntry.setDateAdded(Instant.now().toString());
-
-        return ignoreEntry;
-    }
-
-    private String createVulnerabilityKey(ScanIssue detail) {
-        ScanEngine scanEngine = detail.getScanEngine();
-        switch (scanEngine) {
-            case OSS:
-                return format("%s:%s:%s",
-                        detail.getPackageManager() != null ? detail.getPackageManager() : "unknown",
-                        detail.getTitle(),
-                        detail.getPackageVersion());
-
-            case CONTAINERS:
-                // Match VSCode: imageName:imageTag
-                return format("%s:%s",
-                        detail.getTitle(),  // imageName
-                        detail.getImageTag());  // imageTag
-
-            case SECRETS:
-                // title:secretValue (or hash if too long)
-                return format("%s:%s",
-                        detail.getTitle(),
-                        detail.getSecretValue(),
-                        detail.getFilePath());
-
-            case ASCA:
-                // ruleName:ruleId
-                return format("%s:%s:%s",
-                        detail.getTitle(),  // ruleName
-                        detail.getRuleId(), // ruleId as string
-                        detail.getFilePath());
-
-            case IAC:
-                // title:similarityId
-                return format("%s:%s",
-                        detail.getTitle(),
-                        detail.getSimilarityId(),  // similarityId
-                        detail.getFilePath());
-
-            default:
-                LOG.warn("Unknown scan engine: " + scanEngine + ", using fallback key");
-                return format("%s:%s", detail.getScanEngine(), detail.getTitle());
-        }
-    }
-
 }

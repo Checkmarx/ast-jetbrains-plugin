@@ -55,17 +55,17 @@ public class IacScanResultAdaptorTest {
     @DisplayName("getResults returns wrapped IaC results")
     void getResultsReturnsOriginal() {
         IacRealtimeResults results = mockResults(List.of());
-        IacScanResultAdaptor adaptor = new IacScanResultAdaptor(results, "tf");
+        IacScanResultAdaptor adaptor = new IacScanResultAdaptor(results, "tf", "");
         assertSame(results, adaptor.getResults());
     }
 
     @Test
     @DisplayName("getIssues returns empty when results are null or empty")
     void getIssuesHandlesNullScenarios() {
-        IacScanResultAdaptor nullAdaptor = new IacScanResultAdaptor(null, "tf");
+        IacScanResultAdaptor nullAdaptor = new IacScanResultAdaptor(null, "tf", "");
         assertTrue(nullAdaptor.getIssues().isEmpty(), "Null results should lead to empty issues list");
 
-        IacScanResultAdaptor emptyAdaptor = new IacScanResultAdaptor(mockResults(Collections.emptyList()), "tf");
+        IacScanResultAdaptor emptyAdaptor = new IacScanResultAdaptor(mockResults(Collections.emptyList()), "tf", "");
         assertTrue(emptyAdaptor.getIssues().isEmpty(), "Empty issue list should be returned when no data exists");
     }
 
@@ -82,7 +82,7 @@ public class IacScanResultAdaptorTest {
                 List.of(location)
         );
 
-        IacScanResultAdaptor adaptor = new IacScanResultAdaptor(mockResults(List.of(issue)), "tf");
+        IacScanResultAdaptor adaptor = new IacScanResultAdaptor(mockResults(List.of(issue)), "tf", "");
         List<ScanIssue> issues = adaptor.getIssues();
 
         assertEquals(1, issues.size());
@@ -119,7 +119,7 @@ public class IacScanResultAdaptorTest {
                 List.of(shared)
         );
 
-        IacScanResultAdaptor adaptor = new IacScanResultAdaptor(mockResults(List.of(low, critical)), "tf");
+        IacScanResultAdaptor adaptor = new IacScanResultAdaptor(mockResults(List.of(low, critical)), "tf", "");
         List<ScanIssue> issues = adaptor.getIssues();
 
         assertEquals(1, issues.size(), "Issues with identical locations should be grouped");
@@ -148,7 +148,7 @@ public class IacScanResultAdaptorTest {
                 List.of(location)
         );
 
-        IacScanResultAdaptor adaptor = new IacScanResultAdaptor(mockResults(Arrays.asList(null, valid)), "tf");
+        IacScanResultAdaptor adaptor = new IacScanResultAdaptor(mockResults(Arrays.asList(null, valid)), "tf", "");
         List<ScanIssue> issues = adaptor.getIssues();
         assertEquals(1, issues.size());
         assertEquals("Valid Issue", issues.get(0).getTitle());

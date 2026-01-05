@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.utils;
 
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
@@ -165,9 +166,9 @@ public class DevAssistUtils {
      * @return true if the scan package is a problem, false otherwise
      */
     public static boolean isProblem(String severity) {
-        if (severity.equalsIgnoreCase(SeverityLevel.OK.getSeverity())) {
-            return false;
-        } else return !severity.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity());
+        return !severity.equalsIgnoreCase(SeverityLevel.OK.getSeverity()) &&
+                !severity.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity()) &&
+                !severity.equalsIgnoreCase(Constants.IGNORE_LABEL);
     }
 
     /**

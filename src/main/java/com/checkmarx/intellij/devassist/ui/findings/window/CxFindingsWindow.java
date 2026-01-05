@@ -10,6 +10,7 @@ import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterState;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.settings.SettingsListener;
@@ -272,15 +273,14 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
             String fileName = getSecureFileName(filePath);
             List<ScanIssue> scanDetails = entry.getValue();
 
-            // Filtered problems (excluding "ok" and "unknown")
+            // Filtered problems (excluding "ok" and "unknown" and "ignored" severity)
             List<ScanIssue> filteredScanDetails = scanDetails.stream()
                     .filter(detail -> {
-                        String severity = detail.getSeverity();
-                        return !Constants.OK.equalsIgnoreCase(severity) && !Constants.UNKNOWN.equalsIgnoreCase(severity);
+                        return DevAssistUtils.isProblem(detail.getSeverity());
                     })
                     .collect(Collectors.toList());
-
-            ApplicationManager.getApplication().runReadAction(() ->
+            if (!filteredScanDetails.isEmpty())
+                ApplicationManager.getApplication().runReadAction(() ->
                     createFileNode(filePath, filteredScanDetails, fileName));
         }
         ((DefaultTreeModel) tree.getModel()).reload();
