@@ -168,6 +168,7 @@ public abstract class BaseUITest {
         // Expect success or expect failure
         if (validCredentials) {
             Assertions.assertTrue(hasAnyComponent(SUCCESS_CONNECTION));
+            click(WELCOME_CLOSE_BUTTON);
             click(OK_BTN);
             waitFor(() -> hasAnyComponent(START_SCAN_BTN) && hasAnyComponent(CANCEL_SCAN_BTN));
         } else {
