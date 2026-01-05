@@ -19,12 +19,12 @@ import org.junit.jupiter.api.BeforeAll;
 
 import java.awt.event.KeyEvent;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ui.utils.UIHelper.*;
+import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 public abstract class BaseUITest {
@@ -68,7 +68,7 @@ public abstract class BaseUITest {
         }
     }
 
-    private static void resizeToolBar() {
+    public static void resizeToolBar() {
         focusCxWindow();
         Keyboard keyboard = new Keyboard(remoteRobot);
         for (int i = 0; i < 3; i++) {
@@ -81,44 +81,11 @@ public abstract class BaseUITest {
         }
     }
 
-    protected static void enter(String value) {
-        Keyboard keyboard = new Keyboard(remoteRobot);
-        waitFor(() -> {
-            for (int i = 0; i < value.length(); i++) {
-                keyboard.backspace();
-            }
-            keyboard.enterText(value);
-            return hasAnyComponent(String.format(VISIBLE_TEXT, value));
-        });
-        keyboard.enter();
-    }
-
     private static void trustClonedProject() {
         try {
             waitFor(() -> hasAnyComponent(TRUST_PROJECT) && find(TRUST_PROJECT).isShowing());
             find(TRUST_PROJECT).click();
         } catch (WaitForConditionTimeoutException ignored) {
-        }
-    }
-
-    static void setField(String fieldName, String value) {
-        log("Setting field " + fieldName);
-        @Language("XPath") String fieldXpath = String.format(FIELD_NAME, fieldName);
-        waitFor(() -> hasAnyComponent(fieldXpath) && find(fieldXpath).isShowing());
-        find(JTextFieldFixture.class, String.format(FIELD_NAME, fieldName), waitDuration).setText(value);
-    }
-
-    protected static void waitFor(Supplier<Boolean> condition) {
-        try {
-            RepeatUtilsKt.waitFor(waitDuration, condition::get);
-        } catch (WaitForConditionTimeoutException e) {
-            retries++;
-            if (retries < 3) {
-                focusCxWindow();
-            } else {
-                retries = 0;
-                throw e;
-            }
         }
     }
 
@@ -128,66 +95,6 @@ public abstract class BaseUITest {
         if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
             find("//div[@tooltiptext.key='NOTIFICATION_GROUP_NAME']").click();
         }
-    }
-
-    protected static void log(String msg) {
-        StackTraceElement[] st = Thread.currentThread().getStackTrace();
-        System.out.printf("%s | %s: %s%n", Instant.now().toString(), st[2], msg);
-    }
-
-    protected static void testASTConnection(boolean validCredentials) {
-        openSettings();
-
-        //Logout if already authenticated
-        if (hasAnyComponent(LOGOUT_BUTTON)) {
-            log("Detected previous authentication. Logging out.");
-            click(LOGOUT_BUTTON);
-
-            if (hasAnyComponent(LOGOUT_CONFIRM_YES)) {
-                click(LOGOUT_CONFIRM_YES);
-            }
-
-            waitFor(() -> hasAnyComponent(API_KEY_RADIO));
-        }
-
-        //Select API Key radio
-        waitFor(() -> hasAnyComponent(API_KEY_RADIO));
-        find(API_KEY_RADIO).click();
-
-        // Set API key
-        String apiKey = validCredentials ? Environment.API_KEY : "invalid-api-key";
-        setField(Constants.FIELD_NAME_API_KEY, apiKey);
-
-        // Set additional parameter
-        setField(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS, "--debug");
-
-        // Attempt connection
-        click(CONNECT_BUTTON);
-        waitFor(() -> !hasAnyComponent(VALIDATING_CONNECTION));
-
-        // Expect success or expect failure
-        if (validCredentials) {
-            Assertions.assertTrue(hasAnyComponent(SUCCESS_CONNECTION));
-            click(WELCOME_CLOSE_BUTTON);
-            click(OK_BTN);
-            waitFor(() -> hasAnyComponent(START_SCAN_BTN) && hasAnyComponent(CANCEL_SCAN_BTN));
-        } else {
-            Assertions.assertFalse(hasAnyComponent(SUCCESS_CONNECTION));
-            click(OK_BTN);
-            waitFor(() -> !hasAnyComponent(START_SCAN_BTN) && !hasAnyComponent(CANCEL_SCAN_BTN));
-        }
-    }
-
-    static void openSettings() {
-        waitFor(() -> {
-            focusCxWindow();
-            if (hasAnyComponent(SETTINGS_ACTION)) {
-                click(SETTINGS_ACTION);
-            } else if (hasAnyComponent(SETTINGS_BUTTON)) {
-                click(SETTINGS_BUTTON);
-            }
-            return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
-        });
     }
 
     protected static void testFileNavigation() {
@@ -292,7 +199,7 @@ public abstract class BaseUITest {
         });
     }
 
-    static void focusCxWindow() {
+    public static void focusCxWindow() {
         boolean cxPluginOpened = find(BASE_LABEL).hasText("Checkmarx");
         System.out.println("Plugin opened: " + cxPluginOpened);
 
