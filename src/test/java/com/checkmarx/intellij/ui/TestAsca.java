@@ -11,8 +11,10 @@ import java.awt.*;
 import java.time.Duration;
 import java.util.List;
 
+import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.*;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
+import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 
 public class TestAsca extends BaseUITest {
 
