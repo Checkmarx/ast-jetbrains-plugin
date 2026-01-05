@@ -48,6 +48,8 @@ public class TestTriage extends BaseTest {
                 result.getSeverity().equalsIgnoreCase(Constants.SCAN_SEVERITY_HIGH) ? Constants.SCAN_SEVERITY_LOW : Constants.SCAN_SEVERITY_HIGH));
     }
 
+
+
     @Test
     public void testGetStates() {
         try {
