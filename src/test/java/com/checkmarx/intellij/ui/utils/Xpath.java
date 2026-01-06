@@ -182,4 +182,16 @@ public class Xpath {
     @Language("XPath")
     public
     static final String WELCOME_CLOSE_BUTTON = "//div[@text='Close']";
+    @Language("XPath")
+    public
+    static final String EXPAND_ALL_FOLDER = "//div[@myicon='expandall.svg']";
+    @Language("XPath")
+    public
+    static final String RUN_SCAN_LOCAL = "//div[@class='LinkLabel']";
+    @Language("XPath")
+    public
+    static final String CLOSE_RUN_SCAN_LOCAL_NOTIFICATION_WINDOW = "//div[@myicon='close.svg']";
+    @Language("XPath")
+    public static final String GETTING_RESULT_TEXT = "//div[@class='Tree' and contains(@visible_text,'Getting results')]";
+
 }

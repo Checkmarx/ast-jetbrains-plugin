@@ -26,6 +26,7 @@ import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
+import static com.intellij.remoterobot.search.locators.Locators.byXpath;
 
 public abstract class BaseUITest {
 
@@ -33,7 +34,7 @@ public abstract class BaseUITest {
     private static boolean initialized = false;
     private static int retries = 0;
     protected static ComponentFixture baseLabel;
-
+    private static final int DEFAULT_SLEEP_MS = 1500;
     @BeforeAll
     public static void init() {
         if (!initialized) {
@@ -98,11 +99,12 @@ public abstract class BaseUITest {
     }
 
     protected static void testFileNavigation() {
-        waitFor(() -> {
-            focusCxWindow();
-            findAll(LINK_LABEL).get(0).doubleClick();
-            return hasAnyComponent(EDITOR);
-        });
+        focusCxWindow();
+        findAll(LINK_LABEL).get(0).doubleClick();
+        hideToolWindows(); // call once before checking editor
+
+        // Now wait for editor to appear
+        waitFor(() -> hasAnyComponent(EDITOR));
         Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
         //Confirming if editor is opened
         find(EditorFixture.class, EDITOR, waitDuration);
@@ -112,11 +114,15 @@ public abstract class BaseUITest {
         focusCxWindow();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         focusCxWindow();
+        clearSelection();
         find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
         waitFor(() -> {
             focusCxWindow();
-            return hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID));
+            return hasAnyComponent(TREE)
+                    && !hasAnyComponent(
+                    GETTING_RESULT_TEXT
+            );
         });
     }
 
@@ -127,6 +133,7 @@ public abstract class BaseUITest {
     protected void waitForScanIdSelection() {
         focusCxWindow();
         // check scan selection for the scan id
+        log("inside waitForScanIdSelection");
         waitFor(() -> hasAnyComponent(String.format(SCAN_ID_SELECTION, Environment.SCAN_ID, Environment.SCAN_ID)));
     }
 
@@ -258,5 +265,44 @@ public abstract class BaseUITest {
             return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
         });
     }
+    public boolean isCheckBoxChecked(String checkBoxElement) {
+        ComponentFixture checkbox = remoteRobot.find(
+                ComponentFixture.class,
+                byXpath(checkBoxElement),
+                Duration.ofSeconds(5)
+        );
+        boolean checked = (boolean) checkbox.callJs("component.isSelected()");
+        return checked;
+    }
+    protected static void hideToolWindows() {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_F12);
+    }
 
+    public void clickSafe(String locator) {
+        repeatUntilSuccess(3, () -> {
+            waitFor(() -> hasAnyComponent(locator));
+            find(locator).click();
+        });
+    }
+
+    private void repeatUntilSuccess(int attempts, Runnable action) {
+        for (int i = 1; i <= attempts; i++) {
+            try {
+                action.run();
+                return;
+            } catch (Exception e) {
+                if (i == attempts) throw e;
+                sleep(DEFAULT_SLEEP_MS);
+            }
+        }
+    }
+
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interruption flag
+        }
+    }
 }
