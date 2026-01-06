@@ -7,6 +7,7 @@ import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -121,7 +122,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
 
             // Schedule a debounced scan to avoid excessive scanning during rapid file changes (background scan)
             boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(file.getProject())
-                    .scheduleScan(filePath, problemHelperBuilder.build());
+                    .scheduleScan(filePath, problemHelperBuilder.build(), ScanEngine.ALL);
             if (isScanScheduled) {
                 List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
                 if (scanIssueList.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;

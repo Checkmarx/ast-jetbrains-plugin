@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -75,12 +76,20 @@ public class CxOneAssistScanScheduler {
      * Schedules a debounced scan for the given file. If a scan is already pending for this file,
      * the previous request is canceled and a new one is scheduled. Uses adaptive debouncing to handle
      * rapid file modifications effectively.
+     * <p>
+     * Its update the scan results for all supported engines.
      *
+     * @param filePath      - The file path for which to schedule the scan
      * @param problemHelper - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
+     * @param scanEngine    - The scan engine to be used for scanning the file (e.g., OSS, ASCA, ALL)
      */
-    boolean scheduleScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper) {
+    boolean scheduleScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper, ScanEngine scanEngine) {
         try {
             if (isProjectDisposed("scheduling scan", filePath)) {
+                return false;
+            }
+            if (Objects.isNull(scanEngine)) {
+                LOGGER.warn(format("RTS: Cant schedule scan! scan engine is not available for file: %s", filePath));
                 return false;
             }
             lock.lock();
@@ -93,7 +102,7 @@ public class CxOneAssistScanScheduler {
                 int adaptiveDelay = calculateAdaptiveDelay(filePath, requestTime);
                 // Use per-file Alarm for debouncing
                 Alarm alarm = fileAlarms.computeIfAbsent(filePath, k -> new Alarm(Alarm.ThreadToUse.POOLED_THREAD, project));
-                alarm.addRequest(() -> executeBackgroundScan(filePath, problemHelper, requestTime), adaptiveDelay);
+                alarm.addRequest(() -> executeBackgroundScan(filePath, problemHelper, requestTime, scanEngine), adaptiveDelay);
             } finally {
                 lock.unlock();
             }
@@ -111,7 +120,7 @@ public class CxOneAssistScanScheduler {
      * @param problemHelper - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
      * @param requestTime   scan request time
      */
-    private void executeBackgroundScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper, long requestTime) {
+    private void executeBackgroundScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper, long requestTime, ScanEngine scanEngine) {
         if (isRequestOutdated(filePath, requestTime)) {
             return;
         }
@@ -123,7 +132,7 @@ public class CxOneAssistScanScheduler {
                 indicator.setIndeterminate(true);
                 scanIndicators.put(filePath, indicator); // Track this scan
                 try {
-                    runScanWithProgress(filePath, problemHelper);
+                    runScan(filePath, problemHelper, scanEngine);
                 } catch (Exception e) {
                     LOGGER.warn(format("RTS: Error occurred while executing scan for file: %s", filePath), e);
                 } finally {
@@ -142,29 +151,29 @@ public class CxOneAssistScanScheduler {
     /**
      * Executes a scan operation for a given file while updating progress indicators to provide feedback during the process.
      *
-     * @param filePath      the path of the file to be scanned, cannot be null
+     * @param filePath      the path of the file to be scanned cannot be null
      * @param problemHelper a {@link ProblemHelper} instance containing context for creating problem descriptors, cannot be null
      */
-    private void runScanWithProgress(@NotNull String filePath, @NotNull ProblemHelper problemHelper) {
+    private void runScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper, ScanEngine scanEngine) {
         try {
             LOGGER.info(format("RTS: Scheduled scan started for file: %s", filePath));
             List<ScanIssue> scanIssues = cxOneAssistInspectionMgr.scanFile(
-                    problemHelper.getFilePath(), problemHelper.getFile(), ScanEngine.ALL);
+                    problemHelper.getFilePath(), problemHelper.getFile(), scanEngine);
 
             if (scanIssues.isEmpty()) {
                 LOGGER.info(format("RTS: Scheduled scan completed with no issues for file: %s", filePath));
-                resetCachedData(problemHelper);
+                resetCachedData(problemHelper, scanEngine);
             } else {
                 ApplicationManager.getApplication().invokeLater(() -> {
                     List<ProblemDescriptor> descriptors = cxOneAssistInspectionMgr.createProblemDescriptorsWithoutDecoration(
                             problemHelper.toBuilder(problemHelper).scanIssueList(scanIssues).build());
 
-                    cacheScanResults(problemHelper, filePath, scanIssues, descriptors);
-                    LOGGER.info(format("RTS: Scheduled scan completed for file: %s", filePath));
-                }, ModalityState.NON_MODAL); // UI decoration should be done in a write-safe non-modal state
+                    cacheScanResults(problemHelper, filePath, scanIssues, descriptors, scanEngine);
+                }, ModalityState.NON_MODAL);
             }
             ApplicationManager.getApplication().runReadAction(() ->
                     cxOneAssistInspectionMgr.updateScanSourceFlag(problemHelper.getFile(), Boolean.TRUE)); // To identify the scan source
+            LOGGER.info(format("RTS: Scheduled scan completed for file: %s", filePath));
         } catch (Exception e) {
             LOGGER.warn(format("RTS: Exception occurred while running scheduled scan for the file: %s", filePath), e);
         } finally {
@@ -248,18 +257,31 @@ public class CxOneAssistScanScheduler {
      * Caches the scan results for future use.
      */
     private void cacheScanResults(@NotNull ProblemHelper problemHelper, @NotNull String filePath,
-                                  @NotNull List<ScanIssue> scanIssues, @NotNull List<ProblemDescriptor> problems) {
-        problemHelper.getProblemHolderService().addScanIssues(filePath, scanIssues);
-        problemHelper.getProblemHolderService().addProblemDescriptors(filePath, problems);
+                                  @NotNull List<ScanIssue> scanIssues, @NotNull List<ProblemDescriptor> problems, ScanEngine scanEngine) {
+        ProblemHolderService holderService = problemHelper.getProblemHolderService();
+        if (scanEngine == ScanEngine.ALL) {
+            holderService.addScanIssues(filePath, scanIssues);
+            holderService.addProblemDescriptors(filePath, problems);
+        } else {
+            holderService.removeScanIssuesByFileAndScanner(scanEngine.name(), filePath);
+            holderService.getScanIssueByFile(filePath).addAll(scanIssues);
+            holderService.removeProblemDescriptorsForFileByScanner(problemHelper.getFilePath(), scanEngine);
+            holderService.getProblemDescriptors(filePath).addAll(problems);
+        }
     }
 
     /**
      * Clears the cached scan results.
      */
-    private void resetCachedData(@NotNull ProblemHelper problemHelper) {
+    private void resetCachedData(@NotNull ProblemHelper problemHelper, ScanEngine scanEngine) {
         ProblemHolderService holderService = problemHelper.getProblemHolderService();
-        holderService.addScanIssues(problemHelper.getFilePath(), Collections.emptyList());
-        holderService.addProblemDescriptors(problemHelper.getFilePath(), Collections.emptyList());
+        if (scanEngine == ScanEngine.ALL) {
+            holderService.addScanIssues(problemHelper.getFilePath(), Collections.emptyList());
+            holderService.addProblemDescriptors(problemHelper.getFilePath(), Collections.emptyList());
+        } else {
+            holderService.removeScanIssuesByFileAndScanner(scanEngine.name(), problemHelper.getFilePath());
+            holderService.removeProblemDescriptorsForFileByScanner(problemHelper.getFilePath(), scanEngine);
+        }
     }
 
     /**

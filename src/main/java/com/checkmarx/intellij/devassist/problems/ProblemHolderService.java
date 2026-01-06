@@ -1,6 +1,8 @@
 package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
@@ -72,15 +74,38 @@ public final class ProblemHolderService {
         return Collections.unmodifiableMap(fileToIssues);
     }
 
+    /**
+     * Removes all scan issues of a given scanner type.
+     *
+     * @param scannerType the scanner type. e.g., OSS, ASCA etc.
+     */
     public void removeAllScanIssuesOfType(String scannerType) {
-        for (Map.Entry<String, List<ScanIssue>> entry : getAllIssues().entrySet()) {
+        Map<String, List<ScanIssue>> allIssues = getAllIssues();
+        if (allIssues.isEmpty()) return;
+        for (Map.Entry<String, List<ScanIssue>> entry : allIssues.entrySet()) {
             List<ScanIssue> problems = entry.getValue();
-            if (problems != null) {
+            if (problems != null && !problems.isEmpty()) {
                 problems.removeIf(problem -> scannerType.equals(problem.getScanEngine().name()));
             }
         }
         syncWithCxOneFindings();
     }
+
+    /**
+     * Removes all scan issues of a given scanner type for a file.
+     *
+     * @param scannerType the scanner type. e.g., OSS, ASCA etc.
+     */
+    public void removeScanIssuesByFileAndScanner(String scannerType, String filePath) {
+        Map<String, List<ScanIssue>> allIssues = getAllIssues();
+        if (allIssues.isEmpty()) return;
+        allIssues.values().stream()
+                .filter(problems -> problems != null && !problems.isEmpty() && Objects.nonNull(filePath) && !filePath.isEmpty())
+                .forEach(problems -> problems.removeIf(problem -> scannerType.equals(problem.getScanEngine().name())
+                        && filePath.equals(problem.getFilePath())));
+        syncWithCxOneFindings();
+    }
+
 
     /**
      * Returns the scan issues for the given file.
@@ -122,10 +147,17 @@ public final class ProblemHolderService {
     }
 
     /**
-     * Clears all problem descriptors.
+     * Removes problem descriptors for the given file by scanner.
      */
-    public void removeAllProblemDescriptors() {
-        fileProblemDescriptor.clear();
+    public void removeProblemDescriptorsForFileByScanner(String filePath, ScanEngine scanEngine) {
+        if (fileProblemDescriptor.isEmpty()) return;
+
+        if (Objects.nonNull(scanEngine) && Objects.nonNull(filePath) && !filePath.isEmpty()) {
+            getProblemDescriptors(filePath).removeIf(descriptor -> {
+                CxOneAssistFix cxOneAssistFix = (CxOneAssistFix) descriptor.getFixes()[0];
+                return Objects.nonNull(cxOneAssistFix) && scanEngine.name().equals(cxOneAssistFix.getScanIssue().getScanEngine().name());
+            });
+        }
     }
 
     /**
