@@ -150,8 +150,8 @@ public class CxOneAssistScanScheduler {
                 LOGGER.info(format("RTS: Scheduled scan completed with no issues for file: %s", filePath));
             } else {
                 ApplicationManager.getApplication().invokeLater(() -> {
-                    List<ProblemDescriptor> descriptors = cxOneAssistInspectionMgr.createProblemDescriptors(
-                            problemHelper.toBuilder(problemHelper).scanIssueList(scanIssues).build(), false);
+                    List<ProblemDescriptor> descriptors = cxOneAssistInspectionMgr.createProblemDescriptorsWithoutDecoration(
+                            problemHelper.toBuilder(problemHelper).scanIssueList(scanIssues).build());
 
                     cacheScanResults(problemHelper, filePath, scanIssues, descriptors);
                     LOGGER.info(format("RTS: Scheduled scan completed for file: %s", filePath));
