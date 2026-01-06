@@ -30,8 +30,7 @@ import java.util.stream.Collectors;
 @Service(Service.Level.PROJECT)
 public final class IgnoreFileManager {
 
-    private static final Logger LOG = Utils.getLogger(IgnoreFileManager.class);
-
+    private static final Logger LOGGER = Utils.getLogger(IgnoreFileManager.class);
     private final Project project;
     private String workspacePath = "";
     private String workspaceRootPath = "";
@@ -86,14 +85,14 @@ public final class IgnoreFileManager {
                 Files.write(ignoreFile, "{}\n".getBytes(StandardCharsets.UTF_8));
             }
         } catch (IOException e) {
-            LOG.warn("Failed to ensure ignore file exists", e);
+            LOGGER.warn("Failed to ensure ignore file exists", e);
         }
     }
 
     private void loadIgnoreData() {
         Path ignoreFile = getIgnoreFilePath();
         if (!Files.exists(ignoreFile)) {
-            LOG.debug("Ignore file doesn't exist: " + ignoreFile);
+            LOGGER.debug("Ignore file doesn't exist: " + ignoreFile);
             ignoreData = new HashMap<>();
             return;
         }
@@ -103,9 +102,8 @@ public final class IgnoreFileManager {
                     new TypeReference<Map<String, IgnoreEntry>>() {});
             ignoreData.clear();
             ignoreData.putAll(data);
-            LOG.info("Loaded {} ignore entries from {}");
         } catch (IOException e) {
-            LOG.warn("Failed to read ignore file: " + ignoreFile, e);
+            LOGGER.warn("Failed to read ignore file: " + ignoreFile, e);
             ignoreData = new HashMap<>();
         }
     }
@@ -121,25 +119,34 @@ public final class IgnoreFileManager {
 
 
     /**
-     * Saves the ignore data to the ignore file.
+     * Saves the current ignore data to the ignore file.
+     * Writes the ignore data as formatted JSON to the file specified by {@link #getIgnoreFilePath()}.
+     * Creates a new file if it doesn't exist, or truncates the existing file.
+     * Notifies all subscribers about the update via the message bus.
      * Logs a warning if saving fails.
      */
-
     private void saveIgnoreFile() {
         try {
             String json = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(ignoreData); // implement
             Files.writeString(getIgnoreFilePath(), json, StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
-            LOG.warn("Failed to save ignore file", e);
+            LOGGER.warn("RTS-Ignore: Failed to save ignore file", e);
         }
         project.getMessageBus().syncPublisher(IGNORE_TOPIC).onIgnoreUpdated();
     }
 
+
     /**
-     * Updates the temporary ignore list.
-     * Generates a list of active ignore entries and writes them to a temporary JSON file.
-     * Logs a warning if writing fails.
+     * Updates the temporary ignore list file based on active ignore entries.
+     * Creates a list of temporary items from active ignore entries, categorized by their type (OSS, Secrets, IAC, Containers, ASCA).
+     * For each entry type:
+     * - OSS: adds package manager, name and version
+     * - Secrets: adds package name and secret value
+     * - IAC: adds package name and similarity ID
+     * - Containers: adds image name and image tag
+     * - ASCA: adds file name, line number and rule ID for each active file
+     * The temporary list is then saved to a JSON file at the path specified by {@link #getTempListPath()}.
      */
     public void updateTempList() {
         List<TempItem> tempList = new ArrayList<>();
@@ -171,15 +178,16 @@ public final class IgnoreFileManager {
                                 ));
                     }
                     break;
+                default:
+                    break;
             }
         }
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            String json = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(tempList);
+            String json = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(tempList);
             Files.writeString(getTempListPath(), json, StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
-            LOG.warn("Failed to write temp list", e);
+            LOGGER.warn("Failed to write temp list", e);
         }
     }
 
@@ -205,7 +213,7 @@ public final class IgnoreFileManager {
                 }
                 return tempListPath;
             } catch (IOException e) {
-                LOG.warn("Failed to validate temp list: " + tempListPath, e);
+                LOGGER.warn("Failed to validate temp list: " + tempListPath, e);
                 createEmptyTempList(tempListPath);
             }
         } else {
@@ -218,9 +226,9 @@ public final class IgnoreFileManager {
         try {
             Files.createDirectories(tempListPath.getParent());
             Files.writeString(tempListPath, "[]", StandardCharsets.UTF_8);
-            LOG.debug("Created empty temp list: " + tempListPath);
+            LOGGER.debug("Created empty temp list: " + tempListPath);
         } catch (IOException e) {
-            LOG.error("Failed to create empty temp list", e);
+            LOGGER.error("Failed to create empty temp list", e);
         }
     }
 
@@ -237,8 +245,7 @@ public final class IgnoreFileManager {
     }
 
     /**
-     * Callback to update status bar.
-     * TBD : If this method needed
+     * Callback method to keep watch on the temp files edited directly.
      */
     private void startFileWatcher() {
         VirtualFile ignoreFile = LocalFileSystem.getInstance().findFileByIoFile(getIgnoreFilePath().toFile());
@@ -275,9 +282,7 @@ public final class IgnoreFileManager {
                 removeIgnoredEntryWithoutTempUpdate(f.packageKey, f.path);
             }
             updateTempList();
-            Set<String> affectedPaths = deactivatedFiles.stream()
-                    .map(f -> f.path)
-                    .collect(Collectors.toSet());
+        // TBD : Here rescan re-trigger logic needs to be implemented
         }
     }
 

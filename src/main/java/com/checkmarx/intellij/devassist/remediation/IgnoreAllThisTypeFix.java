@@ -15,6 +15,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
+
 /**
  * A quick fix implementation to ignore all issues of a specific type during real-time scanning.
  * This class provides mechanisms to group and apply fixes for particular types of scan issues.
@@ -73,6 +75,6 @@ public class IgnoreAllThisTypeFix implements LocalQuickFix, Iconable {
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
         LOGGER.info("applyFix called.." + getFamilyName() + " " + scanIssue.getTitle());
-        IgnoreManager.getInstance(project).addAllIgnoredEntry(scanIssue);
+        IgnoreManager.getInstance(project).addAllIgnoredEntry(scanIssue, QUICK_FIX);
     }
 }

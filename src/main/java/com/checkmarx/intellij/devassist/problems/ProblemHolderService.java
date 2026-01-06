@@ -85,6 +85,14 @@ public final class ProblemHolderService {
         syncWithCxOneFindings();
     }
 
+    /**
+     * Removes specific scan issue from files where it appears.
+     * The method matches files by comparing their names and removes the specified issue
+     * from all matching files. If removing the issue results in an empty issue list
+     * for a file, that file entry is removed completely.
+     *
+     * @param scanIssueToRemove the scan issue to be removed from files
+     */
     public void removeProblemsFromFile(ScanIssue scanIssueToRemove) {
         if (scanIssueToRemove == null) return;
         String targetPath = scanIssueToRemove.getFilePath();
@@ -111,10 +119,8 @@ public final class ProblemHolderService {
      * @param scanIssueToIgnore
      */
     public void ignoreProblemsInFile(ScanIssue scanIssueToIgnore) {
-        String targetPath = scanIssueToIgnore.getFilePath();
         for (Map.Entry<String, List<ScanIssue>> entry : fileToIssues.entrySet()) {
-            String mapPath = entry.getKey();
-            if (targetPath.endsWith(new File(mapPath).getName()) || mapPath.endsWith(new File(targetPath).getName())) {
+            if (scanIssueToIgnore.getFilePath().equalsIgnoreCase(entry.getKey())) {
                 List<ScanIssue> issues = entry.getValue();
                 issues.replaceAll(issue -> {
                     if (issue.equals(scanIssueToIgnore)) {
