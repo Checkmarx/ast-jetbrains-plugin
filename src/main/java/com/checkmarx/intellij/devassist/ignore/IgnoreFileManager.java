@@ -56,7 +56,7 @@ public final class IgnoreFileManager {
             this.workspacePath = Paths.get(basePath, ".idea").toString(); // or ".checkmarx"
             ensureIgnoreFileExists();
             loadIgnoreData();
-            this.previousIgnoreData = deepCopy(ignoreData);
+            this.previousIgnoreData = copyIgnoredata(ignoreData);
             startFileWatcher();
         }
     }
@@ -265,7 +265,7 @@ public final class IgnoreFileManager {
     private void handleFileChange() {
         loadIgnoreData();
         detectAndHandleActiveChanges();
-        previousIgnoreData = deepCopy(ignoreData);
+        previousIgnoreData = copyIgnoredata(ignoreData);
     }
 
 
@@ -319,7 +319,7 @@ public final class IgnoreFileManager {
 
     }
 
-    private Map<String, IgnoreEntry> deepCopy(Map<String, IgnoreEntry> src) {
+    private Map<String, IgnoreEntry> copyIgnoredata(Map<String, IgnoreEntry> src) {
         // Implement via JSON round-trip or manual copy
         return new HashMap<>(src);
     }
