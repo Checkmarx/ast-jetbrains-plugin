@@ -74,7 +74,7 @@ public class SecretsScanResultAdaptorTest {
                 Collections.singletonList(createMockLocation(5, 10, 25))
         );
         when(mockResults.getSecrets()).thenReturn(Collections.singletonList(mockSecret));
-        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults);
+        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults, "");
         // When
         List<ScanIssue> issues = adaptor.getIssues();
 
@@ -126,7 +126,7 @@ public class SecretsScanResultAdaptorTest {
         );
 
         when(mockResults.getSecrets()).thenReturn(Arrays.asList(secret1, secret2));
-        SecretsScanResultAdaptor adaptor= new SecretsScanResultAdaptor(mockResults);
+        SecretsScanResultAdaptor adaptor= new SecretsScanResultAdaptor(mockResults, "");
         // When
         List<ScanIssue> issues = adaptor.getIssues();
 
@@ -166,7 +166,7 @@ public class SecretsScanResultAdaptorTest {
                 locations
         );
         when(mockResults.getSecrets()).thenReturn(Collections.singletonList(mockSecret));
-        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults);
+        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults, "");
 
         // When
         List<ScanIssue> issues = adaptor.getIssues();
@@ -208,7 +208,7 @@ public class SecretsScanResultAdaptorTest {
                 null
         );
         when(mockResults.getSecrets()).thenReturn(Collections.singletonList(mockSecret));
-        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults);
+        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults, "");
 
         // When
         List<ScanIssue> issues = adaptor.getIssues();
@@ -266,7 +266,7 @@ public class SecretsScanResultAdaptorTest {
                 Collections.emptyList() // Empty locations list
         );
         when(mockResults.getSecrets()).thenReturn(Collections.singletonList(mockSecret));
-        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults);
+        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults, "");
 
         // When
         List<ScanIssue> issues = adaptor.getIssues();
@@ -296,7 +296,7 @@ public class SecretsScanResultAdaptorTest {
         );
 
         when(mockResults.getSecrets()).thenReturn(Arrays.asList(lowSeverity, criticalSeverity));
-        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults);
+        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults, "");
 
         // When
         List<ScanIssue> issues = adaptor.getIssues();

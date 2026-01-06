@@ -130,10 +130,10 @@ public final class IgnoreFileManager {
             String json = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(ignoreData); // implement
             Files.writeString(getIgnoreFilePath(), json, StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            project.getMessageBus().syncPublisher(IGNORE_TOPIC).onIgnoreUpdated();
         } catch (IOException e) {
-            LOGGER.warn("RTS-Ignore: Failed to save ignore file", e);
+            LOGGER.warn("RTS-Ignore: Exception occurred while adding ignore entry into file", e);
         }
-        project.getMessageBus().syncPublisher(IGNORE_TOPIC).onIgnoreUpdated();
     }
 
 
@@ -238,7 +238,7 @@ public final class IgnoreFileManager {
      * @return
      */
     public String normalizePath(String filePath) {
-        return Paths.get(workspaceRootPath)
+        return Path.of(workspaceRootPath)
                 .relativize(Paths.get(filePath))
                 .toString()
                 .replace("\\", "/");

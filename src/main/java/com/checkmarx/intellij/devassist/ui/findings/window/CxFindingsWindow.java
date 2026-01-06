@@ -1,7 +1,6 @@
 package com.checkmarx.intellij.devassist.ui.findings.window;
 
 import com.checkmarx.intellij.*;
-import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
@@ -87,7 +86,6 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
     private static Map<String, Icon> vulnerabilityCountToIcon;
     private static Map<String, Icon> vulnerabilityToIcon;
     private static Set<String> expandedPathsSet = new HashSet<>();
-    private final IgnoreManager ignoreManager;
     private final Content content;
     private final Timer timer;
 
@@ -99,7 +97,6 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         this.tree = new SimpleTree();
         this.rootNode = new DefaultMutableTreeNode();
         this.content = content;
-        this.ignoreManager = IgnoreManager.getInstance(project);
 
         // Setup initial UI based on settings validity, subscribe to settings changes
         Runnable settingsCheckRunnable = () -> {
@@ -428,14 +425,14 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
 
         JMenuItem ignoreOption = new JMenuItem(DevAssistConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME);
         ignoreOption.setIcon(CxIcons.STAR_ACTION);
-        ignoreOption.addActionListener(ev -> ignoreManager.addIgnoredEntry(detail, QUICK_FIX));
+        ignoreOption.addActionListener(ev -> new IgnoreManager(project).addIgnoredEntry(detail, QUICK_FIX));
         popup.add(ignoreOption);
 
         // Only show "Ignore all of this type" for container and oss
         if (ScanEngine.CONTAINERS.toString().equalsIgnoreCase(detail.getScanEngine().toString()) || ScanEngine.OSS.toString().equalsIgnoreCase(detail.getScanEngine().toString())) {
             JMenuItem ignoreAllOption = new JMenuItem(DevAssistConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME);
             ignoreAllOption.setIcon(CxIcons.STAR_ACTION);
-            ignoreAllOption.addActionListener(ev -> ignoreManager.addAllIgnoredEntry(detail, QUICK_FIX));
+            ignoreAllOption.addActionListener(ev -> new IgnoreManager(project).addAllIgnoredEntry(detail, QUICK_FIX));
             popup.add(ignoreAllOption);
         }
         popup.add(new JSeparator());

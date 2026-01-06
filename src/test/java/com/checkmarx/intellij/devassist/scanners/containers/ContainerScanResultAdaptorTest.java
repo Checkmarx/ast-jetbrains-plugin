@@ -26,7 +26,7 @@ class ContainerScanResultAdaptorTest {
         ContainersRealtimeResults results = mock(ContainersRealtimeResults.class);
         when(results.getImages()).thenReturn(null);
 
-        ContainerScanResultAdaptor adaptor = new ContainerScanResultAdaptor(results,"dockerfile");
+        ContainerScanResultAdaptor adaptor = new ContainerScanResultAdaptor(results,"dockerfile", "");
 
         assertTrue(adaptor.getIssues().isEmpty(), "Expected empty issues when images are null");
     }
@@ -36,7 +36,7 @@ class ContainerScanResultAdaptorTest {
         ContainersRealtimeResults results = mock(ContainersRealtimeResults.class);
         when(results.getImages()).thenReturn(Collections.emptyList());
 
-        ContainerScanResultAdaptor adaptor = new ContainerScanResultAdaptor(results,"dockerfile");
+        ContainerScanResultAdaptor adaptor = new ContainerScanResultAdaptor(results,"dockerfile", "");
 
         assertTrue(adaptor.getIssues().isEmpty(), "Expected empty issues when image list is empty");
     }
@@ -62,7 +62,7 @@ class ContainerScanResultAdaptorTest {
         when(vulnerability.getCve()).thenReturn("CVE-2024-1234");
         when(vulnerability.getSeverity()).thenReturn(Constants.CRITICAL_SEVERITY);
 
-        ContainerScanResultAdaptor adaptor = new ContainerScanResultAdaptor(results,"dockerfile");
+        ContainerScanResultAdaptor adaptor = new ContainerScanResultAdaptor(results,"dockerfile", "");
         List<ScanIssue> issues = adaptor.getIssues();
 
         assertEquals(1, issues.size(), "Expected exactly one scan issue");
@@ -98,7 +98,7 @@ class ContainerScanResultAdaptorTest {
         when(image.getLocations()).thenReturn(null);
         when(image.getVulnerabilities()).thenReturn(null);
 
-        ContainerScanResultAdaptor adaptor = new ContainerScanResultAdaptor(results,"dockerfile");
+        ContainerScanResultAdaptor adaptor = new ContainerScanResultAdaptor(results,"dockerfile", "");
         List<ScanIssue> issues = adaptor.getIssues();
 
         assertEquals(1, issues.size());
@@ -123,7 +123,7 @@ class ContainerScanResultAdaptorTest {
         when(vulnerability.getCve()).thenReturn("CVE-0000-0000");
         when(vulnerability.getSeverity()).thenReturn("INFO");
 
-        ContainerScanResultAdaptor adaptor = new ContainerScanResultAdaptor(results,"dockerfile");
+        ContainerScanResultAdaptor adaptor = new ContainerScanResultAdaptor(results,"dockerfile", "");
         List<ScanIssue> issues = adaptor.getIssues();
 
         Vulnerability adaptedVulnerability = issues.get(0).getVulnerabilities().get(0);

@@ -41,7 +41,7 @@ public final class IgnoreManager extends ScanManager {
     private final ProblemHolderService problemHolder;
     private final IgnoreFileManager ignoreFileManager;
 
-    private IgnoreManager(Project project) {
+    public IgnoreManager(Project project) {
         this.project = project;
         this.problemHolder = ProblemHolderService.getInstance(project);
         this.ignoreFileManager = IgnoreFileManager.getInstance(project);
@@ -56,12 +56,14 @@ public final class IgnoreManager extends ScanManager {
 
     /**
      * Adds an entry to the ignore file.
+     * After clicking on the ignore this vulnerability butten
      * Removes the corresponding scan issue from the problem holder.
-     * @param detail
+     * @param detail The scan issue to ignore
+     * @param clickId The ID of the clicked action or vulnerability, used to retrieve additional details
      */
     public void addIgnoredEntry(ScanIssue detail, String clickId) {
         // Convert ScanIssue → IgnoreEntry
-        IgnoreEntry newEntry = convertToIgnoreEntry(detail, clickId);
+        IgnoreEntry newEntry = buildIgnoreEntry(detail, clickId);
         if (Objects.isNull(newEntry)){
             Utils.showNotification(Bundle.message(Resource.IGNORE_FAILED),"",NotificationType.ERROR, project);
             return;
@@ -96,7 +98,7 @@ public final class IgnoreManager extends ScanManager {
             allIssues.put(entry.getKey(), new ArrayList<>(entry.getValue()));
         }
         if (allIssues.isEmpty()) return;
-        IgnoreEntry ignoreEntry = convertToIgnoreEntry(issueToIgnore, clickId);
+        IgnoreEntry ignoreEntry = buildIgnoreEntry(issueToIgnore, clickId);
         List<IgnoreEntry.FileRef> fileRefs = new ArrayList<>();
         for (List<ScanIssue> issues : allIssues.values()) {  // Safe: allIssues never mutates
             issues.removeIf(issue -> {
@@ -131,7 +133,7 @@ public final class IgnoreManager extends ScanManager {
      * @param issue
      */
     public void updateProblemHolderAndRefreshPage(ScanIssue issue){
-        problemHolder.ignoreProblemsInFile(issue);
+        problemHolder.updateScanIssueForIgnoreVulnerability(issue);
         problemHolder.removeProblemDescriptorByLine(issue.getFilePath(), issue.getLocations().get(0).getLine());
         VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(issue.getFilePath());
         if (virtualFile != null) {
@@ -145,14 +147,14 @@ public final class IgnoreManager extends ScanManager {
      * @param detail
      * @return
      */
-    private IgnoreEntry convertToIgnoreEntry(ScanIssue detail, String clickId) {
+    private IgnoreEntry buildIgnoreEntry(ScanIssue detail, String clickId) {
         switch (detail.getScanEngine()) {
             case IAC:
                 return convertToIgnoredEntryIac(detail, clickId);
             case ASCA:
                 return convertToIgnoredEntryAsca(detail, clickId);
             default:
-                return convertToIgnoredEntryRemainingScanners(detail, clickId);
+                return convertToIgnoredEntry(detail, clickId);
         }
     }
 
@@ -245,7 +247,7 @@ public final class IgnoreManager extends ScanManager {
      * @param clickId
      * @return
      */
-    public IgnoreEntry convertToIgnoredEntryRemainingScanners(ScanIssue detail, String clickId) {
+    public IgnoreEntry convertToIgnoredEntry(ScanIssue detail, String clickId) {
         String relativePath = ignoreFileManager.normalizePath(detail.getFilePath());
         String vulnerabilityKey = createVulnerabilityKey(detail, clickId);
         int line = detail.getLocations().get(0).getLine();
@@ -291,7 +293,7 @@ public final class IgnoreManager extends ScanManager {
         String relativePath = ignoreFileManager.normalizePath(detail.getFilePath());
         int line = detail.getLocations().get(0).getLine();
         Optional<IgnoreEntry.FileRef> existing = entry.getFiles().stream()
-                .filter(f -> f.getPath().equals(relativePath) && f.getLine() == line)
+                .filter(fileref -> fileref.getPath().equals(relativePath) && fileref.getLine() == line)
                 .findFirst();
         if (existing.isPresent()) {
             existing.get().setActive(true);

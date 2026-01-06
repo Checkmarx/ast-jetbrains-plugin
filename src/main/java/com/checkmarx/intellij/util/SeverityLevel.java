@@ -19,7 +19,8 @@ public enum SeverityLevel {
     MEDIUM(Constants.MEDIUM_SEVERITY, 4),
     LOW(Constants.LOW_SEVERITY, 5),
     UNKNOWN(Constants.UNKNOWN, 6),
-    OK(Constants.OK, 7);
+    OK(Constants.OK, 7),
+    IGNORED(Constants.IGNORE_LABEL, 8);
 
     private final String severity;
     private final int precedence;
