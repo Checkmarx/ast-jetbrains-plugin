@@ -265,30 +265,64 @@ public class DevAssistUtils {
     }
 
     /**
-     * Copies the prompt to clipboard and attempts to open GitHub Copilot chat.
+     * Copies the prompt to clipboard and attempts to open GitHub Copilot chat with full automation.
      * This provides a streamlined one-click fix experience.
+     *
+     * <p>The operation attempts to:
+     * <ol>
+     *   <li>Copy the prompt to clipboard (always succeeds as fallback)</li>
+     *   <li>Open Copilot chat window</li>
+     *   <li>Switch to Agent mode</li>
+     *   <li>Paste and send the prompt automatically</li>
+     * </ol>
      *
      * @param prompt              the prompt to send to Copilot
      * @param notificationTitle   the title of the notification
-     * @param successMessage      the message to show if Copilot is opened successfully
+     * @param successMessage      the message to show if Copilot automation succeeds
      * @param fallbackMessage     the message to show if Copilot is not available
      * @param project             the project context
-     * @return true if the operation was successful
+     * @return true if the operation was initiated successfully
      */
     public static boolean fixWithAI(@NotNull String prompt, String notificationTitle,
                                     String successMessage, String fallbackMessage, Project project) {
         try {
-            // Import is handled at the top of the file
-            boolean copilotOpened = com.checkmarx.intellij.devassist.remediation.CopilotIntegration
-                    .openCopilotWithPrompt(prompt, project);
+            com.checkmarx.intellij.devassist.remediation.CopilotIntegration.IntegrationResult result =
+                    com.checkmarx.intellij.devassist.remediation.CopilotIntegration.openCopilotWithPromptDetailed(
+                            prompt, project, detailedResult -> {
+                                // This callback fires when the automation sequence completes
+                                String message;
+                                NotificationType notificationType;
 
-            String message = copilotOpened ? successMessage : fallbackMessage;
-            NotificationType notificationType = copilotOpened ? NotificationType.INFORMATION : NotificationType.WARNING;
+                                switch (detailedResult.getResult()) {
+                                    case FULL_SUCCESS:
+                                        message = successMessage;
+                                        notificationType = NotificationType.INFORMATION;
+                                        break;
+                                    case PARTIAL_SUCCESS:
+                                        message = detailedResult.getMessage();
+                                        notificationType = NotificationType.INFORMATION;
+                                        break;
+                                    case COPILOT_NOT_AVAILABLE:
+                                        message = fallbackMessage;
+                                        notificationType = NotificationType.WARNING;
+                                        break;
+                                    default:
+                                        message = detailedResult.getMessage();
+                                        notificationType = NotificationType.ERROR;
+                                        break;
+                                }
 
-            ApplicationManager.getApplication().invokeLater(() ->
-                Utils.showNotification(notificationTitle, message, notificationType, project)
-            );
-            return true;
+                                Utils.showNotification(notificationTitle, message, notificationType, project);
+                            });
+
+            // Immediate feedback while automation is in progress
+            if (result.isSuccess()) {
+                LOGGER.info("RTS-Fix-AI: Copilot integration initiated successfully");
+            } else {
+                LOGGER.warn("RTS-Fix-AI: Copilot integration returned: " + result.getMessage());
+            }
+
+            return result.isSuccess();
         } catch (Exception exception) {
             LOGGER.debug("Failed to fix with AI: ", exception);
             Utils.showNotification(notificationTitle, "Failed to initiate AI fix.", NotificationType.ERROR, project);
