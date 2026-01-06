@@ -126,7 +126,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
                 List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
                 if (scanIssueList.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
 
-                problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
+                cxOneAssistInspectionMgr.decorateUI(document, file, scanIssueList);
                 return problemHolderService.getProblemDescriptors(filePath).toArray(new ProblemDescriptor[0]);
             }
             LOGGER.info(format("RTS: Failed to schedule the scan for file: %s. Now scanning file using fallback..", file.getName()));

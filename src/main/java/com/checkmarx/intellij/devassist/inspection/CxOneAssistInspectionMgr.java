@@ -245,7 +245,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
     /**
      * Decorating UI, - ensure all UI modifications (e.g., adding gutter icons) are executed in a write-safe, non-blocking context.
      */
-    private void decorateUI(Document document, PsiFile file, List<ScanIssue> scanIssueList) {
+    public void decorateUI(Document document, PsiFile file, List<ScanIssue> scanIssueList) {
         problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
     }
 

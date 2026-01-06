@@ -21,9 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.Keys.SCHEDULER_INSTANCE_KEY;
@@ -48,8 +45,6 @@ public class CxOneAssistScanScheduler {
     private final Map<String, Long> scanRequestTimeMap = new ConcurrentHashMap<>();
     private final Map<String, Long> lastRestartTimeMap = new ConcurrentHashMap<>(); // Track the last restart per file
     private final ReentrantLock lock = new ReentrantLock();
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
-    private final Map<String, Object> perFileLocks = new ConcurrentHashMap<>();
     private final CxOneAssistInspectionMgr cxOneAssistInspectionMgr = new CxOneAssistInspectionMgr();
 
 
@@ -88,16 +83,19 @@ public class CxOneAssistScanScheduler {
             if (isProjectDisposed("scheduling scan", filePath)) {
                 return false;
             }
-            Object fileLock = perFileLocks.computeIfAbsent(filePath, k -> new Object());
-            synchronized (fileLock) {
+            lock.lock();
+            try {
+                // Cancel any pending/running scan for this file before scheduling a new one
                 cancelPendingAndRunningScan(filePath);
                 long requestTime = System.currentTimeMillis();
                 scanRequestTimeMap.put(filePath, requestTime);
 
                 int adaptiveDelay = calculateAdaptiveDelay(filePath, requestTime);
-
+                // Use per-file Alarm for debouncing
                 Alarm alarm = fileAlarms.computeIfAbsent(filePath, k -> new Alarm(Alarm.ThreadToUse.POOLED_THREAD, project));
                 alarm.addRequest(() -> executeBackgroundScan(filePath, problemHelper, requestTime), adaptiveDelay);
+            } finally {
+                lock.unlock();
             }
             return true;
         } catch (Exception e) {
@@ -114,40 +112,48 @@ public class CxOneAssistScanScheduler {
      * @param requestTime   scan request time
      */
     private void executeBackgroundScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper, long requestTime) {
-        Object fileLock = perFileLocks.get(filePath);
-        synchronized (fileLock) {
-            if (isRequestOutdated(filePath, requestTime)) {
-                return;
+        if (isRequestOutdated(filePath, requestTime)) {
+            return;
+        }
+        // Submit the task to execute with a progress bar
+        new Task.Backgroundable(project, Bundle.message(Resource.STARTING_CHECKMARX_SCAN), true) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setText("Checkmarx is Scanning File : " + problemHelper.getFile().getName());
+                indicator.setIndeterminate(true);
+                scanIndicators.put(filePath, indicator); // Track this scan
+                try {
+                    runScanWithProgress(filePath, problemHelper);
+                } catch (Exception e) {
+                    LOGGER.warn(format("RTS: Error occurred while executing scan for file: %s", filePath), e);
+                } finally {
+                    removeProgressIndicator(filePath);
+                }
             }
-        }
-        try {
-            executorService.submit(() ->
-                    // Submitting scan to be handled asynchronously without locking the main thread
-                    new Task.Backgroundable(project, Bundle.message(Resource.STARTING_CHECKMARX_SCAN), true) {
-                        @Override
-                        public void run(@NotNull ProgressIndicator indicator) {
-                            indicator.setText("Checkmarx is Scanning File: " + problemHelper.getFile().getName());
-                            indicator.setIndeterminate(true);
-                            scanIndicators.put(filePath, indicator); // Track the progress indicator for the scan
-                            runScan(filePath, problemHelper);
-                        }
-                    }.queue());
-        } catch (Exception e) {
-            LOGGER.warn(format("RTS: Failed to execute scan for file: %s", filePath), e);
-        }
+
+            // Add cancellation support through ProgressIndicator stop
+            @Override
+            public void onCancel() {
+                removeProgressIndicator(filePath);
+            }
+        }.queue();
     }
 
     /**
-     * Runs the scan for the given file and caches the results.
+     * Executes a scan operation for a given file while updating progress indicators to provide feedback during the process.
+     *
+     * @param filePath      the path of the file to be scanned, cannot be null
+     * @param problemHelper a {@link ProblemHelper} instance containing context for creating problem descriptors, cannot be null
      */
-    private void runScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper) {
+    private void runScanWithProgress(@NotNull String filePath, @NotNull ProblemHelper problemHelper) {
         try {
             LOGGER.info(format("RTS: Scheduled scan started for file: %s", filePath));
             List<ScanIssue> scanIssues = cxOneAssistInspectionMgr.scanFile(
                     problemHelper.getFilePath(), problemHelper.getFile(), ScanEngine.ALL);
+
             if (scanIssues.isEmpty()) {
-                resetCachedData(problemHelper);
                 LOGGER.info(format("RTS: Scheduled scan completed with no issues for file: %s", filePath));
+                resetCachedData(problemHelper);
             } else {
                 ApplicationManager.getApplication().invokeLater(() -> {
                     List<ProblemDescriptor> descriptors = cxOneAssistInspectionMgr.createProblemDescriptorsWithoutDecoration(
@@ -157,11 +163,11 @@ public class CxOneAssistScanScheduler {
                     LOGGER.info(format("RTS: Scheduled scan completed for file: %s", filePath));
                 }, ModalityState.NON_MODAL); // UI decoration should be done in a write-safe non-modal state
             }
-            cxOneAssistInspectionMgr.updateScanSourceFlag(problemHelper.getFile(), Boolean.TRUE);
+            ApplicationManager.getApplication().runReadAction(() ->
+                    cxOneAssistInspectionMgr.updateScanSourceFlag(problemHelper.getFile(), Boolean.TRUE)); // To identify the scan source
         } catch (Exception e) {
-            LOGGER.error(format("RTS: Error while running scheduled scan for the file: %s", filePath), e);
+            LOGGER.warn(format("RTS: Exception occurred while running scheduled scan for the file: %s", filePath), e);
         } finally {
-            removeProgressIndicator(filePath);
             restartFileAfterScan(problemHelper);
         }
     }
@@ -281,9 +287,8 @@ public class CxOneAssistScanScheduler {
         }, ModalityState.NON_MODAL); // Ensure the UI writing is safe in a non-modal state
     }
 
-
     /**
-     * Checks if the project is disposed of.
+     * Checks if the project is disposed.
      *
      * @return true if the project is disposed, false otherwise.
      */
@@ -291,39 +296,8 @@ public class CxOneAssistScanScheduler {
         if (project.isDisposed()) {
             LOGGER.warn(format("RTS: Project disposed during %s. for file: %s", action, fileName));
             removeProgressIndicator(fileName);
-            shutdownExecutorService();
             return true;
         }
         return false;
-    }
-
-    /**
-     * Gracefully shuts down the ExecutorService used by this scheduler. If the shutdown process
-     * takes too long, it forces a shutdown.
-     * <p>
-     * This method first invokes the {@code shutdown()} method on the ExecutorService, which prevents
-     * new tasks from being submitted while allowing previously submitted tasks to complete. It then
-     * waits for a specified timeout period to allow ongoing tasks to finish execution. If the tasks
-     * do not terminate within the timeout, the {@code shutdownNow()} method is called to attempt
-     * to stop all actively executing tasks and halt the processing of waiting tasks. Additionally,
-     * if the current thread is interrupted during this process, the method restores the interrupted
-     * status and forces the ExecutorService to shut down immediately.
-     * <p>
-     * Thread-safety: This method is thread-safe.
-     * <p>
-     * Exceptions:
-     * - Catches {@link InterruptedException} to handle any interruptions during the shutdown process
-     * and ensures proper handling of the interrupted state.
-     */
-    public void shutdownExecutorService() {
-        executorService.shutdown();
-        try {
-            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
-                executorService.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            executorService.shutdownNow();
-        }
     }
 }
