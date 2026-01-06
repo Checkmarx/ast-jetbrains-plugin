@@ -74,7 +74,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         project.getMessageBus().connect(this)
                 .subscribe(VulnerabilityFilterBaseAction.TOPIC,
                         (VulnerabilityFilterBaseAction.VulnerabilityFilterChanged) () ->
-                            ApplicationManager.getApplication().invokeLater(this::applyFiltersAndRefresh));
+                                ApplicationManager.getApplication().invokeLater(this::applyFiltersAndRefresh));
 
         // Subscribe to settings changes
         ApplicationManager.getApplication().getMessageBus()
@@ -121,6 +121,10 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         wrapper.add(panel);
         setContent(wrapper);
+
+        // Clear any count from tab title when not authenticated
+        updateTabTitle(0);
+
         revalidate();
         repaint();
     }
@@ -132,31 +136,39 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private void drawMainPanel() {
         removeAll();
 
-        // Create and set toolbar with filter actions
-        ActionToolbar toolbar = createActionToolbar();
-        toolbar.setTargetComponent(this);
-        setToolbar(toolbar.getComponent());
+        // Check if there are any ignored entries first
+        List<IgnoreEntry> entries = ignoreManager.getIgnoredEntries();
 
-        // Create main container with proper layout
-        JPanel mainContainer = new JPanel(new BorderLayout());
-        mainContainer.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+        if (entries.isEmpty()) {
+            // Show only "No ignored findings" message without toolbar or headers
+            drawEmptyStatePanel();
+        } else {
+            // Create and set toolbar with filter actions
+            ActionToolbar toolbar = createActionToolbar();
+            toolbar.setTargetComponent(this);
+            setToolbar(toolbar.getComponent());
 
-        // Create header panel
-        JPanel headerPanel = createHeaderPanel();
-        mainContainer.add(headerPanel, BorderLayout.NORTH);
+            // Create main container with proper layout
+            JPanel mainContainer = new JPanel(new BorderLayout());
+            mainContainer.setBackground(JBUI.CurrentTheme.ToolWindow.background());
 
-        // Create content area
-        ignoredListPanel.removeAll();
-        ignoredListPanel.setLayout(new BoxLayout(ignoredListPanel, BoxLayout.Y_AXIS));
-        ignoredListPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+            // Create header panel
+            JPanel headerPanel = createHeaderPanel();
+            mainContainer.add(headerPanel, BorderLayout.NORTH);
 
-        JBScrollPane scrollPane = new JBScrollPane(ignoredListPanel);
-        scrollPane.setBorder(JBUI.Borders.empty());
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        mainContainer.add(scrollPane, BorderLayout.CENTER);
+            // Create content area
+            ignoredListPanel.removeAll();
+            ignoredListPanel.setLayout(new BoxLayout(ignoredListPanel, BoxLayout.Y_AXIS));
+            ignoredListPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
 
-        setContent(mainContainer);
-        refreshIgnoredEntries();
+            JBScrollPane scrollPane = new JBScrollPane(ignoredListPanel);
+            scrollPane.setBorder(JBUI.Borders.empty());
+            scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            mainContainer.add(scrollPane, BorderLayout.CENTER);
+
+            setContent(mainContainer);
+            refreshIgnoredEntries();
+        }
 
         // Auto-refresh every 5 seconds
         Timer refreshTimer = new Timer(5000, e -> refreshIgnoredEntries());
@@ -180,6 +192,33 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         actionGroup.add(new VulnerabilityFilterBaseAction.VulnerabilityLowFilter());
 
         return ActionManager.getInstance().createActionToolbar("CxIgnoredFindings", actionGroup, true);
+    }
+
+    /**
+     * Draw empty state panel when there are no ignored findings.
+     * Shows only a centered message without toolbar, headers, or other UI elements.
+     */
+    private void drawEmptyStatePanel() {
+        JPanel emptyContainer = new JPanel(new BorderLayout());
+        emptyContainer.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+
+        JPanel messagePanel = new JPanel(new BorderLayout());
+        messagePanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+        messagePanel.setBorder(JBUI.Borders.empty(40));
+
+        JLabel emptyLabel = new JLabel("No ignored findings", SwingConstants.CENTER);
+        emptyLabel.setFont(JBUI.Fonts.label(14));
+        emptyLabel.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
+        messagePanel.add(emptyLabel, BorderLayout.CENTER);
+
+        emptyContainer.add(messagePanel, BorderLayout.CENTER);
+        setContent(emptyContainer);
+
+        // Clear any existing toolbar
+        setToolbar(null);
+
+        // Update tab title
+        updateTabTitle(0);
     }
 
     /**
@@ -245,10 +284,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             }
         }
 
-        // Reset select all checkbox
-        if (selectAllCheckbox != null) {
-            selectAllCheckbox.setSelected(false);
-        }
+        // Update select all checkbox state based on current entries
+        updateSelectAllCheckbox();
 
         ignoredListPanel.revalidate();
         ignoredListPanel.repaint();
@@ -313,15 +350,12 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         updatedHeaderPanel.add(updatedHeader);
         columnHeaderPanel.add(updatedHeaderPanel);
 
-        // Second half of flexible space - between Last Updated and Actions
-        columnHeaderPanel.add(Box.createHorizontalGlue());
-
-        // 4) Actions column header - far right (no title)
-        JPanel actionsHeaderPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        // 4) Actions column header - align with Last Updated column (no title)
+        JPanel actionsHeaderPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         actionsHeaderPanel.setOpaque(false);
-        actionsHeaderPanel.setPreferredSize(new Dimension(JBUI.scale(100), JBUI.scale(30)));
-        actionsHeaderPanel.setMinimumSize(new Dimension(JBUI.scale(80), JBUI.scale(30)));
-        actionsHeaderPanel.setMaximumSize(new Dimension(JBUI.scale(120), JBUI.scale(30)));
+        actionsHeaderPanel.setPreferredSize(new Dimension(JBUI.scale(140), JBUI.scale(30)));
+        actionsHeaderPanel.setMinimumSize(new Dimension(JBUI.scale(120), JBUI.scale(30)));
+        actionsHeaderPanel.setMaximumSize(new Dimension(JBUI.scale(160), JBUI.scale(30)));
         // No label added - empty actions column header
         columnHeaderPanel.add(actionsHeaderPanel);
 
@@ -340,13 +374,31 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         try {
             List<IgnoreEntry> entries = ignoreManager.getIgnoredEntries();
+            boolean wasEmpty = allEntries.isEmpty();
+            boolean isNowEmpty = entries.isEmpty();
+
             allEntries = new java.util.ArrayList<>(entries);
-            applyFiltersAndRefresh();
+
+            // If state changed between empty/non-empty, redraw the entire panel
+            if (wasEmpty != isNowEmpty) {
+                drawMainPanel();
+            } else if (!isNowEmpty) {
+                // If we have entries and UI is already set up, just refresh the content
+                applyFiltersAndRefresh();
+            }
+
             updateTabTitle(entries.size());
         } catch (Exception e) {
             LOGGER.warn("Error loading ignored entries", e);
+            boolean hadEntries = !allEntries.isEmpty();
             allEntries.clear();
-            displayFilteredEntries(java.util.List.of());
+
+            // If we had entries before but now have an error, show empty state
+            if (hadEntries) {
+                drawMainPanel();
+            } else {
+                displayFilteredEntries(java.util.List.of());
+            }
             updateTabTitle(0);
         }
     }
@@ -358,6 +410,30 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         boolean selected = selectAllCheckbox.isSelected();
         for (IgnoredEntryPanel panel : entryPanels) {
             panel.setSelected(selected);
+        }
+    }
+
+    /**
+     * Update the select all checkbox state based on individual checkbox states
+     */
+    private void updateSelectAllCheckbox() {
+        if (selectAllCheckbox == null || entryPanels.isEmpty()) {
+            return;
+        }
+
+        boolean allSelected = entryPanels.stream().allMatch(IgnoredEntryPanel::isSelected);
+
+        // Temporarily remove the action listener to prevent recursive calls
+        var listeners = selectAllCheckbox.getActionListeners();
+        for (var listener : listeners) {
+            selectAllCheckbox.removeActionListener(listener);
+        }
+
+        selectAllCheckbox.setSelected(allSelected);
+
+        // Re-add the action listeners
+        for (var listener : listeners) {
+            selectAllCheckbox.addActionListener(listener);
         }
     }
 
@@ -383,7 +459,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     /**
      * Individual ignored entry panel presented in a row-like layout
      */
-    private static class IgnoredEntryPanel extends JPanel {
+    private class IgnoredEntryPanel extends JPanel {
         private final IgnoreEntry entry;
         private final Project project;
         private final JCheckBox selectCheckBox;
@@ -403,8 +479,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.X_AXIS));
             mainPanel.setOpaque(false);
 
-            // 1) Checkbox column - fixed width
-            JPanel checkboxPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            // 1) Checkbox column - fixed width with vertical centering
+            JPanel checkboxPanel = new JPanel(new BorderLayout());
             checkboxPanel.setOpaque(false);
             checkboxPanel.setPreferredSize(new Dimension(JBUI.scale(50), JBUI.scale(80)));
             checkboxPanel.setMinimumSize(new Dimension(JBUI.scale(50), JBUI.scale(80)));
@@ -412,7 +488,14 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
             selectCheckBox = new JCheckBox();
             selectCheckBox.setOpaque(false);
-            checkboxPanel.add(selectCheckBox);
+            // Add listener to update select all checkbox when individual checkboxes change
+            selectCheckBox.addActionListener(e -> updateSelectAllCheckbox());
+
+            // Center the checkbox vertically
+            JPanel checkboxWrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            checkboxWrapper.setOpaque(false);
+            checkboxWrapper.add(selectCheckBox);
+            checkboxPanel.add(checkboxWrapper, BorderLayout.CENTER);
             mainPanel.add(checkboxPanel);
 
             // Add space between checkbox and risk column
@@ -437,7 +520,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             // First half of flexible space - between Risk and Last Updated
             mainPanel.add(Box.createHorizontalGlue());
 
-            // 3) Last Updated column - fixed size with center alignment
+            // 3) Last Updated column - keep original positioning
             JPanel updatedPanel = new JPanel(new BorderLayout());
             updatedPanel.setOpaque(false);
             updatedPanel.setPreferredSize(new Dimension(JBUI.scale(140), JBUI.scale(80)));
@@ -451,25 +534,26 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             updatedPanel.add(updatedLabel, BorderLayout.CENTER);
             mainPanel.add(updatedPanel);
 
-            // Second half of flexible space - between Last Updated and Actions
-            mainPanel.add(Box.createHorizontalGlue());
-
-            // 4) Actions column - far right position
-            JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+            // 4) Actions column - center Revive button vertically and horizontally
+            JPanel actionsPanel = new JPanel(new GridBagLayout());
             actionsPanel.setOpaque(false);
-            actionsPanel.setPreferredSize(new Dimension(JBUI.scale(100), JBUI.scale(80)));
-            actionsPanel.setMinimumSize(new Dimension(JBUI.scale(80), JBUI.scale(80)));
-            actionsPanel.setMaximumSize(new Dimension(JBUI.scale(120), JBUI.scale(96)));
+            actionsPanel.setPreferredSize(new Dimension(JBUI.scale(140), JBUI.scale(80)));
+            actionsPanel.setMinimumSize(new Dimension(JBUI.scale(120), JBUI.scale(80)));
+            actionsPanel.setMaximumSize(new Dimension(JBUI.scale(160), JBUI.scale(96)));
 
-            JButton reviveButton = new JButton("Revive");
+            JButton reviveButton = new JButton(CxIcons.Ignored.REVIVE);
             reviveButton.setEnabled(true); // UI only for now, no backend logic
-            reviveButton.setPreferredSize(new Dimension(JBUI.scale(70), JBUI.scale(28)));
-            reviveButton.setFont(JBUI.Fonts.label(11));
+            reviveButton.setPreferredSize(new Dimension(JBUI.scale(90), JBUI.scale(28)));
             reviveButton.addActionListener(ev -> {
                 // Placeholder: no-op for now, backend not required per user request
                 LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown"));
             });
-            actionsPanel.add(reviveButton);
+
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = 0;
+            gbc.gridy = 0;
+            gbc.anchor = GridBagConstraints.CENTER;
+            actionsPanel.add(reviveButton, gbc);
             mainPanel.add(actionsPanel);
 
 
@@ -541,11 +625,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         private JLabel buildVulnerabilityCardIcon(ScanEngine type, String severity) {
             try {
-                String iconName = getCardIconName(type, severity);
-                String iconPath = "/icons/devassist/ignored_card/" + iconName;
-
-                // Try to load the icon using IconLoader
-                Icon icon = IconLoader.getIcon(iconPath, CxIgnoredFindings.class);
+                Icon icon = getCardIcon(type, severity);
                 if (icon != null) {
                     return new JLabel(icon);
                 }
@@ -583,13 +663,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         private JLabel buildEngineChipIcon(ScanEngine type) {
             try {
-                String chipName = getEngineChipName(type);
-                if (chipName != null) {
-                    String iconPath = "/icons/devassist/ignored/" + chipName;
-                    Icon icon = IconLoader.getIcon(iconPath, CxIgnoredFindings.class);
-                    if (icon != null) {
-                        return new JLabel(icon);
-                    }
+                Icon icon = getEngineChipIcon(type);
+                if (icon != null) {
+                    return new JLabel(icon);
                 }
             } catch (Exception e) {
                 LOGGER.debug("Failed to load engine chip icon: " + e.getMessage());
@@ -603,43 +679,101 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return label;
         }
 
-        private String getCardIconName(ScanEngine type, String severity) {
-            String severityLower = severity != null ? severity.toLowerCase() : "unknown";
-            String typePrefix;
-
+        private Icon getCardIcon(ScanEngine type, String severity) {
             switch (type) {
                 case OSS:
-                    typePrefix = "package";
-                    break;
+                    return getPackageCardIcon(severity);
                 case SECRETS:
-                    typePrefix = "secret";
-                    break;
+                    return getSecretCardIcon(severity);
+                case CONTAINERS:
+                    return getContainersCardIcon(severity);
                 case IAC:
                 case ASCA:
-                    typePrefix = "vulnerability";
-                    break;
-                case CONTAINERS:
-                    typePrefix = "containers";
-                    break;
                 default:
-                    typePrefix = "vulnerability";
+                    return getVulnerabilityCardIcon(severity);
             }
-
-            return "card icon-" + typePrefix + "-" + severityLower + "-default.svg";
         }
 
-        private String getEngineChipName(ScanEngine type) {
+        private Icon getPackageCardIcon(String severity) {
+            switch (severity.toLowerCase()) {
+                case "critical":
+                    return CxIcons.Ignored.CARD_PACKAGE_CRITICAL;
+                case "high":
+                    return CxIcons.Ignored.CARD_PACKAGE_HIGH;
+                case "medium":
+                    return CxIcons.Ignored.CARD_PACKAGE_MEDIUM;
+                case "low":
+                    return CxIcons.Ignored.CARD_PACKAGE_LOW;
+                case "malicious":
+                    return CxIcons.Ignored.CARD_PACKAGE_MALICIOUS;
+                default:
+                    return null;
+            }
+        }
+
+        private Icon getSecretCardIcon(String severity) {
+            switch (severity.toLowerCase()) {
+                case "critical":
+                    return CxIcons.Ignored.CARD_SECRET_CRITICAL;
+                case "high":
+                    return CxIcons.Ignored.CARD_SECRET_HIGH;
+                case "medium":
+                    return CxIcons.Ignored.CARD_SECRET_MEDIUM;
+                case "low":
+                    return CxIcons.Ignored.CARD_SECRET_LOW;
+                case "malicious":
+                    return CxIcons.Ignored.CARD_SECRET_MALICIOUS;
+                default:
+                    return null;
+            }
+        }
+
+        private Icon getContainersCardIcon(String severity) {
+            switch (severity.toLowerCase()) {
+                case "critical":
+                    return CxIcons.Ignored.CARD_CONTAINERS_CRITICAL;
+                case "high":
+                    return CxIcons.Ignored.CARD_CONTAINERS_HIGH;
+                case "medium":
+                    return CxIcons.Ignored.CARD_CONTAINERS_MEDIUM;
+                case "low":
+                    return CxIcons.Ignored.CARD_CONTAINERS_LOW;
+                case "malicious":
+                    return CxIcons.Ignored.CARD_CONTAINERS_MALICIOUS;
+                default:
+                    return null;
+            }
+        }
+
+        private Icon getVulnerabilityCardIcon(String severity) {
+            switch (severity.toLowerCase()) {
+                case "critical":
+                    return CxIcons.Ignored.CARD_VULNERABILITY_CRITICAL;
+                case "high":
+                    return CxIcons.Ignored.CARD_VULNERABILITY_HIGH;
+                case "medium":
+                    return CxIcons.Ignored.CARD_VULNERABILITY_MEDIUM;
+                case "low":
+                    return CxIcons.Ignored.CARD_VULNERABILITY_LOW;
+                case "malicious":
+                    return CxIcons.Ignored.CARD_VULNERABILITY_MALICIOUS;
+                default:
+                    return null;
+            }
+        }
+
+        private Icon getEngineChipIcon(ScanEngine type) {
             switch (type) {
                 case OSS:
-                    return "engine-chip-sca.svg";
+                    return CxIcons.Ignored.ENGINE_CHIP_SCA;
                 case SECRETS:
-                    return "engine-chip-secrets.svg";
+                    return CxIcons.Ignored.ENGINE_CHIP_SECRETS;
                 case IAC:
-                    return "engine-chip-iac.svg";
+                    return CxIcons.Ignored.ENGINE_CHIP_IAC;
                 case ASCA:
-                    return "engine-chip-sast.svg";
+                    return CxIcons.Ignored.ENGINE_CHIP_SAST;
                 case CONTAINERS:
-                    return "engine-chip-containers.svg";
+                    return CxIcons.Ignored.ENGINE_CHIP_CONTAINERS;
                 default:
                     return null;
             }
