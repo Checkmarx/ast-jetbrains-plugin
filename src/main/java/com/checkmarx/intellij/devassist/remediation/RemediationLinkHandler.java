@@ -28,6 +28,7 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
     private static final Logger LOGGER = Utils.getLogger(RemediationLinkHandler.class);
 
     private static final String FIX = "copyfixprompt";
+    private static final String FIX_WITH_AI = "fixwithai";
     private static final String VIEW_DETAILS = "viewdetails";
     private static final String IGNORE_THIS_TYPE = "ignorethis";
     private static final String IGNORE_ALL_OF_THIS_TYPE = "ignoreallofthis";
@@ -93,6 +94,10 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
             case FIX:
                 TelemetryService.logFixWithCxOneAssistAction(scanIssue);
                 remediationManager.fixWithCxOneAssist(project, scanIssue, actionId);
+                break;
+            case FIX_WITH_AI:
+                TelemetryService.logFixWithAIAction(scanIssue);
+                remediationManager.fixWithAI(project, scanIssue, actionId);
                 break;
             case VIEW_DETAILS:
                 TelemetryService.logViewDetailsAction(scanIssue);

@@ -265,6 +265,38 @@ public class DevAssistUtils {
     }
 
     /**
+     * Copies the prompt to clipboard and attempts to open GitHub Copilot chat.
+     * This provides a streamlined one-click fix experience.
+     *
+     * @param prompt              the prompt to send to Copilot
+     * @param notificationTitle   the title of the notification
+     * @param successMessage      the message to show if Copilot is opened successfully
+     * @param fallbackMessage     the message to show if Copilot is not available
+     * @param project             the project context
+     * @return true if the operation was successful
+     */
+    public static boolean fixWithAI(@NotNull String prompt, String notificationTitle,
+                                    String successMessage, String fallbackMessage, Project project) {
+        try {
+            // Import is handled at the top of the file
+            boolean copilotOpened = com.checkmarx.intellij.devassist.remediation.CopilotIntegration
+                    .openCopilotWithPrompt(prompt, project);
+
+            String message = copilotOpened ? successMessage : fallbackMessage;
+            NotificationType notificationType = copilotOpened ? NotificationType.INFORMATION : NotificationType.WARNING;
+
+            ApplicationManager.getApplication().invokeLater(() ->
+                Utils.showNotification(notificationTitle, message, notificationType, project)
+            );
+            return true;
+        } catch (Exception exception) {
+            LOGGER.debug("Failed to fix with AI: ", exception);
+            Utils.showNotification(notificationTitle, "Failed to initiate AI fix.", NotificationType.ERROR, project);
+            return false;
+        }
+    }
+
+    /**
      * Gets the PsiElement at the start of the specified line number in the given PsiFile and Document.
      *
      * @param file       PsiFile

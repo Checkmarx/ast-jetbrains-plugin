@@ -34,6 +34,7 @@ public final class TelemetryService {
 
     // Sub Types
     private static final String SUB_TYPE_FIX_WITH_AI_CHAT = "fixWithAIChat";
+    private static final String SUB_TYPE_FIX_WITH_AI_ONE_CLICK = "fixWithAIOneClick";
     private static final String SUB_TYPE_VIEW_DETAILS = "viewDetails";
     private static final String SUB_TYPE_IGNORE_PACKAGE = "ignorePackage";
     private static final String SUB_TYPE_IGNORE_ALL = "ignoreAll";
@@ -142,12 +143,21 @@ public final class TelemetryService {
     }
 
     /**
-     * Logs user action for "Fix with CxOne Assist".
+     * Logs user action for "Fix with CxOne Assist" (copy prompt to clipboard).
      *
      * @param scanIssue the scan issue being acted upon
      */
     public static void logFixWithCxOneAssistAction(ScanIssue scanIssue) {
         logUserAction(scanIssue, SUB_TYPE_FIX_WITH_AI_CHAT, "Fix with CxOne Assist");
+    }
+
+    /**
+     * Logs user action for "Fix with AI" (one-click fix that opens Copilot).
+     *
+     * @param scanIssue the scan issue being acted upon
+     */
+    public static void logFixWithAIAction(ScanIssue scanIssue) {
+        logUserAction(scanIssue, SUB_TYPE_FIX_WITH_AI_ONE_CLICK, "Fix with AI");
     }
 
     /**
