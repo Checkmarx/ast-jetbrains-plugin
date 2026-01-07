@@ -2,11 +2,14 @@ package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.devassist.ignore.IgnoreEntry;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -16,6 +19,8 @@ import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
@@ -229,6 +234,8 @@ public class ProblemDecorator {
                 return CxIcons.Small.LOW;
             case OK:
                 return CxIcons.Small.OK;
+            case IGNORED:
+                return CxIcons.Small.IGNORED;
             default:
                 return CxIcons.Small.UNKNOWN;
         }
@@ -288,10 +295,59 @@ public class ProblemDecorator {
                                 psiFile.getName(), scanIssue.getTitle(), e.getMessage());
                     }
                 }
+                String relativePath = project.getBasePath() != null
+                        ? VfsUtilCore.getRelativePath(psiFile.getVirtualFile(),
+                        Objects.requireNonNull(LocalFileSystem.getInstance().findFileByPath(project.getBasePath())), '/')
+                        : psiFile.getVirtualFile().getPath();
+                decorateUIForIgnoredVulnerability(project, psiFile, scanIssueList, relativePath);
             } catch (Exception e) {
                 LOGGER.warn(format("RTS-Decorator: Exception occurred while removing all highlighters for file: %s", psiFile.getName()), e);
             }
         });
+    }
+
+    public void decorateUIForIgnoredVulnerability(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, String filePath) {
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            try {
+                List<IgnoreEntry> ignoreEntryList = new IgnoreManager(project).getIgnoredEntries();
+                if (ignoreEntryList.isEmpty()){
+                    LOGGER.warn(format("RTS-Decorator: Not ignored vulnerabilities found! Skipping decoration for file: %s", psiFile.getName()));
+                    return;
+                }
+                Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
+                if (editor == null) return;
+
+                if (!Objects.equals(editor.getDocument(), PsiDocumentManager.getInstance(project)
+                        .getDocument(psiFile))) {
+                    // Only decorate the active editor of this file
+                    return;
+                }
+                MarkupModel markupModel = editor.getMarkupModel();
+
+                for (IgnoreEntry ignoredVulnerability : ignoreEntryList) {
+                    boolean isEntryExist = ignoredVulnerability.files.stream().anyMatch(fileRef -> fileRef.path.equals(filePath));
+                    if (isEntryExist){
+                        List<IgnoreEntry.FileReference>  fileRefList = ignoredVulnerability.files.stream()
+                                .filter(fileRef -> fileRef.path.equals(filePath))
+                                .collect(Collectors.toList());
+                        if(!fileRefList.isEmpty()){
+                            for (IgnoreEntry.FileReference fileRef : fileRefList) {
+                                boolean isVulnerabilityExist = scanIssueList.stream()
+                                        .anyMatch(scanIssue -> scanIssue.getLocations().get(0).getLine() == fileRef.line);
+                                LOGGER.info(format("RTS-Decorator: Skipping ignore icon as vulnerability present on line: %s for file: %s", fileRef.line, psiFile.getName()));
+                                if (!isVulnerabilityExist){
+                                    RangeHighlighter highlighter = markupModel.addLineHighlighter(fileRef.line - 1, 0, null);
+                                    addGutterIcon(highlighter, SeverityLevel.IGNORED.getSeverity());
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.warn(format("RTS-Decorator: Exception occurred while adding decorating for ignored vulnerability for file: %s", psiFile.getName()), e);
+            }
+        }, ModalityState.NON_MODAL);
     }
 
     /**
