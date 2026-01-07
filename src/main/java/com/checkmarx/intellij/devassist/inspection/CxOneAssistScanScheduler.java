@@ -98,11 +98,9 @@ public class CxOneAssistScanScheduler {
                 cancelPendingAndRunningScan(filePath);
                 long requestTime = System.currentTimeMillis();
                 scanRequestTimeMap.put(filePath, requestTime);
-
-                int adaptiveDelay = calculateAdaptiveDelay(filePath, requestTime);
                 // Use per-file Alarm for debouncing
                 Alarm alarm = fileAlarms.computeIfAbsent(filePath, k -> new Alarm(Alarm.ThreadToUse.POOLED_THREAD, project));
-                alarm.addRequest(() -> executeBackgroundScan(filePath, problemHelper, requestTime, scanEngine), adaptiveDelay);
+                alarm.addRequest(() -> executeBackgroundScan(filePath, problemHelper, requestTime, scanEngine), SCHEDULED_DELAY);
             } finally {
                 lock.unlock();
             }
@@ -179,24 +177,6 @@ public class CxOneAssistScanScheduler {
         } finally {
             restartFileAfterScan(problemHelper);
         }
-    }
-
-    /**
-     * Calculates an adaptive delay for debouncing based on recent activity for the file.
-     *
-     * @param filePath    The path of the file being modified.
-     * @param requestTime The timestamp of the current scan request.
-     * @return The calculated delay time in milliseconds.
-     */
-    private int calculateAdaptiveDelay(@NotNull String filePath, long requestTime) {
-        Long lastRequestTime = scanRequestTimeMap.get(filePath);
-        if (lastRequestTime == null) {
-            return SCHEDULED_DELAY;
-        }
-        long timeDifference = requestTime - lastRequestTime;
-
-        // Dynamic debouncing logic: shorten delay for rapid edits, maintain base delay otherwise
-        return (int) Math.max(200, Math.min(SCHEDULED_DELAY, timeDifference * 2));
     }
 
     /**
