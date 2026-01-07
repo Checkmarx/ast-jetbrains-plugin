@@ -27,11 +27,11 @@ import com.intellij.psi.PsiFile;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -77,7 +77,7 @@ public class ProblemDecorator {
                 LOGGER.warn(format("RTS-Decorator: Exception occurred while highlighting or adding gutter icon for line: %s , Exception: {} ",
                         problemLineNumber), exception);
             }
-        },ModalityState.NON_MODAL);
+        }, ModalityState.NON_MODAL);
     }
 
     /**
@@ -257,7 +257,7 @@ public class ProblemDecorator {
                 if (markupModel.getAllHighlighters().length > 0) {
                     markupModel.removeAllHighlighters();
                 }
-            },ModalityState.NON_MODAL);
+            }, ModalityState.NON_MODAL);
         } catch (Exception e) {
             LOGGER.debug("RTS-Decorator: Exception occurred while removing highlighter with gutter icons for: {} ",
                     e.getMessage());
@@ -272,8 +272,8 @@ public class ProblemDecorator {
      * @param scanIssueList the scan issue list
      */
     public void decorateUI(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, Document document) {
-        ApplicationManager.getApplication().invokeLater(() -> {
-            try {
+        try {
+            ApplicationManager.getApplication().invokeLater(() -> {
                 // Update UI, highlight, or trigger inspection
                 removeAllHighlighters(project);
                 ProblemHelper problemHelper = ProblemHelper.builder(psiFile, project)
@@ -296,23 +296,30 @@ public class ProblemDecorator {
                                 psiFile.getName(), scanIssue.getTitle(), e.getMessage());
                     }
                 }
-                String relativePath = project.getBasePath() != null
-                        ? VfsUtilCore.getRelativePath(psiFile.getVirtualFile(),
-                        Objects.requireNonNull(LocalFileSystem.getInstance().findFileByPath(project.getBasePath())), '/')
-                        : psiFile.getVirtualFile().getPath();
-                decorateUIForIgnoredVulnerability(project, psiFile, scanIssueList, relativePath);
-            } catch (Exception e) {
-                LOGGER.warn(format("RTS-Decorator: Exception occurred while removing all highlighters for file: %s", psiFile.getName()), e);
-            }
-        }, ModalityState.NON_MODAL);
+                decorateUIForIgnoredVulnerability(project, psiFile, scanIssueList);
+            }, ModalityState.NON_MODAL);
+
+        } catch (Exception e) {
+            LOGGER.warn(format("RTS-Decorator: Exception occurred while removing all highlighters for file: %s", psiFile.getName()), e);
+        }
     }
 
-    public void decorateUIForIgnoredVulnerability(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, String filePath) {
-
+    /**
+     * Decorates the UI to visually indicate vulnerabilities that have been marked as ignored
+     * within a given file. Adds appropriate icons or highlights in the editor to signify these ignored issues.
+     * The method ensures only the currently active editor for the specified file is decorated.
+     * If more than one issue is found on the same line and one of them is not ignored, no ignored icon will be added for that line.
+     *
+     * @param project       the current project containing the file to be decorated
+     * @param psiFile       the file in which ignored vulnerabilities are to be visually indicated
+     * @param scanIssueList a list of {@link ScanIssue} instances representing detected vulnerabilities
+     */
+    public void decorateUIForIgnoredVulnerability(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList) {
         ApplicationManager.getApplication().invokeLater(() -> {
             try {
+                String relativePath = getRelativePath(project, psiFile);
                 List<IgnoreEntry> ignoreEntryList = new IgnoreManager(project).getIgnoredEntries();
-                if (ignoreEntryList.isEmpty()){
+                if (ignoreEntryList.isEmpty()) {
                     LOGGER.warn(format("RTS-Decorator: Not ignored vulnerabilities found! Skipping decoration for file: %s", psiFile.getName()));
                     return;
                 }
@@ -325,33 +332,51 @@ public class ProblemDecorator {
                     return;
                 }
                 MarkupModel markupModel = editor.getMarkupModel();
-
-                for (IgnoreEntry ignoredVulnerability : ignoreEntryList) {
-                    boolean isEntryExist = ignoredVulnerability.files.stream().anyMatch(fileRef -> fileRef.path.equals(filePath));
-                    if (isEntryExist){
-                        List<IgnoreEntry.FileReference>  fileRefList = ignoredVulnerability.files.stream()
-                                .filter(fileRef -> fileRef.path.equals(filePath))
-                                .collect(Collectors.toList());
-                        if(!fileRefList.isEmpty()){
-                            for (IgnoreEntry.FileReference fileRef : fileRefList) {
-                                boolean isVulnerabilityExist = scanIssueList.stream()
-                                        .anyMatch(scanIssue -> scanIssue.getLocations().get(0).getLine() == fileRef.line);
-                                LOGGER.info(format("RTS-Decorator: Skipping ignore icon as vulnerability present on line: %s for file: %s", fileRef.line, psiFile.getName()));
-                                if (!isVulnerabilityExist){
-                                    RangeHighlighter highlighter = markupModel.addLineHighlighter(fileRef.line - 1, 0, null);
-                                    addGutterIcon(highlighter, SeverityLevel.IGNORED.getSeverity());
-                                }
-                            }
-                        }
-                    }
-                }
+                addIconForIgnoredVulnerability(psiFile, scanIssueList, relativePath, ignoreEntryList, markupModel);
             } catch (Exception e) {
                 LOGGER.warn(format("RTS-Decorator: Exception occurred while adding decorating for ignored vulnerability for file: %s", psiFile.getName()), e);
             }
         }, ModalityState.NON_MODAL);
     }
 
+    /**
+     * Adds icons for ignored vulnerabilities in the specified file.
+     */
+    private void addIconForIgnoredVulnerability(PsiFile psiFile, List<ScanIssue> scanIssueList, String filePath, List<IgnoreEntry> ignoreEntryList, MarkupModel markupModel) {
+        for (IgnoreEntry ignoredVulnerability : ignoreEntryList) {
+            try {
+                List<IgnoreEntry.FileReference> matchingFileRefs = ignoredVulnerability.files.stream()
+                        .filter(fileRef -> fileRef.path.equals(filePath))
+                        .collect(Collectors.toList());
 
+                if (!matchingFileRefs.isEmpty()) {
+                    for (IgnoreEntry.FileReference fileRef : matchingFileRefs) {
+                        boolean isVulnerabilityExist = scanIssueList.stream()
+                                .anyMatch(scanIssue -> scanIssue.getLocations().get(0).getLine() == fileRef.line);
+
+                        if (isVulnerabilityExist) {
+                            LOGGER.info(format("RTS-Decorator: Skipping ignore icon as vulnerability present on line: %s for file: %s", fileRef.line, psiFile.getName()));
+                            continue;
+                        }
+                        RangeHighlighter highlighter = markupModel.addLineHighlighter(fileRef.line - 1, 0, null);
+                        addGutterIcon(highlighter, SeverityLevel.IGNORED.getSeverity());
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.warn(format("RTS-Decorator: Exception occurred while adding ignore icon for file: %s", psiFile.getName()), e);
+            }
+        }
+    }
+
+    /**
+     * Get a relative path of the given file.
+     */
+    private @Nullable String getRelativePath(Project project, PsiFile psiFile) {
+        return project.getBasePath() != null
+                ? VfsUtilCore.getRelativePath(psiFile.getVirtualFile(),
+                Objects.requireNonNull(LocalFileSystem.getInstance().findFileByPath(project.getBasePath())), '/')
+                : psiFile.getVirtualFile().getPath();
+    }
 
     /**
      * Helper class to hold relevant information for problem decoration.
