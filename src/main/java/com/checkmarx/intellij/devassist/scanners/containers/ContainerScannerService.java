@@ -216,9 +216,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
             if (Objects.nonNull(saveResult)) {
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start Container Realtime Scan On File: " + uri);
-                IgnoreManager ignoreManager = IgnoreManager.getInstance(psiFile.getProject());
-                String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
-                ContainersRealtimeResults scanResults = CxWrapperFactory.build().containersRealtimeScan(tempFilePath, ignoreFilePath);
+                ContainersRealtimeResults scanResults = CxWrapperFactory.build().containersRealtimeScan(tempFilePath, DevAssistUtils.getIgnoreFilePath(psiFile.getProject()));
                 return new ContainerScanResultAdaptor(scanResults, fileType, uri);
             }
 

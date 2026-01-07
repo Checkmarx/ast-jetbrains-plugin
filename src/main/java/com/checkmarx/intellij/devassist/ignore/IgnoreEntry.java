@@ -16,7 +16,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class IgnoreEntry {
-    public List<FileRef> files = new ArrayList<>();
+    public List<FileReference> files = new ArrayList<>();
     public ScanEngine type; // or enum
     public String similarityId;
     public String packageManager;
@@ -36,14 +36,14 @@ public final class IgnoreEntry {
 
     @Getter
     @Setter
-    public static final class FileRef {
+    public static final class FileReference {
         public String path;
         public boolean active;
         public Integer line;
 
-        public FileRef() {}
+        public FileReference() {}
 
-        public FileRef(String relativePath, boolean b, int line) {
+        public FileReference(String relativePath, boolean b, int line) {
             this.path = relativePath;
             this.active = b;
             this.line = line;

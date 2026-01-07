@@ -9,6 +9,7 @@ import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
@@ -189,9 +190,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
 
         try {
             LOGGER.info(Strings.join("Starting ASCA scan on file: ", virtualFile.getPath()));
-            IgnoreManager ignoreManager = IgnoreManager.getInstance(project);
-            String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
-            ScanResult scanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent, ignoreFilePath);
+            ScanResult scanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent, DevAssistUtils.getIgnoreFilePath(project));
             handleScanResult(file, scanResult);
             return scanResult;
         } catch (Exception e) {

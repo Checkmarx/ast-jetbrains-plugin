@@ -3,6 +3,7 @@ package com.checkmarx.intellij.devassist.utils;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
@@ -362,4 +363,17 @@ public class DevAssistUtils {
                 .findFirst()
                 .orElse(null);
     }
+
+    /**
+     * Returns the path to the temporary ignore file for the given project.
+     *
+     * @param project the project for which to get the ignore file path
+     * @return the path to the temporary ignore file, or null if the ignore manager is not available
+     */
+    public static String getIgnoreFilePath(@NotNull Project project) {
+        IgnoreManager ignoreManager = new IgnoreManager(project);
+        return ignoreManager.getIgnoreTempFilePath();
+    }
+
+
 }

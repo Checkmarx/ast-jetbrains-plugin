@@ -243,9 +243,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
             }
             this.saveCompanionFile(tempSubFolder, uri);
             LOGGER.info("Start Realtime Scan On File: " + uri);
-            IgnoreManager ignoreManager = IgnoreManager.getInstance(file.getProject());
-            String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
-            OssRealtimeResults scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath.get(), ignoreFilePath);
+            OssRealtimeResults scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath.get(), DevAssistUtils.getIgnoreFilePath(file.getProject()));
             OssScanResultAdaptor scanResultAdaptor = new OssScanResultAdaptor(scanResults, uri);
             TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.OSS);
             return scanResultAdaptor;
