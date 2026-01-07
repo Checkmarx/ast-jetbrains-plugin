@@ -1,12 +1,13 @@
 package com.checkmarx.intellij.devassist.ui.actions;
 
+import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.CxIcons;
+import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.util.messages.MessageBus;
 import com.intellij.util.messages.Topic;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,7 +36,7 @@ public class IgnoredFindingsToolbarActions {
     /** Dropdown showing vulnerability type filter options (SAST, SCA, Secrets, etc.) */
     public static class VulnerabilityTypeFilterDropdown extends ActionGroup {
         public VulnerabilityTypeFilterDropdown() {
-            getTemplatePresentation().setText("Filter");
+            getTemplatePresentation().setText(Bundle.message(Resource.IGNORED_FILTER));
             getTemplatePresentation().setIcon(CxIcons.Ignored.FILTER);
             setPopup(true);
         }
@@ -43,7 +44,7 @@ public class IgnoredFindingsToolbarActions {
         @Override
         public AnAction @NotNull [] getChildren(@Nullable AnActionEvent e) {
             return new AnAction[]{
-                new MenuHeader("Vulnerability Type"),
+                Separator.create(Bundle.message(Resource.IGNORED_VULNERABILITY_TYPE)),
                 new SASTTypeFilter(),
                 new SCATypeFilter(),
                 new SecretsTypeFilter(),
@@ -61,8 +62,8 @@ public class IgnoredFindingsToolbarActions {
     /** Dropdown showing sort options (severity, date order) */
     public static class SortDropdown extends ActionGroup {
         public SortDropdown() {
-            getTemplatePresentation().setText("Sort");
-            getTemplatePresentation().setDescription("Sort");
+            getTemplatePresentation().setText(Bundle.message(Resource.IGNORED_SORT));
+            getTemplatePresentation().setDescription(Bundle.message(Resource.IGNORED_SORT));
             getTemplatePresentation().setIcon(CxIcons.Ignored.SORT);
             setPopup(true);
         }
@@ -70,12 +71,12 @@ public class IgnoredFindingsToolbarActions {
         @Override
         public AnAction @NotNull [] getChildren(@Nullable AnActionEvent e) {
             return new AnAction[]{
-                new MenuHeader("Sort By"),
+                Separator.create(Bundle.message(Resource.IGNORED_SORT_BY)),
                 new SortBySeverityHighToLow(),
                 new SortBySeverityLowToHigh(),
                 new SortByLastUpdated(),
-                new MenuHeader("─────────"),
-                new MenuHeader("Order By"),
+                Separator.create(),
+                Separator.create(Bundle.message(Resource.IGNORED_ORDER_BY)),
                 new SortByLastUpdatedOldestFirst(),
                 new SortByLastUpdatedNewestFirst()
             };
@@ -85,27 +86,14 @@ public class IgnoredFindingsToolbarActions {
         public @NotNull ActionUpdateThread getActionUpdateThread() { return ActionUpdateThread.EDT; }
     }
 
-    // ========== Menu Helpers ==========
-
-    /** Non-clickable header/separator for dropdown menus */
-    public static class MenuHeader extends AnAction {
-        public MenuHeader(String text) {
-            super(text);
-            getTemplatePresentation().setEnabled(false);
-        }
-
-        @Override public void actionPerformed(@NotNull AnActionEvent e) { }
-        @Override public @NotNull ActionUpdateThread getActionUpdateThread() { return ActionUpdateThread.EDT; }
-    }
-
     // ========== Vulnerability Type Filters ==========
 
     /** Base class for vulnerability type filter toggles */
     public abstract static class VulnerabilityTypeFilter extends ToggleAction {
         protected final ScanEngine engineType;
 
-        public VulnerabilityTypeFilter(String text, String description, Icon icon, ScanEngine engineType) {
-            super(text, description, icon);
+        public VulnerabilityTypeFilter(String text, Icon icon, ScanEngine engineType) {
+            super(text, null, icon);
             this.engineType = engineType;
         }
 
@@ -126,55 +114,68 @@ public class IgnoredFindingsToolbarActions {
     }
 
     public static class SASTTypeFilter extends VulnerabilityTypeFilter {
-        public SASTTypeFilter() { super("SAST", "Show/hide SAST vulnerabilities", CxIcons.Ignored.ENGINE_CHIP_SAST, ScanEngine.ASCA); }
+        public SASTTypeFilter() { super(Bundle.message(Resource.IGNORED_FILTER_SAST), CxIcons.Ignored.ENGINE_CHIP_SAST, ScanEngine.ASCA); }
     }
     public static class SCATypeFilter extends VulnerabilityTypeFilter {
-        public SCATypeFilter() { super("SCA", "Show/hide SCA vulnerabilities", CxIcons.Ignored.ENGINE_CHIP_SCA, ScanEngine.OSS); }
+        public SCATypeFilter() { super(Bundle.message(Resource.IGNORED_FILTER_SCA), CxIcons.Ignored.ENGINE_CHIP_SCA, ScanEngine.OSS); }
     }
     public static class SecretsTypeFilter extends VulnerabilityTypeFilter {
-        public SecretsTypeFilter() { super("Secrets", "Show/hide Secrets vulnerabilities", CxIcons.Ignored.ENGINE_CHIP_SECRETS, ScanEngine.SECRETS); }
+        public SecretsTypeFilter() { super(Bundle.message(Resource.IGNORED_FILTER_SECRETS), CxIcons.Ignored.ENGINE_CHIP_SECRETS, ScanEngine.SECRETS); }
     }
     public static class ContainersTypeFilter extends VulnerabilityTypeFilter {
-        public ContainersTypeFilter() { super("Containers", "Show/hide Containers vulnerabilities", CxIcons.Ignored.ENGINE_CHIP_CONTAINERS, ScanEngine.CONTAINERS); }
+        public ContainersTypeFilter() { super(Bundle.message(Resource.IGNORED_FILTER_CONTAINERS), CxIcons.Ignored.ENGINE_CHIP_CONTAINERS, ScanEngine.CONTAINERS); }
     }
     public static class IaCTypeFilter extends VulnerabilityTypeFilter {
-        public IaCTypeFilter() { super("IaC", "Show/hide IaC vulnerabilities", CxIcons.Ignored.ENGINE_CHIP_IAC, ScanEngine.IAC); }
+        public IaCTypeFilter() { super(Bundle.message(Resource.IGNORED_FILTER_IAC), CxIcons.Ignored.ENGINE_CHIP_IAC, ScanEngine.IAC); }
     }
 
     // ========== Sort Actions ==========
 
-    public enum SortType {
-        SEVERITY_HIGH_TO_LOW("Severity: Critical > Low"),
-        SEVERITY_LOW_TO_HIGH("Severity: Low > Critical"),
-        LAST_UPDATED("Last Updated"),
-        OLDEST_FIRST("Oldest First"),
-        NEWEST_FIRST("Newest First");
+    /** Primary sort field selection */
+    public enum SortField {
+        SEVERITY_HIGH_TO_LOW(Resource.IGNORED_SORT_SEVERITY_HIGH_LOW),
+        SEVERITY_LOW_TO_HIGH(Resource.IGNORED_SORT_SEVERITY_LOW_HIGH),
+        LAST_UPDATED(Resource.IGNORED_SORT_LAST_UPDATED);
 
-        private final String displayName;
-        SortType(String displayName) { this.displayName = displayName; }
-        public String getDisplayName() { return displayName; }
+        private final Resource resourceKey;
+        SortField(Resource resourceKey) { this.resourceKey = resourceKey; }
+        public String getDisplayName() { return Bundle.message(resourceKey); }
     }
 
-    /** Base class for sort toggle actions */
-    public abstract static class SortAction extends ToggleAction {
-        protected final SortType sortType;
+    /** Date order selection (only applies when SortField is LAST_UPDATED) */
+    public enum DateOrder {
+        OLDEST_FIRST(Resource.IGNORED_ORDER_OLDEST_FIRST),
+        NEWEST_FIRST(Resource.IGNORED_ORDER_NEWEST_FIRST);
 
-        public SortAction(SortType sortType) {
-            super(sortType.getDisplayName());
-            this.sortType = sortType;
+        private final Resource resourceKey;
+        DateOrder(Resource resourceKey) { this.resourceKey = resourceKey; }
+        public String getDisplayName() { return Bundle.message(resourceKey); }
+    }
+
+    /** Base class for sort field toggle actions (Sort By section) */
+    public abstract static class SortFieldAction extends ToggleAction {
+        protected final SortField sortField;
+
+        public SortFieldAction(SortField sortField) {
+            super(sortField.getDisplayName());
+            this.sortField = sortField;
         }
 
         @Override
         public boolean isSelected(@NotNull AnActionEvent e) {
-            return SortState.getInstance().getCurrentSort() == sortType;
+            return SortState.getInstance().getSortField() == sortField;
         }
 
         @Override
         public void setSelected(@NotNull AnActionEvent e, boolean state) {
             if (state) {
-                SortState.getInstance().setCurrentSort(sortType);
-                ApplicationManager.getApplication().getMessageBus()
-                        .syncPublisher(SORT_TOPIC).sortChanged(sortType);
+                SortState.getInstance().setSortField(sortField);
+                // Only trigger sort for severity options (immediate effect)
+                // LAST_UPDATED requires a DateOrder selection to trigger sort
+                if (sortField != SortField.LAST_UPDATED) {
+                    ApplicationManager.getApplication().getMessageBus()
+                            .syncPublisher(SORT_TOPIC).sortChanged();
+                }
             }
         }
 
@@ -182,20 +183,61 @@ public class IgnoredFindingsToolbarActions {
         public @NotNull ActionUpdateThread getActionUpdateThread() { return ActionUpdateThread.EDT; }
     }
 
-    public static class SortBySeverityHighToLow extends SortAction {
-        public SortBySeverityHighToLow() { super(SortType.SEVERITY_HIGH_TO_LOW); }
+    /** Date order toggle action (Order By section) - only enabled when LAST_UPDATED is selected */
+    public abstract static class DateOrderAction extends ToggleAction {
+        protected final DateOrder dateOrder;
+
+        public DateOrderAction(DateOrder dateOrder) {
+            super(dateOrder.getDisplayName());
+            this.dateOrder = dateOrder;
+        }
+
+        @Override
+        public boolean isSelected(@NotNull AnActionEvent e) {
+            return SortState.getInstance().getDateOrder() == dateOrder;
+        }
+
+        @Override
+        public void setSelected(@NotNull AnActionEvent e, boolean state) {
+            if (state) {
+                SortState.getInstance().setDateOrder(dateOrder);
+                // Only trigger sort if LAST_UPDATED is the current sort field
+                if (SortState.getInstance().getSortField() == SortField.LAST_UPDATED) {
+                    ApplicationManager.getApplication().getMessageBus()
+                            .syncPublisher(SORT_TOPIC).sortChanged();
+                }
+            }
+        }
+
+        @Override
+        public void update(@NotNull AnActionEvent e) {
+            super.update(e);
+            // Disable when not sorting by LAST_UPDATED
+            boolean enabled = SortState.getInstance().getSortField() == SortField.LAST_UPDATED;
+            e.getPresentation().setEnabled(enabled);
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() { return ActionUpdateThread.EDT; }
     }
-    public static class SortBySeverityLowToHigh extends SortAction {
-        public SortBySeverityLowToHigh() { super(SortType.SEVERITY_LOW_TO_HIGH); }
+
+    // Sort By actions (primary field selection)
+    public static class SortBySeverityHighToLow extends SortFieldAction {
+        public SortBySeverityHighToLow() { super(SortField.SEVERITY_HIGH_TO_LOW); }
     }
-    public static class SortByLastUpdated extends SortAction {
-        public SortByLastUpdated() { super(SortType.LAST_UPDATED); }
+    public static class SortBySeverityLowToHigh extends SortFieldAction {
+        public SortBySeverityLowToHigh() { super(SortField.SEVERITY_LOW_TO_HIGH); }
     }
-    public static class SortByLastUpdatedOldestFirst extends SortAction {
-        public SortByLastUpdatedOldestFirst() { super(SortType.OLDEST_FIRST); }
+    public static class SortByLastUpdated extends SortFieldAction {
+        public SortByLastUpdated() { super(SortField.LAST_UPDATED); }
     }
-    public static class SortByLastUpdatedNewestFirst extends SortAction {
-        public SortByLastUpdatedNewestFirst() { super(SortType.NEWEST_FIRST); }
+
+    // Order By actions (date direction - only enabled when LAST_UPDATED is selected)
+    public static class SortByLastUpdatedOldestFirst extends DateOrderAction {
+        public SortByLastUpdatedOldestFirst() { super(DateOrder.OLDEST_FIRST); }
+    }
+    public static class SortByLastUpdatedNewestFirst extends DateOrderAction {
+        public SortByLastUpdatedNewestFirst() { super(DateOrder.NEWEST_FIRST); }
     }
 
     // ========== Severity Filters (Independent State) ==========
@@ -273,16 +315,21 @@ public class IgnoredFindingsToolbarActions {
     /** State manager for sort settings */
     public static class SortState {
         private static final SortState INSTANCE = new SortState();
-        private SortType currentSort = SortType.SEVERITY_HIGH_TO_LOW;
+        private SortField sortField = SortField.SEVERITY_HIGH_TO_LOW;
+        private DateOrder dateOrder = DateOrder.NEWEST_FIRST;
 
         private SortState() {}
 
         public static SortState getInstance() { return INSTANCE; }
-        public SortType getCurrentSort() { return currentSort; }
-        public void setCurrentSort(SortType sortType) { this.currentSort = sortType; }
+
+        public SortField getSortField() { return sortField; }
+        public void setSortField(SortField sortField) { this.sortField = sortField; }
+
+        public DateOrder getDateOrder() { return dateOrder; }
+        public void setDateOrder(DateOrder dateOrder) { this.dateOrder = dateOrder; }
     }
 
-    /** State manager for severity filters - independent from CxFindingsWindow */
+    /** State manager for severity filters - is independent of CxFindingsWindow */
     public static class IgnoredFindingsSeverityFilterState {
         private static final IgnoredFindingsSeverityFilterState INSTANCE = new IgnoredFindingsSeverityFilterState();
         private final Set<Filterable> selectedFilters = Collections.synchronizedSet(new HashSet<>());
@@ -307,6 +354,6 @@ public class IgnoredFindingsToolbarActions {
     // ========== Listener Interfaces ==========
 
     public interface TypeFilterChanged { void filterChanged(); }
-    public interface SortChanged { void sortChanged(SortType sortType); }
+    public interface SortChanged { void sortChanged(); }
     public interface SeverityFilterChanged { void filterChanged(); }
 }

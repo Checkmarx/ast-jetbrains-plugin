@@ -19,6 +19,7 @@ import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.LogicalPosition;
@@ -74,6 +75,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private final List<IgnoredEntryPanel> entryPanels = new ArrayList<>();
 
     private JCheckBox selectAllCheckbox;
+    private JPanel headerPanel;
     private List<IgnoreEntry> allEntries = new ArrayList<>();
     private long lastKnownModificationTime = 0;
 
@@ -109,7 +111,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         // Sort changes
         projectBus.subscribe(IgnoredFindingsToolbarActions.SORT_TOPIC,
-                (IgnoredFindingsToolbarActions.SortChanged) sortType -> onFilterChanged());
+                (IgnoredFindingsToolbarActions.SortChanged) this::onFilterChanged);
 
         // Ignore file updates
         projectBus.subscribe(IgnoreFileManager.IGNORE_TOPIC,
@@ -164,12 +166,14 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private void refreshVirtualFileSystem() {
         Path ignoreFilePath = getIgnoreFilePath();
         if (ignoreFilePath != null) {
-            VirtualFile vf = LocalFileSystem.getInstance().findFileByIoFile(ignoreFilePath.toFile());
-            if (vf != null) vf.refresh(false, false);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                VirtualFile vf = LocalFileSystem.getInstance().findFileByIoFile(ignoreFilePath.toFile());
+                if (vf != null) vf.refresh(false, false);
+            }, ModalityState.NON_MODAL);
         }
     }
 
-    /** Checks if ignore file was modified externally and refreshes UI while preserving selections. */
+    /** Checks if an ignored file was modified externally and refreshes the UI while preserving selections. */
     private void checkAndRefreshIfNeeded() {
         if (!new GlobalSettingsComponent().isValid()) return;
 
@@ -180,7 +184,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             if (!Files.exists(ignoreFilePath)) {
                 if (lastKnownModificationTime != 0 && !allEntries.isEmpty()) {
                     lastKnownModificationTime = 0;
-                    refreshIgnoredEntries();
+                    ApplicationManager.getApplication().invokeLater(this::refreshIgnoredEntries);
                 }
                 return;
             }
@@ -190,17 +194,18 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 LOGGER.debug("Ignore file modified, refreshing UI");
                 lastKnownModificationTime = currentModTime;
 
-                VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(ignoreFilePath.toFile());
-                if (vf != null) vf.refresh(false, false);
-
-                ApplicationManager.getApplication().invokeLater(this::refreshIgnoredEntries);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(ignoreFilePath.toFile());
+                    if (vf != null) vf.refresh(false, false);
+                    refreshIgnoredEntries();
+                }, ModalityState.NON_MODAL);
             }
         } catch (Exception e) {
             LOGGER.warn("Error checking ignore file modification time", e);
         }
     }
 
-    /** Displays authentication panel when settings are not configured. */
+    /** Displays the authentication panel when settings are not configured. */
 
     private void drawAuthPanel() {
         removeAll();
@@ -259,7 +264,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     }
 
     private void drawEmptyStatePanel() {
-        setContent(createEmptyMessagePanel("No ignored findings"));
+        setContent(createEmptyMessagePanel(Bundle.message(Resource.IGNORED_NO_FINDINGS)));
         setToolbar(null);
         updateTabTitle(0);
     }
@@ -281,7 +286,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return container;
     }
 
-    /** Creates toolbar with severity filters, type filter dropdown, and sort dropdown. */
+    /** Creates a toolbar with severity filters, type filter dropdown, and sort dropdown. */
 
     private ActionToolbar createActionToolbar() {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
@@ -331,8 +336,11 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     }
 
     private void sortEntries(List<IgnoreEntry> entries) {
-        IgnoredFindingsToolbarActions.SortType sort = IgnoredFindingsToolbarActions.SortState.getInstance().getCurrentSort();
-        switch (sort) {
+        IgnoredFindingsToolbarActions.SortState state = IgnoredFindingsToolbarActions.SortState.getInstance();
+        IgnoredFindingsToolbarActions.SortField sortField = state.getSortField();
+        IgnoredFindingsToolbarActions.DateOrder dateOrder = state.getDateOrder();
+
+        switch (sortField) {
             case SEVERITY_HIGH_TO_LOW:
                 entries.sort((a, b) -> Integer.compare(getSeverityLevel(b.severity), getSeverityLevel(a.severity)));
                 break;
@@ -340,11 +348,12 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 entries.sort((a, b) -> Integer.compare(getSeverityLevel(a.severity), getSeverityLevel(b.severity)));
                 break;
             case LAST_UPDATED:
-            case OLDEST_FIRST:
-                entries.sort((a, b) -> compareDates(a.dateAdded, b.dateAdded));
-                break;
-            case NEWEST_FIRST:
-                entries.sort((a, b) -> compareDates(b.dateAdded, a.dateAdded));
+                // Sort by date based on the selected date order
+                if (dateOrder == IgnoredFindingsToolbarActions.DateOrder.OLDEST_FIRST) {
+                    entries.sort((a, b) -> compareDates(a.dateAdded, b.dateAdded));
+                } else {
+                    entries.sort((a, b) -> compareDates(b.dateAdded, a.dateAdded));
+                }
                 break;
         }
     }
@@ -376,9 +385,11 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private void displayFilteredEntries(List<IgnoreEntry> entries) {
         ignoredListPanel.removeAll();
         entryPanels.clear();
-
+        if (headerPanel != null) {
+            headerPanel.setVisible(!entries.isEmpty());
+        }
         if (entries.isEmpty()) {
-            ignoredListPanel.add(createEmptyMessagePanel("No ignored vulnerabilities"));
+            ignoredListPanel.add(createEmptyMessagePanel(Bundle.message(Resource.IGNORED_NO_FINDINGS)));
         } else {
             entries.forEach(entry -> {
                 IgnoredEntryPanel panel = new IgnoredEntryPanel(entry);
@@ -386,15 +397,14 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 ignoredListPanel.add(panel);
             });
         }
-
         updateSelectAllCheckbox();
         ignoredListPanel.revalidate();
         ignoredListPanel.repaint();
     }
 
-    /** Creates header with column titles: Checkbox, Risk, Last Updated, Actions. */
+    /** Creates a header with column titles: Checkbox, Risk, Last Updated, Actions. */
     private JPanel createHeaderPanel() {
-        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
         headerPanel.setBorder(JBUI.Borders.empty(12, 12, 0, 12));
 
@@ -404,13 +414,13 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         columns.setBorder(JBUI.Borders.empty(12, 0, 8, 0));
 
         // Checkbox | Risk | Last Updated | Actions
-        columns.add(createFixedColumn(50, 30, createSelectAllCheckbox()));
+        columns.add(createFixedColumn(50, createSelectAllCheckbox()));
         columns.add(Box.createRigidArea(new Dimension(JBUI.scale(12), 0)));
-        columns.add(createFlexibleColumn("Risk", 400, 500, 800, FlowLayout.LEFT));
+        columns.add(createFlexibleColumn(Bundle.message(Resource.IGNORED_RISK_COLUMN), 400, 500, 800, FlowLayout.LEFT));
         columns.add(Box.createHorizontalGlue());
-        columns.add(createFlexibleColumn("Last Updated", 120, 140, 160, FlowLayout.CENTER));
+        columns.add(createFlexibleColumn(Bundle.message(Resource.IGNORED_LAST_UPDATED_COLUMN), 120, 140, 160, FlowLayout.CENTER));
         columns.add(Box.createHorizontalGlue());
-        columns.add(createFixedColumn(140, 30, null));
+        columns.add(createFixedColumn(140, null));
 
         headerPanel.add(columns, BorderLayout.CENTER);
         return headerPanel;
@@ -423,10 +433,12 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return selectAllCheckbox;
     }
 
-    private JPanel createFixedColumn(int width, int height, Component component) {
+    private static final int HEADER_ROW_HEIGHT = 30;
+
+    private JPanel createFixedColumn(int width, Component component) {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         panel.setOpaque(false);
-        Dimension size = new Dimension(JBUI.scale(width), JBUI.scale(height));
+        Dimension size = new Dimension(JBUI.scale(width), JBUI.scale(HEADER_ROW_HEIGHT));
         panel.setPreferredSize(size);
         panel.setMinimumSize(size);
         panel.setMaximumSize(size);
@@ -434,12 +446,13 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return panel;
     }
 
+    @SuppressWarnings("MagicConstant")
     private JPanel createFlexibleColumn(String title, int min, int pref, int max, int alignment) {
         JPanel panel = new JPanel(new FlowLayout(alignment, alignment == FlowLayout.LEFT ? JBUI.scale(20) : 0, 0));
         panel.setOpaque(false);
-        panel.setMinimumSize(new Dimension(JBUI.scale(min), JBUI.scale(30)));
-        panel.setPreferredSize(new Dimension(JBUI.scale(pref), JBUI.scale(30)));
-        panel.setMaximumSize(new Dimension(JBUI.scale(max), JBUI.scale(30)));
+        panel.setMinimumSize(new Dimension(JBUI.scale(min), JBUI.scale(HEADER_ROW_HEIGHT)));
+        panel.setPreferredSize(new Dimension(JBUI.scale(pref), JBUI.scale(HEADER_ROW_HEIGHT)));
+        panel.setMaximumSize(new Dimension(JBUI.scale(max), JBUI.scale(HEADER_ROW_HEIGHT)));
 
         JLabel label = new JLabel(title);
         label.setFont(JBUI.Fonts.label(12).asBold());
@@ -546,7 +559,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
 
         private JPanel buildCheckboxColumn() {
-            JPanel panel = createSizedPanel(50, 80, 96);
+            JPanel panel = createCheckboxColumnPanel();
             JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
             wrapper.setOpaque(false);
             wrapper.add(selectCheckBox);
@@ -556,11 +569,11 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         private JPanel buildRiskColumn() {
             JPanel riskPanel = buildRiskContent();
-            setSizes(riskPanel, 400, 500, 800, 60, 80, Integer.MAX_VALUE);
+            setColumnSizes(riskPanel, 400, 500, 800, 60);
 
             JPanel container = new JPanel(new BorderLayout());
             container.setOpaque(false);
-            setSizes(container, 400, 500, 800, 60, 80, Integer.MAX_VALUE);
+            setColumnSizes(container, 400, 500, 800, 60);
             container.add(riskPanel, BorderLayout.CENTER);
             return container;
         }
@@ -568,7 +581,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         private JPanel buildLastUpdatedColumn() {
             JPanel panel = new JPanel(new BorderLayout());
             panel.setOpaque(false);
-            setSizes(panel, 120, 140, 160, 80, 80, Integer.MAX_VALUE);
+            setColumnSizes(panel, 120, 140, 160, ROW_HEIGHT);
 
             JLabel label = new JLabel(formatRelativeDate(entry.dateAdded));
             label.setFont(JBUI.Fonts.label(12));
@@ -582,7 +595,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         private JPanel buildActionsColumn() {
             JPanel panel = new JPanel(new GridBagLayout());
             panel.setOpaque(false);
-            setSizes(panel, 120, 140, 160, 80, 80, Integer.MAX_VALUE);
+            setColumnSizes(panel, 120, 140, 160, ROW_HEIGHT);
 
             JButton reviveButton = new JButton(CxIcons.Ignored.REVIVE);
             reviveButton.setPreferredSize(new Dimension(JBUI.scale(90), JBUI.scale(28)));
@@ -591,7 +604,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.anchor = GridBagConstraints.FIRST_LINE_START;
-            gbc.insets = JBUI.insets(10, 0, 0, 0);
+            gbc.insets = JBUI.insetsTop(10);
             panel.add(reviveButton, gbc);
             return panel;
         }
@@ -617,7 +630,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             topLine.add(nameLabel);
             panel.add(topLine);
 
-            // Bottom: engine chip + file buttons
+            // Bottom: engine chip and file buttons
             JPanel bottomLine = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(8), JBUI.scale(2)));
             bottomLine.setOpaque(false);
             bottomLine.add(new JLabel(getEngineChipIcon()));
@@ -667,11 +680,11 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         private Icon getEngineChipIcon() {
             switch (entry.type) {
-                case OSS: return CxIcons.Ignored.ENGINE_CHIP_SCA;
                 case SECRETS: return CxIcons.Ignored.ENGINE_CHIP_SECRETS;
                 case IAC: return CxIcons.Ignored.ENGINE_CHIP_IAC;
                 case ASCA: return CxIcons.Ignored.ENGINE_CHIP_SAST;
                 case CONTAINERS: return CxIcons.Ignored.ENGINE_CHIP_CONTAINERS;
+                case OSS:
                 default: return CxIcons.Ignored.ENGINE_CHIP_SCA;
             }
         }
@@ -687,7 +700,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                     : List.of();
 
             if (activeFiles.isEmpty()) {
-                JLabel none = new JLabel("No files");
+                JLabel none = new JLabel(Bundle.message(Resource.IGNORED_NO_FILES));
                 none.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
                 container.add(none);
                 return container;
@@ -697,7 +710,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
             if (activeFiles.size() > 1) {
                 List<IgnoreEntry.FileReference> hidden = activeFiles.subList(1, activeFiles.size());
-                JButton expand = new JButton("and " + hidden.size() + " more files");
+                JButton expand = new JButton(Bundle.message(Resource.IGNORED_MORE_FILES, hidden.size()));
                 expand.addActionListener(ev -> {
                     container.remove(expand);
                     hidden.forEach(f -> container.add(createFileButton(f)));
@@ -730,8 +743,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             VirtualFile vFile = resolveVirtualFile(file.path);
             if (vFile == null) {
                 com.intellij.openapi.ui.Messages.showWarningDialog(project,
-                        "Could not open file: " + file.path + "\nThe file may have been moved or deleted.",
-                        "File Navigation Error");
+                        Bundle.message(Resource.IGNORED_FILE_OPEN_ERROR, file.path),
+                        Bundle.message(Resource.IGNORED_FILE_NAV_ERROR));
                 return;
             }
 
@@ -739,7 +752,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 FileEditor[] editors = FileEditorManager.getInstance(project).openFile(vFile, true);
                 if (editors.length == 0) {
                     com.intellij.openapi.ui.Messages.showErrorDialog(project,
-                            "Could not open file in editor: " + file.path, "File Navigation Error");
+                            Bundle.message(Resource.IGNORED_FILE_OPEN_ERROR, file.path),
+                            Bundle.message(Resource.IGNORED_FILE_NAV_ERROR));
                     return;
                 }
 
@@ -752,7 +766,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             } catch (Exception e) {
                 LOGGER.warn("Error opening file: " + file.path, e);
                 com.intellij.openapi.ui.Messages.showErrorDialog(project,
-                        "Error opening file: " + e.getMessage(), "File Navigation Error");
+                        Bundle.message(Resource.IGNORED_FILE_ERROR, e.getMessage()),
+                        Bundle.message(Resource.IGNORED_FILE_NAV_ERROR));
             }
         }
 
@@ -783,31 +798,30 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
 
         private String formatDisplayName() {
-            String key = entry.packageName != null ? entry.packageName : "Unknown";
+            String key = entry.packageName != null ? entry.packageName : Bundle.message(Resource.IGNORED_UNKNOWN);
             switch (entry.type) {
                 case OSS:
                     String mgr = entry.packageManager != null ? entry.packageManager : "pkg";
                     String ver = entry.packageVersion != null ? entry.packageVersion : "";
                     return mgr + "@" + key + (ver.isEmpty() ? "" : "@" + ver);
-                case SECRETS:
-                case IAC:
-                    return key;
                 case ASCA:
                     return entry.title != null ? entry.title : key;
                 case CONTAINERS:
                     String tag = entry.imageTag != null ? entry.imageTag : entry.packageVersion;
                     return key + (tag != null && !tag.isEmpty() ? "@" + tag : "");
+                case SECRETS:
+                case IAC:
                 default:
                     return key;
             }
         }
 
         private String formatRelativeDate(String isoDate) {
-            if (isoDate == null || isoDate.isEmpty()) return "Unknown";
+            if (isoDate == null || isoDate.isEmpty()) return Bundle.message(Resource.IGNORED_UNKNOWN);
             try {
                 ZonedDateTime then = ZonedDateTime.parse(isoDate);
                 long days = ChronoUnit.DAYS.between(then.toLocalDate(), ZonedDateTime.now().toLocalDate());
-                if (days == 0) return "Today";
+                if (days == 0) return Bundle.message(Resource.IGNORED_TODAY);
                 if (days == 1) return "1 day ago";
                 if (days < 7) return days + " days ago";
                 if (days < 30) return (days / 7) + " weeks ago";
@@ -820,19 +834,25 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         // ---------- UI Helpers ----------
 
-        private JPanel createSizedPanel(int width, int height, int maxHeight) {
+        private static final int CHECKBOX_COL_WIDTH = 50;
+        private static final int ROW_HEIGHT = 80;
+        private static final int ROW_MAX_HEIGHT = 96;
+
+        /** Creates a panel for the checkbox column with fixed dimensions. */
+        private JPanel createCheckboxColumnPanel() {
             JPanel panel = new JPanel(new BorderLayout());
             panel.setOpaque(false);
-            panel.setPreferredSize(new Dimension(JBUI.scale(width), JBUI.scale(height)));
-            panel.setMinimumSize(new Dimension(JBUI.scale(width), JBUI.scale(height)));
-            panel.setMaximumSize(new Dimension(JBUI.scale(width), JBUI.scale(maxHeight)));
+            panel.setPreferredSize(new Dimension(JBUI.scale(CHECKBOX_COL_WIDTH), JBUI.scale(ROW_HEIGHT)));
+            panel.setMinimumSize(new Dimension(JBUI.scale(CHECKBOX_COL_WIDTH), JBUI.scale(ROW_HEIGHT)));
+            panel.setMaximumSize(new Dimension(JBUI.scale(CHECKBOX_COL_WIDTH), JBUI.scale(ROW_MAX_HEIGHT)));
             return panel;
         }
 
-        private void setSizes(JPanel panel, int minW, int prefW, int maxW, int minH, int prefH, int maxH) {
+        /** Sets horizontal sizing with flexible height (min=minH, pref=ROW_HEIGHT, max=unlimited). */
+        private void setColumnSizes(JPanel panel, int minW, int prefW, int maxW, int minH) {
             panel.setMinimumSize(new Dimension(JBUI.scale(minW), JBUI.scale(minH)));
-            panel.setPreferredSize(new Dimension(JBUI.scale(prefW), JBUI.scale(prefH)));
-            panel.setMaximumSize(new Dimension(JBUI.scale(maxW), maxH == Integer.MAX_VALUE ? maxH : JBUI.scale(maxH)));
+            panel.setPreferredSize(new Dimension(JBUI.scale(prefW), JBUI.scale(ROW_HEIGHT)));
+            panel.setMaximumSize(new Dimension(JBUI.scale(maxW), Integer.MAX_VALUE));
         }
 
         private void setupHoverEffect() {
