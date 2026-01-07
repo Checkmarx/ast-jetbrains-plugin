@@ -32,29 +32,37 @@ import java.util.function.Consumer;
 /**
  * Utility class for integrating with GitHub Copilot Chat in IntelliJ IDEA.
  *
- * <p>This class provides automated interaction with Copilot Chat to send fix prompts.
+ * <p>
+ * This class provides automated interaction with Copilot Chat to send fix
+ * prompts.
  * Since GitHub Copilot does not expose a public API, this implementation uses
- * component-based UI automation with reflection to access Copilot's internal components.
+ * component-based UI automation with reflection to access Copilot's internal
+ * components.
  *
  * <h3>Integration Flow:</h3>
  * <ol>
- *   <li>Copy prompt to clipboard (safety fallback)</li>
- *   <li>Open Copilot Chat tool window</li>
- *   <li>Switch to Agent mode using popup simulation</li>
- *   <li>Paste prompt into input field</li>
- *   <li>Send message via Enter key simulation</li>
+ * <li>Copy prompt to clipboard (safety fallback)</li>
+ * <li>Open Copilot Chat tool window</li>
+ * <li>Switch to Agent mode using popup simulation</li>
+ * <li>Paste prompt into input field</li>
+ * <li>Send message via Enter key simulation</li>
  * </ol>
  *
  * <h3>Agent Mode Selection:</h3>
- * <p>The key insight is that Copilot's ChatModeComboBox requires the full popup
- * interaction sequence (open → select → close) to properly initialize Agent mode.
- * Simply calling {@code setSelectedItem()} does not trigger the internal handlers.
+ * <p>
+ * The key insight is that Copilot's ChatModeComboBox requires the full popup
+ * interaction sequence (open → select → close) to properly initialize Agent
+ * mode.
+ * Simply calling {@code setSelectedItem()} does not trigger the internal
+ * handlers.
  *
  * <h3>Fallback Behavior:</h3>
- * <p>If automation fails, the prompt remains in the clipboard and the user is
+ * <p>
+ * If automation fails, the prompt remains in the clipboard and the user is
  * notified to paste manually.
  *
- * @see <a href="https://github.com/orgs/community/discussions/172311">GitHub Copilot API Discussion</a>
+ * @see <a href="https://github.com/orgs/community/discussions/172311">GitHub
+ *      Copilot API Discussion</a>
  */
 public final class CopilotIntegration {
 
@@ -69,16 +77,16 @@ public final class CopilotIntegration {
     private static final class Timing {
         /** Delay after opening Copilot to allow UI to fully render */
         static final int COPILOT_OPEN_DELAY_MS = 1200;
-        
+
         /** Delay for Agent mode UI panel to fully load after mode switch */
         static final int AGENT_MODE_DELAY_MS = 800;
-        
+
         /** Delay for dropdown popup to open */
         static final int POPUP_OPEN_DELAY_MS = 100;
-        
+
         /** Delay after selecting item in dropdown */
         static final int POPUP_SELECT_DELAY_MS = 100;
-        
+
         /** Delay after closing dropdown popup (allows internal handlers to complete) */
         static final int POPUP_CLOSE_DELAY_MS = 200;
     }
@@ -128,20 +136,34 @@ public final class CopilotIntegration {
             this.exception = exception;
         }
 
-        public OperationResult getResult() { return result; }
-        public String getMessage() { return message; }
-        public @Nullable Exception getException() { return exception; }
-        public boolean isSuccess() { return result == OperationResult.FULL_SUCCESS || result == OperationResult.PARTIAL_SUCCESS; }
+        public OperationResult getResult() {
+            return result;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public @Nullable Exception getException() {
+            return exception;
+        }
+
+        public boolean isSuccess() {
+            return result == OperationResult.FULL_SUCCESS || result == OperationResult.PARTIAL_SUCCESS;
+        }
 
         static IntegrationResult fullSuccess(String message) {
             return new IntegrationResult(OperationResult.FULL_SUCCESS, message, null);
         }
+
         static IntegrationResult partialSuccess(String message) {
             return new IntegrationResult(OperationResult.PARTIAL_SUCCESS, message, null);
         }
+
         static IntegrationResult copilotNotAvailable(String message) {
             return new IntegrationResult(OperationResult.COPILOT_NOT_AVAILABLE, message, null);
         }
+
         static IntegrationResult failed(String message, @Nullable Exception e) {
             return new IntegrationResult(OperationResult.FAILED, message, e);
         }
@@ -154,17 +176,19 @@ public final class CopilotIntegration {
     // ==================== Public API ====================
 
     /**
-     * Opens Copilot chat, switches to agent mode, pastes the prompt, and sends it automatically.
+     * Opens Copilot chat, switches to agent mode, pastes the prompt, and sends it
+     * automatically.
      * This provides a fully automated one-click fix experience.
      *
-     * <p>The operation follows these steps:
+     * <p>
+     * The operation follows these steps:
      * <ol>
-     *   <li>Copy prompt to clipboard (always done first as fallback)</li>
-     *   <li>Attempt to open Copilot chat tool window</li>
-     *   <li>Wait for Copilot to gain focus</li>
-     *   <li>Switch to Agent mode using dropdown navigation</li>
-     *   <li>Paste the prompt from clipboard</li>
-     *   <li>Send the message</li>
+     * <li>Copy prompt to clipboard (always done first as fallback)</li>
+     * <li>Attempt to open Copilot chat tool window</li>
+     * <li>Wait for Copilot to gain focus</li>
+     * <li>Switch to Agent mode using dropdown navigation</li>
+     * <li>Paste the prompt from clipboard</li>
+     * <li>Send the message</li>
      * </ol>
      *
      * @param prompt  The fix prompt to send to Copilot
@@ -181,7 +205,8 @@ public final class CopilotIntegration {
      *
      * @param prompt   The fix prompt to send to Copilot
      * @param project  The current project context
-     * @param callback Optional callback to receive the detailed result (called on EDT)
+     * @param callback Optional callback to receive the detailed result (called on
+     *                 EDT)
      * @return Immediate result indicating if operation was initiated
      */
     public static IntegrationResult openCopilotWithPromptDetailed(
@@ -262,14 +287,16 @@ public final class CopilotIntegration {
     /**
      * Schedules the automated prompt entry sequence.
      * 
-     * <p>This method runs asynchronously to avoid blocking the EDT. It performs:
+     * <p>
+     * This method runs asynchronously to avoid blocking the EDT. It performs:
      * <ol>
-     *   <li>Wait for Copilot UI to fully initialize</li>
-     *   <li>Switch to Agent mode via component automation</li>
-     *   <li>Paste prompt and send message</li>
+     * <li>Wait for Copilot UI to fully initialize</li>
+     * <li>Switch to Agent mode via component automation</li>
+     * <li>Paste prompt and send message</li>
      * </ol>
      * 
-     * <p>If automation fails, the prompt remains in clipboard for manual paste.
+     * <p>
+     * If automation fails, the prompt remains in clipboard for manual paste.
      *
      * @param project  The current project context
      * @param prompt   The fix prompt to send
@@ -299,7 +326,7 @@ public final class CopilotIntegration {
                     LOGGER.warn("CxFix: Automation failed, prompt available in clipboard");
                     result = IntegrationResult.partialSuccess(
                             "Copilot opened but automation failed. " +
-                            "The fix prompt has been copied to your clipboard - please paste manually (Ctrl/Cmd+V).");
+                                    "The fix prompt has been copied to your clipboard - please paste manually (Ctrl/Cmd+V).");
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -317,14 +344,16 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Performs component-based automation by directly interacting with Copilot's UI components.
+     * Performs component-based automation by directly interacting with Copilot's UI
+     * components.
      *
-     * <p>This approach uses Swing component traversal and reflection to:
+     * <p>
+     * This approach uses Swing component traversal and reflection to:
      * <ol>
-     *   <li>Find and interact with the ChatModeComboBox to switch to Agent mode</li>
-     *   <li>Wait for the Agent mode UI panel to load</li>
-     *   <li>Find the chat input field and set the prompt text</li>
-     *   <li>Send the message via button click or Enter key simulation</li>
+     * <li>Find and interact with the ChatModeComboBox to switch to Agent mode</li>
+     * <li>Wait for the Agent mode UI panel to load</li>
+     * <li>Find the chat input field and set the prompt text</li>
+     * <li>Send the message via button click or Enter key simulation</li>
      * </ol>
      *
      * @param project The current project context
@@ -417,11 +446,12 @@ public final class CopilotIntegration {
     /**
      * Sends the message using available methods in order of preference.
      *
-     * <p>Attempts:
+     * <p>
+     * Attempts:
      * <ol>
-     *   <li>Find and click a "Send" button</li>
-     *   <li>Find and click an action button near the input field</li>
-     *   <li>Simulate Enter key press on the input field</li>
+     * <li>Find and click a "Send" button</li>
+     * <li>Find and click an action button near the input field</li>
+     * <li>Simulate Enter key press on the input field</li>
      * </ol>
      *
      * @param toolWindow The Copilot tool window
@@ -478,27 +508,27 @@ public final class CopilotIntegration {
             String tooltip = button.getToolTipText();
             String name = button.getName();
             String className = button.getClass().getSimpleName().toLowerCase();
-            
+
             // Check text
             if (text != null) {
                 String lowerText = text.toLowerCase();
-                if (lowerText.contains("send") || lowerText.contains("submit") || 
-                    lowerText.equals("go") || lowerText.equals("run")) {
+                if (lowerText.contains("send") || lowerText.contains("submit") ||
+                        lowerText.equals("go") || lowerText.equals("run")) {
                     LOGGER.debug("CxFix: Found send button by text: '" + text + "'");
                     return button;
                 }
             }
-            
+
             // Check tooltip
             if (tooltip != null) {
                 String lowerTooltip = tooltip.toLowerCase();
-                if (lowerTooltip.contains("send") || lowerTooltip.contains("submit") || 
-                    lowerTooltip.contains("execute") || lowerTooltip.contains("run")) {
+                if (lowerTooltip.contains("send") || lowerTooltip.contains("submit") ||
+                        lowerTooltip.contains("execute") || lowerTooltip.contains("run")) {
                     LOGGER.debug("CxFix: Found send button by tooltip: '" + tooltip + "'");
                     return button;
                 }
             }
-            
+
             // Check name
             if (name != null) {
                 String lowerName = name.toLowerCase();
@@ -507,7 +537,7 @@ public final class CopilotIntegration {
                     return button;
                 }
             }
-            
+
             // Check class name
             if (className.contains("send") || className.contains("submit")) {
                 LOGGER.debug("CxFix: Found send button by class: " + button.getClass().getSimpleName());
@@ -531,39 +561,40 @@ public final class CopilotIntegration {
      * Finds an action button (likely send) that is positioned near the input field.
      * Copilot typically has an icon button next to/below the input field.
      */
-    private static @Nullable AbstractButton findActionButton(@NotNull ToolWindow toolWindow, @NotNull JTextComponent inputField) {
+    private static @Nullable AbstractButton findActionButton(@NotNull ToolWindow toolWindow,
+            @NotNull JTextComponent inputField) {
         Container parent = inputField.getParent();
-        
+
         // Walk up the hierarchy looking for sibling buttons
         while (parent != null) {
             for (Component sibling : parent.getComponents()) {
                 if (sibling instanceof AbstractButton && sibling != inputField) {
                     AbstractButton button = (AbstractButton) sibling;
                     // Look for icon-only buttons (send buttons often have no text)
-                    if ((button.getText() == null || button.getText().isEmpty()) && 
-                        button.getIcon() != null && button.isEnabled() && button.isVisible()) {
-                        
+                    if ((button.getText() == null || button.getText().isEmpty()) &&
+                            button.getIcon() != null && button.isEnabled() && button.isVisible()) {
+
                         // Check if it's positioned to the right or below the input
                         Rectangle inputBounds = inputField.getBounds();
                         Rectangle buttonBounds = button.getBounds();
-                        
+
                         // Button should be near the input field
                         if (buttonBounds.x >= inputBounds.x + inputBounds.width - 50 ||
-                            buttonBounds.y >= inputBounds.y + inputBounds.height - 10) {
-                            LOGGER.debug("CxFix: Found action button near input field: " + 
+                                buttonBounds.y >= inputBounds.y + inputBounds.height - 10) {
+                            LOGGER.debug("CxFix: Found action button near input field: " +
                                     button.getClass().getSimpleName());
                             return button;
                         }
                     }
                 }
             }
-            
+
             // Also search all buttons in the parent
             AbstractButton anyButton = findFirstEnabledIconButton(parent);
             if (anyButton != null) {
                 return anyButton;
             }
-            
+
             parent = parent.getParent();
             // Don't go too far up the hierarchy
             if (parent != null && parent.getClass().getSimpleName().contains("ToolWindow")) {
@@ -582,10 +613,11 @@ public final class CopilotIntegration {
                 AbstractButton button = (AbstractButton) comp;
                 String className = button.getClass().getSimpleName().toLowerCase();
                 // Look for buttons that might be send buttons
-                if (className.contains("send") || className.contains("submit") || 
-                    className.contains("action") || className.contains("run")) {
+                if (className.contains("send") || className.contains("submit") ||
+                        className.contains("action") || className.contains("run")) {
                     if (button.isEnabled() && button.isVisible()) {
-                        LOGGER.debug("CxFix: Found potential send button by class: " + button.getClass().getSimpleName());
+                        LOGGER.debug(
+                                "CxFix: Found potential send button by class: " + button.getClass().getSimpleName());
                         return button;
                     }
                 }
@@ -612,20 +644,18 @@ public final class CopilotIntegration {
                     System.currentTimeMillis(),
                     0,
                     KeyEvent.VK_ENTER,
-                    '\n'
-            );
+                    '\n');
             KeyEvent enterReleased = new KeyEvent(
                     inputField,
                     KeyEvent.KEY_RELEASED,
                     System.currentTimeMillis(),
                     0,
                     KeyEvent.VK_ENTER,
-                    '\n'
-            );
-            
+                    '\n');
+
             inputField.dispatchEvent(enterPressed);
             inputField.dispatchEvent(enterReleased);
-            
+
             LOGGER.debug("CxFix: Enter key event dispatched");
             return true;
         } catch (Exception e) {
@@ -636,13 +666,14 @@ public final class CopilotIntegration {
 
     /**
      * Logs all UI components in the Copilot tool window for debugging purposes.
-     * This is useful when Copilot's internal UI structure changes and automation needs updating.
+     * This is useful when Copilot's internal UI structure changes and automation
+     * needs updating.
      */
     private static void logAllComponents(@NotNull ToolWindow toolWindow) {
         if (!LOGGER.isDebugEnabled()) {
             return; // Skip expensive component traversal if debug logging is disabled
         }
-        
+
         LOGGER.debug("CxFix: === Starting component hierarchy dump ===");
         Content[] contents = toolWindow.getContentManager().getContents();
         for (int i = 0; i < contents.length; i++) {
@@ -675,7 +706,8 @@ public final class CopilotIntegration {
             JComboBox<?> combo = (JComboBox<?>) component;
             StringBuilder items = new StringBuilder();
             for (int i = 0; i < combo.getItemCount(); i++) {
-                if (i > 0) items.append(", ");
+                if (i > 0)
+                    items.append(", ");
                 Object item = combo.getItemAt(i);
                 String displayName = extractModeDisplayName(item);
                 items.append("[").append(i).append("]=").append(displayName);
@@ -692,15 +724,15 @@ public final class CopilotIntegration {
             LOGGER.debug("CxFix: Button: " + componentInfo);
         } else if (component instanceof JTextComponent) {
             JTextComponent text = (JTextComponent) component;
-            componentInfo += " Editable: " + text.isEditable() + ", Text length: " + 
+            componentInfo += " Editable: " + text.isEditable() + ", Text length: " +
                     (text.getText() != null ? text.getText().length() : 0);
             LOGGER.debug("CxFix: TextComponent: " + componentInfo);
         }
 
         // Log components that might be mode selectors (useful for troubleshooting)
         String className = component.getClass().getName().toLowerCase();
-        if (className.contains("dropdown") || className.contains("combo") || 
-            className.contains("mode") || className.contains("picker")) {
+        if (className.contains("dropdown") || className.contains("combo") ||
+                className.contains("mode") || className.contains("picker")) {
             LOGGER.debug("CxFix: POTENTIAL MODE SELECTOR: " + componentInfo);
         }
 
@@ -714,12 +746,14 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Attempts to switch to Agent mode by finding and interacting with the mode dropdown.
+     * Attempts to switch to Agent mode by finding and interacting with the mode
+     * dropdown.
      *
-     * <p>Searches the tool window contents for:
+     * <p>
+     * Searches the tool window contents for:
      * <ol>
-     *   <li>ChatModeComboBox (primary) - the standard mode dropdown</li>
-     *   <li>Mode button (fallback) - for alternative UI layouts</li>
+     * <li>ChatModeComboBox (primary) - the standard mode dropdown</li>
+     * <li>Mode button (fallback) - for alternative UI layouts</li>
      * </ol>
      *
      * @param toolWindow The Copilot tool window
@@ -749,7 +783,8 @@ public final class CopilotIntegration {
     /**
      * Finds the index of the Agent mode in the combo box.
      *
-     * <p>Looks for the exact "Agent" mode (id=Agent) rather than other modes
+     * <p>
+     * Looks for the exact "Agent" mode (id=Agent) rather than other modes
      * that might have kind=Agent (like "Plan").
      *
      * @param comboBox The ChatModeComboBox
@@ -774,10 +809,11 @@ public final class CopilotIntegration {
     /**
      * Recursively searches for the ChatModeComboBox component.
      *
-     * <p>Identifies the combo box by:
+     * <p>
+     * Identifies the combo box by:
      * <ol>
-     *   <li>Class name containing "ChatMode" or "ModeCombo"</li>
-     *   <li>Item types containing "ChatModeItem" or "Mode"</li>
+     * <li>Class name containing "ChatMode" or "ModeCombo"</li>
+     * <li>Item types containing "ChatModeItem" or "Mode"</li>
      * </ol>
      *
      * @param component The root component to search from
@@ -787,14 +823,14 @@ public final class CopilotIntegration {
         if (component instanceof JComboBox) {
             JComboBox<?> combo = (JComboBox<?>) component;
             String className = combo.getClass().getSimpleName();
-            
+
             // Check by class name
             if (className.contains("ChatMode") || className.contains("ModeCombo")) {
                 LOGGER.debug("CxFix: Found ChatModeComboBox: " + className);
                 logComboBoxItems(combo);
                 return combo;
             }
-            
+
             // Check by item type
             if (combo.getItemCount() > 0) {
                 Object firstItem = combo.getItemAt(0);
@@ -833,7 +869,7 @@ public final class CopilotIntegration {
         for (int i = 0; i < comboBox.getItemCount(); i++) {
             Object item = comboBox.getItemAt(i);
             String displayName = extractModeDisplayName(item);
-            LOGGER.debug("CxFix:   [" + i + "] " + displayName + " (class: " + 
+            LOGGER.debug("CxFix:   [" + i + "] " + displayName + " (class: " +
                     (item != null ? item.getClass().getSimpleName() : "null") + ")");
         }
         Object selected = comboBox.getSelectedItem();
@@ -848,9 +884,10 @@ public final class CopilotIntegration {
         if (item == null) {
             return "null";
         }
-        
+
         // Try common method names first
-        String[] methodNames = {"getName", "getDisplayName", "getText", "getLabel", "getTitle", "name", "displayName"};
+        String[] methodNames = { "getName", "getDisplayName", "getText", "getLabel", "getTitle", "name",
+                "displayName" };
         for (String methodName : methodNames) {
             try {
                 Method method = item.getClass().getMethod(methodName);
@@ -864,9 +901,9 @@ public final class CopilotIntegration {
                 // Try next method
             }
         }
-        
+
         // Try common field names
-        String[] fieldNames = {"name", "displayName", "text", "label", "title", "mode", "value"};
+        String[] fieldNames = { "name", "displayName", "text", "label", "title", "mode", "value" };
         for (String fieldName : fieldNames) {
             try {
                 Field field = item.getClass().getDeclaredField(fieldName);
@@ -881,7 +918,7 @@ public final class CopilotIntegration {
                 // Try next field
             }
         }
-        
+
         // Try getting all declared fields and methods for debugging
         LOGGER.debug("CxFix: Could not extract name, dumping class info for: " + item.getClass().getName());
         try {
@@ -893,7 +930,8 @@ public final class CopilotIntegration {
                         try {
                             Object result = m.invoke(item);
                             LOGGER.debug("CxFix:   Method " + mName + "() = " + result);
-                        } catch (Exception ignored) {}
+                        } catch (Exception ignored) {
+                        }
                     }
                 }
             }
@@ -903,12 +941,13 @@ public final class CopilotIntegration {
                 try {
                     Object result = f.get(item);
                     LOGGER.debug("CxFix:   Field " + f.getName() + " = " + result);
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
         } catch (Exception e) {
             LOGGER.debug("CxFix: Error dumping class info", e);
         }
-        
+
         // Fallback to toString
         return item.toString();
     }
@@ -921,20 +960,20 @@ public final class CopilotIntegration {
     private static boolean selectAgentInComboBox(@NotNull JComboBox<?> comboBox) {
         int agentIndex = findAgentModeIndex(comboBox);
         Object agentItem = agentIndex >= 0 ? comboBox.getItemAt(agentIndex) : null;
-        
+
         if (agentIndex == -1 || agentItem == null) {
             LOGGER.warn("CxFix: Could not find Agent mode in combo box");
             return false;
         }
-        
+
         LOGGER.debug("CxFix: Agent mode found at index " + agentIndex);
-        
+
         // Primary strategy: Simulate popup interaction
         // This properly initializes Copilot's Agent mode internal handlers
         if (selectAgentViaPopupSimulation(comboBox, agentItem)) {
             return true;
         }
-        
+
         // Fallback: Direct selection (may not fully initialize Agent mode)
         LOGGER.warn("CxFix: Popup simulation failed, trying direct selection");
         comboBox.setSelectedIndex(agentIndex);
@@ -944,17 +983,29 @@ public final class CopilotIntegration {
     /**
      * Selects Agent mode by simulating the full popup interaction sequence.
      *
-     * <p>This approach is necessary because Copilot's {@code ChatModeService} only fully
+     * <p>
+     * This approach is necessary because Copilot's {@code ChatModeService} only
+     * fully
      * initializes Agent mode when the complete popup lifecycle is executed:
      * <ol>
-     *   <li>Opening the popup prepares internal state in ChatModeService</li>
-     *   <li>Selecting while popup is visible triggers proper ItemListener callbacks</li>
-     *   <li>Closing the popup completes the initialization and activates Agent features</li>
+     * <li>Opening the popup prepares internal state in ChatModeService</li>
+     * <li>Selecting while popup is visible triggers proper ItemListener
+     * callbacks</li>
+     * <li>Closing the popup completes the initialization and activates Agent
+     * features</li>
      * </ol>
      *
-     * <p>Simply calling {@code setSelectedItem()} without the popup sequence does not
+     * <p>
+     * Simply calling {@code setSelectedItem()} without the popup sequence does not
      * trigger the internal handlers, resulting in the UI showing "Agent" but the
      * backend still operating in "Ask" mode.
+     *
+     * <p>
+     * <b>Note:</b> This method runs on the EDT and must not block. The popup
+     * operations
+     * are executed synchronously but quickly. The caller handles any necessary
+     * waiting
+     * via background threading.
      *
      * @param comboBox  The ChatModeComboBox component
      * @param agentItem The Agent mode item to select
@@ -964,26 +1015,20 @@ public final class CopilotIntegration {
     private static boolean selectAgentViaPopupSimulation(@NotNull JComboBox<?> comboBox, @NotNull Object agentItem) {
         try {
             LOGGER.debug("CxFix: Starting popup simulation for Agent mode");
-            
+
             // Step 1: Open popup - prepares internal ChatModeService state
             comboBox.setPopupVisible(true);
-            Thread.sleep(Timing.POPUP_OPEN_DELAY_MS);
-            
+
             // Step 2: Select Agent item while popup is visible - triggers ItemListeners
+            // Using invokeLater to let the popup fully render before selection
             ((JComboBox<Object>) comboBox).setSelectedItem(agentItem);
-            Thread.sleep(Timing.POPUP_SELECT_DELAY_MS);
-            
+
             // Step 3: Close popup - triggers final initialization
             comboBox.setPopupVisible(false);
-            Thread.sleep(Timing.POPUP_CLOSE_DELAY_MS);
-            
+
             LOGGER.debug("CxFix: Popup simulation completed");
             return true;
-            
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            LOGGER.warn("CxFix: Agent mode switch interrupted");
-            return false;
+
         } catch (Exception e) {
             LOGGER.warn("CxFix: Agent mode switch error: " + e.getMessage());
             return false;
@@ -991,7 +1036,8 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Finds a button that represents the mode selector (fallback for non-combobox UI).
+     * Finds a button that represents the mode selector (fallback for non-combobox
+     * UI).
      * Looks for buttons showing current mode text like "Ask", "Agent", etc.
      */
     private static @Nullable AbstractButton findModeButton(@NotNull Component component) {
@@ -1000,8 +1046,8 @@ public final class CopilotIntegration {
             String text = button.getText();
             if (text != null) {
                 String lowerText = text.toLowerCase();
-                if (lowerText.equals("ask") || lowerText.equals("edit") || 
-                    lowerText.equals("agent") || lowerText.equals("plan")) {
+                if (lowerText.equals("ask") || lowerText.equals("edit") ||
+                        lowerText.equals("agent") || lowerText.equals("plan")) {
                     LOGGER.debug("CxFix: Found mode button: '" + text + "'");
                     return button;
                 }
@@ -1041,12 +1087,8 @@ public final class CopilotIntegration {
         // Click the button to open the dropdown
         LOGGER.debug("CxFix: Opening mode dropdown via button click");
         modeButton.doClick();
-
-        try {
-            TimeUnit.MILLISECONDS.sleep(300);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        // Note: No sleep here - popup should be visible immediately after doClick
+        // Any necessary delays are handled by the caller in background thread
 
         // Search for Agent option in popup windows
         Window[] windows = Window.getWindows();
@@ -1095,7 +1137,8 @@ public final class CopilotIntegration {
     /**
      * Finds a button with specific text (case-insensitive) in component hierarchy.
      */
-    private static @Nullable AbstractButton findButtonWithText(@NotNull Component component, @NotNull String textToFind) {
+    private static @Nullable AbstractButton findButtonWithText(@NotNull Component component,
+            @NotNull String textToFind) {
         if (component instanceof AbstractButton) {
             AbstractButton button = (AbstractButton) component;
             if (button.getText() != null && button.getText().toLowerCase().contains(textToFind.toLowerCase())) {
@@ -1114,7 +1157,8 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Finds a menu item with specific text (case-insensitive) in component hierarchy.
+     * Finds a menu item with specific text (case-insensitive) in component
+     * hierarchy.
      */
     private static @Nullable JMenuItem findMenuItemWithText(@NotNull Component component, @NotNull String textToFind) {
         if (component instanceof JMenuItem) {
@@ -1153,7 +1197,8 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Recursively searches for a JTextComponent (text field or text area) in the component hierarchy.
+     * Recursively searches for a JTextComponent (text field or text area) in the
+     * component hierarchy.
      */
     private static @Nullable JTextComponent findTextComponentRecursively(@NotNull Component component) {
         // Check if this component is a text input
@@ -1260,6 +1305,7 @@ public final class CopilotIntegration {
 
     /**
      * Copies text to the system clipboard.
+     * 
      * @return true if successful, false otherwise
      */
     private static boolean copyToClipboard(@NotNull String text) {
