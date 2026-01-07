@@ -93,6 +93,8 @@ public final class CxIcons {
         }
 
         public static final Icon REVIVE = IconLoader.getIcon("/icons/devassist/ignored/revive.svg", CxIcons.class);
+        public static final Icon FILTER = IconLoader.getIcon("/icons/devassist/ignored/filter_icon.svg", CxIcons.class);
+        public static final Icon SORT = IconLoader.getIcon("/icons/devassist/ignored/sort_icon.svg", CxIcons.class);
         public static final Icon ENGINE_CHIP_CONTAINERS = IconLoader.getIcon("/icons/devassist/ignored/engine-chip-containers.svg", CxIcons.class);
         public static final Icon ENGINE_CHIP_SCA = IconLoader.getIcon("/icons/devassist/ignored/engine-chip-sca.svg", CxIcons.class);
         public static final Icon ENGINE_CHIP_SECRETS = IconLoader.getIcon("/icons/devassist/ignored/engine-chip-secrets.svg", CxIcons.class);
