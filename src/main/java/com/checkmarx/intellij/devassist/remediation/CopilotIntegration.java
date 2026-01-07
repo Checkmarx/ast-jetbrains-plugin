@@ -105,6 +105,17 @@ public final class CopilotIntegration {
             "copilot.chat.openChat"
     };
 
+    // Known Copilot Agent mode action IDs - try these first for direct agent mode
+    private static final String[] COPILOT_AGENT_ACTION_IDS = {
+            "copilot.agent.show",
+            "copilot.chat.agent",
+            "copilot.openAgent",
+            "copilot.agent.openChat",
+            "GitHub.Copilot.Agent.Show",
+            "copilot.chat.showAgent",
+            "copilot.agent.start"
+    };
+
     // Known Copilot tool window IDs
     private static final String[] COPILOT_TOOL_WINDOW_IDS = {
             "GitHub Copilot Chat",
@@ -762,6 +773,25 @@ public final class CopilotIntegration {
     }
 
     /**
+     * Finds the index of the Agent mode in the combo box.
+     */
+    private static int findAgentModeIndex(@NotNull JComboBox<?> comboBox) {
+        for (int i = 0; i < comboBox.getItemCount(); i++) {
+            Object item = comboBox.getItemAt(i);
+            String displayName = extractModeDisplayName(item);
+            // Look for exact "Agent" mode (id=Agent, not Plan which has kind=Agent)
+            if (displayName.toLowerCase().contains("id=agent")) {
+                return i;
+            }
+        }
+        // Fallback to index 2 if not found
+        if (comboBox.getItemCount() >= 3) {
+            return 2;
+        }
+        return -1;
+    }
+
+    /**
      * Finds a JComboBox that is the ChatModeComboBox (mode selector).
      */
     private static @Nullable JComboBox<?> findChatModeComboBox(@NotNull Component component) {
@@ -891,62 +921,659 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Selects "Agent" mode in the given combo box.
-     * Uses reflection to extract the actual mode name from ChatModeItem objects.
+     * Selects "Agent" mode in the given combo box using multiple strategies.
+     * The key insight is that manual selection triggers internal handlers that
+     * programmatic setSelectedItem() doesn't. We try to replicate that behavior.
      */
     private static boolean selectAgentInComboBox(@NotNull JComboBox<?> comboBox) {
         LOGGER.info("CxFix: Searching for 'Agent' mode in ComboBox with " + comboBox.getItemCount() + " items");
         
-        int agentIndex = -1;
+        int agentIndex = findAgentModeIndex(comboBox);
+        Object agentItem = agentIndex >= 0 ? comboBox.getItemAt(agentIndex) : null;
         
-        // First pass: try to find by extracted display name
-        for (int i = 0; i < comboBox.getItemCount(); i++) {
-            Object item = comboBox.getItemAt(i);
-            String displayName = extractModeDisplayName(item);
-            LOGGER.info("CxFix: Item[" + i + "] display name: '" + displayName + "'");
-            
-            if (displayName.toLowerCase().contains("agent")) {
-                agentIndex = i;
-                LOGGER.info("CxFix: Found 'Agent' at index " + i + " (displayName='" + displayName + "')");
-                break;
-            }
+        if (agentIndex == -1 || agentItem == null) {
+            LOGGER.warn("CxFix: Could not find Agent mode");
+            return false;
         }
         
-        // Second pass: check if it's an enum and look for AGENT value
-        if (agentIndex == -1) {
-            for (int i = 0; i < comboBox.getItemCount(); i++) {
-                Object item = comboBox.getItemAt(i);
-                if (item != null && item.getClass().isEnum()) {
-                    String enumName = ((Enum<?>) item).name();
-                    LOGGER.info("CxFix: Item[" + i + "] enum name: '" + enumName + "'");
-                    if (enumName.toLowerCase().contains("agent")) {
-                        agentIndex = i;
-                        LOGGER.info("CxFix: Found 'Agent' at index " + i + " (enum='" + enumName + "')");
-                        break;
+        LOGGER.info("CxFix: Found 'Agent' at index " + agentIndex);
+        
+        // Log available methods on ChatModeComboBox for debugging
+        logComboBoxMethods(comboBox);
+        
+        // Log available methods on the ChatModeItem for debugging  
+        logChatModeItemMethods(agentItem);
+        
+        // Strategy 0: Try to find and use Copilot's internal ChatModeService
+        if (tryUseCopilotModeService(comboBox, agentItem)) {
+            LOGGER.info("CxFix: Successfully selected Agent via Copilot mode service");
+            return true;
+        }
+        
+        // Strategy 1: Try to call selectMode or similar method on combo box
+        if (tryCallSelectModeMethod(comboBox, agentItem, agentIndex)) {
+            LOGGER.info("CxFix: Successfully selected Agent via combo box method");
+            return true;
+        }
+        
+        // Strategy 2: Try to call activate/select method on the ChatModeItem itself
+        if (tryActivateChatModeItem(agentItem)) {
+            LOGGER.info("CxFix: Successfully activated Agent mode item directly");
+            return true;
+        }
+        
+        // Strategy 3: Use popup show/hide to simulate user selection flow
+        if (trySelectViaPopup(comboBox, agentIndex)) {
+            LOGGER.info("CxFix: Successfully selected Agent via popup simulation");
+            return true;
+        }
+        
+        // Strategy 4: Standard selection with event firing (fallback)
+        LOGGER.info("CxFix: Using standard selection approach...");
+        comboBox.setSelectedIndex(agentIndex);
+        fireComboBoxEvents(comboBox, agentItem);
+        
+        // Verify selection
+        Object selected = comboBox.getSelectedItem();
+        LOGGER.info("CxFix: After selection, selected item: " + extractModeDisplayName(selected));
+        return true;
+    }
+
+    /**
+     * Triggers Agent mode selection by simulating full popup interaction.
+     * 
+     * Key insight: When user manually clicks the dropdown, the popup opens first,
+     * then they select an item, then popup closes. This full sequence triggers
+     * proper initialization in ChatModeService. Just calling setSelectedItem()
+     * or firing ItemEvents doesn't fully initialize Agent mode.
+     */
+    @SuppressWarnings("unchecked")
+    private static boolean tryUseCopilotModeService(@NotNull JComboBox<?> comboBox, @NotNull Object agentItem) {
+        try {
+            LOGGER.info("CxFix: Looking for Copilot mode service...");
+            
+            // Get the ChatMode object
+            Object chatMode = extractChatMode(agentItem);
+            if (chatMode != null) {
+                LOGGER.info("CxFix: Extracted ChatMode: " + chatMode.getClass().getName());
+            }
+            
+            // Store the old selected item
+            Object oldSelectedItem = comboBox.getSelectedItem();
+            LOGGER.info("CxFix: Old selected item: " + (oldSelectedItem != null ? oldSelectedItem.toString() : "null"));
+            
+            // STRATEGY: Simulate full popup interaction sequence
+            // This is what happens when user manually clicks:
+            // 1. Popup opens
+            // 2. User selects item from list
+            // 3. Popup closes
+            // 4. ItemEvent fires with proper context
+            
+            LOGGER.info("CxFix: Simulating popup interaction sequence...");
+            
+            // Step 1: Show the popup (this prepares internal state)
+            LOGGER.info("CxFix: Opening popup...");
+            comboBox.setPopupVisible(true);
+            
+            // Small delay for popup to initialize
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) {}
+            
+            // Step 2: Select the item while popup is visible
+            LOGGER.info("CxFix: Selecting Agent item while popup is visible...");
+            ((JComboBox<Object>) comboBox).setSelectedItem(agentItem);
+            
+            // Small delay for selection to process
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) {}
+            
+            // Step 3: Close the popup (this triggers the final state update)
+            LOGGER.info("CxFix: Closing popup...");
+            comboBox.setPopupVisible(false);
+            
+            // Verify the selection
+            Object newSelectedItem = comboBox.getSelectedItem();
+            LOGGER.info("CxFix: New selected item: " + (newSelectedItem != null ? newSelectedItem.toString() : "null"));
+            
+            // Give time for Agent mode to fully initialize
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException ignored) {}
+            
+            LOGGER.info("CxFix: Popup interaction sequence completed!");
+            return true;
+            
+        } catch (Exception e) {
+            LOGGER.warn("CxFix: Error in tryUseCopilotModeService: " + e.getMessage(), e);
+        }
+        return false;
+    }
+
+    /**
+     * Extracts the ChatMode object from a ChatModeItem.
+     */
+    private static @Nullable Object extractChatMode(@NotNull Object chatModeItem) {
+        try {
+            // Try getChatMode() method
+            try {
+                Method m = chatModeItem.getClass().getMethod("getChatMode");
+                return m.invoke(chatModeItem);
+            } catch (NoSuchMethodException ignored) {}
+            
+            // Try getMode() method
+            try {
+                Method m = chatModeItem.getClass().getMethod("getMode");
+                return m.invoke(chatModeItem);
+            } catch (NoSuchMethodException ignored) {}
+            
+            // Try chatMode field
+            try {
+                Field f = chatModeItem.getClass().getDeclaredField("chatMode");
+                f.setAccessible(true);
+                return f.get(chatModeItem);
+            } catch (NoSuchFieldException ignored) {}
+            
+            // Try mode field
+            try {
+                Field f = chatModeItem.getClass().getDeclaredField("mode");
+                f.setAccessible(true);
+                return f.get(chatModeItem);
+            } catch (NoSuchFieldException ignored) {}
+            
+        } catch (Exception e) {
+            LOGGER.debug("CxFix: Error extracting ChatMode: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Tries to call mode selection methods on a service object.
+     */
+    private static boolean tryCallModeMethodOnService(@NotNull Object service, 
+                                                        @NotNull Object agentItem,
+                                                        @Nullable Object chatMode) {
+        Class<?> serviceClass = service.getClass();
+        
+        String[] methodNames = {
+            "selectMode", "setMode", "changeMode", "switchMode", "applyMode",
+            "onModeSelected", "handleModeSelection", "updateMode"
+        };
+        
+        for (String methodName : methodNames) {
+            // Try with agentItem
+            for (Method m : serviceClass.getDeclaredMethods()) {
+                if (m.getName().equals(methodName) && m.getParameterCount() == 1) {
+                    try {
+                        m.setAccessible(true);
+                        m.invoke(service, agentItem);
+                        LOGGER.info("CxFix: Successfully called " + methodName + " on service with agentItem");
+                        return true;
+                    } catch (Exception e) {
+                        LOGGER.debug("CxFix: Failed to call " + methodName + " with agentItem: " + e.getMessage());
+                    }
+                    
+                    // Try with chatMode if available
+                    if (chatMode != null) {
+                        try {
+                            m.invoke(service, chatMode);
+                            LOGGER.info("CxFix: Successfully called " + methodName + " on service with chatMode");
+                            return true;
+                        } catch (Exception ignored) {}
                     }
                 }
             }
         }
         
-        // Fallback: Based on typical Copilot UI structure (Ask=0, Edit=1, Agent=2, Plan=3)
-        // Only use this if we have at least 3 items
-        if (agentIndex == -1 && comboBox.getItemCount() >= 3) {
-            LOGGER.warn("CxFix: Could not find Agent by name, using fallback index 2 (typical Agent position)");
-            agentIndex = 2;
-        }
-        
-        if (agentIndex >= 0 && agentIndex < comboBox.getItemCount()) {
-            LOGGER.info("CxFix: Selecting Agent mode at index " + agentIndex);
-            comboBox.setSelectedIndex(agentIndex);
-            
-            // Verify selection
-            Object selected = comboBox.getSelectedItem();
-            LOGGER.info("CxFix: After selection, selected item: " + extractModeDisplayName(selected));
-            return true;
-        }
-        
-        LOGGER.warn("CxFix: Could not find or select Agent mode");
         return false;
+    }
+
+    /**
+     * Logs all methods on the ChatModeComboBox for debugging.
+     */
+    private static void logComboBoxMethods(@NotNull JComboBox<?> comboBox) {
+        Class<?> clazz = comboBox.getClass();
+        LOGGER.info("CxFix: ChatModeComboBox class: " + clazz.getName());
+        LOGGER.info("CxFix: Available methods on ChatModeComboBox:");
+        
+        // Get declared methods (including private)
+        for (Method m : clazz.getDeclaredMethods()) {
+            LOGGER.info("CxFix:   - " + m.getName() + "(" + 
+                    java.util.Arrays.stream(m.getParameterTypes())
+                            .map(Class::getSimpleName)
+                            .reduce((a, b) -> a + ", " + b)
+                            .orElse("") + ") : " + m.getReturnType().getSimpleName());
+        }
+        
+        // Also check superclass methods that might be relevant
+        Class<?> superClass = clazz.getSuperclass();
+        while (superClass != null && !superClass.equals(JComboBox.class) && !superClass.equals(Object.class)) {
+            LOGGER.info("CxFix: Methods from " + superClass.getSimpleName() + ":");
+            for (Method m : superClass.getDeclaredMethods()) {
+                String name = m.getName().toLowerCase();
+                if (name.contains("select") || name.contains("mode") || name.contains("item") || 
+                    name.contains("change") || name.contains("set") || name.contains("choose")) {
+                    LOGGER.info("CxFix:   - " + m.getName() + "(" + 
+                            java.util.Arrays.stream(m.getParameterTypes())
+                                    .map(Class::getSimpleName)
+                                    .reduce((a, b) -> a + ", " + b)
+                                    .orElse("") + ")");
+                }
+            }
+            superClass = superClass.getSuperclass();
+        }
+    }
+
+    /**
+     * Logs all methods on the ChatModeItem for debugging.
+     */
+    private static void logChatModeItemMethods(@NotNull Object chatModeItem) {
+        Class<?> clazz = chatModeItem.getClass();
+        LOGGER.info("CxFix: ChatModeItem class: " + clazz.getName());
+        LOGGER.info("CxFix: Available methods on ChatModeItem:");
+        
+        for (Method m : clazz.getDeclaredMethods()) {
+            LOGGER.info("CxFix:   - " + m.getName() + "(" + 
+                    java.util.Arrays.stream(m.getParameterTypes())
+                            .map(Class::getSimpleName)
+                            .reduce((a, b) -> a + ", " + b)
+                            .orElse("") + ") : " + m.getReturnType().getSimpleName());
+        }
+        
+        // Also log fields
+        LOGGER.info("CxFix: Available fields on ChatModeItem:");
+        for (Field f : clazz.getDeclaredFields()) {
+            LOGGER.info("CxFix:   - " + f.getName() + " : " + f.getType().getSimpleName());
+        }
+    }
+
+    /**
+     * Tries to call a selectMode or similar method on the combo box.
+     */
+    private static boolean tryCallSelectModeMethod(@NotNull JComboBox<?> comboBox, 
+                                                    @NotNull Object agentItem, 
+                                                    int agentIndex) {
+        Class<?> comboClass = comboBox.getClass();
+        Class<?> itemClass = agentItem.getClass();
+        
+        // Method names to try
+        String[] methodNames = {
+            "selectMode", "setSelectedMode", "onModeSelected", "changeMode",
+            "selectItem", "onItemSelected", "handleModeChange", "applyMode",
+            "setMode", "updateMode", "switchMode", "activateMode"
+        };
+        
+        for (String methodName : methodNames) {
+            // Try with the item's exact class
+            if (tryInvokeMethod(comboBox, comboClass, methodName, agentItem, itemClass)) {
+                return true;
+            }
+            
+            // Try with item's superclass/interfaces
+            for (Class<?> iface : itemClass.getInterfaces()) {
+                if (tryInvokeMethod(comboBox, comboClass, methodName, agentItem, iface)) {
+                    return true;
+                }
+            }
+            if (itemClass.getSuperclass() != null) {
+                if (tryInvokeMethod(comboBox, comboClass, methodName, agentItem, itemClass.getSuperclass())) {
+                    return true;
+                }
+            }
+            
+            // Try with Object parameter
+            if (tryInvokeMethod(comboBox, comboClass, methodName, agentItem, Object.class)) {
+                return true;
+            }
+            
+            // Try with int parameter (index)
+            if (tryInvokeMethodWithInt(comboBox, comboClass, methodName, agentIndex)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    private static boolean tryInvokeMethod(@NotNull Object target, @NotNull Class<?> targetClass,
+                                           @NotNull String methodName, @NotNull Object arg, 
+                                           @NotNull Class<?> argType) {
+        try {
+            Method method = targetClass.getDeclaredMethod(methodName, argType);
+            method.setAccessible(true);
+            method.invoke(target, arg);
+            LOGGER.info("CxFix: Successfully called " + methodName + "(" + argType.getSimpleName() + ")");
+            return true;
+        } catch (NoSuchMethodException ignored) {
+        } catch (Exception e) {
+            LOGGER.debug("CxFix: Failed to call " + methodName + ": " + e.getMessage());
+        }
+        return false;
+    }
+
+    private static boolean tryInvokeMethodWithInt(@NotNull Object target, @NotNull Class<?> targetClass,
+                                                   @NotNull String methodName, int arg) {
+        try {
+            Method method = targetClass.getDeclaredMethod(methodName, int.class);
+            method.setAccessible(true);
+            method.invoke(target, arg);
+            LOGGER.info("CxFix: Successfully called " + methodName + "(int)");
+            return true;
+        } catch (NoSuchMethodException ignored) {
+        } catch (Exception e) {
+            LOGGER.debug("CxFix: Failed to call " + methodName + "(int): " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Tries to activate the ChatModeItem directly by calling methods on it.
+     */
+    private static boolean tryActivateChatModeItem(@NotNull Object chatModeItem) {
+        Class<?> itemClass = chatModeItem.getClass();
+        
+        // Method names that might activate the mode
+        String[] methodNames = {
+            "select", "activate", "apply", "execute", "perform", "trigger",
+            "onClick", "onSelect", "doSelect", "run"
+        };
+        
+        for (String methodName : methodNames) {
+            try {
+                Method method = itemClass.getDeclaredMethod(methodName);
+                method.setAccessible(true);
+                method.invoke(chatModeItem);
+                LOGGER.info("CxFix: Successfully called ChatModeItem." + methodName + "()");
+                return true;
+            } catch (NoSuchMethodException ignored) {
+            } catch (Exception e) {
+                LOGGER.debug("CxFix: Failed to call ChatModeItem." + methodName + "(): " + e.getMessage());
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Tries to select via popup - accesses the internal JList and triggers selection through it.
+     * This is the key insight: when a user clicks on an item in the dropdown, the popup's JList
+     * fires a selection event that triggers Copilot's internal handlers.
+     */
+    private static boolean trySelectViaPopup(@NotNull JComboBox<?> comboBox, int agentIndex) {
+        try {
+            LOGGER.info("CxFix: Attempting selection via popup's JList...");
+            
+            // Get the popup UI
+            javax.swing.plaf.ComboBoxUI ui = comboBox.getUI();
+            LOGGER.info("CxFix: ComboBox UI class: " + ui.getClass().getName());
+            
+            // Show the popup to initialize it
+            comboBox.showPopup();
+            
+            // Wait for popup to be ready
+            try { TimeUnit.MILLISECONDS.sleep(150); } catch (InterruptedException ignored) {}
+            
+            // Try to find the popup's JList via reflection
+            JList<?> popupList = findPopupList(comboBox);
+            
+            if (popupList != null) {
+                LOGGER.info("CxFix: Found popup JList: " + popupList.getClass().getName());
+                LOGGER.info("CxFix: JList has " + popupList.getModel().getSize() + " items");
+                
+                // Select the agent index in the list - this triggers ListSelectionListeners
+                popupList.setSelectedIndex(agentIndex);
+                
+                // Small delay
+                try { TimeUnit.MILLISECONDS.sleep(50); } catch (InterruptedException ignored) {}
+                
+                // Ensure selection is visible
+                popupList.ensureIndexIsVisible(agentIndex);
+                
+                // Fire a value changed event to ensure listeners are notified
+                fireListSelectionEvent(popupList, agentIndex);
+                
+                // Small delay for event processing
+                try { TimeUnit.MILLISECONDS.sleep(50); } catch (InterruptedException ignored) {}
+                
+                // Now simulate clicking on the selected item by generating a mouse click event
+                simulateListItemClick(popupList, agentIndex);
+                
+                // Wait a bit more
+                try { TimeUnit.MILLISECONDS.sleep(100); } catch (InterruptedException ignored) {}
+            } else {
+                LOGGER.warn("CxFix: Could not find popup JList");
+                // Fallback: just set selected index
+                comboBox.setSelectedIndex(agentIndex);
+            }
+            
+            // Hide popup
+            comboBox.hidePopup();
+            
+            // Wait for handlers to process
+            try { TimeUnit.MILLISECONDS.sleep(100); } catch (InterruptedException ignored) {}
+            
+            LOGGER.info("CxFix: Popup simulation completed");
+            return true;
+            
+        } catch (Exception e) {
+            LOGGER.warn("CxFix: Popup simulation failed: " + e.getMessage(), e);
+            try { comboBox.hidePopup(); } catch (Exception ignored) {}
+            return false;
+        }
+    }
+
+    /**
+     * Finds the JList inside the combo box popup using reflection.
+     */
+    private static @Nullable JList<?> findPopupList(@NotNull JComboBox<?> comboBox) {
+        try {
+            // Try to get the popup via UI
+            javax.swing.plaf.ComboBoxUI ui = comboBox.getUI();
+            
+            // Try common method names to get the popup
+            String[] methodNames = {"getPopup", "getComboPopup", "createPopup"};
+            for (String methodName : methodNames) {
+                try {
+                    Method m = ui.getClass().getMethod(methodName);
+                    Object popup = m.invoke(ui);
+                    if (popup != null) {
+                        JList<?> list = findListInComponent(popup);
+                        if (list != null) return list;
+                    }
+                } catch (NoSuchMethodException ignored) {}
+            }
+            
+            // Try accessing popup field directly
+            String[] fieldNames = {"popup", "comboPopup", "listBox", "popupComponent"};
+            Class<?> clazz = ui.getClass();
+            while (clazz != null) {
+                for (String fieldName : fieldNames) {
+                    try {
+                        Field f = clazz.getDeclaredField(fieldName);
+                        f.setAccessible(true);
+                        Object popup = f.get(ui);
+                        if (popup != null) {
+                            JList<?> list = findListInComponent(popup);
+                            if (list != null) {
+                                LOGGER.info("CxFix: Found popup list via field: " + fieldName);
+                                return list;
+                            }
+                        }
+                    } catch (NoSuchFieldException ignored) {}
+                }
+                clazz = clazz.getSuperclass();
+            }
+            
+            // Try finding list in visible popup windows
+            for (Window window : Window.getWindows()) {
+                if (window.isVisible() && (window instanceof JWindow || window instanceof JDialog)) {
+                    JList<?> list = findListInComponent(window);
+                    if (list != null && list.getModel().getSize() == comboBox.getItemCount()) {
+                        LOGGER.info("CxFix: Found popup list in visible window");
+                        return list;
+                    }
+                }
+            }
+            
+            // Last resort: search in combo box's parent hierarchy for popup
+            Container parent = comboBox.getParent();
+            while (parent != null) {
+                JList<?> list = findListInComponent(parent);
+                if (list != null && list.getModel().getSize() == comboBox.getItemCount()) {
+                    return list;
+                }
+                parent = parent.getParent();
+            }
+            
+        } catch (Exception e) {
+            LOGGER.debug("CxFix: Error finding popup list: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Recursively finds a JList in a component hierarchy.
+     */
+    private static @Nullable JList<?> findListInComponent(@NotNull Object component) {
+        if (component instanceof JList) {
+            return (JList<?>) component;
+        }
+        if (component instanceof Container) {
+            Container container = (Container) component;
+            for (Component child : container.getComponents()) {
+                JList<?> found = findListInComponent(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Fires a ListSelectionEvent on the list.
+     */
+    private static void fireListSelectionEvent(@NotNull JList<?> list, int index) {
+        try {
+            javax.swing.event.ListSelectionEvent event = new javax.swing.event.ListSelectionEvent(
+                    list, index, index, false);
+            
+            for (javax.swing.event.ListSelectionListener listener : list.getListSelectionListeners()) {
+                LOGGER.info("CxFix: Firing ListSelectionListener: " + listener.getClass().getName());
+                listener.valueChanged(event);
+            }
+        } catch (Exception e) {
+            LOGGER.debug("CxFix: Error firing list selection event: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Simulates a mouse click on a list item at the given index.
+     */
+    private static void simulateListItemClick(@NotNull JList<?> list, int index) {
+        try {
+            Rectangle cellBounds = list.getCellBounds(index, index);
+            if (cellBounds != null) {
+                int x = cellBounds.x + cellBounds.width / 2;
+                int y = cellBounds.y + cellBounds.height / 2;
+                
+                LOGGER.info("CxFix: Simulating click on list item at (" + x + ", " + y + ")");
+                
+                // Create mouse events
+                long when = System.currentTimeMillis();
+                java.awt.event.MouseEvent pressed = new java.awt.event.MouseEvent(
+                        list, java.awt.event.MouseEvent.MOUSE_PRESSED, when, 0,
+                        x, y, 1, false, java.awt.event.MouseEvent.BUTTON1);
+                java.awt.event.MouseEvent released = new java.awt.event.MouseEvent(
+                        list, java.awt.event.MouseEvent.MOUSE_RELEASED, when + 10, 0,
+                        x, y, 1, false, java.awt.event.MouseEvent.BUTTON1);
+                java.awt.event.MouseEvent clicked = new java.awt.event.MouseEvent(
+                        list, java.awt.event.MouseEvent.MOUSE_CLICKED, when + 20, 0,
+                        x, y, 1, false, java.awt.event.MouseEvent.BUTTON1);
+                
+                // Dispatch events
+                list.dispatchEvent(pressed);
+                list.dispatchEvent(released);
+                list.dispatchEvent(clicked);
+                
+                LOGGER.info("CxFix: Mouse events dispatched to list");
+            }
+        } catch (Exception e) {
+            LOGGER.debug("CxFix: Error simulating list click: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Fires all relevant events on the combo box after selection.
+     */
+    private static void fireComboBoxEvents(@NotNull JComboBox<?> comboBox, @NotNull Object selectedItem) {
+        try {
+            LOGGER.info("CxFix: Firing combo box events...");
+            
+            // Fire ActionEvent
+            java.awt.event.ActionEvent actionEvent = new java.awt.event.ActionEvent(
+                    comboBox,
+                    java.awt.event.ActionEvent.ACTION_PERFORMED,
+                    comboBox.getActionCommand(),
+                    System.currentTimeMillis(),
+                    0
+            );
+            
+            for (java.awt.event.ActionListener listener : comboBox.getActionListeners()) {
+                String listenerClass = listener.getClass().getName();
+                LOGGER.info("CxFix: Firing ActionListener: " + listenerClass);
+                try {
+                    listener.actionPerformed(actionEvent);
+                } catch (Exception e) {
+                    LOGGER.debug("CxFix: ActionListener threw exception: " + e.getMessage());
+                }
+            }
+            
+            // Fire ItemEvent (DESELECTED for old, SELECTED for new)
+            java.awt.event.ItemEvent selectEvent = new java.awt.event.ItemEvent(
+                    comboBox,
+                    java.awt.event.ItemEvent.ITEM_STATE_CHANGED,
+                    selectedItem,
+                    java.awt.event.ItemEvent.SELECTED
+            );
+            
+            for (java.awt.event.ItemListener listener : comboBox.getItemListeners()) {
+                String listenerClass = listener.getClass().getName();
+                LOGGER.info("CxFix: Firing ItemListener: " + listenerClass);
+                try {
+                    listener.itemStateChanged(selectEvent);
+                } catch (Exception e) {
+                    LOGGER.debug("CxFix: ItemListener threw exception: " + e.getMessage());
+                }
+            }
+            
+            // Fire PropertyChangeEvent for "selectedItem"
+            java.beans.PropertyChangeEvent propEvent = new java.beans.PropertyChangeEvent(
+                    comboBox,
+                    "selectedItem",
+                    null,
+                    selectedItem
+            );
+            
+            for (java.beans.PropertyChangeListener listener : comboBox.getPropertyChangeListeners()) {
+                String listenerClass = listener.getClass().getName();
+                // Only log Copilot-related listeners
+                if (listenerClass.contains("copilot") || listenerClass.contains("github")) {
+                    LOGGER.info("CxFix: Firing PropertyChangeListener: " + listenerClass);
+                }
+                try {
+                    listener.propertyChange(propEvent);
+                } catch (Exception e) {
+                    LOGGER.debug("CxFix: PropertyChangeListener threw exception: " + e.getMessage());
+                }
+            }
+            
+            LOGGER.info("CxFix: Events fired successfully");
+            
+        } catch (Exception e) {
+            LOGGER.warn("CxFix: Failed to fire events: " + e.getMessage());
+        }
     }
     
     /**
