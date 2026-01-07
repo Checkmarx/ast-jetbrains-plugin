@@ -12,8 +12,8 @@ import java.util.function.Supplier;
 
 import static com.checkmarx.intellij.ui.BaseUITest.focusCxWindow;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
-import static com.checkmarx.intellij.ui.utils.Xpath.FIELD_NAME;
-import static com.checkmarx.intellij.ui.utils.Xpath.VISIBLE_TEXT;
+import static com.checkmarx.intellij.ui.utils.Xpath.*;
+import static com.checkmarx.intellij.ui.utils.Xpath.API_KEY_RADIO;
 
 public class UIHelper {
 
@@ -63,5 +63,23 @@ public class UIHelper {
             return hasAnyComponent(String.format(VISIBLE_TEXT, value));
         });
         keyboard.enter();
+    }
+
+    public static void selectRadioButton(String radioText) {
+        log("Selecting radio button " + radioText);
+        waitFor(() -> hasAnyComponent(radioText));
+        find(radioText).click();
+    }
+
+    public static boolean isCheckboxSelected(String checkboxText) {
+        waitFor(() -> hasAnyComponent(checkboxText));
+        Boolean result = (Boolean) find(checkboxText).callJs(
+            "component.isSelected ? component.isSelected() : component.getModel().isSelected()"
+        );
+        if (result != null && result) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
