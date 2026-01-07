@@ -21,6 +21,10 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 import java.util.concurrent.CompletableFuture;
@@ -325,6 +329,8 @@ public final class CopilotIntegration {
     /**
      * Attempts automation by finding Copilot's UI components directly.
      * This is more reliable than keyboard automation as it doesn't depend on focus state.
+     * 
+     * Flow: Open window -> Switch to Agent mode -> Wait for UI -> Paste prompt -> Send message
      */
     private static boolean tryComponentBasedAutomation(@NotNull Project project, @NotNull String prompt) {
         AtomicBoolean success = new AtomicBoolean(false);
@@ -337,30 +343,767 @@ public final class CopilotIntegration {
                     return;
                 }
 
-                // Try to find the input text component
-                JTextComponent inputField = findCopilotInputField(copilotWindow);
-                if (inputField == null) {
-                    LOGGER.debug("CxFix: Could not find Copilot input field");
-                    return;
+                // Log all components for debugging
+                logAllComponents(copilotWindow);
+
+                // Step 1: Switch to Agent mode FIRST
+                LOGGER.info("CxFix: Step 1 - Switching to Agent mode...");
+                boolean agentModeSet = trySetAgentModeFromDropdown(copilotWindow);
+                if (agentModeSet) {
+                    LOGGER.info("CxFix: Successfully set Agent mode from dropdown");
+                } else {
+                    LOGGER.warn("CxFix: Could not set Agent mode from dropdown, will try keyboard fallback");
                 }
-
-                LOGGER.info("CxFix: Found Copilot input field, setting text directly");
-
-                // Set text directly
-                inputField.setText(prompt);
-                inputField.requestFocusInWindow();
-
-                // Note: We can't easily switch to agent mode or send via component approach
-                // as those require interacting with custom Copilot UI elements
-                // The user will need to manually select agent mode and press enter
 
                 success.set(true);
             } catch (Exception e) {
-                LOGGER.debug("CxFix: Component-based automation failed", e);
+                LOGGER.debug("CxFix: Component-based automation failed during mode switch", e);
             }
         });
 
-        return success.get();
+        if (!success.get()) {
+            return false;
+        }
+
+        // Step 2: Wait for Agent mode UI to fully load
+        // When switching modes, Copilot recreates the panel asynchronously
+        LOGGER.info("CxFix: Step 2 - Waiting for Agent mode UI to load...");
+        try {
+            TimeUnit.MILLISECONDS.sleep(Timing.AGENT_MODE_DELAY_MS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+
+        // Step 3: Now find the input field (in the new Agent mode panel) and set text
+        AtomicBoolean textSet = new AtomicBoolean(false);
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            try {
+                ToolWindow copilotWindow = findCopilotToolWindow(project);
+                if (copilotWindow == null) {
+                    LOGGER.debug("CxFix: Could not find Copilot tool window after mode switch");
+                    return;
+                }
+
+                // Re-find the input field in the Agent mode panel
+                LOGGER.info("CxFix: Step 3 - Finding input field in Agent mode panel...");
+                JTextComponent inputField = findCopilotInputField(copilotWindow);
+                if (inputField == null) {
+                    LOGGER.debug("CxFix: Could not find Copilot input field after mode switch");
+                    return;
+                }
+
+                LOGGER.info("CxFix: Found Copilot input field in Agent mode, setting text directly");
+
+                // Step 4: Set text (paste prompt)
+                LOGGER.info("CxFix: Step 4 - Pasting prompt text...");
+                inputField.setText(prompt);
+                inputField.requestFocusInWindow();
+
+                // Step 5: Send the message
+                LOGGER.info("CxFix: Step 5 - Sending message...");
+                boolean sent = trySendMessage(copilotWindow, inputField);
+                if (sent) {
+                    LOGGER.info("CxFix: Message sent successfully via component automation");
+                } else {
+                    LOGGER.warn("CxFix: Could not send message via component, will try keyboard fallback");
+                }
+
+                textSet.set(true);
+            } catch (Exception e) {
+                LOGGER.debug("CxFix: Component-based automation failed during text entry", e);
+            }
+        });
+
+        return textSet.get();
+    }
+
+    /**
+     * Attempts to send the message using various methods.
+     * @return true if message was sent, false otherwise
+     */
+    private static boolean trySendMessage(@NotNull ToolWindow toolWindow, @NotNull JTextComponent inputField) {
+        // Method 1: Try to find and click a send button
+        AbstractButton sendButton = findSendButton(toolWindow);
+        if (sendButton != null && sendButton.isEnabled()) {
+            LOGGER.info("CxFix: Found send button, clicking...");
+            sendButton.doClick();
+            return true;
+        }
+
+        // Method 2: Try to find an action button (icon button without text)
+        AbstractButton actionButton = findActionButton(toolWindow, inputField);
+        if (actionButton != null && actionButton.isEnabled()) {
+            LOGGER.info("CxFix: Found action button near input, clicking...");
+            actionButton.doClick();
+            return true;
+        }
+
+        // Method 3: Simulate Enter key press in the input field
+        LOGGER.info("CxFix: No send button found, simulating Enter key...");
+        return simulateEnterKey(inputField);
+    }
+
+    /**
+     * Finds a send button in the tool window.
+     * Looks for buttons with send-related text, tooltip, or icon.
+     */
+    private static @Nullable AbstractButton findSendButton(@NotNull ToolWindow toolWindow) {
+        Content[] contents = toolWindow.getContentManager().getContents();
+        for (Content content : contents) {
+            JComponent component = content.getComponent();
+            if (component != null) {
+                AbstractButton button = findSendButtonRecursively(component);
+                if (button != null) {
+                    return button;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Recursively searches for a send button.
+     */
+    private static @Nullable AbstractButton findSendButtonRecursively(@NotNull Component component) {
+        if (component instanceof AbstractButton) {
+            AbstractButton button = (AbstractButton) component;
+            String text = button.getText();
+            String tooltip = button.getToolTipText();
+            String name = button.getName();
+            String className = button.getClass().getSimpleName().toLowerCase();
+            
+            // Check text
+            if (text != null) {
+                String lowerText = text.toLowerCase();
+                if (lowerText.contains("send") || lowerText.contains("submit") || 
+                    lowerText.equals("go") || lowerText.equals("run")) {
+                    LOGGER.info("CxFix: Found send button by text: '" + text + "'");
+                    return button;
+                }
+            }
+            
+            // Check tooltip
+            if (tooltip != null) {
+                String lowerTooltip = tooltip.toLowerCase();
+                if (lowerTooltip.contains("send") || lowerTooltip.contains("submit") || 
+                    lowerTooltip.contains("execute") || lowerTooltip.contains("run")) {
+                    LOGGER.info("CxFix: Found send button by tooltip: '" + tooltip + "'");
+                    return button;
+                }
+            }
+            
+            // Check name
+            if (name != null) {
+                String lowerName = name.toLowerCase();
+                if (lowerName.contains("send") || lowerName.contains("submit")) {
+                    LOGGER.info("CxFix: Found send button by name: '" + name + "'");
+                    return button;
+                }
+            }
+            
+            // Check class name
+            if (className.contains("send") || className.contains("submit")) {
+                LOGGER.info("CxFix: Found send button by class: " + button.getClass().getSimpleName());
+                return button;
+            }
+        }
+
+        if (component instanceof Container) {
+            Container container = (Container) component;
+            for (Component child : container.getComponents()) {
+                AbstractButton found = findSendButtonRecursively(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds an action button (likely send) that is positioned near the input field.
+     * Copilot typically has an icon button next to/below the input field.
+     */
+    private static @Nullable AbstractButton findActionButton(@NotNull ToolWindow toolWindow, @NotNull JTextComponent inputField) {
+        Container parent = inputField.getParent();
+        
+        // Walk up the hierarchy looking for sibling buttons
+        while (parent != null) {
+            for (Component sibling : parent.getComponents()) {
+                if (sibling instanceof AbstractButton && sibling != inputField) {
+                    AbstractButton button = (AbstractButton) sibling;
+                    // Look for icon-only buttons (send buttons often have no text)
+                    if ((button.getText() == null || button.getText().isEmpty()) && 
+                        button.getIcon() != null && button.isEnabled() && button.isVisible()) {
+                        
+                        // Check if it's positioned to the right or below the input
+                        Rectangle inputBounds = inputField.getBounds();
+                        Rectangle buttonBounds = button.getBounds();
+                        
+                        // Button should be near the input field
+                        if (buttonBounds.x >= inputBounds.x + inputBounds.width - 50 ||
+                            buttonBounds.y >= inputBounds.y + inputBounds.height - 10) {
+                            LOGGER.info("CxFix: Found action button near input field: " + 
+                                    button.getClass().getSimpleName() + ", icon: " + button.getIcon());
+                            return button;
+                        }
+                    }
+                }
+            }
+            
+            // Also search all buttons in the parent
+            AbstractButton anyButton = findFirstEnabledIconButton(parent);
+            if (anyButton != null) {
+                return anyButton;
+            }
+            
+            parent = parent.getParent();
+            // Don't go too far up the hierarchy
+            if (parent != null && parent.getClass().getSimpleName().contains("ToolWindow")) {
+                break;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds the first enabled icon-only button (potential send button).
+     */
+    private static @Nullable AbstractButton findFirstEnabledIconButton(@NotNull Container container) {
+        for (Component comp : container.getComponents()) {
+            if (comp instanceof AbstractButton) {
+                AbstractButton button = (AbstractButton) comp;
+                String className = button.getClass().getSimpleName().toLowerCase();
+                // Look for buttons that might be send buttons
+                if (className.contains("send") || className.contains("submit") || 
+                    className.contains("action") || className.contains("run")) {
+                    if (button.isEnabled() && button.isVisible()) {
+                        LOGGER.info("CxFix: Found potential send button by class: " + button.getClass().getSimpleName());
+                        return button;
+                    }
+                }
+            }
+            if (comp instanceof Container) {
+                AbstractButton found = findFirstEnabledIconButton((Container) comp);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Simulates pressing Enter key in the input field to send the message.
+     */
+    private static boolean simulateEnterKey(@NotNull JTextComponent inputField) {
+        try {
+            // Create and dispatch a key event for Enter
+            KeyEvent enterPressed = new KeyEvent(
+                    inputField,
+                    KeyEvent.KEY_PRESSED,
+                    System.currentTimeMillis(),
+                    0,
+                    KeyEvent.VK_ENTER,
+                    '\n'
+            );
+            KeyEvent enterReleased = new KeyEvent(
+                    inputField,
+                    KeyEvent.KEY_RELEASED,
+                    System.currentTimeMillis(),
+                    0,
+                    KeyEvent.VK_ENTER,
+                    '\n'
+            );
+            
+            inputField.dispatchEvent(enterPressed);
+            inputField.dispatchEvent(enterReleased);
+            
+            LOGGER.info("CxFix: Dispatched Enter key event to input field");
+            return true;
+        } catch (Exception e) {
+            LOGGER.warn("CxFix: Failed to simulate Enter key", e);
+            return false;
+        }
+    }
+
+    /**
+     * Logs all UI components in the Copilot tool window for debugging purposes.
+     */
+    private static void logAllComponents(@NotNull ToolWindow toolWindow) {
+        LOGGER.info("CxFix: === Starting component hierarchy dump ===");
+        Content[] contents = toolWindow.getContentManager().getContents();
+        for (int i = 0; i < contents.length; i++) {
+            Content content = contents[i];
+            JComponent component = content.getComponent();
+            if (component != null) {
+                LOGGER.info("CxFix: Content[" + i + "] displayName: " + content.getDisplayName());
+                logComponentHierarchy(component, 0);
+            }
+        }
+        LOGGER.info("CxFix: === End component hierarchy dump ===");
+    }
+
+    /**
+     * Recursively logs component hierarchy with indentation.
+     */
+    private static void logComponentHierarchy(@NotNull Component component, int depth) {
+        String indent = "  ".repeat(depth);
+        String componentInfo = String.format("%s- %s [name=%s, visible=%s, enabled=%s, bounds=%s]",
+                indent,
+                component.getClass().getSimpleName(),
+                component.getName(),
+                component.isVisible(),
+                component.isEnabled(),
+                component.getBounds());
+
+        // Add extra info for specific component types
+        if (component instanceof JComboBox) {
+            JComboBox<?> combo = (JComboBox<?>) component;
+            StringBuilder items = new StringBuilder();
+            for (int i = 0; i < combo.getItemCount(); i++) {
+                if (i > 0) items.append(", ");
+                Object item = combo.getItemAt(i);
+                String displayName = extractModeDisplayName(item);
+                items.append("[").append(i).append("]=").append(displayName);
+            }
+            String selectedDisplay = extractModeDisplayName(combo.getSelectedItem());
+            componentInfo += " ComboBox items: {" + items + "}, selected: " + selectedDisplay;
+            LOGGER.info("CxFix: FOUND COMBOBOX: " + componentInfo);
+        } else if (component instanceof AbstractButton) {
+            AbstractButton button = (AbstractButton) component;
+            componentInfo += " Button text: '" + button.getText() + "'";
+            componentInfo += ", tooltip: '" + button.getToolTipText() + "'";
+            componentInfo += ", hasIcon: " + (button.getIcon() != null);
+            componentInfo += ", enabled: " + button.isEnabled();
+            
+            String buttonText = button.getText();
+            String tooltip = button.getToolTipText();
+            String btnClassName = button.getClass().getSimpleName().toLowerCase();
+            
+            // Log mode buttons
+            if (buttonText != null && 
+                (buttonText.toLowerCase().contains("agent") || 
+                 buttonText.toLowerCase().contains("ask") ||
+                 buttonText.toLowerCase().contains("edit") ||
+                 buttonText.toLowerCase().contains("plan"))) {
+                LOGGER.info("CxFix: FOUND MODE BUTTON: " + componentInfo);
+            }
+            // Log potential send buttons
+            else if ((buttonText != null && (buttonText.toLowerCase().contains("send") || 
+                     buttonText.toLowerCase().contains("submit") ||
+                     buttonText.toLowerCase().contains("run"))) ||
+                    (tooltip != null && (tooltip.toLowerCase().contains("send") ||
+                     tooltip.toLowerCase().contains("submit") ||
+                     tooltip.toLowerCase().contains("execute"))) ||
+                    btnClassName.contains("send") || btnClassName.contains("submit") ||
+                    btnClassName.contains("action") || btnClassName.contains("run")) {
+                LOGGER.info("CxFix: POTENTIAL SEND BUTTON: " + componentInfo);
+            }
+            // Log icon-only buttons (often used for send)
+            else if ((buttonText == null || buttonText.isEmpty()) && button.getIcon() != null) {
+                LOGGER.info("CxFix: ICON BUTTON (potential send): " + componentInfo + 
+                        ", class: " + button.getClass().getSimpleName());
+            }
+        } else if (component instanceof JLabel) {
+            JLabel label = (JLabel) component;
+            if (label.getText() != null && !label.getText().isEmpty()) {
+                componentInfo += " Label text: '" + label.getText() + "'";
+            }
+        } else if (component instanceof JTextComponent) {
+            JTextComponent text = (JTextComponent) component;
+            componentInfo += " Editable: " + text.isEditable() + ", Text length: " + 
+                    (text.getText() != null ? text.getText().length() : 0);
+        }
+
+        // Log components that might be dropdowns or mode selectors
+        String className = component.getClass().getName().toLowerCase();
+        if (className.contains("dropdown") || className.contains("combo") || 
+            className.contains("select") || className.contains("mode") ||
+            className.contains("popup") || className.contains("menu")) {
+            LOGGER.info("CxFix: POTENTIAL DROPDOWN: " + componentInfo);
+        } else {
+            LOGGER.debug("CxFix: " + componentInfo);
+        }
+
+        // Recurse into children
+        if (component instanceof Container) {
+            Container container = (Container) component;
+            for (Component child : container.getComponents()) {
+                logComponentHierarchy(child, depth + 1);
+            }
+        }
+    }
+
+    /**
+     * Attempts to find and set Agent mode from a dropdown/combobox component.
+     * @return true if agent mode was successfully set, false otherwise
+     */
+    private static boolean trySetAgentModeFromDropdown(@NotNull ToolWindow toolWindow) {
+        Content[] contents = toolWindow.getContentManager().getContents();
+        for (Content content : contents) {
+            JComponent component = content.getComponent();
+            if (component != null) {
+                // Try to find JComboBox first
+                JComboBox<?> comboBox = findComboBoxWithModes(component);
+                if (comboBox != null) {
+                    return selectAgentInComboBox(comboBox);
+                }
+
+                // Try to find custom dropdown buttons
+                AbstractButton modeButton = findModeButton(component);
+                if (modeButton != null) {
+                    return clickAgentModeButton(modeButton, component);
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Finds a JComboBox that is the ChatModeComboBox (mode selector).
+     */
+    private static @Nullable JComboBox<?> findChatModeComboBox(@NotNull Component component) {
+        if (component instanceof JComboBox) {
+            JComboBox<?> combo = (JComboBox<?>) component;
+            String className = combo.getClass().getSimpleName();
+            
+            // Check if this is the ChatModeComboBox by class name
+            if (className.contains("ChatMode") || className.contains("ModeCombo")) {
+                LOGGER.info("CxFix: Found ChatModeComboBox by class name: " + className);
+                logComboBoxItems(combo);
+                return combo;
+            }
+            
+            // Check if items are ChatModeItem objects
+            if (combo.getItemCount() > 0) {
+                Object firstItem = combo.getItemAt(0);
+                if (firstItem != null) {
+                    String itemClassName = firstItem.getClass().getName();
+                    if (itemClassName.contains("ChatModeItem") || itemClassName.contains("Mode")) {
+                        LOGGER.info("CxFix: Found mode ComboBox by item type: " + itemClassName);
+                        logComboBoxItems(combo);
+                        return combo;
+                    }
+                }
+            }
+        }
+
+        if (component instanceof Container) {
+            Container container = (Container) component;
+            for (Component child : container.getComponents()) {
+                JComboBox<?> found = findChatModeComboBox(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Logs all items in a combo box with their extracted display names.
+     */
+    private static void logComboBoxItems(@NotNull JComboBox<?> comboBox) {
+        LOGGER.info("CxFix: ComboBox has " + comboBox.getItemCount() + " items:");
+        for (int i = 0; i < comboBox.getItemCount(); i++) {
+            Object item = comboBox.getItemAt(i);
+            String displayName = extractModeDisplayName(item);
+            LOGGER.info("CxFix:   [" + i + "] " + displayName + " (class: " + 
+                    (item != null ? item.getClass().getSimpleName() : "null") + ")");
+        }
+        Object selected = comboBox.getSelectedItem();
+        LOGGER.info("CxFix:   Currently selected: " + extractModeDisplayName(selected));
+    }
+
+    /**
+     * Extracts the display name from a ChatModeItem object using reflection.
+     * Tries multiple common property names and methods.
+     */
+    private static @NotNull String extractModeDisplayName(@Nullable Object item) {
+        if (item == null) {
+            return "null";
+        }
+        
+        // Try common method names first
+        String[] methodNames = {"getName", "getDisplayName", "getText", "getLabel", "getTitle", "name", "displayName"};
+        for (String methodName : methodNames) {
+            try {
+                Method method = item.getClass().getMethod(methodName);
+                Object result = method.invoke(item);
+                if (result != null) {
+                    String value = result.toString();
+                    LOGGER.debug("CxFix: Extracted '" + value + "' using method " + methodName);
+                    return value;
+                }
+            } catch (Exception ignored) {
+                // Try next method
+            }
+        }
+        
+        // Try common field names
+        String[] fieldNames = {"name", "displayName", "text", "label", "title", "mode", "value"};
+        for (String fieldName : fieldNames) {
+            try {
+                Field field = item.getClass().getDeclaredField(fieldName);
+                field.setAccessible(true);
+                Object result = field.get(item);
+                if (result != null) {
+                    String value = result.toString();
+                    LOGGER.debug("CxFix: Extracted '" + value + "' using field " + fieldName);
+                    return value;
+                }
+            } catch (Exception ignored) {
+                // Try next field
+            }
+        }
+        
+        // Try getting all declared fields and methods for debugging
+        LOGGER.debug("CxFix: Could not extract name, dumping class info for: " + item.getClass().getName());
+        try {
+            // Log all methods
+            for (Method m : item.getClass().getMethods()) {
+                if (m.getParameterCount() == 0 && m.getReturnType() != void.class) {
+                    String mName = m.getName();
+                    if (!mName.equals("getClass") && !mName.equals("hashCode") && !mName.equals("toString")) {
+                        try {
+                            Object result = m.invoke(item);
+                            LOGGER.debug("CxFix:   Method " + mName + "() = " + result);
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+            // Log all declared fields
+            for (Field f : item.getClass().getDeclaredFields()) {
+                f.setAccessible(true);
+                try {
+                    Object result = f.get(item);
+                    LOGGER.debug("CxFix:   Field " + f.getName() + " = " + result);
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e) {
+            LOGGER.debug("CxFix: Error dumping class info", e);
+        }
+        
+        // Fallback to toString
+        return item.toString();
+    }
+
+    /**
+     * Selects "Agent" mode in the given combo box.
+     * Uses reflection to extract the actual mode name from ChatModeItem objects.
+     */
+    private static boolean selectAgentInComboBox(@NotNull JComboBox<?> comboBox) {
+        LOGGER.info("CxFix: Searching for 'Agent' mode in ComboBox with " + comboBox.getItemCount() + " items");
+        
+        int agentIndex = -1;
+        
+        // First pass: try to find by extracted display name
+        for (int i = 0; i < comboBox.getItemCount(); i++) {
+            Object item = comboBox.getItemAt(i);
+            String displayName = extractModeDisplayName(item);
+            LOGGER.info("CxFix: Item[" + i + "] display name: '" + displayName + "'");
+            
+            if (displayName.toLowerCase().contains("agent")) {
+                agentIndex = i;
+                LOGGER.info("CxFix: Found 'Agent' at index " + i + " (displayName='" + displayName + "')");
+                break;
+            }
+        }
+        
+        // Second pass: check if it's an enum and look for AGENT value
+        if (agentIndex == -1) {
+            for (int i = 0; i < comboBox.getItemCount(); i++) {
+                Object item = comboBox.getItemAt(i);
+                if (item != null && item.getClass().isEnum()) {
+                    String enumName = ((Enum<?>) item).name();
+                    LOGGER.info("CxFix: Item[" + i + "] enum name: '" + enumName + "'");
+                    if (enumName.toLowerCase().contains("agent")) {
+                        agentIndex = i;
+                        LOGGER.info("CxFix: Found 'Agent' at index " + i + " (enum='" + enumName + "')");
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Fallback: Based on typical Copilot UI structure (Ask=0, Edit=1, Agent=2, Plan=3)
+        // Only use this if we have at least 3 items
+        if (agentIndex == -1 && comboBox.getItemCount() >= 3) {
+            LOGGER.warn("CxFix: Could not find Agent by name, using fallback index 2 (typical Agent position)");
+            agentIndex = 2;
+        }
+        
+        if (agentIndex >= 0 && agentIndex < comboBox.getItemCount()) {
+            LOGGER.info("CxFix: Selecting Agent mode at index " + agentIndex);
+            comboBox.setSelectedIndex(agentIndex);
+            
+            // Verify selection
+            Object selected = comboBox.getSelectedItem();
+            LOGGER.info("CxFix: After selection, selected item: " + extractModeDisplayName(selected));
+            return true;
+        }
+        
+        LOGGER.warn("CxFix: Could not find or select Agent mode");
+        return false;
+    }
+    
+    /**
+     * Legacy method for backward compatibility - redirects to new implementation.
+     */
+    private static @Nullable JComboBox<?> findComboBoxWithModes(@NotNull Component component) {
+        return findChatModeComboBox(component);
+    }
+
+    /**
+     * Finds a button that represents the mode selector (might show current mode like "Ask", "Agent", etc.).
+     */
+    private static @Nullable AbstractButton findModeButton(@NotNull Component component) {
+        if (component instanceof AbstractButton) {
+            AbstractButton button = (AbstractButton) component;
+            String text = button.getText();
+            if (text != null) {
+                String lowerText = text.toLowerCase();
+                // Look for buttons that show mode names
+                if (lowerText.equals("ask") || lowerText.equals("edit") || 
+                    lowerText.equals("agent") || lowerText.equals("plan")) {
+                    LOGGER.info("CxFix: Found mode button with text: '" + text + "'");
+                    return button;
+                }
+            }
+            // Also check tooltip or accessible name
+            String tooltip = button.getToolTipText();
+            if (tooltip != null && tooltip.toLowerCase().contains("mode")) {
+                LOGGER.info("CxFix: Found button with mode tooltip: '" + tooltip + "'");
+                return button;
+            }
+        }
+
+        if (component instanceof Container) {
+            Container container = (Container) component;
+            for (Component child : container.getComponents()) {
+                AbstractButton found = findModeButton(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Clicks a mode button to open dropdown and then selects Agent.
+     * This handles custom dropdown implementations that aren't standard JComboBox.
+     */
+    private static boolean clickAgentModeButton(@NotNull AbstractButton modeButton, @NotNull Component rootComponent) {
+        String currentMode = modeButton.getText();
+        LOGGER.info("CxFix: Current mode button text: '" + currentMode + "'");
+
+        if (currentMode != null && currentMode.toLowerCase().contains("agent")) {
+            LOGGER.info("CxFix: Already in Agent mode");
+            return true;
+        }
+
+        // Click the button to open the dropdown
+        LOGGER.info("CxFix: Clicking mode button to open dropdown...");
+        modeButton.doClick();
+
+        // Wait a bit for popup to appear and look for Agent option
+        try {
+            TimeUnit.MILLISECONDS.sleep(300);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // Try to find popup menu or list with Agent option
+        // Look for JPopupMenu in the window hierarchy
+        Window[] windows = Window.getWindows();
+        for (Window window : windows) {
+            if (window.isVisible() && window instanceof JWindow) {
+                LOGGER.info("CxFix: Found popup window: " + window.getClass().getName());
+                AbstractButton agentButton = findButtonWithText(window, "agent");
+                if (agentButton != null) {
+                    LOGGER.info("CxFix: Found Agent button in popup, clicking...");
+                    agentButton.doClick();
+                    return true;
+                }
+                // Also try JMenuItem or JList
+                JMenuItem agentMenuItem = findMenuItemWithText(window, "agent");
+                if (agentMenuItem != null) {
+                    LOGGER.info("CxFix: Found Agent menu item, clicking...");
+                    agentMenuItem.doClick();
+                    return true;
+                }
+            }
+        }
+
+        // Also check for JPopupMenu
+        MenuSelectionManager msm = MenuSelectionManager.defaultManager();
+        MenuElement[] selectedPath = msm.getSelectedPath();
+        if (selectedPath.length > 0) {
+            LOGGER.info("CxFix: Found menu selection path with " + selectedPath.length + " elements");
+            for (MenuElement element : selectedPath) {
+                if (element instanceof JPopupMenu) {
+                    JPopupMenu popup = (JPopupMenu) element;
+                    for (Component menuComp : popup.getComponents()) {
+                        if (menuComp instanceof JMenuItem) {
+                            JMenuItem item = (JMenuItem) menuComp;
+                            if (item.getText() != null && item.getText().toLowerCase().contains("agent")) {
+                                LOGGER.info("CxFix: Found Agent in popup menu, clicking...");
+                                item.doClick();
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        LOGGER.warn("CxFix: Could not find Agent option in dropdown");
+        return false;
+    }
+
+    /**
+     * Finds a button with specific text (case-insensitive) in component hierarchy.
+     */
+    private static @Nullable AbstractButton findButtonWithText(@NotNull Component component, @NotNull String textToFind) {
+        if (component instanceof AbstractButton) {
+            AbstractButton button = (AbstractButton) component;
+            if (button.getText() != null && button.getText().toLowerCase().contains(textToFind.toLowerCase())) {
+                return button;
+            }
+        }
+        if (component instanceof Container) {
+            for (Component child : ((Container) component).getComponents()) {
+                AbstractButton found = findButtonWithText(child, textToFind);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds a menu item with specific text (case-insensitive) in component hierarchy.
+     */
+    private static @Nullable JMenuItem findMenuItemWithText(@NotNull Component component, @NotNull String textToFind) {
+        if (component instanceof JMenuItem) {
+            JMenuItem item = (JMenuItem) component;
+            if (item.getText() != null && item.getText().toLowerCase().contains(textToFind.toLowerCase())) {
+                return item;
+            }
+        }
+        if (component instanceof Container) {
+            for (Component child : ((Container) component).getComponents()) {
+                JMenuItem found = findMenuItemWithText(child, textToFind);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -372,6 +1115,7 @@ public final class CopilotIntegration {
             JComponent component = content.getComponent();
             if (component != null) {
                 JTextComponent textField = findTextComponentRecursively(component);
+                // get dropdown component
                 if (textField != null) {
                     return textField;
                 }
