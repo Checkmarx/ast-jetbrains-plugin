@@ -20,11 +20,11 @@ import org.jetbrains.annotations.Nullable;
  * managing a scanner's lifecycle for a given project. This class serves as a
  * base implementation for custom scanner commands.
  */
-public class BaseScannerCommand implements ScannerCommand {
+public abstract class BaseScannerCommand implements ScannerCommand {
     private static final Logger LOGGER = Utils.getLogger(BaseScannerCommand.class);
     public ScannerConfig config;
 
-    public BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config) {
+    protected BaseScannerCommand(@NotNull Disposable parentDisposable, ScannerConfig config) {
         Disposer.register(parentDisposable, this);
         this.config = config;
     }
@@ -103,8 +103,11 @@ public class BaseScannerCommand implements ScannerCommand {
         return LocalFileSystem.getInstance().findFileByPath(path);
     }
 
-    protected void initializeScanner() {
-    }
+    /**
+     * Abstract method to initialize the scanner
+     * This method is invoked when the scanner is registered for the project
+     */
+    protected abstract void initializeScanner();
 
     @Override
     public void dispose() {

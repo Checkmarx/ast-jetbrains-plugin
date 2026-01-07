@@ -7,8 +7,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.ignore.IgnoreEntry;
 import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
-import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction;
-import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterState;
+import com.checkmarx.intellij.devassist.ui.actions.IgnoredFindingsToolbarActions;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.SettingsListener;
@@ -21,13 +20,18 @@ import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.LogicalPosition;
+import com.intellij.openapi.editor.ScrollType;
+import com.intellij.openapi.fileEditor.FileEditor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.TextEditor;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
-import com.intellij.openapi.util.IconLoader;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
@@ -36,445 +40,802 @@ import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Tool window panel for viewing and managing ignored vulnerability findings.
+ * Supports severity/type filtering, sorting, bulk selection, file navigation, and revive actions.
+ * Toolbar actions are defined in {@link IgnoredFindingsToolbarActions}.
+ *
+ * @see IgnoreManager
+ * @see IgnoredFindingsToolbarActions
+ */
 public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposable {
+
     private static final Logger LOGGER = Utils.getLogger(CxIgnoredFindings.class);
+    private static final String IGNORE_FILE_PATH = ".idea/.checkmarxIgnored";
 
+    // ========== Instance Fields ==========
     private final Project project;
-    private final JPanel ignoredListPanel;
     private final Content content;
-    private JCheckBox selectAllCheckbox;
-    private final java.util.List<IgnoredEntryPanel> entryPanels = new java.util.ArrayList<>();
-    private List<IgnoreEntry> allEntries = new java.util.ArrayList<>();
+    private final JPanel ignoredListPanel = new JPanel();
+    private final List<IgnoredEntryPanel> entryPanels = new ArrayList<>();
 
+    private JCheckBox selectAllCheckbox;
+    private List<IgnoreEntry> allEntries = new ArrayList<>();
+    private long lastKnownModificationTime = 0;
+
+    /**
+     * Creates a new ignored findings panel.
+     *
+     * @param project the current IntelliJ project
+     * @param content the tool window content for tab title updates
+     */
     public CxIgnoredFindings(Project project, Content content) {
         super(false, true);
         this.project = project;
         this.content = content;
-        this.ignoredListPanel = new JPanel();
 
-        // Setup initial UI based on settings validity, subscribe to settings changes
-        Runnable settingsCheckRunnable = () -> {
-            if (new GlobalSettingsComponent().isValid()) {
-                drawMainPanel();
-            } else {
-                drawAuthPanel();
-            }
-        };
+        initializeSubscriptions();
+        initializeTimers();
+        initializeFileModificationTime();
 
-        // Subscribe to filter changes
-        project.getMessageBus().connect(this)
-                .subscribe(VulnerabilityFilterBaseAction.TOPIC,
-                        (VulnerabilityFilterBaseAction.VulnerabilityFilterChanged) () ->
-                            ApplicationManager.getApplication().invokeLater(this::applyFiltersAndRefresh));
-
-        // Subscribe to settings changes
-        ApplicationManager.getApplication().getMessageBus()
-                .connect(this)
-                .subscribe(SettingsListener.SETTINGS_APPLIED, new SettingsListener() {
-                    @Override
-                    public void settingsApplied() {
-                        settingsCheckRunnable.run();
-                    }
-                });
-
-        settingsCheckRunnable.run();
-
-        // SUBSCRIBE TO IGNORE_TOPIC UPDATES
-        project.getMessageBus().connect(this)
-                .subscribe(IgnoreFileManager.IGNORE_TOPIC, new IgnoreFileManager.IgnoreListener() {
-                    @Override
-                    public void onIgnoreUpdated() {
-                        ApplicationManager.getApplication().invokeLater(() -> refreshIgnoredEntries());
-                    }
-                });
+        checkSettingsAndDraw();
     }
 
-    /**
-     * Draw the authentication panel prompting the user to configure settings.
-     */
+    private void initializeSubscriptions() {
+        var projectBus = project.getMessageBus().connect(this);
+        var appBus = ApplicationManager.getApplication().getMessageBus().connect(this);
+
+        // Severity filter changes (independent state for this tab - see IgnoredFindingsToolbarActions)
+        projectBus.subscribe(IgnoredFindingsToolbarActions.SEVERITY_FILTER_TOPIC,
+                (IgnoredFindingsToolbarActions.SeverityFilterChanged) this::onFilterChanged);
+
+        // Vulnerability type filter changes
+        projectBus.subscribe(IgnoredFindingsToolbarActions.TYPE_FILTER_TOPIC,
+                (IgnoredFindingsToolbarActions.TypeFilterChanged) this::onFilterChanged);
+
+        // Sort changes
+        projectBus.subscribe(IgnoredFindingsToolbarActions.SORT_TOPIC,
+                (IgnoredFindingsToolbarActions.SortChanged) sortType -> onFilterChanged());
+
+        // Ignore file updates
+        projectBus.subscribe(IgnoreFileManager.IGNORE_TOPIC,
+                (IgnoreFileManager.IgnoreListener) () ->
+                        ApplicationManager.getApplication().invokeLater(this::refreshIgnoredEntries));
+
+        // Settings changes
+        appBus.subscribe(SettingsListener.SETTINGS_APPLIED, (SettingsListener) this::checkSettingsAndDraw);
+    }
+
+    private void initializeTimers() {
+        // Smart refresh: detects file changes without resetting user selections
+        Timer smartRefreshTimer = new Timer(3000, e -> checkAndRefreshIfNeeded());
+        smartRefreshTimer.start();
+
+        // VFS refresh: syncs IntelliJ's VFS with external edits
+        Timer vfsRefreshTimer = new Timer(10000, e -> refreshVirtualFileSystem());
+        vfsRefreshTimer.start();
+
+        Disposer.register(this, smartRefreshTimer::stop);
+        Disposer.register(this, vfsRefreshTimer::stop);
+    }
+
+    private void initializeFileModificationTime() {
+        try {
+            Path ignoreFilePath = getIgnoreFilePath();
+            if (ignoreFilePath != null && Files.exists(ignoreFilePath)) {
+                lastKnownModificationTime = Files.getLastModifiedTime(ignoreFilePath).toMillis();
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Error initializing file modification time", e);
+        }
+    }
+
+    private void onFilterChanged() {
+        ApplicationManager.getApplication().invokeLater(this::applyFiltersAndRefresh);
+    }
+
+    private void checkSettingsAndDraw() {
+        if (new GlobalSettingsComponent().isValid()) {
+            drawMainPanel();
+        } else {
+            drawAuthPanel();
+        }
+    }
+
+    private Path getIgnoreFilePath() {
+        String basePath = project.getBasePath();
+        return basePath != null ? Paths.get(basePath, IGNORE_FILE_PATH) : null;
+    }
+
+    private void refreshVirtualFileSystem() {
+        Path ignoreFilePath = getIgnoreFilePath();
+        if (ignoreFilePath != null) {
+            VirtualFile vf = LocalFileSystem.getInstance().findFileByIoFile(ignoreFilePath.toFile());
+            if (vf != null) vf.refresh(false, false);
+        }
+    }
+
+    /** Checks if ignore file was modified externally and refreshes UI while preserving selections. */
+    private void checkAndRefreshIfNeeded() {
+        if (!new GlobalSettingsComponent().isValid()) return;
+
+        try {
+            Path ignoreFilePath = getIgnoreFilePath();
+            if (ignoreFilePath == null) return;
+
+            if (!Files.exists(ignoreFilePath)) {
+                if (lastKnownModificationTime != 0 && !allEntries.isEmpty()) {
+                    lastKnownModificationTime = 0;
+                    refreshIgnoredEntries();
+                }
+                return;
+            }
+
+            long currentModTime = Files.getLastModifiedTime(ignoreFilePath).toMillis();
+            if (currentModTime != lastKnownModificationTime) {
+                LOGGER.debug("Ignore file modified, refreshing UI");
+                lastKnownModificationTime = currentModTime;
+
+                VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(ignoreFilePath.toFile());
+                if (vf != null) vf.refresh(false, false);
+
+                ApplicationManager.getApplication().invokeLater(this::refreshIgnoredEntries);
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Error checking ignore file modification time", e);
+        }
+    }
+
+    /** Displays authentication panel when settings are not configured. */
+
     private void drawAuthPanel() {
         removeAll();
-        JPanel wrapper = new JPanel(new GridBagLayout());
 
         JPanel panel = new JPanel(new GridLayoutManager(2, 1, JBUI.emptyInsets(), -1, -1));
-
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(0);
         panel.add(new JBLabel(CxIcons.CHECKMARX_80), constraints);
 
         JButton openSettingsButton = new JButton(Bundle.message(Resource.OPEN_SETTINGS_BUTTON));
-        openSettingsButton.addActionListener(e -> ShowSettingsUtil.getInstance()
-                .showSettingsDialog(project, GlobalSettingsConfigurable.class));
-
+        openSettingsButton.addActionListener(e ->
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, GlobalSettingsConfigurable.class));
         constraints = new GridConstraints();
         constraints.setRow(1);
         panel.add(openSettingsButton, constraints);
 
+        JPanel wrapper = new JPanel(new GridBagLayout());
         wrapper.add(panel);
         setContent(wrapper);
+        updateTabTitle(0);
         revalidate();
         repaint();
     }
 
-    /**
-     * Draw the main panel with toolbar and ignored findings list.
-     * Shown when global settings are valid.
-     */
+    /** Draws the main panel with toolbar, header, and scrollable findings list. */
+
     private void drawMainPanel() {
         removeAll();
+        List<IgnoreEntry> entries = new IgnoreManager(project).getIgnoredEntries();
 
-        // Create and set toolbar with filter actions
-        ActionToolbar toolbar = createActionToolbar();
-        toolbar.setTargetComponent(this);
-        setToolbar(toolbar.getComponent());
+        if (entries.isEmpty()) {
+            drawEmptyStatePanel();
+        } else {
+            ActionToolbar toolbar = createActionToolbar();
+            toolbar.setTargetComponent(this);
+            setToolbar(toolbar.getComponent());
 
-        // Create main container with proper layout
-        JPanel mainContainer = new JPanel(new BorderLayout());
-        mainContainer.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+            JPanel mainContainer = new JPanel(new BorderLayout());
+            mainContainer.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+            mainContainer.add(createHeaderPanel(), BorderLayout.NORTH);
 
-        // Create header panel
-        JPanel headerPanel = createHeaderPanel();
-        mainContainer.add(headerPanel, BorderLayout.NORTH);
+            ignoredListPanel.removeAll();
+            ignoredListPanel.setLayout(new BoxLayout(ignoredListPanel, BoxLayout.Y_AXIS));
+            ignoredListPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
 
-        // Create content area
-        ignoredListPanel.removeAll();
-        ignoredListPanel.setLayout(new BoxLayout(ignoredListPanel, BoxLayout.Y_AXIS));
-        ignoredListPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+            JBScrollPane scrollPane = new JBScrollPane(ignoredListPanel);
+            scrollPane.setBorder(JBUI.Borders.empty());
+            scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            mainContainer.add(scrollPane, BorderLayout.CENTER);
 
-        JBScrollPane scrollPane = new JBScrollPane(ignoredListPanel);
-        scrollPane.setBorder(JBUI.Borders.empty());
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        mainContainer.add(scrollPane, BorderLayout.CENTER);
-
-        setContent(mainContainer);
-        refreshIgnoredEntries();
-
-        // Auto-refresh every 5 seconds
-        Timer refreshTimer = new Timer(5000, e -> refreshIgnoredEntries());
-        refreshTimer.start();
-
+            setContent(mainContainer);
+            refreshIgnoredEntries();
+        }
         revalidate();
         repaint();
     }
 
-    /**
-     * Create action toolbar with filter buttons
-     */
+    private void drawEmptyStatePanel() {
+        setContent(createEmptyMessagePanel("No ignored findings"));
+        setToolbar(null);
+        updateTabTitle(0);
+    }
+
+    private JPanel createEmptyMessagePanel(String message) {
+        JPanel container = new JPanel(new BorderLayout());
+        container.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+
+        JPanel messagePanel = new JPanel(new BorderLayout());
+        messagePanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+        messagePanel.setBorder(JBUI.Borders.empty(40));
+
+        JLabel label = new JLabel(message, SwingConstants.CENTER);
+        label.setFont(JBUI.Fonts.label(14));
+        label.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
+        messagePanel.add(label, BorderLayout.CENTER);
+
+        container.add(messagePanel, BorderLayout.CENTER);
+        return container;
+    }
+
+    /** Creates toolbar with severity filters, type filter dropdown, and sort dropdown. */
+
     private ActionToolbar createActionToolbar() {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
 
-        // Add severity filter actions
-        actionGroup.add(new VulnerabilityFilterBaseAction.VulnerabilityMaliciousFilter());
-        actionGroup.add(new VulnerabilityFilterBaseAction.VulnerabilityCriticalFilter());
-        actionGroup.add(new VulnerabilityFilterBaseAction.VulnerabilityHighFilter());
-        actionGroup.add(new VulnerabilityFilterBaseAction.VulnerabilityMediumFilter());
-        actionGroup.add(new VulnerabilityFilterBaseAction.VulnerabilityLowFilter());
+        // Severity filters (uses IgnoredFindingsSeverityFilterState - independent from CxFindingsWindow)
+        actionGroup.add(new IgnoredFindingsToolbarActions.IgnoredMaliciousFilter());
+        actionGroup.add(new IgnoredFindingsToolbarActions.IgnoredCriticalFilter());
+        actionGroup.add(new IgnoredFindingsToolbarActions.IgnoredHighFilter());
+        actionGroup.add(new IgnoredFindingsToolbarActions.IgnoredMediumFilter());
+        actionGroup.add(new IgnoredFindingsToolbarActions.IgnoredLowFilter());
+        actionGroup.addSeparator();
+
+        // Dropdowns (defined in IgnoredFindingsToolbarActions for filter and sort)
+        actionGroup.add(new IgnoredFindingsToolbarActions.VulnerabilityTypeFilterDropdown());
+        actionGroup.add(new IgnoredFindingsToolbarActions.SortDropdown());
 
         return ActionManager.getInstance().createActionToolbar("CxIgnoredFindings", actionGroup, true);
     }
 
-    /**
-     * Apply current filters and refresh the display
-     */
+
+    /** Applies current filters and sort, then refreshes the display. */
     private void applyFiltersAndRefresh() {
-        if (!new GlobalSettingsComponent().isValid()) {
-            return; // Don't filter if not authenticated
-        }
+        if (!new GlobalSettingsComponent().isValid()) return;
 
-        Set<Filterable> activeFilters = VulnerabilityFilterState.getInstance().getFilters();
+        Set<Filterable> severityFilters = IgnoredFindingsToolbarActions.IgnoredFindingsSeverityFilterState.getInstance().getFilters();
+        Set<ScanEngine> typeFilters = IgnoredFindingsToolbarActions.TypeFilterState.getInstance().getSelectedEngines();
+        boolean hasTypeFilters = IgnoredFindingsToolbarActions.TypeFilterState.getInstance().hasActiveFilters();
 
-        // If no filters active, show all entries
-        if (activeFilters.isEmpty()) {
-            displayFilteredEntries(allEntries);
-            return;
-        }
-
-        // Filter entries based on severity
-        List<IgnoreEntry> filteredEntries = allEntries.stream()
-                .filter(entry -> shouldShowEntry(entry, activeFilters))
+        List<IgnoreEntry> filtered = allEntries.stream()
+                .filter(e -> matchesSeverityFilter(e, severityFilters))
+                .filter(e -> matchesTypeFilter(e, typeFilters, hasTypeFilters))
                 .collect(Collectors.toList());
 
-        displayFilteredEntries(filteredEntries);
+        sortEntries(filtered);
+        displayFilteredEntries(filtered);
+        updateTabTitle(filtered.size());
     }
 
-    /**
-     * Check if entry should be shown based on active filters
-     */
-    private boolean shouldShowEntry(IgnoreEntry entry, Set<Filterable> activeFilters) {
-        String severity = entry.severity;
-        if (severity == null) {
-            return true; // Show entries with unknown severity
+    private boolean matchesSeverityFilter(IgnoreEntry entry, Set<Filterable> filters) {
+        if (filters.isEmpty()) return true;
+        return filters.stream().anyMatch(f -> f.getFilterValue().equalsIgnoreCase(entry.severity));
+    }
+
+    private boolean matchesTypeFilter(IgnoreEntry entry, Set<ScanEngine> filters, boolean hasFilters) {
+        if (!hasFilters || entry.type == null) return true;
+        return filters.contains(entry.type);
+    }
+
+    private void sortEntries(List<IgnoreEntry> entries) {
+        IgnoredFindingsToolbarActions.SortType sort = IgnoredFindingsToolbarActions.SortState.getInstance().getCurrentSort();
+        switch (sort) {
+            case SEVERITY_HIGH_TO_LOW:
+                entries.sort((a, b) -> Integer.compare(getSeverityLevel(b.severity), getSeverityLevel(a.severity)));
+                break;
+            case SEVERITY_LOW_TO_HIGH:
+                entries.sort((a, b) -> Integer.compare(getSeverityLevel(a.severity), getSeverityLevel(b.severity)));
+                break;
+            case LAST_UPDATED:
+            case OLDEST_FIRST:
+                entries.sort((a, b) -> compareDates(a.dateAdded, b.dateAdded));
+                break;
+            case NEWEST_FIRST:
+                entries.sort((a, b) -> compareDates(b.dateAdded, a.dateAdded));
+                break;
         }
-
-        return activeFilters.stream()
-                .anyMatch(filter -> filter.getFilterValue().equalsIgnoreCase(severity));
     }
 
-    /**
-     * Display the filtered list of entries
-     */
+    /** Returns severity level (5=MALICIOUS, 4=CRITICAL, 3=HIGH, 2=MEDIUM, 1=LOW, 0=unknown). */
+    private int getSeverityLevel(String severity) {
+        if (severity == null) return 0;
+        switch (severity.toUpperCase()) {
+            case "MALICIOUS": return 5;
+            case "CRITICAL": return 4;
+            case "HIGH": return 3;
+            case "MEDIUM": return 2;
+            case "LOW": return 1;
+            default: return 0;
+        }
+    }
+
+    private int compareDates(String date1, String date2) {
+        if (date1 == null && date2 == null) return 0;
+        if (date1 == null) return 1;
+        if (date2 == null) return -1;
+        try {
+            return ZonedDateTime.parse(date1).compareTo(ZonedDateTime.parse(date2));
+        } catch (Exception e) {
+            return date1.compareTo(date2);
+        }
+    }
+
     private void displayFilteredEntries(List<IgnoreEntry> entries) {
         ignoredListPanel.removeAll();
         entryPanels.clear();
 
         if (entries.isEmpty()) {
-            JPanel emptyPanel = new JPanel(new BorderLayout());
-            emptyPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
-            emptyPanel.setBorder(JBUI.Borders.empty(40));
-
-            JLabel emptyLabel = new JLabel("No ignored vulnerabilities", SwingConstants.CENTER);
-            emptyLabel.setFont(JBUI.Fonts.label(14));
-            emptyLabel.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
-            emptyPanel.add(emptyLabel, BorderLayout.CENTER);
-
-            ignoredListPanel.add(emptyPanel);
+            ignoredListPanel.add(createEmptyMessagePanel("No ignored vulnerabilities"));
         } else {
-            for (IgnoreEntry entry : entries) {
-                IgnoredEntryPanel panel = new IgnoredEntryPanel(entry, project);
+            entries.forEach(entry -> {
+                IgnoredEntryPanel panel = new IgnoredEntryPanel(entry);
                 entryPanels.add(panel);
                 ignoredListPanel.add(panel);
-            }
+            });
         }
 
-        // Reset select all checkbox
-        if (selectAllCheckbox != null) {
-            selectAllCheckbox.setSelected(false);
-        }
-
+        updateSelectAllCheckbox();
         ignoredListPanel.revalidate();
         ignoredListPanel.repaint();
     }
 
-    /**
-     * Create the header panel with column titles
-     */
+    /** Creates header with column titles: Checkbox, Risk, Last Updated, Actions. */
     private JPanel createHeaderPanel() {
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
         headerPanel.setBorder(JBUI.Borders.empty(12, 12, 0, 12));
 
-        // Create header with fixed-width columns matching row structure
-        JPanel columnHeaderPanel = new JPanel();
-        columnHeaderPanel.setLayout(new BoxLayout(columnHeaderPanel, BoxLayout.X_AXIS));
-        columnHeaderPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
-        columnHeaderPanel.setBorder(JBUI.Borders.empty(12, 0, 8, 0));
+        JPanel columns = new JPanel();
+        columns.setLayout(new BoxLayout(columns, BoxLayout.X_AXIS));
+        columns.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+        columns.setBorder(JBUI.Borders.empty(12, 0, 8, 0));
 
-        // 1) Checkbox column header - fixed width matching row
-        JPanel checkboxHeaderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        checkboxHeaderPanel.setOpaque(false);
-        checkboxHeaderPanel.setPreferredSize(new Dimension(JBUI.scale(50), JBUI.scale(30)));
-        checkboxHeaderPanel.setMinimumSize(new Dimension(JBUI.scale(50), JBUI.scale(30)));
-        checkboxHeaderPanel.setMaximumSize(new Dimension(JBUI.scale(50), JBUI.scale(30)));
+        // Checkbox | Risk | Last Updated | Actions
+        columns.add(createFixedColumn(50, 30, createSelectAllCheckbox()));
+        columns.add(Box.createRigidArea(new Dimension(JBUI.scale(12), 0)));
+        columns.add(createFlexibleColumn("Risk", 400, 500, 800, FlowLayout.LEFT));
+        columns.add(Box.createHorizontalGlue());
+        columns.add(createFlexibleColumn("Last Updated", 120, 140, 160, FlowLayout.CENTER));
+        columns.add(Box.createHorizontalGlue());
+        columns.add(createFixedColumn(140, 30, null));
 
-        selectAllCheckbox = new JCheckBox();
-        selectAllCheckbox.setOpaque(false);
-        selectAllCheckbox.addActionListener(e -> toggleSelectAll());
-        checkboxHeaderPanel.add(selectAllCheckbox);
-        columnHeaderPanel.add(checkboxHeaderPanel);
-        // Add space between checkbox and risk column
-        columnHeaderPanel.add(Box.createRigidArea(new Dimension(JBUI.scale(12), 0)));
-
-        // 2) Risk column header - takes reasonable space
-        JPanel riskHeaderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(20), 0));
-        riskHeaderPanel.setOpaque(false);
-        riskHeaderPanel.setMinimumSize(new Dimension(JBUI.scale(400), JBUI.scale(30)));
-        riskHeaderPanel.setPreferredSize(new Dimension(JBUI.scale(500), JBUI.scale(30)));
-        riskHeaderPanel.setMaximumSize(new Dimension(JBUI.scale(600), JBUI.scale(30)));
-
-        JLabel packageHeader = new JLabel("Risk");
-        packageHeader.setFont(JBUI.Fonts.label(12).asBold());
-        packageHeader.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
-        riskHeaderPanel.add(packageHeader);
-        columnHeaderPanel.add(riskHeaderPanel);
-
-        // First half of flexible space - between Risk and Last Updated
-        columnHeaderPanel.add(Box.createHorizontalGlue());
-
-        // 3) Last Updated column header - fixed size with center alignment
-        JPanel updatedHeaderPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-        updatedHeaderPanel.setOpaque(false);
-        updatedHeaderPanel.setPreferredSize(new Dimension(JBUI.scale(140), JBUI.scale(30)));
-        updatedHeaderPanel.setMinimumSize(new Dimension(JBUI.scale(120), JBUI.scale(30)));
-        updatedHeaderPanel.setMaximumSize(new Dimension(JBUI.scale(160), JBUI.scale(30)));
-
-        JLabel updatedHeader = new JLabel("Last Updated");
-        updatedHeader.setFont(JBUI.Fonts.label(12).asBold());
-        updatedHeader.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
-        updatedHeader.setHorizontalAlignment(SwingConstants.CENTER);
-        updatedHeaderPanel.add(updatedHeader);
-        columnHeaderPanel.add(updatedHeaderPanel);
-
-        // Second half of flexible space - between Last Updated and Actions
-        columnHeaderPanel.add(Box.createHorizontalGlue());
-
-        // 4) Actions column header - far right (no title)
-        JPanel actionsHeaderPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        actionsHeaderPanel.setOpaque(false);
-        actionsHeaderPanel.setPreferredSize(new Dimension(JBUI.scale(100), JBUI.scale(30)));
-        actionsHeaderPanel.setMinimumSize(new Dimension(JBUI.scale(80), JBUI.scale(30)));
-        actionsHeaderPanel.setMaximumSize(new Dimension(JBUI.scale(120), JBUI.scale(30)));
-        // No label added - empty actions column header
-        columnHeaderPanel.add(actionsHeaderPanel);
-
-
-        headerPanel.add(columnHeaderPanel, BorderLayout.CENTER);
+        headerPanel.add(columns, BorderLayout.CENTER);
         return headerPanel;
     }
 
-    /**
-     * Refresh ignored entries and rebuild UI panels
-     */
+    private JCheckBox createSelectAllCheckbox() {
+        selectAllCheckbox = new JCheckBox();
+        selectAllCheckbox.setOpaque(false);
+        selectAllCheckbox.addActionListener(e -> toggleSelectAll());
+        return selectAllCheckbox;
+    }
+
+    private JPanel createFixedColumn(int width, int height, Component component) {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        panel.setOpaque(false);
+        Dimension size = new Dimension(JBUI.scale(width), JBUI.scale(height));
+        panel.setPreferredSize(size);
+        panel.setMinimumSize(size);
+        panel.setMaximumSize(size);
+        if (component != null) panel.add(component);
+        return panel;
+    }
+
+    private JPanel createFlexibleColumn(String title, int min, int pref, int max, int alignment) {
+        JPanel panel = new JPanel(new FlowLayout(alignment, alignment == FlowLayout.LEFT ? JBUI.scale(20) : 0, 0));
+        panel.setOpaque(false);
+        panel.setMinimumSize(new Dimension(JBUI.scale(min), JBUI.scale(30)));
+        panel.setPreferredSize(new Dimension(JBUI.scale(pref), JBUI.scale(30)));
+        panel.setMaximumSize(new Dimension(JBUI.scale(max), JBUI.scale(30)));
+
+        JLabel label = new JLabel(title);
+        label.setFont(JBUI.Fonts.label(12).asBold());
+        label.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
+        panel.add(label);
+        return panel;
+    }
+
+    /** Refreshes entries from IgnoreManager and handles empty/non-empty state transitions. */
     private void refreshIgnoredEntries() {
-        if (!new GlobalSettingsComponent().isValid()) {
-            return; // Don't refresh if not authenticated
-        }
+        if (!new GlobalSettingsComponent().isValid()) return;
 
         try {
             List<IgnoreEntry> entries = new IgnoreManager(project).getIgnoredEntries();
-            allEntries = new java.util.ArrayList<>(entries);
-            applyFiltersAndRefresh();
+            boolean wasEmpty = allEntries.isEmpty();
+            boolean isNowEmpty = entries.isEmpty();
+
+            allEntries = new ArrayList<>(entries);
+
+            if (wasEmpty != isNowEmpty) {
+                drawMainPanel();
+            } else if (!isNowEmpty) {
+                applyFiltersAndRefresh();
+            }
             updateTabTitle(entries.size());
         } catch (Exception e) {
             LOGGER.warn("Error loading ignored entries", e);
+            boolean hadEntries = !allEntries.isEmpty();
             allEntries.clear();
-            displayFilteredEntries(java.util.List.of());
+            if (hadEntries) drawMainPanel();
+            else displayFilteredEntries(List.of());
             updateTabTitle(0);
         }
     }
 
-    /**
-     * Toggle select all checkbox functionality
-     */
     private void toggleSelectAll() {
         boolean selected = selectAllCheckbox.isSelected();
-        for (IgnoredEntryPanel panel : entryPanels) {
-            panel.setSelected(selected);
-        }
+        entryPanels.forEach(panel -> panel.setSelected(selected));
     }
 
-    /**
-     * Update tab title with ignored count using IntelliJ's native styling
-     */
+    /** Updates select-all checkbox based on individual selections (removes listeners to prevent recursion). */
+    private void updateSelectAllCheckbox() {
+        if (selectAllCheckbox == null || entryPanels.isEmpty()) return;
+
+        boolean allSelected = entryPanels.stream().allMatch(IgnoredEntryPanel::isSelected);
+        var listeners = selectAllCheckbox.getActionListeners();
+
+        for (var l : listeners) selectAllCheckbox.removeActionListener(l);
+        selectAllCheckbox.setSelected(allSelected);
+        for (var l : listeners) selectAllCheckbox.addActionListener(l);
+    }
+
     private void updateTabTitle(int count) {
         if (content != null) {
-            if (count > 0) {
-                // Use setDisplayName with count - IntelliJ will handle the styling
-                content.setDisplayName(DevAssistConstants.IGNORED_FINDINGS_TAB + " " + count);
-            } else {
-                content.setDisplayName(DevAssistConstants.IGNORED_FINDINGS_TAB);
-            }
+            content.setDisplayName(count > 0
+                    ? DevAssistConstants.IGNORED_FINDINGS_TAB + " " + count
+                    : DevAssistConstants.IGNORED_FINDINGS_TAB);
         }
     }
 
     @Override
     public void dispose() {
-        // Cleanup resources if needed
+        // Resources cleaned up via Disposer registrations
     }
 
     /**
-     * Individual ignored entry panel presented in a row-like layout
+     * Panel displaying a single ignored entry with checkbox, risk info, date, and actions.
      */
-    private static class IgnoredEntryPanel extends JPanel {
+    private class IgnoredEntryPanel extends JPanel {
         private final IgnoreEntry entry;
-        private final Project project;
         private final JCheckBox selectCheckBox;
 
-        public IgnoredEntryPanel(IgnoreEntry entry, Project project) {
+        IgnoredEntryPanel(IgnoreEntry entry) {
             this.entry = entry;
-            this.project = project;
+            this.selectCheckBox = new JCheckBox();
+            selectCheckBox.setOpaque(false);
+            selectCheckBox.addActionListener(e -> updateSelectAllCheckbox());
 
-            // Use BorderLayout with fixed-width columns to prevent misalignment
             setLayout(new BorderLayout());
             setBorder(JBUI.Borders.empty(8, 12));
             setBackground(JBUI.CurrentTheme.ToolWindow.background());
             setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(96)));
 
-            // Create main panel with fixed column structure
-            JPanel mainPanel = new JPanel();
-            mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.X_AXIS));
-            mainPanel.setOpaque(false);
+            add(buildRowPanel(), BorderLayout.CENTER);
+            setupHoverEffect();
+        }
 
-            // 1) Checkbox column - fixed width
-            JPanel checkboxPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-            checkboxPanel.setOpaque(false);
-            checkboxPanel.setPreferredSize(new Dimension(JBUI.scale(50), JBUI.scale(80)));
-            checkboxPanel.setMinimumSize(new Dimension(JBUI.scale(50), JBUI.scale(80)));
-            checkboxPanel.setMaximumSize(new Dimension(JBUI.scale(50), JBUI.scale(96)));
+        // ---------- Row Layout ----------
 
-            selectCheckBox = new JCheckBox();
-            selectCheckBox.setOpaque(false);
-            checkboxPanel.add(selectCheckBox);
-            mainPanel.add(checkboxPanel);
+        private JPanel buildRowPanel() {
+            JPanel row = new JPanel();
+            row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
+            row.setOpaque(false);
 
-            // Add space between checkbox and risk column
-            mainPanel.add(Box.createRigidArea(new Dimension(JBUI.scale(12), 0)));
+            row.add(buildCheckboxColumn());
+            row.add(Box.createRigidArea(new Dimension(JBUI.scale(12), 0)));
+            row.add(buildRiskColumn());
+            row.add(Box.createHorizontalGlue());
+            row.add(buildLastUpdatedColumn());
+            row.add(Box.createHorizontalGlue());
+            row.add(buildActionsColumn());
 
-            // 2) Risk column - takes reasonable space with strict constraints
-            JPanel riskPanel = buildRiskPanel();
-            riskPanel.setMinimumSize(new Dimension(JBUI.scale(400), JBUI.scale(60)));
-            riskPanel.setPreferredSize(new Dimension(JBUI.scale(500), JBUI.scale(80)));
-            riskPanel.setMaximumSize(new Dimension(JBUI.scale(600), JBUI.scale(96)));
+            return row;
+        }
 
-            // Wrap in a container to enforce size constraints strictly
-            JPanel riskContainer = new JPanel(new BorderLayout());
-            riskContainer.setOpaque(false);
-            riskContainer.setMinimumSize(new Dimension(JBUI.scale(400), JBUI.scale(60)));
-            riskContainer.setPreferredSize(new Dimension(JBUI.scale(500), JBUI.scale(80)));
-            riskContainer.setMaximumSize(new Dimension(JBUI.scale(600), JBUI.scale(96)));
-            riskContainer.add(riskPanel, BorderLayout.CENTER);
+        private JPanel buildCheckboxColumn() {
+            JPanel panel = createSizedPanel(50, 80, 96);
+            JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            wrapper.setOpaque(false);
+            wrapper.add(selectCheckBox);
+            panel.add(wrapper, BorderLayout.CENTER);
+            return panel;
+        }
 
-            mainPanel.add(riskContainer);
+        private JPanel buildRiskColumn() {
+            JPanel riskPanel = buildRiskContent();
+            setSizes(riskPanel, 400, 500, 800, 60, 80, Integer.MAX_VALUE);
 
-            // First half of flexible space - between Risk and Last Updated
-            mainPanel.add(Box.createHorizontalGlue());
+            JPanel container = new JPanel(new BorderLayout());
+            container.setOpaque(false);
+            setSizes(container, 400, 500, 800, 60, 80, Integer.MAX_VALUE);
+            container.add(riskPanel, BorderLayout.CENTER);
+            return container;
+        }
 
-            // 3) Last Updated column - fixed size with center alignment
-            JPanel updatedPanel = new JPanel(new BorderLayout());
-            updatedPanel.setOpaque(false);
-            updatedPanel.setPreferredSize(new Dimension(JBUI.scale(140), JBUI.scale(80)));
-            updatedPanel.setMinimumSize(new Dimension(JBUI.scale(120), JBUI.scale(80)));
-            updatedPanel.setMaximumSize(new Dimension(JBUI.scale(160), JBUI.scale(96)));
+        private JPanel buildLastUpdatedColumn() {
+            JPanel panel = new JPanel(new BorderLayout());
+            panel.setOpaque(false);
+            setSizes(panel, 120, 140, 160, 80, 80, Integer.MAX_VALUE);
 
-            JLabel updatedLabel = new JLabel(getLastUpdatedText(entry.dateAdded));
-            updatedLabel.setFont(JBUI.Fonts.label(12));
-            updatedLabel.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
-            updatedLabel.setHorizontalAlignment(SwingConstants.CENTER);
-            updatedPanel.add(updatedLabel, BorderLayout.CENTER);
-            mainPanel.add(updatedPanel);
+            JLabel label = new JLabel(formatRelativeDate(entry.dateAdded));
+            label.setFont(JBUI.Fonts.label(12));
+            label.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
+            label.setHorizontalAlignment(SwingConstants.CENTER);
+            label.setVerticalAlignment(SwingConstants.TOP);
+            panel.add(label, BorderLayout.CENTER);
+            return panel;
+        }
 
-            // Second half of flexible space - between Last Updated and Actions
-            mainPanel.add(Box.createHorizontalGlue());
+        private JPanel buildActionsColumn() {
+            JPanel panel = new JPanel(new GridBagLayout());
+            panel.setOpaque(false);
+            setSizes(panel, 120, 140, 160, 80, 80, Integer.MAX_VALUE);
 
-            // 4) Actions column - far right position
-            JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-            actionsPanel.setOpaque(false);
-            actionsPanel.setPreferredSize(new Dimension(JBUI.scale(100), JBUI.scale(80)));
-            actionsPanel.setMinimumSize(new Dimension(JBUI.scale(80), JBUI.scale(80)));
-            actionsPanel.setMaximumSize(new Dimension(JBUI.scale(120), JBUI.scale(96)));
+            JButton reviveButton = new JButton(CxIcons.Ignored.REVIVE);
+            reviveButton.setPreferredSize(new Dimension(JBUI.scale(90), JBUI.scale(28)));
+            reviveButton.addActionListener(ev ->
+                    LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown")));
 
-            JButton reviveButton = new JButton("Revive");
-            reviveButton.setEnabled(true); // UI only for now, no backend logic
-            reviveButton.setPreferredSize(new Dimension(JBUI.scale(70), JBUI.scale(28)));
-            reviveButton.setFont(JBUI.Fonts.label(11));
-            reviveButton.addActionListener(ev -> {
-                // Placeholder: no-op for now, backend not required per user request
-                LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown"));
-            });
-            actionsPanel.add(reviveButton);
-            mainPanel.add(actionsPanel);
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.anchor = GridBagConstraints.FIRST_LINE_START;
+            gbc.insets = JBUI.insets(10, 0, 0, 0);
+            panel.add(reviveButton, gbc);
+            return panel;
+        }
 
+        // ---------- Risk Panel Content ----------
 
-            add(mainPanel, BorderLayout.CENTER);
+        private JPanel buildRiskContent() {
+            JPanel panel = new JPanel();
+            panel.setOpaque(false);
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+            panel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+            // Top: card icon + severity icon + name
+            JPanel topLine = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(8), 0));
+            topLine.setOpaque(false);
+            topLine.add(new JLabel(getCardIcon()));
+            topLine.add(new JLabel(getSeverityIcon()));
 
-            // Hover effect
+            String name = formatDisplayName();
+            JLabel nameLabel = new JLabel(name);
+            nameLabel.setFont(JBUI.Fonts.label(13).asBold());
+            nameLabel.setToolTipText(name);
+            topLine.add(nameLabel);
+            panel.add(topLine);
+
+            // Bottom: engine chip + file buttons
+            JPanel bottomLine = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(8), JBUI.scale(2)));
+            bottomLine.setOpaque(false);
+            bottomLine.add(new JLabel(getEngineChipIcon()));
+            bottomLine.add(buildFileButtons());
+            panel.add(bottomLine);
+
+            return panel;
+        }
+
+        // ---------- Icon Helpers ----------
+
+        private Icon getSeverityIcon() {
+            if (entry.severity == null) return CxIcons.Small.UNKNOWN;
+            switch (entry.severity.toLowerCase()) {
+                case "critical": return CxIcons.Small.CRITICAL;
+                case "high": return CxIcons.Small.HIGH;
+                case "medium": return CxIcons.Small.MEDIUM;
+                case "low": return CxIcons.Small.LOW;
+                case "malicious": return CxIcons.Small.MALICIOUS;
+                default: return CxIcons.Small.UNKNOWN;
+            }
+        }
+
+        private Icon getCardIcon() {
+            String sev = entry.severity != null ? entry.severity.toLowerCase() : "medium";
+            switch (entry.type) {
+                case OSS: return getCardIconBySeverity(CxIcons.Ignored.CARD_PACKAGE_CRITICAL, CxIcons.Ignored.CARD_PACKAGE_HIGH,
+                        CxIcons.Ignored.CARD_PACKAGE_MEDIUM, CxIcons.Ignored.CARD_PACKAGE_LOW, CxIcons.Ignored.CARD_PACKAGE_MALICIOUS, sev);
+                case SECRETS: return getCardIconBySeverity(CxIcons.Ignored.CARD_SECRET_CRITICAL, CxIcons.Ignored.CARD_SECRET_HIGH,
+                        CxIcons.Ignored.CARD_SECRET_MEDIUM, CxIcons.Ignored.CARD_SECRET_LOW, CxIcons.Ignored.CARD_SECRET_MALICIOUS, sev);
+                case CONTAINERS: return getCardIconBySeverity(CxIcons.Ignored.CARD_CONTAINERS_CRITICAL, CxIcons.Ignored.CARD_CONTAINERS_HIGH,
+                        CxIcons.Ignored.CARD_CONTAINERS_MEDIUM, CxIcons.Ignored.CARD_CONTAINERS_LOW, CxIcons.Ignored.CARD_CONTAINERS_MALICIOUS, sev);
+                default: return getCardIconBySeverity(CxIcons.Ignored.CARD_VULNERABILITY_CRITICAL, CxIcons.Ignored.CARD_VULNERABILITY_HIGH,
+                        CxIcons.Ignored.CARD_VULNERABILITY_MEDIUM, CxIcons.Ignored.CARD_VULNERABILITY_LOW, CxIcons.Ignored.CARD_VULNERABILITY_MALICIOUS, sev);
+            }
+        }
+
+        private Icon getCardIconBySeverity(Icon critical, Icon high, Icon medium, Icon low, Icon malicious, String sev) {
+            switch (sev) {
+                case "critical": return critical;
+                case "high": return high;
+                case "low": return low;
+                case "malicious": return malicious;
+                default: return medium;
+            }
+        }
+
+        private Icon getEngineChipIcon() {
+            switch (entry.type) {
+                case OSS: return CxIcons.Ignored.ENGINE_CHIP_SCA;
+                case SECRETS: return CxIcons.Ignored.ENGINE_CHIP_SECRETS;
+                case IAC: return CxIcons.Ignored.ENGINE_CHIP_IAC;
+                case ASCA: return CxIcons.Ignored.ENGINE_CHIP_SAST;
+                case CONTAINERS: return CxIcons.Ignored.ENGINE_CHIP_CONTAINERS;
+                default: return CxIcons.Ignored.ENGINE_CHIP_SCA;
+            }
+        }
+
+        // ---------- File Buttons ----------
+
+        private JPanel buildFileButtons() {
+            JPanel container = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(6), 0));
+            container.setOpaque(false);
+
+            List<IgnoreEntry.FileReference> activeFiles = entry.files != null
+                    ? entry.files.stream().filter(f -> f != null && f.active).collect(Collectors.toList())
+                    : List.of();
+
+            if (activeFiles.isEmpty()) {
+                JLabel none = new JLabel("No files");
+                none.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
+                container.add(none);
+                return container;
+            }
+
+            container.add(createFileButton(activeFiles.get(0)));
+
+            if (activeFiles.size() > 1) {
+                List<IgnoreEntry.FileReference> hidden = activeFiles.subList(1, activeFiles.size());
+                JButton expand = new JButton("and " + hidden.size() + " more files");
+                expand.addActionListener(ev -> {
+                    container.remove(expand);
+                    hidden.forEach(f -> container.add(createFileButton(f)));
+                    propagateRevalidate(container);
+                });
+                container.add(expand);
+            }
+            return container;
+        }
+
+        private JButton createFileButton(IgnoreEntry.FileReference file) {
+            String label = formatFileLabel(file);
+            JButton btn = new JButton(label);
+            btn.setToolTipText(file.path + (file.line != null ? ":" + file.line : ""));
+            btn.addActionListener(ev -> navigateToFile(file));
+            return btn;
+        }
+
+        private void propagateRevalidate(Container container) {
+            Container parent = container;
+            while (parent != null && !(parent instanceof JScrollPane)) parent = parent.getParent();
+            if (parent != null) { parent.revalidate(); parent.repaint(); }
+        }
+
+        // ---------- File Navigation ----------
+
+        private void navigateToFile(IgnoreEntry.FileReference file) {
+            if (file == null || file.path == null) return;
+
+            VirtualFile vFile = resolveVirtualFile(file.path);
+            if (vFile == null) {
+                com.intellij.openapi.ui.Messages.showWarningDialog(project,
+                        "Could not open file: " + file.path + "\nThe file may have been moved or deleted.",
+                        "File Navigation Error");
+                return;
+            }
+
+            try {
+                FileEditor[] editors = FileEditorManager.getInstance(project).openFile(vFile, true);
+                if (editors.length == 0) {
+                    com.intellij.openapi.ui.Messages.showErrorDialog(project,
+                            "Could not open file in editor: " + file.path, "File Navigation Error");
+                    return;
+                }
+
+                if (file.line != null && file.line > 0 && editors[0] instanceof TextEditor) {
+                    Editor textEditor = ((TextEditor) editors[0]).getEditor();
+                    LogicalPosition pos = new LogicalPosition(Math.max(0, file.line - 1), 0);
+                    textEditor.getCaretModel().moveToLogicalPosition(pos);
+                    textEditor.getScrollingModel().scrollToCaret(ScrollType.CENTER);
+                }
+            } catch (Exception e) {
+                LOGGER.warn("Error opening file: " + file.path, e);
+                com.intellij.openapi.ui.Messages.showErrorDialog(project,
+                        "Error opening file: " + e.getMessage(), "File Navigation Error");
+            }
+        }
+
+        private VirtualFile resolveVirtualFile(String path) {
+            if (path == null || path.isEmpty() || path.contains("..")) return null;
+
+            String workspaceRoot = project.getBasePath();
+            if (workspaceRoot == null) return null;
+
+            if (com.intellij.openapi.util.io.FileUtil.isAbsolute(path)) {
+                return LocalFileSystem.getInstance().findFileByPath(path);
+            }
+
+            String cleanPath = path.startsWith("./") ? path.substring(2) : path;
+            return LocalFileSystem.getInstance().findFileByPath(workspaceRoot + "/" + cleanPath.replace("\\", "/"));
+        }
+
+        // ---------- Formatting Helpers ----------
+
+        private String formatFileLabel(IgnoreEntry.FileReference f) {
+            if (f == null || f.path == null) return "file";
+            try {
+                String name = Paths.get(f.path).getFileName().toString();
+                return f.line != null ? name + ":" + f.line : name;
+            } catch (Exception ex) {
+                return f.line != null ? f.path + ":" + f.line : f.path;
+            }
+        }
+
+        private String formatDisplayName() {
+            String key = entry.packageName != null ? entry.packageName : "Unknown";
+            switch (entry.type) {
+                case OSS:
+                    String mgr = entry.packageManager != null ? entry.packageManager : "pkg";
+                    String ver = entry.packageVersion != null ? entry.packageVersion : "";
+                    return mgr + "@" + key + (ver.isEmpty() ? "" : "@" + ver);
+                case SECRETS:
+                case IAC:
+                    return key;
+                case ASCA:
+                    return entry.title != null ? entry.title : key;
+                case CONTAINERS:
+                    String tag = entry.imageTag != null ? entry.imageTag : entry.packageVersion;
+                    return key + (tag != null && !tag.isEmpty() ? "@" + tag : "");
+                default:
+                    return key;
+            }
+        }
+
+        private String formatRelativeDate(String isoDate) {
+            if (isoDate == null || isoDate.isEmpty()) return "Unknown";
+            try {
+                ZonedDateTime then = ZonedDateTime.parse(isoDate);
+                long days = ChronoUnit.DAYS.between(then.toLocalDate(), ZonedDateTime.now().toLocalDate());
+                if (days == 0) return "Today";
+                if (days == 1) return "1 day ago";
+                if (days < 7) return days + " days ago";
+                if (days < 30) return (days / 7) + " weeks ago";
+                if (days < 365) return (days / 30) + " months ago";
+                return (days / 365) + " years ago";
+            } catch (Exception ex) {
+                return isoDate;
+            }
+        }
+
+        // ---------- UI Helpers ----------
+
+        private JPanel createSizedPanel(int width, int height, int maxHeight) {
+            JPanel panel = new JPanel(new BorderLayout());
+            panel.setOpaque(false);
+            panel.setPreferredSize(new Dimension(JBUI.scale(width), JBUI.scale(height)));
+            panel.setMinimumSize(new Dimension(JBUI.scale(width), JBUI.scale(height)));
+            panel.setMaximumSize(new Dimension(JBUI.scale(width), JBUI.scale(maxHeight)));
+            return panel;
+        }
+
+        private void setSizes(JPanel panel, int minW, int prefW, int maxW, int minH, int prefH, int maxH) {
+            panel.setMinimumSize(new Dimension(JBUI.scale(minW), JBUI.scale(minH)));
+            panel.setPreferredSize(new Dimension(JBUI.scale(prefW), JBUI.scale(prefH)));
+            panel.setMaximumSize(new Dimension(JBUI.scale(maxW), maxH == Integer.MAX_VALUE ? maxH : JBUI.scale(maxH)));
+        }
+
+        private void setupHoverEffect() {
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
@@ -487,313 +848,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             });
         }
 
-        private JPanel buildRiskPanel() {
-            JPanel panel = new JPanel();
-            panel.setOpaque(false);
-            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-
-            // Ensure the panel respects its maximum size constraints
-            panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-            // First line: large vulnerability icon + severity icon + display name
-            JPanel topLine = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(8), JBUI.scale(0)));
-            topLine.setOpaque(false);
-            topLine.setMaximumSize(new Dimension(JBUI.scale(580), JBUI.scale(50))); // Constrain width
-
-            // Large vulnerability card icon (44x44)
-            JLabel vulnerabilityIcon = buildVulnerabilityCardIcon(entry.type, entry.severity);
-            topLine.add(vulnerabilityIcon);
-
-            // Small severity icon (16x16)
-            JLabel severityIcon = buildSeverityIcon(entry.severity);
-            topLine.add(severityIcon);
-
-            // Display name with truncation to prevent overflow
-            String displayName = formatDisplayName();
-            if (displayName.length() > 45) { // Reduced from 50 to 45 for better constraint
-                displayName = displayName.substring(0, 42) + "...";
-            }
-            JLabel nameLabel = new JLabel(displayName);
-            nameLabel.setFont(JBUI.Fonts.label(13).asBold());
-            nameLabel.setToolTipText(formatDisplayName()); // Show full name on hover
-            topLine.add(nameLabel);
-
-            panel.add(topLine);
-
-            // Second line: engine chip + file buttons
-            JPanel filesRow = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(8), JBUI.scale(2)));
-            filesRow.setOpaque(false);
-            filesRow.setMaximumSize(new Dimension(JBUI.scale(580), JBUI.scale(40))); // Constrain width
-
-            // Engine chip icon
-            JLabel engineChip = buildEngineChipIcon(entry.type);
-            filesRow.add(engineChip);
-
-            // Add file buttons (visible + hidden with expand)
-            JPanel fileButtons = buildFileButtons();
-            filesRow.add(fileButtons);
-
-            panel.add(filesRow);
-            return panel;
-        }
-
-        private JLabel buildVulnerabilityCardIcon(ScanEngine type, String severity) {
-            try {
-                String iconName = getCardIconName(type, severity);
-                String iconPath = "/icons/devassist/ignored_card/" + iconName;
-
-                // Try to load the icon using IconLoader
-                Icon icon = IconLoader.getIcon(iconPath, CxIgnoredFindings.class);
-                if (icon != null) {
-                    return new JLabel(icon);
-                }
-            } catch (Exception e) {
-                LOGGER.debug("Failed to load vulnerability card icon: " + e.getMessage());
-            }
-
-            // Fallback to a simple colored square
-            JLabel fallback = new JLabel();
-            fallback.setPreferredSize(new Dimension(JBUI.scale(44), JBUI.scale(44)));
-            fallback.setOpaque(true);
-            fallback.setBackground(getSeverityColor(severity));
-            return fallback;
-        }
-
-        private JLabel buildSeverityIcon(String severity) {
-            try {
-                String severityName = severity != null ? severity.toLowerCase() : "unknown";
-                String iconPath = "/icons/devassist/severity_16/" + severityName + ".svg";
-
-                Icon icon = IconLoader.getIcon(iconPath, CxIgnoredFindings.class);
-                if (icon != null) {
-                    return new JLabel(icon);
-                }
-            } catch (Exception e) {
-                LOGGER.debug("Failed to load severity icon: " + e.getMessage());
-            }
-
-            // Fallback to a small colored circle
-            JLabel fallback = new JLabel("●");
-            fallback.setForeground(getSeverityColor(severity));
-            fallback.setFont(JBUI.Fonts.label(16));
-            return fallback;
-        }
-
-        private JLabel buildEngineChipIcon(ScanEngine type) {
-            try {
-                String chipName = getEngineChipName(type);
-                if (chipName != null) {
-                    String iconPath = "/icons/devassist/ignored/" + chipName;
-                    Icon icon = IconLoader.getIcon(iconPath, CxIgnoredFindings.class);
-                    if (icon != null) {
-                        return new JLabel(icon);
-                    }
-                }
-            } catch (Exception e) {
-                LOGGER.debug("Failed to load engine chip icon: " + e.getMessage());
-            }
-
-            // Fallback to text
-            String text = type != null ? type.name() : "?";
-            JBLabel label = new JBLabel(text);
-            label.setFont(JBUI.Fonts.miniFont());
-            label.setForeground(JBColor.foreground());
-            return label;
-        }
-
-        private String getCardIconName(ScanEngine type, String severity) {
-            String severityLower = severity != null ? severity.toLowerCase() : "unknown";
-            String typePrefix;
-
-            switch (type) {
-                case OSS:
-                    typePrefix = "package";
-                    break;
-                case SECRETS:
-                    typePrefix = "secret";
-                    break;
-                case IAC:
-                case ASCA:
-                    typePrefix = "vulnerability";
-                    break;
-                case CONTAINERS:
-                    typePrefix = "containers";
-                    break;
-                default:
-                    typePrefix = "vulnerability";
-            }
-
-            return "card icon-" + typePrefix + "-" + severityLower + "-default.svg";
-        }
-
-        private String getEngineChipName(ScanEngine type) {
-            switch (type) {
-                case OSS:
-                    return "engine-chip-sca.svg";
-                case SECRETS:
-                    return "engine-chip-secrets.svg";
-                case IAC:
-                    return "engine-chip-iac.svg";
-                case ASCA:
-                    return "engine-chip-sast.svg";
-                case CONTAINERS:
-                    return "engine-chip-containers.svg";
-                default:
-                    return null;
-            }
-        }
-
-        private JPanel buildFileButtons() {
-            JPanel container = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(6), JBUI.scale(0)));
-            container.setOpaque(false);
-
-            if (entry.files == null || entry.files.isEmpty()) {
-                JLabel none = new JLabel("No files");
-                none.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
-                container.add(none);
-                return container;
-            }
-
-            // Only active files
-            java.util.List<IgnoreEntry.FileReference> activeFiles = new java.util.ArrayList<>();
-            for (IgnoreEntry.FileReference f : entry.files) {
-                if (f != null && f.active) activeFiles.add(f);
-            }
-
-            int maxVisible = 1;
-            java.util.List<IgnoreEntry.FileReference> visible = activeFiles.subList(0, Math.min(maxVisible, activeFiles.size()));
-            java.util.List<IgnoreEntry.FileReference> hidden = activeFiles.size() > maxVisible
-                    ? activeFiles.subList(maxVisible, activeFiles.size())
-                    : java.util.Collections.emptyList();
-
-            for (IgnoreEntry.FileReference f : visible) {
-                JButton btn = new JButton(shortFileLabel(f));
-                btn.setToolTipText(f.path + (f.line != null ? ":" + f.line : ""));
-                btn.addActionListener(ev -> navigateTo(f));
-                container.add(btn);
-            }
-
-            int remaining = hidden.size();
-            if (remaining > 0) {
-                JButton expand = new JButton("and " + remaining + " more files");
-                JPanel hiddenPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(6), JBUI.scale(0)));
-                hiddenPanel.setOpaque(false);
-                hiddenPanel.setVisible(false);
-
-                for (IgnoreEntry.FileReference f : hidden) {
-                    JButton btn = new JButton(shortFileLabel(f));
-                    btn.setToolTipText(f.path + (f.line != null ? ":" + f.line : ""));
-                    btn.addActionListener(ev -> navigateTo(f));
-                    hiddenPanel.add(btn);
-                }
-
-                expand.addActionListener(ev -> {
-                    hiddenPanel.setVisible(!hiddenPanel.isVisible());
-                    expand.setText(hiddenPanel.isVisible() ? "collapse" : "and " + remaining + " more files");
-                    container.revalidate();
-                    container.repaint();
-                });
-
-                container.add(expand);
-                container.add(hiddenPanel);
-            }
-
-            return container;
-        }
-
-        private void navigateTo(IgnoreEntry.FileReference file) {
-            if (file == null || file.path == null) return;
-            VirtualFile vFile = LocalFileSystem.getInstance().findFileByPath(file.path);
-            if (vFile != null) {
-                com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).openFile(vFile, true);
-                // Optionally navigate to line if supported; kept simple for now
-            }
-        }
-
-        private String shortFileLabel(IgnoreEntry.FileReference f) {
-            if (f == null || f.path == null) return "file";
-            try {
-                java.nio.file.Path p = java.nio.file.Paths.get(f.path);
-                String name = p.getFileName() != null ? p.getFileName().toString() : f.path;
-                return f.line != null ? name + ":" + f.line : name;
-            } catch (Exception ex) {
-                return f.line != null ? f.path + ":" + f.line : f.path;
-            }
-        }
-
-        private String formatDisplayName() {
-            // Format based on scanner type using rules similar to VSCode
-            String keyName = entry.packageName != null ? entry.packageName : "Unknown";
-            switch (entry.type) {
-                case OSS:
-                    // npm:lodash:4.17.20 => npm@lodash@4.17.20
-                    String mgr = entry.packageManager != null ? entry.packageManager : "pkg";
-                    String ver = entry.packageVersion != null ? entry.packageVersion : "";
-                    return mgr + "@" + keyName + (ver.isEmpty() ? "" : "@" + ver);
-                case SECRETS:
-                    // "AWS Access Key:secret123:file.js" => "AWS Access Key" (we have PackageName)
-                    return keyName;
-                case IAC:
-                    // "Rule Name:sim123:terraform.tf" => "Rule Name"
-                    return keyName;
-                case ASCA:
-                    // "Rule Name:123:file.py" => "Rule Name" (we have title or packageName)
-                    return entry.title != null ? entry.title : keyName;
-                case CONTAINERS:
-                    // "nginx:1.20:dockerfile" => "nginx@1.20"
-                    String tag = entry.imageTag != null ? entry.imageTag : entry.packageVersion;
-                    return keyName + (tag != null && !tag.isEmpty() ? "@" + tag : "");
-                default:
-                    return keyName;
-            }
-        }
-
-        private String getLastUpdatedText(String isoDate) {
-            if (isoDate == null || isoDate.isEmpty()) return "Unknown";
-            try {
-                java.time.ZonedDateTime then = java.time.ZonedDateTime.parse(isoDate);
-                java.time.ZonedDateTime now = java.time.ZonedDateTime.now();
-                long days = java.time.temporal.ChronoUnit.DAYS.between(then.toLocalDate(), now.toLocalDate());
-                if (days == 0) return "Today";
-                if (days == 1) return "1 day ago";
-                if (days < 7) return days + " days ago";
-                if (days < 30) return (days / 7) + " weeks ago";
-                if (days < 365) return (days / 30) + " months ago";
-                return (days / 365) + " years ago";
-            } catch (Exception ex) {
-                return isoDate;
-            }
-        }
-
-        private String safePackageKey() {
-            return (entry.packageManager != null ? entry.packageManager + ":" : "") +
-                    (entry.packageName != null ? entry.packageName : "unknown") +
-                    (entry.packageVersion != null ? ":" + entry.packageVersion : "");
-        }
-
-        private Color getSeverityColor(String severity) {
-            String upperSeverity = severity != null ? severity.toUpperCase() : "";
-            switch (upperSeverity) {
-                case "CRITICAL":
-                case "MALICIOUS":
-                    return new JBColor(0xD32F2F, 0xF44336);
-                case "HIGH":
-                    return new JBColor(0xF57C00, 0xFF9800);
-                case "MEDIUM":
-                    return new JBColor(0xFBC02D, 0xFFEB3B);
-                case "LOW":
-                    return new JBColor(0x388E3C, 0x4CAF50);
-                default:
-                    return new JBColor(0x757575, 0x9E9E9E);
-            }
-        }
-
-        public boolean isSelected() {
-            return selectCheckBox.isSelected();
-        }
-
-        public void setSelected(boolean selected) {
-            selectCheckBox.setSelected(selected);
-        }
+        public boolean isSelected() { return selectCheckBox.isSelected(); }
+        public void setSelected(boolean selected) { selectCheckBox.setSelected(selected); }
     }
 }

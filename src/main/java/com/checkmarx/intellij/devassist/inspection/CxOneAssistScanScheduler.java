@@ -9,6 +9,7 @@ import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
@@ -19,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -46,6 +48,12 @@ public class CxOneAssistScanScheduler {
     private final ReentrantLock lock = new ReentrantLock();
     private final CxOneAssistInspectionMgr cxOneAssistInspectionMgr = new CxOneAssistInspectionMgr();
 
+
+    /**
+     * Private constructor.
+     *
+     * @param project - The IntelliJ Project instance
+     */
     private CxOneAssistScanScheduler(@NotNull Project project) {
         this.project = project;
     }
@@ -66,14 +74,22 @@ public class CxOneAssistScanScheduler {
 
     /**
      * Schedules a debounced scan for the given file. If a scan is already pending for this file,
-     * the previous request is cancelled and a new one is scheduled. The scan will only execute
-     * after {@link #SCHEDULED_DELAY} milliseconds of no new scan requests for this file.
+     * the previous request is canceled and a new one is scheduled. Uses adaptive debouncing to handle
+     * rapid file modifications effectively.
+     * <p>
+     * Its update the scan results for all supported engines.
      *
+     * @param filePath      - The file path for which to schedule the scan
      * @param problemHelper - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
+     * @param scanEngine    - The scan engine to be used for scanning the file (e.g., OSS, ASCA, ALL)
      */
-    boolean scheduleScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper) {
+    boolean scheduleScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper, ScanEngine scanEngine) {
         try {
-            if (isProjectDisposed("scheduling scan", problemHelper.getFile().getName())) {
+            if (isProjectDisposed("scheduling scan", filePath)) {
+                return false;
+            }
+            if (Objects.isNull(scanEngine)) {
+                LOGGER.warn(format("RTS: Cant schedule scan! scan engine is not available for file: %s", filePath));
                 return false;
             }
             lock.lock();
@@ -84,7 +100,7 @@ public class CxOneAssistScanScheduler {
                 scanRequestTimeMap.put(filePath, requestTime);
                 // Use per-file Alarm for debouncing
                 Alarm alarm = fileAlarms.computeIfAbsent(filePath, k -> new Alarm(Alarm.ThreadToUse.POOLED_THREAD, project));
-                alarm.addRequest(() -> executeBackgroundScan(filePath, problemHelper, requestTime), SCHEDULED_DELAY);
+                alarm.addRequest(() -> executeBackgroundScan(filePath, problemHelper, requestTime, scanEngine), SCHEDULED_DELAY);
             } finally {
                 lock.unlock();
             }
@@ -95,20 +111,6 @@ public class CxOneAssistScanScheduler {
         }
     }
 
-    // Cancels any pending and running scan for the given file
-    private void cancelPendingAndRunningScan(@NotNull String filePath) {
-        lock.lock();
-        try {
-            Alarm alarm = fileAlarms.get(filePath);
-            if (alarm != null) {
-                alarm.cancelAllRequests();
-            }
-            removeProgressIndicator(filePath);
-        } finally {
-            lock.unlock();
-        }
-    }
-
     /**
      * Executes the scan in a background thread and restart the files to update the result on UI scan after completion.
      *
@@ -116,7 +118,7 @@ public class CxOneAssistScanScheduler {
      * @param problemHelper - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
      * @param requestTime   scan request time
      */
-    private void executeBackgroundScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper, long requestTime) {
+    private void executeBackgroundScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper, long requestTime, ScanEngine scanEngine) {
         if (isRequestOutdated(filePath, requestTime)) {
             return;
         }
@@ -128,7 +130,7 @@ public class CxOneAssistScanScheduler {
                 indicator.setIndeterminate(true);
                 scanIndicators.put(filePath, indicator); // Track this scan
                 try {
-                    runScanWithProgress(filePath, problemHelper);
+                    runScan(filePath, problemHelper, scanEngine);
                 } catch (Exception e) {
                     LOGGER.warn(format("RTS: Error occurred while executing scan for file: %s", filePath), e);
                 } finally {
@@ -140,7 +142,6 @@ public class CxOneAssistScanScheduler {
             @Override
             public void onCancel() {
                 removeProgressIndicator(filePath);
-                LOGGER.info(format("RTS: Previous scan was canceled for file: %s.", filePath));
             }
         }.queue();
     }
@@ -148,32 +149,53 @@ public class CxOneAssistScanScheduler {
     /**
      * Executes a scan operation for a given file while updating progress indicators to provide feedback during the process.
      *
-     * @param filePath      the path of the file to be scanned, cannot be null
+     * @param filePath      the path of the file to be scanned cannot be null
      * @param problemHelper a {@link ProblemHelper} instance containing context for creating problem descriptors, cannot be null
      */
-    private void runScanWithProgress(@NotNull String filePath, @NotNull ProblemHelper problemHelper) {
+    private void runScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper, ScanEngine scanEngine) {
         try {
-            LOGGER.info(format("RTS: Scan started for file: %s", filePath));
+            LOGGER.info(format("RTS: Scheduled scan started for file: %s", filePath));
             List<ScanIssue> scanIssues = cxOneAssistInspectionMgr.scanFile(
-                    problemHelper.getFilePath(), problemHelper.getFile(), ScanEngine.ALL);
+                    problemHelper.getFilePath(), problemHelper.getFile(), scanEngine);
 
             if (scanIssues.isEmpty()) {
-                LOGGER.warn(format("RTS: No scan issues found after scan for file: %s", filePath));
-                resetCachedData(problemHelper);
-                restartFileAfterScan(problemHelper);
-                return;
-            }
-            List<ProblemDescriptor> problemDescriptors = cxOneAssistInspectionMgr.createProblemDescriptors(
-                    problemHelper.toBuilder(problemHelper).scanIssueList(scanIssues).build(), Boolean.FALSE);
+                LOGGER.info(format("RTS: Scheduled scan completed with no issues for file: %s", filePath));
+                resetCachedData(problemHelper, scanEngine);
+            } else {
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    List<ProblemDescriptor> descriptors = cxOneAssistInspectionMgr.createProblemDescriptorsWithoutDecoration(
+                            problemHelper.toBuilder(problemHelper).scanIssueList(scanIssues).build());
 
-            cacheScanResults(problemHelper, filePath, scanIssues, problemDescriptors);
+                    cacheScanResults(problemHelper, filePath, scanIssues, descriptors, scanEngine);
+                }, ModalityState.NON_MODAL);
+            }
             ApplicationManager.getApplication().runReadAction(() ->
                     cxOneAssistInspectionMgr.updateScanSourceFlag(problemHelper.getFile(), Boolean.TRUE)); // To identify the scan source
-            LOGGER.info(format("RTS: Scan completed for file: %s", filePath));
+            LOGGER.info(format("RTS: Scheduled scan completed for file: %s", filePath));
         } catch (Exception e) {
-            LOGGER.warn(format("RTS: Exception occurred during scanning file: %s", filePath), e);
+            LOGGER.warn(format("RTS: Exception occurred while running scheduled scan for the file: %s", filePath), e);
         } finally {
             restartFileAfterScan(problemHelper);
+        }
+    }
+
+    /**
+     * Cancels any pending and running scan for the given file.
+     *
+     * @param filePath - The file path for which to cancel the scan
+     */
+    private void cancelPendingAndRunningScan(@NotNull String filePath) {
+        lock.lock();
+        try {
+            Alarm alarm = fileAlarms.get(filePath);
+            if (alarm != null) {
+                alarm.cancelAllRequests();
+                removeProgressIndicator(filePath);
+            }
+        } catch (Exception e) {
+            LOGGER.warn(format("RTS: Failed to cancel the previous schedule request for file: %s", filePath), e);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -215,22 +237,37 @@ public class CxOneAssistScanScheduler {
      * Caches the scan results for future use.
      */
     private void cacheScanResults(@NotNull ProblemHelper problemHelper, @NotNull String filePath,
-                                  @NotNull List<ScanIssue> scanIssues, @NotNull List<ProblemDescriptor> problems) {
-        problemHelper.getProblemHolderService().addScanIssues(filePath, scanIssues);
-        problemHelper.getProblemHolderService().addProblemDescriptors(filePath, problems);
+                                  @NotNull List<ScanIssue> scanIssues, @NotNull List<ProblemDescriptor> problems, ScanEngine scanEngine) {
+        ProblemHolderService holderService = problemHelper.getProblemHolderService();
+        if (scanEngine == ScanEngine.ALL) {
+            holderService.addScanIssues(filePath, scanIssues);
+            holderService.addProblemDescriptors(filePath, problems);
+        } else {
+            holderService.removeScanIssuesByFileAndScanner(scanEngine.name(), filePath);
+            holderService.getScanIssueByFile(filePath).addAll(scanIssues);
+            holderService.removeProblemDescriptorsForFileByScanner(problemHelper.getFilePath(), scanEngine);
+            holderService.getProblemDescriptors(filePath).addAll(problems);
+        }
     }
 
     /**
      * Clears the cached scan results.
      */
-    private void resetCachedData(@NotNull ProblemHelper problemHelper) {
+    private void resetCachedData(@NotNull ProblemHelper problemHelper, ScanEngine scanEngine) {
         ProblemHolderService holderService = problemHelper.getProblemHolderService();
-        holderService.addScanIssues(problemHelper.getFilePath(), Collections.emptyList());
-        holderService.addProblemDescriptors(problemHelper.getFilePath(), Collections.emptyList());
+        if (scanEngine == ScanEngine.ALL) {
+            holderService.addScanIssues(problemHelper.getFilePath(), Collections.emptyList());
+            holderService.addProblemDescriptors(problemHelper.getFilePath(), Collections.emptyList());
+        } else {
+            holderService.removeScanIssuesByFileAndScanner(scanEngine.name(), problemHelper.getFilePath());
+            holderService.removeProblemDescriptorsForFileByScanner(problemHelper.getFilePath(), scanEngine);
+        }
     }
 
     /**
      * Restarts the file to update the result on UI scan after completion.
+     * <p>
+     * Ensures that the file is restarted in a write-safe context.
      */
     private void restartFileAfterScan(@NotNull ProblemHelper problemHelper) {
         String filePath = problemHelper.getFilePath();
@@ -241,13 +278,15 @@ public class CxOneAssistScanScheduler {
             return;
         }
         lastRestartTimeMap.put(filePath, now);
+
+        // Ensure this logic executes in a write-safe context
         ApplicationManager.getApplication().invokeLater(() -> {
-            if (!isProjectDisposed("restarting file after scan", problemHelper.getFile().getName())
+            if (!isProjectDisposed("restarting file after scan", filePath)
                     && problemHelper.getFile().isValid()) {
                 DaemonCodeAnalyzer.getInstance(project).restart(problemHelper.getFile());
                 LOGGER.warn(format("RTS: DaemonCodeAnalyzer restarted for file: %s", problemHelper.getFile().getName()));
             }
-        });
+        }, ModalityState.NON_MODAL); // Ensure the UI writing is safe in a non-modal state
     }
 
     /**
