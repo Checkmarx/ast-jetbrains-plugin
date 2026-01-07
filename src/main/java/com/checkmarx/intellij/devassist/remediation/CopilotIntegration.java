@@ -11,7 +11,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
-import com.intellij.openapi.util.SystemInfo;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.ui.content.Content;
@@ -23,8 +22,6 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 import java.util.concurrent.CompletableFuture;
@@ -33,25 +30,29 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 /**
- * Production-ready utility class for integrating with GitHub Copilot in IntelliJ IDEA.
+ * Utility class for integrating with GitHub Copilot Chat in IntelliJ IDEA.
  *
- * <p>This class provides methods to open Copilot chat, switch to agent mode, paste prompts,
- * and send automatically. Since GitHub Copilot does not expose a public API for programmatic
- * access, this implementation uses a multi-layered approach:
+ * <p>This class provides automated interaction with Copilot Chat to send fix prompts.
+ * Since GitHub Copilot does not expose a public API, this implementation uses
+ * component-based UI automation with reflection to access Copilot's internal components.
  *
+ * <h3>Integration Flow:</h3>
  * <ol>
- *   <li><b>Primary Strategy:</b> Component traversal to find and interact with Copilot's input field directly</li>
- *   <li><b>Secondary Strategy:</b> Keyboard automation using Robot class with platform-aware key bindings</li>
- *   <li><b>Fallback:</b> Clipboard copy with user guidance for manual paste</li>
+ *   <li>Copy prompt to clipboard (safety fallback)</li>
+ *   <li>Open Copilot Chat tool window</li>
+ *   <li>Switch to Agent mode using popup simulation</li>
+ *   <li>Paste prompt into input field</li>
+ *   <li>Send message via Enter key simulation</li>
  * </ol>
  *
- * <p>Key features:
- * <ul>
- *   <li>Cross-platform support (Windows, Mac, Linux)</li>
- *   <li>Retry mechanisms with configurable attempts</li>
- *   <li>Graceful degradation with user-friendly notifications</li>
- *   <li>Comprehensive logging for debugging</li>
- * </ul>
+ * <h3>Agent Mode Selection:</h3>
+ * <p>The key insight is that Copilot's ChatModeComboBox requires the full popup
+ * interaction sequence (open → select → close) to properly initialize Agent mode.
+ * Simply calling {@code setSelectedItem()} does not trigger the internal handlers.
+ *
+ * <h3>Fallback Behavior:</h3>
+ * <p>If automation fails, the prompt remains in the clipboard and the user is
+ * notified to paste manually.
  *
  * @see <a href="https://github.com/orgs/community/discussions/172311">GitHub Copilot API Discussion</a>
  */
@@ -62,42 +63,27 @@ public final class CopilotIntegration {
     // ==================== Configuration Constants ====================
 
     /**
-     * Configuration for timing delays. Can be adjusted based on system performance.
-     * These values have been tuned for typical IDE response times.
+     * Configuration for timing delays in UI automation.
+     * These values are tuned for typical IDE response times.
      */
     private static final class Timing {
-        // Initial delay after opening Copilot - allows UI to fully render
+        /** Delay after opening Copilot to allow UI to fully render */
         static final int COPILOT_OPEN_DELAY_MS = 1200;
-        // Delay between UI navigation steps (Tab, Enter, etc.)
-        static final int NAVIGATION_DELAY_MS = 100;
-        // Delay for dropdown menu to open and render
-        static final int DROPDOWN_OPEN_DELAY_MS = 350;
-        // Delay after selecting from dropdown
-        static final int SELECTION_DELAY_MS = 250;
-        // Delay for agent mode to fully activate
+        
+        /** Delay for Agent mode UI panel to fully load after mode switch */
         static final int AGENT_MODE_DELAY_MS = 800;
-        // Delay before paste operation
-        static final int PASTE_DELAY_MS = 200;
-        // Delay before send operation
-        static final int SEND_DELAY_MS = 150;
-        // Interval between focus detection checks
-        static final int FOCUS_CHECK_INTERVAL_MS = 100;
-        // Maximum time to wait for Copilot to gain focus
-        static final int FOCUS_TIMEOUT_MS = 5000;
-        // Delay between Robot key actions
-        static final int ROBOT_AUTO_DELAY_MS = 30;
+        
+        /** Delay for dropdown popup to open */
+        static final int POPUP_OPEN_DELAY_MS = 100;
+        
+        /** Delay after selecting item in dropdown */
+        static final int POPUP_SELECT_DELAY_MS = 100;
+        
+        /** Delay after closing dropdown popup (allows internal handlers to complete) */
+        static final int POPUP_CLOSE_DELAY_MS = 200;
     }
 
-    /**
-     * Number of retry attempts for various operations
-     */
-    private static final class Retries {
-        static final int MAX_COMPONENT_SEARCH = 3;
-        static final int MAX_FOCUS_WAIT = 50; // 50 * 100ms = 5 seconds
-        static final int MAX_AUTOMATION_ATTEMPTS = 2;
-    }
-
-    // Known Copilot action IDs - ordered by likelihood of availability
+    /** Known Copilot action IDs for opening the chat window */
     private static final String[] COPILOT_CHAT_ACTION_IDS = {
             "copilot.chat.show",
             "GitHub.Copilot.Chat.Show",
@@ -105,18 +91,7 @@ public final class CopilotIntegration {
             "copilot.chat.openChat"
     };
 
-    // Known Copilot Agent mode action IDs - try these first for direct agent mode
-    private static final String[] COPILOT_AGENT_ACTION_IDS = {
-            "copilot.agent.show",
-            "copilot.chat.agent",
-            "copilot.openAgent",
-            "copilot.agent.openChat",
-            "GitHub.Copilot.Agent.Show",
-            "copilot.chat.showAgent",
-            "copilot.agent.start"
-    };
-
-    // Known Copilot tool window IDs
+    /** Known Copilot tool window IDs */
     private static final String[] COPILOT_TOOL_WINDOW_IDS = {
             "GitHub Copilot Chat",
             "Copilot Chat",
@@ -285,7 +260,20 @@ public final class CopilotIntegration {
     // ==================== Automation Implementation ====================
 
     /**
-     * Schedules the automated sequence: wait for focus, switch to agent mode, paste, and send.
+     * Schedules the automated prompt entry sequence.
+     * 
+     * <p>This method runs asynchronously to avoid blocking the EDT. It performs:
+     * <ol>
+     *   <li>Wait for Copilot UI to fully initialize</li>
+     *   <li>Switch to Agent mode via component automation</li>
+     *   <li>Paste prompt and send message</li>
+     * </ol>
+     * 
+     * <p>If automation fails, the prompt remains in clipboard for manual paste.
+     *
+     * @param project  The current project context
+     * @param prompt   The fix prompt to send
+     * @param callback Optional callback for result notification
      */
     private static void scheduleAutomatedPromptEntry(
             @NotNull Project project,
@@ -295,42 +283,33 @@ public final class CopilotIntegration {
         CompletableFuture.runAsync(() -> {
             IntegrationResult result;
             try {
-                // Wait for Copilot to open and stabilize
-                LOGGER.info("CxFix: Step 1/5 - Waiting for Copilot chat to fully open...");
+                // Wait for Copilot to open and UI to stabilize
+                LOGGER.info("CxFix: Waiting for Copilot chat to initialize...");
                 TimeUnit.MILLISECONDS.sleep(Timing.COPILOT_OPEN_DELAY_MS);
 
-                // Try component-based approach first (more reliable)
-                boolean componentSuccess = tryComponentBasedAutomation(project, prompt);
+                // Attempt component-based automation (direct UI interaction)
+                boolean success = tryComponentBasedAutomation(project, prompt);
 
-                if (componentSuccess) {
-                    LOGGER.info("CxFix: Component-based automation succeeded");
+                if (success) {
+                    LOGGER.info("CxFix: Automation completed successfully");
                     result = IntegrationResult.fullSuccess(
                             "Fix prompt sent to Copilot Agent successfully!");
                 } else {
-                    // Fall back to Robot-based automation
-                    LOGGER.info("CxFix: Falling back to keyboard automation...");
-                    boolean robotSuccess = tryRobotBasedAutomation(prompt);
-
-                    if (robotSuccess) {
-                        LOGGER.info("CxFix: Robot-based automation completed");
-                        result = IntegrationResult.fullSuccess(
-                                "Fix prompt sent to Copilot Agent. Please verify the prompt was received.");
-                    } else {
-                        LOGGER.warn("CxFix: Automation had issues, prompt is in clipboard");
-                        result = IntegrationResult.partialSuccess(
-                                "Copilot opened but automation may have failed. " +
-                                "Please paste the prompt manually (Ctrl/Cmd+V).");
-                    }
+                    // Component automation failed - prompt is already in clipboard
+                    LOGGER.warn("CxFix: Automation failed, prompt available in clipboard");
+                    result = IntegrationResult.partialSuccess(
+                            "Copilot opened but automation failed. " +
+                            "The fix prompt has been copied to your clipboard - please paste manually (Ctrl/Cmd+V).");
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 LOGGER.warn("CxFix: Automation interrupted", e);
                 result = IntegrationResult.partialSuccess(
-                        "Operation interrupted. Prompt is in clipboard - please paste manually.");
+                        "Operation was interrupted. The fix prompt is in your clipboard - please paste manually.");
             } catch (Exception e) {
-                LOGGER.warn("CxFix: Automation failed", e);
+                LOGGER.warn("CxFix: Automation error: " + e.getMessage());
                 result = IntegrationResult.partialSuccess(
-                        "Automation encountered an error. Prompt is in clipboard - please paste manually.");
+                        "Automation encountered an error. The fix prompt is in your clipboard - please paste manually.");
             }
 
             notifyCallback(callback, result);
@@ -338,47 +317,56 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Attempts automation by finding Copilot's UI components directly.
-     * This is more reliable than keyboard automation as it doesn't depend on focus state.
-     * 
-     * Flow: Open window -> Switch to Agent mode -> Wait for UI -> Paste prompt -> Send message
+     * Performs component-based automation by directly interacting with Copilot's UI components.
+     *
+     * <p>This approach uses Swing component traversal and reflection to:
+     * <ol>
+     *   <li>Find and interact with the ChatModeComboBox to switch to Agent mode</li>
+     *   <li>Wait for the Agent mode UI panel to load</li>
+     *   <li>Find the chat input field and set the prompt text</li>
+     *   <li>Send the message via button click or Enter key simulation</li>
+     * </ol>
+     *
+     * @param project The current project context
+     * @param prompt  The fix prompt to send
+     * @return true if automation completed successfully, false otherwise
      */
     private static boolean tryComponentBasedAutomation(@NotNull Project project, @NotNull String prompt) {
-        AtomicBoolean success = new AtomicBoolean(false);
+        AtomicBoolean modeSwitchSuccess = new AtomicBoolean(false);
 
+        // Phase 1: Switch to Agent mode (must run on EDT)
         ApplicationManager.getApplication().invokeAndWait(() -> {
             try {
                 ToolWindow copilotWindow = findCopilotToolWindow(project);
                 if (copilotWindow == null) {
-                    LOGGER.debug("CxFix: Could not find Copilot tool window for component search");
+                    LOGGER.warn("CxFix: Copilot tool window not found");
                     return;
                 }
 
-                // Log all components for debugging
+                // Debug: Log component hierarchy for troubleshooting
                 logAllComponents(copilotWindow);
 
-                // Step 1: Switch to Agent mode FIRST
-                LOGGER.info("CxFix: Step 1 - Switching to Agent mode...");
+                // Switch to Agent mode using the ChatModeComboBox
+                LOGGER.info("CxFix: Switching to Agent mode...");
                 boolean agentModeSet = trySetAgentModeFromDropdown(copilotWindow);
                 if (agentModeSet) {
-                    LOGGER.info("CxFix: Successfully set Agent mode from dropdown");
+                    LOGGER.info("CxFix: Agent mode activated successfully");
+                    modeSwitchSuccess.set(true);
                 } else {
-                    LOGGER.warn("CxFix: Could not set Agent mode from dropdown, will try keyboard fallback");
+                    LOGGER.warn("CxFix: Failed to switch to Agent mode");
                 }
-
-                success.set(true);
             } catch (Exception e) {
-                LOGGER.debug("CxFix: Component-based automation failed during mode switch", e);
+                LOGGER.warn("CxFix: Error during mode switch: " + e.getMessage());
             }
         });
 
-        if (!success.get()) {
+        if (!modeSwitchSuccess.get()) {
             return false;
         }
 
-        // Step 2: Wait for Agent mode UI to fully load
-        // When switching modes, Copilot recreates the panel asynchronously
-        LOGGER.info("CxFix: Step 2 - Waiting for Agent mode UI to load...");
+        // Phase 2: Wait for Agent mode UI to fully initialize
+        // When switching modes, Copilot recreates the chat panel asynchronously
+        LOGGER.info("CxFix: Waiting for Agent mode UI to initialize...");
         try {
             TimeUnit.MILLISECONDS.sleep(Timing.AGENT_MODE_DELAY_MS);
         } catch (InterruptedException e) {
@@ -386,72 +374,79 @@ public final class CopilotIntegration {
             return false;
         }
 
-        // Step 3: Now find the input field (in the new Agent mode panel) and set text
-        AtomicBoolean textSet = new AtomicBoolean(false);
+        // Phase 3: Find input field and send prompt (must run on EDT)
+        AtomicBoolean sendSuccess = new AtomicBoolean(false);
         ApplicationManager.getApplication().invokeAndWait(() -> {
             try {
                 ToolWindow copilotWindow = findCopilotToolWindow(project);
                 if (copilotWindow == null) {
-                    LOGGER.debug("CxFix: Could not find Copilot tool window after mode switch");
+                    LOGGER.warn("CxFix: Copilot tool window not found after mode switch");
                     return;
                 }
 
-                // Re-find the input field in the Agent mode panel
-                LOGGER.info("CxFix: Step 3 - Finding input field in Agent mode panel...");
+                // Find the input field in the newly created Agent mode panel
+                LOGGER.info("CxFix: Finding input field...");
                 JTextComponent inputField = findCopilotInputField(copilotWindow);
                 if (inputField == null) {
-                    LOGGER.debug("CxFix: Could not find Copilot input field after mode switch");
+                    LOGGER.warn("CxFix: Could not find input field");
                     return;
                 }
 
-                LOGGER.info("CxFix: Found Copilot input field in Agent mode, setting text directly");
-
-                // Step 4: Set text (paste prompt)
-                LOGGER.info("CxFix: Step 4 - Pasting prompt text...");
+                // Set the prompt text and focus the field
+                LOGGER.info("CxFix: Setting prompt text...");
                 inputField.setText(prompt);
                 inputField.requestFocusInWindow();
 
-                // Step 5: Send the message
-                LOGGER.info("CxFix: Step 5 - Sending message...");
+                // Send the message
+                LOGGER.info("CxFix: Sending message...");
                 boolean sent = trySendMessage(copilotWindow, inputField);
                 if (sent) {
-                    LOGGER.info("CxFix: Message sent successfully via component automation");
+                    LOGGER.info("CxFix: Message sent successfully");
+                    sendSuccess.set(true);
                 } else {
-                    LOGGER.warn("CxFix: Could not send message via component, will try keyboard fallback");
+                    LOGGER.warn("CxFix: Failed to send message");
                 }
-
-                textSet.set(true);
             } catch (Exception e) {
-                LOGGER.debug("CxFix: Component-based automation failed during text entry", e);
+                LOGGER.warn("CxFix: Error during text entry: " + e.getMessage());
             }
         });
 
-        return textSet.get();
+        return sendSuccess.get();
     }
 
     /**
-     * Attempts to send the message using various methods.
+     * Sends the message using available methods in order of preference.
+     *
+     * <p>Attempts:
+     * <ol>
+     *   <li>Find and click a "Send" button</li>
+     *   <li>Find and click an action button near the input field</li>
+     *   <li>Simulate Enter key press on the input field</li>
+     * </ol>
+     *
+     * @param toolWindow The Copilot tool window
+     * @param inputField The chat input field
      * @return true if message was sent, false otherwise
      */
     private static boolean trySendMessage(@NotNull ToolWindow toolWindow, @NotNull JTextComponent inputField) {
-        // Method 1: Try to find and click a send button
+        // Try to find and click a send button
         AbstractButton sendButton = findSendButton(toolWindow);
         if (sendButton != null && sendButton.isEnabled()) {
-            LOGGER.info("CxFix: Found send button, clicking...");
+            LOGGER.info("CxFix: Clicking send button");
             sendButton.doClick();
             return true;
         }
 
-        // Method 2: Try to find an action button (icon button without text)
+        // Try to find an action button (icon button without text) near the input
         AbstractButton actionButton = findActionButton(toolWindow, inputField);
         if (actionButton != null && actionButton.isEnabled()) {
-            LOGGER.info("CxFix: Found action button near input, clicking...");
+            LOGGER.info("CxFix: Clicking action button");
             actionButton.doClick();
             return true;
         }
 
-        // Method 3: Simulate Enter key press in the input field
-        LOGGER.info("CxFix: No send button found, simulating Enter key...");
+        // Fall back to Enter key simulation
+        LOGGER.info("CxFix: Simulating Enter key");
         return simulateEnterKey(inputField);
     }
 
@@ -489,7 +484,7 @@ public final class CopilotIntegration {
                 String lowerText = text.toLowerCase();
                 if (lowerText.contains("send") || lowerText.contains("submit") || 
                     lowerText.equals("go") || lowerText.equals("run")) {
-                    LOGGER.info("CxFix: Found send button by text: '" + text + "'");
+                    LOGGER.debug("CxFix: Found send button by text: '" + text + "'");
                     return button;
                 }
             }
@@ -499,7 +494,7 @@ public final class CopilotIntegration {
                 String lowerTooltip = tooltip.toLowerCase();
                 if (lowerTooltip.contains("send") || lowerTooltip.contains("submit") || 
                     lowerTooltip.contains("execute") || lowerTooltip.contains("run")) {
-                    LOGGER.info("CxFix: Found send button by tooltip: '" + tooltip + "'");
+                    LOGGER.debug("CxFix: Found send button by tooltip: '" + tooltip + "'");
                     return button;
                 }
             }
@@ -508,14 +503,14 @@ public final class CopilotIntegration {
             if (name != null) {
                 String lowerName = name.toLowerCase();
                 if (lowerName.contains("send") || lowerName.contains("submit")) {
-                    LOGGER.info("CxFix: Found send button by name: '" + name + "'");
+                    LOGGER.debug("CxFix: Found send button by name: '" + name + "'");
                     return button;
                 }
             }
             
             // Check class name
             if (className.contains("send") || className.contains("submit")) {
-                LOGGER.info("CxFix: Found send button by class: " + button.getClass().getSimpleName());
+                LOGGER.debug("CxFix: Found send button by class: " + button.getClass().getSimpleName());
                 return button;
             }
         }
@@ -555,8 +550,8 @@ public final class CopilotIntegration {
                         // Button should be near the input field
                         if (buttonBounds.x >= inputBounds.x + inputBounds.width - 50 ||
                             buttonBounds.y >= inputBounds.y + inputBounds.height - 10) {
-                            LOGGER.info("CxFix: Found action button near input field: " + 
-                                    button.getClass().getSimpleName() + ", icon: " + button.getIcon());
+                            LOGGER.debug("CxFix: Found action button near input field: " + 
+                                    button.getClass().getSimpleName());
                             return button;
                         }
                     }
@@ -590,7 +585,7 @@ public final class CopilotIntegration {
                 if (className.contains("send") || className.contains("submit") || 
                     className.contains("action") || className.contains("run")) {
                     if (button.isEnabled() && button.isVisible()) {
-                        LOGGER.info("CxFix: Found potential send button by class: " + button.getClass().getSimpleName());
+                        LOGGER.debug("CxFix: Found potential send button by class: " + button.getClass().getSimpleName());
                         return button;
                     }
                 }
@@ -631,7 +626,7 @@ public final class CopilotIntegration {
             inputField.dispatchEvent(enterPressed);
             inputField.dispatchEvent(enterReleased);
             
-            LOGGER.info("CxFix: Dispatched Enter key event to input field");
+            LOGGER.debug("CxFix: Enter key event dispatched");
             return true;
         } catch (Exception e) {
             LOGGER.warn("CxFix: Failed to simulate Enter key", e);
@@ -641,23 +636,29 @@ public final class CopilotIntegration {
 
     /**
      * Logs all UI components in the Copilot tool window for debugging purposes.
+     * This is useful when Copilot's internal UI structure changes and automation needs updating.
      */
     private static void logAllComponents(@NotNull ToolWindow toolWindow) {
-        LOGGER.info("CxFix: === Starting component hierarchy dump ===");
+        if (!LOGGER.isDebugEnabled()) {
+            return; // Skip expensive component traversal if debug logging is disabled
+        }
+        
+        LOGGER.debug("CxFix: === Starting component hierarchy dump ===");
         Content[] contents = toolWindow.getContentManager().getContents();
         for (int i = 0; i < contents.length; i++) {
             Content content = contents[i];
             JComponent component = content.getComponent();
             if (component != null) {
-                LOGGER.info("CxFix: Content[" + i + "] displayName: " + content.getDisplayName());
+                LOGGER.debug("CxFix: Content[" + i + "] displayName: " + content.getDisplayName());
                 logComponentHierarchy(component, 0);
             }
         }
-        LOGGER.info("CxFix: === End component hierarchy dump ===");
+        LOGGER.debug("CxFix: === End component hierarchy dump ===");
     }
 
     /**
-     * Recursively logs component hierarchy with indentation.
+     * Recursively logs component hierarchy with indentation for debugging.
+     * Only logs when debug level is enabled to avoid performance impact.
      */
     private static void logComponentHierarchy(@NotNull Component component, int depth) {
         String indent = "  ".repeat(depth);
@@ -669,7 +670,7 @@ public final class CopilotIntegration {
                 component.isEnabled(),
                 component.getBounds());
 
-        // Add extra info for specific component types
+        // Add extra info for specific component types of interest
         if (component instanceof JComboBox) {
             JComboBox<?> combo = (JComboBox<?>) component;
             StringBuilder items = new StringBuilder();
@@ -681,61 +682,26 @@ public final class CopilotIntegration {
             }
             String selectedDisplay = extractModeDisplayName(combo.getSelectedItem());
             componentInfo += " ComboBox items: {" + items + "}, selected: " + selectedDisplay;
-            LOGGER.info("CxFix: FOUND COMBOBOX: " + componentInfo);
+            LOGGER.debug("CxFix: FOUND COMBOBOX: " + componentInfo);
         } else if (component instanceof AbstractButton) {
             AbstractButton button = (AbstractButton) component;
             componentInfo += " Button text: '" + button.getText() + "'";
             componentInfo += ", tooltip: '" + button.getToolTipText() + "'";
             componentInfo += ", hasIcon: " + (button.getIcon() != null);
             componentInfo += ", enabled: " + button.isEnabled();
-            
-            String buttonText = button.getText();
-            String tooltip = button.getToolTipText();
-            String btnClassName = button.getClass().getSimpleName().toLowerCase();
-            
-            // Log mode buttons
-            if (buttonText != null && 
-                (buttonText.toLowerCase().contains("agent") || 
-                 buttonText.toLowerCase().contains("ask") ||
-                 buttonText.toLowerCase().contains("edit") ||
-                 buttonText.toLowerCase().contains("plan"))) {
-                LOGGER.info("CxFix: FOUND MODE BUTTON: " + componentInfo);
-            }
-            // Log potential send buttons
-            else if ((buttonText != null && (buttonText.toLowerCase().contains("send") || 
-                     buttonText.toLowerCase().contains("submit") ||
-                     buttonText.toLowerCase().contains("run"))) ||
-                    (tooltip != null && (tooltip.toLowerCase().contains("send") ||
-                     tooltip.toLowerCase().contains("submit") ||
-                     tooltip.toLowerCase().contains("execute"))) ||
-                    btnClassName.contains("send") || btnClassName.contains("submit") ||
-                    btnClassName.contains("action") || btnClassName.contains("run")) {
-                LOGGER.info("CxFix: POTENTIAL SEND BUTTON: " + componentInfo);
-            }
-            // Log icon-only buttons (often used for send)
-            else if ((buttonText == null || buttonText.isEmpty()) && button.getIcon() != null) {
-                LOGGER.info("CxFix: ICON BUTTON (potential send): " + componentInfo + 
-                        ", class: " + button.getClass().getSimpleName());
-            }
-        } else if (component instanceof JLabel) {
-            JLabel label = (JLabel) component;
-            if (label.getText() != null && !label.getText().isEmpty()) {
-                componentInfo += " Label text: '" + label.getText() + "'";
-            }
+            LOGGER.debug("CxFix: Button: " + componentInfo);
         } else if (component instanceof JTextComponent) {
             JTextComponent text = (JTextComponent) component;
             componentInfo += " Editable: " + text.isEditable() + ", Text length: " + 
                     (text.getText() != null ? text.getText().length() : 0);
+            LOGGER.debug("CxFix: TextComponent: " + componentInfo);
         }
 
-        // Log components that might be dropdowns or mode selectors
+        // Log components that might be mode selectors (useful for troubleshooting)
         String className = component.getClass().getName().toLowerCase();
         if (className.contains("dropdown") || className.contains("combo") || 
-            className.contains("select") || className.contains("mode") ||
-            className.contains("popup") || className.contains("menu")) {
-            LOGGER.info("CxFix: POTENTIAL DROPDOWN: " + componentInfo);
-        } else {
-            LOGGER.debug("CxFix: " + componentInfo);
+            className.contains("mode") || className.contains("picker")) {
+            LOGGER.debug("CxFix: POTENTIAL MODE SELECTOR: " + componentInfo);
         }
 
         // Recurse into children
@@ -748,21 +714,29 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Attempts to find and set Agent mode from a dropdown/combobox component.
-     * @return true if agent mode was successfully set, false otherwise
+     * Attempts to switch to Agent mode by finding and interacting with the mode dropdown.
+     *
+     * <p>Searches the tool window contents for:
+     * <ol>
+     *   <li>ChatModeComboBox (primary) - the standard mode dropdown</li>
+     *   <li>Mode button (fallback) - for alternative UI layouts</li>
+     * </ol>
+     *
+     * @param toolWindow The Copilot tool window
+     * @return true if Agent mode was successfully activated, false otherwise
      */
     private static boolean trySetAgentModeFromDropdown(@NotNull ToolWindow toolWindow) {
         Content[] contents = toolWindow.getContentManager().getContents();
         for (Content content : contents) {
             JComponent component = content.getComponent();
             if (component != null) {
-                // Try to find JComboBox first
+                // Primary: Find ChatModeComboBox
                 JComboBox<?> comboBox = findChatModeComboBox(component);
                 if (comboBox != null) {
                     return selectAgentInComboBox(comboBox);
                 }
 
-                // Try to find custom dropdown buttons
+                // Fallback: Find mode button (for alternative UI layouts)
                 AbstractButton modeButton = findModeButton(component);
                 if (modeButton != null) {
                     return clickAgentModeButton(modeButton, component);
@@ -774,6 +748,12 @@ public final class CopilotIntegration {
 
     /**
      * Finds the index of the Agent mode in the combo box.
+     *
+     * <p>Looks for the exact "Agent" mode (id=Agent) rather than other modes
+     * that might have kind=Agent (like "Plan").
+     *
+     * @param comboBox The ChatModeComboBox
+     * @return The index of Agent mode, or -1 if not found
      */
     private static int findAgentModeIndex(@NotNull JComboBox<?> comboBox) {
         for (int i = 0; i < comboBox.getItemCount(); i++) {
@@ -784,7 +764,7 @@ public final class CopilotIntegration {
                 return i;
             }
         }
-        // Fallback to index 2 if not found
+        // Fallback to index 2 if not found (typical position in Copilot's dropdown)
         if (comboBox.getItemCount() >= 3) {
             return 2;
         }
@@ -792,27 +772,36 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Finds a JComboBox that is the ChatModeComboBox (mode selector).
+     * Recursively searches for the ChatModeComboBox component.
+     *
+     * <p>Identifies the combo box by:
+     * <ol>
+     *   <li>Class name containing "ChatMode" or "ModeCombo"</li>
+     *   <li>Item types containing "ChatModeItem" or "Mode"</li>
+     * </ol>
+     *
+     * @param component The root component to search from
+     * @return The ChatModeComboBox if found, null otherwise
      */
     private static @Nullable JComboBox<?> findChatModeComboBox(@NotNull Component component) {
         if (component instanceof JComboBox) {
             JComboBox<?> combo = (JComboBox<?>) component;
             String className = combo.getClass().getSimpleName();
             
-            // Check if this is the ChatModeComboBox by class name
+            // Check by class name
             if (className.contains("ChatMode") || className.contains("ModeCombo")) {
-                LOGGER.info("CxFix: Found ChatModeComboBox by class name: " + className);
+                LOGGER.debug("CxFix: Found ChatModeComboBox: " + className);
                 logComboBoxItems(combo);
                 return combo;
             }
             
-            // Check if items are ChatModeItem objects
+            // Check by item type
             if (combo.getItemCount() > 0) {
                 Object firstItem = combo.getItemAt(0);
                 if (firstItem != null) {
                     String itemClassName = firstItem.getClass().getName();
                     if (itemClassName.contains("ChatModeItem") || itemClassName.contains("Mode")) {
-                        LOGGER.info("CxFix: Found mode ComboBox by item type: " + itemClassName);
+                        LOGGER.debug("CxFix: Found mode ComboBox by item type: " + itemClassName);
                         logComboBoxItems(combo);
                         return combo;
                     }
@@ -820,6 +809,7 @@ public final class CopilotIntegration {
             }
         }
 
+        // Recurse into children
         if (component instanceof Container) {
             Container container = (Container) component;
             for (Component child : container.getComponents()) {
@@ -833,18 +823,21 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Logs all items in a combo box with their extracted display names.
+     * Logs all items in a combo box for debugging purposes.
      */
     private static void logComboBoxItems(@NotNull JComboBox<?> comboBox) {
-        LOGGER.info("CxFix: ComboBox has " + comboBox.getItemCount() + " items:");
+        if (!LOGGER.isDebugEnabled()) {
+            return;
+        }
+        LOGGER.debug("CxFix: ComboBox has " + comboBox.getItemCount() + " items:");
         for (int i = 0; i < comboBox.getItemCount(); i++) {
             Object item = comboBox.getItemAt(i);
             String displayName = extractModeDisplayName(item);
-            LOGGER.info("CxFix:   [" + i + "] " + displayName + " (class: " + 
+            LOGGER.debug("CxFix:   [" + i + "] " + displayName + " (class: " + 
                     (item != null ? item.getClass().getSimpleName() : "null") + ")");
         }
         Object selected = comboBox.getSelectedItem();
-        LOGGER.info("CxFix:   Currently selected: " + extractModeDisplayName(selected));
+        LOGGER.debug("CxFix:   Currently selected: " + extractModeDisplayName(selected));
     }
 
     /**
@@ -934,60 +927,72 @@ public final class CopilotIntegration {
             return false;
         }
         
-        LOGGER.info("CxFix: Found Agent mode at index " + agentIndex + ", switching...");
+        LOGGER.debug("CxFix: Agent mode found at index " + agentIndex);
         
-        // Primary strategy: Simulate popup interaction (this is what works)
+        // Primary strategy: Simulate popup interaction
+        // This properly initializes Copilot's Agent mode internal handlers
         if (selectAgentViaPopupSimulation(comboBox, agentItem)) {
             return true;
         }
         
         // Fallback: Direct selection (may not fully initialize Agent mode)
-        LOGGER.warn("CxFix: Popup simulation failed, using direct selection fallback");
+        LOGGER.warn("CxFix: Popup simulation failed, trying direct selection");
         comboBox.setSelectedIndex(agentIndex);
         return true;
     }
 
     /**
-     * Selects Agent mode by simulating full popup interaction sequence.
-     * 
-     * This properly initializes Copilot's Agent mode because:
-     * 1. Opening the popup prepares internal state in ChatModeService
-     * 2. Selecting while popup is visible triggers proper ItemListener callbacks
-     * 3. Closing the popup completes the initialization sequence
-     * 
-     * Just calling setSelectedItem() alone doesn't trigger the full initialization.
+     * Selects Agent mode by simulating the full popup interaction sequence.
+     *
+     * <p>This approach is necessary because Copilot's {@code ChatModeService} only fully
+     * initializes Agent mode when the complete popup lifecycle is executed:
+     * <ol>
+     *   <li>Opening the popup prepares internal state in ChatModeService</li>
+     *   <li>Selecting while popup is visible triggers proper ItemListener callbacks</li>
+     *   <li>Closing the popup completes the initialization and activates Agent features</li>
+     * </ol>
+     *
+     * <p>Simply calling {@code setSelectedItem()} without the popup sequence does not
+     * trigger the internal handlers, resulting in the UI showing "Agent" but the
+     * backend still operating in "Ask" mode.
+     *
+     * @param comboBox  The ChatModeComboBox component
+     * @param agentItem The Agent mode item to select
+     * @return true if Agent mode was successfully activated, false otherwise
      */
     @SuppressWarnings("unchecked")
     private static boolean selectAgentViaPopupSimulation(@NotNull JComboBox<?> comboBox, @NotNull Object agentItem) {
         try {
-            LOGGER.info("CxFix: Switching to Agent mode via popup simulation...");
+            LOGGER.debug("CxFix: Starting popup simulation for Agent mode");
             
-            // Step 1: Open popup (prepares internal state)
+            // Step 1: Open popup - prepares internal ChatModeService state
             comboBox.setPopupVisible(true);
-            Thread.sleep(100);
+            Thread.sleep(Timing.POPUP_OPEN_DELAY_MS);
             
-            // Step 2: Select item while popup is visible
+            // Step 2: Select Agent item while popup is visible - triggers ItemListeners
             ((JComboBox<Object>) comboBox).setSelectedItem(agentItem);
-            Thread.sleep(100);
+            Thread.sleep(Timing.POPUP_SELECT_DELAY_MS);
             
-            // Step 3: Close popup (triggers final initialization)
+            // Step 3: Close popup - triggers final initialization
             comboBox.setPopupVisible(false);
-            Thread.sleep(200);
+            Thread.sleep(Timing.POPUP_CLOSE_DELAY_MS);
             
-            LOGGER.info("CxFix: Agent mode switch completed");
+            LOGGER.debug("CxFix: Popup simulation completed");
             return true;
             
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOGGER.warn("CxFix: Interrupted during Agent mode switch");
+            LOGGER.warn("CxFix: Agent mode switch interrupted");
+            return false;
         } catch (Exception e) {
-            LOGGER.warn("CxFix: Error during popup simulation: " + e.getMessage());
+            LOGGER.warn("CxFix: Agent mode switch error: " + e.getMessage());
+            return false;
         }
-        return false;
     }
 
     /**
-     * Finds a button that represents the mode selector (might show current mode like "Ask", "Agent", etc.).
+     * Finds a button that represents the mode selector (fallback for non-combobox UI).
+     * Looks for buttons showing current mode text like "Ask", "Agent", etc.
      */
     private static @Nullable AbstractButton findModeButton(@NotNull Component component) {
         if (component instanceof AbstractButton) {
@@ -995,17 +1000,15 @@ public final class CopilotIntegration {
             String text = button.getText();
             if (text != null) {
                 String lowerText = text.toLowerCase();
-                // Look for buttons that show mode names
                 if (lowerText.equals("ask") || lowerText.equals("edit") || 
                     lowerText.equals("agent") || lowerText.equals("plan")) {
-                    LOGGER.info("CxFix: Found mode button with text: '" + text + "'");
+                    LOGGER.debug("CxFix: Found mode button: '" + text + "'");
                     return button;
                 }
             }
-            // Also check tooltip or accessible name
             String tooltip = button.getToolTipText();
             if (tooltip != null && tooltip.toLowerCase().contains("mode")) {
-                LOGGER.info("CxFix: Found button with mode tooltip: '" + tooltip + "'");
+                LOGGER.debug("CxFix: Found mode button by tooltip: '" + tooltip + "'");
                 return button;
             }
         }
@@ -1023,56 +1026,51 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Clicks a mode button to open dropdown and then selects Agent.
-     * This handles custom dropdown implementations that aren't standard JComboBox.
+     * Clicks a mode button to open dropdown and selects Agent (fallback method).
+     * Used when ChatModeComboBox is not found but a mode button exists.
      */
     private static boolean clickAgentModeButton(@NotNull AbstractButton modeButton, @NotNull Component rootComponent) {
         String currentMode = modeButton.getText();
-        LOGGER.info("CxFix: Current mode button text: '" + currentMode + "'");
+        LOGGER.debug("CxFix: Mode button text: '" + currentMode + "'");
 
         if (currentMode != null && currentMode.toLowerCase().contains("agent")) {
-            LOGGER.info("CxFix: Already in Agent mode");
+            LOGGER.debug("CxFix: Already in Agent mode");
             return true;
         }
 
         // Click the button to open the dropdown
-        LOGGER.info("CxFix: Clicking mode button to open dropdown...");
+        LOGGER.debug("CxFix: Opening mode dropdown via button click");
         modeButton.doClick();
 
-        // Wait a bit for popup to appear and look for Agent option
         try {
             TimeUnit.MILLISECONDS.sleep(300);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
 
-        // Try to find popup menu or list with Agent option
-        // Look for JPopupMenu in the window hierarchy
+        // Search for Agent option in popup windows
         Window[] windows = Window.getWindows();
         for (Window window : windows) {
             if (window.isVisible() && window instanceof JWindow) {
-                LOGGER.info("CxFix: Found popup window: " + window.getClass().getName());
                 AbstractButton agentButton = findButtonWithText(window, "agent");
                 if (agentButton != null) {
-                    LOGGER.info("CxFix: Found Agent button in popup, clicking...");
+                    LOGGER.debug("CxFix: Selecting Agent from popup");
                     agentButton.doClick();
                     return true;
                 }
-                // Also try JMenuItem or JList
                 JMenuItem agentMenuItem = findMenuItemWithText(window, "agent");
                 if (agentMenuItem != null) {
-                    LOGGER.info("CxFix: Found Agent menu item, clicking...");
+                    LOGGER.debug("CxFix: Selecting Agent from menu");
                     agentMenuItem.doClick();
                     return true;
                 }
             }
         }
 
-        // Also check for JPopupMenu
+        // Check popup menu via MenuSelectionManager
         MenuSelectionManager msm = MenuSelectionManager.defaultManager();
         MenuElement[] selectedPath = msm.getSelectedPath();
         if (selectedPath.length > 0) {
-            LOGGER.info("CxFix: Found menu selection path with " + selectedPath.length + " elements");
             for (MenuElement element : selectedPath) {
                 if (element instanceof JPopupMenu) {
                     JPopupMenu popup = (JPopupMenu) element;
@@ -1080,7 +1078,7 @@ public final class CopilotIntegration {
                         if (menuComp instanceof JMenuItem) {
                             JMenuItem item = (JMenuItem) menuComp;
                             if (item.getText() != null && item.getText().toLowerCase().contains("agent")) {
-                                LOGGER.info("CxFix: Found Agent in popup menu, clicking...");
+                                LOGGER.debug("CxFix: Selecting Agent from popup menu");
                                 item.doClick();
                                 return true;
                             }
@@ -1090,7 +1088,7 @@ public final class CopilotIntegration {
             }
         }
 
-        LOGGER.warn("CxFix: Could not find Agent option in dropdown");
+        LOGGER.warn("CxFix: Could not find Agent option in mode dropdown");
         return false;
     }
 
@@ -1182,179 +1180,6 @@ public final class CopilotIntegration {
         }
 
         return null;
-    }
-
-    /**
-     * Attempts automation using Robot class for keyboard simulation.
-     * Uses platform-aware key bindings.
-     */
-    private static boolean tryRobotBasedAutomation(@NotNull String prompt) {
-        try {
-            Robot robot = new Robot();
-            robot.setAutoDelay(Timing.ROBOT_AUTO_DELAY_MS);
-
-            // Step 2: Switch to Agent mode
-            LOGGER.info("CxFix: Step 2/5 - Switching to Agent mode...");
-            boolean agentModeSuccess = switchToAgentMode(robot);
-
-            if (!agentModeSuccess) {
-                LOGGER.warn("CxFix: Agent mode switch may have failed, continuing with paste...");
-            }
-
-            // Step 3: Wait for agent mode to activate
-            LOGGER.info("CxFix: Step 3/5 - Waiting for Agent mode to activate...");
-            TimeUnit.MILLISECONDS.sleep(Timing.AGENT_MODE_DELAY_MS);
-
-            // Step 4: Paste the prompt
-            LOGGER.info("CxFix: Step 4/5 - Pasting prompt...");
-            TimeUnit.MILLISECONDS.sleep(Timing.PASTE_DELAY_MS);
-            pasteFromClipboard(robot);
-
-            // Step 5: Send the message
-            LOGGER.info("CxFix: Step 5/5 - Sending message...");
-            TimeUnit.MILLISECONDS.sleep(Timing.SEND_DELAY_MS);
-            sendMessage(robot);
-
-            LOGGER.info("CxFix: Robot automation sequence completed");
-            return true;
-
-        } catch (AWTException e) {
-            LOGGER.warn("CxFix: Failed to create Robot for automation", e);
-            return false;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            LOGGER.warn("CxFix: Robot automation interrupted", e);
-            return false;
-        } catch (Exception e) {
-            LOGGER.warn("CxFix: Robot automation failed", e);
-            return false;
-        }
-    }
-
-    /**
-     * Switches Copilot to Agent mode using the mode dropdown menu.
-     *
-     * <p>Copilot's dropdown structure (as of 2024):
-     * <pre>
-     *   1. Ask       (index 0)
-     *   2. Edit      (index 1)
-     *   3. Agent     (index 2) <- TARGET
-     *   4. (possibly more items)
-     * </pre>
-     *
-     * <p>Strategy for reliable selection regardless of current mode:
-     * <ol>
-     *   <li>Tab to the mode dropdown from chat input</li>
-     *   <li>Press Enter/Space to open the dropdown</li>
-     *   <li>Navigate to top using Home or multiple Up arrows</li>
-     *   <li>Press Down twice to reach Agent</li>
-     *   <li>Press Enter to select</li>
-     *   <li>Tab back to chat input</li>
-     * </ol>
-     */
-    private static boolean switchToAgentMode(Robot robot) throws InterruptedException {
-        LOGGER.debug("CxFix: Starting agent mode selection...");
-
-        try {
-            // Step 1: Tab to mode dropdown
-            LOGGER.debug("CxFix: Tabbing to mode dropdown...");
-            pressKey(robot, KeyEvent.VK_TAB);
-            TimeUnit.MILLISECONDS.sleep(Timing.NAVIGATION_DELAY_MS);
-
-            // Step 2: Open dropdown
-            LOGGER.debug("CxFix: Opening dropdown...");
-            pressKey(robot, KeyEvent.VK_ENTER);
-            TimeUnit.MILLISECONDS.sleep(Timing.DROPDOWN_OPEN_DELAY_MS);
-
-            // Step 3: Navigate to top of dropdown
-            LOGGER.debug("CxFix: Navigating to top of dropdown...");
-            navigateToDropdownTop(robot);
-            TimeUnit.MILLISECONDS.sleep(Timing.NAVIGATION_DELAY_MS);
-
-            // Step 4: Navigate to Agent (Down 2 times: Ask -> Edit -> Agent)
-            LOGGER.debug("CxFix: Navigating to Agent option...");
-            pressKey(robot, KeyEvent.VK_DOWN);
-            TimeUnit.MILLISECONDS.sleep(Timing.NAVIGATION_DELAY_MS);
-            pressKey(robot, KeyEvent.VK_DOWN);
-            TimeUnit.MILLISECONDS.sleep(Timing.NAVIGATION_DELAY_MS);
-
-            // Step 5: Select Agent mode
-            LOGGER.debug("CxFix: Selecting Agent mode...");
-            pressKey(robot, KeyEvent.VK_ENTER);
-            TimeUnit.MILLISECONDS.sleep(Timing.SELECTION_DELAY_MS);
-
-            // Step 6: Navigate back to chat input
-            LOGGER.debug("CxFix: Returning to chat input...");
-            pressShiftTab(robot);
-            TimeUnit.MILLISECONDS.sleep(Timing.NAVIGATION_DELAY_MS);
-
-            LOGGER.debug("CxFix: Agent mode selection completed");
-            return true;
-
-        } catch (Exception e) {
-            LOGGER.warn("CxFix: Error during agent mode switch", e);
-            // Try to recover by pressing Escape and returning to input
-            try {
-                pressKey(robot, KeyEvent.VK_ESCAPE);
-                TimeUnit.MILLISECONDS.sleep(Timing.NAVIGATION_DELAY_MS);
-            } catch (Exception ignored) {}
-            return false;
-        }
-    }
-
-    /**
-     * Navigates to the top of a dropdown using Home key with Up arrow fallback.
-     */
-    private static void navigateToDropdownTop(Robot robot) throws InterruptedException {
-        // Try Home key first
-        pressKey(robot, KeyEvent.VK_HOME);
-        TimeUnit.MILLISECONDS.sleep(Timing.NAVIGATION_DELAY_MS);
-
-        // Fallback: Press Up multiple times to ensure we're at the top
-        // This handles dropdowns where Home key doesn't work
-        for (int i = 0; i < 5; i++) {
-            pressKey(robot, KeyEvent.VK_UP);
-            TimeUnit.MILLISECONDS.sleep(30);
-        }
-    }
-
-    // ==================== Keyboard Helpers ====================
-
-    /**
-     * Presses a single key.
-     */
-    private static void pressKey(Robot robot, int keyCode) {
-        robot.keyPress(keyCode);
-        robot.keyRelease(keyCode);
-    }
-
-    /**
-     * Presses Shift+Tab key combination.
-     */
-    private static void pressShiftTab(Robot robot) {
-        robot.keyPress(KeyEvent.VK_SHIFT);
-        robot.keyPress(KeyEvent.VK_TAB);
-        robot.keyRelease(KeyEvent.VK_TAB);
-        robot.keyRelease(KeyEvent.VK_SHIFT);
-    }
-
-    /**
-     * Pastes content from clipboard using platform-appropriate shortcut.
-     * Uses Cmd+V on Mac, Ctrl+V on Windows/Linux.
-     */
-    private static void pasteFromClipboard(Robot robot) {
-        int modifierKey = SystemInfo.isMac ? KeyEvent.VK_META : KeyEvent.VK_CONTROL;
-        robot.keyPress(modifierKey);
-        robot.keyPress(KeyEvent.VK_V);
-        robot.keyRelease(KeyEvent.VK_V);
-        robot.keyRelease(modifierKey);
-    }
-
-    /**
-     * Sends the message by pressing Enter.
-     */
-    private static void sendMessage(Robot robot) {
-        pressKey(robot, KeyEvent.VK_ENTER);
     }
 
     // ==================== Tool Window Helpers ====================
