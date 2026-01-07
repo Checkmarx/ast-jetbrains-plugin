@@ -23,7 +23,7 @@ import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 
 public class TestGeneral extends BaseUITest {
     List<String> defaultState = List.of("CONFIRMED", "TO_VERIFY", "URGENT", "NOT_EXPLOITABLE", "PROPOSED_NOT_EXPLOITABLE", "IGNORED", "NOT_IGNORED");
-
+    EnumSet<Severity> exclude = EnumSet.of(Severity.MALICIOUS, Severity.INFO);
     @BeforeEach
     public void checkResults() {
         getResults();
@@ -40,12 +40,14 @@ public class TestGeneral extends BaseUITest {
         waitForScanIdSelection();
 
         // disable all severities and check for empty tree
-        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, false));
-        navigate("Scan", 1);
+        Arrays.stream(Severity.values())
+                .filter(severity -> !exclude.contains(severity))
+                .forEach(severity -> toggleFilter(severity, false));        navigate("Scan", 1);
 
         // enable all severities and check for at least 1 result
-        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, true));
-        navigate("Scan", 2);
+        Arrays.stream(Severity.values())
+                .filter(severity -> !exclude.contains(severity))
+                .forEach(severity -> toggleFilter(severity, true));        navigate("Scan", 2);
     }
 
     @Test
@@ -108,8 +110,9 @@ public class TestGeneral extends BaseUITest {
         urgent();
 
         // enable all severities and check for at least 1 result
-        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, true));
-
+        Arrays.stream(Severity.values())
+                .filter(severity -> !exclude.contains(severity))
+                .forEach(severity -> toggleFilter(severity, true));
         navigate("Scan", 2);
         navigate("sast", 4);
         JTreeFixture tree = find(JTreeFixture.class, TREE);
@@ -185,7 +188,7 @@ public class TestGeneral extends BaseUITest {
         });
 
         testFileNavigation();
-
+        openCxToolWindow();
         waitFor(() -> {
             find(TAB_LEARN_MORE).click();
             return findAll(TAB_RISK).size() > 0 && findAll(CAUSE).size() > 0 && findAll(TAB_RECOMMENDATIONS).size() > 0;

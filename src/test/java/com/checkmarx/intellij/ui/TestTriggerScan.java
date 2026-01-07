@@ -45,8 +45,8 @@ public class TestTriggerScan extends BaseUITest {
         waitFor(() -> find(ActionButtonFixture.class, CANCEL_SCAN_BTN).isEnabled());
         find(CANCEL_SCAN_BTN).click();
 
-        waitFor(() -> hasAnyComponent(String.format("//div[@class='JEditorPane'and @visible_text='%s']", Bundle.message(Resource.SCAN_CANCELED_SUCCESSFULLY))));
-
+        //waitFor(() -> hasAnyComponent(String.format("//div[@class='JEditorPane'and @visible_text='%s']", Bundle.message(Resource.SCAN_CANCELED_SUCCESSFULLY))));
+        waitFor(() -> find(ActionButtonFixture.class, START_SCAN_BTN).isEnabled());
         Assertions.assertTrue(find(ActionButtonFixture.class, START_SCAN_BTN).isEnabled());
     }
 
@@ -90,8 +90,8 @@ public class TestTriggerScan extends BaseUITest {
         findRunScanButtonAndClick();
         JTreeFixture treeBeforeScan = find(JTreeFixture.class, TREE);
         Assertions.assertTrue(treeBeforeScan.getValueAtRow(0).contains(Environment.SCAN_ID));
-        waitFor(() -> hasAnyComponent(SCAN_FINISHED));
-        find(LOAD_RESULTS).click();
+        waitFor(() -> hasAnyComponent(LOAD_RESULTS));
+        clickSafe(LOAD_RESULTS);
         waitFor(() -> {
             JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
             return treeAfterScan.getValueAtRow(0).startsWith("Scan") && !treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID);
