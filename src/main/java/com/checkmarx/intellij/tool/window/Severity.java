@@ -21,7 +21,7 @@ public enum Severity implements Filterable {
     INFO(CxIcons.INFO),
     ;
 
-    public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(MALICIOUS,CRITICAL, HIGH, MEDIUM);
+    public static final Set<Filterable> DEFAULT_SEVERITIES = Set.of(MALICIOUS,CRITICAL, HIGH, MEDIUM, LOW);
 
     private final Icon icon;
 
