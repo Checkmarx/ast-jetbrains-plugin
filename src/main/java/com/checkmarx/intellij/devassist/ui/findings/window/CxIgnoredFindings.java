@@ -74,6 +74,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private final List<IgnoredEntryPanel> entryPanels = new ArrayList<>();
 
     private JCheckBox selectAllCheckbox;
+    private JPanel headerPanel;
     private List<IgnoreEntry> allEntries = new ArrayList<>();
     private long lastKnownModificationTime = 0;
 
@@ -169,7 +170,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
     }
 
-    /** Checks if ignore file was modified externally and refreshes UI while preserving selections. */
+    /** Checks if an ignored file was modified externally and refreshes the UI while preserving selections. */
     private void checkAndRefreshIfNeeded() {
         if (!new GlobalSettingsComponent().isValid()) return;
 
@@ -200,7 +201,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
     }
 
-    /** Displays authentication panel when settings are not configured. */
+    /** Displays the authentication panel when settings are not configured. */
 
     private void drawAuthPanel() {
         removeAll();
@@ -281,7 +282,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return container;
     }
 
-    /** Creates toolbar with severity filters, type filter dropdown, and sort dropdown. */
+    /** Creates a toolbar with severity filters, type filter dropdown, and sort dropdown. */
 
     private ActionToolbar createActionToolbar() {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
@@ -376,7 +377,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private void displayFilteredEntries(List<IgnoreEntry> entries) {
         ignoredListPanel.removeAll();
         entryPanels.clear();
-
+        if (headerPanel != null) {
+            headerPanel.setVisible(!entries.isEmpty());
+        }
         if (entries.isEmpty()) {
             ignoredListPanel.add(createEmptyMessagePanel("No ignored vulnerabilities"));
         } else {
@@ -386,15 +389,14 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 ignoredListPanel.add(panel);
             });
         }
-
         updateSelectAllCheckbox();
         ignoredListPanel.revalidate();
         ignoredListPanel.repaint();
     }
 
-    /** Creates header with column titles: Checkbox, Risk, Last Updated, Actions. */
+    /** Creates a header with column titles: Checkbox, Risk, Last Updated, Actions. */
     private JPanel createHeaderPanel() {
-        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
         headerPanel.setBorder(JBUI.Borders.empty(12, 12, 0, 12));
 

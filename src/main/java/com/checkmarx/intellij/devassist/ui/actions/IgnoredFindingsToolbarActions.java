@@ -6,7 +6,6 @@ import com.checkmarx.intellij.tool.window.Severity;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.util.messages.MessageBus;
 import com.intellij.util.messages.Topic;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +42,7 @@ public class IgnoredFindingsToolbarActions {
         @Override
         public AnAction @NotNull [] getChildren(@Nullable AnActionEvent e) {
             return new AnAction[]{
-                new MenuHeader("Vulnerability Type"),
+                Separator.create("Vulnerability Type"),
                 new SASTTypeFilter(),
                 new SCATypeFilter(),
                 new SecretsTypeFilter(),
@@ -70,12 +69,12 @@ public class IgnoredFindingsToolbarActions {
         @Override
         public AnAction @NotNull [] getChildren(@Nullable AnActionEvent e) {
             return new AnAction[]{
-                new MenuHeader("Sort By"),
+                Separator.create("Sort By"),
                 new SortBySeverityHighToLow(),
                 new SortBySeverityLowToHigh(),
                 new SortByLastUpdated(),
-                new MenuHeader("─────────"),
-                new MenuHeader("Order By"),
+                Separator.create(),
+                Separator.create("Order By"),
                 new SortByLastUpdatedOldestFirst(),
                 new SortByLastUpdatedNewestFirst()
             };
@@ -83,19 +82,6 @@ public class IgnoredFindingsToolbarActions {
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() { return ActionUpdateThread.EDT; }
-    }
-
-    // ========== Menu Helpers ==========
-
-    /** Non-clickable header/separator for dropdown menus */
-    public static class MenuHeader extends AnAction {
-        public MenuHeader(String text) {
-            super(text);
-            getTemplatePresentation().setEnabled(false);
-        }
-
-        @Override public void actionPerformed(@NotNull AnActionEvent e) { }
-        @Override public @NotNull ActionUpdateThread getActionUpdateThread() { return ActionUpdateThread.EDT; }
     }
 
     // ========== Vulnerability Type Filters ==========
@@ -282,7 +268,7 @@ public class IgnoredFindingsToolbarActions {
         public void setCurrentSort(SortType sortType) { this.currentSort = sortType; }
     }
 
-    /** State manager for severity filters - independent from CxFindingsWindow */
+    /** State manager for severity filters - is independent of CxFindingsWindow */
     public static class IgnoredFindingsSeverityFilterState {
         private static final IgnoredFindingsSeverityFilterState INSTANCE = new IgnoredFindingsSeverityFilterState();
         private final Set<Filterable> selectedFilters = Collections.synchronizedSet(new HashSet<>());
