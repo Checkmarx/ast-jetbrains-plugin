@@ -31,6 +31,7 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.ui.components.JBScrollPane;
 
 /**
  * Settings component for managing Checkmarx One Assist real-time scanner
@@ -41,7 +42,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
     private static final Logger LOGGER = Utils.getLogger(CxOneAssistComponent.class);
 
-    private final JPanel mainPanel = new JPanel(new MigLayout("", "[][grow]"));
+    private final JPanel contentPanel = new JPanel(new MigLayout("", "[][grow]"));
+    private final JPanel mainPanel = new JPanel(new BorderLayout());
     private final JBLabel assistMessageLabel = new JBLabel();
 
     private final JBLabel ascaTitle = new JBLabel(
@@ -69,7 +71,10 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
     // AI Provider selection
     private final JBLabel aiProviderTitle = new JBLabel(formatTitle("AI Provider: Preferred AI Assistant"));
-    private final ComboBox<AIProviderItem> aiProviderCombo = new ComboBox<>();
+    private static final String[] AI_PROVIDER_OPTIONS = { "GitHub Copilot (Default)", "Augment Code", "Claude Code",
+            "Auto (First Available)" };
+    private static final String[] AI_PROVIDER_IDS = { "copilot", "augment", "claude", "auto" };
+    private final ComboBox<String> aiProviderCombo = new ComboBox<>(AI_PROVIDER_OPTIONS);
 
     private final JBLabel mcpStatusLabel = new JBLabel();
     private CxLinkLabel installMcpLink;
@@ -108,68 +113,74 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         assistMessageLabel.setForeground(JBColor.RED);
         assistMessageLabel.setHorizontalAlignment(SwingConstants.LEFT);
         assistMessageLabel.setVisible(false);
-        mainPanel.add(assistMessageLabel, "hidemode 3, growx, alignx left, wrap, gapbottom 5");
+        contentPanel.add(assistMessageLabel, "hidemode 3, growx, alignx left, wrap, gapbottom 5");
 
         // ASCA Realtime - First checkbox
-        mainPanel.add(ascaTitle, "split 2, span");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(ascaCheckbox, "split 2, gapleft 15");
-        mainPanel.add(ascaInstallationMsg, "gapleft 5, wrap, gapbottom 10");
+        contentPanel.add(ascaTitle, "split 2, span");
+        contentPanel.add(new JSeparator(), "growx, wrap");
+        contentPanel.add(ascaCheckbox, "split 2, gapleft 15");
+        contentPanel.add(ascaInstallationMsg, "gapleft 5, wrap, gapbottom 10");
 
         // OSS Realtime
-        mainPanel.add(ossTitle, "split 2, span");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(ossCheckbox, "wrap, gapbottom 10, gapleft 15");
+        contentPanel.add(ossTitle, "split 2, span");
+        contentPanel.add(new JSeparator(), "growx, wrap");
+        contentPanel.add(ossCheckbox, "wrap, gapbottom 10, gapleft 15");
 
-        mainPanel.add(secretsTitle, "split 2, span");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(secretsCheckbox, "wrap, gapbottom 10, gapleft 15");
+        contentPanel.add(secretsTitle, "split 2, span");
+        contentPanel.add(new JSeparator(), "growx, wrap");
+        contentPanel.add(secretsCheckbox, "wrap, gapbottom 10, gapleft 15");
 
-        mainPanel.add(containersTitle, "split 2, span");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(containersCheckbox, "wrap, gapbottom 10, gapleft 15");
+        contentPanel.add(containersTitle, "split 2, span");
+        contentPanel.add(new JSeparator(), "growx, wrap");
+        contentPanel.add(containersCheckbox, "wrap, gapbottom 10, gapleft 15");
 
-        mainPanel.add(iacTitle, "split 2, span");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(iacCheckbox, "wrap, gapbottom 10, gapleft 15");
+        contentPanel.add(iacTitle, "split 2, span");
+        contentPanel.add(new JSeparator(), "growx, wrap");
+        contentPanel.add(iacCheckbox, "wrap, gapbottom 10, gapleft 15");
 
         JBLabel containersLabel = new JBLabel(formatTitle(Bundle.message(Resource.IAC_REALTIME_SCANNER_PREFIX)));
-        mainPanel.add(containersLabel, "split 2, span, gaptop 10");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(new JBLabel(Bundle.message(Resource.CONTAINERS_TOOL_DESCRIPTION)), "wrap, gapleft 15");
+        contentPanel.add(containersLabel, "split 2, span, gaptop 10");
+        contentPanel.add(new JSeparator(), "growx, wrap");
+        contentPanel.add(new JBLabel(Bundle.message(Resource.CONTAINERS_TOOL_DESCRIPTION)), "wrap, gapleft 15");
 
         containersToolCombo.setPreferredSize(new Dimension(
                 containersLabel.getPreferredSize().width,
                 containersToolCombo.getPreferredSize().height));
-        mainPanel.add(containersToolCombo, "wrap, gapleft 15");
+        contentPanel.add(containersToolCombo, "wrap, gapleft 15");
 
         // MCP Section
-        mainPanel.add(new JBLabel(formatTitle(Bundle.message(Resource.MCP_SECTION_TITLE))), "split 2, span, gaptop 10");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(new JBLabel(Bundle.message(Resource.MCP_DESCRIPTION)), "wrap, gapleft 15");
+        contentPanel.add(new JBLabel(formatTitle(Bundle.message(Resource.MCP_SECTION_TITLE))),
+                "split 2, span, gaptop 10");
+        contentPanel.add(new JSeparator(), "growx, wrap");
+        contentPanel.add(new JBLabel(Bundle.message(Resource.MCP_DESCRIPTION)), "wrap, gapleft 15");
 
         installMcpLink = new CxLinkLabel(Bundle.message(Resource.MCP_INSTALL_LINK), e -> installMcp());
         mcpStatusLabel.setVisible(false);
         mcpStatusLabel.setBorder(new EmptyBorder(0, 20, 0, 0));
 
-        mainPanel.add(installMcpLink, "split 2, gapleft 15");
-        mainPanel.add(mcpStatusLabel, "wrap, gapleft 15");
+        contentPanel.add(installMcpLink, "split 2, gapleft 15");
+        contentPanel.add(mcpStatusLabel, "wrap, gapleft 15");
 
         CxLinkLabel editJsonLink = new CxLinkLabel(Bundle.message(Resource.MCP_EDIT_JSON_LINK), e -> openMcpJson());
-        mainPanel.add(editJsonLink, "wrap, gapleft 15");
+        contentPanel.add(editJsonLink, "wrap, gapleft 15");
 
         // AI Provider Section
-        mainPanel.add(aiProviderTitle, "split 2, span, gaptop 10");
-        mainPanel.add(new JSeparator(), "growx, wrap");
-        mainPanel.add(new JBLabel("Select AI assistant for 'Fix with AI' remediation:"), "wrap, gapleft 15");
+        contentPanel.add(aiProviderTitle, "split 2, span, gaptop 10");
+        contentPanel.add(new JSeparator(), "growx, wrap");
+        contentPanel.add(new JBLabel("Select AI assistant for 'Fix with AI' remediation:"), "wrap, gapleft 15");
 
-        // Populate AI provider options
-        aiProviderCombo.addItem(new AIProviderItem("copilot", "GitHub Copilot (Default)"));
-        aiProviderCombo.addItem(new AIProviderItem("augment", "Augment Code"));
-        aiProviderCombo.addItem(new AIProviderItem("claude", "Claude Code"));
-        aiProviderCombo.addItem(new AIProviderItem("auto", "Auto (First Available)"));
-        aiProviderCombo.setPreferredSize(new Dimension(200, aiProviderCombo.getPreferredSize().height));
-        mainPanel.add(aiProviderCombo, "wrap, gapleft 15, gapbottom 10");
+        // ComboBox already initialized with AI_PROVIDER_OPTIONS at declaration
+        // Use containersLabel width as reference since it's already calculated
+        aiProviderCombo.setPreferredSize(new Dimension(
+                containersLabel.getPreferredSize().width,
+                containersToolCombo.getPreferredSize().height));
+        contentPanel.add(aiProviderCombo, "wrap, gapleft 15, gapbottom 10");
+
+        // Wrap content in scroll pane and add to main panel
+        JBScrollPane scrollPane = new JBScrollPane(contentPanel);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
     }
 
     /**
@@ -578,15 +589,18 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     // --- AI Provider ComboBox helpers ---
 
     private String getSelectedAIProviderId() {
-        AIProviderItem selected = (AIProviderItem) aiProviderCombo.getSelectedItem();
-        return selected != null ? selected.getId() : "copilot";
+        int selectedIndex = aiProviderCombo.getSelectedIndex();
+        if (selectedIndex >= 0 && selectedIndex < AI_PROVIDER_IDS.length) {
+            return AI_PROVIDER_IDS[selectedIndex];
+        }
+        return "copilot"; // Default
     }
 
     private void selectAIProviderById(String providerId) {
         if (providerId == null)
             providerId = "copilot";
-        for (int i = 0; i < aiProviderCombo.getItemCount(); i++) {
-            if (aiProviderCombo.getItemAt(i).getId().equals(providerId)) {
+        for (int i = 0; i < AI_PROVIDER_IDS.length; i++) {
+            if (AI_PROVIDER_IDS[i].equals(providerId)) {
                 aiProviderCombo.setSelectedIndex(i);
                 return;
             }
@@ -594,42 +608,6 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         // Default to first item (copilot) if not found
         if (aiProviderCombo.getItemCount() > 0) {
             aiProviderCombo.setSelectedIndex(0);
-        }
-    }
-
-    /**
-     * Simple item class for AI provider ComboBox entries.
-     */
-    private static class AIProviderItem {
-        private final String id;
-        private final String displayName;
-
-        AIProviderItem(String id, String displayName) {
-            this.id = id;
-            this.displayName = displayName;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        @Override
-        public String toString() {
-            return displayName;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null || getClass() != obj.getClass())
-                return false;
-            return id.equals(((AIProviderItem) obj).id);
-        }
-
-        @Override
-        public int hashCode() {
-            return id.hashCode();
         }
     }
 }
