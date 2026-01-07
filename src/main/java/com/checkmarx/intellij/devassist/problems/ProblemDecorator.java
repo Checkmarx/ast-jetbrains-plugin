@@ -352,10 +352,12 @@ public class ProblemDecorator {
                 List<IgnoreEntry.FileReference> matchingFileRefs = ignoredVulnerability.files.stream()
                         .filter(fileRef -> fileRef.path.equals(filePath))
                         .collect(Collectors.toList());
+
                 if (!matchingFileRefs.isEmpty()) {
                     for (IgnoreEntry.FileReference fileRef : matchingFileRefs) {
                         boolean isVulnerabilityExist = scanIssueList.stream()
                                 .anyMatch(scanIssue -> scanIssue.getLocations().get(0).getLine() == fileRef.line);
+
                         if (isVulnerabilityExist) {
                             LOGGER.info(format("RTS-Decorator: Skipping ignore icon as vulnerability present on line: %s for file: %s", fileRef.line, psiFile.getName()));
                             continue;
