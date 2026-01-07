@@ -7,6 +7,7 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -71,7 +72,7 @@ public class ProblemDecorator {
                 LOGGER.warn(format("RTS-Decorator: Exception occurred while highlighting or adding gutter icon for line: %s , Exception: {} ",
                         problemLineNumber), exception);
             }
-        });
+        },ModalityState.NON_MODAL);
     }
 
     /**
@@ -249,7 +250,7 @@ public class ProblemDecorator {
                 if (markupModel.getAllHighlighters().length > 0) {
                     markupModel.removeAllHighlighters();
                 }
-            });
+            },ModalityState.NON_MODAL);
         } catch (Exception e) {
             LOGGER.debug("RTS-Decorator: Exception occurred while removing highlighter with gutter icons for: {} ",
                     e.getMessage());
@@ -291,7 +292,7 @@ public class ProblemDecorator {
             } catch (Exception e) {
                 LOGGER.warn(format("RTS-Decorator: Exception occurred while removing all highlighters for file: %s", psiFile.getName()), e);
             }
-        });
+        }, ModalityState.NON_MODAL);
     }
 
     /**

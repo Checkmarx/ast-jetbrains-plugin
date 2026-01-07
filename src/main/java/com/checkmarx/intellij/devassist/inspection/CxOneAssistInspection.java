@@ -6,8 +6,8 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
-import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -59,12 +59,12 @@ public class CxOneAssistInspection extends LocalInspectionTool {
             resetEditorAndResults(file.getProject(), null);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
+        String filePath = virtualFile.getPath();
         // On remediation process GitHub Copilot generating the fake file with the name Dummy.txt, so ignoring that file.
-        if (isAgentEvent(virtualFile)) {
-            LOGGER.warn(format("RTS: Received copilot event for file: %s. Skipping file..", file.getName()));
+        if (isAgentEvent(filePath)) {
+            LOGGER.warn(format("RTS: Received copilot/AI agent event for file: %s. Skipping file..", file.getName()));
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        String filePath = virtualFile.getPath();
         if (!Utils.isUserAuthenticated() || !DevAssistUtils.isAnyScannerEnabled()) {
             LOGGER.warn(format("RTS: User not authenticated or No scanner is enabled, skipping file: %s", file.getName()));
             resetEditorAndResults(file.getProject(), filePath);
@@ -122,12 +122,12 @@ public class CxOneAssistInspection extends LocalInspectionTool {
 
             // Schedule a debounced scan to avoid excessive scanning during rapid file changes (background scan)
             boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(file.getProject())
-                    .scheduleScan(filePath, problemHelperBuilder.build());
+                    .scheduleScan(filePath, problemHelperBuilder.build(), ScanEngine.ALL);
             if (isScanScheduled) {
                 List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
                 if (scanIssueList.isEmpty()) return ProblemDescriptor.EMPTY_ARRAY;
 
-                problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
+                cxOneAssistInspectionMgr.decorateUI(document, file, scanIssueList);
                 return problemHolderService.getProblemDescriptors(filePath).toArray(new ProblemDescriptor[0]);
             }
             LOGGER.info(format("RTS: Failed to schedule the scan for file: %s. Now scanning file using fallback..", file.getName()));
@@ -157,15 +157,15 @@ public class CxOneAssistInspection extends LocalInspectionTool {
     }
 
     /**
-     * Checks if the virtual file is a GitHub Copilot-generated file.
-     * E.g., On opening of GitHub Copilot, it's generating the fake file with the name Dummy.txt, so ignoring that file.
+     * Checks if the virtual file path is a GitHub Copilot or AI Assistant generated files.
+     * E.g., while doing remediation with copilot or typing prompt in the AI Assistant chat, it's generating
+     * the temporary files with the name Dummy.txt, AIAssistant etc. so ignoring those files to be scanned.
      *
-     * @param virtualFile - VirtualFile object of the file.
-     * @return true if the file is a GitHub Copilot-generated file, false otherwise.
+     * @param filePath - VirtualFile path.
+     * @return true if the file is a GitHub Copilot/AI agent - generated file, false otherwise.
      */
-    private boolean isAgentEvent(VirtualFile virtualFile) {
-        return DevAssistConstants.AGENT_DUMMY_FILES.stream()
-                .anyMatch(filePath -> filePath.equals(virtualFile.getPath()));
+    private boolean isAgentEvent(String filePath) {
+        return DevAssistUtils.isAIAgentEvent(filePath);
     }
 
     /**
