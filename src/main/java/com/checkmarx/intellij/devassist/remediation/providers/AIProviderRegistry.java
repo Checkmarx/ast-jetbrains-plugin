@@ -110,8 +110,8 @@ public final class AIProviderRegistry {
      * <p>
      * If the user has selected "auto", returns the highest-priority available
      * provider.
-     * If the user has selected a specific provider, returns that provider if
-     * available.
+     * If the user has selected a specific provider, returns that provider
+     * (regardless of availability, so it can show appropriate messages).
      * 
      * @param project the project context
      * @return the preferred provider, or empty if none available
@@ -124,9 +124,9 @@ public final class AIProviderRegistry {
             return getAvailableProviders(project).stream().findFirst();
         }
 
-        // User selected a specific provider
-        return getProviderById(preferredId)
-                .filter(p -> p.isAvailable(project));
+        // User selected a specific provider - return it regardless of availability
+        // so the provider can show its own message (e.g., "coming soon")
+        return getProviderById(preferredId);
     }
 
     /**

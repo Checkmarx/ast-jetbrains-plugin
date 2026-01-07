@@ -92,24 +92,16 @@ public class AugmentProvider implements AIProvider {
             @NotNull Project project,
             @Nullable Consumer<AIIntegrationResult> callback) {
 
-        LOGGER.info("AugmentProvider: Attempting to send prompt to Augment");
+        LOGGER.info("AugmentProvider: Augment Code support coming soon");
 
-        // TODO: Implement Augment-specific automation when available
-        // For now, copy to clipboard and return partial success
+        // Augment Code integration is coming soon
+        // For now, copy to clipboard and show coming soon message
         try {
             CopyPasteManager.getInstance().setContents(new StringSelection(prompt));
 
-            // Try to open Augment tool window
-            boolean opened = tryOpenAugmentWindow(project);
-
-            AIIntegrationResult result;
-            if (opened) {
-                result = AIIntegrationResult.partialSuccess(DISPLAY_NAME,
-                        "Augment Code opened. Prompt copied to clipboard - please paste manually (Ctrl/Cmd+V).");
-            } else {
-                result = AIIntegrationResult.providerNotAvailable(DISPLAY_NAME,
-                        "Could not open Augment Code. Prompt copied to clipboard.");
-            }
+            AIIntegrationResult result = AIIntegrationResult.partialSuccess(DISPLAY_NAME,
+                    "Augment Code support coming soon! Fix prompt copied to clipboard. " +
+                            "Please install GitHub Copilot and paste the prompt manually, or select GitHub Copilot from Settings.");
 
             if (callback != null) {
                 callback.accept(result);
@@ -117,9 +109,9 @@ public class AugmentProvider implements AIProvider {
             return result;
 
         } catch (Exception e) {
-            LOGGER.warn("AugmentProvider: Error during prompt sending", e);
+            LOGGER.warn("AugmentProvider: Error during prompt copying", e);
             AIIntegrationResult result = AIIntegrationResult.failed(DISPLAY_NAME,
-                    "Error sending to Augment: " + e.getMessage(), e);
+                    "Error: " + e.getMessage(), e);
             if (callback != null) {
                 callback.accept(result);
             }

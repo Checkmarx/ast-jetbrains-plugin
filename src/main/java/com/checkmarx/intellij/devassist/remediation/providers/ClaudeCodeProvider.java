@@ -92,24 +92,16 @@ public class ClaudeCodeProvider implements AIProvider {
             @NotNull Project project,
             @Nullable Consumer<AIIntegrationResult> callback) {
 
-        LOGGER.info("ClaudeCodeProvider: Attempting to send prompt to Claude Code");
+        LOGGER.info("ClaudeCodeProvider: Claude Code support coming soon");
 
-        // TODO: Implement Claude-specific automation when available
-        // For now, copy to clipboard and return partial success
+        // Claude Code integration is coming soon
+        // For now, copy to clipboard and show coming soon message
         try {
             CopyPasteManager.getInstance().setContents(new StringSelection(prompt));
 
-            // Try to open Claude tool window
-            boolean opened = tryOpenClaudeWindow(project);
-
-            AIIntegrationResult result;
-            if (opened) {
-                result = AIIntegrationResult.partialSuccess(DISPLAY_NAME,
-                        "Claude Code opened. Prompt copied to clipboard - please paste manually (Ctrl/Cmd+V).");
-            } else {
-                result = AIIntegrationResult.providerNotAvailable(DISPLAY_NAME,
-                        "Could not open Claude Code. Prompt copied to clipboard.");
-            }
+            AIIntegrationResult result = AIIntegrationResult.partialSuccess(DISPLAY_NAME,
+                    "Claude Code support coming soon! Fix prompt copied to clipboard. " +
+                            "Please install GitHub Copilot and paste the prompt manually, or select GitHub Copilot from Settings.");
 
             if (callback != null) {
                 callback.accept(result);
@@ -117,9 +109,9 @@ public class ClaudeCodeProvider implements AIProvider {
             return result;
 
         } catch (Exception e) {
-            LOGGER.warn("ClaudeCodeProvider: Error during prompt sending", e);
+            LOGGER.warn("ClaudeCodeProvider: Error during prompt copying", e);
             AIIntegrationResult result = AIIntegrationResult.failed(DISPLAY_NAME,
-                    "Error sending to Claude Code: " + e.getMessage(), e);
+                    "Error: " + e.getMessage(), e);
             if (callback != null) {
                 callback.accept(result);
             }
