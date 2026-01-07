@@ -172,10 +172,17 @@ public final class AIIntegrationService {
 
     /**
      * Copies text to the system clipboard.
+     * Must run on EDT to avoid "System clipboard is unavailable" issues.
      */
     private boolean copyToClipboard(@NotNull String text) {
         try {
-            CopyPasteManager.getInstance().setContents(new StringSelection(text));
+            // Clipboard access must happen on EDT
+            if (ApplicationManager.getApplication().isDispatchThread()) {
+                CopyPasteManager.getInstance().setContents(new StringSelection(text));
+            } else {
+                ApplicationManager.getApplication()
+                        .invokeAndWait(() -> CopyPasteManager.getInstance().setContents(new StringSelection(text)));
+            }
             return true;
         } catch (Exception e) {
             LOGGER.warn("AI Integration: Failed to copy to clipboard", e);

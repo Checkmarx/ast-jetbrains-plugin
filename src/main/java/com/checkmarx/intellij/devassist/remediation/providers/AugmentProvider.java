@@ -2,6 +2,7 @@ package com.checkmarx.intellij.devassist.remediation.providers;
 
 import com.checkmarx.intellij.Utils;
 import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
@@ -97,7 +98,13 @@ public class AugmentProvider implements AIProvider {
         // Augment Code integration is coming soon
         // For now, copy to clipboard and show coming soon message
         try {
-            CopyPasteManager.getInstance().setContents(new StringSelection(prompt));
+            // Clipboard access must happen on EDT
+            if (ApplicationManager.getApplication().isDispatchThread()) {
+                CopyPasteManager.getInstance().setContents(new StringSelection(prompt));
+            } else {
+                ApplicationManager.getApplication()
+                        .invokeAndWait(() -> CopyPasteManager.getInstance().setContents(new StringSelection(prompt)));
+            }
 
             AIIntegrationResult result = AIIntegrationResult.partialSuccess(DISPLAY_NAME,
                     "Augment Code support coming soon! Fix prompt copied to clipboard. " +

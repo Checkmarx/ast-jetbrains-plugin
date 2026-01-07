@@ -1305,12 +1305,19 @@ public final class CopilotIntegration {
 
     /**
      * Copies text to the system clipboard.
+     * Must run on EDT to avoid "System clipboard is unavailable" issues.
      * 
      * @return true if successful, false otherwise
      */
     private static boolean copyToClipboard(@NotNull String text) {
         try {
-            CopyPasteManager.getInstance().setContents(new StringSelection(text));
+            // Clipboard access must happen on EDT
+            if (ApplicationManager.getApplication().isDispatchThread()) {
+                CopyPasteManager.getInstance().setContents(new StringSelection(text));
+            } else {
+                ApplicationManager.getApplication()
+                        .invokeAndWait(() -> CopyPasteManager.getInstance().setContents(new StringSelection(text)));
+            }
             return true;
         } catch (Exception e) {
             LOGGER.warn("CxFix: Failed to copy to clipboard", e);
