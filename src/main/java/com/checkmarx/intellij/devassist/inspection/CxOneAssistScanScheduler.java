@@ -64,7 +64,7 @@ public class CxOneAssistScanScheduler {
      * @param project - The IntelliJ Project instance
      * @return the singleton CxOneAssistScanScheduler instance for the project
      */
-    static CxOneAssistScanScheduler getInstance(Project project) {
+    public static CxOneAssistScanScheduler getInstance(Project project) {
         CxOneAssistScanScheduler existingScheduler = project.getUserData(SCHEDULER_INSTANCE_KEY);
         if (existingScheduler != null) return existingScheduler;
         CxOneAssistScanScheduler newScheduler = new CxOneAssistScanScheduler(project);
@@ -83,7 +83,7 @@ public class CxOneAssistScanScheduler {
      * @param problemHelper - The {@link ProblemHelper} instance containing necessary context for creating problem descriptors
      * @param scanEngine    - The scan engine to be used for scanning the file (e.g., OSS, ASCA, ALL)
      */
-    boolean scheduleScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper, ScanEngine scanEngine) {
+    public boolean scheduleScan(@NotNull String filePath, @NotNull ProblemHelper problemHelper, ScanEngine scanEngine) {
         try {
             if (isProjectDisposed("scheduling scan", filePath)) {
                 return false;

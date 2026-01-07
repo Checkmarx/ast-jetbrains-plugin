@@ -12,15 +12,19 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileEditor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -458,9 +462,21 @@ public class DevAssistUtils {
      * @return the path to the temporary ignore file, or null if the ignore manager is not available
      */
     public static String getIgnoreFilePath(@NotNull Project project) {
-        IgnoreManager ignoreManager = new IgnoreManager(project);
-        return ignoreManager.getIgnoreTempFilePath();
+        return new IgnoreManager(project).getIgnoreTempFilePath();
     }
 
-
+    /**
+     * Get PsiFile by original file path.
+     *
+     * @param project  - currently open project
+     * @param filePath - full file path including directory
+     * @return PsiFile
+     */
+    public static PsiFile getPsiFileByFilePath(Project project, String filePath) {
+        VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
+        if (virtualFile != null) {
+            return PsiManager.getInstance(project).findFile(virtualFile);
+        }
+        return null;
+    }
 }

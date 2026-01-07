@@ -31,6 +31,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -349,6 +350,8 @@ public class ProblemDecorator {
             }
         }, ModalityState.NON_MODAL);
     }
+
+
 
     /**
      * Helper class to hold relevant information for problem decoration.
