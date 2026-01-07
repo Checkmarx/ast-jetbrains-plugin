@@ -40,7 +40,6 @@ import static java.lang.String.format;
 public class DevAssistUtils {
     private static final Logger LOGGER = Utils.getLogger(DevAssistUtils.class);
 
-
     private DevAssistUtils() {
         // Private constructor to prevent instantiation
     }
@@ -56,7 +55,8 @@ public class DevAssistUtils {
      * @return true if the scanner is active, false otherwise
      */
     public static boolean isScannerActive(String engineName) {
-        if (engineName == null) return false;
+        if (engineName == null)
+            return false;
         try {
             if (GlobalSettingsState.getInstance().isAuthenticated()) {
                 ScanEngine kind = ScanEngine.valueOf(engineName.toUpperCase());
@@ -67,7 +67,6 @@ public class DevAssistUtils {
         }
         return false;
     }
-
 
     public static String getContainerTool() {
         return GlobalSettingsState.getInstance().getContainersTool();
@@ -82,13 +81,16 @@ public class DevAssistUtils {
         return globalScannerController().checkAnyScannerEnabled();
     }
 
-
     /**
-     * Retrieves the text range for the specified line in the given document, trimming leading and trailing whitespace.
+     * Retrieves the text range for the specified line in the given document,
+     * trimming leading and trailing whitespace.
      *
-     * @param document          the document from which the specified line's text range is to be retrieved
-     * @param problemLineNumber the 1-based line number for which the text range is needed
-     * @return a TextRange representing the trimmed start and end offsets of the specified line
+     * @param document          the document from which the specified line's text
+     *                          range is to be retrieved
+     * @param problemLineNumber the 1-based line number for which the text range is
+     *                          needed
+     * @return a TextRange representing the trimmed start and end offsets of the
+     *         specified line
      */
     public static TextRange getTextRangeForLine(Document document, int problemLineNumber) {
         // Convert to 0-based index for document API
@@ -130,7 +132,8 @@ public class DevAssistUtils {
     }
 
     /**
-     * Wraps the given text into lines at word boundaries without exceeding a defined maximum line length.
+     * Wraps the given text into lines at word boundaries without exceeding a
+     * defined maximum line length.
      * If a word exceeds the specified line length, it will be placed on a new line.
      *
      * @param text the input text to be wrapped into lines
@@ -161,18 +164,22 @@ public class DevAssistUtils {
     /**
      * Checks if the scan package is a problem.
      *
-     * @param severity - the severity of the scan package e.g. "high", "medium", "low", etc.
+     * @param severity - the severity of the scan package e.g. "high", "medium",
+     *                 "low", etc.
      * @return true if the scan package is a problem, false otherwise
      */
     public static boolean isProblem(String severity) {
         if (severity.equalsIgnoreCase(SeverityLevel.OK.getSeverity())) {
             return false;
-        } else return !severity.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity());
+        } else
+            return !severity.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity());
     }
 
     /**
-     * Returns a resource URL string suitable for embedding in an <img src='...'> tag
-     * for the given simple icon key (e.g. "critical", "high", "package", "malicious").
+     * Returns a resource URL string suitable for embedding in an <img src='...'>
+     * tag
+     * for the given simple icon key (e.g. "critical", "high", "package",
+     * "malicious").
      *
      * @param iconPath severity or logical icon path
      * @return external form URL or empty string if not found
@@ -204,14 +211,17 @@ public class DevAssistUtils {
 
     /**
      * Returns the full textual content of the given {@link PsiFile}, including both
-     * unsaved in-editor changes and updates made to the underlying file outside the IDE.
+     * unsaved in-editor changes and updates made to the underlying file outside the
+     * IDE.
      * <p>
-     * This method first attempts to read from the associated {@link Document}, ensuring
+     * This method first attempts to read from the associated {@link Document},
+     * ensuring
      * that any unsaved modifications in the editor are included. If no document is
      * associated with the PSI file, the content is loaded directly from the
      * {@link VirtualFile}, ensuring externally modified file content is retrieved.
      * <p>
-     * All operations are performed inside a read action as required by the IntelliJ Platform.
+     * All operations are performed inside a read action as required by the IntelliJ
+     * Platform.
      *
      * @param file the PSI file whose content should be read
      * @return the full file text, or {@code null} if the file cannot be accessed
@@ -238,17 +248,18 @@ public class DevAssistUtils {
         });
     }
 
-
     /**
-     * Copies the given text to the system clipboard and shows a notification on success.
+     * Copies the given text to the system clipboard and shows a notification on
+     * success.
      *
      * @param textToCopy          the text to copy
-     * @param project             the project in which the notification should be shown
+     * @param project             the project in which the notification should be
+     *                            shown
      * @param notificationTitle   the title of the notification
      * @param notificationContent the content of the notification
      */
     public static boolean copyToClipboardWithNotification(@NotNull String textToCopy, String notificationTitle,
-                                                          String notificationContent, Project project) {
+            String notificationContent, Project project) {
         try {
             ApplicationManager.getApplication().invokeLater(() -> {
                 CopyPasteManager.getInstance().setContents(new StringSelection(textToCopy));
@@ -259,79 +270,55 @@ public class DevAssistUtils {
             return true;
         } catch (Exception exception) {
             LOGGER.debug("Failed to copy text to clipboard: ", exception);
-            Utils.showNotification(notificationTitle, "Failed to copy text to clipboard.", NotificationType.ERROR, null);
+            Utils.showNotification(notificationTitle, "Failed to copy text to clipboard.", NotificationType.ERROR,
+                    null);
             return false;
         }
     }
 
     /**
-     * Copies the prompt to clipboard and attempts to open GitHub Copilot chat with full automation.
-     * This provides a streamlined one-click fix experience.
+     * Copies the prompt to clipboard and attempts to send to the preferred AI
+     * provider.
+     * This provides a streamlined one-click fix experience with support for
+     * multiple AI providers.
      *
-     * <p>The operation attempts to:
+     * <p>
+     * The operation attempts to:
      * <ol>
-     *   <li>Copy the prompt to clipboard (always succeeds as fallback)</li>
-     *   <li>Open Copilot chat window</li>
-     *   <li>Switch to Agent mode</li>
-     *   <li>Paste and send the prompt automatically</li>
+     * <li>Copy the prompt to clipboard (always succeeds as fallback)</li>
+     * <li>Determine the preferred AI provider based on user settings</li>
+     * <li>Send the prompt via the provider's integration</li>
+     * <li>Show appropriate notifications based on result</li>
      * </ol>
      *
-     * @param prompt              the prompt to send to Copilot
-     * @param notificationTitle   the title of the notification
-     * @param successMessage      the message to show if Copilot automation succeeds
-     * @param fallbackMessage     the message to show if Copilot is not available
-     * @param project             the project context
+     * @param prompt            the prompt to send to the AI provider
+     * @param notificationTitle the title of the notification
+     * @param successMessage    the message to show if automation succeeds
+     * @param fallbackMessage   the message to show if no AI provider available
+     * @param project           the project context
      * @return true if the operation was initiated successfully
      */
     public static boolean fixWithAI(@NotNull String prompt, String notificationTitle,
-                                    String successMessage, String fallbackMessage, Project project) {
+            String successMessage, String fallbackMessage, Project project) {
         try {
-            com.checkmarx.intellij.devassist.remediation.CopilotIntegration.IntegrationResult result =
-                    com.checkmarx.intellij.devassist.remediation.CopilotIntegration.openCopilotWithPromptDetailed(
-                            prompt, project, detailedResult -> {
-                                // This callback fires when the automation sequence completes
-                                String message;
-                                NotificationType notificationType;
+            // Ensure providers are initialized
+            com.checkmarx.intellij.devassist.remediation.providers.AIProviderInitializer.initialize();
 
-                                switch (detailedResult.getResult()) {
-                                    case FULL_SUCCESS:
-                                        message = successMessage;
-                                        notificationType = NotificationType.INFORMATION;
-                                        break;
-                                    case PARTIAL_SUCCESS:
-                                        message = detailedResult.getMessage();
-                                        notificationType = NotificationType.INFORMATION;
-                                        break;
-                                    case COPILOT_NOT_AVAILABLE:
-                                        message = fallbackMessage;
-                                        notificationType = NotificationType.WARNING;
-                                        break;
-                                    default:
-                                        message = detailedResult.getMessage();
-                                        notificationType = NotificationType.ERROR;
-                                        break;
-                                }
+            // Use the new AIIntegrationService
+            return com.checkmarx.intellij.devassist.remediation.providers.AIIntegrationService.getInstance()
+                    .fixWithAI(prompt, notificationTitle, successMessage, fallbackMessage, project);
 
-                                Utils.showNotification(notificationTitle, message, notificationType, project);
-                            });
-
-            // Immediate feedback while automation is in progress
-            if (result.isSuccess()) {
-                LOGGER.info("RTS-Fix-AI: Copilot integration initiated successfully");
-            } else {
-                LOGGER.warn("RTS-Fix-AI: Copilot integration returned: " + result.getMessage());
-            }
-
-            return result.isSuccess();
         } catch (Exception exception) {
             LOGGER.debug("Failed to fix with AI: ", exception);
-            Utils.showNotification(notificationTitle, "Failed to initiate AI fix.", NotificationType.ERROR, project);
+            Utils.showNotification(notificationTitle, "Failed to initiate AI fix.",
+                    NotificationType.ERROR, project);
             return false;
         }
     }
 
     /**
-     * Gets the PsiElement at the start of the specified line number in the given PsiFile and Document.
+     * Gets the PsiElement at the start of the specified line number in the given
+     * PsiFile and Document.
      *
      * @param file       PsiFile
      * @param document   Document
@@ -353,7 +340,7 @@ public class DevAssistUtils {
      * @return a unique id
      */
     public static String generateUniqueId(int line, String title, String description) {
-        //return UUID.randomUUID().toString();
+        // return UUID.randomUUID().toString();
         String input = line + title + description;
         return DevAssistUtils.encodeBase64(input);
     }
@@ -376,7 +363,8 @@ public class DevAssistUtils {
 
     public static boolean isYamlFile(@NotNull PsiFile psiFile) {
         String fileExtension = DevAssistUtils.getFileExtension(psiFile);
-        return Objects.nonNull(fileExtension) && DevAssistConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
+        return Objects.nonNull(fileExtension)
+                && DevAssistConstants.CONTAINER_HELM_EXTENSION.contains(fileExtension.toLowerCase());
     }
 
     /**
@@ -390,14 +378,20 @@ public class DevAssistUtils {
     }
 
     /**
-     * Determines the severity of an issue based on precedence by comparing the given severity
-     * level with the severities of issues in the provided list. It returns the least severe
+     * Determines the severity of an issue based on precedence by comparing the
+     * given severity
+     * level with the severities of issues in the provided list. It returns the
+     * least severe
      * level that has a higher precedence than the provided severity.
      *
-     * @param scanIssueList the list of {@code ScanIssue} objects, each containing a severity level
-     * @param severity      the severity level to compare against, such as "Critical", "High", "Medium", etc.
-     * @return the severity level from the list that has the highest precedence (lower number),
-     * or the provided {@code severity} if no such severity exists in the list
+     * @param scanIssueList the list of {@code ScanIssue} objects, each containing a
+     *                      severity level
+     * @param severity      the severity level to compare against, such as
+     *                      "Critical", "High", "Medium", etc.
+     * @return the severity level from the list that has the highest precedence
+     *         (lower number),
+     *         or the provided {@code severity} if no such severity exists in the
+     *         list
      */
     public static String getSeverityBasedOnPrecedence(List<ScanIssue> scanIssueList, String severity) {
         int existingSeverityPrecedence = SeverityLevel.fromValue(severity).getPrecedence();
@@ -419,7 +413,8 @@ public class DevAssistUtils {
      */
     public static Vulnerability getVulnerabilityDetails(ScanIssue scanIssue, String vulnerabilityId) {
         if (Objects.isNull(scanIssue.getVulnerabilities()) || scanIssue.getVulnerabilities().isEmpty()) {
-            LOGGER.warn(format("No vulnerabilities found in scan issue object for scan engine: %s.", scanIssue.getScanEngine().name()));
+            LOGGER.warn(format("No vulnerabilities found in scan issue object for scan engine: %s.",
+                    scanIssue.getScanEngine().name()));
             return null;
         }
         return scanIssue.getVulnerabilities().stream()

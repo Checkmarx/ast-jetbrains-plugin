@@ -80,12 +80,42 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @Attribute("welcomeShown")
     private boolean welcomeShown = false;
 
+    // --- AI Provider Settings ---
+    /**
+     * User's preferred AI provider for "Fix with AI" feature.
+     * Valid values: "auto", "copilot", "augment", "claude"
+     * Default is "copilot" (GitHub Copilot)
+     */
+    @Attribute("preferredAIProvider")
+    private String preferredAIProvider = "copilot";
+
+    /**
+     * Returns the user's preferred AI provider ID.
+     * 
+     * @return provider ID (e.g., "copilot", "augment", "claude", or "auto" for
+     *         auto-selection)
+     */
+    public String getPreferredAIProvider() {
+        return preferredAIProvider != null ? preferredAIProvider : "copilot";
+    }
+
+    /**
+     * Sets the user's preferred AI provider.
+     * 
+     * @param providerId the provider ID to use
+     */
+    public void setPreferredAIProvider(String providerId) {
+        this.preferredAIProvider = providerId;
+    }
+
     // --- Realtime Scanner Settings ---
     private boolean ascaRealtime = false;
 
-    // --- User preferences for realtime scanners (preserved across MCP enable/disable cycles) ---
+    // --- User preferences for realtime scanners (preserved across MCP
+    // enable/disable cycles) ---
     /**
-     * These fields store the user's individual scanner preferences and are preserved even when MCP is disabled at the tenant level.
+     * These fields store the user's individual scanner preferences and are
+     * preserved even when MCP is disabled at the tenant level.
      */
 
     @Attribute("userPreferencesSet")
@@ -117,7 +147,8 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     }
 
     /**
-     * Applies the given state to this instance, copying all fields including user preferences.
+     * Applies the given state to this instance, copying all fields including user
+     * preferences.
      * This ensures that user preferences are preserved during state transitions.
      */
     public void apply(@NotNull GlobalSettingsState state) {
@@ -127,17 +158,18 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     // --- User Preference Methods ---
 
     /**
-    /**
-     * Sets user preferences for realtime scanners, preserving individual choices across MCP enable/disable cycles.
+     * /**
+     * Sets user preferences for realtime scanners, preserving individual choices
+     * across MCP enable/disable cycles.
      *
-     * @param ascaRealtime ASCA scanner preference
-     * @param ossRealtime OSS scanner preference
+     * @param ascaRealtime            ASCA scanner preference
+     * @param ossRealtime             OSS scanner preference
      * @param secretDetectionRealtime Secret Detection scanner preference
-     * @param containersRealtime Containers scanner preference
-     * @param iacRealtime Infrastructure as Code scanner preference
+     * @param containersRealtime      Containers scanner preference
+     * @param iacRealtime             Infrastructure as Code scanner preference
      */
     public void setUserPreferences(boolean ascaRealtime, boolean ossRealtime, boolean secretDetectionRealtime,
-                                   boolean containersRealtime, boolean iacRealtime) {
+            boolean containersRealtime, boolean iacRealtime) {
         this.userPrefAscaRealtime = ascaRealtime;
         this.userPrefOssRealtime = ossRealtime;
         this.userPrefSecretDetectionRealtime = secretDetectionRealtime;
@@ -146,13 +178,14 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
         this.userPreferencesSet = true;
     }
 
-
     /**
      * Applies stored user preferences to the active realtime scanner settings.
-     * This is called when MCP is enabled to restore the user's individual scanner choices
+     * This is called when MCP is enabled to restore the user's individual scanner
+     * choices
      * instead of defaulting to "all enabled".
      *
-     * @return true if any settings were changed, false if preferences were already applied or not set
+     * @return true if any settings were changed, false if preferences were already
+     *         applied or not set
      */
     public boolean applyUserPreferencesToRealtimeSettings() {
         if (!userPreferencesSet) {
@@ -186,7 +219,8 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
 
     /**
      * Saves the current realtime scanner settings as user preferences.
-     * This is typically called before disabling scanners when MCP becomes unavailable,
+     * This is typically called before disabling scanners when MCP becomes
+     * unavailable,
      * ensuring the user's choices can be restored later.
      */
     public void saveCurrentSettingsAsUserPreferences() {
@@ -194,31 +228,53 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     }
 
     /**
-     * Checks if the user has set any custom preferences that differ from the default "all enabled" state.
-     * This helps distinguish between new users (who should get defaults) and existing users
+     * Checks if the user has set any custom preferences that differ from the
+     * default "all enabled" state.
+     * This helps distinguish between new users (who should get defaults) and
+     * existing users
      * (whose custom choices should be preserved).
      *
      * @return true if user has any scanners disabled in their preferences
      */
     public boolean hasCustomUserPreferences() {
-        return userPreferencesSet && (
-                !userPrefAscaRealtime ||
-                        !userPrefOssRealtime ||
-                        !userPrefSecretDetectionRealtime ||
-                        !userPrefContainersRealtime ||
-                        !userPrefIacRealtime
-        );
+        return userPreferencesSet && (!userPrefAscaRealtime ||
+                !userPrefOssRealtime ||
+                !userPrefSecretDetectionRealtime ||
+                !userPrefContainersRealtime ||
+                !userPrefIacRealtime);
     }
 
     // Getters and setters for ASCA realtime
-    public boolean isAscaRealtime() { return ascaRealtime; }
-    public void setAscaRealtime(boolean ascaRealtime) { this.ascaRealtime = ascaRealtime; }
+    public boolean isAscaRealtime() {
+        return ascaRealtime;
+    }
+
+    public void setAscaRealtime(boolean ascaRealtime) {
+        this.ascaRealtime = ascaRealtime;
+    }
 
     // Getters for user preferences (for debugging and verification)
-    public boolean getUserPreferencesSet() { return userPreferencesSet; }
-    public boolean getUserPrefAscaRealtime() { return userPrefAscaRealtime; }
-    public boolean getUserPrefOssRealtime() { return userPrefOssRealtime; }
-    public boolean getUserPrefSecretDetectionRealtime() { return userPrefSecretDetectionRealtime; }
-    public boolean getUserPrefContainersRealtime() { return userPrefContainersRealtime; }
-    public boolean getUserPrefIacRealtime() { return userPrefIacRealtime; }
+    public boolean getUserPreferencesSet() {
+        return userPreferencesSet;
+    }
+
+    public boolean getUserPrefAscaRealtime() {
+        return userPrefAscaRealtime;
+    }
+
+    public boolean getUserPrefOssRealtime() {
+        return userPrefOssRealtime;
+    }
+
+    public boolean getUserPrefSecretDetectionRealtime() {
+        return userPrefSecretDetectionRealtime;
+    }
+
+    public boolean getUserPrefContainersRealtime() {
+        return userPrefContainersRealtime;
+    }
+
+    public boolean getUserPrefIacRealtime() {
+        return userPrefIacRealtime;
+    }
 }

@@ -33,7 +33,8 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 
 /**
- * Settings component for managing Checkmarx One Assist real-time scanner configurations.
+ * Settings component for managing Checkmarx One Assist real-time scanner
+ * configurations.
  * Displays controls for OSS, Secrets, and Containers real-time scanners.
  */
 public class CxOneAssistComponent implements SettingsComponent, Disposable {
@@ -43,7 +44,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private final JPanel mainPanel = new JPanel(new MigLayout("", "[][grow]"));
     private final JBLabel assistMessageLabel = new JBLabel();
 
-    private final JBLabel ascaTitle = new JBLabel(formatTitle("Checkmarx AI Secure Coding Assistant (ASCA): Activate ASCA:"));
+    private final JBLabel ascaTitle = new JBLabel(
+            formatTitle("Checkmarx AI Secure Coding Assistant (ASCA): Activate ASCA:"));
     private final JBCheckBox ascaCheckbox = new JBCheckBox("Scan your file as you code");
     private final JBLabel ascaInstallationMsg = new JBLabel();
 
@@ -53,16 +55,21 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private final JBLabel secretsTitle = new JBLabel(formatTitle(Bundle.message(Resource.SECRETS_REALTIME_TITLE)));
     private final JBCheckBox secretsCheckbox = new JBCheckBox(Bundle.message(Resource.SECRETS_REALTIME_CHECKBOX));
 
-    private final JBLabel containersTitle = new JBLabel(formatTitle(Bundle.message(Resource.CONTAINERS_REALTIME_TITLE)));
+    private final JBLabel containersTitle = new JBLabel(
+            formatTitle(Bundle.message(Resource.CONTAINERS_REALTIME_TITLE)));
     private final JBCheckBox containersCheckbox = new JBCheckBox(Bundle.message(Resource.CONTAINERS_REALTIME_CHECKBOX));
 
     private final JBLabel iacTitle = new JBLabel(formatTitle(Bundle.message(Resource.IAC_REALTIME_TITLE)));
     private final JBCheckBox iacCheckbox = new JBCheckBox(Bundle.message(Resource.IAC_REALTIME_CHECKBOX));
 
-    private final ComboBox<String> containersToolCombo = new ComboBox<>(new String[]{"docker", "podman"});
+    private final ComboBox<String> containersToolCombo = new ComboBox<>(new String[] { "docker", "podman" });
 
     private GlobalSettingsState state;
     private final MessageBusConnection connection;
+
+    // AI Provider selection
+    private final JBLabel aiProviderTitle = new JBLabel(formatTitle("AI Provider: Preferred AI Assistant"));
+    private final ComboBox<AIProviderItem> aiProviderCombo = new ComboBox<>();
 
     private final JBLabel mcpStatusLabel = new JBLabel();
     private CxLinkLabel installMcpLink;
@@ -126,17 +133,15 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mainPanel.add(new JSeparator(), "growx, wrap");
         mainPanel.add(iacCheckbox, "wrap, gapbottom 10, gapleft 15");
 
-
         JBLabel containersLabel = new JBLabel(formatTitle(Bundle.message(Resource.IAC_REALTIME_SCANNER_PREFIX)));
         mainPanel.add(containersLabel, "split 2, span, gaptop 10");
         mainPanel.add(new JSeparator(), "growx, wrap");
         mainPanel.add(new JBLabel(Bundle.message(Resource.CONTAINERS_TOOL_DESCRIPTION)), "wrap, gapleft 15");
 
         containersToolCombo.setPreferredSize(new Dimension(
-                 containersLabel.getPreferredSize().width,
-                 containersToolCombo.getPreferredSize().height
-         ));
-         mainPanel.add(containersToolCombo, "wrap, gapleft 15");
+                containersLabel.getPreferredSize().width,
+                containersToolCombo.getPreferredSize().height));
+        mainPanel.add(containersToolCombo, "wrap, gapleft 15");
 
         // MCP Section
         mainPanel.add(new JBLabel(formatTitle(Bundle.message(Resource.MCP_SECTION_TITLE))), "split 2, span, gaptop 10");
@@ -152,12 +157,27 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
         CxLinkLabel editJsonLink = new CxLinkLabel(Bundle.message(Resource.MCP_EDIT_JSON_LINK), e -> openMcpJson());
         mainPanel.add(editJsonLink, "wrap, gapleft 15");
+
+        // AI Provider Section
+        mainPanel.add(aiProviderTitle, "split 2, span, gaptop 10");
+        mainPanel.add(new JSeparator(), "growx, wrap");
+        mainPanel.add(new JBLabel("Select AI assistant for 'Fix with AI' remediation:"), "wrap, gapleft 15");
+
+        // Populate AI provider options
+        aiProviderCombo.addItem(new AIProviderItem("copilot", "GitHub Copilot (Default)"));
+        aiProviderCombo.addItem(new AIProviderItem("augment", "Augment Code"));
+        aiProviderCombo.addItem(new AIProviderItem("claude", "Claude Code"));
+        aiProviderCombo.addItem(new AIProviderItem("auto", "Auto (First Available)"));
+        aiProviderCombo.setPreferredSize(new Dimension(200, aiProviderCombo.getPreferredSize().height));
+        mainPanel.add(aiProviderCombo, "wrap, gapleft 15, gapbottom 10");
     }
 
     /**
      * Manual MCP installation invoked by the "Install MCP" link.
-     * Provides inline status feedback (successfully saved, already up to date, or installation failure).
-     * Note: Authentication is handled by disabling the button when not authenticated.
+     * Provides inline status feedback (successfully saved, already up to date, or
+     * installation failure).
+     * Note: Authentication is handled by disabling the button when not
+     * authenticated.
      */
     private void installMcp() {
         if (mcpInstallInProgress) {
@@ -166,7 +186,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
         ensureState();
 
-        // Check if MCP is enabled at tenant level (this should not happen since button is disabled, but defensive check)
+        // Check if MCP is enabled at tenant level (this should not happen since button
+        // is disabled, but defensive check)
         if (!state.isMcpEnabled()) {
             showMcpStatus(Bundle.message(Resource.CXONE_ASSIST_MCP_DISABLED_MESSAGE), JBColor.RED);
             return;
@@ -183,8 +204,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mcpInstallInProgress = true;
 
         McpInstallService.installSilentlyAsync(credential)
-                .whenComplete((changed, throwable) ->
-                        SwingUtilities.invokeLater(() -> handleMcpResult(changed, throwable)));
+                .whenComplete(
+                        (changed, throwable) -> SwingUtilities.invokeLater(() -> handleMcpResult(changed, throwable)));
     }
 
     private void handleMcpResult(Boolean changed, Throwable throwable) {
@@ -215,7 +236,10 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mcpClearTimer.start();
     }
 
-    /** Opens (and creates if necessary) the Copilot MCP configuration file then closes the settings dialog. */
+    /**
+     * Opens (and creates if necessary) the Copilot MCP configuration file then
+     * closes the settings dialog.
+     */
     private void openMcpJson() {
         // Apply settings if modified, then close dialog window
         try {
@@ -271,7 +295,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
                 || secretsCheckbox.isSelected() != state.isSecretDetectionRealtime()
                 || containersCheckbox.isSelected() != state.isContainersRealtime()
                 || iacCheckbox.isSelected() != state.isIacRealtime()
-                || !Objects.equals(containersToolCombo.getSelectedItem(), state.getContainersTool());
+                || !Objects.equals(containersToolCombo.getSelectedItem(), state.getContainersTool())
+                || !Objects.equals(getSelectedAIProviderId(), state.getPreferredAIProvider());
     }
 
     @Override
@@ -294,7 +319,10 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         String selectedValue = (String) containersToolCombo.getSelectedItem();
         state.setContainersTool(selectedValue);
 
-        state.setUserPreferences(ascaSelected,ossSelected, secretsSelected, containersSelected, iacSelected);
+        // Save AI provider preference
+        state.setPreferredAIProvider(getSelectedAIProviderId());
+
+        state.setUserPreferences(ascaSelected, ossSelected, secretsSelected, containersSelected, iacSelected);
 
         ApplicationManager.getApplication().getMessageBus()
                 .syncPublisher(SettingsListener.SETTINGS_APPLIED)
@@ -305,7 +333,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     public void reset() {
         state = GlobalSettingsState.getInstance();
 
-        // Initialize ASCA checkbox - use realtime setting or fallback to legacy setting for compatibility
+        // Initialize ASCA checkbox - use realtime setting or fallback to legacy setting
+        // for compatibility
         boolean ascaState = state.isAscaRealtime() || state.isAsca();
         ascaCheckbox.setSelected(ascaState);
 
@@ -314,6 +343,9 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         containersCheckbox.setSelected(state.isContainersRealtime());
         iacCheckbox.setSelected(state.isIacRealtime());
         containersToolCombo.setSelectedItem(state.getContainersTool());
+
+        // Reset AI provider selection
+        selectAIProviderById(state.getPreferredAIProvider());
 
         updateAssistState();
     }
@@ -348,21 +380,22 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             return; // UI will be updated when async check completes
         }
 
-        // If authenticated, use the cached MCP status (determined during authentication)
+        // If authenticated, use the cached MCP status (determined during
+        // authentication)
         boolean mcpEnabled = state.isMcpEnabled();
         boolean isAuthenticated = state.isAuthenticated();
         updateUIWithMcpStatus(mcpEnabled, isAuthenticated);
     }
 
-
     private void updateUIWithMcpStatus(boolean mcpEnabled, boolean isAuthenticated) {
         ascaCheckbox.setEnabled(mcpEnabled);
         ossCheckbox.setEnabled(mcpEnabled);
         secretsCheckbox.setEnabled(mcpEnabled);
-        // Enable install MCP link only if MCP is enabled at tenant level AND user is authenticated
+        // Enable install MCP link only if MCP is enabled at tenant level AND user is
+        // authenticated
         installMcpLink.setEnabled(mcpEnabled && isAuthenticated);
         containersCheckbox.setEnabled(mcpEnabled);
-         iacCheckbox.setEnabled(mcpEnabled);
+        iacCheckbox.setEnabled(mcpEnabled);
         containersToolCombo.setEnabled(mcpEnabled);
 
         if (!mcpEnabled) {
@@ -374,7 +407,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
                 LOGGER.debug("[CxOneAssist] Preserved scanner settings as user preferences (MCP disabled)");
             }
 
-            // When MCP is disabled, uncheck all scanner checkboxes to prevent realtime scanning
+            // When MCP is disabled, uncheck all scanner checkboxes to prevent realtime
+            // scanning
             ascaCheckbox.setSelected(false);
             ossCheckbox.setSelected(false);
             secretsCheckbox.setSelected(false);
@@ -396,14 +430,14 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
                 settingsChanged = true;
             }
 
-             if (state.isContainersRealtime()) {
-                 state.setContainersRealtime(false);
-                 settingsChanged = true;
-             }
-             if (state.isIacRealtime()) {
-                 state.setIacRealtime(false);
-                 settingsChanged = true;
-             }
+            if (state.isContainersRealtime()) {
+                state.setContainersRealtime(false);
+                settingsChanged = true;
+            }
+            if (state.isIacRealtime()) {
+                state.setIacRealtime(false);
+                settingsChanged = true;
+            }
 
             if (settingsChanged) {
                 GlobalSettingsState.getInstance().apply(state);
@@ -429,7 +463,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
                 }
             }
 
-            // Update UI to reflect current scanner state (including any restored preferences)
+            // Update UI to reflect current scanner state (including any restored
+            // preferences)
             ascaCheckbox.setSelected(state.isAscaRealtime());
             ossCheckbox.setSelected(state.isOssRealtime());
             secretsCheckbox.setSelected(state.isSecretDetectionRealtime());
@@ -464,7 +499,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             try {
                 GlobalSettingsState currentState = GlobalSettingsState.getInstance();
                 GlobalSettingsSensitiveState currentSensitiveState = GlobalSettingsSensitiveState.getInstance();
-                return com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled(currentState, currentSensitiveState);
+                return com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled(currentState,
+                        currentSensitiveState);
             } catch (Exception ex) {
                 LOGGER.warn("Failed to check MCP status during upgrade scenario", ex);
                 return false; // Default to disabled on error
@@ -473,7 +509,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             SwingUtilities.invokeLater(() -> {
                 ensureState();
 
-                // For future upgrade scenarios: preserve existing scanner configuration as user preferences
+                // For future upgrade scenarios: preserve existing scanner configuration as user
+                // preferences
                 // This prevents plugin updates from losing the user's current scanner settings
                 if (!state.getUserPreferencesSet()) {
                     state.saveCurrentSettingsAsUserPreferences();
@@ -536,5 +573,63 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private void setAscaInstallationMsg(String message, JBColor color) {
         ascaInstallationMsg.setText(String.format("<html>%s</html>", message));
         ascaInstallationMsg.setForeground(color);
+    }
+
+    // --- AI Provider ComboBox helpers ---
+
+    private String getSelectedAIProviderId() {
+        AIProviderItem selected = (AIProviderItem) aiProviderCombo.getSelectedItem();
+        return selected != null ? selected.getId() : "copilot";
+    }
+
+    private void selectAIProviderById(String providerId) {
+        if (providerId == null)
+            providerId = "copilot";
+        for (int i = 0; i < aiProviderCombo.getItemCount(); i++) {
+            if (aiProviderCombo.getItemAt(i).getId().equals(providerId)) {
+                aiProviderCombo.setSelectedIndex(i);
+                return;
+            }
+        }
+        // Default to first item (copilot) if not found
+        if (aiProviderCombo.getItemCount() > 0) {
+            aiProviderCombo.setSelectedIndex(0);
+        }
+    }
+
+    /**
+     * Simple item class for AI provider ComboBox entries.
+     */
+    private static class AIProviderItem {
+        private final String id;
+        private final String displayName;
+
+        AIProviderItem(String id, String displayName) {
+            this.id = id;
+            this.displayName = displayName;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        @Override
+        public String toString() {
+            return displayName;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null || getClass() != obj.getClass())
+                return false;
+            return id.equals(((AIProviderItem) obj).id);
+        }
+
+        @Override
+        public int hashCode() {
+            return id.hashCode();
+        }
     }
 }
