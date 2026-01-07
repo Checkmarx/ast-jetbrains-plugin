@@ -70,7 +70,6 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     // ========== Instance Fields ==========
     private final Project project;
     private final Content content;
-    private final IgnoreManager ignoreManager;
     private final JPanel ignoredListPanel = new JPanel();
     private final List<IgnoredEntryPanel> entryPanels = new ArrayList<>();
 
@@ -88,7 +87,6 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         super(false, true);
         this.project = project;
         this.content = content;
-        this.ignoreManager = IgnoreManager.getInstance(project);
 
         initializeSubscriptions();
         initializeTimers();
@@ -231,7 +229,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
     private void drawMainPanel() {
         removeAll();
-        List<IgnoreEntry> entries = ignoreManager.getIgnoredEntries();
+        List<IgnoreEntry> entries = new IgnoreManager(project).getIgnoredEntries();
 
         if (entries.isEmpty()) {
             drawEmptyStatePanel();
@@ -455,7 +453,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         if (!new GlobalSettingsComponent().isValid()) return;
 
         try {
-            List<IgnoreEntry> entries = ignoreManager.getIgnoredEntries();
+            List<IgnoreEntry> entries = new IgnoreManager(project).getIgnoredEntries();
             boolean wasEmpty = allEntries.isEmpty();
             boolean isNowEmpty = entries.isEmpty();
 
@@ -684,7 +682,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             JPanel container = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(6), 0));
             container.setOpaque(false);
 
-            List<IgnoreEntry.FileRef> activeFiles = entry.files != null
+            List<IgnoreEntry.FileReference> activeFiles = entry.files != null
                     ? entry.files.stream().filter(f -> f != null && f.active).collect(Collectors.toList())
                     : List.of();
 
@@ -698,7 +696,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             container.add(createFileButton(activeFiles.get(0)));
 
             if (activeFiles.size() > 1) {
-                List<IgnoreEntry.FileRef> hidden = activeFiles.subList(1, activeFiles.size());
+                List<IgnoreEntry.FileReference> hidden = activeFiles.subList(1, activeFiles.size());
                 JButton expand = new JButton("and " + hidden.size() + " more files");
                 expand.addActionListener(ev -> {
                     container.remove(expand);
@@ -710,7 +708,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return container;
         }
 
-        private JButton createFileButton(IgnoreEntry.FileRef file) {
+        private JButton createFileButton(IgnoreEntry.FileReference file) {
             String label = formatFileLabel(file);
             JButton btn = new JButton(label);
             btn.setToolTipText(file.path + (file.line != null ? ":" + file.line : ""));
@@ -726,7 +724,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         // ---------- File Navigation ----------
 
-        private void navigateToFile(IgnoreEntry.FileRef file) {
+        private void navigateToFile(IgnoreEntry.FileReference file) {
             if (file == null || file.path == null) return;
 
             VirtualFile vFile = resolveVirtualFile(file.path);
@@ -774,7 +772,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         // ---------- Formatting Helpers ----------
 
-        private String formatFileLabel(IgnoreEntry.FileRef f) {
+        private String formatFileLabel(IgnoreEntry.FileReference f) {
             if (f == null || f.path == null) return "file";
             try {
                 String name = Paths.get(f.path).getFileName().toString();
