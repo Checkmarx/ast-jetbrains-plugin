@@ -317,7 +317,6 @@ public class ProblemDecorator {
     public void decorateUIForIgnoredVulnerability(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList) {
         ApplicationManager.getApplication().invokeLater(() -> {
             try {
-                String relativePath = getRelativePath(project, psiFile);
                 List<IgnoreEntry> ignoreEntryList = new IgnoreManager(project).getIgnoredEntries();
                 if (ignoreEntryList.isEmpty()) {
                     LOGGER.warn(format("RTS-Decorator: Not ignored vulnerabilities found! Skipping decoration for file: %s", psiFile.getName()));
@@ -331,8 +330,12 @@ public class ProblemDecorator {
                     // Only decorate the active editor of this file
                     return;
                 }
+                String relativePath = getRelativePath(project, psiFile);
+                if (relativePath == null){
+                    LOGGER.info(format("RTS-Decorator: Decorating UI for ignored vulnerability for file: %s", psiFile.getName()));
+                }
                 MarkupModel markupModel = editor.getMarkupModel();
-                addIconForIgnoredVulnerability(psiFile, scanIssueList, relativePath, ignoreEntryList, markupModel);
+                addIconForIgnoredVulnerability(psiFile, scanIssueList, relativePath, ignoreEntryList, markupModel, editor);
             } catch (Exception e) {
                 LOGGER.warn(format("RTS-Decorator: Exception occurred while adding decorating for ignored vulnerability for file: %s", psiFile.getName()), e);
             }
@@ -342,7 +345,8 @@ public class ProblemDecorator {
     /**
      * Adds icons for ignored vulnerabilities in the specified file.
      */
-    private void addIconForIgnoredVulnerability(PsiFile psiFile, List<ScanIssue> scanIssueList, String filePath, List<IgnoreEntry> ignoreEntryList, MarkupModel markupModel) {
+    private void addIconForIgnoredVulnerability(PsiFile psiFile, List<ScanIssue> scanIssueList, String filePath, List<IgnoreEntry> ignoreEntryList, MarkupModel markupModel, Editor editor) {
+        LOGGER.info(format("RTS-Decorator: Started decorating UI for ignored vulnerability for file: %s", psiFile.getName()));
         for (IgnoreEntry ignoredVulnerability : ignoreEntryList) {
             try {
                 List<IgnoreEntry.FileReference> matchingFileRefs = ignoredVulnerability.files.stream()
@@ -359,13 +363,17 @@ public class ProblemDecorator {
                             continue;
                         }
                         RangeHighlighter highlighter = markupModel.addLineHighlighter(fileRef.line - 1, 0, null);
-                        addGutterIcon(highlighter, SeverityLevel.IGNORED.getSeverity());
+                        boolean alreadyHasGutterIcon = isAlreadyHasGutterIconOnLine(markupModel, editor, fileRef.line);
+                        if (!alreadyHasGutterIcon){
+                            addGutterIcon(highlighter, SeverityLevel.IGNORED.getSeverity());
+                        }
                     }
                 }
             } catch (Exception e) {
                 LOGGER.warn(format("RTS-Decorator: Exception occurred while adding ignore icon for file: %s", psiFile.getName()), e);
             }
         }
+        LOGGER.info(format("RTS-Decorator: Completed decorating UI for ignored vulnerability for file: %s", psiFile.getName()));
     }
 
     /**

@@ -52,11 +52,13 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
     public ProblemDescriptor[] startScanAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
         ProblemHelper problemHelper = problemHelperBuilder.build();
 
-        LOGGER.info(format("RTS: Scan started for file: %s.", problemHelper.getFile().getName()));
+        LOGGER.info(format("RTS: On demand scan started for file: %s.", problemHelper.getFile().getName()));
 
         List<ScanIssue> allScanIssues = scanFile(problemHelper.getFilePath(), problemHelper.getFile(), ScanEngine.ALL);
         if (allScanIssues.isEmpty()) {
-            LOGGER.info(format("RTS: No scan issues found for file: %s.", problemHelper.getFile().getName()));
+            LOGGER.info(format("RTS: On demand scan completed with no scan issues for file: %s.", problemHelper.getFile().getName()));
+            // decorate UI only for ignored vulnerability if no scan issues found
+            decorateUIForIgnoreVulnerability(problemHelper.getFile(), allScanIssues);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         problemHelperBuilder.scanIssueList(allScanIssues);
@@ -66,12 +68,12 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         //Creating problems
         List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptorsWithDecoration(problemHelperBuilder.build()));
         if (allProblems.isEmpty()) {
-            LOGGER.info(format("RTS: Problem not found for file: %s. ", problemHelper.getFile().getName()));
+            LOGGER.info(format("RTS: On demand scan completed with no problems for file: %s. ", problemHelper.getFile().getName()));
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         //Caching all the problem descriptor in the problem holder service
         problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
-        LOGGER.info(format("RTS: Scanning completed for file: %s and %s problem descriptors created.", problemHelper.getFile().getName(), allProblems.size()));
+        LOGGER.info(format("RTS: On demand Scanning completed for file: %s and %s problem descriptors created.", problemHelper.getFile().getName(), allProblems.size()));
         return allProblems.toArray(new ProblemDescriptor[0]);
     }
 
@@ -87,6 +89,8 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         if (isScanIssuePresent(problemHelper.getScanIssueList(), problemHelper.getFile().getName())) {
             // remove all existing gutter icons before adding new ones
             ProblemDecorator.removeAllHighlighters(problemHelper.getFile().getProject());
+            // decorate UI only for ignored vulnerability if no scan issues found
+            decorateUIForIgnoreVulnerability(problemHelper.getFile(), problemHelper.getScanIssueList());
             return createProblemDescriptors(problemHelper, Boolean.TRUE);
         }
         return Collections.emptyList();
@@ -190,11 +194,13 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         if (scanIssueList.isEmpty()) {
             LOGGER.warn(format("RTS: No existing scan issues found for file: %s.", filePath));
             resetEditorAndResults(file.getProject(), filePath);
+            decorateUIForIgnoreVulnerability(file, scanIssueList); // decorate UI only for ignored vulnerability if no scan issues found
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         List<ProblemDescriptor> problemDescriptorsList = problemHelper.getProblemHolderService().getProblemDescriptors(filePath);
         if (problemDescriptorsList.isEmpty()) {
-            // File dose doesn't have any existing problem descriptors, but it may have existing scan results (unknown or ok).
+            decorateUIForIgnoreVulnerability(file, scanIssueList); // decorate UI only for ignored vulnerability if no scan issues found
+            // The file doesn't have any existing problem descriptors, but it may have existing scan results (unknown or ok).
             LOGGER.warn(format("RTS: No existing problem descriptors found for file: %s or no enabled scanners found.", filePath));
             return ProblemDescriptor.EMPTY_ARRAY;
         }
@@ -250,6 +256,13 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
     }
 
     /**
+     * Decorating UI, - ensure all UI modifications (e.g., adding gutter icons) are executed in a write-safe, non-blocking context.
+     */
+    public void decorateUIForIgnoreVulnerability(PsiFile file, List<ScanIssue> scanIssueList) {
+        problemDecorator.decorateUIForIgnoredVulnerability(file.getProject(), file, scanIssueList);
+    }
+
+    /**
      * Gets the existing problem descriptors for the given file path after scheduled scan completion.
      *
      * @param problemHolderService the problem holder service.
@@ -263,6 +276,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         if (scanIssueList.isEmpty()) {
             LOGGER.warn(format("RTS: No existing scan issues found after schedule scan completion for file: %s.", filePath));
             resetEditorAndResults(file.getProject(), filePath);
+            decorateUIForIgnoreVulnerability(file, scanIssueList); // decorate UI only for ignored vulnerability if no scan issues found
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         // Update gutter icons and problem descriptors for the file according to the latest state of scan settings.
