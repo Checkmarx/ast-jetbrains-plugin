@@ -443,16 +443,18 @@ public final class ProblemDescription {
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
                 .append(DevAssistConstants.VIEW_DETAILS_FIX_NAME)
                 .append("</a></td>")
-                /*   .append("<td style='padding:0 10px 0 0;margin:0;'>")
-                     .append("<a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append(SEPERATOR).append(engineName).append("\" ")
-                     .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
-                     .append(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME)
-                     .append("</a></td>")
-                     .append("<td style='padding:0 5px 0 0;margin:0;'>")
-                     .append("<a href=\"#cxonedevassist/ignoreallofthis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append(SEPERATOR).append(engineName).append("\" ")
-                     .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
-                     .append(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME)
-                     .append("</a></td>")*/
+                .append("<td style='padding:0 10px 0 0;margin:0;'>")
+                .append("<a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
+                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
+                .append(DevAssistConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME)
+                .append("</a></td>");
+                if(engineName.equalsIgnoreCase(String.valueOf(ScanEngine.OSS)) || engineName.equalsIgnoreCase(String.valueOf(ScanEngine.CONTAINERS))) {
+                    descBuilder.append("<td style='padding:0 5px 0 0;margin:0;'>")
+                    .append("<a href=\"#cxonedevassist/ignoreallofthis").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
+                    .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
+                    .append(DevAssistConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME);
+                }
+                descBuilder.append("</a></td>")
                 .append("</tr></table><br>");
     }
 

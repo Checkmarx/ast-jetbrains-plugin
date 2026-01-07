@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.devassist.ui.findings.window;
 
 import com.checkmarx.intellij.*;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
@@ -8,6 +9,8 @@ import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction;
 import com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterState;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
@@ -267,15 +270,14 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
             String fileName = getSecureFileName(filePath);
             List<ScanIssue> scanDetails = entry.getValue();
 
-            // Filtered problems (excluding "ok" and "unknown")
+            // Filtered problems (excluding "ok" and "unknown" and "ignored" severity)
             List<ScanIssue> filteredScanDetails = scanDetails.stream()
                     .filter(detail -> {
-                        String severity = detail.getSeverity();
-                        return !Constants.OK.equalsIgnoreCase(severity) && !Constants.UNKNOWN.equalsIgnoreCase(severity);
+                        return DevAssistUtils.isProblem(detail.getSeverity());
                     })
                     .collect(Collectors.toList());
-
-            ApplicationManager.getApplication().runReadAction(() ->
+            if (!filteredScanDetails.isEmpty())
+                ApplicationManager.getApplication().runReadAction(() ->
                     createFileNode(filePath, filteredScanDetails, fileName));
         }
         ((DefaultTreeModel) tree.getModel()).reload();
@@ -421,13 +423,18 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         copyDescription.setIcon(CxIcons.STAR_ACTION);
         popup.add(copyDescription);
 
-//        JMenuItem ignoreOption = new JMenuItem(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME);
-//        ignoreOption.setIcon(CxIcons.STAR_ACTION);
-//        popup.add(ignoreOption);
-//
-//        JMenuItem ignoreAllOption = new JMenuItem(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME);
-//        ignoreAllOption.setIcon(CxIcons.STAR_ACTION);
-//        popup.add(ignoreAllOption);
+        JMenuItem ignoreOption = new JMenuItem(DevAssistConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME);
+        ignoreOption.setIcon(CxIcons.STAR_ACTION);
+        ignoreOption.addActionListener(ev -> new IgnoreManager(project).addIgnoredEntry(detail, QUICK_FIX));
+        popup.add(ignoreOption);
+
+        // Only show "Ignore all of this type" for container and oss
+        if (ScanEngine.CONTAINERS.toString().equalsIgnoreCase(detail.getScanEngine().toString()) || ScanEngine.OSS.toString().equalsIgnoreCase(detail.getScanEngine().toString())) {
+            JMenuItem ignoreAllOption = new JMenuItem(DevAssistConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME);
+            ignoreAllOption.setIcon(CxIcons.STAR_ACTION);
+            ignoreAllOption.addActionListener(ev -> new IgnoreManager(project).addAllIgnoredEntry(detail, QUICK_FIX));
+            popup.add(ignoreAllOption);
+        }
         popup.add(new JSeparator());
 
         JMenuItem copyFix = new JMenuItem("Copy");

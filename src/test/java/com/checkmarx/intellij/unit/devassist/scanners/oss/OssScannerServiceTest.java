@@ -202,7 +202,7 @@ public class OssScannerServiceTest {
 
     @Test @DisplayName("getIssues_nullResults_returnsEmptyList")
     void testGetIssues_nullResults_returnsEmptyList() {
-        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(null);
+        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(null, "");
         assertTrue(adaptor.getIssues().isEmpty());
     }
 
@@ -210,7 +210,7 @@ public class OssScannerServiceTest {
     void testGetIssues_emptyPackages_returnsEmptyList() {
         OssRealtimeResults results = mock(OssRealtimeResults.class);
         when(results.getPackages()).thenReturn(List.of());
-        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results);
+        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results,"");
         assertTrue(adaptor.getIssues().isEmpty());
     }
 }

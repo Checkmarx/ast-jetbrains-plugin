@@ -179,6 +179,7 @@ public class Xpath {
     @Language("XPath")
     public
     static final String ASCA_CHECKBOX = "//div[@class='JBCheckBox' and @text='Scan your file as you code']";
-            ;
-
+    @Language("XPath")
+    public
+    static final String WELCOME_CLOSE_BUTTON = "//div[@text='Close']";
 }
