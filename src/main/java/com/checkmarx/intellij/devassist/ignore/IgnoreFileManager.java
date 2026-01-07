@@ -6,6 +6,7 @@ import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 public final class IgnoreFileManager {
 
     private static final Logger LOGGER = Utils.getLogger(IgnoreFileManager.class);
+    private static boolean skipFileWatcherForTests = false;
     private final Project project;
     private String workspacePath = "";
     private String workspaceRootPath = "";
@@ -57,7 +59,9 @@ public final class IgnoreFileManager {
             ensureIgnoreFileExists();
             loadIgnoreData();
             this.previousIgnoreData = copyIgnoredata(ignoreData);
-            startFileWatcher();
+            if (!skipFileWatcherForTests) {
+                startFileWatcher();
+            }
         }
     }
 
@@ -65,7 +69,7 @@ public final class IgnoreFileManager {
         if (newData == null) return;
         ignoreData.put(vulnerabilityKey, newData);
         saveIgnoreFile();
-        updateTempList();
+        updateIgnoreTempList();
     }
 
     /**
@@ -89,7 +93,7 @@ public final class IgnoreFileManager {
         }
     }
 
-    private void loadIgnoreData() {
+    public void loadIgnoreData() {
         Path ignoreFile = getIgnoreFilePath();
         if (!Files.exists(ignoreFile)) {
             LOGGER.debug("Ignore file doesn't exist: " + ignoreFile);
@@ -148,8 +152,9 @@ public final class IgnoreFileManager {
      * - ASCA: adds file name, line number and rule ID for each active file
      * The temporary list is then saved to a JSON file at the path specified by {@link #getTempListPath()}.
      */
-    public void updateTempList() {
+    public void updateIgnoreTempList() {
         List<TempItem> tempList = new ArrayList<>();
+        LOGGER.debug(String.format("RTS-Ignore: Updating temp list with %d ignore entries", ignoreData.size()));
         for (IgnoreEntry entry : ignoreData.values()) {
             boolean hasActive = entry.files.stream().anyMatch(f -> f.active);
             if (!hasActive) continue;
@@ -164,10 +169,10 @@ public final class IgnoreFileManager {
                     tempList.add(TempItem.forIac(entry.packageName, entry.similarityId));
                     break;
                 case CONTAINERS:
-                    tempList.add(TempItem.forContainer(entry.packageName, entry.imageTag));
+                    tempList.add(TempItem.forContainer(entry.imageName, entry.imageTag));
                     break;
                 case ASCA:
-                    for (IgnoreEntry.FileRef file : entry.files) {
+                    for (IgnoreEntry.FileReference file : entry.files) {
                         if (!file.active) continue;
                         String originalPath = Paths.get(workspaceRootPath, file.path).toAbsolutePath().toString();
                         String scannedTempPath = scannedFileMap.getOrDefault(originalPath, originalPath);
@@ -187,7 +192,7 @@ public final class IgnoreFileManager {
             Files.writeString(getTempListPath(), json, StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
-            LOGGER.warn("Failed to write temp list", e);
+            LOGGER.error(String.format("RTS-Ignore: Failed to update temp list: %s", e.getMessage()));
         }
     }
 
@@ -226,7 +231,7 @@ public final class IgnoreFileManager {
         try {
             Files.createDirectories(tempListPath.getParent());
             Files.writeString(tempListPath, "[]", StandardCharsets.UTF_8);
-            LOGGER.debug("Created empty temp list: " + tempListPath);
+            LOGGER.debug(String.format("RTS-Ignore: Created empty temp list at %s", tempListPath));
         } catch (IOException e) {
             LOGGER.error("Failed to create empty temp list", e);
         }
@@ -248,6 +253,9 @@ public final class IgnoreFileManager {
      * Callback method to keep watch on the temp files edited directly.
      */
     private void startFileWatcher() {
+        if (ApplicationManager.getApplication() == null) {
+            return;
+        }
         VirtualFile ignoreFile = LocalFileSystem.getInstance().findFileByIoFile(getIgnoreFilePath().toFile());
         if (ignoreFile == null) {
             return;
@@ -281,7 +289,7 @@ public final class IgnoreFileManager {
             for (ActiveFile f : deactivatedFiles) {
                 removeIgnoredEntryWithoutTempUpdate(f.packageKey, f.path);
             }
-            updateTempList();
+            updateIgnoreTempList();
         // TBD : Here rescan re-trigger logic needs to be implemented
         }
     }
@@ -299,7 +307,7 @@ public final class IgnoreFileManager {
     private List<ActiveFile> getActiveFilesList(Map<String, IgnoreEntry> data) {
         List<ActiveFile> result = new ArrayList<>();
         for (Map.Entry<String, IgnoreEntry> e : data.entrySet()) {
-            for (IgnoreEntry.FileRef f : e.getValue().files) {
+            for (IgnoreEntry.FileReference f : e.getValue().files) {
                 if (f.active) {
                     result.add(new ActiveFile(e.getKey(), f.path));
                 }

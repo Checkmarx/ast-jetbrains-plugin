@@ -198,9 +198,7 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
             }
 
             LOGGER.debug("Secrets scanner: starting scan - " + uri);
-            IgnoreManager ignoreManager = IgnoreManager.getInstance(file.getProject());
-            String ignoreFilePath = ignoreManager.getIgnoreTempFilePath();
-            SecretsRealtimeResults scanResults = CxWrapperFactory.build().secretsRealtimeScan(tempFilePath.get(), ignoreFilePath);
+            SecretsRealtimeResults scanResults = CxWrapperFactory.build().secretsRealtimeScan(tempFilePath.get(), DevAssistUtils.getIgnoreFilePath(file.getProject()));
 
             if (scanResults == null) {
                 LOGGER.debug("Secrets scanner: no results returned - " + uri);

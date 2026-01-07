@@ -110,7 +110,7 @@ public final class ProblemHolderService {
                 }
             }
         }
-        project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
+        syncWithCxOneFindings();
     }
 
     /**
@@ -132,7 +132,7 @@ public final class ProblemHolderService {
                 });
             }
         }
-        project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
+        syncWithCxOneFindings();
     }
 
 

@@ -49,7 +49,6 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private final Project project;
     private final JPanel ignoredListPanel;
     private final Content content;
-    private final IgnoreManager ignoreManager;
     private JCheckBox selectAllCheckbox;
     private final java.util.List<IgnoredEntryPanel> entryPanels = new java.util.ArrayList<>();
     private List<IgnoreEntry> allEntries = new java.util.ArrayList<>();
@@ -58,7 +57,6 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         super(false, true);
         this.project = project;
         this.content = content;
-        this.ignoreManager = IgnoreManager.getInstance(project);
         this.ignoredListPanel = new JPanel();
 
         // Setup initial UI based on settings validity, subscribe to settings changes
@@ -339,7 +337,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
 
         try {
-            List<IgnoreEntry> entries = ignoreManager.getIgnoredEntries();
+            List<IgnoreEntry> entries = new IgnoreManager(project).getIgnoredEntries();
             allEntries = new java.util.ArrayList<>(entries);
             applyFiltersAndRefresh();
             updateTabTitle(entries.size());
@@ -657,18 +655,18 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             }
 
             // Only active files
-            java.util.List<IgnoreEntry.FileRef> activeFiles = new java.util.ArrayList<>();
-            for (IgnoreEntry.FileRef f : entry.files) {
+            java.util.List<IgnoreEntry.FileReference> activeFiles = new java.util.ArrayList<>();
+            for (IgnoreEntry.FileReference f : entry.files) {
                 if (f != null && f.active) activeFiles.add(f);
             }
 
             int maxVisible = 1;
-            java.util.List<IgnoreEntry.FileRef> visible = activeFiles.subList(0, Math.min(maxVisible, activeFiles.size()));
-            java.util.List<IgnoreEntry.FileRef> hidden = activeFiles.size() > maxVisible
+            java.util.List<IgnoreEntry.FileReference> visible = activeFiles.subList(0, Math.min(maxVisible, activeFiles.size()));
+            java.util.List<IgnoreEntry.FileReference> hidden = activeFiles.size() > maxVisible
                     ? activeFiles.subList(maxVisible, activeFiles.size())
                     : java.util.Collections.emptyList();
 
-            for (IgnoreEntry.FileRef f : visible) {
+            for (IgnoreEntry.FileReference f : visible) {
                 JButton btn = new JButton(shortFileLabel(f));
                 btn.setToolTipText(f.path + (f.line != null ? ":" + f.line : ""));
                 btn.addActionListener(ev -> navigateTo(f));
@@ -682,7 +680,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 hiddenPanel.setOpaque(false);
                 hiddenPanel.setVisible(false);
 
-                for (IgnoreEntry.FileRef f : hidden) {
+                for (IgnoreEntry.FileReference f : hidden) {
                     JButton btn = new JButton(shortFileLabel(f));
                     btn.setToolTipText(f.path + (f.line != null ? ":" + f.line : ""));
                     btn.addActionListener(ev -> navigateTo(f));
@@ -703,7 +701,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return container;
         }
 
-        private void navigateTo(IgnoreEntry.FileRef file) {
+        private void navigateTo(IgnoreEntry.FileReference file) {
             if (file == null || file.path == null) return;
             VirtualFile vFile = LocalFileSystem.getInstance().findFileByPath(file.path);
             if (vFile != null) {
@@ -712,7 +710,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             }
         }
 
-        private String shortFileLabel(IgnoreEntry.FileRef f) {
+        private String shortFileLabel(IgnoreEntry.FileReference f) {
             if (f == null || f.path == null) return "file";
             try {
                 java.nio.file.Path p = java.nio.file.Paths.get(f.path);
