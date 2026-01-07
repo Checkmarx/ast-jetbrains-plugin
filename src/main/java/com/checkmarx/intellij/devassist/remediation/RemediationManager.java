@@ -74,21 +74,62 @@ public final class RemediationManager {
      * @param actionId  the specific vulnerability ID to fix, or QUICK_FIX for general remediation
      */
     public void fixWithAI(@NotNull Project project, @NotNull ScanIssue scanIssue, String actionId) {
+        // Default to Copilot for backward compatibility
+        fixWithCopilot(project, scanIssue, actionId);
+    }
+
+    /**
+     * Fix with GitHub Copilot - Opens Copilot Chat, switches to Agent mode, and sends the fix prompt.
+     *
+     * @param project   the project where the fix is to be applied
+     * @param scanIssue the scan issue to fix
+     * @param actionId  the specific vulnerability ID to fix, or QUICK_FIX for general remediation
+     */
+    public void fixWithCopilot(@NotNull Project project, @NotNull ScanIssue scanIssue, String actionId) {
         switch (scanIssue.getScanEngine()) {
             case OSS:
-                applyOSSRemediationWithAI(project, scanIssue);
+                applyOSSRemediationWithCopilot(project, scanIssue);
                 break;
             case SECRETS:
-                applySecretRemediationWithAI(project, scanIssue);
+                applySecretRemediationWithCopilot(project, scanIssue);
                 break;
             case CONTAINERS:
-                applyContainerRemediationWithAI(project, scanIssue);
+                applyContainerRemediationWithCopilot(project, scanIssue);
                 break;
             case IAC:
-                applyIACRemediationWithAI(project, scanIssue, actionId);
+                applyIACRemediationWithCopilot(project, scanIssue, actionId);
                 break;
             case ASCA:
-                applyASCARemediationWithAI(project, scanIssue, actionId);
+                applyASCARemediationWithCopilot(project, scanIssue, actionId);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Fix with Augment Code - Opens Augment Chat, switches to Agent mode, and sends the fix prompt.
+     *
+     * @param project   the project where the fix is to be applied
+     * @param scanIssue the scan issue to fix
+     * @param actionId  the specific vulnerability ID to fix, or QUICK_FIX for general remediation
+     */
+    public void fixWithAugment(@NotNull Project project, @NotNull ScanIssue scanIssue, String actionId) {
+        switch (scanIssue.getScanEngine()) {
+            case OSS:
+                applyOSSRemediationWithAugment(project, scanIssue);
+                break;
+            case SECRETS:
+                applySecretRemediationWithAugment(project, scanIssue);
+                break;
+            case CONTAINERS:
+                applyContainerRemediationWithAugment(project, scanIssue);
+                break;
+            case IAC:
+                applyIACRemediationWithAugment(project, scanIssue, actionId);
+                break;
+            case ASCA:
+                applyASCARemediationWithAugment(project, scanIssue, actionId);
                 break;
             default:
                 break;
@@ -363,6 +404,190 @@ public final class RemediationManager {
                     scanIssue.getFilePath(), scanIssue.getTitle()));
         }
     }
+
+    // ==================== Copilot-Specific Remediation Methods ====================
+
+    private void applyOSSRemediationWithCopilot(Project project, ScanIssue scanIssue) {
+        LOGGER.info(format("RTS-Fix-AI: Copilot remediation started for file: %s for OSS Issue: %s",
+                scanIssue.getFilePath(), scanIssue.getTitle()));
+        String prompt = CxOneAssistFixPrompts.buildSCARemediationPrompt(scanIssue.getTitle(), scanIssue.getPackageVersion(),
+                scanIssue.getPackageManager(), scanIssue.getSeverity());
+        if (DevAssistUtils.fixWithCopilot(prompt, getNotificationTitle(scanIssue.getScanEngine()),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_COPILOT_NOT_FOUND), project)) {
+            LOGGER.info(format("RTS-Fix-AI: Copilot remediation completed for file: %s for OSS Issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    private void applySecretRemediationWithCopilot(Project project, ScanIssue scanIssue) {
+        LOGGER.info(format("RTS-Fix-AI: Copilot remediation started for file: %s for secrets issue: %s",
+                scanIssue.getFilePath(), scanIssue.getTitle()));
+        String prompt = CxOneAssistFixPrompts.buildSecretRemediationPrompt(scanIssue.getTitle(),
+                scanIssue.getDescription(), scanIssue.getSeverity());
+        if (DevAssistUtils.fixWithCopilot(prompt, getNotificationTitle(scanIssue.getScanEngine()),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_COPILOT_NOT_FOUND), project)) {
+            LOGGER.info(format("RTS-Fix-AI: Copilot remediation completed for file: %s for secrets issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    private void applyContainerRemediationWithCopilot(Project project, ScanIssue scanIssue) {
+        LOGGER.info(format("RTS-Fix-AI: Copilot remediation started for file: %s for container issue: %s",
+                scanIssue.getFilePath(), scanIssue.getTitle()));
+        String prompt = CxOneAssistFixPrompts.buildContainersRemediationPrompt(scanIssue.getFileType(),
+                scanIssue.getTitle(), scanIssue.getImageTag(), scanIssue.getSeverity());
+        if (DevAssistUtils.fixWithCopilot(prompt, getNotificationTitle(scanIssue.getScanEngine()),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_COPILOT_NOT_FOUND), project)) {
+            LOGGER.info(format("RTS-Fix-AI: Copilot remediation completed for file: %s for container issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    private void applyIACRemediationWithCopilot(Project project, ScanIssue scanIssue, String actionId) {
+        if (Objects.isNull(actionId) || actionId.isEmpty()) {
+            LOGGER.warn(format("RTS-Fix-AI: Remediation failed. Action id is not found for IAC issue: %s.", scanIssue.getTitle()));
+            return;
+        }
+        Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
+                actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
+        if (Objects.isNull(vulnerability)) {
+            LOGGER.warn(format("RTS-Fix-AI: Remediation failed. Vulnerability details not found for IAC issue: %s.", actionId));
+            return;
+        }
+        String prompt = CxOneAssistFixPrompts.buildIACRemediationPrompt(
+                actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),
+                scanIssue.getFileType(), vulnerability.getExpectedValue(), vulnerability.getActualValue(),
+                scanIssue.getProblematicLineNumber());
+        if (DevAssistUtils.fixWithCopilot(prompt, getNotificationTitle(scanIssue.getScanEngine()),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_COPILOT_NOT_FOUND), project)) {
+            LOGGER.info(format("RTS-Fix-AI: Copilot remediation completed for file: %s for IAC issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    private void applyASCARemediationWithCopilot(Project project, ScanIssue scanIssue, String actionId) {
+        if (Objects.isNull(actionId) || actionId.isEmpty()) {
+            LOGGER.warn(format("RTS-Fix-AI: Remediation failed. Action id is not found for ASCA issue: %s.", scanIssue.getTitle()));
+            return;
+        }
+        Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
+                actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
+        if (Objects.isNull(vulnerability)) {
+            LOGGER.warn(format("RTS-Fix-AI: Remediation failed. Vulnerability details not found for ASCA issue: %s.", actionId));
+            return;
+        }
+        String prompt = CxOneAssistFixPrompts.buildASCARemediationPrompt(
+                actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getRemediationAdvise() : vulnerability.getRemediationAdvise(),
+                scanIssue.getProblematicLineNumber());
+        if (DevAssistUtils.fixWithCopilot(prompt, getNotificationTitle(scanIssue.getScanEngine()),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_COPILOT_NOT_FOUND), project)) {
+            LOGGER.info(format("RTS-Fix-AI: Copilot remediation completed for file: %s for ASCA issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    // ==================== Augment-Specific Remediation Methods ====================
+
+    private void applyOSSRemediationWithAugment(Project project, ScanIssue scanIssue) {
+        LOGGER.info(format("RTS-Fix-AI: Augment remediation started for file: %s for OSS Issue: %s",
+                scanIssue.getFilePath(), scanIssue.getTitle()));
+        String prompt = CxOneAssistFixPrompts.buildSCARemediationPrompt(scanIssue.getTitle(), scanIssue.getPackageVersion(),
+                scanIssue.getPackageManager(), scanIssue.getSeverity());
+        if (DevAssistUtils.fixWithAugment(prompt, getNotificationTitle(scanIssue.getScanEngine()),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
+                "Augment Code is not installed or available. The fix prompt has been copied to your clipboard.", project)) {
+            LOGGER.info(format("RTS-Fix-AI: Augment remediation completed for file: %s for OSS Issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    private void applySecretRemediationWithAugment(Project project, ScanIssue scanIssue) {
+        LOGGER.info(format("RTS-Fix-AI: Augment remediation started for file: %s for secrets issue: %s",
+                scanIssue.getFilePath(), scanIssue.getTitle()));
+        String prompt = CxOneAssistFixPrompts.buildSecretRemediationPrompt(scanIssue.getTitle(),
+                scanIssue.getDescription(), scanIssue.getSeverity());
+        if (DevAssistUtils.fixWithAugment(prompt, getNotificationTitle(scanIssue.getScanEngine()),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
+                "Augment Code is not installed or available. The fix prompt has been copied to your clipboard.", project)) {
+            LOGGER.info(format("RTS-Fix-AI: Augment remediation completed for file: %s for secrets issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    private void applyContainerRemediationWithAugment(Project project, ScanIssue scanIssue) {
+        LOGGER.info(format("RTS-Fix-AI: Augment remediation started for file: %s for container issue: %s",
+                scanIssue.getFilePath(), scanIssue.getTitle()));
+        String prompt = CxOneAssistFixPrompts.buildContainersRemediationPrompt(scanIssue.getFileType(),
+                scanIssue.getTitle(), scanIssue.getImageTag(), scanIssue.getSeverity());
+        if (DevAssistUtils.fixWithAugment(prompt, getNotificationTitle(scanIssue.getScanEngine()),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
+                "Augment Code is not installed or available. The fix prompt has been copied to your clipboard.", project)) {
+            LOGGER.info(format("RTS-Fix-AI: Augment remediation completed for file: %s for container issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    private void applyIACRemediationWithAugment(Project project, ScanIssue scanIssue, String actionId) {
+        if (Objects.isNull(actionId) || actionId.isEmpty()) {
+            LOGGER.warn(format("RTS-Fix-AI: Remediation failed. Action id is not found for IAC issue: %s.", scanIssue.getTitle()));
+            return;
+        }
+        Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
+                actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
+        if (Objects.isNull(vulnerability)) {
+            LOGGER.warn(format("RTS-Fix-AI: Remediation failed. Vulnerability details not found for IAC issue: %s.", actionId));
+            return;
+        }
+        String prompt = CxOneAssistFixPrompts.buildIACRemediationPrompt(
+                actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),
+                scanIssue.getFileType(), vulnerability.getExpectedValue(), vulnerability.getActualValue(),
+                scanIssue.getProblematicLineNumber());
+        if (DevAssistUtils.fixWithAugment(prompt, getNotificationTitle(scanIssue.getScanEngine()),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
+                "Augment Code is not installed or available. The fix prompt has been copied to your clipboard.", project)) {
+            LOGGER.info(format("RTS-Fix-AI: Augment remediation completed for file: %s for IAC issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    private void applyASCARemediationWithAugment(Project project, ScanIssue scanIssue, String actionId) {
+        if (Objects.isNull(actionId) || actionId.isEmpty()) {
+            LOGGER.warn(format("RTS-Fix-AI: Remediation failed. Action id is not found for ASCA issue: %s.", scanIssue.getTitle()));
+            return;
+        }
+        Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
+                actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
+        if (Objects.isNull(vulnerability)) {
+            LOGGER.warn(format("RTS-Fix-AI: Remediation failed. Vulnerability details not found for ASCA issue: %s.", actionId));
+            return;
+        }
+        String prompt = CxOneAssistFixPrompts.buildASCARemediationPrompt(
+                actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),
+                actionId.equals(QUICK_FIX) ? scanIssue.getRemediationAdvise() : vulnerability.getRemediationAdvise(),
+                scanIssue.getProblematicLineNumber());
+        if (DevAssistUtils.fixWithAugment(prompt, getNotificationTitle(scanIssue.getScanEngine()),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
+                "Augment Code is not installed or available. The fix prompt has been copied to your clipboard.", project)) {
+            LOGGER.info(format("RTS-Fix-AI: Augment remediation completed for file: %s for ASCA issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getTitle()));
+        }
+    }
+
+    // ==================== View Details Methods ====================
 
     /**
      * Explain the details of an OSS issue.

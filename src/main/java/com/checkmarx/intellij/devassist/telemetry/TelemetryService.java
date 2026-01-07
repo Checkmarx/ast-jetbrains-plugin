@@ -50,7 +50,7 @@ public final class TelemetryService {
     private TelemetryService() {}
 
     /**
-     * Sets user event data for logs.
+     * Sets user event data for logs with default AI provider (Copilot).
      * This method is called when users interact with remediation options.
      *
      * @param eventType the type of event (e.g., "click")
@@ -59,15 +59,29 @@ public final class TelemetryService {
      * @param problemSeverity the severity of the issue
      */
     public static void setUserEventDataForLogs(String eventType, String subType, String engine, String problemSeverity) {
+        setUserEventDataForLogs(eventType, subType, engine, problemSeverity, AI_PROVIDER);
+    }
+
+    /**
+     * Sets user event data for logs with specified AI provider.
+     * This method is called when users interact with remediation options.
+     *
+     * @param eventType the type of event (e.g., "click")
+     * @param subType the specific action (e.g., "fixWithAIChat", "viewDetails")
+     * @param engine the scan engine type
+     * @param problemSeverity the severity of the issue
+     * @param aiProvider the AI provider name (e.g., "Copilot", "Augment")
+     */
+    public static void setUserEventDataForLogs(String eventType, String subType, String engine, String problemSeverity, String aiProvider) {
         CompletableFuture.runAsync(() -> {
             try {
                 String agent = getAgentName();
 
-                LOGGER.debug(format("Telemetry: Logging user event - eventType: %s, subType: %s, engine: %s, severity: %s",
-                        eventType, subType, engine, problemSeverity));
+                LOGGER.debug(format("Telemetry: Logging user event - eventType: %s, subType: %s, engine: %s, severity: %s, provider: %s",
+                        eventType, subType, engine, problemSeverity, aiProvider));
 
                 CxWrapperFactory.build().telemetryAIEvent(
-                        AI_PROVIDER,          // aiProvider
+                        aiProvider,           // aiProvider - now uses parameter
                         agent,                // agent
                         eventType,            // eventType
                         subType,              // subType
@@ -124,13 +138,25 @@ public final class TelemetryService {
     }
 
     /**
-     * Logs user action for scan issue remediation activities.
+     * Logs user action for scan issue remediation activities with default provider.
      *
      * @param scanIssue the scan issue being acted upon
      * @param actionSubType the specific action sub-type for telemetry
      * @param actionName the action name for logging purposes
      */
     private static void logUserAction(ScanIssue scanIssue, String actionSubType, String actionName) {
+        logUserAction(scanIssue, actionSubType, actionName, AI_PROVIDER);
+    }
+
+    /**
+     * Logs user action for scan issue remediation activities with specified provider.
+     *
+     * @param scanIssue the scan issue being acted upon
+     * @param actionSubType the specific action sub-type for telemetry
+     * @param actionName the action name for logging purposes
+     * @param aiProvider the AI provider name (e.g., "Copilot", "Augment")
+     */
+    private static void logUserAction(ScanIssue scanIssue, String actionSubType, String actionName, String aiProvider) {
         if (Objects.isNull(scanIssue)) {
             LOGGER.warn("Telemetry: Cannot log " + actionName + " action - scan issue is null");
             return;
@@ -139,7 +165,7 @@ public final class TelemetryService {
         String engine = mapScanEngineToTelemetryEngine(scanIssue.getScanEngine());
         String severity = normalizeSeverity(scanIssue.getSeverity());
 
-        setUserEventDataForLogs(EVENT_TYPE_CLICK, actionSubType, engine, severity);
+        setUserEventDataForLogs(EVENT_TYPE_CLICK, actionSubType, engine, severity, aiProvider);
     }
 
     /**
@@ -152,12 +178,22 @@ public final class TelemetryService {
     }
 
     /**
-     * Logs user action for "Fix with AI" (one-click fix that opens Copilot).
+     * Logs user action for "Fix with AI" (one-click fix that opens an AI assistant).
      *
      * @param scanIssue the scan issue being acted upon
      */
     public static void logFixWithAIAction(ScanIssue scanIssue) {
         logUserAction(scanIssue, SUB_TYPE_FIX_WITH_AI_ONE_CLICK, "Fix with AI");
+    }
+
+    /**
+     * Logs user action for "Fix with AI" with specific provider (Copilot or Augment).
+     *
+     * @param scanIssue the scan issue being acted upon
+     * @param provider  the AI provider name (e.g., "Copilot", "Augment")
+     */
+    public static void logFixWithAIAction(ScanIssue scanIssue, String provider) {
+        logUserAction(scanIssue, SUB_TYPE_FIX_WITH_AI_ONE_CLICK, "Fix with " + provider, provider);
     }
 
     /**

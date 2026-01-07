@@ -433,33 +433,30 @@ public final class ProblemDescription {
      */
     private void buildRemediationActionsSection(StringBuilder descBuilder, String scanIssueId, String engineName) {
         descBuilder.append("<table style='display:block;margin:0;border-collapse:collapse;border-spacing:0;padding:0;'><tr>")
-                // Fix with AI - Primary action that opens Copilot chat automatically
+                // Fix with Copilot - Opens GitHub Copilot Chat in Agent mode
                 .append("<td style='padding:0 10px 0 0;margin:0;'>")
-                .append("<a href=\"#cxonedevassist/fixwithai").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
+                .append("<a href=\"#cxonedevassist/fixwithcopilot").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0; font-weight: bold;'>")
-                .append(DevAssistConstants.FIX_WITH_AI)
+                .append(DevAssistConstants.FIX_WITH_COPILOT)
                 .append("</a></td>")
-                // Copy fix prompt - Secondary action that copies prompt to clipboard
+                // Fix with Augment - Opens Augment Code Chat in Agent mode
+                .append("<td style='padding:0 10px 0 0;margin:0;'>")
+                .append("<a href=\"#cxonedevassist/fixwithaugment").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
+                .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0; font-weight: bold;'>")
+                .append(DevAssistConstants.FIX_WITH_AUGMENT)
+                .append("</a></td>")
+                // Copy fix prompt - Copies prompt to clipboard
                 .append("<td style='padding:0 10px 0 0;margin:0;'>")
                 .append("<a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
                 .append(DevAssistConstants.FIX_WITH_CXONE_ASSIST)
                 .append("</a></td>")
+                // View details
                 .append("<td style='padding:0 10px 0 0;margin:0;'>")
                 .append("<a href=\"#cxonedevassist/viewdetails").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
                 .append(DevAssistConstants.VIEW_DETAILS_FIX_NAME)
                 .append("</a></td>")
-                /*   .append("<td style='padding:0 10px 0 0;margin:0;'>")
-                     .append("<a href=\"#cxonedevassist/ignorethis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append(SEPERATOR).append(engineName).append("\" ")
-                     .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
-                     .append(Constants.RealTimeConstants.IGNORE_THIS_VULNERABILITY_FIX_NAME)
-                     .append("</a></td>")
-                     .append("<td style='padding:0 5px 0 0;margin:0;'>")
-                     .append("<a href=\"#cxonedevassist/ignoreallofthis").append(SEPERATOR).append(scanIssue.getScanIssueId()).append(SEPERATOR).append(engineName).append("\" ")
-                     .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
-                     .append(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME)
-                     .append("</a></td>")*/
                 .append("</tr></table><br>");
     }
 

@@ -331,6 +331,116 @@ public class DevAssistUtils {
     }
 
     /**
+     * Fix with Copilot - Opens GitHub Copilot Chat, switches to Agent mode, pastes the prompt, and sends it.
+     *
+     * @param prompt              the fix prompt to send to Copilot
+     * @param notificationTitle   the title of the notification
+     * @param successMessage      the message to show if Copilot automation succeeds
+     * @param fallbackMessage     the message to show if Copilot is not available
+     * @param project             the project context
+     * @return true if the operation was initiated successfully
+     */
+    public static boolean fixWithCopilot(@NotNull String prompt, String notificationTitle,
+                                         String successMessage, String fallbackMessage, Project project) {
+        try {
+            com.checkmarx.intellij.devassist.remediation.CopilotIntegration.IntegrationResult result =
+                    com.checkmarx.intellij.devassist.remediation.CopilotIntegration.openCopilotWithPromptDetailed(
+                            prompt, project, detailedResult -> {
+                                String message;
+                                NotificationType notificationType;
+
+                                switch (detailedResult.getResult()) {
+                                    case FULL_SUCCESS:
+                                        message = successMessage;
+                                        notificationType = NotificationType.INFORMATION;
+                                        break;
+                                    case PARTIAL_SUCCESS:
+                                        message = detailedResult.getMessage();
+                                        notificationType = NotificationType.INFORMATION;
+                                        break;
+                                    case COPILOT_NOT_AVAILABLE:
+                                        message = fallbackMessage;
+                                        notificationType = NotificationType.WARNING;
+                                        break;
+                                    default:
+                                        message = detailedResult.getMessage();
+                                        notificationType = NotificationType.ERROR;
+                                        break;
+                                }
+
+                                Utils.showNotification(notificationTitle, message, notificationType, project);
+                            });
+
+            if (result.isSuccess()) {
+                LOGGER.info("RTS-Fix-AI: Copilot integration initiated successfully");
+            } else {
+                LOGGER.warn("RTS-Fix-AI: Copilot integration returned: " + result.getMessage());
+            }
+
+            return result.isSuccess();
+        } catch (Exception exception) {
+            LOGGER.debug("Failed to fix with Copilot: ", exception);
+            Utils.showNotification(notificationTitle, "Failed to initiate Copilot fix.", NotificationType.ERROR, project);
+            return false;
+        }
+    }
+
+    /**
+     * Fix with Augment - Opens Augment Code Chat, switches to Agent mode, pastes the prompt, and sends it.
+     *
+     * @param prompt              the fix prompt to send to Augment
+     * @param notificationTitle   the title of the notification
+     * @param successMessage      the message to show if Augment automation succeeds
+     * @param fallbackMessage     the message to show if Augment is not available
+     * @param project             the project context
+     * @return true if the operation was initiated successfully
+     */
+    public static boolean fixWithAugment(@NotNull String prompt, String notificationTitle,
+                                         String successMessage, String fallbackMessage, Project project) {
+        try {
+            com.checkmarx.intellij.devassist.remediation.AugmentIntegration.IntegrationResult result =
+                    com.checkmarx.intellij.devassist.remediation.AugmentIntegration.openAugmentWithPromptDetailed(
+                            prompt, project, detailedResult -> {
+                                String message;
+                                NotificationType notificationType;
+
+                                switch (detailedResult.getResult()) {
+                                    case FULL_SUCCESS:
+                                        message = successMessage;
+                                        notificationType = NotificationType.INFORMATION;
+                                        break;
+                                    case PARTIAL_SUCCESS:
+                                        message = detailedResult.getMessage();
+                                        notificationType = NotificationType.INFORMATION;
+                                        break;
+                                    case AUGMENT_NOT_AVAILABLE:
+                                        message = fallbackMessage;
+                                        notificationType = NotificationType.WARNING;
+                                        break;
+                                    default:
+                                        message = detailedResult.getMessage();
+                                        notificationType = NotificationType.ERROR;
+                                        break;
+                                }
+
+                                Utils.showNotification(notificationTitle, message, notificationType, project);
+                            });
+
+            if (result.isSuccess()) {
+                LOGGER.info("RTS-Fix-AI: Augment integration initiated successfully");
+            } else {
+                LOGGER.warn("RTS-Fix-AI: Augment integration returned: " + result.getMessage());
+            }
+
+            return result.isSuccess();
+        } catch (Exception exception) {
+            LOGGER.debug("Failed to fix with Augment: ", exception);
+            Utils.showNotification(notificationTitle, "Failed to initiate Augment fix.", NotificationType.ERROR, project);
+            return false;
+        }
+    }
+
+    /**
      * Gets the PsiElement at the start of the specified line number in the given PsiFile and Document.
      *
      * @param file       PsiFile
