@@ -184,6 +184,16 @@ public class Xpath {
     static final String WELCOME_CLOSE_BUTTON = "//div[@text='Close']";
     @Language("XPath")
     public
+    static final String WELCOME_TITLE = "//div[@text.key='WELCOME_TITLE']";
+    @Language("XPath")
+    public
+    static final String WELCOME_ASSIST_TITLE = "//div[@visible_text_keys='WELCOME_ASSIST_TITLE']";
+    @Language("XPath")
+    public
+    static final String CODE_SMART_CHECKBOX = "//div[@class='JBCheckBox']";
+    @Language("XPath")
+    public
+    static final String WELCOME_PAGE_IMAGE = "//div[@defaulticon='welcomePageScanner.svg']";
     static final String EXPAND_ALL_FOLDER = "//div[@myicon='expandall.svg']";
     @Language("XPath")
     public
