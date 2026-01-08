@@ -354,26 +354,38 @@ public class ProblemDecorator {
                         .collect(Collectors.toList());
 
                 if (!matchingFileRefs.isEmpty()) {
-                    for (IgnoreEntry.FileReference fileRef : matchingFileRefs) {
-                        boolean isVulnerabilityExist = scanIssueList.stream()
-                                .anyMatch(scanIssue -> scanIssue.getLocations().get(0).getLine() == fileRef.line);
-
-                        if (isVulnerabilityExist) {
-                            LOGGER.info(format("RTS-Decorator: Skipping ignore icon as vulnerability present on line: %s for file: %s", fileRef.line, psiFile.getName()));
-                            continue;
-                        }
-                        RangeHighlighter highlighter = markupModel.addLineHighlighter(fileRef.line - 1, 0, null);
-                        boolean alreadyHasGutterIcon = isAlreadyHasGutterIconOnLine(markupModel, editor, fileRef.line);
-                        if (!alreadyHasGutterIcon){
-                            addGutterIcon(highlighter, SeverityLevel.IGNORED.getSeverity());
-                        }
-                    }
+                    for (IgnoreEntry.FileReference fileRef : matchingFileRefs)
+                        addIgnoreIconForFileReference(psiFile, scanIssueList, markupModel, editor, fileRef);
                 }
             } catch (Exception e) {
                 LOGGER.warn(format("RTS-Decorator: Exception occurred while adding ignore icon for file: %s", psiFile.getName()), e);
             }
         }
         LOGGER.info(format("RTS-Decorator: Completed decorating UI for ignored vulnerability for file: %s", psiFile.getName()));
+    }
+
+    /**
+     * Adds an ignore icon at the specified file reference line if no vulnerability exists there.
+     */
+    private void addIgnoreIconForFileReference(PsiFile psiFile, List<ScanIssue> scanIssueList, MarkupModel markupModel, Editor editor, IgnoreEntry.FileReference fileRef) {
+        try {
+            boolean isVulnerabilityExist = scanIssueList.stream()
+                    .anyMatch(scanIssue -> Objects.nonNull(scanIssue.getLocations())
+                            && !scanIssue.getLocations().isEmpty()
+                            && scanIssue.getLocations().get(0).getLine() == fileRef.line);
+
+            if (isVulnerabilityExist) {
+                LOGGER.info(String.format("RTS-Decorator: Skipping ignore icon as vulnerability present on line: %s for file: %s", fileRef.line, psiFile.getName()));
+                return;
+            }
+            RangeHighlighter highlighter = markupModel.addLineHighlighter(fileRef.line - 1, 0, null);
+            boolean alreadyHasGutterIcon = isAlreadyHasGutterIconOnLine(markupModel, editor, fileRef.line);
+            if (!alreadyHasGutterIcon) {
+                addGutterIcon(highlighter, SeverityLevel.IGNORED.getSeverity());
+            }
+        } catch (Exception e) {
+            LOGGER.warn(format("RTS-Decorator: Exception occurred while iterating file reference adding ignore icon for file: %s", psiFile.getName()), e);
+        }
     }
 
     /**
