@@ -63,14 +63,18 @@ public final class IgnoreManager {
      */
     public void addIgnoredEntry(ScanIssue issueToIgnore, String clickId) {
         LOGGER.debug(String.format("RTS-Ignore: Adding ignore entry for issue: %s", issueToIgnore.getTitle()));
+
+        String vulnerabilityKey = createJsonKeyForIgnoreEntry(issueToIgnore, clickId);
+        if(vulnerabilityKey.isEmpty()){
+            LOGGER.debug("RTS-Ignore: Ignoring vulnerability failed. Vulnerability key is empty.");
+            return;
+        }
         // Convert ScanIssue → IgnoreEntry
         IgnoreEntry ignoreEntry = buildIgnoreEntry(issueToIgnore, clickId);
         if (Objects.isNull(ignoreEntry)) {
             Utils.showNotification(Bundle.message(Resource.IGNORE_FAILED), "", NotificationType.ERROR, project);
             return;
         }
-        // Update via IgnoreFileManager
-        String vulnerabilityKey = createJsonKeyForIgnoreEntry(issueToIgnore, clickId);
         LOGGER.debug(String.format("RTS-Ignore: Ignoring %s", vulnerabilityKey));
         ignoreFileManager.updateIgnoreData(vulnerabilityKey, ignoreEntry);
         scanFileAndUpdateResults(issueToIgnore);
@@ -355,25 +359,36 @@ public final class IgnoreManager {
         Vulnerability vulnerability;
         switch (detail.getScanEngine()) {
             case OSS:
-                return format("%s:%s:%s", detail.getPackageManager(), detail.getTitle(), detail.getPackageVersion());
+                return formatJsonKeyForIgnoreEntry(detail.getScanEngine(), detail.getPackageManager(), detail.getTitle(), detail.getPackageVersion());
             case CONTAINERS:
                 // imageName:imageTag
-                return format("%s:%s", detail.getTitle(), detail.getImageTag());
+                return formatJsonKeyForIgnoreEntry(detail.getScanEngine(), detail.getTitle(), detail.getImageTag(), "");
             case SECRETS:
                 // title:secretValue:filePath
-                return format("%s:%s:%s", detail.getTitle(), detail.getSecretValue(), relativePath);
+                return formatJsonKeyForIgnoreEntry(detail.getScanEngine(), detail.getTitle(), detail.getSecretValue(), relativePath);
             case IAC:
                 vulnerability = DevAssistUtils.getVulnerabilityDetails(detail,
                         clickId.equals(QUICK_FIX) ? detail.getScanIssueId() : clickId);
-                return format("%s:%s:%s", vulnerability.getTitle(), vulnerability.getSimilarityId(), relativePath);
+                return Objects.nonNull(vulnerability) ?
+                formatJsonKeyForIgnoreEntry(detail.getScanEngine(), vulnerability.getTitle(), vulnerability.getSimilarityId(), relativePath): "";
             case ASCA:
                 vulnerability = DevAssistUtils.getVulnerabilityDetails(detail,
                         clickId.equals(QUICK_FIX) ? detail.getScanIssueId() : clickId);
-                return format("%s:%s:%s", vulnerability.getTitle(), detail.getRuleId(), relativePath);
+                return Objects.nonNull(vulnerability) ?
+                formatJsonKeyForIgnoreEntry(detail.getScanEngine(), vulnerability.getTitle(), detail.getRuleId().toString(), relativePath) : "";
             default:
                 LOGGER.warn("Unknown scan engine: " + detail.getScanEngine() + ", using fallback key");
-                return format("%s:%s", detail.getScanEngine(), detail.getTitle());
+                return formatJsonKeyForIgnoreEntry(detail.getScanEngine(), "", "", detail.getTitle());
         }
+    }
+
+    private String formatJsonKeyForIgnoreEntry(ScanEngine scanEngine, String title, String packageName, String path){
+        if (scanEngine == ScanEngine.CONTAINERS) {
+            return format("%s:%s", title, packageName);
+        } else {
+            return format("%s:%s:%s", title, packageName, path);
+        }
+
     }
 
     private void showIgnoreSuccessNotification(ScanIssue detail, Project project) {
