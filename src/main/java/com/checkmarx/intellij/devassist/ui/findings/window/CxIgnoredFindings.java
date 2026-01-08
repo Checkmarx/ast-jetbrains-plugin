@@ -708,23 +708,19 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             panel.add(descLine);
 
             // 3. Bottom line: engine chip + file buttons (DYNAMIC HEIGHT - expands for multiple file rows)
-            JPanel fileButtonsPanel = buildFileButtons();
-            // Use BorderLayout to allow natural height expansion when file buttons wrap
-            JPanel bottomLine = new JPanel(new BorderLayout());
+            // Use WrapLayout for the entire bottom line so chip and buttons flow together on same line
+            JPanel bottomLine = new JPanel(new WrapLayout(FlowLayout.LEFT, JBUI.scale(6), JBUI.scale(4)));
             bottomLine.setOpaque(false);
 
-            // Left side: engine chip - use BorderLayout.NORTH to align with top of file buttons
-            JPanel chipPanel = new JPanel(new BorderLayout());
-            chipPanel.setOpaque(false);
-            chipPanel.setBorder(JBUI.Borders.empty(JBUI.scale(4), 0, 0, JBUI.scale(6))); // Top padding to align with buttons, right margin
-            chipPanel.add(new JLabel(getEngineChipIcon()), BorderLayout.NORTH);
-            bottomLine.add(chipPanel, BorderLayout.WEST);
+            // Add engine chip first - it will be on the same line as file buttons
+            JLabel engineChip = new JLabel(getEngineChipIcon());
+            bottomLine.add(engineChip);
 
-            // Center: file buttons (will wrap and expand height naturally)
-            bottomLine.add(fileButtonsPanel, BorderLayout.CENTER);
+            // Add file buttons directly to bottomLine
+            addFileButtonsToContainer(bottomLine, engineChip);
 
-            // Calculate actual bottom height based on file buttons (for initial sizing)
-            actualBottomHeight = calculateBottomLineHeight(fileButtonsPanel);
+            // Calculate actual bottom height based on content (for initial sizing)
+            actualBottomHeight = calculateBottomLineHeight(bottomLine);
 
             // Set minimum height, but let the layout manager determine actual height
             bottomLine.setMinimumSize(new Dimension(0, JBUI.scale(BOTTOM_LINE_HEIGHT_MIN)));
@@ -913,11 +909,14 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         // ---------- File Buttons ----------
 
-        private JPanel buildFileButtons() {
-            // Use WrapLayout to properly calculate height when buttons wrap to multiple rows
-            JPanel container = new JPanel(new WrapLayout(FlowLayout.LEFT, JBUI.scale(6), JBUI.scale(4)));
-            container.setOpaque(false);
-
+        /**
+         * Adds file buttons directly to the container (which also contains the engine chip).
+         * This ensures the engine chip and file buttons are on the same line using WrapLayout.
+         *
+         * @param container   the container to add buttons to (uses WrapLayout)
+         * @param engineChip  the engine chip label (first component, preserved during collapse)
+         */
+        private void addFileButtonsToContainer(JPanel container, JLabel engineChip) {
             List<IgnoreEntry.FileReference> activeFiles = entry.files != null
                     ? entry.files.stream().filter(f -> f != null && f.active).collect(Collectors.toList())
                     : List.of();
@@ -926,7 +925,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 JLabel none = new JLabel(Bundle.message(Resource.IGNORED_NO_FILES));
                 none.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
                 container.add(none);
-                return container;
+                return;
             }
 
             // Add first file button (always visible)
@@ -935,41 +934,124 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
             if (activeFiles.size() > 1) {
                 List<IgnoreEntry.FileReference> hidden = activeFiles.subList(1, activeFiles.size());
-                JButton expand = new JButton(Bundle.message(Resource.IGNORED_MORE_FILES, hidden.size()));
+                JLabel expand = createUnderlinedLink(Bundle.message(Resource.IGNORED_MORE_FILES, hidden.size()));
 
-                // Create "See less" button (will be added after expansion)
-                JButton collapse = new JButton(Bundle.message(Resource.IGNORED_LESS_FILES));
+                // Create "See less" link (will be added after expansion)
+                JLabel collapse = createUnderlinedLink(Bundle.message(Resource.IGNORED_LESS_FILES));
 
-                expand.addActionListener(ev -> {
-                    // Remove the expand button
-                    container.remove(expand);
-                    // Add all hidden file buttons
-                    hidden.forEach(f -> container.add(createFileButton(f)));
-                    // Add the collapse button at the end
-                    container.add(collapse);
-                    propagateRevalidateForExpansion(container);
+                expand.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        // Remove the expand link
+                        container.remove(expand);
+                        // Add all hidden file buttons
+                        hidden.forEach(f -> container.add(createFileButton(f)));
+                        // Add the collapse link at the end
+                        container.add(collapse);
+                        propagateRevalidateForExpansion(container);
+                    }
                 });
 
-                collapse.addActionListener(ev -> {
-                    // Remove all components except the first file button
-                    container.removeAll();
-                    // Re-add first file button and expand button
-                    container.add(firstFileButton);
-                    container.add(expand);
-                    propagateRevalidateForExpansion(container);
+                collapse.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        // Remove all components except the engine chip and first file button
+                        container.removeAll();
+                        // Re-add engine chip, first file button and expand link
+                        container.add(engineChip);
+                        container.add(firstFileButton);
+                        container.add(expand);
+                        propagateRevalidateForExpansion(container);
+                    }
                 });
 
                 container.add(expand);
             }
-            return container;
         }
 
+        /**
+         * Creates a file button with pill shape styling and file icon.
+         */
         private JButton createFileButton(IgnoreEntry.FileReference file) {
             String label = formatFileLabel(file);
-            JButton btn = new JButton(label);
+            JButton btn = createPillButton(label, CxIcons.Ignored.FILE_ICON);
             btn.setToolTipText(file.path + (file.line != null ? ":" + file.line : ""));
             btn.addActionListener(ev -> navigateToFile(file));
             return btn;
+        }
+
+        /**
+         * Creates a pill-shaped button with rounded corners and border styling.
+         * Dark theme: filled background (#323438) with border (#43454A)
+         * Light theme: transparent background with border only (#6F6F6F)
+         *
+         * @param text the button text
+         * @param icon optional icon to display before the text (can be null)
+         */
+        private JButton createPillButton(String text, Icon icon) {
+            JButton btn = new JButton(text) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    boolean isDark = com.intellij.util.ui.UIUtil.isUnderDarcula();
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                    int width = getWidth();
+                    int height = getHeight();
+                    int arc = isDark ? height : JBUI.scale(7); // Full pill for dark, slight rounding for light
+
+                    if (isDark) {
+                        // Dark theme: filled background
+                        g2.setColor(new Color(0x323438));
+                        g2.fillRoundRect(0, 0, width, height, arc, arc);
+                        // Border
+                        g2.setColor(new Color(0x43454A));
+                        g2.drawRoundRect(0, 0, width - 1, height - 1, arc, arc);
+                    } else {
+                        // Light theme: transparent background, border only
+                        g2.setColor(new Color(0x6F6F6F));
+                        g2.drawRoundRect(0, 0, width - 1, height - 1, arc, arc);
+                    }
+
+                    g2.dispose();
+
+                    // Paint the text and icon
+                    super.paintComponent(g);
+                }
+
+                @Override
+                public Color getForeground() {
+                    boolean isDark = com.intellij.util.ui.UIUtil.isUnderDarcula();
+                    return isDark ? new Color(0xADADAD) : new Color(0xADADAD);
+                }
+            };
+
+            if (icon != null) {
+                btn.setIcon(icon);
+                btn.setIconTextGap(JBUI.scale(3));
+            }
+            btn.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, JBUI.scale(11)));
+            btn.setBorder(JBUI.Borders.empty(1, 2)); // Compact padding for pill with icon
+            btn.setContentAreaFilled(false);
+            btn.setOpaque(false);
+            btn.setFocusPainted(false);
+
+            return btn;
+        }
+
+        /**
+         * Creates an underlined text link for expand/collapse actions.
+         * Styled as simple underlined text (not a pill button) per Figma design.
+         */
+        private JLabel createUnderlinedLink(String text) {
+            JLabel label = new JLabel("<html><u>" + text + "</u></html>");
+            label.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, 12));
+            // Use theme-specific colors per Figma: dark=#ADADAD, light=#606572
+            boolean isDarkTheme = com.intellij.util.ui.UIUtil.isUnderDarcula();
+            label.setForeground(isDarkTheme ? new Color(0xADADAD) : new Color(0x606572));
+            label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            label.setBorder(JBUI.Borders.empty(4, 4)); // Small padding for alignment
+            return label;
         }
 
         private void propagateRevalidate(Container container) {
