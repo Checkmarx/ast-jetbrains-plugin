@@ -16,7 +16,9 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 
 import java.time.Instant;
@@ -152,11 +154,15 @@ public final class IgnoreManager {
                 InspectionManager inspectionManager = InspectionManager.getInstance(project);
                 if (Objects.isNull(inspectionManager)) return;
 
+                Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
+                if (Objects.isNull(document)) return;
+
                 ProblemHelper problemHelper = ProblemHelper.builder(psiFile, project)
                         .filePath(scanIssue.getFilePath())
                         .problemHolderService(problemHolder)
                         .isOnTheFly(true)
                         .manager(inspectionManager)
+                        .document(document)
                         .build();
 
                 boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(project)
