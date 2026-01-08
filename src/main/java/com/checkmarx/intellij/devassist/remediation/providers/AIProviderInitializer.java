@@ -32,13 +32,11 @@ public final class AIProviderInitializer {
 
         AIProviderRegistry registry = AIProviderRegistry.getInstance();
 
-        // Register all providers in priority order
-        registry.registerProvider(new CopilotProvider()); // Priority 100
-        registry.registerProvider(new AugmentProvider()); // Priority 200
-        registry.registerProvider(new ClaudeCodeProvider()); // Priority 300
+        // Register GitHub Copilot provider (only supported provider)
+        registry.registerProvider(new CopilotProvider());
 
         initialized = true;
-        LOGGER.info("AI Provider Initializer: Registered " + registry.getAllProviders().size() + " providers");
+        LOGGER.info("AI Provider Initializer: Registered CopilotProvider");
     }
 
     /**

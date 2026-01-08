@@ -69,13 +69,6 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private GlobalSettingsState state;
     private final MessageBusConnection connection;
 
-    // AI Provider selection
-    private final JBLabel aiProviderTitle = new JBLabel(formatTitle("AI Provider: Preferred AI Assistant"));
-    private static final String[] AI_PROVIDER_OPTIONS = { "GitHub Copilot (Default)", "Augment Code", "Claude Code",
-            "Auto (First Available)" };
-    private static final String[] AI_PROVIDER_IDS = { "copilot", "augment", "claude", "auto" };
-    private final ComboBox<String> aiProviderCombo = new ComboBox<>(AI_PROVIDER_OPTIONS);
-
     private final JBLabel mcpStatusLabel = new JBLabel();
     private CxLinkLabel installMcpLink;
     private boolean mcpInstallInProgress;
@@ -163,18 +156,6 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
         CxLinkLabel editJsonLink = new CxLinkLabel(Bundle.message(Resource.MCP_EDIT_JSON_LINK), e -> openMcpJson());
         contentPanel.add(editJsonLink, "wrap, gapleft 15");
-
-        // AI Provider Section
-        contentPanel.add(aiProviderTitle, "split 2, span, gaptop 10");
-        contentPanel.add(new JSeparator(), "growx, wrap");
-        contentPanel.add(new JBLabel("Select AI assistant for 'Fix with AI' remediation:"), "wrap, gapleft 15");
-
-        // ComboBox already initialized with AI_PROVIDER_OPTIONS at declaration
-        // Use containersLabel width as reference since it's already calculated
-        aiProviderCombo.setPreferredSize(new Dimension(
-                containersLabel.getPreferredSize().width,
-                containersToolCombo.getPreferredSize().height));
-        contentPanel.add(aiProviderCombo, "wrap, gapleft 15, gapbottom 10");
 
         // Wrap content in scroll pane and add to main panel
         JBScrollPane scrollPane = new JBScrollPane(contentPanel);
@@ -306,8 +287,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
                 || secretsCheckbox.isSelected() != state.isSecretDetectionRealtime()
                 || containersCheckbox.isSelected() != state.isContainersRealtime()
                 || iacCheckbox.isSelected() != state.isIacRealtime()
-                || !Objects.equals(containersToolCombo.getSelectedItem(), state.getContainersTool())
-                || !Objects.equals(getSelectedAIProviderId(), state.getPreferredAIProvider());
+                || !Objects.equals(containersToolCombo.getSelectedItem(), state.getContainersTool());
     }
 
     @Override
@@ -330,9 +310,6 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         String selectedValue = (String) containersToolCombo.getSelectedItem();
         state.setContainersTool(selectedValue);
 
-        // Save AI provider preference
-        state.setPreferredAIProvider(getSelectedAIProviderId());
-
         state.setUserPreferences(ascaSelected, ossSelected, secretsSelected, containersSelected, iacSelected);
 
         ApplicationManager.getApplication().getMessageBus()
@@ -354,9 +331,6 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         containersCheckbox.setSelected(state.isContainersRealtime());
         iacCheckbox.setSelected(state.isIacRealtime());
         containersToolCombo.setSelectedItem(state.getContainersTool());
-
-        // Reset AI provider selection
-        selectAIProviderById(state.getPreferredAIProvider());
 
         updateAssistState();
     }
@@ -586,28 +560,4 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         ascaInstallationMsg.setForeground(color);
     }
 
-    // --- AI Provider ComboBox helpers ---
-
-    private String getSelectedAIProviderId() {
-        int selectedIndex = aiProviderCombo.getSelectedIndex();
-        if (selectedIndex >= 0 && selectedIndex < AI_PROVIDER_IDS.length) {
-            return AI_PROVIDER_IDS[selectedIndex];
-        }
-        return "copilot"; // Default
-    }
-
-    private void selectAIProviderById(String providerId) {
-        if (providerId == null)
-            providerId = "copilot";
-        for (int i = 0; i < AI_PROVIDER_IDS.length; i++) {
-            if (AI_PROVIDER_IDS[i].equals(providerId)) {
-                aiProviderCombo.setSelectedIndex(i);
-                return;
-            }
-        }
-        // Default to first item (copilot) if not found
-        if (aiProviderCombo.getItemCount() > 0) {
-            aiProviderCombo.setSelectedIndex(0);
-        }
-    }
 }

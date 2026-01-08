@@ -11,11 +11,9 @@ import java.util.function.Consumer;
  * prompts.
  * 
  * <p>
- * Implementations of this interface provide integration with specific AI
- * assistants
- * like GitHub Copilot, Augment Code, or Claude Code. Each provider handles the
- * specifics
- * of opening the AI assistant, sending prompts, and managing the interaction.
+ * Implementations of this interface provide integration with AI assistants
+ * like GitHub Copilot. Each provider handles the specifics of opening the
+ * AI assistant, sending prompts, and managing the interaction.
  * 
  * <p>
  * The provider system supports:
@@ -31,7 +29,7 @@ public interface AIProvider {
      * Returns the unique identifier for this provider.
      * Used for configuration and persistence.
      * 
-     * @return provider identifier (e.g., "copilot", "augment", "claude")
+     * @return provider identifier (e.g., "copilot")
      */
     @NotNull
     String getId();
@@ -40,7 +38,7 @@ public interface AIProvider {
      * Returns the human-readable display name for this provider.
      * Used in UI elements and notifications.
      * 
-     * @return display name (e.g., "GitHub Copilot", "Augment Code")
+     * @return display name (e.g., "GitHub Copilot")
      */
     @NotNull
     String getDisplayName();
@@ -83,8 +81,7 @@ public interface AIProvider {
      * Lower values indicate higher priority.
      * Used when auto-selecting a provider.
      * 
-     * @return priority value (default providers: Copilot=100, Augment=200,
-     *         Claude=300)
+     * @return priority value (lower = higher priority)
      */
     default int getPriority() {
         return 500;

@@ -83,20 +83,19 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     // --- AI Provider Settings ---
     /**
      * User's preferred AI provider for "Fix with AI" feature.
-     * Valid values: "auto", "copilot", "augment", "claude"
-     * Default is "copilot" (GitHub Copilot)
+     * Currently only GitHub Copilot ("copilot") is supported.
      */
     @Attribute("preferredAIProvider")
     private String preferredAIProvider = "copilot";
 
     /**
      * Returns the user's preferred AI provider ID.
+     * Currently always returns "copilot" as it's the only supported provider.
      * 
-     * @return provider ID (e.g., "copilot", "augment", "claude", or "auto" for
-     *         auto-selection)
+     * @return provider ID ("copilot")
      */
     public String getPreferredAIProvider() {
-        return preferredAIProvider != null ? preferredAIProvider : "copilot";
+        return "copilot";
     }
 
     /**
