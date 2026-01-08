@@ -8,6 +8,7 @@ import com.checkmarx.intellij.devassist.ignore.IgnoreEntry;
 import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.ui.actions.IgnoredFindingsToolbarActions;
+import com.checkmarx.intellij.devassist.ui.layout.WrapLayout;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.SettingsListener;
@@ -67,6 +68,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
     private static final Logger LOGGER = Utils.getLogger(CxIgnoredFindings.class);
     private static final String IGNORE_FILE_PATH = ".idea/.checkmarxIgnored";
+    private static final String FONT_FAMILY_MENLO = "Menlo";
+    private static final String FONT_FAMILY_INTER = "Inter";
+    private static final String FONT_FAMILY_SF_PRO = "SF Pro";
 
     // ========== Instance Fields ==========
     private final Project project;
@@ -413,13 +417,14 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         columns.setBackground(JBUI.CurrentTheme.ToolWindow.background());
         columns.setBorder(JBUI.Borders.empty(12, 0, 8, 0));
 
-        // Checkbox | Risk | Last Updated | Actions
+        // Checkbox | Risk (expands) | Last Updated | Actions
         columns.add(createFixedColumn(50, createSelectAllCheckbox()));
         columns.add(Box.createRigidArea(new Dimension(JBUI.scale(12), 0)));
-        columns.add(createFlexibleColumn(Bundle.message(Resource.IGNORED_RISK_COLUMN), 400, 500, 800, FlowLayout.LEFT));
-        columns.add(Box.createHorizontalGlue());
-        columns.add(createFlexibleColumn(Bundle.message(Resource.IGNORED_LAST_UPDATED_COLUMN), 120, 140, 160, FlowLayout.CENTER));
-        columns.add(Box.createHorizontalGlue());
+        columns.add(createFlexibleColumn(Bundle.message(Resource.IGNORED_RISK_COLUMN), 400, 500, Integer.MAX_VALUE, FlowLayout.LEFT, FONT_FAMILY_INTER));
+        // Risk column expands to fill space - no glue needed here
+        // Use HTML to prevent text wrapping in header
+        columns.add(createFlexibleColumn("<html><nobr>" + Bundle.message(Resource.IGNORED_LAST_UPDATED_COLUMN) + "</nobr></html>", 120, 140, 160, FlowLayout.CENTER, FONT_FAMILY_SF_PRO));
+        columns.add(Box.createHorizontalGlue());  // Push Actions to right edge
         columns.add(createFixedColumn(140, null));
 
         headerPanel.add(columns, BorderLayout.CENTER);
@@ -447,7 +452,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     }
 
     @SuppressWarnings("MagicConstant")
-    private JPanel createFlexibleColumn(String title, int min, int pref, int max, int alignment) {
+    private JPanel createFlexibleColumn(String title, int min, int pref, int max, int alignment, String fontFamily) {
         JPanel panel = new JPanel(new FlowLayout(alignment, alignment == FlowLayout.LEFT ? JBUI.scale(20) : 0, 0));
         panel.setOpaque(false);
         panel.setMinimumSize(new Dimension(JBUI.scale(min), JBUI.scale(HEADER_ROW_HEIGHT)));
@@ -455,7 +460,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         panel.setMaximumSize(new Dimension(JBUI.scale(max), JBUI.scale(HEADER_ROW_HEIGHT)));
 
         JLabel label = new JLabel(title);
-        label.setFont(JBUI.Fonts.label(12).asBold());
+        label.setFont(new Font(fontFamily, Font.PLAIN, 14));
         label.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
         panel.add(label);
         return panel;
@@ -534,9 +539,11 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             setLayout(new BorderLayout());
             setBorder(JBUI.Borders.empty(8, 12));
             setBackground(JBUI.CurrentTheme.ToolWindow.background());
-            setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(96)));
+            // Allow row to expand based on content - no max height constraint
+            // Content will be: title (50px) + description (max 2 lines ~36px) + bottom line (expands with file buttons)
+            setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
 
-            add(buildRowPanel(), BorderLayout.CENTER);
+            add(buildRowPanel(), BorderLayout.CENTER);  // Use CENTER to allow vertical expansion
             setupHoverEffect();
         }
 
@@ -547,12 +554,16 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
             row.setOpaque(false);
 
+            // Build risk column FIRST to calculate dynamic heights
+            JPanel riskColumn = buildRiskColumn();
+
+            // Now build other columns using the calculated heights
             row.add(buildCheckboxColumn());
             row.add(Box.createRigidArea(new Dimension(JBUI.scale(12), 0)));
-            row.add(buildRiskColumn());
-            row.add(Box.createHorizontalGlue());
+            row.add(riskColumn);
+            // Risk column expands to fill space - no glue needed here
             row.add(buildLastUpdatedColumn());
-            row.add(Box.createHorizontalGlue());
+            row.add(Box.createHorizontalGlue());  // Push Actions to right edge
             row.add(buildActionsColumn());
 
             return row;
@@ -563,17 +574,37 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
             wrapper.setOpaque(false);
             wrapper.add(selectCheckBox);
-            panel.add(wrapper, BorderLayout.CENTER);
+            panel.add(wrapper, BorderLayout.NORTH);  // Align checkbox to top
             return panel;
         }
 
         private JPanel buildRiskColumn() {
             JPanel riskPanel = buildRiskContent();
-            setColumnSizes(riskPanel, 400, 500, 800, 60);
 
-            JPanel container = new JPanel(new BorderLayout());
+            // Use a custom panel that constrains width but allows dynamic height
+            JPanel container = new JPanel(new BorderLayout()) {
+                @Override
+                public Dimension getPreferredSize() {
+                    Dimension contentPref = riskPanel.getPreferredSize();
+                    // Match header column preferred width (500), but use content's height
+                    return new Dimension(JBUI.scale(500), contentPref.height);
+                }
+
+                @Override
+                public Dimension getMinimumSize() {
+                    Dimension contentMin = riskPanel.getMinimumSize();
+                    // Match header column minimum width (400), but use content's height
+                    return new Dimension(JBUI.scale(400), contentMin.height);
+                }
+
+                @Override
+                public Dimension getMaximumSize() {
+                    Dimension contentMax = riskPanel.getMaximumSize();
+                    // Allow horizontal expansion, use content's max height
+                    return new Dimension(Integer.MAX_VALUE, contentMax.height);
+                }
+            };
             container.setOpaque(false);
-            setColumnSizes(container, 400, 500, 800, 60);
             container.add(riskPanel, BorderLayout.CENTER);
             return container;
         }
@@ -581,13 +612,12 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         private JPanel buildLastUpdatedColumn() {
             JPanel panel = new JPanel(new BorderLayout());
             panel.setOpaque(false);
-            setColumnSizes(panel, 120, 140, 160, ROW_HEIGHT);
+            setColumnSizes(panel, 120, 140, 160, getCalculatedRowHeight());
 
             JLabel label = new JLabel(formatRelativeDate(entry.dateAdded));
-            label.setFont(JBUI.Fonts.label(12));
-            label.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
+            label.setFont(new Font(FONT_FAMILY_MENLO, Font.PLAIN, 14));
             label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setVerticalAlignment(SwingConstants.TOP);
+            label.setVerticalAlignment(SwingConstants.CENTER);  // Align to top for dynamic height
             panel.add(label, BorderLayout.CENTER);
             return panel;
         }
@@ -595,7 +625,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         private JPanel buildActionsColumn() {
             JPanel panel = new JPanel(new GridBagLayout());
             panel.setOpaque(false);
-            setColumnSizes(panel, 120, 140, 160, ROW_HEIGHT);
+            setColumnSizes(panel, 120, 140, 160, getCalculatedRowHeight());
 
             JButton reviveButton = new JButton(CxIcons.Ignored.REVIVE);
             reviveButton.setPreferredSize(new Dimension(JBUI.scale(90), JBUI.scale(28)));
@@ -611,33 +641,221 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         // ---------- Risk Panel Content ----------
 
+        // Height constants for each section
+        private static final int TOP_LINE_HEIGHT = 50;          // Title line with icons (FIXED)
+        private static final int DESC_LINE_HEIGHT_MAX = 36;     // Max 2 lines of text (18px per line)
+        private static final int DESC_LINE_HEIGHT_MIN = 18;     // Min 1 line of text
+        private static final int DESC_MAX_LINES = 2;            // Maximum lines for description
+        private static final int BOTTOM_LINE_HEIGHT_MIN = 40;   // Min height for engine chip + file buttons (increased for button visibility)
+        private static final int BOTTOM_LINE_ITEM_HEIGHT = 32;  // Height per row of file buttons (increased for proper button display)
+
+        // Dynamic heights calculated during buildRiskContent()
+        private int actualDescHeight = DESC_LINE_HEIGHT_MAX;
+        private int actualBottomHeight = BOTTOM_LINE_HEIGHT_MIN;
+
         private JPanel buildRiskContent() {
+            // Use BoxLayout with dynamic-height sections
             JPanel panel = new JPanel();
             panel.setOpaque(false);
             panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-            panel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            // Top: card icon + severity icon + name
-            JPanel topLine = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(8), 0));
+            // 1. Top line: card icon + severity icon + name (FIXED HEIGHT = 50px)
+            JPanel topLine = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(8), JBUI.scale(4)));
             topLine.setOpaque(false);
             topLine.add(new JLabel(getCardIcon()));
             topLine.add(new JLabel(getSeverityIcon()));
 
             String name = formatDisplayName();
             JLabel nameLabel = new JLabel(name);
-            nameLabel.setFont(JBUI.Fonts.label(13).asBold());
+            nameLabel.setFont(new Font(FONT_FAMILY_MENLO, Font.BOLD, 14));
             nameLabel.setToolTipText(name);
             topLine.add(nameLabel);
+            // Fix topLine height
+            Dimension topLineSize = new Dimension(Integer.MAX_VALUE, JBUI.scale(TOP_LINE_HEIGHT));
+            topLine.setPreferredSize(topLineSize);
+            topLine.setMinimumSize(new Dimension(0, JBUI.scale(TOP_LINE_HEIGHT)));
+            topLine.setMaximumSize(topLineSize);
             panel.add(topLine);
 
-            // Bottom: engine chip and file buttons
-            JPanel bottomLine = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(8), JBUI.scale(2)));
+            // 2. Description line: DYNAMIC HEIGHT (shrinks for short text, max DESC_MAX_LINES lines)
+            String descText = getDescriptionText();
+            String truncatedDesc = truncateToLines(descText, DESC_MAX_LINES);
+            JTextArea descArea = new JTextArea(truncatedDesc);
+            descArea.setFont(new Font(FONT_FAMILY_MENLO, Font.PLAIN, 14));
+            descArea.setLineWrap(true);
+            descArea.setWrapStyleWord(true);
+            descArea.setEditable(false);
+            descArea.setOpaque(false);
+            descArea.setToolTipText(descText);  // Full text in tooltip
+
+            // Calculate actual description height based on content
+            actualDescHeight = calculateDescriptionHeight(truncatedDesc, descArea.getFont());
+
+            Dimension descSize = new Dimension(Integer.MAX_VALUE, JBUI.scale(actualDescHeight));
+            descArea.setPreferredSize(descSize);
+            descArea.setMinimumSize(new Dimension(0, JBUI.scale(actualDescHeight)));
+            descArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(DESC_LINE_HEIGHT_MAX)));
+
+            JPanel descLine = new JPanel(new BorderLayout());
+            descLine.setOpaque(false);
+            descLine.setBorder(JBUI.Borders.empty(JBUI.scale(2), JBUI.scale(8), JBUI.scale(2), 0));
+            descLine.add(descArea, BorderLayout.CENTER);
+            // Dynamic descLine height (descArea height + padding)
+            int descLineHeight = JBUI.scale(actualDescHeight + 4);
+            descLine.setPreferredSize(new Dimension(Integer.MAX_VALUE, descLineHeight));
+            descLine.setMinimumSize(new Dimension(0, descLineHeight));
+            descLine.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(DESC_LINE_HEIGHT_MAX + 4)));
+            panel.add(descLine);
+
+            // 3. Bottom line: engine chip + file buttons (DYNAMIC HEIGHT - expands for multiple file rows)
+            // Use WrapLayout for the entire bottom line so chip and buttons flow together on same line
+            JPanel bottomLine = new JPanel(new WrapLayout(FlowLayout.LEFT, JBUI.scale(6), JBUI.scale(4)));
             bottomLine.setOpaque(false);
-            bottomLine.add(new JLabel(getEngineChipIcon()));
-            bottomLine.add(buildFileButtons());
+
+            // Add engine chip first - it will be on the same line as file buttons
+            JLabel engineChip = new JLabel(getEngineChipIcon());
+            bottomLine.add(engineChip);
+
+            // Add file buttons directly to bottomLine
+            addFileButtonsToContainer(bottomLine, engineChip);
+
+            // Calculate actual bottom height based on content (for initial sizing)
+            actualBottomHeight = calculateBottomLineHeight(bottomLine);
+
+            // Set minimum height, but let the layout manager determine actual height
+            bottomLine.setMinimumSize(new Dimension(0, JBUI.scale(BOTTOM_LINE_HEIGHT_MIN)));
+            // Don't set preferred/max height - let it grow naturally with content
             panel.add(bottomLine);
 
             return panel;
+        }
+
+        /**
+         * Calculates the height needed for the description based on text length.
+         * Returns height for 1-3 lines depending on content.
+         */
+        private int calculateDescriptionHeight(String text, Font font) {
+            if (text == null || text.isEmpty()) {
+                return DESC_LINE_HEIGHT_MIN;
+            }
+
+            // Get font metrics for accurate line height calculation
+            FontMetrics fm = getFontMetrics(font);
+            int lineHeight = fm.getHeight();
+
+            // Estimate number of lines based on character count
+            // With expanded Risk column, allow 120 chars per line (matching truncateToLines)
+            int charsPerLine = 120;
+            int estimatedLines = (int) Math.ceil((double) text.length() / charsPerLine);
+
+            // Also count actual newlines in the text
+            int newlineCount = (int) text.chars().filter(c -> c == '\n').count();
+            estimatedLines = Math.max(estimatedLines, newlineCount + 1);
+
+            // Clamp between 1 and DESC_MAX_LINES lines
+            int actualLines = Math.min(DESC_MAX_LINES, Math.max(1, estimatedLines));
+
+            return actualLines * lineHeight;
+        }
+
+        /**
+         * Calculates the height needed for the bottom line based on file buttons.
+         * Returns minimum height if few buttons, expands for multiple rows.
+         */
+        private int calculateBottomLineHeight(JPanel fileButtonsPanel) {
+            // Count the number of file buttons
+            int buttonCount = 0;
+            for (Component comp : fileButtonsPanel.getComponents()) {
+                if (comp instanceof JButton) {
+                    buttonCount++;
+                }
+            }
+
+            // Estimate buttons per row based on expanded Risk column width
+            // With wider column (~600-800px available), more buttons fit per row
+            // Assuming ~120px per button (including spacing), ~600px available width
+            int buttonsPerRow = 5;
+            int rows = (int) Math.ceil((double) Math.max(1, buttonCount) / buttonsPerRow);
+
+            // Calculate height: base height + additional rows
+            return BOTTOM_LINE_HEIGHT_MIN + (Math.max(0, rows - 1) * BOTTOM_LINE_ITEM_HEIGHT);
+        }
+
+        /**
+         * Returns the total calculated row height for this entry.
+         */
+        private int getCalculatedRowHeight() {
+            return TOP_LINE_HEIGHT + actualDescHeight + 4 + actualBottomHeight;
+        }
+
+        /**
+         * Truncates text to approximately the specified number of lines.
+         * Adds "..." if truncated.
+         * Uses character count based on expanded Risk column width.
+         */
+        private String truncateToLines(String text, int maxLines) {
+            if (text == null || text.isEmpty()) return text;
+
+            // With expanded Risk column, allow 120 chars per line
+            // For 2 lines: 120 * 2 = 240 characters max
+            int charsPerLine = 120;
+            int maxChars = maxLines * charsPerLine;
+
+            if (text.length() <= maxChars) {
+                return text;
+            }
+
+            // Truncate and add ellipsis
+            // Leave room for "..." (3 chars)
+            String truncated = text.substring(0, maxChars - 3);
+            // Try to break at a word boundary
+            int lastSpace = truncated.lastIndexOf(' ');
+            if (lastSpace > (maxChars - 3) - 15) {
+                truncated = truncated.substring(0, lastSpace);
+            }
+            return truncated + "...";
+        }
+
+        /**
+         * Returns the description text based on scanner type and entry data.
+         * - ASCA (SAST): Display description field if available
+         * - IaC: Display description field if available
+         * - Secrets: Display description field if available
+         * - OSS (SCA): If severity is MALICIOUS, display "This is a malicious package!"; otherwise description or fallback
+         * - Containers: Display description field if available, or fallback
+         */
+        private String getDescriptionText() {
+            String fallback = Bundle.message(Resource.IGNORED_DESCRIPTION_NOT_AVAILABLE);
+
+            if (entry.type == null) {
+                return isNotBlank(entry.description) ? entry.description : fallback;
+            }
+
+            switch (entry.type) {
+                case OSS:
+                    // For OSS/SCA: if severity is MALICIOUS, show special message
+                    if ("MALICIOUS".equalsIgnoreCase(entry.severity)) {
+                        return Bundle.message(Resource.IGNORED_MALICIOUS_PACKAGE_DESC);
+                    }
+                    return isNotBlank(entry.description) ? entry.description : fallback;
+
+                case ASCA:
+                case IAC:
+                case SECRETS:
+                    // For ASCA, IaC, Secrets: display description if available
+                    return isNotBlank(entry.description) ? entry.description : fallback;
+
+                case CONTAINERS:
+                    // For Containers: display description if available, or fallback
+                    return isNotBlank(entry.description) ? entry.description : fallback;
+
+                default:
+                    return isNotBlank(entry.description) ? entry.description : fallback;
+            }
+        }
+
+        private boolean isNotBlank(String str) {
+            return str != null && !str.trim().isEmpty();
         }
 
         // ---------- Icon Helpers ----------
@@ -645,11 +863,11 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         private Icon getSeverityIcon() {
             if (entry.severity == null) return CxIcons.Small.UNKNOWN;
             switch (entry.severity.toLowerCase()) {
-                case "critical": return CxIcons.Small.CRITICAL;
-                case "high": return CxIcons.Small.HIGH;
-                case "medium": return CxIcons.Small.MEDIUM;
-                case "low": return CxIcons.Small.LOW;
-                case "malicious": return CxIcons.Small.MALICIOUS;
+                case "critical": return CxIcons.Medium.CRITICAL;
+                case "high": return CxIcons.Medium.HIGH;
+                case "medium": return CxIcons.Medium.MEDIUM;
+                case "low": return CxIcons.Medium.LOW;
+                case "malicious": return CxIcons.Medium.MALICIOUS;
                 default: return CxIcons.Small.UNKNOWN;
             }
         }
@@ -691,10 +909,14 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         // ---------- File Buttons ----------
 
-        private JPanel buildFileButtons() {
-            JPanel container = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(6), 0));
-            container.setOpaque(false);
-
+        /**
+         * Adds file buttons directly to the container (which also contains the engine chip).
+         * This ensures the engine chip and file buttons are on the same line using WrapLayout.
+         *
+         * @param container   the container to add buttons to (uses WrapLayout)
+         * @param engineChip  the engine chip label (first component, preserved during collapse)
+         */
+        private void addFileButtonsToContainer(JPanel container, JLabel engineChip) {
             List<IgnoreEntry.FileReference> activeFiles = entry.files != null
                     ? entry.files.stream().filter(f -> f != null && f.active).collect(Collectors.toList())
                     : List.of();
@@ -703,36 +925,192 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 JLabel none = new JLabel(Bundle.message(Resource.IGNORED_NO_FILES));
                 none.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
                 container.add(none);
-                return container;
+                return;
             }
 
-            container.add(createFileButton(activeFiles.get(0)));
+            // Add first file button (always visible)
+            JButton firstFileButton = createFileButton(activeFiles.get(0));
+            container.add(firstFileButton);
 
             if (activeFiles.size() > 1) {
                 List<IgnoreEntry.FileReference> hidden = activeFiles.subList(1, activeFiles.size());
-                JButton expand = new JButton(Bundle.message(Resource.IGNORED_MORE_FILES, hidden.size()));
-                expand.addActionListener(ev -> {
-                    container.remove(expand);
-                    hidden.forEach(f -> container.add(createFileButton(f)));
-                    propagateRevalidate(container);
+                JLabel expand = createUnderlinedLink(Bundle.message(Resource.IGNORED_MORE_FILES, hidden.size()));
+
+                // Create "See less" link (will be added after expansion)
+                JLabel collapse = createUnderlinedLink(Bundle.message(Resource.IGNORED_LESS_FILES));
+
+                expand.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        // Remove the expand link
+                        container.remove(expand);
+                        // Add all hidden file buttons
+                        hidden.forEach(f -> container.add(createFileButton(f)));
+                        // Add the collapse link at the end
+                        container.add(collapse);
+                        propagateRevalidateForExpansion(container);
+                    }
                 });
+
+                collapse.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        // Remove all components except the engine chip and first file button
+                        container.removeAll();
+                        // Re-add engine chip, first file button and expand link
+                        container.add(engineChip);
+                        container.add(firstFileButton);
+                        container.add(expand);
+                        propagateRevalidateForExpansion(container);
+                    }
+                });
+
                 container.add(expand);
             }
-            return container;
         }
 
+        /**
+         * Creates a file button with pill shape styling and file icon.
+         */
         private JButton createFileButton(IgnoreEntry.FileReference file) {
             String label = formatFileLabel(file);
-            JButton btn = new JButton(label);
+            JButton btn = createPillButton(label, CxIcons.Ignored.FILE_ICON);
             btn.setToolTipText(file.path + (file.line != null ? ":" + file.line : ""));
             btn.addActionListener(ev -> navigateToFile(file));
             return btn;
         }
 
+        /**
+         * Creates a pill-shaped button with rounded corners and border styling.
+         * Dark theme: filled background (#323438) with border (#43454A)
+         * Light theme: transparent background with border only (#6F6F6F)
+         *
+         * @param text the button text
+         * @param icon optional icon to display before the text (can be null)
+         */
+        private JButton createPillButton(String text, Icon icon) {
+            JButton btn = new JButton(text) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    boolean isDark = com.intellij.util.ui.UIUtil.isUnderDarcula();
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                    int width = getWidth();
+                    int height = getHeight();
+                    int arc = isDark ? height : JBUI.scale(7); // Full pill for dark, slight rounding for light
+
+                    if (isDark) {
+                        // Dark theme: filled background
+                        g2.setColor(new Color(0x323438));
+                        g2.fillRoundRect(0, 0, width, height, arc, arc);
+                        // Border
+                        g2.setColor(new Color(0x43454A));
+                        g2.drawRoundRect(0, 0, width - 1, height - 1, arc, arc);
+                    } else {
+                        // Light theme: transparent background, border only
+                        g2.setColor(new Color(0x6F6F6F));
+                        g2.drawRoundRect(0, 0, width - 1, height - 1, arc, arc);
+                    }
+
+                    g2.dispose();
+
+                    // Paint the text and icon
+                    super.paintComponent(g);
+                }
+
+                @Override
+                public Color getForeground() {
+                    boolean isDark = com.intellij.util.ui.UIUtil.isUnderDarcula();
+                    return isDark ? new Color(0xADADAD) : new Color(0xADADAD);
+                }
+            };
+
+            if (icon != null) {
+                btn.setIcon(icon);
+                btn.setIconTextGap(JBUI.scale(3));
+            }
+            btn.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, JBUI.scale(11)));
+            btn.setBorder(JBUI.Borders.empty(1, 2)); // Compact padding for pill with icon
+            btn.setContentAreaFilled(false);
+            btn.setOpaque(false);
+            btn.setFocusPainted(false);
+
+            return btn;
+        }
+
+        /**
+         * Creates an underlined text link for expand/collapse actions.
+         * Styled as simple underlined text (not a pill button) per Figma design.
+         */
+        private JLabel createUnderlinedLink(String text) {
+            JLabel label = new JLabel("<html><u>" + text + "</u></html>");
+            label.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, 12));
+            // Use theme-specific colors per Figma: dark=#ADADAD, light=#606572
+            boolean isDarkTheme = com.intellij.util.ui.UIUtil.isUnderDarcula();
+            label.setForeground(isDarkTheme ? new Color(0xADADAD) : new Color(0x606572));
+            label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            label.setBorder(JBUI.Borders.empty(4, 4)); // Small padding for alignment
+            return label;
+        }
+
         private void propagateRevalidate(Container container) {
+            // Revalidate the entire IgnoredEntryPanel to recalculate row height
             Container parent = container;
-            while (parent != null && !(parent instanceof JScrollPane)) parent = parent.getParent();
-            if (parent != null) { parent.revalidate(); parent.repaint(); }
+            while (parent != null) {
+                if (parent instanceof IgnoredEntryPanel) {
+                    parent.revalidate();
+                    parent.repaint();
+                    // Also revalidate the scroll pane to update scrollbar
+                    Container scrollParent = parent.getParent();
+                    while (scrollParent != null && !(scrollParent instanceof JScrollPane)) {
+                        scrollParent = scrollParent.getParent();
+                    }
+                    if (scrollParent != null) {
+                        scrollParent.revalidate();
+                        scrollParent.repaint();
+                    }
+                    return;
+                }
+                parent = parent.getParent();
+            }
+        }
+
+        /**
+         * Revalidates the entire component hierarchy when file buttons are expanded/collapsed.
+         * This ensures the row height properly adjusts to accommodate wrapped file buttons.
+         */
+        private void propagateRevalidateForExpansion(Container container) {
+            // First revalidate the container itself
+            container.revalidate();
+
+            // Walk up to find the IgnoredEntryPanel and revalidate the entire hierarchy
+            Container parent = container;
+            while (parent != null) {
+                parent.revalidate();
+                if (parent instanceof IgnoredEntryPanel) {
+                    // Found the entry panel - now revalidate all parents up to scroll pane
+                    Container scrollParent = parent.getParent();
+                    while (scrollParent != null) {
+                        scrollParent.revalidate();
+                        if (scrollParent instanceof JScrollPane) {
+                            break;
+                        }
+                        scrollParent = scrollParent.getParent();
+                    }
+                    // Force immediate layout recalculation
+                    parent.invalidate();
+                    parent.validate();
+                    parent.repaint();
+
+                    // Also repaint the scroll pane
+                    if (scrollParent != null) {
+                        scrollParent.repaint();
+                    }
+                    return;
+                }
+                parent = parent.getParent();
+            }
         }
 
         // ---------- File Navigation ----------
@@ -790,8 +1168,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         private String formatFileLabel(IgnoreEntry.FileReference f) {
             if (f == null || f.path == null) return "file";
             try {
-                String name = Paths.get(f.path).getFileName().toString();
-                return f.line != null ? name + ":" + f.line : name;
+                // Only show filename, not line number (line number is shown in tooltip)
+                return Paths.get(f.path).getFileName().toString();
             } catch (Exception ex) {
                 return f.line != null ? f.path + ":" + f.line : f.path;
             }
@@ -835,24 +1213,27 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         // ---------- UI Helpers ----------
 
         private static final int CHECKBOX_COL_WIDTH = 50;
-        private static final int ROW_HEIGHT = 80;
-        private static final int ROW_MAX_HEIGHT = 96;
+        // Default ROW_HEIGHT for columns that don't have dynamic content
+        // TOP_LINE_HEIGHT(50) + DESC_LINE_HEIGHT_MAX(54) + padding(4) + BOTTOM_LINE_HEIGHT_MIN(32) = 140
+        private static final int DEFAULT_ROW_HEIGHT = TOP_LINE_HEIGHT + DESC_LINE_HEIGHT_MAX + 4 + BOTTOM_LINE_HEIGHT_MIN;
 
-        /** Creates a panel for the checkbox column with fixed dimensions. */
+        /** Creates a panel for the checkbox column with dynamic dimensions based on row content. */
         private JPanel createCheckboxColumnPanel() {
             JPanel panel = new JPanel(new BorderLayout());
             panel.setOpaque(false);
-            panel.setPreferredSize(new Dimension(JBUI.scale(CHECKBOX_COL_WIDTH), JBUI.scale(ROW_HEIGHT)));
-            panel.setMinimumSize(new Dimension(JBUI.scale(CHECKBOX_COL_WIDTH), JBUI.scale(ROW_HEIGHT)));
-            panel.setMaximumSize(new Dimension(JBUI.scale(CHECKBOX_COL_WIDTH), JBUI.scale(ROW_MAX_HEIGHT)));
+            int dynamicHeight = JBUI.scale(getCalculatedRowHeight());
+            panel.setPreferredSize(new Dimension(JBUI.scale(CHECKBOX_COL_WIDTH), dynamicHeight));
+            panel.setMinimumSize(new Dimension(JBUI.scale(CHECKBOX_COL_WIDTH), dynamicHeight));
+            panel.setMaximumSize(new Dimension(JBUI.scale(CHECKBOX_COL_WIDTH), Integer.MAX_VALUE)); // Allow expansion
             return panel;
         }
 
-        /** Sets horizontal sizing with flexible height (min=minH, pref=ROW_HEIGHT, max=unlimited). */
+        /** Sets horizontal sizing with dynamic height based on row content. */
         private void setColumnSizes(JPanel panel, int minW, int prefW, int maxW, int minH) {
+            int dynamicHeight = getCalculatedRowHeight();
             panel.setMinimumSize(new Dimension(JBUI.scale(minW), JBUI.scale(minH)));
-            panel.setPreferredSize(new Dimension(JBUI.scale(prefW), JBUI.scale(ROW_HEIGHT)));
-            panel.setMaximumSize(new Dimension(JBUI.scale(maxW), Integer.MAX_VALUE));
+            panel.setPreferredSize(new Dimension(JBUI.scale(prefW), JBUI.scale(dynamicHeight)));
+            panel.setMaximumSize(new Dimension(JBUI.scale(maxW), Integer.MAX_VALUE)); // Allow expansion
         }
 
         private void setupHoverEffect() {
