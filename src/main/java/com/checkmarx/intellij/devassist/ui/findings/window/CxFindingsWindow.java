@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.devassist.ui.findings.window;
 
 import com.checkmarx.intellij.*;
+import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
@@ -12,6 +13,7 @@ import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
+import com.checkmarx.intellij.tool.window.DevAssistPromotionalPanel;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,6 +38,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
+import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
@@ -88,6 +91,8 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
 
     private final RemediationManager remediationManager = new RemediationManager();
 
+    private boolean treeInitialized = false;
+
     public CxFindingsWindow(Project project, Content content) {
         super(false, true);
         this.project = project;
@@ -95,31 +100,79 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         this.rootNode = new DefaultMutableTreeNode();
         this.content = content;
 
-        // Setup initial UI based on settings validity, subscribe to settings changes
+        // Setup initial UI based on authentication and license status
+        // License Matrix for Findings tab:
+        // - NOT authenticated: Show auth panel
+        // - Authenticated + (One Assist OR Dev Assist): Show split view (findings + promotional)
+        // - Authenticated + no license: Show full-screen promotional panel
         Runnable settingsCheckRunnable = () -> {
-            if (new GlobalSettingsComponent().isValid()) {
-                drawMainPanel();
-            } else {
+            try {
+                if (!new GlobalSettingsComponent().isValid()) {
+                    LOGGER.info("CxFindingsWindow: Not authenticated - showing auth panel");
+                    drawAuthPanel();
+                } else {
+                    // Authenticated - check licenses
+                    boolean hasOneAssist = checkOneAssistLicense();
+                    boolean hasDevAssist = checkDevAssistLicense();
+                    boolean hasAnyLicense = hasOneAssist || hasDevAssist;
+
+                    LOGGER.info("CxFindingsWindow: Authenticated, hasOneAssist=" + hasOneAssist
+                            + ", hasDevAssist=" + hasDevAssist + ", hasAnyLicense=" + hasAnyLicense);
+
+                    if (hasAnyLicense) {
+                        // Show split view: findings on left, promotional on right
+                        drawSplitPanel();
+                    } else {
+                        // No license - show full-screen promotional panel
+                        drawPromotionalPanel();
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.error("CxFindingsWindow: Error during settings check, showing auth panel as fallback", e);
                 drawAuthPanel();
             }
         };
 
-        project.getMessageBus().connect(this)
-                .subscribe(VulnerabilityFilterBaseAction.TOPIC,
-                        (VulnerabilityFilterBaseAction.VulnerabilityFilterChanged) () -> ApplicationManager.getApplication().invokeLater(this::triggerRefreshTree));
+        // Timer for updating tab title count - initialize early to avoid final field issues
+        timer = new Timer(1000, e -> updateTabTitle());
 
-        ApplicationManager.getApplication().getMessageBus()
-                .connect(this)
-                .subscribe(SettingsListener.SETTINGS_APPLIED, new SettingsListener() {
-                    @Override
-                    public void settingsApplied() {
-                        settingsCheckRunnable.run();
-                    }
-                });
+        try {
+            project.getMessageBus().connect(this)
+                    .subscribe(VulnerabilityFilterBaseAction.TOPIC,
+                            (VulnerabilityFilterBaseAction.VulnerabilityFilterChanged) () -> ApplicationManager.getApplication().invokeLater(this::triggerRefreshTree));
 
-        settingsCheckRunnable.run();
+            ApplicationManager.getApplication().getMessageBus()
+                    .connect(this)
+                    .subscribe(SettingsListener.SETTINGS_APPLIED, new SettingsListener() {
+                        @Override
+                        public void settingsApplied() {
+                            settingsCheckRunnable.run();
+                        }
+                    });
 
-        LOGGER.debug("Initiated the custom problem window for project: " + project.getName());
+            settingsCheckRunnable.run();
+
+            LOGGER.debug("Initiated the custom problem window for project: " + project.getName());
+
+            timer.start();
+            Disposer.register(this, () -> timer.stop());
+        } catch (Exception e) {
+            LOGGER.error("CxFindingsWindow: Error during initialization", e);
+            // Show auth panel as fallback
+            drawAuthPanel();
+        }
+    }
+
+    /**
+     * Initialize tree components (icons, model, renderer, listeners).
+     * Called lazily only when the tree is actually needed (main panel or split panel).
+     */
+
+    private void initializeTreeIfNeeded() {
+        if (treeInitialized) {
+            return;
+        }
+        treeInitialized = true;
 
         // Initialize icons for rendering
         initVulnerabilityCountIcons();
@@ -149,11 +202,6 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
             }
         });
 
-        // Timer for updating tab title count
-        timer = new Timer(1000, e -> updateTabTitle());
-        timer.start();
-        Disposer.register(this, () -> timer.stop());
-
         // Trigger initial refresh with existing scan results if any (on EDT)
         SwingUtilities.invokeLater(() -> {
             Map<String, List<ScanIssue>> existingIssues = ProblemHolderService.getInstance(project).getAllIssues();
@@ -177,7 +225,13 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
      *
      */
     private void drawAuthPanel() {
-        removeAll();
+        LOGGER.info("drawAuthPanel: Drawing authentication panel");
+
+        // Remove toolbar when showing auth panel (only if one exists)
+        if (getToolbar() != null) {
+            setToolbar(null);
+        }
+
         JPanel wrapper = new JPanel(new GridBagLayout());
 
         JPanel panel = new JPanel(new GridLayoutManager(2, 1, JBUI.emptyInsets(), -1, -1));
@@ -198,14 +252,20 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
 
         setContent(wrapper);
 
+        revalidate();
+        repaint();
+        LOGGER.info("drawAuthPanel: Auth panel set as content");
     }
 
     /**
      * Draw the main panel with toolbar and tree inside a scroll pane.
-     * Shown when global settings are valid.
+     * This is the findings content panel (used as part of split view).
      */
     private void drawMainPanel() {
-        removeAll();
+        LOGGER.info("drawMainPanel: Drawing main panel with tree");
+
+        // Initialize tree components if not already done
+        initializeTreeIfNeeded();
 
         // Create and set toolbar
         ActionToolbar toolbar = createActionToolbar();
@@ -218,6 +278,93 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
 
         revalidate();
         repaint();
+        LOGGER.info("drawMainPanel: Main panel set as content");
+    }
+
+    /**
+     * Draw a split view with findings panel on left and promotional panel on right.
+     * Shown when authenticated and at least one license (One Assist OR Dev Assist) is active.
+     */
+    private void drawSplitPanel() {
+        LOGGER.info("drawSplitPanel: Drawing split panel");
+
+        // Initialize tree components if not already done
+        initializeTreeIfNeeded();
+
+        // Create and set toolbar on the SimpleToolWindowPanel
+        ActionToolbar toolbar = createActionToolbar();
+        toolbar.setTargetComponent(this);
+        setToolbar(toolbar.getComponent());
+
+        // Create findings panel with tree in scroll pane
+        JBScrollPane scrollPane = new JBScrollPane(tree);
+
+        // Create promotional panel
+       //  #TODO: New panel will be created having its own text and image.
+        DevAssistPromotionalPanel promotionalPanel = new DevAssistPromotionalPanel();
+
+        // Create splitter with vertical divider (false = left/right layout)
+        JBSplitter splitter = new JBSplitter(false, 0.5f);
+        splitter.setFirstComponent(scrollPane);
+        splitter.setSecondComponent(promotionalPanel);
+        splitter.setDividerWidth(3);
+
+        setContent(splitter);
+
+        revalidate();
+        repaint();
+        LOGGER.info("drawSplitPanel: Split panel set as content");
+
+        // Trigger refresh to populate the tree with findings
+        triggerRefreshTree();
+    }
+
+    /**
+     * Draw a full-screen promotional panel for Dev Assist.
+     * Shown when authenticated but neither One Assist nor Dev Assist license is active.
+     */
+    private void drawPromotionalPanel() {
+        LOGGER.info("drawPromotionalPanel: Drawing full-screen promotional panel");
+
+        // Remove toolbar when showing full-screen promotional panel (only if one exists)
+        if (getToolbar() != null) {
+            setToolbar(null);
+        }
+
+        DevAssistPromotionalPanel promotionalPanel = new DevAssistPromotionalPanel();
+        setContent(promotionalPanel);
+
+        revalidate();
+        repaint();
+        LOGGER.info("drawPromotionalPanel: Promotional panel set as content");
+    }
+
+    /**
+     * Check if the current tenant has Checkmarx One Assist license.
+     *
+     * @return true if One Assist license is enabled, false otherwise
+     */
+    private boolean checkOneAssistLicense() {
+        try {
+            return TenantSetting.isOneAssistEnabled();
+        } catch (Exception e) {
+            LOGGER.warn("Failed to check One Assist license status", e);
+            return false;
+        }
+    }
+
+    /**
+     * Check if the current tenant has Checkmarx Dev Assist license.
+     *
+     * @return true if Dev Assist license is enabled, false otherwise
+     */
+    private boolean checkDevAssistLicense() {
+        try {
+            return TenantSetting.isDevAssistEnabled();
+        } catch (Exception e) {
+            LOGGER.warn("Failed to check Dev Assist license status", e);
+            return false;
+        }
     }
 
     /**

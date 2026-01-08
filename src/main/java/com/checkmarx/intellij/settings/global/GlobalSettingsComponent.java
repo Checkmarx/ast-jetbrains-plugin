@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.settings.global;
 
+import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
@@ -71,6 +72,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     private final JButton connectButton = new JButton(Bundle.message(Resource.CONNECT_BUTTON));
     private final JBLabel validateResult = new JBLabel();
+    private CxLinkLabel assistLink;
 
 
     private boolean sessionConnected = false;
@@ -173,6 +175,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
             logoutButton.requestFocusInWindow();
         }
 
+        updateAssistLinkVisibility();
+
         SwingUtilities.invokeLater(() -> {
             if (useApiKey) {
                 apiKeyField.requestFocusInWindow();
@@ -248,6 +252,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
             state.setUserPrefSecretDetectionRealtime(SETTINGS_STATE.getUserPrefSecretDetectionRealtime());
             state.setUserPrefContainersRealtime(SETTINGS_STATE.getUserPrefContainersRealtime());
             state.setUserPrefIacRealtime(SETTINGS_STATE.getUserPrefIacRealtime());
+
+            // License flags – must be preserved to control UI elements like Assist link
+            state.setDevAssistLicenseEnabled(SETTINGS_STATE.isDevAssistLicenseEnabled());
+            state.setOneAssistLicenseEnabled(SETTINGS_STATE.isOneAssistLicenseEnabled());
         }
         return state;
     }
@@ -294,6 +302,16 @@ public class GlobalSettingsComponent implements SettingsComponent {
         SETTINGS_STATE.setAuthenticated(true);
         SETTINGS_STATE.setLastValidationSuccess(true);
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
+        // check Lincense using some method 
+        try {
+            boolean isDevAssistLicenseEnabled = TenantSetting.isDevAssistEnabled();
+            boolean isOneAssistLicenseEnabled = TenantSetting.isOneAssistEnabled();
+            SETTINGS_STATE.setDevAssistLicenseEnabled(isDevAssistLicenseEnabled);
+            SETTINGS_STATE.setOneAssistLicenseEnabled(isOneAssistLicenseEnabled);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to check tenant license status", e);
+        }
+        SwingUtilities.invokeLater(this::updateAssistLinkVisibility);
         logoutButton.requestFocusInWindow();
 
         // Complete post-authentication setup
@@ -471,7 +489,15 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
             notifyAuthSuccess();
-
+            try {
+                boolean isDevAssistLicenseEnabled = TenantSetting.isDevAssistEnabled();
+                boolean isOneAssistLicenseEnabled = TenantSetting.isOneAssistEnabled();
+                SETTINGS_STATE.setDevAssistLicenseEnabled(isDevAssistLicenseEnabled);
+                SETTINGS_STATE.setOneAssistLicenseEnabled(isOneAssistLicenseEnabled);
+            } catch (Exception e) {
+                LOGGER.warn("Failed to check tenant license status", e);
+            }
+            updateAssistLinkVisibility();
             // Complete post-authentication setup
             completeAuthenticationSetup(SENSITIVE_SETTINGS_STATE.getRefreshToken());
         });
@@ -568,7 +594,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
 
         // === CxOne Assist link section ===
-        CxLinkLabel assistLink = new CxLinkLabel(
+        assistLink = new CxLinkLabel(
                 Bundle.message(Resource.GO_TO_CXONE_ASSIST_LINK),
                 e -> {
                     DataContext context = DataManager.getInstance().getDataContext(mainPanel);
@@ -578,9 +604,21 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     Configurable configurable = settings.find("settings.ast.assist");
                     if (configurable instanceof CxOneAssistConfigurable) {
                         settings.select(configurable);
+                    } else {
+                        // Configurable not in tree (Settings opened before authentication)
+                        // Close and reopen Settings to rebuild the tree
+                        java.awt.Window dialog = SwingUtilities.getWindowAncestor(mainPanel);
+                        if (dialog != null) {
+                            dialog.dispose();
+                        }
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            com.intellij.openapi.options.ShowSettingsUtil.getInstance()
+                                    .showSettingsDialog(project, CxOneAssistConfigurable.class);
+                        });
                     }
                 }
         );
+        assistLink.setVisible(shouldShowAssistLink());
         mainPanel.add(assistLink, "wrap, gapleft 5, gaptop 10");
     }
 
@@ -737,6 +775,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         setFieldsEditable(true);
         updateConnectButtonState();
         SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+        updateAssistLinkVisibility();
         // Don't clear MCP status on logout - keep it for next login
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.LOGOUT_SUCCESS));
         SETTINGS_STATE.setLastValidationSuccess(true);
@@ -759,6 +798,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         SETTINGS_STATE.setAuthenticated(false);
         SETTINGS_STATE.setMcpEnabled(false);
         SETTINGS_STATE.setMcpStatusChecked(false);
+        updateAssistLinkVisibility();
         if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
             SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
         }
@@ -766,6 +806,22 @@ public class GlobalSettingsComponent implements SettingsComponent {
         updateConnectButtonState(); // Update button state after all changes
     }
 
+
+    private boolean shouldShowAssistLink() {
+        return SETTINGS_STATE.isAuthenticated()
+                && (SETTINGS_STATE.isOneAssistLicenseEnabled() || SETTINGS_STATE.isDevAssistLicenseEnabled());
+    }
+
+    private void updateAssistLinkVisibility() {
+    if (assistLink == null) {
+            return;
+        }
+        boolean visible = shouldShowAssistLink();
+        assistLink.setVisible(visible);
+        assistLink.setEnabled(visible);
+        mainPanel.revalidate();
+        mainPanel.repaint();
+    }
 
     private void addSectionHeader(Resource resource, boolean required) {
         validatePanel();

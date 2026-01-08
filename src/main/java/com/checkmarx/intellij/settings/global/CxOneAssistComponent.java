@@ -321,26 +321,23 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private void updateAssistState() {
         ensureState();
         boolean authenticated = state.isAuthenticated();
+        boolean hasAssistLicense = state.isOneAssistLicenseEnabled() || state.isDevAssistLicenseEnabled();
 
-        if (!authenticated) {
-            ascaCheckbox.setEnabled(false);
-            ascaCheckbox.setSelected(false);
-            ossCheckbox.setEnabled(false);
-            ossCheckbox.setSelected(false);
-            secretsCheckbox.setEnabled(false);
-            secretsCheckbox.setSelected(false);
-            containersCheckbox.setEnabled(false);
-            containersCheckbox.setSelected(false);
-            iacCheckbox.setEnabled(false);
-            iacCheckbox.setSelected(false);
-            containersToolCombo.setEnabled(false);
-            installMcpLink.setEnabled(false);
-
-            assistMessageLabel.setText(Bundle.message(Resource.CXONE_ASSIST_LOGIN_MESSAGE));
-            assistMessageLabel.setForeground(JBColor.RED);
-            assistMessageLabel.setVisible(true);
+        if (!hasAssistLicense) {
+            // No Assist licenses: hide UI and hard-disable realtime scanners.
+            disableAssistUI("CxOne Assist is unavailable without a One Assist or Dev Assist license.",
+                    JBColor.RED,
+                    false);
             return;
         }
+
+        if (!authenticated) {
+            disableAssistUI(Bundle.message(Resource.CXONE_ASSIST_LOGIN_MESSAGE), JBColor.RED, true);
+            return;
+        }
+
+        // License present and authenticated - show panel
+        mainPanel.setVisible(true);
 
         // Check if MCP status hasn't been checked yet (upgrade scenario)
         if (!state.isMcpStatusChecked()) {
@@ -352,6 +349,72 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         boolean mcpEnabled = state.isMcpEnabled();
         boolean isAuthenticated = state.isAuthenticated();
         updateUIWithMcpStatus(mcpEnabled, isAuthenticated);
+    }
+
+    private void disableAssistUI(String message, Color color, boolean keepVisible) {
+        ensureState();
+
+        mainPanel.setVisible(keepVisible);
+
+        ascaCheckbox.setEnabled(false);
+        ossCheckbox.setEnabled(false);
+        secretsCheckbox.setEnabled(false);
+        containersCheckbox.setEnabled(false);
+        iacCheckbox.setEnabled(false);
+        containersToolCombo.setEnabled(false);
+        if (installMcpLink != null) {
+            installMcpLink.setEnabled(false);
+        }
+
+        // Preserve user preferences once before clearing, so they can be restored when license becomes available
+        if (!state.getUserPreferencesSet()) {
+            state.saveCurrentSettingsAsUserPreferences();
+        }
+
+        // Uncheck all realtime scanners in UI and state
+        ascaCheckbox.setSelected(false);
+        ossCheckbox.setSelected(false);
+        secretsCheckbox.setSelected(false);
+        containersCheckbox.setSelected(false);
+        iacCheckbox.setSelected(false);
+
+        boolean settingsChanged = false;
+        if (state.isAscaRealtime() || state.isAsca()) {
+            state.setAscaRealtime(false);
+            state.setAsca(false);
+            settingsChanged = true;
+        }
+        if (state.isOssRealtime()) {
+            state.setOssRealtime(false);
+            settingsChanged = true;
+        }
+        if (state.isSecretDetectionRealtime()) {
+            state.setSecretDetectionRealtime(false);
+            settingsChanged = true;
+        }
+        if (state.isContainersRealtime()) {
+            state.setContainersRealtime(false);
+            settingsChanged = true;
+        }
+        if (state.isIacRealtime()) {
+            state.setIacRealtime(false);
+            settingsChanged = true;
+        }
+
+        if (settingsChanged) {
+            GlobalSettingsState.getInstance().apply(state);
+            ApplicationManager.getApplication().getMessageBus()
+                    .syncPublisher(SettingsListener.SETTINGS_APPLIED)
+                    .settingsApplied();
+        }
+
+        if (keepVisible && message != null && !message.isBlank()) {
+            assistMessageLabel.setText(message);
+            assistMessageLabel.setForeground(color);
+            assistMessageLabel.setVisible(true);
+        } else {
+            assistMessageLabel.setVisible(false);
+        }
     }
 
 
