@@ -244,9 +244,9 @@ public class CxOneAssistScanScheduler {
             holderService.addProblemDescriptors(filePath, problems);
         } else {
             holderService.removeScanIssuesByFileAndScanner(scanEngine.name(), filePath);
-            holderService.getScanIssueByFile(filePath).addAll(scanIssues);
+            holderService.mergeScanIssues(filePath, scanIssues);
             holderService.removeProblemDescriptorsForFileByScanner(problemHelper.getFilePath(), scanEngine);
-            holderService.getProblemDescriptors(filePath).addAll(problems);
+            holderService.mergeProblemDescriptors(filePath, problems);
         }
     }
 

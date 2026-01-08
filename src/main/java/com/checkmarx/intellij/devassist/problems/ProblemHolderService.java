@@ -11,6 +11,8 @@ import com.intellij.util.messages.Topic;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A service that manages scan issues and problem descriptors for files within a project.
@@ -19,12 +21,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Service(Service.Level.PROJECT)
 public final class ProblemHolderService {
-    // Scan issues for each file
-    private final Map<String, List<ScanIssue>> fileToIssues = new ConcurrentHashMap<>();
 
-    // Problem descriptors for each file to avoid display empty problems
+    // Scan issues and problem descriptors for each file
+    private final Map<String, List<ScanIssue>> fileToIssues = new ConcurrentHashMap<>();
     private final Map<String, List<ProblemDescriptor>> fileProblemDescriptor = new ConcurrentHashMap<>();
+    // Locks for fine-grained per-file locking
+    private final Map<String, Lock> fileLocks = new ConcurrentHashMap<>();
+
     public static final Topic<IssueListener> ISSUE_TOPIC = new Topic<>("ISSUES_UPDATED", IssueListener.class);
+
 
     public interface IssueListener {
         void onIssuesUpdated(Map<String, List<ScanIssue>> issues);
@@ -53,9 +58,27 @@ public final class ProblemHolderService {
      * @param problems the scan issues.
      */
     public synchronized void addScanIssues(String filePath, List<ScanIssue> problems) {
-        fileToIssues.put(filePath, new ArrayList<>(problems));
+        // Wrap the List with Collections.synchronizedList to ensure thread safety
+        fileToIssues.put(filePath, Collections.synchronizedList(new ArrayList<>(problems)));
         // Notify subscribers immediately
         syncWithCxOneFindings();
+    }
+
+    /**
+     * Returns the scan issues for the given file.
+     *
+     * @param filePath the file path.
+     * @return the scan issues.
+     */
+    public synchronized List<ScanIssue> getScanIssueByFile(String filePath) {
+        return fileToIssues.getOrDefault(filePath, Collections.emptyList());
+    }
+
+    /**
+     * Returns all scan issues.
+     */
+    public synchronized Map<String, List<ScanIssue>> getAllIssues() {
+        return Collections.unmodifiableMap(fileToIssues);
     }
 
     /**
@@ -68,13 +91,6 @@ public final class ProblemHolderService {
             fileToIssues.remove(filePath);
             syncWithCxOneFindings();
         }
-    }
-
-    /**
-     * Returns all scan issues.
-     */
-    public synchronized Map<String, List<ScanIssue>> getAllIssues() {
-        return Collections.unmodifiableMap(fileToIssues);
     }
 
     /**
@@ -97,22 +113,40 @@ public final class ProblemHolderService {
      */
     public void removeScanIssuesByFileAndScanner(String scannerType, String filePath) {
         if (fileToIssues.isEmpty() || Objects.isNull(filePath) || filePath.isEmpty()) return;
-
-        fileToIssues.values().stream()
-                .filter(scanIssuesList -> Objects.nonNull(scanIssuesList) && !scanIssuesList.isEmpty())
-                .forEach(scanIssueObj -> scanIssueObj.removeIf(problem -> scannerType.equalsIgnoreCase(problem.getScanEngine().name())
-                        && filePath.equalsIgnoreCase(problem.getFilePath())));
+        Lock lock = getFileLock(filePath);
+        try {
+            lock.lock();
+            fileToIssues.values().stream()
+                    .filter(scanIssuesList -> Objects.nonNull(scanIssuesList) && !scanIssuesList.isEmpty())
+                    .forEach(scanIssueObj -> scanIssueObj.removeIf(problem -> scannerType.equalsIgnoreCase(problem.getScanEngine().name())
+                            && filePath.equalsIgnoreCase(problem.getFilePath())));
+        } finally {
+            lock.unlock();
+        }
         syncWithCxOneFindings();
     }
 
     /**
-     * Returns the scan issues for the given file.
+     * Merges new scan issues into the existing list for the given file path.
      *
-     * @param filePath the file path.
-     * @return the scan issues.
+     * @param filePath  the file path.
+     * @param newIssues the new issues to add.
      */
-    public synchronized List<ScanIssue> getScanIssueByFile(String filePath) {
-        return fileToIssues.getOrDefault(filePath, Collections.emptyList());
+    public void mergeScanIssues(String filePath, List<ScanIssue> newIssues) {
+        Lock lock = getFileLock(filePath);
+        try {
+            lock.lock();
+            fileToIssues.compute(filePath, (key, existingIssues) -> {
+                if (Objects.isNull(existingIssues) || existingIssues.isEmpty()) {
+                    return new ArrayList<>(newIssues); // Create a new list for the file
+                } else {
+                    existingIssues.addAll(newIssues); // Merge new issues into the list
+                    return existingIssues;
+                }
+            });
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -132,7 +166,9 @@ public final class ProblemHolderService {
      * @param problemDescriptors the problem descriptors.
      */
     public synchronized void addProblemDescriptors(String filePath, List<ProblemDescriptor> problemDescriptors) {
-        fileProblemDescriptor.put(filePath, new ArrayList<>(problemDescriptors));
+        // Wrap the List with Collections.synchronizedList to ensure thread safety
+        fileProblemDescriptor.put(filePath, Collections.synchronizedList(new ArrayList<>(problemDescriptors)));
+
     }
 
     /**
@@ -162,6 +198,30 @@ public final class ProblemHolderService {
     }
 
     /**
+     * Merges new problem descriptors into the existing list for the given file path.
+     *
+     * @param filePath    the file path.
+     * @param newProblems the new problem descriptors to add.
+     */
+    public void mergeProblemDescriptors(String filePath, List<ProblemDescriptor> newProblems) {
+        Lock lock = getFileLock(filePath);
+        lock.lock();
+        try {
+            fileProblemDescriptor.compute(filePath, (key, existingProblems) -> {
+                if (Objects.isNull(existingProblems) || existingProblems.isEmpty()) {
+                    return new ArrayList<>(newProblems); // Create a new list for the file
+                } else {
+                    existingProblems.addAll(newProblems); // Merge new problems into the list
+                    return existingProblems;
+                }
+            });
+        } finally {
+            lock.unlock();
+        }
+    }
+
+
+    /**
      * Adds problems to the CxOne findings for the given file.
      *
      * @param file         the PSI file.
@@ -176,5 +236,15 @@ public final class ProblemHolderService {
      */
     private void syncWithCxOneFindings() {
         project.getMessageBus().syncPublisher(ISSUE_TOPIC).onIssuesUpdated(getAllIssues());
+    }
+
+    /**
+     * Returns a lock for fine-grained per-file locking.
+     *
+     * @param filePath the file path.
+     * @return the lock for the file.
+     */
+    private Lock getFileLock(String filePath) {
+        return fileLocks.computeIfAbsent(filePath, key -> new ReentrantLock());
     }
 }
