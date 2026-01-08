@@ -78,7 +78,7 @@ public final class IgnoreManager {
         LOGGER.debug(String.format("RTS-Ignore: Ignoring %s", vulnerabilityKey));
         ignoreFileManager.updateIgnoreData(vulnerabilityKey, ignoreEntry);
         scanFileAndUpdateResults(issueToIgnore);
-        showIgnoreSuccessNotification(issueToIgnore, project);
+        showIgnoreSuccessNotification(project, issueToIgnore, vulnerabilityKey);
         LOGGER.debug(String.format("RTS-Ignore: Successfully added ignore entry for issue: %s", issueToIgnore.getTitle()));
     }
 
@@ -125,7 +125,7 @@ public final class IgnoreManager {
         ignoreEntry.setFiles(fileRefs);
         ignoreFileManager.updateIgnoreData(vulnerabilityKey, ignoreEntry);
         LOGGER.debug(String.format("RTS-Ignore: Successfully added ignore entry for issue: %s", issueToIgnore.getTitle()));
-        showIgnoreSuccessNotification(issueToIgnore, project);
+        showIgnoreSuccessNotification(project, issueToIgnore, vulnerabilityKey);
     }
 
     /**
@@ -391,7 +391,7 @@ public final class IgnoreManager {
 
     }
 
-    private void showIgnoreSuccessNotification(ScanIssue detail, Project project) {
+    private void showIgnoreSuccessNotification(Project project, ScanIssue detail, String vulnerabilityKey) {
         switch (detail.getScanEngine()) {
             case OSS:
                 Utils.showNotification("Package", detail.getTitle() + "@" + detail.getPackageVersion() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
@@ -400,13 +400,13 @@ public final class IgnoreManager {
                 Utils.showNotification("Secret", detail.getTitle() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
                 break;
             case ASCA:
-                Utils.showNotification("ASCA rule", detail.getTitle() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
+                Utils.showNotification("ASCA rule", vulnerabilityKey.split(":", 2)[0] + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
                 break;
             case CONTAINERS:
                 Utils.showNotification("Container", detail.getTitle() + "@" + detail.getImageTag() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
                 break;
             case IAC:
-                Utils.showNotification("IaC finding", detail.getTitle() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
+                Utils.showNotification("IaC finding", vulnerabilityKey.split(":", 2)[0] + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
                 break;
             default:
                 Utils.showNotification(Bundle.message(Resource.IGNORE_SUCCESS), "", NotificationType.INFORMATION, project);
