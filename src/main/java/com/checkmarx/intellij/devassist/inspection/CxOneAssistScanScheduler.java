@@ -205,7 +205,7 @@ public class CxOneAssistScanScheduler {
     private void removeProgressIndicator(@NotNull String filePath) {
         ProgressIndicator runningIndicator = scanIndicators.remove(filePath);
         if (runningIndicator != null && !runningIndicator.isCanceled()) {
-            runningIndicator.cancel(); // double cancellation for safe measure
+            runningIndicator.cancel(); // Cancel the running scan
             LOGGER.warn(format("RTS: Previous scan is canceled for file %s.", filePath));
         }
     }
