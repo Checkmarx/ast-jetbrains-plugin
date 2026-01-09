@@ -29,7 +29,7 @@ public class TestAuthentication extends BaseUITest{
         openSettings();
         logoutIfUserIsAlreadyLoggedIn();
         performLoginUsingApiKey(true);
-        validateWelcomePageLoadedSuccessfully();
+        validateWelcomePageLoadedSuccessfully(true);
         validateSuccessfulLogin(true);
     }
 }

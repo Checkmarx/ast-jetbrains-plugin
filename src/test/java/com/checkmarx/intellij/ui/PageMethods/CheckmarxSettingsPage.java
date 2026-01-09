@@ -85,7 +85,7 @@ public class CheckmarxSettingsPage {
         }
     }
 
-    public static void validateWelcomePageLoadedSuccessfully(){
+    public static void validateWelcomePageLoadedSuccessfully(boolean isCodeSmartSelectedByDefault) {
         waitFor(() -> hasAnyComponent(WELCOME_TITLE));
         hasAnyComponent(WELCOME_ASSIST_TITLE);
         hasAnyComponent(CODE_SMART_CHECKBOX);
@@ -93,7 +93,11 @@ public class CheckmarxSettingsPage {
         String welcomeTitle = getText(WELCOME_TITLE);
         Assertions.assertEquals("Welcome to Checkmarx", welcomeTitle);
         boolean checkBoxSelected = isCheckboxSelected(CODE_SMART_CHECKBOX);
-        Assertions.assertTrue(checkBoxSelected);
+        if (isCodeSmartSelectedByDefault) {
+            Assertions.assertTrue(checkBoxSelected);
+        } else {
+            Assertions.assertFalse(checkBoxSelected);
+        }
     }
 
 }
