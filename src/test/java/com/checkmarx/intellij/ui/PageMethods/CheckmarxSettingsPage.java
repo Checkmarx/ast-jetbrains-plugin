@@ -15,7 +15,6 @@ import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 public class CheckmarxSettingsPage {
 
     public static void openSettings() {
-        log("unning openSettings()");
         waitFor(() -> {
             focusCxWindow();
             if (hasAnyComponent(SETTINGS_ACTION)) {

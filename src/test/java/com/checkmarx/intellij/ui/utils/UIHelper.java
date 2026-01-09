@@ -42,22 +42,6 @@ public class UIHelper {
         }
     }
 
-    public static <T> T waitAndGet(Supplier<T> supplier) {
-        AtomicReference<T> ref = new AtomicReference<>();
-
-        waitFor(() -> {
-            T value = supplier.get();
-            if (value == null) {
-                return false;
-            }
-            ref.set(value);
-            return true;
-        });
-
-        return ref.get();
-    }
-
-
     public static void log(String msg) {
         StackTraceElement[] st = Thread.currentThread().getStackTrace();
         System.out.printf("%s | %s: %s%n", Instant.now().toString(), st[2], msg);
@@ -109,24 +93,6 @@ public class UIHelper {
         keyboard.key(KeyEvent.VK_BACK_SPACE); // remove space
     }
 
-    public static void enableRealTimeScanIfDisabled(String realTimeScanCheckboxXpath) {
-        //Implementation to enable Real-Time Scan if it is disabled
-        log("Ensuring Real-Time Scan is enabled");
-        //open settings page
-        openSettings();
-        logoutIfUserIsAlreadyLoggedIn();
-        performLoginUsingApiKey(true);
-        validateWelcomePageLoadedSuccessfully(true);
-        locateAndClickOnButton(WELCOME_CLOSE_BUTTON);
-        //Navigate to OSS Settings tab
-        navigateToCxOneAssistPage();
-        //Ensure OSS Real-Time Scan is enabled
-        if (!isCheckboxSelected(realTimeScanCheckboxXpath))
-            clickSafe(realTimeScanCheckboxXpath);
-        //Close settings page
-        clickSafe(OK_BTN);
-    }
-
     public static void selectRadioButton(String radioText) {
         log("Selecting radio button " + radioText);
         waitFor(() -> hasAnyComponent(radioText));
@@ -135,8 +101,7 @@ public class UIHelper {
 
     public static boolean isCheckboxSelected(String checkboxText) {
         waitFor(() -> hasAnyComponent(checkboxText));
-        Boolean result = (Boolean) find(checkboxText).callJs(
-                "component.isSelected ? component.isSelected() : component.getModel().isSelected()"
+        Boolean result = (Boolean) find(checkboxText).callJs("component.isSelected ? component.isSelected() : component.getModel().isSelected()"
         );
         if (result != null && result) {
             return true;

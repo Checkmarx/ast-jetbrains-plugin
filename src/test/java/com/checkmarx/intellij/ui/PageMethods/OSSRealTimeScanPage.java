@@ -14,7 +14,6 @@ public class OSSRealTimeScanPage {
 
     public static void verifyOssFindingsTreeNotEmpty() {
         //Implementation to verify Findings tree is not empty and contains OSS-related files
-        log("Verifying OSS Findings tree is not empty");
         //Check that findings tree is not empty and contains OSS-related files
         final AtomicBoolean findingsPresent = new AtomicBoolean(false);
         //wait for findings to appear in the tree
