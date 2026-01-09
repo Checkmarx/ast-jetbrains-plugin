@@ -265,7 +265,7 @@ public abstract class BaseUITest {
             return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
         });
     }
-    public boolean isCheckBoxChecked(String checkBoxElement) {
+    public static boolean isCheckBoxChecked(String checkBoxElement) {
         ComponentFixture checkbox = remoteRobot.find(
                 ComponentFixture.class,
                 byXpath(checkBoxElement),
@@ -279,14 +279,14 @@ public abstract class BaseUITest {
         keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_F12);
     }
 
-    public void clickSafe(String locator) {
+    public static void clickSafe(String locator) {
         repeatUntilSuccess(3, () -> {
             waitFor(() -> hasAnyComponent(locator));
             find(locator).click();
         });
     }
 
-    private void repeatUntilSuccess(int attempts, Runnable action) {
+    private static void repeatUntilSuccess(int attempts, Runnable action) {
         for (int i = 1; i <= attempts; i++) {
             try {
                 action.run();
@@ -298,7 +298,7 @@ public abstract class BaseUITest {
         }
     }
 
-    private void sleep(long millis) {
+    public static void sleep(long millis) {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {

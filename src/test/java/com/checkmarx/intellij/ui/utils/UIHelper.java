@@ -1,19 +1,25 @@
 package com.checkmarx.intellij.ui.utils;
 
+import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.JTextFieldFixture;
+import com.intellij.remoterobot.fixtures.JTreeFixture;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.intellij.lang.annotations.Language;
 
+import java.awt.event.KeyEvent;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-import static com.checkmarx.intellij.ui.BaseUITest.focusCxWindow;
+import static com.checkmarx.intellij.ui.BaseUITest.*;
+import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.openSettings;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
-import static com.checkmarx.intellij.ui.utils.Xpath.FIELD_NAME;
-import static com.checkmarx.intellij.ui.utils.Xpath.VISIBLE_TEXT;
+import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 public class UIHelper {
 
@@ -34,6 +40,22 @@ public class UIHelper {
             }
         }
     }
+
+    public static <T> T waitAndGet(Supplier<T> supplier) {
+        AtomicReference<T> ref = new AtomicReference<>();
+
+        waitFor(() -> {
+            T value = supplier.get();
+            if (value == null) {
+                return false;
+            }
+            ref.set(value);
+            return true;
+        });
+
+        return ref.get();
+    }
+
 
     public static void log(String msg) {
         StackTraceElement[] st = Thread.currentThread().getStackTrace();
@@ -63,5 +85,48 @@ public class UIHelper {
             return hasAnyComponent(String.format(VISIBLE_TEXT, value));
         });
         keyboard.enter();
+    }
+
+    public static void openFileByPath(String filePath) {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        // Open "Navigate → File"
+        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_N);
+
+        // Type full relative or absolute path
+        keyboard.enterText(filePath);
+
+        // Press Enter to open
+        keyboard.key(KeyEvent.VK_ENTER);
+    }
+
+    public static void editFile() {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_END);
+        keyboard.key(KeyEvent.VK_SPACE);   // add single space
+        keyboard.key(KeyEvent.VK_BACK_SPACE); // remove space
+    }
+
+    public static void isVulnerableFilePresentInCxAssistTree(String fileName) {
+        waitFor(() -> {
+            List<JTreeFixture> trees = findAll(JTreeFixture.class, FINDINGS_TREE_XPATH);
+
+            if (trees.isEmpty()) return false;
+
+            // Check if exact filename exists as a node
+            return trees.get(0).findAllText().stream().map(RemoteText::getText).anyMatch(token -> token.equals(fileName));
+        });
+    }
+
+    public static void enableRealTimeScanIfDisabled(String realTimeScanCheckboxXpath) {
+        log("Ensuring Real-Time Scan is enabled");
+        //open settings page
+        openSettings();
+        //Navigate to OSS Settings tab
+        clickSafe(GO_TO_CHECKMARXONE_ASSIST);
+        //Ensure OSS Real-Time Scan is enabled
+        if (!isCheckBoxChecked(realTimeScanCheckboxXpath))
+            clickSafe(realTimeScanCheckboxXpath);
+        //Close settings page
+        clickSafe(OK_BTN);
     }
 }
