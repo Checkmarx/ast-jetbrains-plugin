@@ -178,12 +178,19 @@ public class Xpath {
     static final String API_KEY_RADIO = "//div[@text='API Key' or @visible_text='API Key']";
     @Language("XPath")
     public
-    static final String ASCA_CHECKBOX = "//div[@text='Scan your file as you code']";
-    @Language("XPath")
-    public
     static final String WELCOME_CLOSE_BUTTON = "//div[@text='Close']";
     @Language("XPath")
     public
+    static final String WELCOME_TITLE = "//div[@text.key='WELCOME_TITLE']";
+    @Language("XPath")
+    public
+    static final String WELCOME_ASSIST_TITLE = "//div[@visible_text_keys='WELCOME_ASSIST_TITLE']";
+    @Language("XPath")
+    public
+    static final String CODE_SMART_CHECKBOX = "//div[@class='JBCheckBox']";
+    @Language("XPath")
+    public
+    static final String WELCOME_PAGE_IMAGE = "//div[@defaulticon='welcomePageScanner.svg']";
     static final String EXPAND_ALL_FOLDER = "//div[@myicon='expandall.svg']";
     @Language("XPath")
     public
@@ -191,10 +198,9 @@ public class Xpath {
     @Language("XPath")
     public
     static final String CLOSE_RUN_SCAN_LOCAL_NOTIFICATION_WINDOW = "//div[@myicon='close.svg']";
+    //Realtime Scan XPaths CxOne Assist
     @Language("XPath")
     public static final String GETTING_RESULT_TEXT = "//div[@class='Tree' and contains(@visible_text,'Getting results')]";
-    @Language("XPath")
-    public static final String GO_TO_CHECKMARXONE_ASSIST = "//div[@mytext='Go to Checkmarx One Assist']";
     @Language("XPath")
     public static final String FILE_SCAN_PROGRESS_BAR = "//div[@class='TextPanel' and contains(@accessiblename,'Checkmarx is Scanning File')]";
     @Language("XPath")
@@ -205,8 +211,48 @@ public class Xpath {
     public static final String FINDINGS_TREE_XPATH = "//div[@class='SimpleTree']";
     @Language("XPath")
     public static final String SCAN_RESULTS_TAB = "//div[@text='Scan Results']";
+
+    //CxOne Assist Page XPaths
     @Language("XPath")
-    public static final String OSS_REALTIME_CHECKBOX = "//div[@visible_text_keys='OSS_REALTIME_CHECKBOX']";
-
-
+    public static final String GO_TO_CXONE_ASSIST_LINK = "//div[@mytext='Go to Checkmarx One Assist']";
+    @Language("XPath")
+    public static final String CXONE_SETTINGS_MENU_BUTTON = "//div[@class='MyTree' and contains(@visible_text,'Checkmarx One')]";
+    @Language("XPath")
+    public static final String CXONE_ASSIST_BREADCRUMB = "//div[@class='Breadcrumbs']";
+    @Language("XPath")
+    public static final String CXONE_ASSIST_BACK_BUTTON = "//div[@myicon='back.svg']";
+    @Language("XPath")
+    public static final String ASSIST_ASCA_LABLE = "//div[@accessiblename='Checkmarx AI Secure Coding Assistant (ASCA): Activate ASCA:' and @class='JBLabel' and @text='<html>Checkmarx AI Secure Coding Assistant (ASCA): <b>Activate ASCA:</b></html>']";
+    @Language("XPath")
+    public static final String ASCA_ENGINE_SELECTION_CHECKBOX = "//div[@text='Scan your file as you code']";
+    @Language("XPath")
+    public static final String ASSIST_OSS_REALTIME_LABEL = "//div[@accessiblename.key='OSS_REALTIME_TITLE']";
+    @Language("XPath")
+    public static final String OSS_REALTIME_ENGINE_CHECKBOX = "//div[@visible_text_keys='OSS_REALTIME_CHECKBOX']";
+    @Language("XPath")
+    public static final String ASSIST_SECRET_DETECTION_LABEL = "//div[@accessiblename.key='SECRETS_REALTIME_TITLE']";
+    @Language("XPath")
+    public static final String SECRET_DETECTION_ENGINE_CHECKBOX = "//div[@visible_text_keys='SECRETS_REALTIME_CHECKBOX']";
+    @Language("XPath")
+    public static final String ASSIST_CONTAINER_REALTIME_LABEL = "//div[@accessiblename.key='CONTAINERS_REALTIME_TITLE']";
+    @Language("XPath")
+    public static final String CONTAINER_REALTIME_ENGINE_CHECKBOX = "//div[@visible_text_keys='CONTAINERS_REALTIME_CHECKBOX']";
+    @Language("XPath")
+    public static final String ASSIST_IAC_REALTIME_LABEL = "//div[@accessiblename.key='IAC_REALTIME_TITLE']";
+    @Language("XPath")
+    public static final String IAC_REALTIME_ENGINE_CHECKBOX = "//div[@visible_text_keys='IAC_REALTIME_CHECKBOX']";
+    @Language("XPath")
+    public static final String ASSIST_CONTAINER_MANAGEMENT_DD_LABLE = "//div[@accessiblename.key='IAC_REALTIME_SCANNER_PREFIX']";
+    @Language("XPath")
+    public static final String CONTAINER_MANAGEMENT_DD_DESCRIPTION = "//div[@visible_text_keys='CONTAINERS_TOOL_DESCRIPTION']";
+    @Language("XPath")
+    public static final String CONTAINER_MANAGEMENT_DD = "//div[@visible_text_keys='CONTAINERS_TOOL_DESCRIPTION']";
+    @Language("XPath")
+    public static final String CHECKMARX_MCP_LABEL = "//div[@visible_text_keys='CONTAINERS_TOOL_DESCRIPTION']";
+    @Language("XPath")
+    public static final String MCP_DESCRIPTION = "//div[@visible_text_keys='MCP_DESCRIPTION']";
+    @Language("XPath")
+    public static final String INSTALL_MCP_LINK = "//div[@mytext='Install MCP']";
+    @Language("XPath")
+    public static final String EDIT_MCP_LINK = "//div[@mytext='Edit in mcp.json']";
 }

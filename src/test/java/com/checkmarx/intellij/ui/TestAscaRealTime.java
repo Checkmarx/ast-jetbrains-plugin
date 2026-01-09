@@ -5,12 +5,15 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static com.checkmarx.intellij.ui.BaseUITest.*;
 import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.*;
+import static com.checkmarx.intellij.ui.PageMethods.CxOneAssistFindingsTabPage.*;
+import static com.checkmarx.intellij.ui.PageMethods.CxOneAssistPage.*;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 
-public class TestAscaRealTime extends BaseUITest {
+public class TestAscaRealTime {
 
     @Test
     @Video
@@ -19,12 +22,16 @@ public class TestAscaRealTime extends BaseUITest {
         //To verify ASCA Real-Time Scan is enabled and success message is shown
         //open settings page
         openSettings();
+        logoutIfUserIsAlreadyLoggedIn();
+        performLoginUsingApiKey(true);
+        validateWelcomePageLoadedSuccessfully(true);
+        locateAndClickOnButton(WELCOME_CLOSE_BUTTON);
         //Navigate to ASCA Settings tab
-        clickSafe(GO_TO_CHECKMARXONE_ASSIST);
+        navigateToCxOneAssistPage();
         //If ASCA Real-Time Scan is already enabled, uncheck and re-check to verify success message
-        if (isCheckBoxChecked(ASCA_CHECKBOX))
-            clickSafe(ASCA_CHECKBOX);
-        clickSafe(ASCA_CHECKBOX);
+        if (isCheckboxSelected(ASCA_ENGINE_SELECTION_CHECKBOX))
+            clickSafe(ASCA_ENGINE_SELECTION_CHECKBOX);
+        clickSafe(ASCA_ENGINE_SELECTION_CHECKBOX);
         //verify success message is shown
         waitFor(() -> hasAnyComponent(ASCA_INSTALL_SUCCESS));
         Assertions.assertTrue(hasAnyComponent(ASCA_INSTALL_SUCCESS));
@@ -36,7 +43,7 @@ public class TestAscaRealTime extends BaseUITest {
     @DisplayName("Verify ASCA vulnerability is displayed in the Issues Tree after file scan completion")
     public void testASCAVulnerabilityDisplayedInProblemTree() {
         //To verify ASCA vulnerability is displayed in the Issues Tree
-        enableRealTimeScanIfDisabled(ASCA_CHECKBOX);
+        enableRealTimeScanIfDisabled(ASCA_ENGINE_SELECTION_CHECKBOX);
         //Wait for existing OSS scans to complete
         waitFor(() -> !hasAnyComponent(SCAN_PROGRESS_BAR));
         hideToolWindows();

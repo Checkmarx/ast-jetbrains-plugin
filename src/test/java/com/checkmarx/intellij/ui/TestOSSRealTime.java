@@ -9,15 +9,15 @@ import static com.checkmarx.intellij.ui.PageMethods.OSSRealTimeScanPage.*;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
-
-public class TestOSSRealTime extends BaseUITest {
+import static com.checkmarx.intellij.ui.BaseUITest.*;
+public class TestOSSRealTime {
 
     @Test
     @Video
     @DisplayName("Verify OSS Real-Time Scan is enabled and start scanning as soon as user login")
     public void testAutoStartOssScanOnLoginWhenEnabled() {
         //To verify OSS Real-Time Scan is enabled and start scanning as soon as user login
-        enableRealTimeScanIfDisabled(OSS_REALTIME_CHECKBOX);
+        enableRealTimeScanIfDisabled(OSS_REALTIME_ENGINE_CHECKBOX);
         //Verify OSS Real-Time scan auto starts after login
         waitFor(() -> hasAnyComponent(SCAN_PROGRESS_BAR));
         Assertions.assertTrue(hasAnyComponent(SCAN_PROGRESS_BAR));
@@ -28,7 +28,7 @@ public class TestOSSRealTime extends BaseUITest {
     @DisplayName("Verify OSS vulnerabilities are displayed in the Issues Tree after scan completion")
     public void testDisplayOssFindingsAfterScanCompletion() {
         //To verify OSS vulnerabilities are displayed in the Issues Tree after scan completion
-        enableRealTimeScanIfDisabled(OSS_REALTIME_CHECKBOX);
+        enableRealTimeScanIfDisabled(OSS_REALTIME_ENGINE_CHECKBOX);
         //Wait for existing OSS scans to complete
         waitFor(() -> !hasAnyComponent(SCAN_PROGRESS_BAR));
         //Open checkmarx one assist findings tab
