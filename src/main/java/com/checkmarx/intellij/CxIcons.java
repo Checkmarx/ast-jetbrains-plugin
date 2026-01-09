@@ -93,6 +93,8 @@ public final class CxIcons {
         }
 
         public static final Icon REVIVE = IconLoader.getIcon("/icons/devassist/ignored/revive.svg", CxIcons.class);
+        public static final Icon REVIVE_SELECTED = IconLoader.getIcon("/icons/devassist/ignored/revive-selected.svg", CxIcons.class);
+        public static final Icon CLEAR_SELECTION = IconLoader.getIcon("/icons/devassist/ignored/clear-selection.svg", CxIcons.class);
         public static final Icon FILTER = IconLoader.getIcon("/icons/devassist/ignored/filter_icon.svg", CxIcons.class);
         public static final Icon SORT = IconLoader.getIcon("/icons/devassist/ignored/sort_icon.svg", CxIcons.class);
         public static final Icon FILE_ICON = IconLoader.getIcon("/icons/devassist/ignored/file-icon.svg", CxIcons.class);

@@ -80,6 +80,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
     private JCheckBox selectAllCheckbox;
     private JPanel headerPanel;
+    private JPanel selectionBarPanel;
+    private JPanel columnsPanel;
+    private JLabel selectionCountLabel;
     private List<IgnoreEntry> allEntries = new ArrayList<>();
     private long lastKnownModificationTime = 0;
 
@@ -406,29 +409,156 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         ignoredListPanel.repaint();
     }
 
-    /** Creates a header with column titles: Checkbox, Risk, Last Updated, Actions. */
+    /** Creates a header with selection bar and column titles: Checkbox, Risk, Last Updated, Actions. */
     private JPanel createHeaderPanel() {
         headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
         headerPanel.setBorder(JBUI.Borders.empty(12, 12, 0, 12));
 
-        JPanel columns = new JPanel();
-        columns.setLayout(new BoxLayout(columns, BoxLayout.X_AXIS));
-        columns.setBackground(JBUI.CurrentTheme.ToolWindow.background());
-        columns.setBorder(JBUI.Borders.empty(12, 0, 8, 0));
+        // Create selection bar (hidden by default)
+        selectionBarPanel = createSelectionBar();
+        selectionBarPanel.setVisible(false);
+
+        // Create columns panel
+        columnsPanel = new JPanel();
+        columnsPanel.setLayout(new BoxLayout(columnsPanel, BoxLayout.X_AXIS));
+        columnsPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+        columnsPanel.setBorder(JBUI.Borders.empty(12, 0, 8, 0));
 
         // Checkbox | Risk (expands) | Last Updated | Actions
-        columns.add(createFixedColumn(50, createSelectAllCheckbox()));
-        columns.add(Box.createRigidArea(new Dimension(JBUI.scale(12), 0)));
-        columns.add(createFlexibleColumn(Bundle.message(Resource.IGNORED_RISK_COLUMN), 400, 500, Integer.MAX_VALUE, FlowLayout.LEFT, FONT_FAMILY_INTER));
+        columnsPanel.add(createFixedColumn(50, createSelectAllCheckbox()));
+        columnsPanel.add(Box.createRigidArea(new Dimension(JBUI.scale(12), 0)));
+        columnsPanel.add(createFlexibleColumn(Bundle.message(Resource.IGNORED_RISK_COLUMN), 400, 500, Integer.MAX_VALUE, FlowLayout.LEFT, FONT_FAMILY_INTER));
         // Risk column expands to fill space - no glue needed here
         // Use HTML to prevent text wrapping in header
-        columns.add(createFlexibleColumn("<html><nobr>" + Bundle.message(Resource.IGNORED_LAST_UPDATED_COLUMN) + "</nobr></html>", 120, 140, 160, FlowLayout.CENTER, FONT_FAMILY_SF_PRO));
-        columns.add(Box.createHorizontalGlue());  // Push Actions to right edge
-        columns.add(createFixedColumn(140, null));
+        columnsPanel.add(createFlexibleColumn("<html><nobr>" + Bundle.message(Resource.IGNORED_LAST_UPDATED_COLUMN) + "</nobr></html>", 120, 140, 160, FlowLayout.CENTER, FONT_FAMILY_SF_PRO));
+        columnsPanel.add(Box.createHorizontalGlue());  // Push Actions to right edge
+        columnsPanel.add(createFixedColumn(140, null));
 
-        headerPanel.add(columns, BorderLayout.CENTER);
+        // Container for both selection bar and columns (stacked vertically)
+        JPanel headerContent = new JPanel();
+        headerContent.setLayout(new BoxLayout(headerContent, BoxLayout.Y_AXIS));
+        headerContent.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+        headerContent.add(selectionBarPanel);
+        headerContent.add(columnsPanel);
+
+        headerPanel.add(headerContent, BorderLayout.CENTER);
         return headerPanel;
+    }
+
+    /** Creates the selection bar that appears when items are selected. */
+    private JPanel createSelectionBar() {
+        // Use BoxLayout for horizontal alignment
+        JPanel bar = new JPanel();
+        bar.setLayout(new BoxLayout(bar, BoxLayout.X_AXIS));
+        bar.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+
+        // Fixed height of 56px: 8px (top padding) + 40px (content) + 8px (bottom padding)
+        bar.setBorder(JBUI.Borders.empty(8, 0, 8, 0));
+        final int SELECTION_BAR_HEIGHT = 56;
+        bar.setPreferredSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(SELECTION_BAR_HEIGHT)));
+        bar.setMinimumSize(new Dimension(0, JBUI.scale(SELECTION_BAR_HEIGHT)));
+        bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(SELECTION_BAR_HEIGHT)));
+
+        // Width to fit the revive-selected button SVG (174x28)
+        final int REVIVE_SELECTED_BTN_WIDTH = 180;
+
+        // === "N Risks selected" - simple text with natural width ===
+        selectionCountLabel = new JLabel("0 Risks selected");
+        selectionCountLabel.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, 14));
+        selectionCountLabel.setForeground(UIManager.getColor("Label.foreground"));
+
+        // Content height is 40px (56px total - 8px top padding - 8px bottom padding)
+        final int CONTENT_HEIGHT = 40;
+
+        // === Vertical divider line ===
+        JPanel divider = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                g.setColor(new Color(0xADADAD));
+                g.drawLine(getWidth() / 2, 8, getWidth() / 2, getHeight() - 8);
+            }
+        };
+        divider.setOpaque(false);
+        divider.setPreferredSize(new Dimension(JBUI.scale(24), JBUI.scale(CONTENT_HEIGHT)));
+        divider.setMinimumSize(new Dimension(JBUI.scale(24), JBUI.scale(CONTENT_HEIGHT)));
+        divider.setMaximumSize(new Dimension(JBUI.scale(24), JBUI.scale(CONTENT_HEIGHT)));
+
+        // === "X Clear Selections" button ===
+        JLabel clearSelectionBtn = new JLabel(CxIcons.Ignored.CLEAR_SELECTION);
+        clearSelectionBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        clearSelectionBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                clearSelection();
+            }
+        });
+
+        // === "Revive Selected" button - aligned to right ===
+        JPanel reviveSelectedPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        reviveSelectedPanel.setOpaque(false);
+        reviveSelectedPanel.setPreferredSize(new Dimension(JBUI.scale(REVIVE_SELECTED_BTN_WIDTH), JBUI.scale(CONTENT_HEIGHT)));
+        reviveSelectedPanel.setMinimumSize(new Dimension(JBUI.scale(REVIVE_SELECTED_BTN_WIDTH), JBUI.scale(CONTENT_HEIGHT)));
+        reviveSelectedPanel.setMaximumSize(new Dimension(JBUI.scale(REVIVE_SELECTED_BTN_WIDTH), JBUI.scale(CONTENT_HEIGHT)));
+
+        JLabel reviveSelectedBtn = new JLabel(CxIcons.Ignored.REVIVE_SELECTED);
+        reviveSelectedBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        reviveSelectedBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                reviveSelectedEntries();
+            }
+        });
+        reviveSelectedPanel.add(reviveSelectedBtn);
+
+        // Add components with proper spacing
+        bar.add(selectionCountLabel);
+        bar.add(Box.createRigidArea(new Dimension(JBUI.scale(16), 0))); // Padding before divider
+        bar.add(divider);
+        bar.add(Box.createRigidArea(new Dimension(JBUI.scale(8), 0))); // Padding after divider
+        bar.add(clearSelectionBtn);
+        bar.add(Box.createHorizontalGlue()); // Push Revive Selected to the right
+        bar.add(reviveSelectedPanel);
+
+        return bar;
+    }
+
+    /** Revives all selected entries. */
+    private void reviveSelectedEntries() {
+        List<IgnoredEntryPanel> selected = entryPanels.stream()
+                .filter(IgnoredEntryPanel::isSelected)
+                .collect(Collectors.toList());
+        LOGGER.info("Revive selected clicked for " + selected.size() + " entries");
+        // TODO: Implement actual revive logic
+    }
+
+    /** Clears all selections. */
+    private void clearSelection() {
+        entryPanels.forEach(panel -> panel.setSelected(false));
+        updateSelectionState();
+    }
+
+    /** Updates the selection bar visibility and count based on current selections. */
+    private void updateSelectionState() {
+        long selectedCount = entryPanels.stream().filter(IgnoredEntryPanel::isSelected).count();
+        boolean hasSelection = selectedCount > 0;
+
+        if (selectionBarPanel != null) {
+            selectionBarPanel.setVisible(hasSelection);
+        }
+        if (selectionCountLabel != null) {
+            // Format: "N Risks selected" (or "1 Risk selected" for singular)
+            String riskText = selectedCount == 1 ? "Risk" : "Risks";
+            selectionCountLabel.setText(selectedCount + " " + riskText + " selected");
+        }
+
+        updateSelectAllCheckbox();
+
+        if (headerPanel != null) {
+            headerPanel.revalidate();
+            headerPanel.repaint();
+        }
     }
 
     private JCheckBox createSelectAllCheckbox() {
@@ -496,6 +626,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private void toggleSelectAll() {
         boolean selected = selectAllCheckbox.isSelected();
         entryPanels.forEach(panel -> panel.setSelected(selected));
+        updateSelectionState();
     }
 
     /** Updates select-all checkbox based on individual selections (removes listeners to prevent recursion). */
@@ -534,7 +665,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             this.entry = entry;
             this.selectCheckBox = new JCheckBox();
             selectCheckBox.setOpaque(false);
-            selectCheckBox.addActionListener(e -> updateSelectAllCheckbox());
+            selectCheckBox.addActionListener(e -> updateSelectionState());
 
             setLayout(new BorderLayout());
             setBorder(JBUI.Borders.empty(8, 12));
@@ -628,7 +759,11 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             setColumnSizes(panel, 120, 140, 160, getCalculatedRowHeight());
 
             JButton reviveButton = new JButton(CxIcons.Ignored.REVIVE);
-            reviveButton.setPreferredSize(new Dimension(JBUI.scale(90), JBUI.scale(28)));
+            reviveButton.setBorder(BorderFactory.createEmptyBorder());
+            reviveButton.setContentAreaFilled(false);
+            reviveButton.setFocusPainted(false);
+            reviveButton.setOpaque(false);
+            reviveButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             reviveButton.addActionListener(ev ->
                     LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown")));
 
@@ -998,18 +1133,17 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
                     int width = getWidth();
                     int height = getHeight();
-                    int arc = isDark ? height : JBUI.scale(7); // Full pill for dark, slight rounding for light
+                    int arc = height; // Full pill shape for both themes
 
                     if (isDark) {
-                        // Dark theme: filled background
+                        // Dark theme: filled background (#323438) with border (#43454A)
                         g2.setColor(new Color(0x323438));
                         g2.fillRoundRect(0, 0, width, height, arc, arc);
-                        // Border
                         g2.setColor(new Color(0x43454A));
                         g2.drawRoundRect(0, 0, width - 1, height - 1, arc, arc);
                     } else {
-                        // Light theme: transparent background, border only
-                        g2.setColor(new Color(0x6F6F6F));
+                        // Light theme: transparent background, border only (#9DA3B4)
+                        g2.setColor(new Color(0x9DA3B4));
                         g2.drawRoundRect(0, 0, width - 1, height - 1, arc, arc);
                     }
 
@@ -1022,7 +1156,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 @Override
                 public Color getForeground() {
                     boolean isDark = com.intellij.util.ui.UIUtil.isUnderDarcula();
-                    return isDark ? new Color(0xADADAD) : new Color(0xADADAD);
+                    return isDark ? new Color(0xADADAD) : new Color(0x52545F);
                 }
             };
 
@@ -1030,11 +1164,18 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 btn.setIcon(icon);
                 btn.setIconTextGap(JBUI.scale(3));
             }
-            btn.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, JBUI.scale(11)));
-            btn.setBorder(JBUI.Borders.empty(1, 2)); // Compact padding for pill with icon
+            btn.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, JBUI.scale(12)));
+            btn.setBorder(JBUI.Borders.empty(0, 0));
             btn.setContentAreaFilled(false);
             btn.setOpaque(false);
             btn.setFocusPainted(false);
+            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+            // Set fixed height of 24px
+            int pillHeight = JBUI.scale(24);
+            btn.setPreferredSize(new Dimension(btn.getPreferredSize().width, pillHeight));
+            btn.setMinimumSize(new Dimension(0, pillHeight));
+            btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, pillHeight));
 
             return btn;
         }
