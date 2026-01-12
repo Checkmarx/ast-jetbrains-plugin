@@ -5,11 +5,13 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.integration.Environment;
 import org.junit.jupiter.api.Test;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
+import org.junit.jupiter.api.*;
 
 import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.*;
 
 public class TestAuthentication extends BaseUITest{
     @Test
+    @DisplayName("Test successful AST authentication using API key")
     @Video
     public void testASTSuccessAuthentication() {
         // Test successfully connection
@@ -17,6 +19,7 @@ public class TestAuthentication extends BaseUITest{
     }
 
     @Test
+    @DisplayName("Test failed AST authentication using wrong API key")
     @Video
     public void testASTFailedAuthentication() {
         // Test wrong connection
@@ -62,4 +65,15 @@ public class TestAuthentication extends BaseUITest{
     }
 
 
+
+    @Test
+    @DisplayName("Validate dev assist welcome page launched after successful login")
+    @Video
+    public void validateWelcomePage(){
+        openSettings();
+        logoutIfUserIsAlreadyLoggedIn();
+        performLoginUsingApiKey(true);
+        validateWelcomePageLoadedSuccessfully(true);
+        validateSuccessfulLogin(true);
+    }
 }
