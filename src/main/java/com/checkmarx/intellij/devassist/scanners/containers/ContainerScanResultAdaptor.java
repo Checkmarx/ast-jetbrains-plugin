@@ -29,6 +29,7 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
 
     private final ContainersRealtimeResults containersRealtimeResults;
     private final String fileType;
+    private final String filePath;
     private final List<ScanIssue> scanIssues;
 
     /**
@@ -38,9 +39,10 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
      * @param containersRealtimeResults the container real-time scan results to be wrapped by this adapter
      */
 
-    public ContainerScanResultAdaptor(ContainersRealtimeResults containersRealtimeResults, String fileType) {
+    public ContainerScanResultAdaptor(ContainersRealtimeResults containersRealtimeResults, String fileType, String filePath) {
         this.containersRealtimeResults = containersRealtimeResults;
         this.fileType = fileType;
+        this.filePath = filePath;
         this.scanIssues = buildIssues();
     }
 
@@ -102,6 +104,7 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
         scanIssue.setImageTag(containersImageObj.getImageTag());
         scanIssue.setSeverity(containersImageObj.getStatus());
         scanIssue.setFileType(this.fileType);
+        scanIssue.setFilePath(this.filePath);
 
         if (!Objects.isNull(containersImageObj.getLocations()) && !containersImageObj.getLocations().isEmpty()) {
             containersImageObj.getLocations().forEach(location -> scanIssue.getLocations().add(createLocation(location)));

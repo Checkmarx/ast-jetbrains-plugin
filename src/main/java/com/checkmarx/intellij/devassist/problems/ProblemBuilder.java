@@ -2,13 +2,20 @@ package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.remediation.IgnoreAllThisTypeFix;
+import com.checkmarx.intellij.devassist.remediation.IgnoreVulnerabilityFix;
 import com.checkmarx.intellij.devassist.remediation.ViewDetailsFix;
 import com.checkmarx.intellij.devassist.ui.ProblemDescription;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.util.TextRange;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The ProblemBuilder class is a utility class responsible for constructing
@@ -48,10 +55,18 @@ public final class ProblemBuilder {
                 description,
                 ProblemHighlightType.GENERIC_ERROR,
                 problemHelper.isOnTheFly(),
-                new CxOneAssistFix(scanIssue),
-                new ViewDetailsFix(scanIssue)
-                /*new IgnoreVulnerabilityFix(scanIssue),
-                new IgnoreAllThisTypeFix(scanIssue)*/
+                getFixes(scanIssue)
         );
+    }
+    
+    private static LocalQuickFix[] getFixes(ScanIssue scanIssue) {
+        List<LocalQuickFix> localQuickFixes = new ArrayList<>();
+        localQuickFixes.add(new CxOneAssistFix(scanIssue));
+        localQuickFixes.add(new ViewDetailsFix(scanIssue));
+        localQuickFixes.add(new IgnoreVulnerabilityFix(scanIssue));
+        if (ScanEngine.CONTAINERS.equals(scanIssue.getScanEngine()) ||  ScanEngine.OSS.equals(scanIssue.getScanEngine())) {
+            localQuickFixes.add(new IgnoreAllThisTypeFix(scanIssue));
+        }
+        return localQuickFixes.toArray(new LocalQuickFix[0]);
     }
 }

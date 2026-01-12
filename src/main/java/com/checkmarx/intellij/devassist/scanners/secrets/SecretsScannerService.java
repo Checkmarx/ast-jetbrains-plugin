@@ -6,6 +6,7 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
@@ -197,7 +198,7 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
             }
 
             LOGGER.debug("Secrets scanner: starting scan - " + uri);
-            SecretsRealtimeResults scanResults = CxWrapperFactory.build().secretsRealtimeScan(tempFilePath.get(), "");
+            SecretsRealtimeResults scanResults = CxWrapperFactory.build().secretsRealtimeScan(tempFilePath.get(), DevAssistUtils.getIgnoreFilePath(file.getProject()));
 
             if (scanResults == null) {
                 LOGGER.debug("Secrets scanner: no results returned - " + uri);
@@ -214,10 +215,9 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
                     LOGGER.debug("Secret " + (index + 1) + ": " + secret.getTitle() + " [" + secret.getSeverity() + "]");
                 }
             }
-            SecretsScanResultAdaptor scanResultAdaptor = new SecretsScanResultAdaptor(scanResults);
+            SecretsScanResultAdaptor scanResultAdaptor = new SecretsScanResultAdaptor(scanResults, uri);
             TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.SECRETS);
             return scanResultAdaptor;
-
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.debug("Secrets scanner: scan error", e);
         } finally {

@@ -6,8 +6,11 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.application.ApplicationManager;
@@ -187,7 +190,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
 
         try {
             LOGGER.info(Strings.join("Starting ASCA scan on file: ", virtualFile.getPath()));
-            ScanResult scanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent);
+            ScanResult scanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent, DevAssistUtils.getIgnoreFilePath(project));
             handleScanResult(file, scanResult);
             return scanResult;
         } catch (Exception e) {
@@ -202,9 +205,9 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      * Calls the ASCA CLI to scan a file.
      * Consolidated from ASCA command class.
      */
-    private ScanResult scanAscaFile(String path, boolean ascaLatestVersion, String agent)
+    private ScanResult scanAscaFile(String path, boolean ascaLatestVersion, String agent, String ignoredFilePath)
             throws IOException, CxException, InterruptedException {
-        return CxWrapperFactory.build().ScanAsca(path, ascaLatestVersion, agent);
+        return CxWrapperFactory.build().ScanAsca(path, ascaLatestVersion, agent, ignoredFilePath);
     }
 
     /**
@@ -406,7 +409,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      */
     public boolean installAsca() {
         try {
-            ScanResult res = CxWrapperFactory.build().ScanAsca("", true, Constants.JET_BRAINS_AGENT_NAME);
+            ScanResult res = CxWrapperFactory.build().ScanAsca("", true, Constants.JET_BRAINS_AGENT_NAME, null);
             if (res.getError() != null) {
                 LOGGER.warn(Strings.join("ASCA installation error: ", res.getError().getDescription()));
                 return false;

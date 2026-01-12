@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.devassist.ui.findings.window.CxFindingsWindow;
+import com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
@@ -54,6 +55,15 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         // Add Dev Assist Findings tab - CxFindingsWindow handles auth/license logic internally
         addDevAssistFindingsTab(project, contentManager);
+
+        // Third tab
+        Content ignoredVulnerabilities = contentManager.getFactory().createContent(null, DevAssistConstants.IGNORED_FINDINGS_TAB, false);
+        final CxIgnoredFindings ignoredVulnerabilitiesWindow = new CxIgnoredFindings(project, ignoredVulnerabilities);
+        ignoredVulnerabilities.setComponent(ignoredVulnerabilitiesWindow);
+        contentManager.addContent(ignoredVulnerabilities);
+        Disposer.register(project, ignoredVulnerabilitiesWindow);
+
+
     }
 
     /**

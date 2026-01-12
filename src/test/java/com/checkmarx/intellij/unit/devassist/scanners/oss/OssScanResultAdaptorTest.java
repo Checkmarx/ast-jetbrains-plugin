@@ -21,7 +21,7 @@ public class OssScanResultAdaptorTest {
     @Test
     @DisplayName("getIssues_resultsNull_returnsEmptyList")
     void testGetIssues_resultsNull_returnsEmptyList() {
-        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(null);
+        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(null, "/repo/Main.java");
         assertTrue(adaptor.getIssues().isEmpty());
     }
 
@@ -30,7 +30,7 @@ public class OssScanResultAdaptorTest {
     void testGetIssues_packagesNull_returnsEmptyList() {
         OssRealtimeResults results = mock(OssRealtimeResults.class);
         when(results.getPackages()).thenReturn(null); // packages null
-        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results);
+        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results, "");
         assertTrue(adaptor.getIssues().isEmpty());
     }
 
@@ -39,7 +39,7 @@ public class OssScanResultAdaptorTest {
     void testGetIssues_packagesEmpty_returnsEmptyList() {
         OssRealtimeResults results = mock(OssRealtimeResults.class);
         when(results.getPackages()).thenReturn(List.of()); // empty list
-        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results);
+        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results, "");
         assertTrue(adaptor.getIssues().isEmpty());
     }
 
@@ -54,7 +54,7 @@ public class OssScanResultAdaptorTest {
         when(pkg.getVulnerabilities()).thenReturn(List.of());
         OssRealtimeResults results = mock(OssRealtimeResults.class);
         when(results.getPackages()).thenReturn(List.of(pkg));
-        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results);
+        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results, "");
         List<ScanIssue> issues = adaptor.getIssues();
         assertEquals(1, issues.size());
         ScanIssue issue = issues.get(0);
@@ -87,7 +87,7 @@ public class OssScanResultAdaptorTest {
         when(pkg.getVulnerabilities()).thenReturn(List.of(vul));
         OssRealtimeResults results = mock(OssRealtimeResults.class);
         when(results.getPackages()).thenReturn(List.of(pkg));
-        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results);
+        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results, "");
         List<ScanIssue> issues = adaptor.getIssues();
         assertEquals(1, issues.size());
         ScanIssue issue = issues.get(0);
@@ -124,7 +124,7 @@ public class OssScanResultAdaptorTest {
         when(pkg2.getVulnerabilities()).thenReturn(List.of());
         OssRealtimeResults results = mock(OssRealtimeResults.class);
         when(results.getPackages()).thenReturn(List.of(pkg1, pkg2));
-        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results);
+        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results, "");
         List<ScanIssue> issues = adaptor.getIssues();
         assertEquals(2, issues.size());
         assertEquals("pkg1", issues.get(0).getTitle());
@@ -135,7 +135,7 @@ public class OssScanResultAdaptorTest {
     @DisplayName("getResults_returnsOriginalInstance")
     void testGetResults_returnsOriginalInstance() {
         OssRealtimeResults results = mock(OssRealtimeResults.class);
-        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results);
+        OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results, "");
         assertSame(results, adaptor.getResults());
     }
 }

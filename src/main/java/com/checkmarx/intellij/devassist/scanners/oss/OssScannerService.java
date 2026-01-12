@@ -5,11 +5,14 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiFile;
 import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
@@ -240,11 +243,10 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
             }
             this.saveCompanionFile(tempSubFolder, uri);
             LOGGER.info("Start Realtime Scan On File: " + uri);
-            OssRealtimeResults scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath.get(), "");
-            OssScanResultAdaptor scanResultAdaptor = new OssScanResultAdaptor(scanResults);
+            OssRealtimeResults scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath.get(), DevAssistUtils.getIgnoreFilePath(file.getProject()));
+            OssScanResultAdaptor scanResultAdaptor = new OssScanResultAdaptor(scanResults, uri);
             TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.OSS);
             return scanResultAdaptor;
-
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);
         } finally {

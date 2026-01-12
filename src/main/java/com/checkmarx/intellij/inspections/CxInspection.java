@@ -12,7 +12,6 @@ public class CxInspection extends LocalInspectionTool {
 
     private static final PsiElementVisitor dummyVisitor = new PsiElementVisitor() {
     };
-
     /**
      * This method is overridden to provide a custom visitor.
      * The visitor must not be recursive and must be thread-safe.

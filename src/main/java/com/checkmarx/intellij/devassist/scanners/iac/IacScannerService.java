@@ -6,8 +6,12 @@ import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
+import com.checkmarx.intellij.devassist.scanners.containers.ContainerScanResultAdaptor;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
+import com.checkmarx.intellij.devassist.scanners.containers.ContainerScanResultAdaptor;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
@@ -191,8 +195,8 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
             if (Objects.nonNull(saveResult)) {
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start IAC Realtime Scan On File: " + uri);
-                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(), "");
-                IacScanResultAdaptor scanResultAdaptor = new IacScanResultAdaptor(scanResults,fileType);
+                IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(), DevAssistUtils.getIgnoreFilePath(psiFile.getProject()));
+                IacScanResultAdaptor scanResultAdaptor = new IacScanResultAdaptor(scanResults,fileType, uri);
                 TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.IAC);
                 return scanResultAdaptor;
             }
