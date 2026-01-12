@@ -4,12 +4,10 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.integration.Environment;
 import org.junit.jupiter.api.Assertions;
 
-import static com.checkmarx.intellij.ui.BaseUITest.*;
+import static com.checkmarx.intellij.ui.BaseUITest.focusCxWindow;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
-import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.click;
-import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.hasAnyComponent;
-import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
+import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
 
 public class CheckmarxSettingsPage {
@@ -66,6 +64,104 @@ public class CheckmarxSettingsPage {
             Assertions.assertFalse(hasAnyComponent(SUCCESS_CONNECTION));
             click(OK_BTN);
             waitFor(() -> !hasAnyComponent(START_SCAN_BTN) && !hasAnyComponent(CANCEL_SCAN_BTN));
+        }
+    }
+
+    public static void testASTSettingsPageTittlePresent() {
+        openSettings();
+
+        waitFor(() -> hasAnyComponent(HELP_PLUGIN_LINK));
+        String tittleText = getText(HELP_PLUGIN_LINK);
+        Assertions.assertTrue(find(HELP_PLUGIN_LINK).isShowing(),
+                "Help link is not visible on screen");
+        Assertions.assertEquals(
+                "Checkmarx One Jetbrains Plugin help page",
+                tittleText,
+                "Settings page title text did not match"
+        );
+        Assertions.assertTrue(hasAnyComponent(HELP_PLUGIN_LINK),
+                "Expected Checkmarx One Jetbrains Plugin help page label to be visible");
+        click(OK_BTN);
+    }
+
+    public static void testASTOAuthRadioButton(boolean expectSuccess) {
+        openSettings();
+        logoutIfAuthenticated();
+        ensureOAuthSelected();
+
+        if(expectSuccess==true) {
+            setField(Constants.CX_BASE_URI, Environment.BASE_URL);
+            setField(Constants.TENANT, Environment.TENANT);
+        }
+        else{
+            setField(Constants.CX_BASE_URI, Environment.BASE_URL);
+            setField(Constants.TENANT, Environment.TENANT);
+        }
+
+        // Attempt connection
+        waitFor(() -> hasAnyComponent(CONNECT_BUTTON));
+        click(CONNECT_BUTTON);
+
+        waitFor(() -> hasAnyComponent(OAUTH_POPUP_CANCEL_BUTTON));
+        click(OAUTH_POPUP_CANCEL_BUTTON);
+        click(OK_BTN);
+
+    }
+
+    private static void ensureOAuthSelected() {
+        waitFor(() -> hasAnyComponent(OAUTH_RADIO));
+        find(OAUTH_RADIO).click();
+    }
+
+    public static void testASTOAuthInvalidInput(
+            String baseUrl,
+            String tenant,
+            String expectedErrorXpath,
+            String expectedErrorMessage,
+            String scenarioName
+    ) {
+        log("Executing OAuth negative test: " + scenarioName);
+
+        openSettings();
+        logoutIfAuthenticated();
+        ensureOAuthSelected();
+
+        setField(Constants.CX_BASE_URI, baseUrl);
+        setField(Constants.TENANT, tenant);
+
+        click(CONNECT_BUTTON);
+
+        // Wait for error to appear
+        waitFor(() -> hasAnyComponent(expectedErrorXpath));
+
+        // Assert error is visible
+        Assertions.assertTrue(
+                hasAnyComponent(expectedErrorXpath),
+                "Expected error not shown for scenario: " + scenarioName
+        );
+
+        // Assert error message text
+        String actualErrorMessage = getText(expectedErrorXpath);
+        Assertions.assertTrue(
+                actualErrorMessage.contains(expectedErrorMessage),
+                "Error message mismatch for scenario: " + scenarioName +
+                        "\nActual: " + actualErrorMessage
+        );
+
+        click(OK_BTN);
+    }
+
+
+    private static void logoutIfAuthenticated() {
+        if (hasAnyComponent(LOGOUT_BUTTON)) {
+            log("Detected previous authentication. Logging out.");
+            click(LOGOUT_BUTTON);
+
+            if (hasAnyComponent(LOGOUT_CONFIRM_YES)) {
+                click(LOGOUT_CONFIRM_YES);
+            }
+
+            waitFor(() -> hasAnyComponent(OAUTH_RADIO));
         }
     }
 }
