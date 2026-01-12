@@ -2,12 +2,12 @@ package com.checkmarx.intellij.ui;
 
 import com.automation.remarks.junit5.Video;
 import com.checkmarx.intellij.integration.Environment;
-import com.checkmarx.intellij.ui.utils.TestConstants;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
+import static com.checkmarx.intellij.ui.utils.TestConstants.*;
 
 public class TestAuthentication extends BaseUITest{
     @Test
@@ -46,7 +46,7 @@ public class TestAuthentication extends BaseUITest{
                 "http://invalid-url",
                 Environment.TENANT,
                 INVALID_BASE_URL_ERROR,
-                TestConstants.INVALID_BASE_URL_ERROR_MESSAGE,
+                INVALID_BASE_URL_ERROR_MESSAGE,
                 "Invalid Base URL"
         );
     }
@@ -59,7 +59,7 @@ public class TestAuthentication extends BaseUITest{
                 Environment.BASE_URL,
                 "invalid-tenant",
                 INVALID_TENANT_ERROR,
-                TestConstants.INVALID_TENANT_ERROR_MESSAGE,
+                INVALID_TENANT_ERROR_MESSAGE,
                 "Invalid Tenant"
         );
     }

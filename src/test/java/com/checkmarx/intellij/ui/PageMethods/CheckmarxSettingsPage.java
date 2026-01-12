@@ -2,13 +2,13 @@ package com.checkmarx.intellij.ui.PageMethods;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.integration.Environment;
-import com.checkmarx.intellij.ui.utils.TestConstants;
 import org.junit.jupiter.api.Assertions;
 
 import static com.checkmarx.intellij.ui.BaseUITest.focusCxWindow;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
+import static com.checkmarx.intellij.ui.utils.TestConstants.*;
 
 
 public class CheckmarxSettingsPage {
@@ -122,14 +122,8 @@ public class CheckmarxSettingsPage {
         logoutIfAuthenticated();
         ensureOAuthSelected();
 
-        if(expectSuccess==true) {
-            setField(Constants.CX_BASE_URI, Environment.BASE_URL);
-            setField(Constants.TENANT, Environment.TENANT);
-        }
-        else{
-            setField(TestConstants.CX_BASE_URI, Environment.BASE_URL);
-            setField(TestConstants.TENANT, Environment.TENANT);
-        }
+        setField(CX_BASE_URI, Environment.BASE_URL);
+        setField(TENANT, Environment.TENANT);
 
         // Attempt connection
         waitFor(() -> hasAnyComponent(CONNECT_BUTTON));
@@ -159,8 +153,8 @@ public class CheckmarxSettingsPage {
         logoutIfAuthenticated();
         ensureOAuthSelected();
 
-        setField(Constants.CX_BASE_URI, baseUrl);
-        setField(Constants.TENANT, tenant);
+        setField(CX_BASE_URI, baseUrl);
+        setField(TENANT, tenant);
 
         click(CONNECT_BUTTON);
 
