@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.awt.event.KeyEvent;
 import java.util.*;
 
+import static com.checkmarx.intellij.ui.PageMethods.ScanResultsPannelPage.*;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
@@ -26,12 +27,18 @@ public class TestGeneral extends BaseUITest {
     EnumSet<Severity> exclude = EnumSet.of(Severity.MALICIOUS, Severity.INFO);
     @BeforeEach
     public void checkResults() {
-        getResults();
+        openScanResultsPanel();
+        resetProjectSelection();
+        enterScanIdAndSelect();
+        validateProjectLoadedSuccessfully();
     }
 
     @Test
     @Video
-    public void testEndToEnd() {checkResultsPanel();
+    public void testEndToEnd() throws InterruptedException {
+        //checkResultsPanel();
+        //Need to add further code for vulnerability validation to complete E2E test
+        checkAllTheComponentsInScanResultsPannel();
     }
 
     @Test
