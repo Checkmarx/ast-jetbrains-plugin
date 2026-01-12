@@ -182,6 +182,21 @@ public class Xpath {
     static final String CLOSE_RUN_SCAN_LOCAL_NOTIFICATION_WINDOW = "//div[@myicon='close.svg']";
     @Language("XPath")
     public static final String GETTING_RESULT_TEXT = "//div[@class='Tree' and contains(@visible_text,'Getting results')]";
+    @Language("XPath")
+    public
+    static final String HELP_PLUGIN_LINK = "//div[@visible_text_keys='HELP_JETBRAINS']";
+    @Language("XPath")
+    public
+    static final String OAUTH_RADIO = "//div[@text='OAuth']";
+    @Language("XPath")
+    public
+    static final String OAUTH_POPUP_CANCEL_BUTTON = "//div[@class='JPanel'][.//div[@class='InplaceButton']]//div[@text='Cancel']";
+    @Language("XPath")
+    public static final String INVALID_BASE_URL_ERROR =
+            "//div[@accessiblename='Please check the server address of your Checkmarx One environment.' and @class='JBLabel' and @text='<html>Please check the server address of your Checkmarx One environment.</html>']";
+    @Language("XPath")
+    public static final String INVALID_TENANT_ERROR =
+            "//div[@accessiblename='Tenant \"invalid-tenant\" not found. Please check your tenant name.' and @class='JBLabel' and @text='<html>Tenant \"invalid-tenant\" not found. Please check your tenant name.</html>']";
     //CxOne Assist Page XPaths
     @Language("XPath")
     public static final String GO_TO_CXONE_ASSIST_LINK = "//div[@mytext='Go to Checkmarx One Assist']";
