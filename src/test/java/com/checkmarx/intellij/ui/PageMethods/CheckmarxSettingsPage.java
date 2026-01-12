@@ -47,8 +47,6 @@ public class CheckmarxSettingsPage {
             if (hasAnyComponent(LOGOUT_CONFIRM_YES)) {
                 click(LOGOUT_CONFIRM_YES);
             }
-
-            waitFor(() -> hasAnyComponent(API_KEY_RADIO));
         }
     }
 
@@ -119,7 +117,7 @@ public class CheckmarxSettingsPage {
 
     public static void testASTOAuthRadioButton(boolean expectSuccess) {
         openSettings();
-        logoutIfAuthenticated();
+        logoutIfUserIsAlreadyLoggedIn();
         ensureOAuthSelected();
 
         setField(CX_BASE_URI, Environment.BASE_URL);
@@ -150,7 +148,7 @@ public class CheckmarxSettingsPage {
         log("Executing OAuth negative test: " + scenarioName);
 
         openSettings();
-        logoutIfAuthenticated();
+        logoutIfUserIsAlreadyLoggedIn();
         ensureOAuthSelected();
 
         setField(CX_BASE_URI, baseUrl);
@@ -178,17 +176,4 @@ public class CheckmarxSettingsPage {
         click(OK_BTN);
     }
 
-
-    private static void logoutIfAuthenticated() {
-        if (hasAnyComponent(LOGOUT_BUTTON)) {
-            log("Detected previous authentication. Logging out.");
-            click(LOGOUT_BUTTON);
-
-            if (hasAnyComponent(LOGOUT_CONFIRM_YES)) {
-                click(LOGOUT_CONFIRM_YES);
-            }
-
-            waitFor(() -> hasAnyComponent(OAUTH_RADIO));
-        }
-    }
 }

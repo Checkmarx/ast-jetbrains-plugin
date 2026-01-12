@@ -27,6 +27,7 @@ public class TestAuthentication extends BaseUITest{
     }
 
     @Test
+    @DisplayName("Test Success AST Setting Tittle Hyperlink text")
     @Video
     public void testASTSettingsPageTittleLink() {
 
@@ -34,12 +35,14 @@ public class TestAuthentication extends BaseUITest{
     }
 
     @Test
+    @DisplayName("Test OAuth Connection with valid Base URI and Tenant ")
     @Video
     public void testASTOAuthValidInput() {
         testASTOAuthRadioButton(true);
     }
 
     @Test
+    @DisplayName("Test OAuth Connection with invalid Base URI")
     @Video
     public void testASTOAuthInvalidBaseUrl() {
         testASTOAuthInvalidInput(
@@ -51,8 +54,8 @@ public class TestAuthentication extends BaseUITest{
         );
     }
 
-
     @Test
+    @DisplayName("Test OAuth Connection with invalid Tenant ")
     @Video
     public void testASTOAuthInvalidTenant() {
         testASTOAuthInvalidInput(
@@ -63,8 +66,6 @@ public class TestAuthentication extends BaseUITest{
                 "Invalid Tenant"
         );
     }
-
-
 
     @Test
     @DisplayName("Validate dev assist welcome page launched after successful login")
