@@ -8,22 +8,35 @@ import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.net.URL;
 
 /**
- * Promotional panel displayed in the "Checkmarx One Assist Findings" tab when the user
- * does not have the Dev Assist license. Shows a promotional message encouraging
- * the user to contact their admin for Dev Assist features.
+ * Promotional panel displayed in the "Checkmarx One Assist Findings" tab split view
+ * when the user has at least one license (One Assist OR Dev Assist).
+ * Shows an informational message encouraging the user to explore their security findings.
  */
-public class DevAssistPromotionalPanel extends JPanel {
+public class FindingsPromotionalPanel extends JPanel {
 
     // Icon path - can be changed to SVG when design assets are ready
     private static final String CUBE_ICON_PATH = "/icons/cx-one-assist-cube.png";
 
-    public DevAssistPromotionalPanel() {
+    private int ignoredVulnerabilitiesCount = 0;
+    private Runnable onLinkClickAction;
+
+    public FindingsPromotionalPanel() {
         // Compact layout: small insets, minimal gaps between text elements
         // Row constraints: image can shrink, text rows are fixed, extra space goes to bottom
-        super(new MigLayout("fill, insets 10 15 10 15, wrap 1", "[center, grow]", "[shrink 100]3[]3[]3[]push"));
+        super(new MigLayout("fill, insets 10 15 10 15, wrap 1", "[center, grow]", "[shrink 100]3[]3[]push"));
+        buildUI();
+    }
+
+    public FindingsPromotionalPanel(int ignoredCount, Runnable onLinkClick) {
+        // Compact layout: small insets, minimal gaps between text elements
+        super(new MigLayout("fill, insets 10 15 10 15, wrap 1", "[center, grow]", "[shrink 100]3[]3[]push"));
+        this.ignoredVulnerabilitiesCount = ignoredCount;
+        this.onLinkClickAction = onLinkClick;
         buildUI();
     }
 
@@ -35,25 +48,30 @@ public class DevAssistPromotionalPanel extends JPanel {
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(imageLabel, "growx");
 
-        // Title - compact font size
-        JBLabel titleLabel = new JBLabel(Bundle.message(Resource.UPSELL_DEV_ASSIST_TITLE));
-        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 16f));
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        add(titleLabel, "growx");
-
         // Description - wrapped text
-        String descriptionText = Bundle.message(Resource.UPSELL_DEV_ASSIST_DESCRIPTION);
+        String descriptionText = Bundle.message(Resource.FINDINGS_PROMO_DESCRIPTION);
         JBLabel descriptionLabel = new JBLabel("<html><div style='text-align: center;'>"
                 + descriptionText + "</div></html>");
         descriptionLabel.setForeground(UIUtil.getLabelForeground());
         descriptionLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(descriptionLabel, "growx, wmin 100");
 
-        // Contact admin message
-        JBLabel contactLabel = new JBLabel(Bundle.message(Resource.UPSELL_DEV_ASSIST_CONTACT));
-        contactLabel.setForeground(UIUtil.getLabelDisabledForeground());
-        contactLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        add(contactLabel, "growx");
+        // Clickable link styled label
+        String linkText = Bundle.message(Resource.FINDINGS_PROMO_LINK, ignoredVulnerabilitiesCount);
+        JBLabel linkLabel = new JBLabel("<html><a style='color: #589DF6;'>" + linkText + "</a></html>");
+        linkLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        linkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        if (onLinkClickAction != null) {
+            linkLabel.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    onLinkClickAction.run();
+                }
+            });
+        }
+
+        add(linkLabel, "growx");
     }
 
     /**

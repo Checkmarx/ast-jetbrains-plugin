@@ -14,6 +14,7 @@ import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
 import com.checkmarx.intellij.tool.window.DevAssistPromotionalPanel;
+import com.checkmarx.intellij.tool.window.FindingsPromotionalPanel;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -299,9 +300,8 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         // Create findings panel with tree in scroll pane
         JBScrollPane scrollPane = new JBScrollPane(tree);
 
-        // Create promotional panel
-       //  #TODO: New panel will be created having its own text and image.
-        DevAssistPromotionalPanel promotionalPanel = new DevAssistPromotionalPanel();
+        // Create promotional panel for findings
+        FindingsPromotionalPanel promotionalPanel = new FindingsPromotionalPanel();
 
         // Create splitter with vertical divider (false = left/right layout)
         JBSplitter splitter = new JBSplitter(false, 0.5f);

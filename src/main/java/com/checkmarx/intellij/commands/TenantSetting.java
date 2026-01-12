@@ -99,7 +99,7 @@ public class TenantSetting {
         // TODO: Uncomment when wrapper method is available
         // return CxWrapperFactory.build().oneAssistEnabled();
         LOG.info("One Assist license check: returning false (API not yet available)");
-        return false; // Temporary: return false for authenticated users until API is available
+        return false ; // Temporary: return false for authenticated users until API is available
     }
 
 }
