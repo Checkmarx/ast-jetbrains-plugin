@@ -12,7 +12,7 @@ import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 
-public class TestAscaRealTime {
+public class TestAscaRealTime extends BaseUITest{
 
     @Test
     @Video

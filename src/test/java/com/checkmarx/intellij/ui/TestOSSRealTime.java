@@ -13,7 +13,7 @@ import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ui.BaseUITest.*;
-public class TestOSSRealTime {
+public class TestOSSRealTime extends BaseUITest {
 
     @Test
     @Video
