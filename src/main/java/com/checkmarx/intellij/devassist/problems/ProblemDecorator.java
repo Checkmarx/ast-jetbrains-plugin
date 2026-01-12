@@ -2,11 +2,14 @@ package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.devassist.ignore.IgnoreEntry;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -16,12 +19,15 @@ import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VfsUtilCore;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.util.Arrays;
@@ -71,7 +77,7 @@ public class ProblemDecorator {
                 LOGGER.warn(format("RTS-Decorator: Exception occurred while highlighting or adding gutter icon for line: %s , Exception: {} ",
                         problemLineNumber), exception);
             }
-        });
+        }, ModalityState.NON_MODAL);
     }
 
     /**
@@ -229,6 +235,8 @@ public class ProblemDecorator {
                 return CxIcons.Small.LOW;
             case OK:
                 return CxIcons.Small.OK;
+            case IGNORED:
+                return CxIcons.Small.IGNORED;
             default:
                 return CxIcons.Small.UNKNOWN;
         }
@@ -249,7 +257,7 @@ public class ProblemDecorator {
                 if (markupModel.getAllHighlighters().length > 0) {
                     markupModel.removeAllHighlighters();
                 }
-            });
+            }, ModalityState.NON_MODAL);
         } catch (Exception e) {
             LOGGER.debug("RTS-Decorator: Exception occurred while removing highlighter with gutter icons for: {} ",
                     e.getMessage());
@@ -264,8 +272,8 @@ public class ProblemDecorator {
      * @param scanIssueList the scan issue list
      */
     public void decorateUI(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList, Document document) {
-        ApplicationManager.getApplication().invokeLater(() -> {
-            try {
+        try {
+            ApplicationManager.getApplication().invokeLater(() -> {
                 // Update UI, highlight, or trigger inspection
                 removeAllHighlighters(project);
                 ProblemHelper problemHelper = ProblemHelper.builder(psiFile, project)
@@ -288,10 +296,106 @@ public class ProblemDecorator {
                                 psiFile.getName(), scanIssue.getTitle(), e.getMessage());
                     }
                 }
+                decorateUIForIgnoredVulnerability(project, psiFile, scanIssueList);
+            }, ModalityState.NON_MODAL);
+
+        } catch (Exception e) {
+            LOGGER.warn(format("RTS-Decorator: Exception occurred while removing all highlighters for file: %s", psiFile.getName()), e);
+        }
+    }
+
+    /**
+     * Decorates the UI to visually indicate vulnerabilities that have been marked as ignored
+     * within a given file. Adds appropriate icons or highlights in the editor to signify these ignored issues.
+     * The method ensures only the currently active editor for the specified file is decorated.
+     * If more than one issue is found on the same line and one of them is not ignored, no ignored icon will be added for that line.
+     *
+     * @param project       the current project containing the file to be decorated
+     * @param psiFile       the file in which ignored vulnerabilities are to be visually indicated
+     * @param scanIssueList a list of {@link ScanIssue} instances representing detected vulnerabilities
+     */
+    public void decorateUIForIgnoredVulnerability(Project project, PsiFile psiFile, List<ScanIssue> scanIssueList) {
+        ApplicationManager.getApplication().invokeLater(() -> {
+            try {
+                List<IgnoreEntry> ignoreEntryList = new IgnoreManager(project).getIgnoredEntries();
+                if (ignoreEntryList.isEmpty()) {
+                    LOGGER.warn(format("RTS-Decorator: Not ignored vulnerabilities found! Skipping decoration for file: %s", psiFile.getName()));
+                    return;
+                }
+                Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
+                if (editor == null) return;
+
+                if (!Objects.equals(editor.getDocument(), PsiDocumentManager.getInstance(project)
+                        .getDocument(psiFile))) {
+                    // Only decorate the active editor of this file
+                    return;
+                }
+                String relativePath = getRelativePath(project, psiFile);
+                if (relativePath == null){
+                    LOGGER.info(format("RTS-Decorator: Decorating UI for ignored vulnerability for file: %s", psiFile.getName()));
+                }
+                MarkupModel markupModel = editor.getMarkupModel();
+                addIconForIgnoredVulnerability(psiFile, scanIssueList, relativePath, ignoreEntryList, markupModel, editor);
             } catch (Exception e) {
-                LOGGER.warn(format("RTS-Decorator: Exception occurred while removing all highlighters for file: %s", psiFile.getName()), e);
+                LOGGER.warn(format("RTS-Decorator: Exception occurred while adding decorating for ignored vulnerability for file: %s", psiFile.getName()), e);
             }
-        });
+        }, ModalityState.NON_MODAL);
+    }
+
+    /**
+     * Adds icons for ignored vulnerabilities in the specified file.
+     */
+    private void addIconForIgnoredVulnerability(PsiFile psiFile, List<ScanIssue> scanIssueList, String filePath, List<IgnoreEntry> ignoreEntryList, MarkupModel markupModel, Editor editor) {
+        LOGGER.info(format("RTS-Decorator: Started decorating UI for ignored vulnerability for file: %s", psiFile.getName()));
+        for (IgnoreEntry ignoredVulnerability : ignoreEntryList) {
+            try {
+                List<IgnoreEntry.FileReference> matchingFileRefs = ignoredVulnerability.files.stream()
+                        .filter(fileRef -> fileRef.path.equals(filePath))
+                        .collect(Collectors.toList());
+
+                if (!matchingFileRefs.isEmpty()) {
+                    for (IgnoreEntry.FileReference fileRef : matchingFileRefs)
+                        addIgnoreIconForFileReference(psiFile, scanIssueList, markupModel, editor, fileRef);
+                }
+            } catch (Exception e) {
+                LOGGER.warn(format("RTS-Decorator: Exception occurred while adding ignore icon for file: %s", psiFile.getName()), e);
+            }
+        }
+        LOGGER.info(format("RTS-Decorator: Completed decorating UI for ignored vulnerability for file: %s", psiFile.getName()));
+    }
+
+    /**
+     * Adds an ignore icon at the specified file reference line if no vulnerability exists there.
+     */
+    private void addIgnoreIconForFileReference(PsiFile psiFile, List<ScanIssue> scanIssueList, MarkupModel markupModel, Editor editor, IgnoreEntry.FileReference fileRef) {
+        try {
+            boolean isVulnerabilityExist = scanIssueList.stream()
+                    .anyMatch(scanIssue -> Objects.nonNull(scanIssue.getLocations())
+                            && !scanIssue.getLocations().isEmpty()
+                            && scanIssue.getLocations().get(0).getLine() == fileRef.line);
+
+            if (isVulnerabilityExist) {
+                LOGGER.info(String.format("RTS-Decorator: Skipping ignore icon as vulnerability present on line: %s for file: %s", fileRef.line, psiFile.getName()));
+                return;
+            }
+            RangeHighlighter highlighter = markupModel.addLineHighlighter(fileRef.line - 1, 0, null);
+            boolean alreadyHasGutterIcon = isAlreadyHasGutterIconOnLine(markupModel, editor, fileRef.line);
+            if (!alreadyHasGutterIcon) {
+                addGutterIcon(highlighter, SeverityLevel.IGNORED.getSeverity());
+            }
+        } catch (Exception e) {
+            LOGGER.warn(format("RTS-Decorator: Exception occurred while iterating file reference adding ignore icon for file: %s", psiFile.getName()), e);
+        }
+    }
+
+    /**
+     * Get a relative path of the given file.
+     */
+    private @Nullable String getRelativePath(Project project, PsiFile psiFile) {
+        return project.getBasePath() != null
+                ? VfsUtilCore.getRelativePath(psiFile.getVirtualFile(),
+                Objects.requireNonNull(LocalFileSystem.getInstance().findFileByPath(project.getBasePath())), '/')
+                : psiFile.getVirtualFile().getPath();
     }
 
     /**
