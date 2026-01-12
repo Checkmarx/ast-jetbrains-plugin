@@ -2,13 +2,11 @@ package com.checkmarx.intellij.ui.PageMethods;
 
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.integration.Environment;
+import com.checkmarx.intellij.ui.utils.TestConstants;
 import org.junit.jupiter.api.Assertions;
 
 import static com.checkmarx.intellij.ui.BaseUITest.focusCxWindow;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
-import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.click;
-import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.hasAnyComponent;
-import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
@@ -129,8 +127,8 @@ public class CheckmarxSettingsPage {
             setField(Constants.TENANT, Environment.TENANT);
         }
         else{
-            setField(Constants.CX_BASE_URI, Environment.BASE_URL);
-            setField(Constants.TENANT, Environment.TENANT);
+            setField(TestConstants.CX_BASE_URI, Environment.BASE_URL);
+            setField(TestConstants.TENANT, Environment.TENANT);
         }
 
         // Attempt connection
