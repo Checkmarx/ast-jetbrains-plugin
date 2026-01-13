@@ -274,7 +274,10 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
     private void drawEmptyStatePanel() {
         setContent(createEmptyMessagePanel(Bundle.message(Resource.IGNORED_NO_FINDINGS)));
-        setToolbar(null);
+        // Only set toolbar to null if it was previously set to avoid NPE during initialization
+        if (getToolbar() != null) {
+            setToolbar(null);
+        }
         updateTabTitle(0);
     }
 
@@ -528,12 +531,15 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
     /** Revives all selected entries. */
     private void reviveSelectedEntries() {
-        List<IgnoredEntryPanel> selected = entryPanels.stream()
+        List<IgnoreEntry> selectedEntries = entryPanels.stream()
                 .filter(IgnoredEntryPanel::isSelected)
+                .map(panel -> panel.entry)  // Extract IgnoreEntry from each panel
                 .collect(Collectors.toList());
-        LOGGER.info("Revive selected clicked for " + selected.size() + " entries");
-        // TODO: Implement actual revive logic
+
+        LOGGER.info("Revive selected clicked for " + selectedEntries.size() + " entries");
+        new IgnoreManager(project).reviveMultipleEntries(selectedEntries);
     }
+
 
     /** Clears all selections. */
     private void clearSelection() {
