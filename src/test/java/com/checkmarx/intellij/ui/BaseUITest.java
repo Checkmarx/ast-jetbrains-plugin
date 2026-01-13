@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.ui;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.tool.window.GroupBy;
@@ -10,7 +9,6 @@ import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.stepsProcessing.StepLogger;
 import com.intellij.remoterobot.stepsProcessing.StepWorker;
 import com.intellij.remoterobot.utils.Keyboard;
-import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
@@ -87,14 +85,6 @@ public abstract class BaseUITest {
             waitFor(() -> hasAnyComponent(TRUST_PROJECT) && find(TRUST_PROJECT).isShowing());
             find(TRUST_PROJECT).click();
         } catch (WaitForConditionTimeoutException ignored) {
-        }
-    }
-
-    static void openCxToolWindow() {
-        log("Opening Cx Tool Window");
-        waitFor(() -> hasAnyComponent("//div[@tooltiptext.key='NOTIFICATION_GROUP_NAME']"));
-        if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
-            find("//div[@tooltiptext.key='NOTIFICATION_GROUP_NAME']").click();
         }
     }
 
@@ -201,7 +191,7 @@ public abstract class BaseUITest {
                 return false;
             }
             log("clicking refresh action button");
-            click(CLEAR_BTN);
+            click(RESET_PROJECT_SELECTION);
             return false;
         });
     }

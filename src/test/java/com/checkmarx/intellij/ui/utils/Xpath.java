@@ -9,18 +9,6 @@ public class Xpath {
     public static final String SETTINGS_BUTTON = "//div[@text='Open Settings']";
     @Language("XPath")
     public
-    static final String EXPAND_ACTION = "//div[@tooltiptext='Expand all']";
-    @Language("XPath")
-    public
-    static final String COLLAPSE_ACTION = "//div[@tooltiptext='Collapse all']";
-    @Language("XPath")
-    public
-    static final String FILTER_BY_ACTION = "//div[@myicon='filter.svg']";
-    @Language("XPath")
-    public
-    static final String GROUP_BY_ACTION = "//div[@myicon='groupBy.svg']";
-    @Language("XPath")
-    public
     static final String CLONE_BUTTON = "//div[@text='Clone']";
     @Language("XPath")
     public
@@ -55,12 +43,6 @@ public class Xpath {
     @Language("XPath")
     public
     static final String JLIST = "//div[@class='JList']";
-    @Language("XPath")
-    public
-    static final String START_SCAN_BTN = "//div[contains(@myaction.key, 'START_SCAN_ACTION')]";
-    @Language("XPath")
-    public
-    static final String CANCEL_SCAN_BTN = "//div[@myaction.key='CANCEL_SCAN_ACTION']";
     @Language("XPath")
     public
     static final String MY_LIST = "//div[@class='MyList']";
@@ -103,9 +85,6 @@ public class Xpath {
     @Language("XPath")
     public
     static final String NO_SCAN_SELECTED = "//div[@class='ActionButtonWithText' and @visible_text='Scan: none']";
-    @Language("XPath")
-    public
-    static final String CLEAR_BTN = "//div[@myicon='refresh.svg']";
     @Language("XPath")
     public
     static final String TRIAGE_LOW = "//div[@class='ComboBox'][.//div[@visible_text='LOW']]";
@@ -261,4 +240,34 @@ public class Xpath {
     public static final String INSTALL_MCP_LINK = "//div[@mytext='Install MCP']";
     @Language("XPath")
     public static final String EDIT_MCP_LINK = "//div[@mytext='Edit in mcp.json']";
+
+    // Project Selection Pannel
+    @Language("XPath")
+    public static final String SELECTED_PROJECT_NAME_NONE = "//div[@visible_text='Project: none']";
+    @Language("XPath")
+    public static final String SELECTED_BRANCH_NAME_NONE = "//div[@visible_text='Branch: none']";
+    @Language("XPath")
+    public static final String SELECTED_SCAN_ID_NONE = "//div[@visible_text='Scan: none']";
+    @Language("XPath")
+    public static final String RESET_PROJECT_SELECTION = "//div[@myicon='refresh.svg']";
+    @Language("XPath")
+    public static final String START_SCAN_BTN = "//div[contains(@myaction.key, 'START_SCAN_ACTION')]";
+    @Language("XPath")
+    public static final String CANCEL_SCAN_BTN = "//div[@myaction.key='CANCEL_SCAN_ACTION']";
+    @Language("XPath")
+    public static final String SEVERITY_CRITICAL_ICON = "//div[@myicon='critical.svg']";
+    @Language("XPath")
+    public static final String SEVERITY_HIGH_ICON = "//div[@myicon='high.svg']";
+    @Language("XPath")
+    public static final String SEVERITY_MEDIUM_ICON = "//div[@myicon='medium.svg']";
+    @Language("XPath")
+    public static final String SEVERITY_LOW_ICON = "//div[@myicon='low.svg']";
+    @Language("XPath")
+    public static final String EXPAND_ACTION = "//div[@tooltiptext='Expand all']";
+    @Language("XPath")
+    public static final String COLLAPSE_ACTION = "//div[@tooltiptext='Collapse all']";
+    @Language("XPath")
+    public static final String FILTER_BY_ACTION = "//div[@myicon='filter.svg']";
+    @Language("XPath")
+    public static final String GROUP_BY_ACTION = "//div[@myicon='groupBy.svg']";
 }

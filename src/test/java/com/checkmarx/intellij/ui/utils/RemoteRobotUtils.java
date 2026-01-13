@@ -43,8 +43,20 @@ public class RemoteRobotUtils {
         return remoteRobot.findAll(cls, Locators.byXpath(xpath));
     }
 
-    public static String getText( @NotNull String xpath) {
-        ComponentFixture fixture = remoteRobot.find(ComponentFixture.class, Locators.byXpath(xpath));
-        return fixture.callJs("component.getText();");
+    /**
+     * Returns the text of the element found by the given XPath.
+     *
+     * @param xpath XPath of the element
+     * @return the text of the element, or null if not found or text is not available
+     */
+    public static String getText(@NotNull String xpath) {
+        try {
+            ComponentFixture fixture = remoteRobot.find(ComponentFixture.class, Locators.byXpath(xpath));
+            Object result = fixture.callJs("component.getText ? component.getText() : (component.getLabel ? component.getLabel() : null)");
+            return result != null ? result.toString() : null;
+        } catch (Exception e) {
+            System.err.println("Failed to get text for xpath: " + xpath + ", reason: " + e.getMessage());
+            return null;
+        }
     }
 }
