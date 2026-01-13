@@ -280,69 +280,31 @@ public class DevAssistUtils {
      *   <li>Paste and send the prompt automatically</li>
      * </ol>
      * <p>
-     * If Copilot is not available or automation fails, the prompt is copied to clipboard
-     * as a fallback and an appropriate notification is shown.
+     * This method does NOT show any notifications - the caller is responsible for
+     * handling success/failure notifications.
      *
-     * @param prompt            the fix prompt to send to Copilot
-     * @param notificationTitle title for any notifications shown
-     * @param successMessage    message to show on successful operation
-     * @param fallbackMessage   message to show when Copilot is not available
-     * @param project           the project context
-     * @return true if the prompt was successfully sent to Copilot, false if fallback to clipboard
+     * @param prompt  the fix prompt to send to Copilot
+     * @param project the project context
+     * @return true if Copilot was successfully opened and prompt initiated, false otherwise
      */
-    public static boolean fixWithAI(@NotNull String prompt, String notificationTitle,
-                                    String successMessage, String fallbackMessage, Project project) {
+    public static boolean fixWithAI(@NotNull String prompt, @NotNull Project project) {
         try {
             // Use CopilotIntegration directly for Copilot-only support
             com.checkmarx.intellij.devassist.remediation.CopilotIntegration.IntegrationResult result =
                     com.checkmarx.intellij.devassist.remediation.CopilotIntegration.openCopilotWithPromptDetailed(
-                            prompt, project, detailedResult -> {
-                                // Handle async completion - show notification based on result
-                                handleCopilotResult(detailedResult, notificationTitle, successMessage, fallbackMessage, project);
-                            });
+                            prompt, project, null);
 
             // Check immediate result
             if (result.isSuccess()) {
                 LOGGER.info("Fix with AI: Copilot integration initiated successfully");
-                Utils.showNotification(notificationTitle, successMessage, NotificationType.INFORMATION, project);
                 return true;
             } else {
-                LOGGER.info("Fix with AI: Copilot not available, prompt copied to clipboard");
-                Utils.showNotification(notificationTitle, fallbackMessage, NotificationType.WARNING, project);
+                LOGGER.info("Fix with AI: Copilot not available - " + result.getMessage());
                 return false;
             }
         } catch (Exception exception) {
             LOGGER.debug("Failed to fix with AI: ", exception);
-            Utils.showNotification(notificationTitle, "Failed to initiate AI fix. Prompt copied to clipboard.",
-                    NotificationType.ERROR, project);
             return false;
-        }
-    }
-
-    /**
-     * Handles the detailed result from Copilot integration callback.
-     */
-    private static void handleCopilotResult(
-            com.checkmarx.intellij.devassist.remediation.CopilotIntegration.IntegrationResult result,
-            String notificationTitle, String successMessage, String fallbackMessage, Project project) {
-
-        switch (result.getResult()) {
-            case FULL_SUCCESS:
-                LOGGER.info("Fix with AI: Copilot automation completed successfully");
-                break;
-            case PARTIAL_SUCCESS:
-                LOGGER.info("Fix with AI: Copilot opened but automation partial - " + result.getMessage());
-                Utils.showNotification(notificationTitle, result.getMessage(), NotificationType.INFORMATION, project);
-                break;
-            case COPILOT_NOT_AVAILABLE:
-                LOGGER.info("Fix with AI: Copilot not available - " + result.getMessage());
-                Utils.showNotification(notificationTitle, fallbackMessage, NotificationType.WARNING, project);
-                break;
-            case FAILED:
-                LOGGER.warn("Fix with AI: Copilot integration failed - " + result.getMessage());
-                Utils.showNotification(notificationTitle, "Automation failed. " + result.getMessage(),
-                        NotificationType.WARNING, project);
-                break;
         }
     }
 

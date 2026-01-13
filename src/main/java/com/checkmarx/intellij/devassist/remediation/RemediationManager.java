@@ -74,17 +74,13 @@ public final class RemediationManager {
 
         String notificationTitle = getNotificationTitle(scanIssue.getScanEngine());
 
-        // Try to fix with Copilot AI first
-        boolean aiSuccess = DevAssistUtils.fixWithAI(
-                prompt,
-                notificationTitle,
-                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
-                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_COPILOT_NOT_FOUND),
-                project);
+        // Try to fix with Copilot AI first (no notifications shown by fixWithAI)
+        boolean aiSuccess = DevAssistUtils.fixWithAI(prompt, project);
 
         if (aiSuccess) {
             LOGGER.info(format("RTS-Fix-AI: Remediation sent to Copilot for file: %s for %s issue: %s",
                     scanIssue.getFilePath(), scanIssue.getScanEngine().name(), scanIssue.getTitle()));
+            // No notification needed - Copilot window is open and prompt is being processed
         } else {
             // Fallback: Copy to clipboard with notification when Copilot is not available
             if (DevAssistUtils.copyToClipboardWithNotification(prompt, notificationTitle,
