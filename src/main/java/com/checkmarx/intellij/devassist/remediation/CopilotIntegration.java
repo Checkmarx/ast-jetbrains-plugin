@@ -73,22 +73,31 @@ public final class CopilotIntegration {
     /**
      * Configuration for timing delays in UI automation.
      * These values are tuned for typical IDE response times.
+     * 
+     * <p>All delays can be overridden via system properties for troubleshooting:
+     * <ul>
+     *   <li>{@code -Dcx.copilot.delay.open=1500} - Delay after opening Copilot</li>
+     *   <li>{@code -Dcx.copilot.delay.mode=1000} - Delay for Agent mode UI to load</li>
+     *   <li>{@code -Dcx.copilot.delay.popup.open=150} - Delay for popup to open</li>
+     *   <li>{@code -Dcx.copilot.delay.popup.select=150} - Delay after selecting in popup</li>
+     *   <li>{@code -Dcx.copilot.delay.popup.close=250} - Delay after closing popup</li>
+     * </ul>
      */
     private static final class Timing {
-        /** Delay after opening Copilot to allow UI to fully render */
-        static final int COPILOT_OPEN_DELAY_MS = 1200;
+        /** Delay after opening Copilot to allow UI to fully render (default: 1200ms) */
+        static final int COPILOT_OPEN_DELAY_MS = Integer.getInteger("cx.copilot.delay.open", 1200);
 
-        /** Delay for Agent mode UI panel to fully load after mode switch */
-        static final int AGENT_MODE_DELAY_MS = 800;
+        /** Delay for Agent mode UI panel to fully load after mode switch (default: 800ms) */
+        static final int AGENT_MODE_DELAY_MS = Integer.getInteger("cx.copilot.delay.mode", 800);
 
-        /** Delay for dropdown popup to open */
-        static final int POPUP_OPEN_DELAY_MS = 100;
+        /** Delay for dropdown popup to open (default: 100ms) */
+        static final int POPUP_OPEN_DELAY_MS = Integer.getInteger("cx.copilot.delay.popup.open", 100);
 
-        /** Delay after selecting item in dropdown */
-        static final int POPUP_SELECT_DELAY_MS = 100;
+        /** Delay after selecting item in dropdown (default: 100ms) */
+        static final int POPUP_SELECT_DELAY_MS = Integer.getInteger("cx.copilot.delay.popup.select", 100);
 
-        /** Delay after closing dropdown popup (allows internal handlers to complete) */
-        static final int POPUP_CLOSE_DELAY_MS = 200;
+        /** Delay after closing dropdown popup (default: 200ms) */
+        static final int POPUP_CLOSE_DELAY_MS = Integer.getInteger("cx.copilot.delay.popup.close", 200);
     }
 
     /** Known Copilot action IDs for opening the chat window */
