@@ -214,7 +214,7 @@ public final class CopilotIntegration {
             @NotNull Project project,
             @Nullable Consumer<IntegrationResult> callback) {
 
-        LOGGER.info("CxFix: Starting Copilot integration workflow");
+        LOGGER.debug("CxFix: Starting Copilot integration workflow");
 
         // Step 1: Always copy to clipboard first (guaranteed fallback)
         if (!copyToClipboard(prompt)) {
@@ -223,11 +223,11 @@ public final class CopilotIntegration {
             notifyCallback(callback, result);
             return result;
         }
-        LOGGER.info("CxFix: Prompt copied to clipboard");
+        LOGGER.debug("CxFix: Prompt copied to clipboard");
 
         // Step 2: Check if Copilot is available
         if (!isCopilotAvailable(project)) {
-            LOGGER.info("CxFix: Copilot not available, prompt copied to clipboard");
+            LOGGER.debug("CxFix: Copilot not available, prompt copied to clipboard");
             IntegrationResult result = IntegrationResult.copilotNotAvailable(
                     "GitHub Copilot is not installed or available. The fix prompt has been copied to your clipboard.");
             notifyCallback(callback, result);
@@ -246,7 +246,7 @@ public final class CopilotIntegration {
             return result;
         }
 
-        LOGGER.info("CxFix: Copilot chat opened, starting automation sequence");
+        LOGGER.debug("CxFix: Copilot chat opened, starting automation sequence");
 
         // Step 4: Schedule the automation sequence
         scheduleAutomatedPromptEntry(project, prompt, callback);
@@ -311,14 +311,14 @@ public final class CopilotIntegration {
             IntegrationResult result;
             try {
                 // Wait for Copilot to open and UI to stabilize
-                LOGGER.info("CxFix: Waiting for Copilot chat to initialize...");
+                LOGGER.debug("CxFix: Waiting for Copilot chat to initialize...");
                 TimeUnit.MILLISECONDS.sleep(Timing.COPILOT_OPEN_DELAY_MS);
 
                 // Attempt component-based automation (direct UI interaction)
                 boolean success = tryComponentBasedAutomation(project, prompt);
 
                 if (success) {
-                    LOGGER.info("CxFix: Automation completed successfully");
+                    LOGGER.debug("CxFix: Automation completed successfully");
                     result = IntegrationResult.fullSuccess(
                             "Fix prompt sent to Copilot Agent successfully!");
                 } else {
@@ -376,10 +376,10 @@ public final class CopilotIntegration {
                 logAllComponents(copilotWindow);
 
                 // Switch to Agent mode using the ChatModeComboBox
-                LOGGER.info("CxFix: Switching to Agent mode...");
+                LOGGER.debug("CxFix: Switching to Agent mode...");
                 boolean agentModeSet = trySetAgentModeFromDropdown(copilotWindow);
                 if (agentModeSet) {
-                    LOGGER.info("CxFix: Agent mode activated successfully");
+                    LOGGER.debug("CxFix: Agent mode activated successfully");
                     modeSwitchSuccess.set(true);
                 } else {
                     LOGGER.warn("CxFix: Failed to switch to Agent mode");
@@ -395,7 +395,7 @@ public final class CopilotIntegration {
 
         // Phase 2: Wait for Agent mode UI to fully initialize
         // When switching modes, Copilot recreates the chat panel asynchronously
-        LOGGER.info("CxFix: Waiting for Agent mode UI to initialize...");
+        LOGGER.debug("CxFix: Waiting for Agent mode UI to initialize...");
         try {
             TimeUnit.MILLISECONDS.sleep(Timing.AGENT_MODE_DELAY_MS);
         } catch (InterruptedException e) {
@@ -414,7 +414,7 @@ public final class CopilotIntegration {
                 }
 
                 // Find the input field in the newly created Agent mode panel
-                LOGGER.info("CxFix: Finding input field...");
+                LOGGER.debug("CxFix: Finding input field...");
                 JTextComponent inputField = findCopilotInputField(copilotWindow);
                 if (inputField == null) {
                     LOGGER.warn("CxFix: Could not find input field");
@@ -422,15 +422,15 @@ public final class CopilotIntegration {
                 }
 
                 // Set the prompt text and focus the field
-                LOGGER.info("CxFix: Setting prompt text...");
+                LOGGER.debug("CxFix: Setting prompt text...");
                 inputField.setText(prompt);
                 inputField.requestFocusInWindow();
 
                 // Send the message
-                LOGGER.info("CxFix: Sending message...");
+                LOGGER.debug("CxFix: Sending message...");
                 boolean sent = trySendMessage(copilotWindow, inputField);
                 if (sent) {
-                    LOGGER.info("CxFix: Message sent successfully");
+                    LOGGER.debug("CxFix: Message sent successfully");
                     sendSuccess.set(true);
                 } else {
                     LOGGER.warn("CxFix: Failed to send message");
@@ -462,7 +462,7 @@ public final class CopilotIntegration {
         // Try to find and click a send button
         AbstractButton sendButton = findSendButton(toolWindow);
         if (sendButton != null && sendButton.isEnabled()) {
-            LOGGER.info("CxFix: Clicking send button");
+            LOGGER.debug("CxFix: Clicking send button");
             sendButton.doClick();
             return true;
         }
@@ -470,13 +470,13 @@ public final class CopilotIntegration {
         // Try to find an action button (icon button without text) near the input
         AbstractButton actionButton = findActionButton(toolWindow, inputField);
         if (actionButton != null && actionButton.isEnabled()) {
-            LOGGER.info("CxFix: Clicking action button");
+            LOGGER.debug("CxFix: Clicking action button");
             actionButton.doClick();
             return true;
         }
 
         // Fall back to Enter key simulation
-        LOGGER.info("CxFix: Simulating Enter key");
+        LOGGER.debug("CxFix: Simulating Enter key");
         return simulateEnterKey(inputField);
     }
 
