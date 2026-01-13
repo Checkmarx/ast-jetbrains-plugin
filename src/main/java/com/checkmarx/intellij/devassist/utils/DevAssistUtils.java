@@ -3,7 +3,6 @@ package com.checkmarx.intellij.devassist.utils;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
-import com.checkmarx.intellij.devassist.remediation.CopilotIntegration;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
@@ -267,41 +266,6 @@ public class DevAssistUtils {
         } catch (Exception exception) {
             LOGGER.debug("Failed to copy text to clipboard: ", exception);
             Utils.showNotification(notificationTitle, "Failed to copy text to clipboard.", NotificationType.ERROR, null);
-            return false;
-        }
-    }
-
-    /**
-     * Sends a fix prompt to GitHub Copilot for automated remediation.
-     * <p>
-     * This method attempts to:
-     * <ol>
-     *   <li>Open GitHub Copilot Chat</li>
-     *   <li>Switch to Agent mode</li>
-     *   <li>Paste and send the prompt automatically</li>
-     * </ol>
-     * <p>
-     * This method does NOT show any notifications - the caller is responsible for
-     * handling success/failure notifications.
-     *
-     * @param prompt  the fix prompt to send to Copilot
-     * @param project the project context
-     * @return true if Copilot was successfully opened and prompt initiated, false otherwise
-     */
-    public static boolean fixWithAI(@NotNull String prompt, @NotNull Project project) {
-        try {
-            CopilotIntegration.IntegrationResult result =
-                    CopilotIntegration.openCopilotWithPromptDetailed(prompt, project, null);
-
-            if (result.isSuccess()) {
-                LOGGER.info("Fix with AI: Copilot integration initiated successfully");
-                return true;
-            } else {
-                LOGGER.info("Fix with AI: Copilot not available - " + result.getMessage());
-                return false;
-            }
-        } catch (Exception exception) {
-            LOGGER.debug("Failed to fix with AI: ", exception);
             return false;
         }
     }

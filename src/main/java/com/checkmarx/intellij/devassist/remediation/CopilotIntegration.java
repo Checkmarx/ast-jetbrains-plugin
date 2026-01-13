@@ -115,6 +115,26 @@ public final class CopilotIntegration {
             "GitHub Copilot"
     };
 
+    // ==================== Copilot UI Component Constants ====================
+
+    /** Copilot chat mode names */
+    private static final class ChatMode {
+        static final String AGENT = "agent";
+        static final String ASK = "ask";
+        static final String EDIT = "edit";
+        static final String PLAN = "plan";
+        /** Pattern to identify Agent mode by ID in combo box items */
+        static final String AGENT_ID_PATTERN = "id=agent";
+    }
+
+    /** Copilot UI component class name patterns */
+    private static final class CopilotUIComponents {
+        static final String CHAT_MODE_COMBO_BOX = "ChatMode";
+        static final String MODE_COMBO = "ModeCombo";
+        static final String CHAT_MODE_ITEM = "ChatModeItem";
+        static final String MODE = "Mode";
+    }
+
     // ==================== Result Types ====================
 
     /**
@@ -804,7 +824,7 @@ public final class CopilotIntegration {
             Object item = comboBox.getItemAt(i);
             String displayName = extractModeDisplayName(item);
             // Look for exact "Agent" mode (id=Agent, not Plan which has kind=Agent)
-            if (displayName.toLowerCase().contains("id=agent")) {
+            if (displayName.toLowerCase().contains(ChatMode.AGENT_ID_PATTERN)) {
                 return i;
             }
         }
@@ -834,7 +854,7 @@ public final class CopilotIntegration {
             String className = combo.getClass().getSimpleName();
 
             // Check by class name
-            if (className.contains("ChatMode") || className.contains("ModeCombo")) {
+            if (className.contains(CopilotUIComponents.CHAT_MODE_COMBO_BOX) || className.contains(CopilotUIComponents.MODE_COMBO)) {
                 LOGGER.debug("CxFix: Found ChatModeComboBox: " + className);
                 logComboBoxItems(combo);
                 return combo;
@@ -845,7 +865,7 @@ public final class CopilotIntegration {
                 Object firstItem = combo.getItemAt(0);
                 if (firstItem != null) {
                     String itemClassName = firstItem.getClass().getName();
-                    if (itemClassName.contains("ChatModeItem") || itemClassName.contains("Mode")) {
+                    if (itemClassName.contains(CopilotUIComponents.CHAT_MODE_ITEM) || itemClassName.contains(CopilotUIComponents.MODE)) {
                         LOGGER.debug("CxFix: Found mode ComboBox by item type: " + itemClassName);
                         logComboBoxItems(combo);
                         return combo;
@@ -1055,8 +1075,8 @@ public final class CopilotIntegration {
             String text = button.getText();
             if (text != null) {
                 String lowerText = text.toLowerCase();
-                if (lowerText.equals("ask") || lowerText.equals("edit") ||
-                        lowerText.equals("agent") || lowerText.equals("plan")) {
+                if (lowerText.equals(ChatMode.ASK) || lowerText.equals(ChatMode.EDIT) ||
+                        lowerText.equals(ChatMode.AGENT) || lowerText.equals(ChatMode.PLAN)) {
                     LOGGER.debug("CxFix: Found mode button: '" + text + "'");
                     return button;
                 }
@@ -1088,7 +1108,7 @@ public final class CopilotIntegration {
         String currentMode = modeButton.getText();
         LOGGER.debug("CxFix: Mode button text: '" + currentMode + "'");
 
-        if (currentMode != null && currentMode.toLowerCase().contains("agent")) {
+        if (currentMode != null && currentMode.toLowerCase().contains(ChatMode.AGENT)) {
             LOGGER.debug("CxFix: Already in Agent mode");
             return true;
         }
@@ -1103,13 +1123,13 @@ public final class CopilotIntegration {
         Window[] windows = Window.getWindows();
         for (Window window : windows) {
             if (window.isVisible() && window instanceof JWindow) {
-                AbstractButton agentButton = findButtonWithText(window, "agent");
+                AbstractButton agentButton = findButtonWithText(window, ChatMode.AGENT);
                 if (agentButton != null) {
                     LOGGER.debug("CxFix: Selecting Agent from popup");
                     agentButton.doClick();
                     return true;
                 }
-                JMenuItem agentMenuItem = findMenuItemWithText(window, "agent");
+                JMenuItem agentMenuItem = findMenuItemWithText(window, ChatMode.AGENT);
                 if (agentMenuItem != null) {
                     LOGGER.debug("CxFix: Selecting Agent from menu");
                     agentMenuItem.doClick();
@@ -1128,7 +1148,7 @@ public final class CopilotIntegration {
                     for (Component menuComp : popup.getComponents()) {
                         if (menuComp instanceof JMenuItem) {
                             JMenuItem item = (JMenuItem) menuComp;
-                            if (item.getText() != null && item.getText().toLowerCase().contains("agent")) {
+                            if (item.getText() != null && item.getText().toLowerCase().contains(ChatMode.AGENT)) {
                                 LOGGER.debug("CxFix: Selecting Agent from popup menu");
                                 item.doClick();
                                 return true;

@@ -19,6 +19,8 @@ import java.util.Objects;
 import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
 import static java.lang.String.format;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * RemediationManager provides remediation options for issues identified during a real-time scan.
  * <p>
@@ -42,52 +44,96 @@ public final class RemediationManager {
      *
      * @param project   the project where the fix is to be applied
      * @param scanIssue the scan issue to fix
+     * @param actionId  the action ID for vulnerability-specific fixes
      */
     public void fixWithCxOneAssist(@NotNull Project project, @NotNull ScanIssue scanIssue, String actionId) {
-        String prompt = null;
+        String prompt = buildRemediationPrompt(scanIssue, actionId);
+        applyFix(project, scanIssue, prompt);
+    }
+
+    /**
+     * Builds the remediation prompt based on scan engine type.
+     *
+     * @param scanIssue the scan issue to build prompt for
+     * @param actionId  the action ID for vulnerability-specific fixes
+     * @return the remediation prompt, or null if not applicable
+     */
+    @Nullable
+    private String buildRemediationPrompt(@NotNull ScanIssue scanIssue, String actionId) {
         switch (scanIssue.getScanEngine()) {
             case OSS:
-                prompt = buildOSSRemediationPrompt(scanIssue);
-                break;
+                return buildOSSRemediationPrompt(scanIssue);
             case SECRETS:
-                prompt = buildSecretRemediationPrompt(scanIssue);
-                break;
+                return buildSecretRemediationPrompt(scanIssue);
             case CONTAINERS:
-                prompt = buildContainerRemediationPrompt(scanIssue);
-                break;
+                return buildContainerRemediationPrompt(scanIssue);
             case IAC:
-                prompt = buildIACRemediationPrompt(scanIssue, actionId);
-                break;
+                return buildIACRemediationPrompt(scanIssue, actionId);
             case ASCA:
-                prompt = buildASCARemediationPrompt(scanIssue, actionId);
-                break;
+                return buildASCARemediationPrompt(scanIssue, actionId);
             default:
-                break;
+                return null;
         }
+    }
 
+    /**
+     * Applies the fix by attempting to send to Copilot AI first, with clipboard fallback.
+     *
+     * @param project   the project context
+     * @param scanIssue the scan issue being fixed
+     * @param prompt    the remediation prompt to apply
+     */
+    private void applyFix(@NotNull Project project, @NotNull ScanIssue scanIssue, @Nullable String prompt) {
         if (prompt == null || prompt.isEmpty()) {
             return;
         }
-
-        LOGGER.info(format("RTS-Fix: Remediation started for file: %s for %s issue: %s",
-                scanIssue.getFilePath(), scanIssue.getScanEngine().name(), scanIssue.getTitle()));
-
+        LOGGER.info(format("RTS-Fix: %s remediation started for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
         String notificationTitle = getNotificationTitle(scanIssue.getScanEngine());
 
         // Try to fix with Copilot AI first (no notifications shown by fixWithAI)
-        boolean aiSuccess = DevAssistUtils.fixWithAI(prompt, project);
-
+        boolean aiSuccess = fixWithAI(prompt, project);
         if (aiSuccess) {
-            LOGGER.info(format("RTS-Fix-AI: Remediation sent to Copilot for file: %s for %s issue: %s",
-                    scanIssue.getFilePath(), scanIssue.getScanEngine().name(), scanIssue.getTitle()));
-            // No notification needed - Copilot window is open and prompt is being processed
+            LOGGER.info(format("RTS-Fix: %s remediation sent to Copilot for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
         } else {
             // Fallback: Copy to clipboard with notification when Copilot is not available
-            if (DevAssistUtils.copyToClipboardWithNotification(prompt, notificationTitle,
-                    Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
-                LOGGER.info(format("RTS-Fix: Remediation completed (clipboard) for file: %s for %s issue: %s",
-                        scanIssue.getFilePath(), scanIssue.getScanEngine().name(), scanIssue.getTitle()));
+            if (DevAssistUtils.copyToClipboardWithNotification(prompt, notificationTitle, Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
+                LOGGER.info(format("RTS-Fix: %s remediation completed (clipboard) for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
             }
+        }
+    }
+
+    /**
+     * Sends a fix prompt to GitHub Copilot for automated remediation.
+     * <p>
+     * This method attempts to:
+     * <ol>
+     *   <li>Open GitHub Copilot Chat</li>
+     *   <li>Switch to Agent mode</li>
+     *   <li>Paste and send the prompt automatically</li>
+     * </ol>
+     * <p>
+     * This method does NOT show any notifications - the caller is responsible for
+     * handling success/failure notifications.
+     *
+     * @param prompt  the fix prompt to send to Copilot
+     * @param project the project context
+     * @return true if Copilot was successfully opened and prompt initiated, false otherwise
+     */
+    private boolean fixWithAI(@NotNull String prompt, @NotNull Project project) {
+        try {
+            CopilotIntegration.IntegrationResult result =
+                    CopilotIntegration.openCopilotWithPromptDetailed(prompt, project, null);
+
+            if (result.isSuccess()) {
+                LOGGER.debug("Fix with AI: Copilot integration initiated successfully");
+                return true;
+            } else {
+                LOGGER.debug("Fix with AI: Copilot not available - " + result.getMessage());
+                return false;
+            }
+        } catch (Exception exception) {
+            LOGGER.debug("Failed to fix with AI: ", exception);
+            return false;
         }
     }
 
