@@ -72,12 +72,24 @@ public final class RemediationManager {
         LOGGER.info(format("RTS-Fix: Remediation started for file: %s for %s issue: %s",
                 scanIssue.getFilePath(), scanIssue.getScanEngine().name(), scanIssue.getTitle()));
 
-        boolean isSuccess = DevAssistUtils.fixWithAI(prompt, getNotificationTitle(scanIssue.getScanEngine()));
+        String notificationTitle = getNotificationTitle(scanIssue.getScanEngine());
 
-        if (isSuccess) {
-            if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
+        // Try to fix with Copilot AI first
+        boolean aiSuccess = DevAssistUtils.fixWithAI(
+                prompt,
+                notificationTitle,
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_SUCCESS),
+                Bundle.message(Resource.DEV_ASSIST_FIX_WITH_AI_COPILOT_NOT_FOUND),
+                project);
+
+        if (aiSuccess) {
+            LOGGER.info(format("RTS-Fix-AI: Remediation sent to Copilot for file: %s for %s issue: %s",
+                    scanIssue.getFilePath(), scanIssue.getScanEngine().name(), scanIssue.getTitle()));
+        } else {
+            // Fallback: Copy to clipboard with notification when Copilot is not available
+            if (DevAssistUtils.copyToClipboardWithNotification(prompt, notificationTitle,
                     Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
-                LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for %s issue: %s",
+                LOGGER.info(format("RTS-Fix: Remediation completed (clipboard) for file: %s for %s issue: %s",
                         scanIssue.getFilePath(), scanIssue.getScanEngine().name(), scanIssue.getTitle()));
             }
         }
