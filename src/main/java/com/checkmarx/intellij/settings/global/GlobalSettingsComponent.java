@@ -302,7 +302,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
         SETTINGS_STATE.setAuthenticated(true);
         SETTINGS_STATE.setLastValidationSuccess(true);
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
-        // check Lincense using some method 
+        // Clear stale license flags before checking (fail-safe: if API call fails, flags remain false)
+        SETTINGS_STATE.setDevAssistLicenseEnabled(false);
+        SETTINGS_STATE.setOneAssistLicenseEnabled(false);
         try {
             boolean isDevAssistLicenseEnabled = TenantSetting.isDevAssistEnabled();
             boolean isOneAssistLicenseEnabled = TenantSetting.isOneAssistEnabled();
@@ -489,6 +491,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
             notifyAuthSuccess();
+            // Clear stale license flags before checking (fail-safe: if API call fails, flags remain false)
+            SETTINGS_STATE.setDevAssistLicenseEnabled(false);
+            SETTINGS_STATE.setOneAssistLicenseEnabled(false);
             try {
                 boolean isDevAssistLicenseEnabled = TenantSetting.isDevAssistEnabled();
                 boolean isOneAssistLicenseEnabled = TenantSetting.isOneAssistEnabled();
@@ -775,6 +780,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
         setFieldsEditable(true);
         updateConnectButtonState();
         SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+        // Clear license flags on logout to ensure fresh check on next login
+        SETTINGS_STATE.setDevAssistLicenseEnabled(false);
+        SETTINGS_STATE.setOneAssistLicenseEnabled(false);
         updateAssistLinkVisibility();
         // Don't clear MCP status on logout - keep it for next login
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.LOGOUT_SUCCESS));
@@ -794,10 +802,12 @@ public class GlobalSettingsComponent implements SettingsComponent {
         logoutButton.setEnabled(false);
         setFieldsEditable(true);
 
-        // Clear authentication and MCP status
+        // Clear authentication, MCP status, and license flags
         SETTINGS_STATE.setAuthenticated(false);
         SETTINGS_STATE.setMcpEnabled(false);
         SETTINGS_STATE.setMcpStatusChecked(false);
+        SETTINGS_STATE.setDevAssistLicenseEnabled(false);
+        SETTINGS_STATE.setOneAssistLicenseEnabled(false);
         updateAssistLinkVisibility();
         if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
             SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
