@@ -792,6 +792,24 @@ public class GlobalSettingsComponent implements SettingsComponent {
         }
         apply();
         updateConnectButtonState(); // Ensure the Connect button state is updated
+
+        // Close the Settings dialog to force rebuild of the settings tree
+        // This ensures the CxOne Assist sub-panel disappears immediately after logout
+        closeSettingsDialog();
+    }
+
+    /**
+     * Closes the Settings dialog if currently open.
+     * This forces IntelliJ to rebuild the settings tree on next open,
+     * ensuring conditional configurables (like CxOne Assist) are re-evaluated.
+     */
+    private void closeSettingsDialog() {
+        SwingUtilities.invokeLater(() -> {
+            java.awt.Window dialog = SwingUtilities.getWindowAncestor(mainPanel);
+            if (dialog != null) {
+                dialog.dispose();
+            }
+        });
     }
 
     // Setting state after session expired.
