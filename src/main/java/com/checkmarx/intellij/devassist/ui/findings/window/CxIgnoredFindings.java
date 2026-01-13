@@ -56,6 +56,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
+
 /**
  * Tool window panel for viewing and managing ignored vulnerability findings.
  * Supports severity/type filtering, sorting, bulk selection, file navigation, and revive actions.
@@ -764,8 +766,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             reviveButton.setFocusPainted(false);
             reviveButton.setOpaque(false);
             reviveButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            reviveButton.addActionListener(ev ->
-                    LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown")));
+            reviveButton.addActionListener(e -> new IgnoreManager(project).reviveSingleEntry(entry));
+                    LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown"));
 
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.anchor = GridBagConstraints.FIRST_LINE_START;

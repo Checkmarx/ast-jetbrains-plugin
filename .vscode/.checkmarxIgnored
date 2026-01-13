@@ -1,0 +1,17 @@
+{
+  "Hardcoded Passwords:1017:src/main/java/com/checkmarx/intellij/inspections/CxInspection.java": {
+    "files": [
+      {
+        "path": "src/main/java/com/checkmarx/intellij/inspections/CxInspection.java",
+        "active": true,
+        "line": 26
+      }
+    ],
+    "type": "Asca",
+    "PackageName": "Hardcoded Passwords",
+    "ruleId": 1017,
+    "severity": "High",
+    "description": "Hardcoded passwords can expose applications to security risks, making sensitive information vulnerable. It is advisable to use environment variables to store passwords and retrieve them using System.getProperty. This approach enhances security by keeping credentials out of the source code and reducing the risk of unauthorized access.",
+    "dateAdded": "2026-01-12T11:04:13.038Z"
+  }
+}

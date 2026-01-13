@@ -121,7 +121,6 @@ public final class IgnoreFileManager {
         return new ArrayList<>(ignoreData.values());
     }
 
-
     /**
      * Saves the current ignore data to the ignore file.
      * Writes the ignore data as formatted JSON to the file specified by {@link #getIgnoreFilePath()}.
@@ -194,6 +193,23 @@ public final class IgnoreFileManager {
         } catch (IOException e) {
             LOGGER.error(String.format("RTS-Ignore: Failed to update temp list: %s", e.getMessage()));
         }
+    }
+
+    /**
+     * Revives a previously ignored package by setting all its file references to inactive.
+     * This makes the vulnerability visible again in future scans.
+     *
+     * @param jsonKeyForRevivedEntry The unique key identifying the ignored package
+     * @return true if the package was found and revived, false otherwise
+     */
+    public boolean reviveEntry(IgnoreEntry jsonKeyForRevivedEntry) {
+        for (IgnoreEntry.FileReference file : jsonKeyForRevivedEntry.getFiles()) {
+            file.setActive(false);  // Mark as inactive (revived)
+        }
+        saveIgnoreFile();
+        updateIgnoreTempList();
+        LOGGER.info("RTS-Ignore: Revived package: " + jsonKeyForRevivedEntry.getPackageName());
+        return true;
     }
 
 
@@ -307,9 +323,9 @@ public final class IgnoreFileManager {
     private List<ActiveFile> getActiveFilesList(Map<String, IgnoreEntry> data) {
         List<ActiveFile> result = new ArrayList<>();
         for (Map.Entry<String, IgnoreEntry> e : data.entrySet()) {
-            for (IgnoreEntry.FileReference f : e.getValue().files) {
-                if (f.active) {
-                    result.add(new ActiveFile(e.getKey(), f.path));
+            for (IgnoreEntry.FileReference fileRef : e.getValue().files) {
+                if (fileRef.active) {
+                    result.add(new ActiveFile(e.getKey(), fileRef.path));
                 }
             }
         }
@@ -319,7 +335,7 @@ public final class IgnoreFileManager {
     private void removeIgnoredEntryWithoutTempUpdate(String packageKey, String filePath) {
         IgnoreEntry entry = ignoreData.get(packageKey);
         if (entry == null) return;
-        entry.files.removeIf(f -> f.path.equals(filePath));
+        entry.files.removeIf(fileRef -> fileRef.path.equals(filePath));
         if (entry.files.isEmpty()) {
             ignoreData.remove(packageKey);
         }

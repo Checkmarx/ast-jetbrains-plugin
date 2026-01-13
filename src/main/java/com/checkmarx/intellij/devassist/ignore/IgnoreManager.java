@@ -18,9 +18,14 @@ import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
 
@@ -128,9 +133,167 @@ public final class IgnoreManager {
         showIgnoreSuccessNotification(project, issueToIgnore, vulnerabilityKey);
     }
 
+
+    /**
+     * Revives a single ignored vulnerability.
+     * Shows a notification to the user and triggers a rescan for affected files.
+     *
+     * @param entryToRevive The unique key of the vulnerability to revive
+     */
+    public void reviveSingleEntry(IgnoreEntry entryToRevive) {
+        int fileCount = (int) entryToRevive.getFiles().stream()
+                .filter(IgnoreEntry.FileReference::isActive)
+                .count();
+        boolean success = ignoreFileManager.reviveEntry(entryToRevive);
+        if (success) {
+            triggerRescanForEntry(entryToRevive);
+            String message = String.format("Revived 1 vulnerability in %d file%s",
+                    fileCount, fileCount == 1 ? "" : "s");
+            Utils.showNotification(message, "", NotificationType.INFORMATION, project);
+            LOGGER.debug(String.format("RTS-Ignore: Successfully revived entry: %s", entryToRevive));
+        } else {
+            Utils.showNotification(Bundle.message(Resource.REVIVE_FAILED), "", NotificationType.ERROR, project);
+            LOGGER.warn(String.format("RTS-Ignore: Failed to revive entry: %s", entryToRevive));
+        }
+    }
+
+//    /**
+//     * Revives multiple ignored vulnerabilities in bulk.
+//     * Shows a summary notification to the user and triggers rescans for all affected files.
+//     *
+//     * @param packageKeys List of package keys to revive
+//     */
+//    public void reviveMultipleEntries(List<String> packageKeys) {
+//        if (packageKeys == null || packageKeys.isEmpty()) {
+//            LOGGER.warn("RTS-Ignore: No package keys provided for bulk revive");
+//            return;
+//        }
+//
+//        int successCount = 0;
+//        int totalFileCount = 0;
+//        List<String> failedKeys = new ArrayList<>();
+//
+//        for (String packageKey : packageKeys) {
+//            IgnoreEntry entry = IgnoreFileManager.ignoreData.get(packageKey);
+//            if (entry == null) {
+//                failedKeys.add(packageKey);
+//                LOGGER.warn(String.format("RTS-Ignore: Entry not found for key: %s", packageKey));
+//                continue;
+//            }
+//
+//            int fileCount = (int) entry.getFiles().stream()
+//                    .filter(IgnoreEntry.FileReference::isActive)
+//                    .count();
+//
+//            boolean success = ignoreFileManager.reviveEntry(packageKey);
+//
+//            if (success) {
+//                successCount++;
+//                totalFileCount += fileCount;
+//                // Trigger rescan for affected files
+//                triggerRescanForEntry(entry);
+//                LOGGER.debug(String.format("RTS-Ignore: Successfully revived entry: %s", packageKey));
+//            } else {
+//                failedKeys.add(packageKey);
+//                LOGGER.warn(String.format("RTS-Ignore: Failed to revive entry: %s", packageKey));
+//            }
+//        }
+//
+//        // Show summary notification
+//        if (successCount > 0) {
+//            String message;
+//            if (successCount == 1) {
+//                message = String.format("Revived 1 vulnerability in %d file%s",
+//                        totalFileCount, totalFileCount == 1 ? "" : "s");
+//            } else {
+//                message = String.format("Revived %d vulnerabilities in %d file%s",
+//                        successCount, totalFileCount, totalFileCount == 1 ? "" : "s");
+//            }
+//
+//            if (!failedKeys.isEmpty()) {
+//                message += String.format(" (%d failed)", failedKeys.size());
+//            }
+//
+//            Utils.showNotification(message, "", NotificationType.INFORMATION, project);
+//        } else {
+//            Utils.showNotification("Failed to revive entries", "", NotificationType.ERROR, project);
+//        }
+//    }
+
+    /**
+     * Triggers rescan for files affected by the revived entry.
+     * Iterates through all file references and schedules a rescan for each revived file.
+     *
+     * @param entry The ignore entry containing file references to rescan
+     */
+    private void triggerRescanForEntry(IgnoreEntry entry) {
+        for (IgnoreEntry.FileReference fileRef : entry.getFiles()) {
+            if (!fileRef.isActive()) {  // Was just revived
+                String fullPath = Paths.get(Objects.requireNonNull(project.getBasePath()),
+                        fileRef.getPath()).toString();
+                VirtualFile vFile = LocalFileSystem.getInstance().findFileByPath(fullPath);
+                if (vFile != null) {
+                    // Trigger rescan based on scanner type
+                    triggerRescanForFile(vFile, fullPath, entry.getType());
+                } else {
+                    LOGGER.warn(String.format("RTS-Ignore: Could not find file for rescan: %s", fullPath));
+                }
+            }
+        }
+    }
+
+    /**
+     * Triggers a rescan for a specific file based on the scan engine type.
+     * Creates a ProblemHelper and schedules a scan using CxOneAssistScanScheduler.
+     *
+     * @param vFile      The virtual file to rescan
+     * @param filePath   The full path to the file
+     * @param scanEngine The scan engine type to use for the rescan
+     */
+    private void triggerRescanForFile(VirtualFile vFile, String filePath, ScanEngine scanEngine) {
+        try {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                PsiFile psiFile = DevAssistUtils.getPsiFileByFilePath(project, filePath);
+                if (Objects.isNull(psiFile)) {
+                    LOGGER.warn(String.format("RTS-Ignore: Could not get PsiFile for rescan: %s", filePath));
+                    return;
+                }
+                InspectionManager inspectionManager = InspectionManager.getInstance(project);
+                if (Objects.isNull(inspectionManager)) {
+                    LOGGER.warn("RTS-Ignore: InspectionManager is null, cannot trigger rescan");
+                    return;
+                }
+                Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
+                if (Objects.isNull(document)) {
+                    LOGGER.warn(String.format("RTS-Ignore: Could not get Document for rescan: %s", filePath));
+                    return;
+                }
+                ProblemHelper problemHelper = ProblemHelper.builder(psiFile, project)
+                        .filePath(filePath)
+                        .problemHolderService(problemHolder)
+                        .isOnTheFly(true)
+                        .manager(inspectionManager)
+                        .document(document)
+                        .build();
+
+                boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(project)
+                        .scheduleScan(filePath, problemHelper, scanEngine);
+
+                if (!isScanScheduled) {
+                    LOGGER.debug(String.format("RTS-Ignore: Scan not scheduled, triggering inspection after reviving vulnerability for file: %s", filePath));
+                    // trigger inspection if a scan is not scheduled
+                    new CxOneAssistInspectionMgr().triggerInspection(project);
+                } else {
+                    LOGGER.debug(String.format("RTS-Ignore: Scheduled rescan for revived entry in file: %s", filePath));
+                }
+            }, ModalityState.NON_MODAL);
+        } catch (Exception e) {
+            LOGGER.warn(String.format("RTS-Ignore: Exception occurred while triggering scan after reviving vulnerability for file: %s", filePath), e);
+        }
+    }
+
     /**
      * Retrieves all ignore entries from the ignore file.
-     *
      * @return list of ignore entries
      */
     public List<IgnoreEntry> getIgnoredEntries() {
