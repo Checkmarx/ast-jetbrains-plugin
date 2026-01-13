@@ -3,6 +3,7 @@ package com.checkmarx.intellij.devassist.utils;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
+import com.checkmarx.intellij.devassist.remediation.CopilotIntegration;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
@@ -289,12 +290,9 @@ public class DevAssistUtils {
      */
     public static boolean fixWithAI(@NotNull String prompt, @NotNull Project project) {
         try {
-            // Use CopilotIntegration directly for Copilot-only support
-            com.checkmarx.intellij.devassist.remediation.CopilotIntegration.IntegrationResult result =
-                    com.checkmarx.intellij.devassist.remediation.CopilotIntegration.openCopilotWithPromptDetailed(
-                            prompt, project, null);
+            CopilotIntegration.IntegrationResult result =
+                    CopilotIntegration.openCopilotWithPromptDetailed(prompt, project, null);
 
-            // Check immediate result
             if (result.isSuccess()) {
                 LOGGER.info("Fix with AI: Copilot integration initiated successfully");
                 return true;
