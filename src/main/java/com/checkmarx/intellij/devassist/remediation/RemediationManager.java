@@ -19,6 +19,8 @@ import java.util.Objects;
 import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
 import static java.lang.String.format;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * RemediationManager provides remediation options for issues identified during a real-time scan.
  * <p>
@@ -42,26 +44,96 @@ public final class RemediationManager {
      *
      * @param project   the project where the fix is to be applied
      * @param scanIssue the scan issue to fix
+     * @param actionId  the action ID for vulnerability-specific fixes
      */
     public void fixWithCxOneAssist(@NotNull Project project, @NotNull ScanIssue scanIssue, String actionId) {
+        String prompt = buildRemediationPrompt(scanIssue, actionId);
+        applyFix(project, scanIssue, prompt);
+    }
+
+    /**
+     * Builds the remediation prompt based on scan engine type.
+     *
+     * @param scanIssue the scan issue to build prompt for
+     * @param actionId  the action ID for vulnerability-specific fixes
+     * @return the remediation prompt, or null if not applicable
+     */
+    @Nullable
+    private String buildRemediationPrompt(@NotNull ScanIssue scanIssue, String actionId) {
         switch (scanIssue.getScanEngine()) {
             case OSS:
-                applyOSSRemediation(project, scanIssue);
-                break;
+                return buildOSSRemediationPrompt(scanIssue);
             case SECRETS:
-                applySecretRemediation(project, scanIssue);
-                break;
+                return buildSecretRemediationPrompt(scanIssue);
             case CONTAINERS:
-                applyContainerRemediation(project, scanIssue);
-                break;
+                return buildContainerRemediationPrompt(scanIssue);
             case IAC:
-                applyIACRemediation(project, scanIssue, actionId);
-                break;
+                return buildIACRemediationPrompt(scanIssue, actionId);
             case ASCA:
-                applyASCARemediation(project, scanIssue, actionId);
-                break;
+                return buildASCARemediationPrompt(scanIssue, actionId);
             default:
-                break;
+                return null;
+        }
+    }
+
+    /**
+     * Applies the fix by attempting to send to Copilot AI first, with clipboard fallback.
+     *
+     * @param project   the project context
+     * @param scanIssue the scan issue being fixed
+     * @param prompt    the remediation prompt to apply
+     */
+    private void applyFix(@NotNull Project project, @NotNull ScanIssue scanIssue, @Nullable String prompt) {
+        if (prompt == null || prompt.isEmpty()) {
+            return;
+        }
+        LOGGER.info(format("RTS-Fix: %s remediation started for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
+        String notificationTitle = getNotificationTitle(scanIssue.getScanEngine());
+
+        // Try to fix with Copilot AI first (no notifications shown by fixWithAI)
+        boolean aiSuccess = fixWithAI(prompt, project);
+        if (aiSuccess) {
+            LOGGER.info(format("RTS-Fix: %s remediation sent to Copilot for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
+        } else {
+            // Fallback: Copy to clipboard with notification when Copilot is not available
+            if (DevAssistUtils.copyToClipboardWithNotification(prompt, notificationTitle, Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
+                LOGGER.info(format("RTS-Fix: %s remediation completed (clipboard) for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
+            }
+        }
+    }
+
+    /**
+     * Sends a fix prompt to GitHub Copilot for automated remediation.
+     * <p>
+     * This method attempts to:
+     * <ol>
+     *   <li>Open GitHub Copilot Chat</li>
+     *   <li>Switch to Agent mode</li>
+     *   <li>Paste and send the prompt automatically</li>
+     * </ol>
+     * <p>
+     * This method does NOT show any notifications - the caller is responsible for
+     * handling success/failure notifications.
+     *
+     * @param prompt  the fix prompt to send to Copilot
+     * @param project the project context
+     * @return true if Copilot was successfully opened and prompt initiated, false otherwise
+     */
+    private boolean fixWithAI(@NotNull String prompt, @NotNull Project project) {
+        try {
+            CopilotIntegration.IntegrationResult result =
+                    CopilotIntegration.openCopilotWithPromptDetailed(prompt, project, null);
+
+            if (result.isSuccess()) {
+                LOGGER.debug("Fix with AI: Copilot integration initiated successfully");
+                return true;
+            } else {
+                LOGGER.debug("Fix with AI: Copilot not available - " + result.getMessage());
+                return false;
+            }
+        } catch (Exception exception) {
+            LOGGER.debug("Failed to fix with AI: ", exception);
+            return false;
         }
     }
 
@@ -94,73 +166,49 @@ public final class RemediationManager {
     }
 
     /**
-     * Applies remediation for an OSS issue.
+     * Builds remediation prompt for an OSS issue.
      */
-    private void applyOSSRemediation(Project project, ScanIssue scanIssue) {
-        LOGGER.info(format("RTS-Fix: Remediation started for file: %s for OSS Issue: %s",
-                scanIssue.getFilePath(), scanIssue.getTitle()));
-        String prompt = CxOneAssistFixPrompts.buildSCARemediationPrompt(scanIssue.getTitle(), scanIssue.getPackageVersion(),
+    private String buildOSSRemediationPrompt(ScanIssue scanIssue) {
+        return CxOneAssistFixPrompts.buildSCARemediationPrompt(scanIssue.getTitle(), scanIssue.getPackageVersion(),
                 scanIssue.getPackageManager(), scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
-                Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
-            LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for OSS Issue: %s",
-                    scanIssue.getFilePath(), scanIssue.getTitle()));
-        }
     }
 
     /**
-     * Applies remediation for a Secret issue.
+     * Builds remediation prompt for a Secret issue.
      */
-    private void applySecretRemediation(Project project, ScanIssue scanIssue) {
-        LOGGER.info(format("RTS-Fix: Remediation started for file: %s for secrets issue: %s",
-                scanIssue.getFilePath(), scanIssue.getTitle()));
-        String prompt = CxOneAssistFixPrompts.buildSecretRemediationPrompt(scanIssue.getTitle(),
+    private String buildSecretRemediationPrompt(ScanIssue scanIssue) {
+        return CxOneAssistFixPrompts.buildSecretRemediationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
-                Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
-            LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for secrets issue: %s",
-                    scanIssue.getFilePath(), scanIssue.getTitle()));
-        }
     }
 
     /**
-     * Applies remediation for a container issue.
+     * Builds remediation prompt for a container issue.
      */
-    private void applyContainerRemediation(Project project, ScanIssue scanIssue) {
-        LOGGER.info(format("RTS-Fix: Remediation started for file: %s for container issue: %s",
-                scanIssue.getFilePath(), scanIssue.getTitle()));
-        String prompt = CxOneAssistFixPrompts.buildContainersRemediationPrompt(scanIssue.getFileType(),
+    private String buildContainerRemediationPrompt(ScanIssue scanIssue) {
+        return CxOneAssistFixPrompts.buildContainersRemediationPrompt(scanIssue.getFileType(),
                 scanIssue.getTitle(),
                 scanIssue.getImageTag(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
-                Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
-            LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for container issue: %s",
-                    scanIssue.getFilePath(), scanIssue.getTitle()));
-        }
     }
 
     /**
-     * Applies remediation for a IAC issue.
+     * Builds remediation prompt for a IAC issue.
      */
-    private void applyIACRemediation(Project project, ScanIssue scanIssue, String actionId) {
+    private String buildIACRemediationPrompt(ScanIssue scanIssue, String actionId) {
         if (Objects.isNull(actionId) || actionId.isEmpty()) {
             LOGGER.warn(format("RTS-Fix: Remediation failed. Action id is not found for IAC issue: %s.", scanIssue.getTitle()));
-            return;
+            return null;
         }
         Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
                 actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
 
         if (Objects.isNull(vulnerability)) {
             LOGGER.warn(format("RTS-Fix: Remediation failed. Vulnerability details not found for IAC issue: %s.", actionId));
-            return;
+            return null;
         }
 
-        LOGGER.info(format("RTS-Fix: Remediation started for file: %s for IAC issue: %s",
-                scanIssue.getFilePath(), actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle()));
-
-        String prompt = CxOneAssistFixPrompts.buildIACRemediationPrompt(
+        return CxOneAssistFixPrompts.buildIACRemediationPrompt(
                 actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),
@@ -169,47 +217,33 @@ public final class RemediationManager {
                 vulnerability.getActualValue(),
                 scanIssue.getProblematicLineNumber()
         );
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
-                Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
-            LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for IAC issue: %s",
-                    scanIssue.getFilePath(), scanIssue.getTitle()));
-        }
     }
 
     /**
-     * Applies remediation for an ASCA issue.
+     * Builds remediation prompt for an ASCA issue.
      *
-     * @param project   the project where the fix is to be applied
      * @param scanIssue the scan issue to fix
      * @param actionId  the specific vulnerability ID to fix, or QUICK_FIX for general remediation
      */
-    private void applyASCARemediation(Project project, ScanIssue scanIssue, String actionId) {
+    private String buildASCARemediationPrompt(ScanIssue scanIssue, String actionId) {
         if (Objects.isNull(actionId) || actionId.isEmpty()) {
             LOGGER.warn(format("RTS-Fix: Remediation failed. Action id is not found for ASCA issue: %s.", scanIssue.getTitle()));
-            return;
+            return null;
         }
         Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
                 actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
 
         if (Objects.isNull(vulnerability)) {
             LOGGER.warn(format("RTS-Fix: Remediation failed. Vulnerability details not found for ASCA issue: %s.", actionId));
-            return;
+            return null;
         }
-        LOGGER.info(format("RTS-Fix: Remediation started for file: %s for ASCA issue: %s",
-                scanIssue.getFilePath(), actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle()));
 
-        String prompt = CxOneAssistFixPrompts.buildASCARemediationPrompt(
+        return CxOneAssistFixPrompts.buildASCARemediationPrompt(
                 actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getRemediationAdvise() : vulnerability.getRemediationAdvise(),
                 scanIssue.getProblematicLineNumber());
-
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
-                Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
-            LOGGER.info(format("RTS-Fix: Remediation completed for file: %s for ASCA issue: %s",
-                    scanIssue.getFilePath(), scanIssue.getTitle()));
-        }
     }
 
     /**
