@@ -365,7 +365,6 @@ public final class IgnoreFileManager {
         }
     }
 
-
     // Helper method to match entries by properties
     public boolean matchesEntry(IgnoreEntry entry1, IgnoreEntry entry2) {
         if (entry1.getType() != entry2.getType()) return false;

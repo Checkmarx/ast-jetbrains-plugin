@@ -9,6 +9,7 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.InspectionManager;
@@ -25,8 +26,6 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -156,40 +155,14 @@ public final class IgnoreManager {
         // Perform the revive operation (sets all file references to inactive)
         boolean success = ignoreFileManager.reviveEntry(entryToRevive);
         if (!success) {
-            Utils.showNotification(Bundle.message(Resource.REVIVE_FAILED), "", NotificationType.ERROR, project);
+            Utils.showNotification(Bundle.message(Resource.REVIVE_FAILED), entryToRevive.getPackageName(), NotificationType.ERROR, project);
             LOGGER.warn(format("RTS-Ignore: Failed to revive entry: %s", entryToRevive.getPackageName()));
             return;
         }
         // Trigger rescan for affected files
         triggerRescanForEntry(entryToRevive);
         // Show notification with undo option
-        String message = format("'%s' vulnerability has been revived in %d file%s",
-                entryToRevive.getPackageName(), fileCount, fileCount == 1 ? "" : "s");
-        Notification notification = NotificationGroupManager.getInstance()
-                .getNotificationGroup(com.checkmarx.intellij.Constants.NOTIFICATION_GROUP_ID)
-                .createNotification(message, "", NotificationType.INFORMATION);
-        // Add undo action that restores the ignored state
-        notification.addAction(NotificationAction.createSimple(
-                "Undo",
-                () -> {
-                    LOGGER.debug(format("RTS-Ignore: Undoing revive for entry: %s", entryToRevive.getPackageName()));
-                    // Restore all files to active (ignored) state
-                    for (IgnoreEntry.FileReference file : entryToRevive.getFiles()) {
-                        file.setActive(true);
-                    }
-                    for (Map.Entry<String, IgnoreEntry> mapEntry : ignoredEntries.entrySet()) {
-                        if (mapEntry.getValue().equals(entryToRevive)) {  // Use content comparison
-                            ignoreFileManager.updateIgnoreData(mapEntry.getKey(), entryToRevive);
-                            triggerRescanForEntry(entryToRevive);
-                            LOGGER.debug(format("RTS-Ignore: Successfully undone revive for entry: %s", entryToRevive.getPackageName()));
-                            break;
-                        }
-                    }
-                    // Expire the notification
-                    notification.expire();
-                }
-        ));
-        notification.notify(project);
+        showReviveUndoNotification(entryToRevive, fileCount, ignoredEntries);
         LOGGER.debug(format("RTS-Ignore: Successfully revived entry: %s", entryToRevive.getPackageName()));
     }
 
@@ -547,6 +520,35 @@ public final class IgnoreManager {
                 break;
 
         }
+    }
+
+    private void showReviveUndoNotification(IgnoreEntry entryToRevive, int fileCount, Map<String, IgnoreEntry> ignoredEntries) {
+        String message = format("%s", entryToRevive.getPackageName());
+        Notification notification = NotificationGroupManager.getInstance()
+                .getNotificationGroup(com.checkmarx.intellij.Constants.NOTIFICATION_GROUP_ID)
+                .createNotification(message, format("vulnerability has been revived in %d file%s", fileCount, fileCount == 1 ? "" : "s"), NotificationType.INFORMATION);
+        // Add undo action that restores the ignored state
+        notification.addAction(NotificationAction.createSimple(
+                DevAssistConstants.UNDO,
+                () -> {
+                    LOGGER.debug(format("RTS-Ignore: Undoing revive for entry: %s", entryToRevive.getPackageName()));
+                    // Restore all files to active (ignored) state
+                    for (IgnoreEntry.FileReference file : entryToRevive.getFiles()) {
+                        file.setActive(true);
+                    }
+                    for (Map.Entry<String, IgnoreEntry> mapEntry : ignoredEntries.entrySet()) {
+                        if (mapEntry.getValue().equals(entryToRevive)) {  // Use content comparison
+                            ignoreFileManager.updateIgnoreData(mapEntry.getKey(), entryToRevive);
+                            triggerRescanForEntry(entryToRevive);
+                            LOGGER.debug(format("RTS-Ignore: Successfully undone revive for entry: %s", entryToRevive.getPackageName()));
+                            break;
+                        }
+                    }
+                    // Expire the notification
+                    notification.expire();
+                }
+        ));
+        notification.notify(project);
     }
 
 }
