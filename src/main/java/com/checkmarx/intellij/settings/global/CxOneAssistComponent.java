@@ -1,14 +1,17 @@
 package com.checkmarx.intellij.settings.global;
 
+import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.components.CxLinkLabel;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.Disposable;
@@ -23,6 +26,7 @@ import net.miginfocom.swing.MigLayout;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.awt.event.ItemEvent;
 import java.util.concurrent.CompletableFuture;
@@ -31,6 +35,7 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import org.bouncycastle.util.Strings;
 
 /**
  * Settings component for managing Checkmarx One Assist real-time scanner configurations.
@@ -68,6 +73,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private CxLinkLabel installMcpLink;
     private boolean mcpInstallInProgress;
     private Timer mcpClearTimer;
+    private String lastNotificationEngine;
 
     public CxOneAssistComponent() {
         buildUI();
@@ -78,8 +84,14 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         connection.subscribe(SettingsListener.SETTINGS_APPLIED, new SettingsListener() {
             @Override
             public void settingsApplied() {
+
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    validateIACEngine();
+                });
+
                 SwingUtilities.invokeLater(() -> {
                     LOGGER.debug("[CxOneAssist] Detected settings change, refreshing checkboxes.");
+
                     reset();
                 });
             }
@@ -225,7 +237,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         } catch (Exception ex) {
             LOGGER.warn("[CxOneAssist] Failed applying settings before closing dialog", ex);
         }
-        java.awt.Window w = SwingUtilities.getWindowAncestor(mainPanel);
+        Window w = SwingUtilities.getWindowAncestor(mainPanel);
         if (w != null) {
             w.dispose();
         }
@@ -237,7 +249,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             return;
         }
 
-        java.nio.file.Path path;
+        Path path;
         try {
             path = McpSettingsInjector.getMcpJsonPath();
         } catch (Exception ex) {
@@ -464,7 +476,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             try {
                 GlobalSettingsState currentState = GlobalSettingsState.getInstance();
                 GlobalSettingsSensitiveState currentSensitiveState = GlobalSettingsSensitiveState.getInstance();
-                return com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled(currentState, currentSensitiveState);
+                return TenantSetting.isAiMcpServerEnabled(currentState, currentSensitiveState);
             } catch (Exception ex) {
                 LOGGER.warn("Failed to check MCP status during upgrade scenario", ex);
                 return false; // Default to disabled on error
@@ -536,5 +548,27 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private void setAscaInstallationMsg(String message, JBColor color) {
         ascaInstallationMsg.setText(String.format("<html>%s</html>", message));
         ascaInstallationMsg.setForeground(color);
+    }
+
+    private void validateIACEngine(){
+      String engineName=state.getContainersTool();
+        Project project = ProjectManager.getInstance().getOpenProjects().length > 0
+                ? ProjectManager.getInstance().getOpenProjects()[0]
+                : null;
+          try{
+              CxWrapperFactory.build().checkEngineExist(engineName);
+              lastNotificationEngine="";
+          }
+          catch (Exception e){
+              if(engineName.equalsIgnoreCase(lastNotificationEngine)){
+                  return;
+              }
+              lastNotificationEngine=engineName;
+              ApplicationManager.getApplication().invokeLater(() -> {
+                  Utils.showNotification(formatTitle(Bundle.message(Resource.CONTAINERS_TOOL_TITLE)) + " error", e.getMessage(),
+                          NotificationType.ERROR,
+                          project);
+              });
+          }
     }
 }
