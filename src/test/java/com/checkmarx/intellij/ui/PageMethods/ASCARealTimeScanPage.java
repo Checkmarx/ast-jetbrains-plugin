@@ -2,6 +2,7 @@ package com.checkmarx.intellij.ui.PageMethods;
 
 import static com.checkmarx.intellij.ui.BaseUITest.*;
 import static com.checkmarx.intellij.ui.PageMethods.CxOneAssistFindingsTabPage.*;
+import static com.checkmarx.intellij.ui.PageMethods.CxOneAssistPage.selectEngine;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
@@ -19,6 +20,7 @@ public class ASCARealTimeScanPage {
         //Wait for scan to complete
         waitFor(() -> hasAnyComponent(FILE_SCAN_PROGRESS_BAR));
         waitFor(() -> !hasAnyComponent(FILE_SCAN_PROGRESS_BAR));
+        //Reopen the checkmarx tool window as we are closing all the tool windows earlier
         openCxToolWindow();
     }
 
@@ -35,8 +37,6 @@ public class ASCARealTimeScanPage {
     public static void toggleAscaEngineAndVerifySuccess() {
         // Implementation for toggling ASCA engine and verifying success message
         //If ASCA Real-Time Scan is already enabled, uncheck and re-check to verify success message
-        if (isCheckboxSelected(ASCA_ENGINE_SELECTION_CHECKBOX))
-            clickSafe(ASCA_ENGINE_SELECTION_CHECKBOX);
-        clickSafe(ASCA_ENGINE_SELECTION_CHECKBOX);
+        selectEngine(ASCA_ENGINE_SELECTION_CHECKBOX);
     }
 }
