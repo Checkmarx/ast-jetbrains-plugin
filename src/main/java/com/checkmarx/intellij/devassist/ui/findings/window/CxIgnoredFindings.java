@@ -4,6 +4,7 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.devassist.ignore.IgnoreEntry;
 import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
@@ -14,6 +15,7 @@ import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
+import com.checkmarx.intellij.tool.window.DevAssistPromotionalPanel;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -158,10 +160,57 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     }
 
     private void checkSettingsAndDraw() {
-        if (new GlobalSettingsComponent().isValid()) {
-            drawMainPanel();
-        } else {
+        try {
+            if (!new GlobalSettingsComponent().isValid()) {
+                LOGGER.info("CxIgnoredFindings: Not authenticated - showing auth panel");
+                drawAuthPanel();
+            } else {
+                // Authenticated - check licenses
+                boolean hasOneAssist = checkOneAssistLicense();
+                boolean hasDevAssist = checkDevAssistLicense();
+                boolean hasAnyLicense = hasOneAssist || hasDevAssist;
+
+                LOGGER.info("CxIgnoredFindings: Authenticated, hasOneAssist=" + hasOneAssist
+                        + ", hasDevAssist=" + hasDevAssist + ", hasAnyLicense=" + hasAnyLicense);
+
+                if (hasAnyLicense) {
+                    drawMainPanel();
+                } else {
+                    // No license - show promotional panel (only cube image, no toolbar, no count)
+                    drawPromotionalPanel();
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("CxIgnoredFindings: Error during settings check, showing auth panel as fallback", e);
             drawAuthPanel();
+        }
+    }
+
+    /**
+     * Check if the current tenant has Checkmarx One Assist license.
+     *
+     * @return true if One Assist license is enabled, false otherwise
+     */
+    private boolean checkOneAssistLicense() {
+        try {
+            return TenantSetting.isOneAssistEnabled();
+        } catch (Exception e) {
+            LOGGER.warn("Failed to check One Assist license status", e);
+            return false;
+        }
+    }
+
+    /**
+     * Check if the current tenant has Checkmarx Dev Assist license.
+     *
+     * @return true if Dev Assist license is enabled, false otherwise
+     */
+    private boolean checkDevAssistLicense() {
+        try {
+            return TenantSetting.isDevAssistEnabled();
+        } catch (Exception e) {
+            LOGGER.warn("Failed to check Dev Assist license status", e);
+            return false;
         }
     }
 
@@ -235,6 +284,35 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         updateTabTitle(0);
         revalidate();
         repaint();
+    }
+
+    /**
+     * Draws the full-screen promotional panel for Dev Assist.
+     * Shown when authenticated but neither One Assist nor Dev Assist license is active.
+     * Shows the cube image with title, description, and contact message - same as CxFindingsWindow.
+     * No toolbar, no count.
+     */
+    private void drawPromotionalPanel() {
+        LOGGER.info("drawPromotionalPanel: Drawing full-screen promotional panel");
+        removeAll();
+
+        // Remove toolbar when showing promotional panel
+        if (getToolbar() != null) {
+            setToolbar(null);
+        }
+
+        // Use DevAssistPromotionalPanel - same as CxFindingsWindow
+        DevAssistPromotionalPanel promotionalPanel = new DevAssistPromotionalPanel();
+        setContent(promotionalPanel);
+
+        // Update tab title with no count (just the tab name)
+        if (content != null) {
+            content.setDisplayName(DevAssistConstants.IGNORED_FINDINGS_TAB);
+        }
+
+        revalidate();
+        repaint();
+        LOGGER.info("drawPromotionalPanel: Promotional panel set as content");
     }
 
     /** Draws the main panel with toolbar, header, and scrollable findings list. */

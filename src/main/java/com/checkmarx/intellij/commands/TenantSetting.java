@@ -71,11 +71,7 @@ public class TenantSetting {
             LOG.info("User not authenticated, returning false for Dev Assist license check");
             return false;
         }
-
-        // TODO: Uncomment when wrapper method is available
-        // return CxWrapperFactory.build().devAssistEnabled();
-        LOG.info("Dev Assist license check: returning true (TEMPORARY FOR TESTING)");
-        return true ; // TEMPORARY: return true for testing promotional panel
+        return CxWrapperFactory.build().devAssistEnabled();
     }
 
     /**
@@ -95,11 +91,7 @@ public class TenantSetting {
             LOG.info("User not authenticated, returning false for One Assist license check");
             return false;
         }
-
-        // TODO: Uncomment when wrapper method is available
-        // return CxWrapperFactory.build().oneAssistEnabled();
-        LOG.info("One Assist license check: returning false (API not yet available)");
-        return false ; // Temporary: return false for authenticated users until API is available
+        return CxWrapperFactory.build().oneAssistEnabled();
     }
 
 }
