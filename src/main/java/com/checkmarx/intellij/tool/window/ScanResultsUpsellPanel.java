@@ -20,7 +20,7 @@ public class ScanResultsUpsellPanel extends JPanel {
     private static final String LEARN_MORE_URL = "https://checkmarx.com/product/application-security-platform/";
 
     public ScanResultsUpsellPanel() {
-        super(new MigLayout("fill, insets 20, wrap 1", "[center]", "[center]"));
+        super(new MigLayout("insets 20, wrap 1, alignx center, aligny center", "[center]", "[]"));
         buildUI();
     }
 
@@ -29,7 +29,7 @@ public class ScanResultsUpsellPanel extends JPanel {
         JBLabel titleLabel = new JBLabel(Bundle.message(Resource.UPSELL_SCAN_RESULTS_TITLE));
         titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 18f));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        add(titleLabel, "growx, gapbottom 15");
+        add(titleLabel, "gapbottom 8");
 
         // Description - wrapped text
         String descriptionText = Bundle.message(Resource.UPSELL_SCAN_RESULTS_DESCRIPTION);
@@ -37,13 +37,13 @@ public class ScanResultsUpsellPanel extends JPanel {
                 + descriptionText + "</div></html>");
         descriptionLabel.setForeground(UIUtil.getLabelForeground());
         descriptionLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        add(descriptionLabel, "growx, gapbottom 20");
+        add(descriptionLabel, "gapbottom 12");
 
         // Learn More button
         JButton learnMoreButton = new JButton(Bundle.message(Resource.UPSELL_SCAN_RESULTS_BUTTON));
         learnMoreButton.setPreferredSize(new Dimension(200, 35));
         learnMoreButton.addActionListener(e -> BrowserUtil.browse(LEARN_MORE_URL));
-        add(learnMoreButton, "growx, gapbottom 10");
+        add(learnMoreButton);
     }
 }
 

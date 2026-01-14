@@ -13,8 +13,8 @@ import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
-import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.tool.window.CommonPanels;
 import com.checkmarx.intellij.tool.window.DevAssistPromotionalPanel;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.openapi.Disposable;
@@ -30,17 +30,13 @@ import com.intellij.openapi.editor.ScrollType;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.TextEditor;
-import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
-import com.intellij.uiDesigner.core.GridConstraints;
-import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
@@ -235,25 +231,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     }
 
     /** Displays the authentication panel when settings are not configured. */
-
     private void drawAuthPanel() {
         removeAll();
-
-        JPanel panel = new JPanel(new GridLayoutManager(2, 1, JBUI.emptyInsets(), -1, -1));
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(0);
-        panel.add(new JBLabel(CxIcons.CHECKMARX_80), constraints);
-
-        JButton openSettingsButton = new JButton(Bundle.message(Resource.OPEN_SETTINGS_BUTTON));
-        openSettingsButton.addActionListener(e ->
-                ShowSettingsUtil.getInstance().showSettingsDialog(project, GlobalSettingsConfigurable.class));
-        constraints = new GridConstraints();
-        constraints.setRow(1);
-        panel.add(openSettingsButton, constraints);
-
-        JPanel wrapper = new JPanel(new GridBagLayout());
-        wrapper.add(panel);
-        setContent(wrapper);
+        setContent(CommonPanels.createAuthPanel(project));
         updateTabTitle(0);
         revalidate();
         repaint();

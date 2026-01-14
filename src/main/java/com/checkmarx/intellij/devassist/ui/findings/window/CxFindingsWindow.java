@@ -14,8 +14,8 @@ import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
-import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.tool.window.CommonPanels;
 import com.checkmarx.intellij.tool.window.DevAssistPromotionalPanel;
 import com.checkmarx.intellij.tool.window.FindingsPromotionalPanel;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
@@ -31,7 +31,6 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.LogicalPosition;
 import com.intellij.openapi.editor.ScrollType;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.Disposer;
@@ -43,13 +42,12 @@ import com.intellij.psi.PsiManager;
 import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.JBSplitter;
-import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
+import com.intellij.ui.content.ContentManager;
 import com.intellij.ui.treeStructure.SimpleTree;
-import com.intellij.uiDesigner.core.GridConstraints;
-import com.intellij.uiDesigner.core.GridLayoutManager;
-import com.intellij.util.ui.JBUI;
+import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.openapi.wm.ToolWindowManager;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -227,7 +225,6 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
 
     /**
      * Draw the authentication panel prompting the user to configure settings.
-     *
      */
     private void drawAuthPanel() {
         LOGGER.info("drawAuthPanel: Drawing authentication panel");
@@ -237,25 +234,7 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
             setToolbar(null);
         }
 
-        JPanel wrapper = new JPanel(new GridBagLayout());
-
-        JPanel panel = new JPanel(new GridLayoutManager(2, 1, JBUI.emptyInsets(), -1, -1));
-
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(0);
-        panel.add(new JBLabel(CxIcons.CHECKMARX_80), constraints);
-
-        JButton openSettingsButton = new JButton(Bundle.message(Resource.OPEN_SETTINGS_BUTTON));
-        openSettingsButton.addActionListener(e -> ShowSettingsUtil.getInstance()
-                .showSettingsDialog(project, GlobalSettingsConfigurable.class));
-
-        constraints = new GridConstraints();
-        constraints.setRow(1);
-        panel.add(openSettingsButton, constraints);
-
-        wrapper.add(panel);
-
-        setContent(wrapper);
+        setContent(CommonPanels.createAuthPanel(project));
 
         revalidate();
         repaint();
@@ -304,8 +283,8 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         // Create findings panel with tree in scroll pane
         JBScrollPane scrollPane = new JBScrollPane(tree);
 
-        // Create promotional panel for findings
-        FindingsPromotionalPanel promotionalPanel = new FindingsPromotionalPanel();
+        // Create promotional panel for findings with click action to navigate to Ignored Findings tab
+        FindingsPromotionalPanel promotionalPanel = new FindingsPromotionalPanel(0, this::navigateToIgnoredFindingsTab);
 
         // Create splitter with vertical divider (false = left/right layout)
         JBSplitter splitter = new JBSplitter(false, 0.5f);
@@ -341,6 +320,26 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         revalidate();
         repaint();
         LOGGER.info("drawPromotionalPanel: Promotional panel set as content");
+    }
+
+    /**
+     * Navigates to the "Ignored Findings" tab in the Checkmarx tool window.
+     * Called when the user clicks the "View Vulnerabilities" link in the promotional panel.
+     */
+    private void navigateToIgnoredFindingsTab() {
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(Constants.TOOL_WINDOW_ID);
+        if (toolWindow != null) {
+            ContentManager contentManager = toolWindow.getContentManager();
+            Content ignoredTab = contentManager.findContent(DevAssistConstants.IGNORED_FINDINGS_TAB);
+            if (ignoredTab != null) {
+                contentManager.setSelectedContent(ignoredTab);
+                LOGGER.info("Navigated to Ignored Findings tab");
+            } else {
+                LOGGER.warn("Ignored Findings tab not found");
+            }
+        } else {
+            LOGGER.warn("Checkmarx tool window not found");
+        }
     }
 
     /**

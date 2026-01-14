@@ -10,7 +10,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.net.URL;
 
 /**
  * Promotional panel displayed in the "Checkmarx One Assist Findings" tab split view
@@ -18,9 +17,6 @@ import java.net.URL;
  * Shows an informational message encouraging the user to explore their security findings.
  */
 public class FindingsPromotionalPanel extends JPanel {
-
-    // Icon path - can be changed to SVG when design assets are ready
-    private static final String CUBE_ICON_PATH = "/icons/cx-one-assist-cube.png";
 
     private int ignoredVulnerabilitiesCount = 0;
     private Runnable onLinkClickAction;
@@ -41,10 +37,8 @@ public class FindingsPromotionalPanel extends JPanel {
     }
 
     private void buildUI() {
-        // Load promotional image at fixed size
-        // TODO: Replace with SVG icon when design assets are ready
-        Icon cubeIcon = loadPromotionalIcon();
-        JBLabel imageLabel = new JBLabel(cubeIcon);
+        // Load promotional image using shared utility
+        JBLabel imageLabel = new JBLabel(CommonPanels.loadCubeIcon());
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(imageLabel, "growx");
 
@@ -72,20 +66,6 @@ public class FindingsPromotionalPanel extends JPanel {
         }
 
         add(linkLabel, "growx");
-    }
-
-    /**
-     * Loads the promotional icon. Currently loads PNG, but structured for easy
-     * migration to SVG when design assets are available.
-     *
-     * @return the promotional icon, or null if not found
-     */
-    private Icon loadPromotionalIcon() {
-        URL imageUrl = getClass().getResource(CUBE_ICON_PATH);
-        if (imageUrl != null) {
-            return new ImageIcon(imageUrl);
-        }
-        return null;
     }
 }
 
