@@ -1,7 +1,6 @@
 package com.checkmarx.intellij.devassist.ui.findings.window;
 
 import com.checkmarx.intellij.*;
-import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
@@ -16,6 +15,7 @@ import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
 import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
+import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.tool.window.DevAssistPromotionalPanel;
 import com.checkmarx.intellij.tool.window.FindingsPromotionalPanel;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
@@ -115,9 +115,10 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
                     LOGGER.info("CxFindingsWindow: Not authenticated - showing auth panel");
                     drawAuthPanel();
                 } else {
-                    // Authenticated - check licenses
-                    boolean hasOneAssist = checkOneAssistLicense();
-                    boolean hasDevAssist = checkDevAssistLicense();
+                    // Authenticated - check licenses (cached in GlobalSettingsState during authentication)
+                    GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
+                    boolean hasOneAssist = settingsState.isOneAssistLicenseEnabled();
+                    boolean hasDevAssist = settingsState.isDevAssistLicenseEnabled();
                     boolean hasAnyLicense = hasOneAssist || hasDevAssist;
 
                     LOGGER.info("CxFindingsWindow: Authenticated, hasOneAssist=" + hasOneAssist
@@ -340,34 +341,6 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         revalidate();
         repaint();
         LOGGER.info("drawPromotionalPanel: Promotional panel set as content");
-    }
-
-    /**
-     * Check if the current tenant has Checkmarx One Assist license.
-     *
-     * @return true if One Assist license is enabled, false otherwise
-     */
-    private boolean checkOneAssistLicense() {
-        try {
-            return TenantSetting.isOneAssistEnabled();
-        } catch (Exception e) {
-            LOGGER.warn("Failed to check One Assist license status", e);
-            return false;
-        }
-    }
-
-    /**
-     * Check if the current tenant has Checkmarx Dev Assist license.
-     *
-     * @return true if Dev Assist license is enabled, false otherwise
-     */
-    private boolean checkDevAssistLicense() {
-        try {
-            return TenantSetting.isDevAssistEnabled();
-        } catch (Exception e) {
-            LOGGER.warn("Failed to check Dev Assist license status", e);
-            return false;
-        }
     }
 
     /**

@@ -6,7 +6,6 @@ import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.project.ProjectResultsService;
-import com.checkmarx.intellij.devassist.configuration.ScannerLifeCycleManager;
 import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.SettingsListener;
@@ -110,9 +109,10 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 drawAuthPanel();
                 projectResultsService.indexResults(project, Results.emptyResults);
             } else {
-                // Authenticated - check licenses
-                boolean hasOneAssist = checkOneAssistLicense();
-                boolean hasDevAssist = checkDevAssistLicense();
+                // Authenticated - check licenses (cached in GlobalSettingsState during authentication)
+                GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
+                boolean hasOneAssist = settingsState.isOneAssistLicenseEnabled();
+                boolean hasDevAssist = settingsState.isDevAssistLicenseEnabled();
 
                 LOGGER.info("CxToolWindowPanel: Authenticated, hasOneAssist=" + hasOneAssist
                         + ", hasDevAssist=" + hasDevAssist);
@@ -142,34 +142,6 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 .subscribe(FilterBaseAction.FILTER_CHANGED, this::changeFilter);
 
         r.run();
-    }
-
-    /**
-     * Check if the current tenant has Checkmarx One Assist license.
-     *
-     * @return true if One Assist license is enabled, false otherwise
-     */
-    private boolean checkOneAssistLicense() {
-        try {
-            return TenantSetting.isOneAssistEnabled();
-        } catch (Exception e) {
-            LOGGER.warn("Failed to check One Assist license status", e);
-            return false;
-        }
-    }
-
-    /**
-     * Check if the current tenant has Checkmarx Dev Assist license.
-     *
-     * @return true if Dev Assist license is enabled, false otherwise
-     */
-    private boolean checkDevAssistLicense() {
-        try {
-            return TenantSetting.isDevAssistEnabled();
-        } catch (Exception e) {
-            LOGGER.warn("Failed to check Dev Assist license status", e);
-            return false;
-        }
     }
 
     /**

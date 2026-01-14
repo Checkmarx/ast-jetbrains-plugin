@@ -302,22 +302,35 @@ public class GlobalSettingsComponent implements SettingsComponent {
         SETTINGS_STATE.setAuthenticated(true);
         SETTINGS_STATE.setLastValidationSuccess(true);
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
-        // Clear stale license flags before checking (fail-safe: if API call fails, flags remain false)
-        SETTINGS_STATE.setDevAssistLicenseEnabled(false);
-        SETTINGS_STATE.setOneAssistLicenseEnabled(false);
-        try {
-            boolean isDevAssistLicenseEnabled = TenantSetting.isDevAssistEnabled();
-            boolean isOneAssistLicenseEnabled = TenantSetting.isOneAssistEnabled();
-            SETTINGS_STATE.setDevAssistLicenseEnabled(isDevAssistLicenseEnabled);
-            SETTINGS_STATE.setOneAssistLicenseEnabled(isOneAssistLicenseEnabled);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to check tenant license status", e);
-        }
+        fetchAndStoreLicenseStatus();
         SwingUtilities.invokeLater(this::updateAssistLinkVisibility);
         logoutButton.requestFocusInWindow();
 
         // Complete post-authentication setup
         completeAuthenticationSetup(String.valueOf(apiKeyField.getPassword()));
+    }
+
+    /**
+     * Fetches tenant settings from the API and stores license status in the global state.
+     * Clears license flags before fetching to ensure stale values are not used on API failure.
+     */
+    private void fetchAndStoreLicenseStatus() {
+        // Clear stale license flags first (fail-safe: if API call fails, flags remain false)
+        SETTINGS_STATE.setDevAssistLicenseEnabled(false);
+        SETTINGS_STATE.setOneAssistLicenseEnabled(false);
+        try {
+            java.util.Map<String, String> tenantSettings = TenantSetting.getTenantSettingsMap(
+                    getStateFromFields(), getSensitiveStateFromFields());
+            boolean devAssistEnabled = Boolean.parseBoolean(
+                    tenantSettings.getOrDefault(TenantSetting.KEY_DEV_ASSIST, "false"));
+            boolean oneAssistEnabled = Boolean.parseBoolean(
+                    tenantSettings.getOrDefault(TenantSetting.KEY_ONE_ASSIST, "false"));
+            SETTINGS_STATE.setDevAssistLicenseEnabled(devAssistEnabled);
+            SETTINGS_STATE.setOneAssistLicenseEnabled(oneAssistEnabled);
+            LOGGER.info("License status: devAssist=" + devAssistEnabled + ", oneAssist=" + oneAssistEnabled);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to check tenant license status", e);
+        }
     }
 
     /**
@@ -491,17 +504,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
             notifyAuthSuccess();
-            // Clear stale license flags before checking (fail-safe: if API call fails, flags remain false)
-            SETTINGS_STATE.setDevAssistLicenseEnabled(false);
-            SETTINGS_STATE.setOneAssistLicenseEnabled(false);
-            try {
-                boolean isDevAssistLicenseEnabled = TenantSetting.isDevAssistEnabled();
-                boolean isOneAssistLicenseEnabled = TenantSetting.isOneAssistEnabled();
-                SETTINGS_STATE.setDevAssistLicenseEnabled(isDevAssistLicenseEnabled);
-                SETTINGS_STATE.setOneAssistLicenseEnabled(isOneAssistLicenseEnabled);
-            } catch (Exception e) {
-                LOGGER.warn("Failed to check tenant license status", e);
-            }
+            fetchAndStoreLicenseStatus();
             updateAssistLinkVisibility();
             // Complete post-authentication setup
             completeAuthenticationSetup(SENSITIVE_SETTINGS_STATE.getRefreshToken());
