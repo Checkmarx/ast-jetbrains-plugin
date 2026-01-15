@@ -9,18 +9,6 @@ public class Xpath {
     public static final String SETTINGS_BUTTON = "//div[@text='Open Settings']";
     @Language("XPath")
     public
-    static final String EXPAND_ACTION = "//div[@tooltiptext='Expand all']";
-    @Language("XPath")
-    public
-    static final String COLLAPSE_ACTION = "//div[@tooltiptext='Collapse all']";
-    @Language("XPath")
-    public
-    static final String FILTER_BY_ACTION = "//div[@myicon='filter.svg']";
-    @Language("XPath")
-    public
-    static final String GROUP_BY_ACTION = "//div[@myicon='groupBy.svg']";
-    @Language("XPath")
-    public
     static final String CLONE_BUTTON = "//div[@text='Clone']";
     @Language("XPath")
     public
@@ -55,12 +43,6 @@ public class Xpath {
     @Language("XPath")
     public
     static final String JLIST = "//div[@class='JList']";
-    @Language("XPath")
-    public
-    static final String START_SCAN_BTN = "//div[contains(@myaction.key, 'START_SCAN_ACTION')]";
-    @Language("XPath")
-    public
-    static final String CANCEL_SCAN_BTN = "//div[@myaction.key='CANCEL_SCAN_ACTION']";
     @Language("XPath")
     public
     static final String MY_LIST = "//div[@class='MyList']";
@@ -103,9 +85,6 @@ public class Xpath {
     @Language("XPath")
     public
     static final String NO_SCAN_SELECTED = "//div[@class='ActionButtonWithText' and @visible_text='Scan: none']";
-    @Language("XPath")
-    public
-    static final String CLEAR_BTN = "//div[@myicon='refresh.svg']";
     @Language("XPath")
     public
     static final String TRIAGE_LOW = "//div[@class='ComboBox'][.//div[@visible_text='LOW']]";
@@ -198,20 +177,20 @@ public class Xpath {
     @Language("XPath")
     public
     static final String CLOSE_RUN_SCAN_LOCAL_NOTIFICATION_WINDOW = "//div[@myicon='close.svg']";
-    //Realtime Scan XPaths CxOne Assist
+    public
+    static final String HELP_PLUGIN_LINK = "//div[@visible_text_keys='HELP_JETBRAINS']";
     @Language("XPath")
-    public static final String GETTING_RESULT_TEXT = "//div[@class='Tree' and contains(@visible_text,'Getting results')]";
+    public
+    static final String OAUTH_RADIO = "//div[@text='OAuth']";
     @Language("XPath")
-    public static final String FILE_SCAN_PROGRESS_BAR = "//div[@class='TextPanel' and contains(@accessiblename,'Checkmarx is Scanning File')]";
+    public
+    static final String OAUTH_POPUP_CANCEL_BUTTON = "//div[@class='JPanel'][.//div[@class='InplaceButton']]//div[@text='Cancel']";
     @Language("XPath")
-    public static final String CX_ASSIST_FINDING_TAB = "//div[@class='ContentTabLabel' and contains(@accessiblename,'Checkmarx One Assist Findings')]";
+    public static final String INVALID_BASE_URL_ERROR =
+            "//div[@accessiblename='Please check the server address of your Checkmarx One environment.' and @class='JBLabel' and @text='<html>Please check the server address of your Checkmarx One environment.</html>']";
     @Language("XPath")
-    public static final String SCAN_PROGRESS_BAR = "//div[@mytext.key='STARTING_CHECKMARX_SCAN']";
-    @Language("XPath")
-    public static final String FINDINGS_TREE_XPATH = "//div[@class='SimpleTree']";
-    @Language("XPath")
-    public static final String SCAN_RESULTS_TAB = "//div[@text='Scan Results']";
-
+    public static final String INVALID_TENANT_ERROR =
+            "//div[@accessiblename='Tenant \"invalid-tenant\" not found. Please check your tenant name.' and @class='JBLabel' and @text='<html>Tenant \"invalid-tenant\" not found. Please check your tenant name.</html>']";
     //CxOne Assist Page XPaths
     @Language("XPath")
     public static final String GO_TO_CXONE_ASSIST_LINK = "//div[@mytext='Go to Checkmarx One Assist']";
@@ -255,4 +234,48 @@ public class Xpath {
     public static final String INSTALL_MCP_LINK = "//div[@mytext='Install MCP']";
     @Language("XPath")
     public static final String EDIT_MCP_LINK = "//div[@mytext='Edit in mcp.json']";
+
+    // Project Selection Pannel
+    @Language("XPath")
+    public static final String SELECTED_PROJECT_NAME_NONE = "//div[@visible_text='Project: none']";
+    @Language("XPath")
+    public static final String SELECTED_BRANCH_NAME_NONE = "//div[@visible_text='Branch: none']";
+    @Language("XPath")
+    public static final String SELECTED_SCAN_ID_NONE = "//div[@visible_text='Scan: none']";
+    @Language("XPath")
+    public static final String RESET_PROJECT_SELECTION = "//div[@myicon='refresh.svg']";
+    @Language("XPath")
+    public static final String START_SCAN_BTN = "//div[contains(@myaction.key, 'START_SCAN_ACTION')]";
+    @Language("XPath")
+    public static final String CANCEL_SCAN_BTN = "//div[@myaction.key='CANCEL_SCAN_ACTION']";
+    @Language("XPath")
+    public static final String SEVERITY_CRITICAL_ICON = "//div[@myicon='critical.svg']";
+    @Language("XPath")
+    public static final String SEVERITY_HIGH_ICON = "//div[@myicon='high.svg']";
+    @Language("XPath")
+    public static final String SEVERITY_MEDIUM_ICON = "//div[@myicon='medium.svg']";
+    @Language("XPath")
+    public static final String SEVERITY_LOW_ICON = "//div[@myicon='low.svg']";
+    @Language("XPath")
+    public static final String EXPAND_ACTION = "//div[@tooltiptext='Expand all']";
+    @Language("XPath")
+    public static final String COLLAPSE_ACTION = "//div[@tooltiptext='Collapse all']";
+    @Language("XPath")
+    public static final String FILTER_BY_ACTION = "//div[@myicon='filter.svg']";
+    @Language("XPath")
+    public static final String GROUP_BY_ACTION = "//div[@myicon='groupBy.svg']";
+
+    //Realtime Scan XPaths CxOne Assist
+    @Language("XPath")
+    public static final String GETTING_RESULT_TEXT = "//div[@class='Tree' and contains(@visible_text,'Getting results')]";
+    @Language("XPath")
+    public static final String FILE_SCAN_PROGRESS_BAR = "//div[@class='TextPanel' and contains(@accessiblename,'Checkmarx is Scanning File')]";
+    @Language("XPath")
+    public static final String CX_ASSIST_FINDING_TAB = "//div[@class='ContentTabLabel' and contains(@accessiblename,'Checkmarx One Assist Findings')]";
+    @Language("XPath")
+    public static final String SCAN_PROGRESS_BAR = "//div[@mytext.key='STARTING_CHECKMARX_SCAN']";
+    @Language("XPath")
+    public static final String FINDINGS_TREE_XPATH = "//div[@class='SimpleTree']";
+    @Language("XPath")
+    public static final String SCAN_RESULTS_TAB = "//div[@text='Scan Results']";
 }
