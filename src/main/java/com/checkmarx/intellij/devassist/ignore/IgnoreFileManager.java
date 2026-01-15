@@ -121,7 +121,6 @@ public final class IgnoreFileManager {
         return new ArrayList<>(ignoreData.values());
     }
 
-
     /**
      * Saves the current ignore data to the ignore file.
      * Writes the ignore data as formatted JSON to the file specified by {@link #getIgnoreFilePath()}.
@@ -194,6 +193,34 @@ public final class IgnoreFileManager {
         } catch (IOException e) {
             LOGGER.error(String.format("RTS-Ignore: Failed to update temp list: %s", e.getMessage()));
         }
+    }
+
+    /**
+     * Revives a previously ignored package by setting all its file references to inactive.
+     * This makes the vulnerability visible again in future scans.
+     *
+     * @param entryToRevive The unique key identifying the ignored package
+     * @return true if the package was found and revived, false otherwise
+     */
+    public boolean reviveEntry(IgnoreEntry entryToRevive) {
+        String entryKey = ignoreData.entrySet().stream()
+                .filter(e ->  matchesEntry(e.getValue(), entryToRevive))
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(null);
+        if (entryKey == null) {
+            LOGGER.warn("RTS-Ignore: Entry not found in ignoreData map");
+            return false;
+        }
+        IgnoreEntry actualEntry = ignoreData.get(entryKey);
+        String packageName = entryToRevive.getPackageName(); // Save before modification
+        for (IgnoreEntry.FileReference file : actualEntry.getFiles()) {
+            file.setActive(false);
+        }
+        saveIgnoreFile();
+        handleFileChange();
+        LOGGER.info("RTS-Ignore: Revived package: " + packageName);
+        return true;
     }
 
 
@@ -338,9 +365,9 @@ public final class IgnoreFileManager {
     private List<ActiveFile> getActiveFilesList(Map<String, IgnoreEntry> data) {
         List<ActiveFile> result = new ArrayList<>();
         for (Map.Entry<String, IgnoreEntry> e : data.entrySet()) {
-            for (IgnoreEntry.FileReference f : e.getValue().files) {
-                if (f.active) {
-                    result.add(new ActiveFile(e.getKey(), f.path));
+            for (IgnoreEntry.FileReference fileRef : e.getValue().files) {
+                if (fileRef.active) {
+                    result.add(new ActiveFile(e.getKey(), fileRef.path));
                 }
             }
         }
@@ -350,7 +377,7 @@ public final class IgnoreFileManager {
     private void removeIgnoredEntryWithoutTempUpdate(String packageKey, String filePath) {
         IgnoreEntry entry = ignoreData.get(packageKey);
         if (entry == null) return;
-        entry.files.removeIf(f -> f.path.equals(filePath));
+        entry.files.removeIf(fileRef -> fileRef.path.equals(filePath));
         if (entry.files.isEmpty()) {
             ignoreData.remove(packageKey);
         }
@@ -359,9 +386,40 @@ public final class IgnoreFileManager {
     }
 
     private Map<String, IgnoreEntry> copyIgnoredata(Map<String, IgnoreEntry> src) {
-        // Implement via JSON round-trip or manual copy
-        return new HashMap<>(src);
+        // Deep copy via JSON round-trip
+        try {
+            String json = MAPPER.writeValueAsString(src);
+            return MAPPER.readValue(json, new TypeReference<Map<String, IgnoreEntry>>() {});
+        } catch (IOException e) {
+            LOGGER.warn("Failed to deep copy ignoreData, falling back to shallow copy", e);
+            return new HashMap<>(src);
+        }
     }
 
+    // Helper method to match entries by properties
+    public boolean matchesEntry(IgnoreEntry entry1, IgnoreEntry entry2) {
+        if (entry1.getType() != entry2.getType()) return false;
+        // Match based on type-specific unique identifiers
+        switch (entry1.getType()) {
+            case OSS:
+                return Objects.equals(entry1.getPackageName(), entry2.getPackageName()) &&
+                        Objects.equals(entry1.getPackageVersion(), entry2.getPackageVersion()) &&
+                        Objects.equals(entry1.getPackageManager(), entry2.getPackageManager());
+            case CONTAINERS:
+                return Objects.equals(entry1.getImageName(), entry2.getImageName()) &&
+                        Objects.equals(entry1.getImageTag(), entry2.getImageTag());
+            case SECRETS:
+                return Objects.equals(entry1.getPackageName(), entry2.getPackageName()) &&
+                        Objects.equals(entry1.getSecretValue(), entry2.getSecretValue());
+            case IAC:
+                return Objects.equals(entry1.getPackageName(), entry2.getPackageName()) &&
+                        Objects.equals(entry1.getSimilarityId(), entry2.getSimilarityId());
+            case ASCA:
+                return Objects.equals(entry1.getPackageName(), entry2.getPackageName()) &&
+                        Objects.equals(entry1.getRuleId(), entry2.getRuleId());
+            default:
+                return false;
+        }
+    }
 
 }

@@ -5,10 +5,14 @@ import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
+import com.intellij.icons.AllIcons;
+import com.intellij.ide.util.treeView.smartTree.ActionPresentation;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationAction;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -16,6 +20,7 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.util.messages.MessageBus;
 import org.apache.commons.collections.CollectionUtils;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
@@ -266,6 +271,29 @@ public final class Utils {
                         type)
                 .notify(project);
     }
+
+    public static String[] showUndoCloseNotification(String title, String content, NotificationType type, Project project) {
+        final String[] result = {""};
+        NotificationGroupManager.getInstance()
+                .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
+                .createNotification(title, content, type)
+                .addAction(new AnAction("Undo", "Undo the action", AllIcons.Actions.Undo) {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        result[0] = "Undo";
+                    }
+                })
+                .addAction(new AnAction("Close", "Dismiss notification", AllIcons.Actions.Close) {
+                    @Override
+                    public void actionPerformed(@NotNull AnActionEvent e) {
+                        result[0] = "Close";
+
+                    }
+                })
+                .notify(project);
+        return result;
+    }
+
 
     /**
      * Executing action with specified max retry attempts.

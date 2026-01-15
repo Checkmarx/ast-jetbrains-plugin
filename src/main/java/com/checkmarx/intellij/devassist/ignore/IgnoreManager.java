@@ -9,18 +9,25 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.InspectionManager;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationAction;
+import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.*;
 
@@ -77,7 +84,7 @@ public final class IgnoreManager {
         }
         LOGGER.debug(String.format("RTS-Ignore: Ignoring %s", vulnerabilityKey));
         ignoreFileManager.updateIgnoreData(vulnerabilityKey, ignoreEntry);
-        scanFileAndUpdateResults(issueToIgnore);
+        scanFileAndUpdateResults(issueToIgnore.getFilePath(),issueToIgnore.getScanEngine());
         showIgnoreSuccessNotification(project, issueToIgnore, vulnerabilityKey);
         LOGGER.debug(String.format("RTS-Ignore: Successfully added ignore entry for issue: %s", issueToIgnore.getTitle()));
     }
@@ -118,7 +125,7 @@ public final class IgnoreManager {
                         ignoreFileManager.normalizePath(issue.getFilePath()),
                         true,
                         issue.getLocations().get(0).getLine()));
-                scanFileAndUpdateResults(issue);
+                scanFileAndUpdateResults(issue.getFilePath(), issue.getScanEngine());
                 return true;
             });
         }
@@ -128,9 +135,109 @@ public final class IgnoreManager {
         showIgnoreSuccessNotification(project, issueToIgnore, vulnerabilityKey);
     }
 
+
+    /**
+     * Revives a single ignored vulnerability.
+     * Shows a notification with an "Undo" option that allows the user to restore the ignored state.
+     * The revive operation is performed first, then the user can undo it if desired.
+     * This follows the same pattern as the VS Code extension's revivePackage method.
+     *
+     * @param entryToRevive The ignore entry to revive
+     */
+    public void reviveSingleEntry(IgnoreEntry entryToRevive) {
+        LOGGER.debug(format("RTS-Ignore: Reviving entry: %s", entryToRevive.getPackageName()));
+        Map<String, IgnoreEntry> ignoredEntries = new HashMap<>(IgnoreFileManager.ignoreData);
+
+        // Count active files before reviving
+        int fileCount = (int) entryToRevive.getFiles().stream()
+                .filter(IgnoreEntry.FileReference::isActive)
+                .count();
+        // Perform the revive operation (sets all file references to inactive)
+        boolean success = ignoreFileManager.reviveEntry(entryToRevive);
+        if (!success) {
+            Utils.showNotification(Bundle.message(Resource.REVIVE_FAILED), entryToRevive.getPackageName(), NotificationType.ERROR, project);
+            LOGGER.warn(format("RTS-Ignore: Failed to revive entry: %s", entryToRevive.getPackageName()));
+            return;
+        }
+        // Trigger rescan for affected files
+        triggerRescanForEntry(entryToRevive);
+        // Show notification with undo option
+        showReviveUndoNotification(entryToRevive, fileCount, ignoredEntries);
+        LOGGER.debug(format("RTS-Ignore: Successfully revived entry: %s", entryToRevive.getPackageName()));
+    }
+
+    /**
+     * Revives multiple ignored vulnerabilities in bulk.
+     * Shows a summary notification to the user and triggers rescans for all affected files.
+     *
+     * @param entriesToRevive List of package keys to revive
+     */
+    public void reviveMultipleEntries(List<IgnoreEntry> entriesToRevive) {
+        if (entriesToRevive == null || entriesToRevive.isEmpty()) {
+            LOGGER.warn("RTS-Ignore: No package keys provided for bulk revive");
+            return;
+        }
+        int successCount = 0;
+        int totalFileCount = 0;
+        List<IgnoreEntry> failedIgnoreEntry = new ArrayList<>();
+
+        for (IgnoreEntry entryToRevive : entriesToRevive) {
+            int fileCount = (int) entryToRevive.getFiles().stream()
+                    .filter(IgnoreEntry.FileReference::isActive)
+                    .count();
+            boolean success = ignoreFileManager.reviveEntry(entryToRevive);
+            if (success) {
+                successCount++;
+                totalFileCount += fileCount;
+                // Trigger rescan for affected files
+                triggerRescanForEntry(entryToRevive);
+                LOGGER.debug(String.format("RTS-Ignore: Successfully revived entry: %s", entryToRevive.getTitle()));
+            } else {
+                failedIgnoreEntry.add(entryToRevive);
+                LOGGER.warn(String.format("RTS-Ignore: Failed to revive entry: %s", entryToRevive.getTitle()));
+            }
+        }
+        // Show summary notification
+        if (successCount > 0) {
+            String message;
+            if (successCount == 1) {
+                message = String.format("Revived 1 vulnerability in %d file%s",
+                        totalFileCount, totalFileCount == 1 ? "" : "s");
+            } else {
+                message = String.format("Revived %d vulnerabilities in %d file%s",
+                        successCount, totalFileCount, totalFileCount == 1 ? "" : "s");
+            }
+            if (!failedIgnoreEntry.isEmpty()) {
+                message += String.format(" (%d failed)", failedIgnoreEntry.size());
+            }
+            Utils.showNotification(message, "", NotificationType.INFORMATION, project);
+        } else {
+            Utils.showNotification("Failed to revive entries", "", NotificationType.ERROR, project);
+        }
+    }
+
+    /**
+     * Triggers rescan for files affected by the revived entry.
+     * Iterates through all file references and schedules a rescan for each revived file.
+     *
+     * @param entry The ignore entry containing file references to rescan
+     */
+    private void triggerRescanForEntry(IgnoreEntry entry) {
+        for (IgnoreEntry.FileReference fileRef : entry.getFiles()) {
+                String fullPath = Paths.get(Objects.requireNonNull(project.getBasePath()),
+                        fileRef.getPath()).toString().replace("\\", "/");
+                VirtualFile vFile = LocalFileSystem.getInstance().findFileByPath(fullPath);
+                if (vFile != null) {
+                    // Trigger rescan based on scanner type
+                    scanFileAndUpdateResults(fullPath, entry.getType());
+                } else {
+                    LOGGER.warn(String.format("RTS-Ignore: Could not find file for rescan: %s", fullPath));
+                }
+            }
+    }
+
     /**
      * Retrieves all ignore entries from the ignore file.
-     *
      * @return list of ignore entries
      */
     public List<IgnoreEntry> getIgnoredEntries() {
@@ -146,13 +253,13 @@ public final class IgnoreManager {
      * This method schedules a scan for the provided file path, processes issues using a problem helper,
      * and ensures that inspections are triggered if a scan is not scheduled successfully.
      *
-     * @param scanIssue The scan issue containing details about the file to be scanned,
-     *                  including the file path, scan engine information, and associated vulnerabilities.
+     * @param filePath   The path of the file to be scanned
+     * @param scanEngine The scan engine to be used for scanning the file
      */
-    public void scanFileAndUpdateResults(ScanIssue scanIssue) {
+    public void scanFileAndUpdateResults(String filePath, ScanEngine scanEngine) {
         try {
             ApplicationManager.getApplication().invokeLater(() -> {
-                PsiFile psiFile = DevAssistUtils.getPsiFileByFilePath(project, scanIssue.getFilePath());
+                PsiFile psiFile = DevAssistUtils.getPsiFileByFilePath(project, filePath);
                 if (Objects.isNull(psiFile)) return;
 
                 InspectionManager inspectionManager = InspectionManager.getInstance(project);
@@ -162,7 +269,7 @@ public final class IgnoreManager {
                 if (Objects.isNull(document)) return;
 
                 ProblemHelper problemHelper = ProblemHelper.builder(psiFile, project)
-                        .filePath(scanIssue.getFilePath())
+                        .filePath(filePath)
                         .problemHolderService(problemHolder)
                         .isOnTheFly(true)
                         .manager(inspectionManager)
@@ -170,16 +277,16 @@ public final class IgnoreManager {
                         .build();
 
                 boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(project)
-                        .scheduleScan(scanIssue.getFilePath(), problemHelper, scanIssue.getScanEngine());
+                        .scheduleScan(filePath, problemHelper, scanEngine);
 
                 if (!isScanScheduled) {
-                    LOGGER.debug("RTS-Ignore: Scan not scheduled, triggering inspection after ignoring vulnerability for file: {}.", scanIssue.getFilePath());
+                    LOGGER.debug("RTS-Ignore: Scan not scheduled, triggering inspection after ignoring vulnerability for file: {}.", filePath);
                     // trigger inspection if a scan is not scheduled
                     new CxOneAssistInspectionMgr().triggerInspection(project);
                 }
             }, ModalityState.NON_MODAL);
         } catch (Exception e) {
-            LOGGER.warn(format("RTS-Ignore: Exception occurred while trigger scan after ignoring vulnerability for file :%s ", scanIssue.getTitle()), e);
+            LOGGER.warn(format("RTS-Ignore: Exception occurred while trigger scan after ignoring vulnerability for file :%s ", filePath), e);
         }
     }
 
@@ -413,6 +520,35 @@ public final class IgnoreManager {
                 break;
 
         }
+    }
+
+    private void showReviveUndoNotification(IgnoreEntry entryToRevive, int fileCount, Map<String, IgnoreEntry> ignoredEntries) {
+        String message = format("%s", entryToRevive.getPackageName());
+        Notification notification = NotificationGroupManager.getInstance()
+                .getNotificationGroup(com.checkmarx.intellij.Constants.NOTIFICATION_GROUP_ID)
+                .createNotification(message, format("vulnerability has been revived in %d file%s", fileCount, fileCount == 1 ? "" : "s"), NotificationType.INFORMATION);
+        // Add undo action that restores the ignored state
+        notification.addAction(NotificationAction.createSimple(
+                DevAssistConstants.UNDO,
+                () -> {
+                    LOGGER.debug(format("RTS-Ignore: Undoing revive for entry: %s", entryToRevive.getPackageName()));
+                    // Restore all files to active (ignored) state
+                    for (IgnoreEntry.FileReference file : entryToRevive.getFiles()) {
+                        file.setActive(true);
+                    }
+                    for (Map.Entry<String, IgnoreEntry> mapEntry : ignoredEntries.entrySet()) {
+                        if (mapEntry.getValue().equals(entryToRevive)) {  // Use content comparison
+                            ignoreFileManager.updateIgnoreData(mapEntry.getKey(), entryToRevive);
+                            triggerRescanForEntry(entryToRevive);
+                            LOGGER.debug(format("RTS-Ignore: Successfully undone revive for entry: %s", entryToRevive.getPackageName()));
+                            break;
+                        }
+                    }
+                    // Expire the notification
+                    notification.expire();
+                }
+        ));
+        notification.notify(project);
     }
 
 }

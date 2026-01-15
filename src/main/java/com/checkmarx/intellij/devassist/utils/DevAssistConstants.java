@@ -146,6 +146,7 @@ public final class DevAssistConstants {
     public static final List<String> AI_AGENT_FILES = List.of("/Dummy.txt", "/", "/AIAssistantInput");
     public static final String SEPERATOR = ":";
     public static final String QUICK_FIX = "QUICK_FIX";
+    public static final String UNDO = "Undo";
 
     /**
      * The Keys class contains static final keys used for storing and retrieving
