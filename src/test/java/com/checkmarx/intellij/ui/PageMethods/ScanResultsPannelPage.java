@@ -277,7 +277,7 @@ public class ScanResultsPannelPage {
 
         String commentUUID = UUID.randomUUID().toString();
         log("commentedUUID : " + commentUUID);
-        selectVulnerability("Absolute_Path_Traversal");
+        selectVulnerability(VULNERABILITIES_TEXT);
 
         selectDropDownValue(SEVERITY_COMBOBOX_ARROW, "LOW");
         selectDropDownValue(STATE_COMBOBOX_ARROW, CONFIRMED_TEXT);

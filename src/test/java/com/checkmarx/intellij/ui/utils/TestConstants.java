@@ -12,4 +12,5 @@ public class TestConstants {
 
     public static final String CONFIRMED_TEXT = "Confirmed";
     public static final String CHECKMARX_TEXT = "Checkmarx";
+    public static final String VULNERABILITIES_TEXT = "Vulnerabilities";
 }
