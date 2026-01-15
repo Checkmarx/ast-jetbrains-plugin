@@ -1,6 +1,8 @@
 package com.checkmarx.intellij.ui.utils;
 
 import com.intellij.remoterobot.fixtures.ActionButtonFixture;
+
+import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.JListFixture;
 import com.intellij.remoterobot.fixtures.JTextFieldFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
@@ -10,16 +12,21 @@ import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.intellij.lang.annotations.Language;
 
+import java.awt.event.KeyEvent;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static com.checkmarx.intellij.ui.BaseUITest.focusCxWindow;
+import static com.checkmarx.intellij.ui.BaseUITest.*;
+import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.*;
+import static com.checkmarx.intellij.ui.PageMethods.CxOneAssistPage.*;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 
@@ -28,6 +35,7 @@ public class UIHelper {
     private static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
     private static final boolean initialized = false;
     private static int retries = 0;
+    private static final int DEFAULT_SLEEP_MS = 1500;
 
     /**
      * Waits for the given condition to become true, using the default wait duration.
@@ -98,6 +106,34 @@ public class UIHelper {
             return hasAnyComponent(String.format(VISIBLE_TEXT, value));
         });
         keyboard.enter();
+    }
+
+    /**
+    * Opens a file in the IDE by its path using keyboard shortcuts.
+    * @param filePath The full relative or absolute path of the file to open
+    */
+    public static void openFileByPath(String filePath) {
+        //Implementation to open a file by its path using keyboard shortcuts
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        // Open "Navigate → File"
+        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_N);
+
+        // Type full relative or absolute path
+        keyboard.enterText(filePath);
+
+        // Press Enter to open
+        keyboard.key(KeyEvent.VK_ENTER);
+    }
+
+    /**
+     * Edits the currently opened file by adding and removing a space character.
+     */
+    public static void editFile() {
+        //Implementation to edit the currently opened file by adding and removing a space character
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_END);
+        keyboard.key(KeyEvent.VK_SPACE);   // add single space
+        keyboard.key(KeyEvent.VK_BACK_SPACE); // remove space
     }
 
     /**
@@ -229,6 +265,41 @@ public class UIHelper {
         } catch (Exception e) {
             System.err.println("Failed to check clickability for xpath: " + xpath + ", reason: " + e.getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Hides all tool windows using the keyboard shortcut Ctrl+Shift+F12.
+     */
+    public static void hideToolWindows() {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_F12);
+    }
+
+    public static void clickSafe(String locator) {
+        repeatUntilSuccess(3, () -> {
+            waitFor(() -> hasAnyComponent(locator));
+            find(locator).click();
+        });
+    }
+
+    private static void repeatUntilSuccess(int attempts, Runnable action) {
+        for (int i = 1; i <= attempts; i++) {
+            try {
+                action.run();
+                return;
+            } catch (Exception e) {
+                if (i == attempts) throw e;
+                sleep(DEFAULT_SLEEP_MS);
+            }
+        }
+    }
+
+    public static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // restore interruption flag
         }
     }
 

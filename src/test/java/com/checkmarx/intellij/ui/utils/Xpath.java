@@ -157,9 +157,6 @@ public class Xpath {
     static final String API_KEY_RADIO = "//div[@text='API Key' or @visible_text='API Key']";
     @Language("XPath")
     public
-    static final String ASCA_CHECKBOX = "//div[@class='JBCheckBox' and @text='Scan your file as you code']";
-    @Language("XPath")
-    public
     static final String WELCOME_CLOSE_BUTTON = "//div[@text='Close']";
     @Language("XPath")
     public
@@ -180,9 +177,6 @@ public class Xpath {
     @Language("XPath")
     public
     static final String CLOSE_RUN_SCAN_LOCAL_NOTIFICATION_WINDOW = "//div[@myicon='close.svg']";
-    @Language("XPath")
-    public static final String GETTING_RESULT_TEXT = "//div[@class='Tree' and contains(@visible_text,'Getting results')]";
-    @Language("XPath")
     public
     static final String HELP_PLUGIN_LINK = "//div[@visible_text_keys='HELP_JETBRAINS']";
     @Language("XPath")
@@ -272,4 +266,18 @@ public class Xpath {
     public static final String GROUP_BY_ACTION = "//div[@myicon='groupBy.svg']";
     @Language("XPath")
     public static final String PROJECT_NAME_NULL = "//div[@visible_text='Project: ...']";
+
+    //Realtime Scan XPaths CxOne Assist
+    @Language("XPath")
+    public static final String GETTING_RESULT_TEXT = "//div[@class='Tree' and contains(@visible_text,'Getting results')]";
+    @Language("XPath")
+    public static final String FILE_SCAN_PROGRESS_BAR = "//div[@class='TextPanel' and contains(@accessiblename,'Checkmarx is Scanning File')]";
+    @Language("XPath")
+    public static final String CX_ASSIST_FINDING_TAB = "//div[@class='ContentTabLabel' and contains(@accessiblename,'Checkmarx One Assist Findings')]";
+    @Language("XPath")
+    public static final String SCAN_PROGRESS_BAR = "//div[@mytext.key='STARTING_CHECKMARX_SCAN']";
+    @Language("XPath")
+    public static final String FINDINGS_TREE_XPATH = "//div[@class='SimpleTree']";
+    @Language("XPath")
+    public static final String SCAN_RESULTS_TAB = "//div[@text='Scan Results']";
 }
