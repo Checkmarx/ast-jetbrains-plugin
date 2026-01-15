@@ -32,7 +32,6 @@ public abstract class BaseUITest {
     private static boolean initialized = false;
     private static int retries = 0;
     protected static ComponentFixture baseLabel;
-    private static final int DEFAULT_SLEEP_MS = 1500;
     @BeforeAll
     public static void init() {
         if (!initialized) {
@@ -254,45 +253,5 @@ public abstract class BaseUITest {
             log(filter.popState().name());
             return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
         });
-    }
-    public boolean isCheckBoxChecked(String checkBoxElement) {
-        ComponentFixture checkbox = remoteRobot.find(
-                ComponentFixture.class,
-                byXpath(checkBoxElement),
-                Duration.ofSeconds(5)
-        );
-        boolean checked = (boolean) checkbox.callJs("component.isSelected()");
-        return checked;
-    }
-    protected static void hideToolWindows() {
-        Keyboard keyboard = new Keyboard(remoteRobot);
-        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_F12);
-    }
-
-    public void clickSafe(String locator) {
-        repeatUntilSuccess(3, () -> {
-            waitFor(() -> hasAnyComponent(locator));
-            find(locator).click();
-        });
-    }
-
-    private void repeatUntilSuccess(int attempts, Runnable action) {
-        for (int i = 1; i <= attempts; i++) {
-            try {
-                action.run();
-                return;
-            } catch (Exception e) {
-                if (i == attempts) throw e;
-                sleep(DEFAULT_SLEEP_MS);
-            }
-        }
-    }
-
-    private void sleep(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // restore interruption flag
-        }
     }
 }
