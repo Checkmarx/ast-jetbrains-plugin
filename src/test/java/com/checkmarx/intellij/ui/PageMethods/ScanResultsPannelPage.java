@@ -59,7 +59,6 @@ public class ScanResultsPannelPage {
     public static void resetProjectSelection(int maxAttempts) {
         //Need to set focus on reset by clicking
         pollingWaitForElement(PROJECT_NAME_NULL,false);
-        //locateAndClickOnButton(RESET_PROJECT_SELECTION);
 
         boolean value = waitForElementEnabled(RESET_PROJECT_SELECTION);
         log("Checking if Reset Project Selection button is clickable: " + value);
