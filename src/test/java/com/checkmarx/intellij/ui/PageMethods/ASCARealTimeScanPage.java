@@ -39,7 +39,7 @@ public class ASCARealTimeScanPage {
     public static void toggleAscaEngineAndVerifySuccessMessage() {
         // Implementation for toggling ASCA engine and verifying success message
         //If ASCA Real-Time Scan is already enabled, uncheck and re-check to verify success message
-        boolean checkboxState = isCheckboxSelected(ASCA_ENGINE_SELECTION_CHECKBOX);
+        boolean checkboxState = isComponentSelected(ASCA_ENGINE_SELECTION_CHECKBOX);
         if(checkboxState) {
             locateAndClickOnButton(ASCA_ENGINE_SELECTION_CHECKBOX);
             locateAndClickOnButton(ASCA_ENGINE_SELECTION_CHECKBOX);
