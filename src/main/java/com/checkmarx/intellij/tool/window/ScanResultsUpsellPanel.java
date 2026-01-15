@@ -17,7 +17,7 @@ import java.awt.*;
  */
 public class ScanResultsUpsellPanel extends JPanel {
 
-    private static final String LEARN_MORE_URL = "https://checkmarx.com/product/application-security-platform/";
+    private static final String LEARN_MORE_URL = "https://docs.checkmarx.com/en/34965-68736-using-the-checkmarx-one-jetbrains-plugin.html";
 
     public ScanResultsUpsellPanel() {
         super(new MigLayout("insets 20, wrap 1, alignx center, aligny center", "[center]", "[]"));

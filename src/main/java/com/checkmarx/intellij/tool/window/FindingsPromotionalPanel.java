@@ -39,21 +39,21 @@ public class FindingsPromotionalPanel extends JPanel {
     private void buildUI() {
         // Load promotional image using shared utility
         JBLabel imageLabel = new JBLabel(CommonPanels.loadCubeIcon());
-        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        imageLabel.setHorizontalAlignment(SwingConstants.LEFT);
         add(imageLabel, "growx");
 
         // Description - wrapped text
         String descriptionText = Bundle.message(Resource.FINDINGS_PROMO_DESCRIPTION);
-        JBLabel descriptionLabel = new JBLabel("<html><div style='text-align: center;'>"
+        JBLabel descriptionLabel = new JBLabel("<html><div style='text-align: left;'>"
                 + descriptionText + "</div></html>");
         descriptionLabel.setForeground(UIUtil.getLabelForeground());
-        descriptionLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        descriptionLabel.setHorizontalAlignment(SwingConstants.LEFT);
         add(descriptionLabel, "growx, wmin 100");
 
         // Clickable link styled label
         String linkText = Bundle.message(Resource.FINDINGS_PROMO_LINK, ignoredVulnerabilitiesCount);
         JBLabel linkLabel = new JBLabel("<html><a style='color: #589DF6;'>" + linkText + "</a></html>");
-        linkLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        linkLabel.setHorizontalAlignment(SwingConstants.LEFT);
         linkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         if (onLinkClickAction != null) {

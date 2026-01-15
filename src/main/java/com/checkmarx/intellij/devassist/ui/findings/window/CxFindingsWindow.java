@@ -285,12 +285,20 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
 
         // Create promotional panel for findings with click action to navigate to Ignored Findings tab
         FindingsPromotionalPanel promotionalPanel = new FindingsPromotionalPanel(0, this::navigateToIgnoredFindingsTab);
+        // Wrap promotional panel in scroll pane so users can scroll to see text below the image
+        JBScrollPane promotionalScrollPane = new JBScrollPane(promotionalPanel);
+        promotionalScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        // Add a subtle left border to visually separate the two panes
+        promotionalScrollPane.setBorder(BorderFactory.createMatteBorder(0, 2, 0, 0, Gray._100));
 
         // Create splitter with vertical divider (false = left/right layout)
-        JBSplitter splitter = new JBSplitter(false, 0.5f);
+        JBSplitter splitter = new JBSplitter(false, 0.7f);
         splitter.setFirstComponent(scrollPane);
-        splitter.setSecondComponent(promotionalPanel);
+        splitter.setSecondComponent(promotionalScrollPane);
         splitter.setDividerWidth(3);
+        // Prevent promotional panel from being hidden completely
+        promotionalScrollPane.setMinimumSize(new Dimension(150, 0));
+        scrollPane.setMinimumSize(new Dimension(200, 0));
 
         setContent(splitter);
 
