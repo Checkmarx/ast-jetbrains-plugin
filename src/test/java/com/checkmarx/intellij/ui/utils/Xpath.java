@@ -27,7 +27,7 @@ public class Xpath {
     static final String SEVERITY_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='MEDIUM']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='HIGH']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='LOW']]//div[@class='BasicArrowButton']";
     @Language("XPath")
     public
-    static final String SCAN_FIELD = "//div[@class='TextFieldWithProcessing'][1]";
+    static final String SCAN_FIELD = "//div[@class='TextFieldWithProcessing']";
     @Language("XPath")
     public
     static final String TREE = "//div[@class='Tree']";
