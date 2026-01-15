@@ -89,7 +89,7 @@ public class CheckmarxSettingsPage {
         hasAnyComponent(WELCOME_PAGE_IMAGE);
         String welcomeTitle = getText(WELCOME_TITLE);
         Assertions.assertEquals("Welcome to Checkmarx", welcomeTitle);
-        boolean checkBoxSelected = isCheckboxSelected(CODE_SMART_CHECKBOX);
+        boolean checkBoxSelected = isComponentSelected(CODE_SMART_CHECKBOX);
         if (isCodeSmartSelectedByDefault) {
             Assertions.assertTrue(checkBoxSelected);
         } else {

@@ -1,7 +1,10 @@
 package com.checkmarx.intellij.ui.utils;
 
+import com.intellij.remoterobot.fixtures.ActionButtonFixture;
 import com.intellij.remoterobot.fixtures.JListFixture;
 import com.intellij.remoterobot.fixtures.JTextFieldFixture;
+import com.intellij.remoterobot.fixtures.JTreeFixture;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
@@ -9,8 +12,12 @@ import org.intellij.lang.annotations.Language;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.ui.BaseUITest.focusCxWindow;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
@@ -110,7 +117,7 @@ public class UIHelper {
      * @param checkboxText The text of the checkbox
      * @return true if selected, false otherwise
      */
-    public static boolean isCheckboxSelected(String checkboxText) {
+    public static boolean isComponentSelected(String checkboxText) {
         waitFor(() -> hasAnyComponent(checkboxText));
         Boolean result = find(checkboxText).callJs(
                 "component.isSelected ? component.isSelected() : component.getModel().isSelected()"
@@ -165,7 +172,7 @@ public class UIHelper {
      */
     public static boolean pollingWaitForElement(@Language("XPath") String xpathOrText, boolean waitForVisible) {
         int pollIntervalMillis = 5000; // 5 seconds
-        long timeoutMillis = 240_000; // 4 minutes
+        long timeoutMillis = 120_000; // 2 minutes
         boolean value = pollUntil(
                 () -> {
                     boolean isVisible = hasAnyComponent(xpathOrText);
@@ -186,7 +193,7 @@ public class UIHelper {
      */
     public static boolean waitForElementEnabled(String xpath) {
         int pollIntervalMillis = 5000; // 5 seconds
-        long timeoutMillis = 240_000; // 4 minutes
+        long timeoutMillis = 90_000; // 1.5 minutes
         boolean value = pollUntil(
                 () -> {
                     if (hasAnyComponent(xpath)) {
@@ -335,5 +342,80 @@ public class UIHelper {
         );
     }
 
+    /**
+     * Selects a popup menu option by typing its name to filter and then activating it.
+     *
+     * @param option The text of the menu option to select
+     */
+    public static void selectPopupMenuOption(String option) {
+        Keyboard keyboard = new Keyboard(remoteRobot);
 
+        // Clear previous search
+        for (int i = 0; i < option.length() * 2; i++) {
+            keyboard.backspace();
+        }
+
+        // Type filter text
+        keyboard.enterText(option);
+
+        // Let IntelliJ filter & select
+        pollingWaitForElement(String.format(VISIBLE_TEXT, option), true);
+
+        // Activate selected action
+        keyboard.enter();
+    }
+
+    public static void navigate(String prefix, int minExpectedSize) {
+        waitFor(() -> {
+            List<RemoteText> allNodes = find(JTreeFixture.class, TREE).getData()
+                    .getAll()
+                    .stream()
+                    .filter(t -> t.getText().startsWith(prefix))
+                    .collect(Collectors.toList());
+
+            if (allNodes.size() == 0) {
+                return false; // No matching nodes found
+            }
+
+            // Perform the action on all nodes that match the prefix
+            allNodes.forEach(node -> node.doubleClick());
+
+            // Check if the total number of nodes after action is >= minExpectedSize
+            return find(JTreeFixture.class, TREE).findAllText().size() >= minExpectedSize;
+        });
+    }
+
+    public static boolean selectDropDownValue(String xpath, String value) {
+        locateAndClickOnButton(xpath);
+        List<JListFixture> lists = findAll(JListFixture.class, JLIST);
+        if (lists.size() < 1) {
+            return false;
+        }
+        JListFixture list = lists.get(0);
+        if (list.isShowing()) {
+            try {
+                list.clickItem(value, true);
+            } catch (Throwable ice) {
+                return false;
+            }
+        }
+        //return findAll(TRIAGE_LOW).size() > 0;
+        return true;
+    }
+
+    public static void testSelectionAction(ActionButtonFixture selection, String prefix, String value) {
+        waitFor(() -> {
+            focusCxWindow();
+            System.out.println(selection.getTemplatePresentationText());
+            return selection.isEnabled() && selection.getTemplatePresentationText().contains(prefix);
+        });
+        waitFor(() -> {
+            focusCxWindow();
+            selection.click();
+            List<JListFixture> jListFixtures = findAll(JListFixture.class, MY_LIST);
+
+            return jListFixtures.size() == 1 && jListFixtures.get(0).findAllText().size() > 0;
+        });
+        enter(value);
+    }
 }
