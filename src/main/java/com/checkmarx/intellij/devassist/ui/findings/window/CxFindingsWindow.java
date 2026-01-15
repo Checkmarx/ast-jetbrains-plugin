@@ -323,7 +323,9 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         }
 
         DevAssistPromotionalPanel promotionalPanel = new DevAssistPromotionalPanel();
-        setContent(promotionalPanel);
+        JBScrollPane scrollPane = new JBScrollPane(promotionalPanel);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        setContent(scrollPane);
 
         revalidate();
         repaint();

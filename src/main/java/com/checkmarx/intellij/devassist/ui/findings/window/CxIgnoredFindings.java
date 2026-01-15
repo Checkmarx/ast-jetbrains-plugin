@@ -256,7 +256,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         // Use DevAssistPromotionalPanel - same as CxFindingsWindow
         DevAssistPromotionalPanel promotionalPanel = new DevAssistPromotionalPanel();
-        setContent(promotionalPanel);
+        JBScrollPane scrollPane = new JBScrollPane(promotionalPanel);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        setContent(scrollPane);
 
         // Update tab title with no count (just the tab name)
         if (content != null) {
