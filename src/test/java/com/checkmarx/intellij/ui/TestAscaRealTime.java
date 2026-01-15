@@ -28,12 +28,8 @@ public class TestAscaRealTime extends BaseUITest{
         navigateToCxOneAssistPage();
 
         //When: user disables and enables ASCA Real-Time Scan
-        toggleAscaEngineAndVerifySuccess();
-
-        // Then: Success message should be displayed
-        waitFor(() -> hasAnyComponent(ASCA_INSTALL_SUCCESS));
-        Assertions.assertTrue(hasAnyComponent(ASCA_INSTALL_SUCCESS));
-        clickSafe(OK_BTN);
+        //Then: Success message should be displayed
+        toggleAscaEngineAndVerifySuccessMessage();
     }
 
     @Test

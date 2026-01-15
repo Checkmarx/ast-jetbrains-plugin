@@ -1,5 +1,7 @@
 package com.checkmarx.intellij.ui.PageMethods;
 
+import org.junit.jupiter.api.Assertions;
+
 import static com.checkmarx.intellij.ui.BaseUITest.*;
 import static com.checkmarx.intellij.ui.PageMethods.CxOneAssistFindingsTabPage.*;
 import static com.checkmarx.intellij.ui.PageMethods.CxOneAssistPage.selectEngine;
@@ -34,9 +36,19 @@ public class ASCARealTimeScanPage {
         clickSafe(SCAN_RESULTS_TAB);
     }
 
-    public static void toggleAscaEngineAndVerifySuccess() {
+    public static void toggleAscaEngineAndVerifySuccessMessage() {
         // Implementation for toggling ASCA engine and verifying success message
         //If ASCA Real-Time Scan is already enabled, uncheck and re-check to verify success message
-        selectEngine(ASCA_ENGINE_SELECTION_CHECKBOX);
+        boolean checkboxState = isCheckboxSelected(ASCA_ENGINE_SELECTION_CHECKBOX);
+        if(checkboxState) {
+            locateAndClickOnButton(ASCA_ENGINE_SELECTION_CHECKBOX);
+            locateAndClickOnButton(ASCA_ENGINE_SELECTION_CHECKBOX);
+        }else {
+            locateAndClickOnButton(ASCA_ENGINE_SELECTION_CHECKBOX);
+        }
+        //Verify success message is displayed
+        waitFor(() -> hasAnyComponent(ASCA_INSTALL_SUCCESS));
+        Assertions.assertTrue(hasAnyComponent(ASCA_INSTALL_SUCCESS));
+        locateAndClickOnButton(OK_BTN);
     }
 }

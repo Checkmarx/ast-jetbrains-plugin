@@ -52,9 +52,6 @@ public class CxOneAssistPage {
             boolean value = isCheckboxSelected(xpath);
             if (!value && xpath.contains(engineName)){
                 locateAndClickOnButton(xpath);
-            } else if(value && xpath.contains(engineName)){
-                locateAndClickOnButton(xpath);
-                locateAndClickOnButton(xpath);
             }
         }
     }
