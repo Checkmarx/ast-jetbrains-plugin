@@ -202,6 +202,36 @@ public final class IgnoreFileManager {
     }
 
     /**
+     * Deletes the ignore file (.checkmarxIgnored) and the temporary ignore list file.
+     * Called when the user no longer has a valid license (platform-only license).
+     * This ensures that ignored findings are cleared when the feature is not available.
+     */
+    public void deleteIgnoreFiles() {
+        try {
+            Path ignoreFilePath = getIgnoreFilePath();
+            if (Files.exists(ignoreFilePath)) {
+                Files.delete(ignoreFilePath);
+                LOGGER.info("RTS-Ignore: Deleted ignore file at " + ignoreFilePath);
+            }
+
+            Path tempListPath = Paths.get(workspacePath, ".checkmarxIgnoredTempList.json");
+            if (Files.exists(tempListPath)) {
+                Files.delete(tempListPath);
+                LOGGER.info("RTS-Ignore: Deleted temp list file at " + tempListPath);
+            }
+
+            // Clear in-memory data
+            ignoreData.clear();
+            previousIgnoreData.clear();
+
+            // Notify listeners that ignore data has changed
+            project.getMessageBus().syncPublisher(IGNORE_TOPIC).onIgnoreUpdated();
+        } catch (IOException e) {
+            LOGGER.error("RTS-Ignore: Failed to delete ignore files: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Returns the path to the temporary ignore list.
      * Creates the file if it doesn't exist.
      * @return path to the temporary ignore list.

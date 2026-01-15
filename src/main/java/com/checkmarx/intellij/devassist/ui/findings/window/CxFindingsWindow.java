@@ -95,6 +95,10 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
 
     private boolean treeInitialized = false;
 
+    // Reference to the promotional panel for dynamic updates
+    private FindingsPromotionalPanel promotionalPanel;
+    private JBScrollPane promotionalScrollPane;
+
     public CxFindingsWindow(Project project, Content content) {
         super(false, true);
         this.project = project;
@@ -143,6 +147,13 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
             project.getMessageBus().connect(this)
                     .subscribe(VulnerabilityFilterBaseAction.TOPIC,
                             (VulnerabilityFilterBaseAction.VulnerabilityFilterChanged) () -> ApplicationManager.getApplication().invokeLater(this::triggerRefreshTree));
+
+            // Subscribe to ignored findings count changes to update the promotional panel
+            // This uses the same count that CxIgnoredFindings uses for its tab title
+            project.getMessageBus().connect(this)
+                    .subscribe(CxIgnoredFindings.IGNORED_COUNT_TOPIC,
+                            (CxIgnoredFindings.IgnoredCountListener) count ->
+                                    ApplicationManager.getApplication().invokeLater(() -> refreshPromotionalPanel(count)));
 
             ApplicationManager.getApplication().getMessageBus()
                     .connect(this)
@@ -283,16 +294,20 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         // Create findings panel with tree in scroll pane
         JBScrollPane scrollPane = new JBScrollPane(tree);
 
+        // Get the actual count of ignored findings
+        int ignoredCount = new IgnoreManager(project).getIgnoredEntries().size();
+
         // Create promotional panel for findings with click action to navigate to Ignored Findings tab
-        FindingsPromotionalPanel promotionalPanel = new FindingsPromotionalPanel(0, this::navigateToIgnoredFindingsTab);
+        // Store reference for dynamic updates when ignore file changes
+        this.promotionalPanel = new FindingsPromotionalPanel(ignoredCount, this::navigateToIgnoredFindingsTab);
         // Wrap promotional panel in scroll pane so users can scroll to see text below the image
-        JBScrollPane promotionalScrollPane = new JBScrollPane(promotionalPanel);
+        this.promotionalScrollPane = new JBScrollPane(promotionalPanel);
         promotionalScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         // Add a subtle left border to visually separate the two panes
         promotionalScrollPane.setBorder(BorderFactory.createMatteBorder(0, 2, 0, 0, Gray._100));
 
         // Create splitter with vertical divider (false = left/right layout)
-        JBSplitter splitter = new JBSplitter(false, 0.7f);
+        JBSplitter splitter = new JBSplitter(false, 0.6f);
         splitter.setFirstComponent(scrollPane);
         splitter.setSecondComponent(promotionalScrollPane);
         splitter.setDividerWidth(3);
@@ -335,12 +350,23 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
     /**
      * Navigates to the "Ignored Findings" tab in the Checkmarx tool window.
      * Called when the user clicks the "View Vulnerabilities" link in the promotional panel.
+     * Note: The tab name may include a count suffix (e.g., "Ignored Findings 10"),
+     * so we search for tabs that start with the base name.
      */
     private void navigateToIgnoredFindingsTab() {
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(Constants.TOOL_WINDOW_ID);
         if (toolWindow != null) {
             ContentManager contentManager = toolWindow.getContentManager();
-            Content ignoredTab = contentManager.findContent(DevAssistConstants.IGNORED_FINDINGS_TAB);
+            // Find the tab by checking if display name starts with the base name
+            // (tab name may include count suffix like "Ignored Findings 10")
+            Content ignoredTab = null;
+            for (Content content : contentManager.getContents()) {
+                if (content.getDisplayName() != null &&
+                        content.getDisplayName().startsWith(DevAssistConstants.IGNORED_FINDINGS_TAB)) {
+                    ignoredTab = content;
+                    break;
+                }
+            }
             if (ignoredTab != null) {
                 contentManager.setSelectedContent(ignoredTab);
                 LOGGER.info("Navigated to Ignored Findings tab");
@@ -350,6 +376,29 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         } else {
             LOGGER.warn("Checkmarx tool window not found");
         }
+    }
+
+    /**
+     * Refreshes the promotional panel with the given ignored findings count.
+     * Called when CxIgnoredFindings publishes a count change to keep the count in sync.
+     *
+     * @param ignoredCount the current count of ignored findings (same as displayed in Ignored Findings tab)
+     */
+    private void refreshPromotionalPanel(int ignoredCount) {
+        if (promotionalScrollPane == null) {
+            // Panel not yet created or not in split view mode
+            return;
+        }
+
+        // Create a new promotional panel with the updated count
+        this.promotionalPanel = new FindingsPromotionalPanel(ignoredCount, this::navigateToIgnoredFindingsTab);
+
+        // Update the scroll pane's viewport with the new panel
+        promotionalScrollPane.setViewportView(promotionalPanel);
+        promotionalScrollPane.revalidate();
+        promotionalScrollPane.repaint();
+
+        LOGGER.info("Refreshed promotional panel with ignored count: " + ignoredCount);
     }
 
     /**

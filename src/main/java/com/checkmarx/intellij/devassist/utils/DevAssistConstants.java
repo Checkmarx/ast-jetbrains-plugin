@@ -17,7 +17,7 @@ public final class DevAssistConstants {
     }
 
     // Tab Name Constants
-    public static final String DEVASSIST_TAB = "CxOne Assist Findings";
+    public static final String DEVASSIST_TAB = "Checkmarx One Assist Findings";
     public static final String SCAN_RESULTS_TAB = "Scan Results";
     public static final String IGNORED_FINDINGS_TAB = "Ignored Findings";
 

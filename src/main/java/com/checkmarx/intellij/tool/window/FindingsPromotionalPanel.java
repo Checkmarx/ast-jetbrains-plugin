@@ -50,22 +50,24 @@ public class FindingsPromotionalPanel extends JPanel {
         descriptionLabel.setHorizontalAlignment(SwingConstants.LEFT);
         add(descriptionLabel, "growx, wmin 100");
 
-        // Clickable link styled label
-        String linkText = Bundle.message(Resource.FINDINGS_PROMO_LINK, ignoredVulnerabilitiesCount);
-        JBLabel linkLabel = new JBLabel("<html><a style='color: #589DF6;'>" + linkText + "</a></html>");
-        linkLabel.setHorizontalAlignment(SwingConstants.LEFT);
-        linkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        // Clickable link styled label - only show when there are ignored vulnerabilities
+        if (ignoredVulnerabilitiesCount > 0) {
+            String linkText = Bundle.message(Resource.FINDINGS_PROMO_LINK, ignoredVulnerabilitiesCount);
+            JBLabel linkLabel = new JBLabel("<html><a style='color: #589DF6;'>" + linkText + "</a></html>");
+            linkLabel.setHorizontalAlignment(SwingConstants.LEFT);
+            linkLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        if (onLinkClickAction != null) {
-            linkLabel.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    onLinkClickAction.run();
-                }
-            });
+            if (onLinkClickAction != null) {
+                linkLabel.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        onLinkClickAction.run();
+                    }
+                });
+            }
+
+            add(linkLabel, "growx");
         }
-
-        add(linkLabel, "growx");
     }
 }
 

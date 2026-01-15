@@ -37,6 +37,7 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
+import com.intellij.util.messages.Topic;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
@@ -69,6 +70,18 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private static final String FONT_FAMILY_MENLO = "Menlo";
     private static final String FONT_FAMILY_INTER = "Inter";
     private static final String FONT_FAMILY_SF_PRO = "SF Pro";
+
+    // ========== Topic for publishing ignored findings count changes ==========
+    public static final Topic<IgnoredCountListener> IGNORED_COUNT_TOPIC =
+            Topic.create("Ignored Findings Count Changed", IgnoredCountListener.class);
+
+    /**
+     * Listener interface for ignored findings count changes.
+     * Subscribers can use this to update UI elements that display the count.
+     */
+    public interface IgnoredCountListener {
+        void onCountChanged(int count);
+    }
 
     // ========== Instance Fields ==========
     private final Project project;
@@ -173,7 +186,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 if (hasAnyLicense) {
                     drawMainPanel();
                 } else {
-                    // No license - show promotional panel (only cube image, no toolbar, no count)
+                    // No license (platform-only) - delete ignore files and show promotional panel
+                    IgnoreFileManager.getInstance(project).deleteIgnoreFiles();
                     drawPromotionalPanel();
                 }
             }
@@ -680,6 +694,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                     ? DevAssistConstants.IGNORED_FINDINGS_TAB + " " + count
                     : DevAssistConstants.IGNORED_FINDINGS_TAB);
         }
+        // Publish the count to subscribers (e.g., CxFindingsWindow promotional panel)
+        project.getMessageBus().syncPublisher(IGNORED_COUNT_TOPIC).onCountChanged(count);
     }
 
     @Override
