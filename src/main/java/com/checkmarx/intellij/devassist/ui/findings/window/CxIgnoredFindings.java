@@ -655,18 +655,22 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             allEntries = new ArrayList<>(entries);
 
             if (wasEmpty != isNowEmpty) {
-                drawMainPanel();
+                checkSettingsAndDraw();
             } else if (!isNowEmpty) {
                 applyFiltersAndRefresh();
+                updateTabTitle(entries.size());
             }
-            updateTabTitle(entries.size());
         } catch (Exception e) {
             LOGGER.warn("Error loading ignored entries", e);
             boolean hadEntries = !allEntries.isEmpty();
             allEntries.clear();
-            if (hadEntries) drawMainPanel();
-            else displayFilteredEntries(List.of());
-            updateTabTitle(0);
+            if (hadEntries) {
+                // Re-check settings to show proper UI based on license state
+                checkSettingsAndDraw();
+            } else {
+                displayFilteredEntries(List.of());
+                updateTabTitle(0);
+            }
         }
     }
 

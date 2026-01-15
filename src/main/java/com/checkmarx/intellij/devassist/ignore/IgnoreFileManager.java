@@ -304,6 +304,7 @@ public final class IgnoreFileManager {
         loadIgnoreData();
         detectAndHandleActiveChanges();
         previousIgnoreData = copyIgnoredata(ignoreData);
+        project.getMessageBus().syncPublisher(IGNORE_TOPIC).onIgnoreUpdated();
     }
 
 
