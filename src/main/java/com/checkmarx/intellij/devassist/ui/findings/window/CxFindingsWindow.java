@@ -746,6 +746,6 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
      */
     private List<String> getSeverityList() {
         return Arrays.stream(SeverityLevel.values())
-                .map(SeverityLevel::toString).collect(Collectors.toList());
+                .map(SeverityLevel::getSeverity).collect(Collectors.toList());
     }
 }

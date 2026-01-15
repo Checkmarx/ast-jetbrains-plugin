@@ -827,7 +827,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             reviveButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             reviveButton.addActionListener(e -> new IgnoreManager(project).reviveSingleEntry(entry));
                     LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown"));
-
+            clearSelection();
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.anchor = GridBagConstraints.FIRST_LINE_START;
             gbc.insets = JBUI.insetsTop(10);
