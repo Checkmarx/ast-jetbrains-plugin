@@ -5,6 +5,7 @@ import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationAction;
 import com.intellij.notification.NotificationGroupManager;
@@ -258,13 +259,18 @@ public final class Utils {
      * @param type    - Notification type e.g., WARNING, ERROR, INFO etc.
      * @param project - Current project instance
      */
-    public static void showNotification(String title, String content, NotificationType type, Project project) {
-        NotificationGroupManager.getInstance()
+    public static void showNotification(String title, String content, NotificationType type, Project project,boolean displayDockLink, String dockLink) {
+      Notification notification =  NotificationGroupManager.getInstance()
                 .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
                 .createNotification(title,
                         content,
-                        type)
-                .notify(project);
+                        type);
+
+      if(displayDockLink){
+          notification.addAction(NotificationAction.createSimple("Go To documentation", () -> BrowserUtil.browse(dockLink)));
+      }
+      notification.notify(project);
+
     }
 
     /**
@@ -322,7 +328,7 @@ public final class Utils {
                 Utils.showNotification(Bundle.message(Resource.SESSION_EXPIRED_TITLE),
                         Bundle.message(Resource.ERROR_SESSION_EXPIRED),
                         NotificationType.ERROR,
-                        getCxProject())
+                        getCxProject(),false,"")
         );
         ApplicationManager.getApplication().invokeLater(() ->
                 getMessageBus().syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied()

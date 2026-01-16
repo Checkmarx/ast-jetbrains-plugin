@@ -1,17 +1,19 @@
 package com.checkmarx.intellij.settings.global;
 
-import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.components.CxLinkLabel;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
+import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.Disposable;
@@ -35,7 +37,7 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import org.bouncycastle.util.Strings;
+
 
 /**
  * Settings component for managing Checkmarx One Assist real-time scanner configurations.
@@ -74,10 +76,15 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private boolean mcpInstallInProgress;
     private Timer mcpClearTimer;
     private String lastNotificationEngine;
+    private Project project;
+
+    private final JBLabel containerToolLabel = new JBLabel();
+    private Timer containerToolTimer;
 
     public CxOneAssistComponent() {
         buildUI();
         reset();
+        ApplicationManager.getApplication().executeOnPooledThread(this::validateIACEngine);
         addAscaCheckBoxListener();
 
         connection = ApplicationManager.getApplication().getMessageBus().connect();
@@ -85,13 +92,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             @Override
             public void settingsApplied() {
 
-                ApplicationManager.getApplication().executeOnPooledThread(() -> {
-                    validateIACEngine();
-                });
-
                 SwingUtilities.invokeLater(() -> {
                     LOGGER.debug("[CxOneAssist] Detected settings change, refreshing checkboxes.");
-
                     reset();
                 });
             }
@@ -175,9 +177,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         if (mcpInstallInProgress) {
             return;
         }
-
         ensureState();
-
         // Check if MCP is enabled at tenant level (this should not happen since button is disabled, but defensive check)
         if (!state.isMcpEnabled()) {
             showMcpStatus(Bundle.message(Resource.CXONE_ASSIST_MCP_DISABLED_MESSAGE), JBColor.RED);
@@ -225,6 +225,22 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         });
         mcpClearTimer.setRepeats(false);
         mcpClearTimer.start();
+    }
+
+    private void showContainerEngineStatus(String message, Color color) {
+        containerToolLabel.setText(message);
+        containerToolLabel.setForeground(color);
+        containerToolLabel.setVisible(true);
+
+        if (containerToolTimer != null) {
+            containerToolTimer.stop();
+        }
+        containerToolTimer = new Timer(5000, e -> {
+            containerToolLabel.setVisible(false);
+            containerToolLabel.setText("");
+        });
+        containerToolTimer.setRepeats(false);
+        containerToolTimer.start();
     }
 
     /** Opens (and creates if necessary) the Copilot MCP configuration file then closes the settings dialog. */
@@ -311,6 +327,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         ApplicationManager.getApplication().getMessageBus()
                 .syncPublisher(SettingsListener.SETTINGS_APPLIED)
                 .settingsApplied();
+
+        ApplicationManager.getApplication().executeOnPooledThread(this::validateIACEngine);
     }
 
     @Override
@@ -450,6 +468,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             containersToolCombo.setSelectedItem(state.getContainersTool());
             assistMessageLabel.setVisible(false);
             assistMessageLabel.setText(""); // Clear any previous message
+
         }
     }
 
@@ -551,23 +570,28 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     }
 
     private void validateIACEngine(){
-      String engineName=state.getContainersTool();
-        Project project = ProjectManager.getInstance().getOpenProjects().length > 0
-                ? ProjectManager.getInstance().getOpenProjects()[0]
-                : null;
-          try{
-              CxWrapperFactory.build().checkEngineExist(engineName);
-              lastNotificationEngine="";
+      String engineName = state.getContainersTool();
+        ApplicationManager.getApplication().invokeLater(() -> {
+             project = CommonDataKeys.PROJECT.getData(
+                     DataManager.getInstance().getDataContext()
+            );
+        });
+        if (project == null) {
+            return;
+        }
+          try{CxWrapperFactory.build().checkEngineExist(engineName);
+             lastNotificationEngine = "";
           }
           catch (Exception e){
               if(engineName.equalsIgnoreCase(lastNotificationEngine)){
                   return;
               }
-              lastNotificationEngine=engineName;
+             //  showContainerEngineStatus(e.getMessage(), JBColor.RED);
+              lastNotificationEngine = engineName;
               ApplicationManager.getApplication().invokeLater(() -> {
-                  Utils.showNotification(formatTitle(Bundle.message(Resource.CONTAINERS_TOOL_TITLE)) + " error", e.getMessage(),
-                          NotificationType.ERROR,
-                          project);
+                  Utils.showNotification(DevAssistConstants.IAC_ENGINE_VALIDATION_ERROR, String.format("%s %s",e.getMessage(),DevAssistConstants.IAC_PREREQUISITE),
+                          NotificationType.WARNING,
+                          project, true,Bundle.message(Resource.DEVASSIST_DOC_LINK));
               });
           }
     }

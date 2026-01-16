@@ -254,12 +254,12 @@ public class DevAssistUtils {
                 CopyPasteManager.getInstance().setContents(new StringSelection(textToCopy));
                 Utils.showNotification(notificationTitle, notificationContent,
                         NotificationType.INFORMATION,
-                        project);
+                        project,false,"");
             });
             return true;
         } catch (Exception exception) {
             LOGGER.debug("Failed to copy text to clipboard: ", exception);
-            Utils.showNotification(notificationTitle, "Failed to copy text to clipboard.", NotificationType.ERROR, null);
+            Utils.showNotification(notificationTitle, "Failed to copy text to clipboard.", NotificationType.ERROR, null,false,"");
             return false;
         }
     }
