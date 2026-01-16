@@ -12,7 +12,6 @@ def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION')
 def remoteRobotVersion = '0.11.23'
 
 repositories {
-
     mavenCentral()
     maven {
         url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
@@ -50,7 +49,7 @@ dependencies {
     implementation 'com.miglayout:miglayout-swing:11.3'
 
     if (javaWrapperVersion == "" || javaWrapperVersion == null) {
-        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.4.17.3-dev'){
+        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.4.17.6-dev'){
             exclude group: 'junit', module: 'junit'
         }
     } else {

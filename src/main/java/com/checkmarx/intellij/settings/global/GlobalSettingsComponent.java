@@ -406,7 +406,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
                         Bundle.message(Resource.MCP_INSTALL_ERROR),
                         NotificationType.ERROR,
-                        project
+                        project, false,""
                 );
                 LOGGER.warn("MCP install error", (Exception) result);
             } else if (Boolean.TRUE.equals(result)) {
@@ -414,14 +414,14 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
                         Bundle.message(Resource.MCP_CONFIG_SAVED),
                         NotificationType.INFORMATION,
-                        project
+                        project,false,""
                 );
             } else if (Boolean.FALSE.equals(result)) {
                 Utils.showNotification(
                         Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
                         Bundle.message(Resource.MCP_CONFIG_UP_TO_DATE),
                         NotificationType.INFORMATION,
-                        project
+                        project,false,""
                 );
             }
         }));
@@ -963,7 +963,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 Utils.showNotification(Bundle.message(Resource.LOGOUT_SUCCESS_TITLE),
                         Bundle.message(Resource.LOGOUT_SUCCESS),
                         NotificationType.INFORMATION,
-                        project)
+                        project,false,"")
         );
     }
 
@@ -975,7 +975,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 Utils.showNotification(Bundle.message(Resource.SUCCESS_AUTHENTICATION_TITLE),
                         Bundle.message(Resource.VALIDATE_SUCCESS),
                         NotificationType.INFORMATION,
-                        project)
+                        project,false,"")
         );
     }
 
@@ -987,7 +987,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 Utils.showNotification(Bundle.message(Resource.ERROR_AUTHENTICATION_TITLE),
                         errorMsg,
                         NotificationType.ERROR,
-                        project)
+                        project,false,"")
         );
     }
 

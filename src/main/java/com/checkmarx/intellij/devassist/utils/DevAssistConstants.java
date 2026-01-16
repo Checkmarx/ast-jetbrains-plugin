@@ -53,6 +53,8 @@ public final class DevAssistConstants {
     public static final String IAC_REALTIME_SCANNER_DISABLED = "Realtime IAC Scanner Engine disabled";
     public static final String IAC_REALTIME_SCANNER_DIRECTORY = "Cx-iac-realtime-scanner";
     public static final String ERROR_IAC_REALTIME_SCANNER = "Failed to handle IAC Realtime scan";
+    public static final String IAC_PREREQUISITE = "Please refer IAC RealTime Scanner Prerequisites";
+    public static final String IAC_ENGINE_VALIDATION_ERROR="Checkmarx Containers Management Tool Error";
 
     // ASCA Scanner Constants
     public static final String ACTIVATE_ASCA_REALTIME_SCANNER = "Activate ASCA-Realtime";

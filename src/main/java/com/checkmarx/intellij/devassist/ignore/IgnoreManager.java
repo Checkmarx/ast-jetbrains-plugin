@@ -79,7 +79,7 @@ public final class IgnoreManager {
         // Convert ScanIssue → IgnoreEntry
         IgnoreEntry ignoreEntry = buildIgnoreEntry(issueToIgnore, clickId);
         if (Objects.isNull(ignoreEntry)) {
-            Utils.showNotification(Bundle.message(Resource.IGNORE_FAILED), "", NotificationType.ERROR, project);
+            Utils.showNotification(Bundle.message(Resource.IGNORE_FAILED), "", NotificationType.ERROR, project,false,"");
             return;
         }
         LOGGER.debug(String.format("RTS-Ignore: Ignoring %s", vulnerabilityKey));
@@ -113,7 +113,7 @@ public final class IgnoreManager {
         if (allIssues.isEmpty()) return;
         IgnoreEntry ignoreEntry = buildIgnoreEntry(issueToIgnore, clickId);
         if (Objects.isNull(ignoreEntry)) {
-            Utils.showNotification(Bundle.message(Resource.IGNORE_FAILED), "", NotificationType.ERROR, project);
+            Utils.showNotification(Bundle.message(Resource.IGNORE_FAILED), "", NotificationType.ERROR, project,false,"");
             return;
         }
         List<IgnoreEntry.FileReference> fileRefs = new ArrayList<>();
@@ -155,7 +155,7 @@ public final class IgnoreManager {
         // Perform the revive operation (sets all file references to inactive)
         boolean success = ignoreFileManager.reviveEntry(entryToRevive);
         if (!success) {
-            Utils.showNotification(Bundle.message(Resource.REVIVE_FAILED), entryToRevive.getPackageName(), NotificationType.ERROR, project);
+            Utils.showNotification(Bundle.message(Resource.REVIVE_FAILED), entryToRevive.getPackageName(), NotificationType.ERROR, project,false,"");
             LOGGER.warn(format("RTS-Ignore: Failed to revive entry: %s", entryToRevive.getPackageName()));
             return;
         }
@@ -210,9 +210,9 @@ public final class IgnoreManager {
             if (!failedIgnoreEntry.isEmpty()) {
                 message += String.format(" (%d failed)", failedIgnoreEntry.size());
             }
-            Utils.showNotification(message, "", NotificationType.INFORMATION, project);
+            Utils.showNotification(message, "", NotificationType.INFORMATION, project,false,"");
         } else {
-            Utils.showNotification("Failed to revive entries", "", NotificationType.ERROR, project);
+            Utils.showNotification("Failed to revive entries", "", NotificationType.ERROR, project,false,"");
         }
     }
 
@@ -501,22 +501,22 @@ public final class IgnoreManager {
     private void showIgnoreSuccessNotification(Project project, ScanIssue detail, String vulnerabilityKey) {
         switch (detail.getScanEngine()) {
             case OSS:
-                Utils.showNotification("Package", detail.getTitle() + "@" + detail.getPackageVersion() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
+                Utils.showNotification("Package", detail.getTitle() + "@" + detail.getPackageVersion() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project,false,"");
                 break;
             case SECRETS:
-                Utils.showNotification("Secret", detail.getTitle() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
+                Utils.showNotification("Secret", detail.getTitle() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project,false,"");
                 break;
             case ASCA:
-                Utils.showNotification("ASCA rule", vulnerabilityKey.split(":", 2)[0] + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
+                Utils.showNotification("ASCA rule", vulnerabilityKey.split(":", 2)[0] + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project,false,"");
                 break;
             case CONTAINERS:
-                Utils.showNotification("Container", detail.getTitle() + "@" + detail.getImageTag() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
+                Utils.showNotification("Container", detail.getTitle() + "@" + detail.getImageTag() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project,false,"");
                 break;
             case IAC:
-                Utils.showNotification("IaC finding", vulnerabilityKey.split(":", 2)[0] + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project);
+                Utils.showNotification("IaC finding", vulnerabilityKey.split(":", 2)[0] + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project,false,"");
                 break;
             default:
-                Utils.showNotification(Bundle.message(Resource.IGNORE_SUCCESS), "", NotificationType.INFORMATION, project);
+                Utils.showNotification(Bundle.message(Resource.IGNORE_SUCCESS), "", NotificationType.INFORMATION, project,false,"");
                 break;
 
         }

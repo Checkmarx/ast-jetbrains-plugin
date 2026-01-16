@@ -96,6 +96,8 @@ public final class Constants {
     public static final String CONFIRMED = "CONFIRMED";
     public static final String TO_VERIFY = "TO_VERIFY";
     public static final String URGENT = "URGENT";
+    public static final String ERROR = "Error";
+
 
     public static final String USE_LOCAL_BRANCH = "scan my local branch";
 
