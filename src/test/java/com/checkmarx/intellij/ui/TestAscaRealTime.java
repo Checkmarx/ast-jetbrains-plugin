@@ -44,7 +44,7 @@ public class TestAscaRealTime extends BaseUITest{
 
         // When: User enables ASCA Real-Time Scan if it is disabled
         navigateToCxOneAssistPage();
-        selectEngine(ASCA_ENGINE_SELECTION_CHECKBOX);
+        selectEngine(ASCA_ENGINE_SELECTION_CHECKBOX, true);
         locateAndClickOnButton(OK_BTN);
 
         // When: User opens a file with ASCA vulnerabilities and edits it to trigger a real-time scan

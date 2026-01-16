@@ -264,6 +264,8 @@ public class Xpath {
     public static final String FILTER_BY_ACTION = "//div[@myicon='filter.svg']";
     @Language("XPath")
     public static final String GROUP_BY_ACTION = "//div[@myicon='groupBy.svg']";
+    @Language("XPath")
+    public static final String PROJECT_NAME_NULL = "//div[@visible_text='Project: ...']";
 
     //Realtime Scan XPaths CxOne Assist
     @Language("XPath")

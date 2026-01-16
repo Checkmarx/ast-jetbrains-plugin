@@ -27,7 +27,7 @@ public class TestOSSRealTime extends BaseUITest {
 
         // When: User enables OSS Real-Time Scan if it is disabled
         navigateToCxOneAssistPage();
-        selectEngine(OSS_REALTIME_ENGINE_CHECKBOX);
+        selectEngine(OSS_REALTIME_ENGINE_CHECKBOX, true);
         locateAndClickOnButton(OK_BTN);
 
         // Then: OSS Real-Time Scan should start automatically after login
@@ -47,7 +47,7 @@ public class TestOSSRealTime extends BaseUITest {
 
         // When: User enables OSS Real-Time Scan if it is disabled
         navigateToCxOneAssistPage();
-        selectEngine(OSS_REALTIME_ENGINE_CHECKBOX);
+        selectEngine(OSS_REALTIME_ENGINE_CHECKBOX,true);
         locateAndClickOnButton(OK_BTN);
 
         // When: Wait for OSS scan to complete

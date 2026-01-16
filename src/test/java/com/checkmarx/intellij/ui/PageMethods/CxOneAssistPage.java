@@ -34,7 +34,7 @@ public class CxOneAssistPage {
     public static void selectAndUnSelectAllEngines(boolean select) {
         // Implementation for unselecting all engines
         for (String xpath : engineXpaths) {
-            boolean value = isCheckboxSelected(xpath);
+            boolean value = isComponentSelected(xpath);
 
             if (value && !select){
                 //Checkbox is selected and we want to unselect
@@ -46,11 +46,13 @@ public class CxOneAssistPage {
         }
     }
 
-    public static void selectEngine(String engineName) {
+    public static void selectEngine(String engineName, boolean enable) {
         // Implementation for selecting a specific engine
         for (String xpath : engineXpaths) {
-            boolean value = isCheckboxSelected(xpath);
-            if (!value && xpath.contains(engineName)){
+            boolean value = isComponentSelected(xpath);
+            if (!value && enable && xpath.contains(engineName)){
+                locateAndClickOnButton(xpath);
+            }else if (value && !enable && xpath.contains(engineName)){
                 locateAndClickOnButton(xpath);
             }
         }
@@ -59,7 +61,7 @@ public class CxOneAssistPage {
     public static void validateAllEnginesAreSelected() {
         // Implementation for validating a specific engine is selected
         for (String xpath : engineXpaths) {
-            boolean value = isCheckboxSelected(xpath);
+            boolean value = isComponentSelected(xpath);
             Assertions.assertTrue(value, "Expected engine checkbox to be selected: " + xpath);
         }
 

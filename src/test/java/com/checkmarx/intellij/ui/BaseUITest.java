@@ -5,7 +5,6 @@ import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.*;
-import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.stepsProcessing.StepLogger;
 import com.intellij.remoterobot.stepsProcessing.StepWorker;
 import com.intellij.remoterobot.utils.Keyboard;
@@ -18,11 +17,10 @@ import org.junit.jupiter.api.BeforeAll;
 import java.awt.event.KeyEvent;
 import java.time.Duration;
 import java.util.List;
-import java.util.stream.Collectors;
 
+import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.testASTConnection;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
-import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.intellij.remoterobot.search.locators.Locators.byXpath;
 
@@ -99,6 +97,49 @@ public abstract class BaseUITest {
         find(EditorFixture.class, EDITOR, waitDuration);
     }
 
+    private static boolean hasSelection(String s) {
+        return hasAnyComponent(String.format(HAS_SELECTION, s));
+    }
+
+    @NotNull
+    protected static ActionButtonFixture findSelection(String s) {
+        @Language("XPath") String xpath = String.format(
+                "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
+                s);
+        waitFor(() -> hasAnyComponent(xpath));
+        return find(ActionButtonFixture.class, xpath);
+    }
+
+    public static void focusCxWindow() {
+        boolean cxPluginOpened = find(BASE_LABEL).hasText("Checkmarx");
+        System.out.println("Plugin opened: " + cxPluginOpened);
+
+        if (!cxPluginOpened) {
+            openCxToolWindow();
+            return;
+        }
+
+        if (baseLabel != null && baseLabel.isShowing()) {
+            baseLabel.click();
+        } else {
+            waitFor(() -> hasAnyComponent(BASE_LABEL));
+            baseLabel = find(BASE_LABEL);
+            baseLabel.click();
+        }
+    }
+
+    protected static void expand() {
+        waitFor(() -> {
+            click(EXPAND_ACTION);
+            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
+        });
+    }
+
+    protected static void hideToolWindows() {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_F12);
+    }
+
     protected void getResults() {
         focusCxWindow();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
@@ -115,10 +156,6 @@ public abstract class BaseUITest {
         });
     }
 
-    private static boolean hasSelection(String s) {
-        return hasAnyComponent(String.format(HAS_SELECTION, s));
-    }
-
     protected void waitForScanIdSelection() {
         focusCxWindow();
         // check scan selection for the scan id
@@ -126,51 +163,7 @@ public abstract class BaseUITest {
         waitFor(() -> hasAnyComponent(String.format(SCAN_ID_SELECTION, Environment.SCAN_ID, Environment.SCAN_ID)));
     }
 
-    protected void navigate(String prefix, int minExpectedSize) {
-        waitFor(() -> {
-            List<RemoteText> allNodes = find(JTreeFixture.class, TREE).getData()
-                    .getAll()
-                    .stream()
-                    .filter(t -> t.getText().startsWith(prefix))
-                    .collect(Collectors.toList());
 
-            if (allNodes.size() == 0) {
-                return false; // No matching nodes found
-            }
-
-            // Perform the action on all nodes that match the prefix
-            allNodes.forEach(node -> node.doubleClick());
-
-            // Check if the total number of nodes after action is >= minExpectedSize
-            return find(JTreeFixture.class, TREE).findAllText().size() >= minExpectedSize;
-        });
-    }
-
-
-    @NotNull
-    protected static ActionButtonFixture findSelection(String s) {
-        @Language("XPath") String xpath = String.format(
-                "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
-                s);
-        waitFor(() -> hasAnyComponent(xpath));
-        return find(ActionButtonFixture.class, xpath);
-    }
-
-    protected void testSelectionAction(ActionButtonFixture selection, String prefix, String value) {
-        waitFor(() -> {
-            focusCxWindow();
-            System.out.println(selection.getTemplatePresentationText());
-            return selection.isEnabled() && selection.getTemplatePresentationText().contains(prefix);
-        });
-        waitFor(() -> {
-            focusCxWindow();
-            selection.click();
-            List<JListFixture> jListFixtures = findAll(JListFixture.class, MY_LIST);
-
-            return jListFixtures.size() == 1 && jListFixtures.get(0).findAllText().size() > 0;
-        });
-        enter(value);
-    }
 
     protected void clearSelection() {
         waitFor(() -> {
@@ -195,24 +188,6 @@ public abstract class BaseUITest {
         });
     }
 
-    public static void focusCxWindow() {
-        boolean cxPluginOpened = find(BASE_LABEL).hasText("Checkmarx");
-        System.out.println("Plugin opened: " + cxPluginOpened);
-
-        if(!cxPluginOpened) {
-            openCxToolWindow();
-            return;
-        }
-
-        if(baseLabel != null && baseLabel.isShowing()) {
-            baseLabel.click();
-        } else {
-            waitFor(() -> hasAnyComponent(BASE_LABEL));
-            baseLabel = find(BASE_LABEL);
-            baseLabel.click();
-        }
-    }
-
     private void groupAction(String value) {
         openGroupBy();
         waitFor(() -> {
@@ -227,13 +202,6 @@ public abstract class BaseUITest {
             click(GROUP_BY_ACTION);
             List<JListFixture> myList = findAll(JListFixture.class, MY_LIST);
             return myList.size() == 1 && myList.get(0).findAllText().size() == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
-        });
-    }
-
-    protected void expand() {
-        waitFor(() -> {
-            click(EXPAND_ACTION);
-            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
         });
     }
 

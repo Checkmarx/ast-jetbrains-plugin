@@ -9,4 +9,8 @@ public class TestConstants {
 
     public static final String INVALID_TENANT_ERROR_MESSAGE =
             "Tenant \"invalid-tenant\" not found. Please check your tenant name.";
+
+    public static final String CONFIRMED_TEXT = "Confirmed";
+    public static final String CHECKMARX_TEXT = "Checkmarx";
+    public static final String VULNERABILITIES_TEXT = "Vulnerabilities";
 }
