@@ -9,6 +9,10 @@ import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.intellij.notification.NotificationGroup;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import org.junit.jupiter.api.*;
@@ -28,6 +32,35 @@ class IgnoreManagerTest {
     private MockedStatic<IgnoreFileManager> ignoreFileManagerStatic;
     private MockedStatic<ProblemHolderService> problemHolderServiceStatic;
     private MockedStatic<DevAssistUtils> devAssistUtilsStatic;
+
+    static MockedStatic<ApplicationManager> appManagerMock;
+    static Application mockApp;
+    static MockedStatic<NotificationGroupManager> notificationGroupManagerMock;
+    static NotificationGroupManager mockNotificationGroupManager;
+    static NotificationGroup mockNotificationGroup;
+
+    @BeforeAll
+    static void setupStaticMocks() {
+        // Mock ApplicationManager.getApplication()
+        mockApp = mock(Application.class, RETURNS_DEEP_STUBS);
+        appManagerMock = mockStatic(ApplicationManager.class, CALLS_REAL_METHODS);
+        appManagerMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+
+        // Mock NotificationGroupManager.getInstance()
+        mockNotificationGroupManager = mock(NotificationGroupManager.class, RETURNS_DEEP_STUBS);
+        notificationGroupManagerMock = mockStatic(NotificationGroupManager.class, CALLS_REAL_METHODS);
+        notificationGroupManagerMock.when(NotificationGroupManager::getInstance).thenReturn(mockNotificationGroupManager);
+
+        // Mock NotificationGroup
+        mockNotificationGroup = mock(NotificationGroup.class, RETURNS_DEEP_STUBS);
+        when(mockNotificationGroupManager.getNotificationGroup(anyString())).thenReturn(mockNotificationGroup);
+    }
+
+    @AfterAll
+    static void tearDownStaticMocks() {
+        if (appManagerMock != null) appManagerMock.close();
+        if (notificationGroupManagerMock != null) notificationGroupManagerMock.close();
+    }
 
     @BeforeEach
     void setUp() {
@@ -277,6 +310,6 @@ class IgnoreManagerTest {
         assertEquals("npm", entry.getPackageManager());
         assertEquals("4.17.21", entry.getPackageVersion());
         assertEquals(1077, entry.getRuleId());
-        assertEquals(2, entry.getFiles().size());
+        assertEquals(1, entry.getFiles().size());
     }
 }

@@ -146,7 +146,7 @@ public final class IgnoreManager {
      */
     public void reviveSingleEntry(IgnoreEntry entryToRevive) {
         LOGGER.debug(format("RTS-Ignore: Reviving entry: %s", entryToRevive.getPackageName()));
-        Map<String, IgnoreEntry> ignoredEntries = new HashMap<>(IgnoreFileManager.ignoreData);
+        Map<String, IgnoreEntry> ignoredEntries = new HashMap<>(ignoreFileManager.getIgnoreData());
 
         // Count active files before reviving
         int fileCount = (int) entryToRevive.getFiles().stream()
@@ -333,7 +333,7 @@ public final class IgnoreManager {
         }
         String relativePath = ignoreFileManager.normalizePath(detail.getFilePath());
         int line = detail.getLocations().get(0).getLine();
-        IgnoreEntry entry = IgnoreFileManager.ignoreData.computeIfAbsent(createJsonKeyForIgnoreEntry(detail, clickId), k -> {
+        IgnoreEntry entry = ignoreFileManager.getIgnoreData().computeIfAbsent(createJsonKeyForIgnoreEntry(detail, clickId), k -> {
             IgnoreEntry ignoreEntry = new IgnoreEntry();
             ignoreEntry.setType(detail.getScanEngine());
             ignoreEntry.setPackageName(vulnerability.getTitle());
@@ -373,7 +373,7 @@ public final class IgnoreManager {
         }
         String relativePath = ignoreFileManager.normalizePath(detail.getFilePath());
         int line = detail.getLocations().get(0).getLine();
-        IgnoreEntry entry = IgnoreFileManager.ignoreData.computeIfAbsent(createJsonKeyForIgnoreEntry(detail, clickId), k -> {
+        IgnoreEntry entry = ignoreFileManager.getIgnoreData().computeIfAbsent(createJsonKeyForIgnoreEntry(detail, clickId), k -> {
             IgnoreEntry ignoreEntry = new IgnoreEntry();
             ignoreEntry.setType(detail.getScanEngine());
             ignoreEntry.setPackageName(vulnerability.getTitle());
@@ -400,7 +400,7 @@ public final class IgnoreManager {
         String relativePath = ignoreFileManager.normalizePath(detail.getFilePath());
         String vulnerabilityKey = createJsonKeyForIgnoreEntry(detail, clickId);
         int line = detail.getLocations().get(0).getLine();
-        IgnoreEntry entry = IgnoreFileManager.ignoreData.computeIfAbsent(vulnerabilityKey, k -> {
+        IgnoreEntry entry = ignoreFileManager.getIgnoreData().computeIfAbsent(vulnerabilityKey, k -> {
             IgnoreEntry.FileReference fileRef = new IgnoreEntry.FileReference(relativePath, true, line);
             ArrayList<IgnoreEntry.FileReference> fileReference = new ArrayList<>();
             fileReference.add(fileRef);
