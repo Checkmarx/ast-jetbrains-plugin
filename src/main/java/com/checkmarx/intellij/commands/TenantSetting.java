@@ -7,6 +7,9 @@ import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
 import com.intellij.openapi.diagnostic.Logger;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Handle tenant settings related operations with the wrapper
@@ -55,51 +58,28 @@ public class TenantSetting {
     }
 
     /**
-     * Check if the current tenant has Checkmarx Dev Assist license.
-     * Returns false if user is not authenticated.
+     * Get all tenant settings as a Map.
+     * Uses the provided GlobalSettingsState and GlobalSettingsSensitiveState for authentication.
      *
-     * @return true if Dev Assist license is enabled, false otherwise (including when not authenticated)
+     * @param state          GlobalSettingsState object contains current plugin state
+     * @param sensitiveState GlobalSettingsSensitiveState object contains encrypted credentials
+     * @return Map of tenant setting keys to their values
      */
-    public static boolean isDevAssistEnabled() throws
+    public static Map<String, String> getTenantSettingsMap(GlobalSettingsState state, GlobalSettingsSensitiveState sensitiveState) throws
             IOException,
             CxException,
             InterruptedException {
-        LOG.info("Checking Dev Assist license enabled flag");
-
-        // Check authentication first - don't make API calls if not authenticated
-        if (!isAuthenticated()) {
-            LOG.info("User not authenticated, returning false for Dev Assist license check");
-            return false;
+        LOG.debug("Fetching tenant settings map using provided credentials");
+        List<com.checkmarx.ast.tenant.TenantSetting> settings = CxWrapperFactory.build(state, sensitiveState).tenantSettings();
+        Map<String, String> settingsMap = new HashMap<>();
+        for (com.checkmarx.ast.tenant.TenantSetting setting : settings) {
+            settingsMap.put(setting.getKey(), setting.getValue());
         }
-
-        // TODO: Uncomment when wrapper method is available
-        // return CxWrapperFactory.build().devAssistEnabled();
-        LOG.info("Dev Assist license check: returning true (TEMPORARY FOR TESTING)");
-        return true ; // TEMPORARY: return true for testing promotional panel
+        LOG.debug("Fetched tenant settings map using provided credentials: " + settingsMap);
+        return settingsMap;
     }
 
-    /**
-     * Check if the current tenant has Checkmarx One Assist license.
-     * Returns false if user is not authenticated.
-     *
-     * @return true if One Assist license is enabled, false otherwise (including when not authenticated)
-     */
-    public static boolean isOneAssistEnabled() throws
-            IOException,
-            CxException,
-            InterruptedException {
-        LOG.info("Checking One Assist license enabled flag");
-
-        // Check authentication first - don't make API calls if not authenticated
-        if (!isAuthenticated()) {
-            LOG.info("User not authenticated, returning false for One Assist license check");
-            return false;
-        }
-
-        // TODO: Uncomment when wrapper method is available
-        // return CxWrapperFactory.build().oneAssistEnabled();
-        LOG.info("One Assist license check: returning false (API not yet available)");
-        return false ; // Temporary: return false for authenticated users until API is available
-    }
-
+    // Tenant setting keys for license flags - public for use in GlobalSettingsComponent
+    public static final String KEY_DEV_ASSIST = "scan.config.plugins.cxdevassist";
+    public static final String KEY_ONE_ASSIST = "scan.config.plugins.cxoneassist";
 }

@@ -72,14 +72,14 @@ class IgnoreFileManagerTest {
         assertTrue(Files.exists(ignoreFile));
         manager.updateIgnoreData("key1", new IgnoreEntry());
         manager.loadIgnoreData();
-        assertNotNull(IgnoreFileManager.ignoreData);
+        assertNotNull(manager.getIgnoreData());
     }
 
     @Test
     void testUpdateIgnoreDataAndSaveIgnoreFile() {
         IgnoreEntry entry = new IgnoreEntry();
         manager.updateIgnoreData("vulnKey", entry);
-        assertEquals(entry, IgnoreFileManager.ignoreData.get("vulnKey"));
+        assertEquals(entry, manager.getIgnoreData().get("vulnKey"));
         Path ignoreFile = manager.getIgnoreFilePath();
         assertTrue(Files.exists(ignoreFile));
     }

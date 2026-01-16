@@ -6,6 +6,7 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
@@ -133,7 +134,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
         LOGGER.debug("ASCA scanner: starting scan - " + uri);
 
         try {
-            ScanResult ascaResult = runAscaScan(psiFile, psiFile.getProject(), true, "JetBrains");
+            ScanResult ascaResult = runAscaScan(psiFile, psiFile.getProject(), true, "JetBrains", uri);
 
             if (ascaResult == null) {
                 LOGGER.debug("ASCA scanner: no results returned - " + uri);
@@ -164,7 +165,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      * @return the scan result, or null if an error occurs
      */
     @Nullable
-    private ScanResult runAscaScan(PsiFile file, Project project, boolean ascLatestVersion, String agent) {
+    private ScanResult runAscaScan(PsiFile file, Project project, boolean ascLatestVersion, String agent, String uri) {
         if (file == null) {
             return null;
         }
@@ -189,6 +190,8 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
         try {
             LOGGER.info(Strings.join("Starting ASCA scan on file: ", virtualFile.getPath()));
             ScanResult scanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent, DevAssistUtils.getIgnoreFilePath(project));
+            // Update line numbers for ignored ASCA issues if any exist
+            updateIgnoredFileDataOnLatestResult(tempFilePath, project, uri, agent, ascLatestVersion);
             handleScanResult(file, scanResult);
             return scanResult;
         } catch (Exception e) {
@@ -418,4 +421,32 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
             return false;
         }
     }
+
+    /**
+     * This method will scan the original file without considering the ignored issue file path (.checkmarxIgnoredTempFile).
+     * And based on the original result that contains an updated line number for a scan.
+     * Example - If file issue is ignored for the specific line and after ignored if the issue location is changed,
+     * then update the issue location in .checkmarxIgnored file to render the gutter icon at the correct location.
+     *
+     * @param tempFilePath - The temporary file path of the file to be scanned
+     * @param project - The project instance
+     * @param filePath - The original file path of the file to be scanned
+     *
+     */
+    private void updateIgnoredFileDataOnLatestResult(String tempFilePath, Project project, String filePath, String agent, boolean ascLatestVersion) {
+        try {
+            IgnoreManager ignoreManager = new IgnoreManager(project);
+            if (ignoreManager.hasIgnoredEntries(ScanEngine.ASCA)) {
+                LOGGER.debug("ASCA: Performing full scan to update line numbers for ignored issues");
+                ScanResult fullScanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent, "");
+                if (fullScanResult.getScanDetails() != null && !fullScanResult.getScanDetails().isEmpty()) {
+                    AscaScanResultAdaptor fullScanResultAdaptor = new AscaScanResultAdaptor(fullScanResult, filePath);
+                    ignoreManager.updateLineNumbersForIgnoredEntries(fullScanResultAdaptor, filePath);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.warn("RTS-ASCA: Exception occurred while performing full scan without passing ignore file to update .checkmarxIgnored file", e);
+        }
+    }
 }
+

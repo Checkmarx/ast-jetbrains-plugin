@@ -8,7 +8,6 @@ import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
 import java.awt.*;
-import java.net.URL;
 
 /**
  * Promotional panel displayed in the "Checkmarx One Assist Findings" tab when the user
@@ -16,9 +15,6 @@ import java.net.URL;
  * the user to contact their admin for Dev Assist features.
  */
 public class DevAssistPromotionalPanel extends JPanel {
-
-    // Icon path - can be changed to SVG when design assets are ready
-    private static final String CUBE_ICON_PATH = "/icons/cx-one-assist-cube.png";
 
     public DevAssistPromotionalPanel() {
         // Compact layout: small insets, minimal gaps between text elements
@@ -28,10 +24,8 @@ public class DevAssistPromotionalPanel extends JPanel {
     }
 
     private void buildUI() {
-        // Load promotional image at fixed size
-        // TODO: Replace with SVG icon when design assets are ready
-        Icon cubeIcon = loadPromotionalIcon();
-        JBLabel imageLabel = new JBLabel(cubeIcon);
+        // Load promotional image using shared utility
+        JBLabel imageLabel = new JBLabel(CommonPanels.loadCubeIcon());
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(imageLabel, "growx");
 
@@ -54,20 +48,6 @@ public class DevAssistPromotionalPanel extends JPanel {
         contactLabel.setForeground(UIUtil.getLabelDisabledForeground());
         contactLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(contactLabel, "growx");
-    }
-
-    /**
-     * Loads the promotional icon. Currently loads PNG, but structured for easy
-     * migration to SVG when design assets are available.
-     *
-     * @return the promotional icon, or null if not found
-     */
-    private Icon loadPromotionalIcon() {
-        URL imageUrl = getClass().getResource(CUBE_ICON_PATH);
-        if (imageUrl != null) {
-            return new ImageIcon(imageUrl);
-        }
-        return null;
     }
 }
 

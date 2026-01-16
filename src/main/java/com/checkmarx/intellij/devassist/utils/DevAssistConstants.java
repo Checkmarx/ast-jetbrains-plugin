@@ -17,7 +17,7 @@ public final class DevAssistConstants {
     }
 
     // Tab Name Constants
-    public static final String DEVASSIST_TAB = "CxOne Assist Findings";
+    public static final String DEVASSIST_TAB = "Checkmarx One Assist Findings";
     public static final String SCAN_RESULTS_TAB = "Scan Results";
     public static final String IGNORED_FINDINGS_TAB = "Ignored Findings";
 
@@ -53,6 +53,8 @@ public final class DevAssistConstants {
     public static final String IAC_REALTIME_SCANNER_DISABLED = "Realtime IAC Scanner Engine disabled";
     public static final String IAC_REALTIME_SCANNER_DIRECTORY = "Cx-iac-realtime-scanner";
     public static final String ERROR_IAC_REALTIME_SCANNER = "Failed to handle IAC Realtime scan";
+    public static final String IAC_PREREQUISITE = "Please refer IAC RealTime Scanner Prerequisites";
+    public static final String IAC_ENGINE_VALIDATION_ERROR="Checkmarx Containers Management Tool Error";
 
     // ASCA Scanner Constants
     public static final String ACTIVATE_ASCA_REALTIME_SCANNER = "Activate ASCA-Realtime";
@@ -146,6 +148,7 @@ public final class DevAssistConstants {
     public static final List<String> AI_AGENT_FILES = List.of("/Dummy.txt", "/", "/AIAssistantInput");
     public static final String SEPERATOR = ":";
     public static final String QUICK_FIX = "QUICK_FIX";
+    public static final String UNDO = "Undo";
 
     /**
      * The Keys class contains static final keys used for storing and retrieving

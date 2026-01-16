@@ -13,7 +13,9 @@ import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
-import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
+import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.tool.window.CommonPanels;
+import com.checkmarx.intellij.tool.window.DevAssistPromotionalPanel;
 import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -28,17 +30,14 @@ import com.intellij.openapi.editor.ScrollType;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.TextEditor;
-import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
-import com.intellij.uiDesigner.core.GridConstraints;
-import com.intellij.uiDesigner.core.GridLayoutManager;
+import com.intellij.util.messages.Topic;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
@@ -56,6 +55,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
+
 /**
  * Tool window panel for viewing and managing ignored vulnerability findings.
  * Supports severity/type filtering, sorting, bulk selection, file navigation, and revive actions.
@@ -71,6 +72,18 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private static final String FONT_FAMILY_MENLO = "Menlo";
     private static final String FONT_FAMILY_INTER = "Inter";
     private static final String FONT_FAMILY_SF_PRO = "SF Pro";
+
+    // ========== Topic for publishing ignored findings count changes ==========
+    public static final Topic<IgnoredCountListener> IGNORED_COUNT_TOPIC =
+            Topic.create("Ignored Findings Count Changed", IgnoredCountListener.class);
+
+    /**
+     * Listener interface for ignored findings count changes.
+     * Subscribers can use this to update UI elements that display the count.
+     */
+    public interface IgnoredCountListener {
+        void onCountChanged(int count);
+    }
 
     // ========== Instance Fields ==========
     private final Project project;
@@ -158,9 +171,30 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     }
 
     private void checkSettingsAndDraw() {
-        if (new GlobalSettingsComponent().isValid()) {
-            drawMainPanel();
-        } else {
+        try {
+            if (!new GlobalSettingsComponent().isValid()) {
+                LOGGER.info("CxIgnoredFindings: Not authenticated - showing auth panel");
+                drawAuthPanel();
+            } else {
+                // Authenticated - check licenses (cached in GlobalSettingsState during authentication)
+                GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
+                boolean hasOneAssist = settingsState.isOneAssistLicenseEnabled();
+                boolean hasDevAssist = settingsState.isDevAssistLicenseEnabled();
+                boolean hasAnyLicense = hasOneAssist || hasDevAssist;
+
+                LOGGER.info("CxIgnoredFindings: Authenticated, hasOneAssist=" + hasOneAssist
+                        + ", hasDevAssist=" + hasDevAssist + ", hasAnyLicense=" + hasAnyLicense);
+
+                if (hasAnyLicense) {
+                    drawMainPanel();
+                } else {
+                    // No license (platform-only) - delete ignore files and show promotional panel
+                    IgnoreFileManager.getInstance(project).deleteIgnoreFiles();
+                    drawPromotionalPanel();
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("CxIgnoredFindings: Error during settings check, showing auth panel as fallback", e);
             drawAuthPanel();
         }
     }
@@ -213,28 +247,43 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     }
 
     /** Displays the authentication panel when settings are not configured. */
-
     private void drawAuthPanel() {
         removeAll();
-
-        JPanel panel = new JPanel(new GridLayoutManager(2, 1, JBUI.emptyInsets(), -1, -1));
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(0);
-        panel.add(new JBLabel(CxIcons.CHECKMARX_80), constraints);
-
-        JButton openSettingsButton = new JButton(Bundle.message(Resource.OPEN_SETTINGS_BUTTON));
-        openSettingsButton.addActionListener(e ->
-                ShowSettingsUtil.getInstance().showSettingsDialog(project, GlobalSettingsConfigurable.class));
-        constraints = new GridConstraints();
-        constraints.setRow(1);
-        panel.add(openSettingsButton, constraints);
-
-        JPanel wrapper = new JPanel(new GridBagLayout());
-        wrapper.add(panel);
-        setContent(wrapper);
+        setContent(CommonPanels.createAuthPanel(project));
         updateTabTitle(0);
         revalidate();
         repaint();
+    }
+
+    /**
+     * Draws the full-screen promotional panel for Dev Assist.
+     * Shown when authenticated but neither One Assist nor Dev Assist license is active.
+     * Shows the cube image with title, description, and contact message - same as CxFindingsWindow.
+     * No toolbar, no count.
+     */
+    private void drawPromotionalPanel() {
+        LOGGER.info("drawPromotionalPanel: Drawing full-screen promotional panel");
+        removeAll();
+
+        // Remove toolbar when showing promotional panel
+        if (getToolbar() != null) {
+            setToolbar(null);
+        }
+
+        // Use DevAssistPromotionalPanel - same as CxFindingsWindow
+        DevAssistPromotionalPanel promotionalPanel = new DevAssistPromotionalPanel();
+        JBScrollPane scrollPane = new JBScrollPane(promotionalPanel);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        setContent(scrollPane);
+
+        // Update tab title with no count (just the tab name)
+        if (content != null) {
+            content.setDisplayName(DevAssistConstants.IGNORED_FINDINGS_TAB);
+        }
+
+        revalidate();
+        repaint();
+        LOGGER.info("drawPromotionalPanel: Promotional panel set as content");
     }
 
     /** Draws the main panel with toolbar, header, and scrollable findings list. */
@@ -272,7 +321,10 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
     private void drawEmptyStatePanel() {
         setContent(createEmptyMessagePanel(Bundle.message(Resource.IGNORED_NO_FINDINGS)));
-        setToolbar(null);
+        // Only set toolbar to null if it was previously set to avoid NPE during initialization
+        if (getToolbar() != null) {
+            setToolbar(null);
+        }
         updateTabTitle(0);
     }
 
@@ -526,12 +578,15 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
     /** Revives all selected entries. */
     private void reviveSelectedEntries() {
-        List<IgnoredEntryPanel> selected = entryPanels.stream()
+        List<IgnoreEntry> selectedEntries = entryPanels.stream()
                 .filter(IgnoredEntryPanel::isSelected)
+                .map(panel -> panel.entry)  // Extract IgnoreEntry from each panel
                 .collect(Collectors.toList());
-        LOGGER.info("Revive selected clicked for " + selected.size() + " entries");
-        // TODO: Implement actual revive logic
+
+        LOGGER.info("Revive selected clicked for " + selectedEntries.size() + " entries");
+        new IgnoreManager(project).reviveMultipleEntries(selectedEntries);
     }
+
 
     /** Clears all selections. */
     private void clearSelection() {
@@ -608,18 +663,22 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             allEntries = new ArrayList<>(entries);
 
             if (wasEmpty != isNowEmpty) {
-                drawMainPanel();
+                checkSettingsAndDraw();
             } else if (!isNowEmpty) {
                 applyFiltersAndRefresh();
+                updateTabTitle(entries.size());
             }
-            updateTabTitle(entries.size());
         } catch (Exception e) {
             LOGGER.warn("Error loading ignored entries", e);
             boolean hadEntries = !allEntries.isEmpty();
             allEntries.clear();
-            if (hadEntries) drawMainPanel();
-            else displayFilteredEntries(List.of());
-            updateTabTitle(0);
+            if (hadEntries) {
+                // Re-check settings to show proper UI based on license state
+                checkSettingsAndDraw();
+            } else {
+                displayFilteredEntries(List.of());
+                updateTabTitle(0);
+            }
         }
     }
 
@@ -647,6 +706,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                     ? DevAssistConstants.IGNORED_FINDINGS_TAB + " " + count
                     : DevAssistConstants.IGNORED_FINDINGS_TAB);
         }
+        // Publish the count to subscribers (e.g., CxFindingsWindow promotional panel)
+        project.getMessageBus().syncPublisher(IGNORED_COUNT_TOPIC).onCountChanged(count);
     }
 
     @Override
@@ -764,9 +825,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             reviveButton.setFocusPainted(false);
             reviveButton.setOpaque(false);
             reviveButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            reviveButton.addActionListener(ev ->
-                    LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown")));
-
+            reviveButton.addActionListener(e -> new IgnoreManager(project).reviveSingleEntry(entry));
+                    LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown"));
+            clearSelection();
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.anchor = GridBagConstraints.FIRST_LINE_START;
             gbc.insets = JBUI.insetsTop(10);
