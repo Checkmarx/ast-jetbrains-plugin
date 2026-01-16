@@ -174,10 +174,20 @@ public class ScanResultsPannelPage {
     public static void enterScanIdAndSelect(boolean validScanId) {
         String scanId = validScanId ? Environment.SCAN_ID : "invalid-scan-id";
         log("Scan ID to enter: " + scanId);
-        find(JTextFieldFixture.class, SCAN_FIELD).setText(scanId);
+        List<JTextFieldFixture> fields =
+                findAll(JTextFieldFixture.class, SCAN_FIELD);
+
+        Assertions.assertFalse(fields.isEmpty(),
+                "Scan ID input field not found");
+
+        JTextFieldFixture scanField = fields.stream()
+                .filter(JTextFieldFixture::isShowing)
+                .findFirst()
+                .orElseThrow(() ->
+                        new AssertionError("No visible Scan ID input field found"));
+
+        scanField.setText(scanId);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-
-
     }
 
     /**
@@ -297,6 +307,7 @@ public class ScanResultsPannelPage {
 
         List<String> rows = tree.collectRows();
 
+        log("Sent Vulnerability Name"+name);
         Optional<Integer> indexOpt = IntStream.range(0, rows.size())
                 .filter(i -> rows.get(i).contains(name))
                 .boxed()

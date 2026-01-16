@@ -20,15 +20,11 @@ public class TestAscaRealTime extends BaseUITest{
     public void testASCACheckBoxEnableSuccessMsg() {
         // Given: User is logged in and welcome page is loaded
         openSettings();
-        logoutIfUserIsAlreadyLoggedIn();
-        performLoginUsingApiKey(true);
-        locateAndClickOnButton(WELCOME_CLOSE_BUTTON);
 
         // When: User navigates to CxOne Assist page
         navigateToCxOneAssistPage();
 
-        //When: user disables and enables ASCA Real-Time Scan
-        //Then: Success message should be displayed
+        //Then: Validate success message when ASCA Real-Time Scan is enabled
         toggleAscaEngineAndVerifySuccessMessage();
     }
 
@@ -38,9 +34,6 @@ public class TestAscaRealTime extends BaseUITest{
     public void testASCAVulnerabilityDisplayedInProblemTree() {
         // Given: User is logged in and welcome page is loaded
         openSettings();
-        logoutIfUserIsAlreadyLoggedIn();
-        performLoginUsingApiKey(true);
-        locateAndClickOnButton(WELCOME_CLOSE_BUTTON);
 
         // When: User enables ASCA Real-Time Scan if it is disabled
         navigateToCxOneAssistPage();

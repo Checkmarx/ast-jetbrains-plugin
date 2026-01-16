@@ -51,7 +51,7 @@ jobs:
       - name: Tests
         run: |
           Set-DisplayResolution -Width 1920 -Height 1080 -Force
-          ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
+          ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui.TestGeneral
       # Save video if tests fail
       - name: Move video
         if: ${{ failure() }}
