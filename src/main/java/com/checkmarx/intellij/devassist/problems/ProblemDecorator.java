@@ -350,7 +350,7 @@ public class ProblemDecorator {
         for (IgnoreEntry ignoredVulnerability : ignoreEntryList) {
             try {
                 List<IgnoreEntry.FileReference> matchingFileRefs = ignoredVulnerability.files.stream()
-                        .filter(fileRef -> fileRef.path.equals(filePath))
+                        .filter(fileRef -> fileRef.path.equals(filePath) && fileRef.active)
                         .collect(Collectors.toList());
 
                 if (!matchingFileRefs.isEmpty()) {

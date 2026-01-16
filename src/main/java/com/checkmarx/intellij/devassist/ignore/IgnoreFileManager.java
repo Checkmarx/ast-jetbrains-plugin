@@ -36,7 +36,7 @@ public final class IgnoreFileManager {
     private final Project project;
     private String workspacePath = "";
     private String workspaceRootPath = "";
-    public static Map<String, IgnoreEntry> ignoreData = new HashMap<>();
+    private Map<String, IgnoreEntry> ignoreData = new HashMap<>();
     private final Map<String, String> scannedFileMap = new HashMap<>();
     private Map<String, IgnoreEntry> previousIgnoreData = new HashMap<>();
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -96,7 +96,7 @@ public final class IgnoreFileManager {
     public void loadIgnoreData() {
         Path ignoreFile = getIgnoreFilePath();
         if (!Files.exists(ignoreFile)) {
-            LOGGER.debug("Ignore file doesn't exist: " + ignoreFile);
+            LOGGER.info(String.format("RTS-Ignore: Ignore file doesn't exist: %s", ignoreFile));
             ignoreData = new HashMap<>();
             return;
         }
@@ -119,6 +119,15 @@ public final class IgnoreFileManager {
      */
     public List<IgnoreEntry> getAllIgnoreEntries() {
         return new ArrayList<>(ignoreData.values());
+    }
+
+    /**
+     * Returns the ignore data map for this project.
+     * This is an instance method to ensure project-level isolation.
+     * @return the ignore data map
+     */
+    public Map<String, IgnoreEntry> getIgnoreData() {
+        return ignoreData;
     }
 
     /**
@@ -422,4 +431,13 @@ public final class IgnoreFileManager {
         }
     }
 
+    /**
+     * Saves the current ignore data to disk.
+     * This is a public wrapper for the private saveIgnoreFile method.
+     * Used when ignore data is modified directly (e.g., line number updates).
+     */
+    public void saveIgnoreDataToDisk() {
+        saveIgnoreFile();
+        updateIgnoreTempList();
+    }
 }
