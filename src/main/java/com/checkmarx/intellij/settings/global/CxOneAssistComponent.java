@@ -84,9 +84,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     public CxOneAssistComponent() {
         buildUI();
         reset();
-        ApplicationManager.getApplication().executeOnPooledThread(this::validateIACEngine);
         addAscaCheckBoxListener();
-
         connection = ApplicationManager.getApplication().getMessageBus().connect();
         connection.subscribe(SettingsListener.SETTINGS_APPLIED, new SettingsListener() {
             @Override
