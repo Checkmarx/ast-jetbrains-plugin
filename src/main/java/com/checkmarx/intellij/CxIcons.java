@@ -1,6 +1,7 @@
 package com.checkmarx.intellij;
 
 import com.intellij.openapi.util.IconLoader;
+
 import javax.swing.*;
 
 /**
@@ -25,6 +26,10 @@ public final class CxIcons {
 
     public static Icon getWelcomeMcpDisableIcon() {
         return IconLoader.getIcon("/icons/cxAIError.svg", CxIcons.class);
+    }
+
+    public static Icon getCxOneAssistCubeIcon() {
+        return IconLoader.getIcon("/icons/cx-one-assist-cube.png", CxIcons.class);
     }
 
     public static final Icon STAR_ACTION = IconLoader.getIcon("/icons/devassist/star-action.svg", CxIcons.class);

@@ -80,6 +80,12 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @Attribute("welcomeShown")
     private boolean welcomeShown = false;
 
+    @Attribute("isDevAssistLicenseEnabled")
+    private boolean isDevAssistLicenseEnabled = false;
+
+    @Attribute("isOneAssistLicenseEnabled")
+    private boolean isOneAssistLicenseEnabled = false;
+
     // --- Realtime Scanner Settings ---
     private boolean ascaRealtime = false;
 
@@ -214,6 +220,8 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     public boolean isAscaRealtime() { return ascaRealtime; }
     public void setAscaRealtime(boolean ascaRealtime) { this.ascaRealtime = ascaRealtime; }
 
+
+
     // Getters for user preferences (for debugging and verification)
     public boolean getUserPreferencesSet() { return userPreferencesSet; }
     public boolean getUserPrefAscaRealtime() { return userPrefAscaRealtime; }
@@ -221,4 +229,12 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     public boolean getUserPrefSecretDetectionRealtime() { return userPrefSecretDetectionRealtime; }
     public boolean getUserPrefContainersRealtime() { return userPrefContainersRealtime; }
     public boolean getUserPrefIacRealtime() { return userPrefIacRealtime; }
+
+    // Getters for license value
+    public boolean isDevAssistLicenseEnabled() { return isDevAssistLicenseEnabled; }
+    public boolean isOneAssistLicenseEnabled() { return isOneAssistLicenseEnabled; }
+
+    // Setters for license value 
+    public void setDevAssistLicenseEnabled(boolean isDevAssistLicenseEnabled) { this.isDevAssistLicenseEnabled = isDevAssistLicenseEnabled; }
+    public void setOneAssistLicenseEnabled(boolean isOneAssistLicenseEnabled) { this.isOneAssistLicenseEnabled = isOneAssistLicenseEnabled; }
 }

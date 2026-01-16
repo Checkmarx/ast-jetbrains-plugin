@@ -47,11 +47,17 @@ public interface CxToolWindowAction extends DumbAware {
             return null;
         }
         ContentManager contentManager = toolWindow.getContentManager();
-        Content content = contentManager.getContent(0);
-        if (content == null) {
-            return null;
+
+        // Search for "Scan Results" tab by name instead of assuming index 0
+        // This handles the case where the tab might be hidden for Dev Assist users
+        for (Content content : contentManager.getContents()) {
+            if ("Scan Results".equals(content.getDisplayName()) &&
+                content.getComponent() instanceof CxToolWindowPanel) {
+                return (CxToolWindowPanel) content.getComponent();
+            }
         }
-        return (CxToolWindowPanel) content.getComponent();
+
+        return null;
     }
 
     /**

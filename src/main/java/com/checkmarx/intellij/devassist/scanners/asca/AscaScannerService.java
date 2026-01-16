@@ -6,11 +6,9 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
-import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
-import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.application.ApplicationManager;
@@ -205,9 +203,9 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      * Calls the ASCA CLI to scan a file.
      * Consolidated from ASCA command class.
      */
-    private ScanResult scanAscaFile(String path, boolean ascaLatestVersion, String agent, String ignoredFilePath)
+    private ScanResult scanAscaFile(String path, boolean ascaLatestVersion, String agent, String ignoreFilePath)
             throws IOException, CxException, InterruptedException {
-        return CxWrapperFactory.build().ScanAsca(path, ascaLatestVersion, agent, ignoredFilePath);
+        return CxWrapperFactory.build().ScanAsca(path, ascaLatestVersion, agent,null);
     }
 
     /**
@@ -409,7 +407,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      */
     public boolean installAsca() {
         try {
-            ScanResult res = CxWrapperFactory.build().ScanAsca("", true, Constants.JET_BRAINS_AGENT_NAME, null);
+            ScanResult res = CxWrapperFactory.build().ScanAsca("", true, Constants.JET_BRAINS_AGENT_NAME,null);
             if (res.getError() != null) {
                 LOGGER.warn(Strings.join("ASCA installation error: ", res.getError().getDescription()));
                 return false;

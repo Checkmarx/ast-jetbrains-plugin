@@ -98,15 +98,39 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         this.project = project;
         this.projectResultsService = project.getService(ProjectResultsService.class);
-        Runnable r = () -> {
-            if (new GlobalSettingsComponent().isValid()) {
-                drawMainPanel();
-                ScannerRegistry registry = project.getService(ScannerRegistry.class);
-                registry.registerAllScanners(project);
 
-            } else {
+        // License Matrix for Scan Results tab:
+        // - NOT authenticated: Show auth panel
+        // - Authenticated + One Assist = TRUE: Show actual Scan Results content
+        // - Authenticated + One Assist = FALSE, Dev Assist = TRUE: Show promotional upsell panel
+        // - Authenticated + One Assist = FALSE, Dev Assist = FALSE: Show actual Scan Results content
+        Runnable r = () -> {
+            if (!new GlobalSettingsComponent().isValid()) {
+                LOGGER.info("CxToolWindowPanel: Not authenticated - showing auth panel");
                 drawAuthPanel();
                 projectResultsService.indexResults(project, Results.emptyResults);
+            } else {
+                // Authenticated - check licenses
+                boolean hasOneAssist = checkOneAssistLicense();
+                boolean hasDevAssist = checkDevAssistLicense();
+
+                LOGGER.info("CxToolWindowPanel: Authenticated, hasOneAssist=" + hasOneAssist
+                        + ", hasDevAssist=" + hasDevAssist);
+
+                if (hasOneAssist) {
+                    // One Assist = TRUE: Show actual Scan Results
+                    drawMainPanel();
+                    ScannerRegistry registry = project.getService(ScannerRegistry.class);
+                    registry.registerAllScanners(project);
+                } else if (hasDevAssist) {
+                    // One Assist = FALSE, Dev Assist = TRUE: Show promotional upsell
+                    drawPromotionalPanel();
+                } else {
+                    // One Assist = FALSE, Dev Assist = FALSE: Show actual Scan Results
+                    drawMainPanel();
+                    ScannerRegistry registry = project.getService(ScannerRegistry.class);
+                    registry.registerAllScanners(project);
+                }
             }
         };
 
@@ -118,6 +142,34 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 .subscribe(FilterBaseAction.FILTER_CHANGED, this::changeFilter);
 
         r.run();
+    }
+
+    /**
+     * Check if the current tenant has Checkmarx One Assist license.
+     *
+     * @return true if One Assist license is enabled, false otherwise
+     */
+    private boolean checkOneAssistLicense() {
+        try {
+            return TenantSetting.isOneAssistEnabled();
+        } catch (Exception e) {
+            LOGGER.warn("Failed to check One Assist license status", e);
+            return false;
+        }
+    }
+
+    /**
+     * Check if the current tenant has Checkmarx Dev Assist license.
+     *
+     * @return true if Dev Assist license is enabled, false otherwise
+     */
+    private boolean checkDevAssistLicense() {
+        try {
+            return TenantSetting.isDevAssistEnabled();
+        } catch (Exception e) {
+            LOGGER.warn("Failed to check Dev Assist license status", e);
+            return false;
+        }
     }
 
     /**
@@ -195,6 +247,21 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         wrapper.add(panel);
 
         setContent(wrapper);
+    }
+
+    /**
+     * Draw a promotional upsell panel for Scan Results.
+     * Shown when authenticated with Dev Assist license but no One Assist license.
+     */
+    private void drawPromotionalPanel() {
+        LOGGER.info("drawPromotionalPanel: Drawing promotional upsell panel for Scan Results");
+        removeAll();
+
+        ScanResultsUpsellPanel promotionalPanel = new ScanResultsUpsellPanel();
+        setContent(promotionalPanel);
+
+        revalidate();
+        repaint();
     }
 
     @Override
