@@ -228,6 +228,7 @@ public final class IgnoreFileManager {
         }
         saveIgnoreFile();
         handleFileChange();
+        project.getMessageBus().syncPublisher(IGNORE_TOPIC).onIgnoreUpdated();
         LOGGER.info("RTS-Ignore: Revived package: " + packageName);
         return true;
     }
