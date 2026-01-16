@@ -13,6 +13,7 @@ import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
@@ -217,6 +218,8 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
             }
             SecretsScanResultAdaptor scanResultAdaptor = new SecretsScanResultAdaptor(scanResults, uri);
             TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.SECRETS);
+            // Update line numbers for ignored secrets if any exist
+            updateIgnoredFileDataOnLatestResult(tempFilePath.get(), file.getProject(), uri);
             return scanResultAdaptor;
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.debug("Secrets scanner: scan error", e);
@@ -225,5 +228,32 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
             deleteTempFolder(tempSubFolder);
         }
         return null;
+    }
+
+    /**
+     * This method will scan the original file without considering the ignored issue file path (.checkmarxIgnoredTempFile).
+     * And based on the original result that contains an updated line number for a scan.
+     * Example - If file issue is ignored for the specific line and after ignored if the issue location is changed,
+     * then update the issue location in .checkmarxIgnored file to render the gutter icon at the correct location.
+     *
+     * @param tempFilePath - The temporary file path of the file to be scanned
+     * @param project - The project instance
+     * @param filePath - The original file path of the file to be scanned
+     *
+     */
+    private void updateIgnoredFileDataOnLatestResult(String tempFilePath, Project project, String filePath) {
+        try {
+            IgnoreManager ignoreManager = new IgnoreManager(project);
+            if (ignoreManager.hasIgnoredEntries(ScanEngine.SECRETS)) {
+                LOGGER.debug("SECRETS: Performing full scan to update line numbers for ignored packages");
+                SecretsRealtimeResults fullScanResults = CxWrapperFactory.build().secretsRealtimeScan(tempFilePath, "");
+                if (fullScanResults != null) {
+                    SecretsScanResultAdaptor fullScanResultAdaptor = new SecretsScanResultAdaptor(fullScanResults, filePath);
+                    ignoreManager.updateLineNumbersForIgnoredEntries(fullScanResultAdaptor, filePath);
+                }
+            }
+        } catch (IOException | CxException | InterruptedException e) {
+            LOGGER.warn("RTS-SECRET: Exception occurred while performing full scan without passing ignore file to update .checkmarxIgnored file", e);
+        }
     }
 }

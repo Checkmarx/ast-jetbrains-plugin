@@ -96,7 +96,7 @@ public final class IgnoreFileManager {
     public void loadIgnoreData() {
         Path ignoreFile = getIgnoreFilePath();
         if (!Files.exists(ignoreFile)) {
-            LOGGER.debug("Ignore file doesn't exist: " + ignoreFile);
+            LOGGER.info(String.format("RTS-Ignore: Ignore file doesn't exist: %s", ignoreFile));
             ignoreData = new HashMap<>();
             return;
         }
@@ -391,4 +391,13 @@ public final class IgnoreFileManager {
         }
     }
 
+    /**
+     * Saves the current ignore data to disk.
+     * This is a public wrapper for the private saveIgnoreFile method.
+     * Used when ignore data is modified directly (e.g., line number updates).
+     */
+    public void saveIgnoreDataToDisk() {
+        saveIgnoreFile();
+        updateIgnoreTempList();
+    }
 }

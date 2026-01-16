@@ -1,17 +1,20 @@
 package com.checkmarx.intellij.devassist.scanners.containers;
 
 import com.checkmarx.ast.containersrealtime.ContainersRealtimeResults;
+import com.checkmarx.ast.secretsrealtime.SecretsRealtimeResults;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
+import com.checkmarx.intellij.devassist.scanners.secrets.SecretsScanResultAdaptor;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -217,6 +220,8 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start Container Realtime Scan On File: " + uri);
                 ContainersRealtimeResults scanResults = CxWrapperFactory.build().containersRealtimeScan(tempFilePath, DevAssistUtils.getIgnoreFilePath(psiFile.getProject()));
+                // Update line numbers for ignored container images if any exist
+                updateIgnoredFileDataOnLatestResult(tempFilePath, psiFile.getProject(), uri);
                 return new ContainerScanResultAdaptor(scanResults, fileType, uri);
             }
 
@@ -229,6 +234,33 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
             }
         }
         return null;
+    }
+
+    /**
+     * This method will scan the original file without considering the ignored issue file path (.checkmarxIgnoredTempFile).
+     * And based on the original result that contains an updated line number for a scan.
+     * Example - If file issue is ignored for the specific line and after ignored if the issue location is changed,
+     * then update the issue location in .checkmarxIgnored file to render the gutter icon at the correct location.
+     *
+     * @param tempFilePath - The temporary file path of the file to be scanned
+     * @param project - The project instance
+     * @param filePath - The original file path of the file to be scanned
+     *
+     */
+    private void updateIgnoredFileDataOnLatestResult(String tempFilePath, Project project, String filePath) {
+        try {
+            IgnoreManager ignoreManager =  new IgnoreManager(project);
+            if (ignoreManager.hasIgnoredEntries(ScanEngine.CONTAINERS)) {
+                LOGGER.debug("IaC: Performing full scan to update line numbers for ignored packages");
+                ContainersRealtimeResults fullScanResults = CxWrapperFactory.build().containersRealtimeScan(tempFilePath, "");
+                if (fullScanResults != null) {
+                    ContainerScanResultAdaptor fullScanResultAdaptor = new ContainerScanResultAdaptor(fullScanResults,fileType, filePath);
+                    ignoreManager.updateLineNumbersForIgnoredEntries(fullScanResultAdaptor, filePath);
+                }
+            }
+        } catch (IOException | CxException | InterruptedException e) {
+            LOGGER.warn("RTS-CONTAINER: Exception occurred while performing full scan without passing ignore file to update .checkmarxIgnored file", e);
+        }
     }
 
 }
