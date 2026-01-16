@@ -142,26 +142,61 @@ public final class RemediationManager {
      *
      * @param project   the project where the fix is to be applied
      * @param scanIssue the scan issue to view details for
+     * @param actionId  the action ID for vulnerability-specific details
      */
     public void viewDetails(@NotNull Project project, @NotNull ScanIssue scanIssue, String actionId) {
+        String prompt = buildExplanationPrompt(scanIssue, actionId);
+        applyViewDetails(project, scanIssue, prompt);
+    }
+
+    /**
+     * Builds the explanation prompt based on scan engine type.
+     *
+     * @param scanIssue the scan issue to build prompt for
+     * @param actionId  the action ID for vulnerability-specific details
+     * @return the explanation prompt, or null if not applicable
+     */
+    @Nullable
+    private String buildExplanationPrompt(@NotNull ScanIssue scanIssue, String actionId) {
         switch (scanIssue.getScanEngine()) {
             case OSS:
-                explainOSSDetails(project, scanIssue);
-                break;
+                return buildOSSExplanationPrompt(scanIssue);
             case SECRETS:
-                explainSecretDetails(project, scanIssue);
-                break;
+                return buildSecretExplanationPrompt(scanIssue);
             case CONTAINERS:
-                explainContainerDetails(project, scanIssue);
-                break;
+                return buildContainerExplanationPrompt(scanIssue);
             case IAC:
-                explainIACDetails(project, scanIssue, actionId);
-                break;
+                return buildIACExplanationPrompt(scanIssue, actionId);
             case ASCA:
-                explainASCADetails(project, scanIssue, actionId);
-                break;
+                return buildASCAExplanationPrompt(scanIssue, actionId);
             default:
-                break;
+                return null;
+        }
+    }
+
+    /**
+     * Applies the view details by attempting to send to Copilot AI first, with clipboard fallback.
+     *
+     * @param project   the project context
+     * @param scanIssue the scan issue being explained
+     * @param prompt    the explanation prompt to apply
+     */
+    private void applyViewDetails(@NotNull Project project, @NotNull ScanIssue scanIssue, @Nullable String prompt) {
+        if (prompt == null || prompt.isEmpty()) {
+            return;
+        }
+        LOGGER.info(format("RTS-ViewDetails: %s explanation started for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
+        String notificationTitle = getNotificationTitle(scanIssue.getScanEngine());
+
+        // Try to send to Copilot AI first (no notifications shown by fixWithAI)
+        boolean aiSuccess = fixWithAI(prompt, project);
+        if (aiSuccess) {
+            LOGGER.info(format("RTS-ViewDetails: %s explanation sent to Copilot for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
+        } else {
+            // Fallback: Copy to clipboard with notification when Copilot is not available
+            if (DevAssistUtils.copyToClipboardWithNotification(prompt, notificationTitle, Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
+                LOGGER.info(format("RTS-ViewDetails: %s explanation completed (clipboard) for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
+            }
         }
     }
 
@@ -247,83 +282,51 @@ public final class RemediationManager {
     }
 
     /**
-     * Explain the details of an OSS issue.
-     *
-     * @param project   the project where the fix is to be applied
-     * @param scanIssue the scan issue to view details for
+     * Builds explanation prompt for an OSS issue.
      */
-    private void explainOSSDetails(Project project, ScanIssue scanIssue) {
-        LOGGER.info(format("RTS-Fix: Viewing details for file: %s for OSS Issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
-        String prompt = ViewDetailsPrompts.buildSCAExplanationPrompt(scanIssue.getTitle(),
+    private String buildOSSExplanationPrompt(ScanIssue scanIssue) {
+        return ViewDetailsPrompts.buildSCAExplanationPrompt(scanIssue.getTitle(),
                 scanIssue.getPackageVersion(),
                 scanIssue.getSeverity(),
                 scanIssue.getVulnerabilities());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
-                Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
-            LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for OSS Issue: %s",
-                    scanIssue.getFilePath(), scanIssue.getTitle()));
-        }
     }
 
     /**
-     * Explain the details of a secret issue.
-     *
-     * @param project   the project where the fix is to be applied
-     * @param scanIssue the scan issue to view details for
+     * Builds explanation prompt for a Secret issue.
      */
-    private void explainSecretDetails(Project project, ScanIssue scanIssue) {
-        LOGGER.info(format("RTS-Fix: Viewing details for file: %s for secret issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
-        String prompt = ViewDetailsPrompts.buildSecretsExplanationPrompt(scanIssue.getTitle(),
+    private String buildSecretExplanationPrompt(ScanIssue scanIssue) {
+        return ViewDetailsPrompts.buildSecretsExplanationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
-                Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
-            LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for secret issue: %s",
-                    scanIssue.getFilePath(), scanIssue.getTitle()));
-        }
     }
 
     /**
-     * Explain the details of a container issue.
-     *
-     * @param project   the project where the fix is to be applied
-     * @param scanIssue the scan issue to view details for
+     * Builds explanation prompt for a container issue.
      */
-    private void explainContainerDetails(Project project, ScanIssue scanIssue) {
-        LOGGER.info(format("RTS-Fix: Viewing details for file: %s for container issue: %s", scanIssue.getFilePath(), scanIssue.getTitle()));
-        String prompt = ViewDetailsPrompts.buildContainersExplanationPrompt(scanIssue.getFileType(),
+    private String buildContainerExplanationPrompt(ScanIssue scanIssue) {
+        return ViewDetailsPrompts.buildContainersExplanationPrompt(scanIssue.getFileType(),
                 scanIssue.getTitle(),
                 scanIssue.getImageTag(),
                 scanIssue.getSeverity());
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
-                Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
-            LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for container issue: %s",
-                    scanIssue.getFilePath(), scanIssue.getTitle()));
-        }
     }
 
     /**
-     * Explain the details of an IAC issue.
-     *
-     * @param project   the project where the fix is to be applied
-     * @param scanIssue the scan issue to view details for
+     * Builds explanation prompt for an IAC issue.
      */
-    private void explainIACDetails(Project project, ScanIssue scanIssue, String actionId) {
+    private String buildIACExplanationPrompt(ScanIssue scanIssue, String actionId) {
         if (Objects.isNull(actionId) || actionId.isEmpty()) {
-            LOGGER.warn(format("RTS-Fix: Explain IAC issue failed. Action id is not found for IAC issue: %s.", scanIssue.getTitle()));
-            return;
+            LOGGER.warn(format("RTS-ViewDetails: Explanation failed. Action id is not found for IAC issue: %s.", scanIssue.getTitle()));
+            return null;
         }
         Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
                 actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
 
         if (Objects.isNull(vulnerability)) {
-            LOGGER.warn(format("RTS-Fix: Explain IAC issue failed. Vulnerability details not found for IAC issue: %s.", actionId));
-            return;
+            LOGGER.warn(format("RTS-ViewDetails: Explanation failed. Vulnerability details not found for IAC issue: %s.", actionId));
+            return null;
         }
-        LOGGER.info(format("RTS-Fix: Viewing details for file: %s for IAC issue is started: %s",
-                scanIssue.getFilePath(), actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle()));
 
-        String prompt = ViewDetailsPrompts.buildIACExplanationPrompt(
+        return ViewDetailsPrompts.buildIACExplanationPrompt(
                 actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),
@@ -331,46 +334,31 @@ public final class RemediationManager {
                 vulnerability.getExpectedValue(),
                 vulnerability.getActualValue()
         );
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
-                Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
-            LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for IAC issue: %s",
-                    scanIssue.getFilePath(), scanIssue.getTitle()));
-        }
     }
 
-
     /**
-     * Explain the details of an ASCA issue.
+     * Builds explanation prompt for an ASCA issue.
      *
-     * @param project   the project where the fix is to be applied
-     * @param scanIssue the scan issue to view details for
-     * @param actionId  the specific vulnerability ID to view details for, or QUICK_FIX for general explanation
+     * @param scanIssue the scan issue to explain
+     * @param actionId  the specific vulnerability ID to explain, or QUICK_FIX for general explanation
      */
-    private void explainASCADetails(Project project, ScanIssue scanIssue, String actionId) {
+    private String buildASCAExplanationPrompt(ScanIssue scanIssue, String actionId) {
         if (Objects.isNull(actionId) || actionId.isEmpty()) {
-            LOGGER.warn(format("RTS-Fix: Explain ASCA issue failed. Action id is not found for ASCA issue: %s.", scanIssue.getTitle()));
-            return;
+            LOGGER.warn(format("RTS-ViewDetails: Explanation failed. Action id is not found for ASCA issue: %s.", scanIssue.getTitle()));
+            return null;
         }
         Vulnerability vulnerability = DevAssistUtils.getVulnerabilityDetails(scanIssue,
                 actionId.equals(QUICK_FIX) ? scanIssue.getScanIssueId() : actionId);
 
         if (Objects.isNull(vulnerability)) {
-            LOGGER.warn(format("RTS-Fix: Explain ASCA issue failed. Vulnerability details not found for ASCA issue: %s.", actionId));
-            return;
+            LOGGER.warn(format("RTS-ViewDetails: Explanation failed. Vulnerability details not found for ASCA issue: %s.", actionId));
+            return null;
         }
-        LOGGER.info(format("RTS-Fix: Viewing details for file: %s for ASCA issue is started: %s",
-                scanIssue.getFilePath(), actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle()));
 
-        String prompt = ViewDetailsPrompts.buildASCAExplanationPrompt(
+        return ViewDetailsPrompts.buildASCAExplanationPrompt(
                 actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity());
-
-        if (DevAssistUtils.copyToClipboardWithNotification(prompt, getNotificationTitle(scanIssue.getScanEngine()),
-                Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
-            LOGGER.info(format("RTS-Fix: Viewing details completed for file: %s for ASCA issue: %s",
-                    scanIssue.getFilePath(), scanIssue.getTitle()));
-        }
     }
 
     /**
