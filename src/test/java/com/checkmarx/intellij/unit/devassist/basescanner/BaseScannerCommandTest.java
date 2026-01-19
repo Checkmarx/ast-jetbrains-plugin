@@ -115,7 +115,7 @@ class BaseScannerCommandTest {
             problemHolderServiceMock.when(() -> ProblemHolderService.getInstance(project)).thenReturn(problemHolderService);
             scannerCommand.deregister(project);
             verify(controller).markUnregistered(project, ScanEngine.OSS);
-            verify(problemHolderService).removeAllProblemsOfType("OSS");
+            verify(problemHolderService).removeAllScanIssuesOfType("OSS");
         }
     }
 
@@ -129,7 +129,7 @@ class BaseScannerCommandTest {
             when(project.isDisposed()).thenReturn(true);
             scannerCommand.deregister(project);
             verify(controller).markUnregistered(project, ScanEngine.OSS);
-            verify(problemHolderService, never()).removeAllProblemsOfType(any());
+            verify(problemHolderService, never()).removeAllScanIssuesOfType(any());
         }
     }
 

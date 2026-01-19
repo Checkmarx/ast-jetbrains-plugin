@@ -4,18 +4,22 @@ import com.checkmarx.ast.containersrealtime.ContainersRealtimeImage;
 import com.checkmarx.ast.containersrealtime.ContainersRealtimeResults;
 import com.checkmarx.ast.containersrealtime.ContainersRealtimeVulnerability;
 import com.checkmarx.ast.realtime.RealtimeLocation;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.checkmarx.intellij.util.SeverityLevel;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
 /**
- * Adapter class for handling OSS scan results and converting them into a standardized format
+ * Adapter class for handling container scan results and converting them into a standardized format
  * using the {@link ScanResult} interface.
  * This class wraps an {@code ContainersRealtimeResults} instance and provides methods to process and extract
  * meaningful scan issues based on vulnerabilities detected in the images.
@@ -25,6 +29,7 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
 
     private final ContainersRealtimeResults containersRealtimeResults;
     private final String fileType;
+    private final List<ScanIssue> scanIssues;
 
     /**
      * Constructs an instance of {@code ContainersRealtimeResults} with the specified container real-time results.
@@ -36,6 +41,7 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
     public ContainerScanResultAdaptor(ContainersRealtimeResults containersRealtimeResults, String fileType) {
         this.containersRealtimeResults = containersRealtimeResults;
         this.fileType = fileType;
+        this.scanIssues = buildIssues();
     }
 
     /**
@@ -50,6 +56,16 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
 
     /**
      * Retrieves a list of scan issues discovered in the container real-time scan.
+     *
+     * @return a list of {@code ScanIssue} objects representing the vulnerabilities found during the scan,
+     */
+    @Override
+    public List<ScanIssue> getIssues() {
+        return scanIssues;
+    }
+
+    /**
+     * Retrieves a list of scan issues discovered in the container real-time scan.
      * This method processes the images obtained from the scan results,
      * converts them into standardized scan issues, and returns the list.
      * If no images are found, an empty list is returned.
@@ -57,8 +73,7 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
      * @return a list of {@code ScanIssue} objects representing the vulnerabilities found during the scan,
      * or an empty list if no vulnerabilities are detected.
      */
-    @Override
-    public List<ScanIssue> getIssues() {
+    public List<ScanIssue> buildIssues() {
         List<ContainersRealtimeImage> images = Objects.nonNull(getResults()) ? getResults().getImages() : null;
         if (Objects.isNull(images) || images.isEmpty()) {
             return Collections.emptyList();
@@ -75,7 +90,7 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
      * represent a scan issue.
      *
      * @param containersImageObj the {@code ContainersRealtimeResults} containing information about the scanned images,
-     *                   including its name, version, vulnerabilities, and locations.
+     *                           including its name, version, vulnerabilities, and locations.
      * @return a {@code ScanIssue} object encapsulating the details such as title, package version, scan engine,
      * severity, and vulnerability locations derived from the provided image.
      */
@@ -95,6 +110,7 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
         if (!Objects.isNull(containersImageObj.getVulnerabilities()) && !containersImageObj.getVulnerabilities().isEmpty()) {
             containersImageObj.getVulnerabilities().forEach(vulnerability -> scanIssue.getVulnerabilities().add(createVulnerability(vulnerability)));
         }
+        scanIssue.setScanIssueId(getUniqueId(scanIssue));
         return scanIssue;
     }
 
@@ -105,32 +121,40 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
      * {@code Vulnerability}.
      *
      * @param vulnerabilityObj the {@code ContainerRealtimeVulnerability} object containing details of the vulnerability
-     *                      identified during the real-time scan, including cve, description, severity,
-     *                      and fix version
+     *                         identified during the real-time scan, including cve, description, severity,
+     *                         and fix version
      * @return a new {@code Vulnerability} instance encapsulating the details from the given {@code ContainerRealtimeVulnerability}
      */
 
     private Vulnerability createVulnerability(ContainersRealtimeVulnerability vulnerabilityObj) {
-        return new Vulnerability(vulnerabilityObj.getCve(), this.getDescription(vulnerabilityObj.getSeverity()), vulnerabilityObj.getSeverity(), "", "");
+        Vulnerability vulnerability = new Vulnerability();
+        vulnerability.setCve(vulnerabilityObj.getCve());
+        vulnerability.setDescription(this.getDescription(vulnerabilityObj.getSeverity()));
+        vulnerability.setSeverity(vulnerabilityObj.getSeverity());
+        return vulnerability;
     }
 
 
     private String getDescription(String severity) {
-        switch (severity) {
-            case (Constants.MALICIOUS_SEVERITY):
-                return Constants.RealTimeConstants.MALICIOUS_RISK_CONTAINER;
+        if (Objects.isNull(severity) || severity.isEmpty()) {
+            return severity;
+        }
+        SeverityLevel severityLevel = SeverityLevel.fromValue(severity);
+        switch (severityLevel) {
+            case MALICIOUS:
+                return DevAssistConstants.MALICIOUS_RISK_CONTAINER;
 
-            case (Constants.CRITICAL_SEVERITY):
-                return Constants.RealTimeConstants.CRITICAL_RISK_CONTAINER;
+            case CRITICAL:
+                return DevAssistConstants.CRITICAL_RISK_CONTAINER;
 
-            case (Constants.HIGH_SEVERITY):
-                return Constants.RealTimeConstants.HIGH_RISK_CONTAINER;
+            case HIGH:
+                return DevAssistConstants.HIGH_RISK_CONTAINER;
 
-            case (Constants.MEDIUM_SEVERITY):
-                return Constants.RealTimeConstants.MEDIUM_RISK_CONTAINER;
+            case MEDIUM:
+                return DevAssistConstants.MEDIUM_RISK_CONTAINER;
 
-            case (Constants.LOW_SEVERITY):
-                return Constants.RealTimeConstants.LOW_RISK_CONTAINER;
+            case LOW:
+                return DevAssistConstants.LOW_RISK_CONTAINER;
             default:
                 return severity;
         }
@@ -162,4 +186,12 @@ public class ContainerScanResultAdaptor implements ScanResult<ContainersRealtime
         return location.getLine() + 1;
     }
 
+    /**
+     * Generates a unique ID for the given scan issue.
+     */
+    private String getUniqueId(ScanIssue scanIssue) {
+        int line = (Objects.nonNull(scanIssue.getLocations()) && !scanIssue.getLocations().isEmpty())
+                ? scanIssue.getLocations().get(0).getLine() : 0;
+        return DevAssistUtils.generateUniqueId(line, scanIssue.getTitle(), scanIssue.getImageTag());
+    }
 }

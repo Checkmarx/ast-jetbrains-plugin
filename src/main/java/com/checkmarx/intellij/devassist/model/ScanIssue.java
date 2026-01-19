@@ -36,7 +36,7 @@ import java.util.List;
 public class ScanIssue {
 
     public ScanIssue() {
-        scanIssueId = DevAssistUtils.generateUniqueId();
+        //scanIssueId = DevAssistUtils.generateUniqueId();
     }
 
     private String scanIssueId;

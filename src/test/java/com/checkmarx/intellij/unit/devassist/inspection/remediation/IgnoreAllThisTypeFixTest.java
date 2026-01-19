@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.unit.devassist.inspection.remediation;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.remediation.IgnoreAllThisTypeFix;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +31,7 @@ class IgnoreAllThisTypeFixTest {
     @Test
     @DisplayName("getFamilyName returns expected constant")
     void testGetFamilyName_returnsExpectedConstant() {
-        assertEquals(Constants.RealTimeConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME, fix.getFamilyName());
+        assertEquals(DevAssistConstants.IGNORE_ALL_OF_THIS_TYPE_FIX_NAME, fix.getFamilyName());
     }
 
     @Test

@@ -1,13 +1,11 @@
 package com.checkmarx.intellij.devassist.basescanner;
 
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
@@ -69,7 +67,7 @@ public class BaseScannerCommand implements ScannerCommand {
             return;
         }
         ProblemHolderService.getInstance(project)
-                .removeAllProblemsOfType(getScannerType().toString());
+                .removeAllScanIssuesOfType(getScannerType().toString());
     }
 
 

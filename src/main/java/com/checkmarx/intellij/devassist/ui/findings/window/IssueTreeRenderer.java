@@ -1,13 +1,14 @@
 package com.checkmarx.intellij.devassist.ui.findings.window;
 
-import com.checkmarx.intellij.*;
+import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
-import com.intellij.icons.AllIcons;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.ColoredTreeCellRenderer;
 import com.intellij.ui.Gray;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.SimpleTextAttributes;
+
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
@@ -67,12 +68,13 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
 
     /**
      * Customizes the cell renderer for the vulnerability tree.
-     * @param tree the tree instance
-     * @param value the node value
+     *
+     * @param tree     the tree instance
+     * @param value    the node value
      * @param selected whether the node is selected
      * @param expanded whether the node is expanded
-     * @param leaf whether the node is a leaf
-     * @param row the row index
+     * @param leaf     whether the node is a leaf
+     * @param row      the row index
      * @param hasFocus whether the tree has focus
      */
     @Override
@@ -123,18 +125,21 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
                     append(detail.getSeverity() + "-risk package: " + detail.getTitle() + "@"
                             + detail.getPackageVersion(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
                     break;
-                    case SECRETS:
-                        append(detail.getSeverity() + "-risk secret: " + detail.getTitle());
+                case SECRETS:
+                    append(detail.getSeverity() + "-risk secret: " + detail.getTitle());
                     break;
                 case CONTAINERS:
                     append(detail.getSeverity() + "-risk container image: " + detail.getTitle() + ":"
                             + detail.getImageTag(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
                     break;
+                case IAC:
+                    append(detail.getTitle() + " ", SimpleTextAttributes.REGULAR_ATTRIBUTES);
+                    break;
                 default:
                     append(detail.getDescription(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
                     break;
             }
-            append(" " + Constants.CXONE_ASSIST + " ", SimpleTextAttributes.GRAYED_ATTRIBUTES);
+            append(" " + DevAssistConstants.CX_AGENT_NAME + " ", SimpleTextAttributes.GRAYED_ATTRIBUTES);
 
             if (detail.getLocations() != null && !detail.getLocations().isEmpty()) {
                 var targetLoc = detail.getLocations().get(0);
@@ -154,7 +159,8 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
     }
 
     /**
-     *  Paints the component with custom graphics.
+     * Paints the component with custom graphics.
+     *
      * @param g the <code>Graphics</code> object to protect
      */
 

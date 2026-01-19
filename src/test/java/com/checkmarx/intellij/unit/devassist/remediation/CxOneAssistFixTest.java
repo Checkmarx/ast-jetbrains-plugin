@@ -1,12 +1,11 @@
 package com.checkmarx.intellij.unit.devassist.remediation;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.ProblemDescriptor;
-import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.openapi.application.Application;
@@ -74,7 +73,7 @@ public class CxOneAssistFixTest {
     @DisplayName("getFamilyName returns expected constant")
     void testGetFamilyName_functionality() {
         CxOneAssistFix fix = new CxOneAssistFix(new ScanIssue());
-        assertEquals(Constants.RealTimeConstants.FIX_WITH_CXONE_ASSIST, fix.getFamilyName());
+        assertEquals(DevAssistConstants.FIX_WITH_CXONE_ASSIST, fix.getFamilyName());
     }
 
     @Test
