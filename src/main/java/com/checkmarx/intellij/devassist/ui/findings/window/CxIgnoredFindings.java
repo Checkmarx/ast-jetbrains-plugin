@@ -97,7 +97,6 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private JPanel columnsPanel;
     private JLabel selectionCountLabel;
     private List<IgnoreEntry> allEntries = new ArrayList<>();
-    private long lastKnownModificationTime = 0;
 
     /**
      * Creates a new ignored findings panel.
@@ -111,9 +110,6 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         this.content = content;
 
         initializeSubscriptions();
-        initializeTimers();
-        initializeFileModificationTime();
-
         checkSettingsAndDraw();
     }
 
@@ -140,30 +136,6 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         // Settings changes
         appBus.subscribe(SettingsListener.SETTINGS_APPLIED, (SettingsListener) this::checkSettingsAndDraw);
-    }
-
-    private void initializeTimers() {
-        // Smart refresh: detects file changes without resetting user selections
-        Timer smartRefreshTimer = new Timer(3000, e -> checkAndRefreshIfNeeded());
-        smartRefreshTimer.start();
-
-        // VFS refresh: syncs IntelliJ's VFS with external edits
-        Timer vfsRefreshTimer = new Timer(10000, e -> refreshVirtualFileSystem());
-        vfsRefreshTimer.start();
-
-        Disposer.register(this, smartRefreshTimer::stop);
-        Disposer.register(this, vfsRefreshTimer::stop);
-    }
-
-    private void initializeFileModificationTime() {
-        try {
-            Path ignoreFilePath = getIgnoreFilePath();
-            if (ignoreFilePath != null && Files.exists(ignoreFilePath)) {
-                lastKnownModificationTime = Files.getLastModifiedTime(ignoreFilePath).toMillis();
-            }
-        } catch (Exception e) {
-            LOGGER.warn("Error initializing file modification time", e);
-        }
     }
 
     private void onFilterChanged() {
@@ -196,53 +168,6 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         } catch (Exception e) {
             LOGGER.error("CxIgnoredFindings: Error during settings check, showing auth panel as fallback", e);
             drawAuthPanel();
-        }
-    }
-
-    private Path getIgnoreFilePath() {
-        String basePath = project.getBasePath();
-        return basePath != null ? Paths.get(basePath, IGNORE_FILE_PATH) : null;
-    }
-
-    private void refreshVirtualFileSystem() {
-        Path ignoreFilePath = getIgnoreFilePath();
-        if (ignoreFilePath != null) {
-            ApplicationManager.getApplication().invokeLater(() -> {
-                VirtualFile vf = LocalFileSystem.getInstance().findFileByIoFile(ignoreFilePath.toFile());
-                if (vf != null) vf.refresh(false, false);
-            }, ModalityState.NON_MODAL);
-        }
-    }
-
-    /** Checks if an ignored file was modified externally and refreshes the UI while preserving selections. */
-    private void checkAndRefreshIfNeeded() {
-        if (!new GlobalSettingsComponent().isValid()) return;
-
-        try {
-            Path ignoreFilePath = getIgnoreFilePath();
-            if (ignoreFilePath == null) return;
-
-            if (!Files.exists(ignoreFilePath)) {
-                if (lastKnownModificationTime != 0 && !allEntries.isEmpty()) {
-                    lastKnownModificationTime = 0;
-                    ApplicationManager.getApplication().invokeLater(this::refreshIgnoredEntries);
-                }
-                return;
-            }
-
-            long currentModTime = Files.getLastModifiedTime(ignoreFilePath).toMillis();
-            if (currentModTime != lastKnownModificationTime) {
-                LOGGER.debug("Ignore file modified, refreshing UI");
-                lastKnownModificationTime = currentModTime;
-
-                ApplicationManager.getApplication().invokeLater(() -> {
-                    VirtualFile vf = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(ignoreFilePath.toFile());
-                    if (vf != null) vf.refresh(false, false);
-                    refreshIgnoredEntries();
-                }, ModalityState.NON_MODAL);
-            }
-        } catch (Exception e) {
-            LOGGER.warn("Error checking ignore file modification time", e);
         }
     }
 

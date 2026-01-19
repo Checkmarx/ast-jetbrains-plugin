@@ -3,7 +3,6 @@ package com.checkmarx.intellij.devassist.ignore;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.openapi.application.ApplicationManager;
@@ -19,7 +18,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Project-level service.
@@ -38,8 +36,10 @@ public final class IgnoreFileManager {
     private String workspaceRootPath = "";
     private Map<String, IgnoreEntry> ignoreData = new HashMap<>();
     private final Map<String, String> scannedFileMap = new HashMap<>();
-    private Map<String, IgnoreEntry> previousIgnoreData = new HashMap<>();
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    // Lock object for synchronizing access to ignoreData
+    private final Object dataLock = new Object();
     public static final Topic<IgnoreFileManager.IgnoreListener> IGNORE_TOPIC = new Topic<>("IGNORE_LIST_UPDATED", IgnoreFileManager.IgnoreListener.class);
 
     public interface IgnoreListener {
@@ -58,7 +58,6 @@ public final class IgnoreFileManager {
             this.workspacePath = Paths.get(basePath, ".idea").toString(); // or ".checkmarx"
             ensureIgnoreFileExists();
             loadIgnoreData();
-            this.previousIgnoreData = copyIgnoredata(ignoreData);
             if (!skipFileWatcherForTests) {
                 startFileWatcher();
             }
@@ -67,8 +66,10 @@ public final class IgnoreFileManager {
 
     public void updateIgnoreData(String vulnerabilityKey, IgnoreEntry newData) {
         if (newData == null) return;
-        ignoreData.put(vulnerabilityKey, newData);
-        saveIgnoreFile();
+        synchronized (dataLock) {
+            ignoreData.put(vulnerabilityKey, newData);
+            saveIgnoreFile();
+        }
         updateIgnoreTempList();
     }
 
@@ -118,16 +119,20 @@ public final class IgnoreFileManager {
      * @return list of ignore entries.
      */
     public List<IgnoreEntry> getAllIgnoreEntries() {
-        return new ArrayList<>(ignoreData.values());
+        synchronized (dataLock) {
+            return new ArrayList<>(ignoreData.values());
+        }
     }
 
     /**
-     * Returns the ignore data map for this project.
-     * This is an instance method to ensure project-level isolation.
-     * @return the ignore data map
+     * Returns a copy of the ignore data map for this project.
+     * Returns a shallow copy to prevent external modifications to the map structure.
+     * @return a copy of the ignore data map
      */
     public Map<String, IgnoreEntry> getIgnoreData() {
-        return ignoreData;
+        synchronized (dataLock) {
+            return new HashMap<>(ignoreData);
+        }
     }
 
     /**
@@ -205,32 +210,31 @@ public final class IgnoreFileManager {
     }
 
     /**
-     * Revives a previously ignored package by setting all its file references to inactive.
+     * Revives a previously ignored package by removing all its file references.
      * This makes the vulnerability visible again in future scans.
      *
-     * @param entryToRevive The unique key identifying the ignored package
+     * @param entryToRevive The entry to revive
      * @return true if the package was found and revived, false otherwise
      */
     public boolean reviveEntry(IgnoreEntry entryToRevive) {
-        String entryKey = ignoreData.entrySet().stream()
-                .filter(e ->  matchesEntry(e.getValue(), entryToRevive))
-                .map(Map.Entry::getKey)
-                .findFirst()
-                .orElse(null);
-        if (entryKey == null) {
-            LOGGER.warn("RTS-Ignore: Entry not found in ignoreData map");
-            return false;
+        synchronized (dataLock) {
+            String entryKey = ignoreData.entrySet().stream()
+                    .filter(e -> matchesEntry(e.getValue(), entryToRevive))
+                    .map(Map.Entry::getKey)
+                    .findFirst()
+                    .orElse(null);
+            if (entryKey == null) {
+                LOGGER.warn("RTS-Ignore: Entry not found in ignoreData map");
+                return false;
+            }
+            String packageName = entryToRevive.getPackageName();
+            // Remove the entry entirely (all files are being revived)
+            ignoreData.remove(entryKey);
+            saveIgnoreFile();
+            updateIgnoreTempList();
+            LOGGER.info("RTS-Ignore: Revived package: " + packageName);
+            return true;
         }
-        IgnoreEntry actualEntry = ignoreData.get(entryKey);
-        String packageName = entryToRevive.getPackageName(); // Save before modification
-        for (IgnoreEntry.FileReference file : actualEntry.getFiles()) {
-            file.setActive(false);
-        }
-        saveIgnoreFile();
-        handleFileChange();
-        project.getMessageBus().syncPublisher(IGNORE_TOPIC).onIgnoreUpdated();
-        LOGGER.info("RTS-Ignore: Revived package: " + packageName);
-        return true;
     }
 
 
@@ -258,8 +262,9 @@ public final class IgnoreFileManager {
             }
 
             // Clear in-memory data
-            ignoreData.clear();
-            previousIgnoreData.clear();
+            synchronized (dataLock) {
+                ignoreData.clear();
+            }
 
             // Notify listeners that ignore data has changed
             project.getMessageBus().syncPublisher(IGNORE_TOPIC).onIgnoreUpdated();
@@ -338,72 +343,11 @@ public final class IgnoreFileManager {
     }
 
     private void handleFileChange() {
-        loadIgnoreData();
-        detectAndHandleActiveChanges();
-        previousIgnoreData = copyIgnoredata(ignoreData);
+        synchronized (dataLock) {
+            loadIgnoreData();
+        }
+        updateIgnoreTempList();
         project.getMessageBus().syncPublisher(IGNORE_TOPIC).onIgnoreUpdated();
-    }
-
-
-    private void detectAndHandleActiveChanges() {
-        List<ActiveFile> previousActiveFiles = getActiveFilesList(previousIgnoreData);
-        List<ActiveFile> currentActiveFiles = getActiveFilesList(ignoreData);
-
-        List<ActiveFile> deactivatedFiles = previousActiveFiles.stream()
-                .filter(prev -> currentActiveFiles.stream()
-                        .noneMatch(cur -> cur.packageKey.equals(prev.packageKey) && cur.path.equals(prev.path)))
-                .collect(Collectors.toList());
-        if (!deactivatedFiles.isEmpty()) {
-            for (ActiveFile f : deactivatedFiles) {
-                removeIgnoredEntryWithoutTempUpdate(f.packageKey, f.path);
-            }
-            updateIgnoreTempList();
-        // TBD : Here rescan re-trigger logic needs to be implemented
-        }
-    }
-
-    private static final class ActiveFile {
-        final String packageKey;
-        final String path;
-
-        ActiveFile(String packageKey, String path) {
-            this.packageKey = packageKey;
-            this.path = path;
-        }
-    }
-
-    private List<ActiveFile> getActiveFilesList(Map<String, IgnoreEntry> data) {
-        List<ActiveFile> result = new ArrayList<>();
-        for (Map.Entry<String, IgnoreEntry> e : data.entrySet()) {
-            for (IgnoreEntry.FileReference fileRef : e.getValue().files) {
-                if (fileRef.active) {
-                    result.add(new ActiveFile(e.getKey(), fileRef.path));
-                }
-            }
-        }
-        return result;
-    }
-
-    private void removeIgnoredEntryWithoutTempUpdate(String packageKey, String filePath) {
-        IgnoreEntry entry = ignoreData.get(packageKey);
-        if (entry == null) return;
-        entry.files.removeIf(fileRef -> fileRef.path.equals(filePath));
-        if (entry.files.isEmpty()) {
-            ignoreData.remove(packageKey);
-        }
-        saveIgnoreFile();
-
-    }
-
-    private Map<String, IgnoreEntry> copyIgnoredata(Map<String, IgnoreEntry> src) {
-        // Deep copy via JSON round-trip
-        try {
-            String json = MAPPER.writeValueAsString(src);
-            return MAPPER.readValue(json, new TypeReference<Map<String, IgnoreEntry>>() {});
-        } catch (IOException e) {
-            LOGGER.warn("Failed to deep copy ignoreData, falling back to shallow copy", e);
-            return new HashMap<>(src);
-        }
     }
 
     // Helper method to match entries by properties

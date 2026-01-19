@@ -147,7 +147,14 @@ public final class IgnoreManager {
      */
     public void reviveSingleEntry(IgnoreEntry entryToRevive) {
         LOGGER.debug(format("RTS-Ignore: Reviving entry: %s", entryToRevive.getPackageName()));
-        Map<String, IgnoreEntry> ignoredEntries = new HashMap<>(ignoreFileManager.getIgnoreData());
+
+        // Find the key for this entry BEFORE reviving (needed for undo)
+        String entryKey = findEntryKey(entryToRevive);
+        if (entryKey == null) {
+            LOGGER.warn(format("RTS-Ignore: Could not find key for entry: %s", entryToRevive.getPackageName()));
+            Utils.showNotification(Bundle.message(Resource.REVIVE_FAILED), entryToRevive.getPackageName(), NotificationType.ERROR, project, false, "");
+            return;
+        }
 
         // Count active files before reviving
         int fileCount = (int) entryToRevive.getFiles().stream()
@@ -163,8 +170,25 @@ public final class IgnoreManager {
         // Trigger rescan for affected files
         triggerRescanForEntry(entryToRevive);
         // Show notification with undo option
-        showReviveUndoNotification(entryToRevive, fileCount, ignoredEntries);
+        showReviveUndoNotification(entryToRevive, fileCount, entryKey);
         LOGGER.debug(format("RTS-Ignore: Successfully revived entry: %s", entryToRevive.getPackageName()));
+    }
+
+    /**
+     * Finds the key for an ignore entry in the ignore data map.
+     * Uses the IgnoreFileManager's matchesEntry method for comparison.
+     *
+     * @param entry The entry to find the key for
+     * @return The key if found, null otherwise
+     */
+    private String findEntryKey(IgnoreEntry entry) {
+        Map<String, IgnoreEntry> ignoreData = ignoreFileManager.getIgnoreData();
+        for (Map.Entry<String, IgnoreEntry> mapEntry : ignoreData.entrySet()) {
+            if (ignoreFileManager.matchesEntry(mapEntry.getValue(), entry)) {
+                return mapEntry.getKey();
+            }
+        }
+        return null;
     }
 
     /**
@@ -536,11 +560,11 @@ public final class IgnoreManager {
      * 3. Triggers a rescan of affected files
      * 4. Expires the notification
      *
-     * @param entryToRevive  The ignore entry that was revived and may need to be restored
-     * @param fileCount      Number of files affected by this revival
-     * @param ignoredEntries Map of all currently ignored entries, used to restore state on undo
+     * @param entryToRevive The ignore entry that was revived and may need to be restored
+     * @param fileCount     Number of files affected by this revival
+     * @param entryKey      The key for this entry in the ignore data map
      */
-    private void showReviveUndoNotification(IgnoreEntry entryToRevive, int fileCount, Map<String, IgnoreEntry> ignoredEntries) {
+    private void showReviveUndoNotification(IgnoreEntry entryToRevive, int fileCount, String entryKey) {
         String message = format("%s", entryToRevive.getPackageName());
         Notification notification = NotificationGroupManager.getInstance()
                 .getNotificationGroup(com.checkmarx.intellij.Constants.NOTIFICATION_GROUP_ID)
@@ -554,14 +578,10 @@ public final class IgnoreManager {
                     for (IgnoreEntry.FileReference file : entryToRevive.getFiles()) {
                         file.setActive(true);
                     }
-                    for (Map.Entry<String, IgnoreEntry> mapEntry : ignoredEntries.entrySet()) {
-                        if (mapEntry.getValue().equals(entryToRevive)) {  // Use content comparison
-                            ignoreFileManager.updateIgnoreData(mapEntry.getKey(), entryToRevive);
-                            triggerRescanForEntry(entryToRevive);
-                            LOGGER.debug(format("RTS-Ignore: Successfully undone revive for entry: %s", entryToRevive.getPackageName()));
-                            break;
-                        }
-                    }
+                    // Use the key directly instead of searching by reference
+                    ignoreFileManager.updateIgnoreData(entryKey, entryToRevive);
+                    triggerRescanForEntry(entryToRevive);
+                    LOGGER.debug(format("RTS-Ignore: Successfully undone revive for entry: %s", entryToRevive.getPackageName()));
                     // Expire the notification
                     notification.expire();
                 }
