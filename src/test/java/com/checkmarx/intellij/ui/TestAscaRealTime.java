@@ -20,9 +20,7 @@ public class TestAscaRealTime extends BaseUITest{
     public void testASCACheckBoxEnableSuccessMsg() {
         // Given: User is logged in and welcome page is loade
         openSettings();
-        logoutIfUserIsAlreadyLoggedIn();
-        performLoginUsingApiKey(true);
-        locateAndClickOnButton(WELCOME_CLOSE_BUTTON);
+
 
         // When: User navigates to CxOne Assist page
         navigateToCxOneAssistPage();
