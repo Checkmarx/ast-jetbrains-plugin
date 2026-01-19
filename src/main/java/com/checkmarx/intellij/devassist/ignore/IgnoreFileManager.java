@@ -358,8 +358,22 @@ public final class IgnoreFileManager {
                 removeIgnoredEntryWithoutTempUpdate(f.packageKey, f.path);
             }
             updateIgnoreTempList();
-        // TBD : Here rescan re-trigger logic needs to be implemented
         }
+            // Remove entries where all files are inactive
+            List<String> keysToRemove = new ArrayList<>();
+            for (Map.Entry<String, IgnoreEntry> entry : ignoreData.entrySet()) {
+                boolean hasActive = entry.getValue().files.stream().anyMatch(f -> f.active);
+                if (!hasActive) {
+                    keysToRemove.add(entry.getKey());
+                }
+            }
+            if (!keysToRemove.isEmpty()) {
+                for (String key : keysToRemove) {
+                    ignoreData.remove(key);
+                }
+                saveIgnoreFile();
+            }
+
     }
 
     private static final class ActiveFile {
