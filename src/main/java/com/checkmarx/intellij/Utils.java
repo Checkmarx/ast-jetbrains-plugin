@@ -277,6 +277,27 @@ public final class Utils {
       notification.notify(project);
 
     }
+    public static void showAppLevelNotification(
+            String title,
+            String content,
+            NotificationType type,
+            boolean displayDockLink,
+            String dockLink
+    ) {
+        Notification notification = NotificationGroupManager.getInstance()
+                .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
+                .createNotification(title, content, type);
+
+
+        if (displayDockLink) {
+            notification.addAction(NotificationAction.createSimple(
+                    "Go To Documentation",
+                    () -> BrowserUtil.browse(dockLink)
+            ));
+        }
+        ApplicationManager.getApplication().invokeLater(() -> notification.notify(null));
+    }
+
 
     public static String[] showUndoCloseNotification(String title, String content, NotificationType type, Project project) {
         final String[] result = {""};
