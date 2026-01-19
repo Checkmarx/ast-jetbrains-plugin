@@ -173,21 +173,22 @@ public class ScanResultsPannelPage {
      */
     public static void enterScanIdAndSelect(boolean validScanId) {
         String scanId = validScanId ? Environment.SCAN_ID : "invalid-scan-id";
-        log("Scan ID to enter: " + scanId);
-        List<JTextFieldFixture> fields =
-                findAll(JTextFieldFixture.class, SCAN_FIELD);
 
-        Assertions.assertFalse(fields.isEmpty(),
-                "Scan ID input field not found");
+        waitFor(() -> {
+            List<JTextFieldFixture> fields =
+                    findAll(JTextFieldFixture.class, SCAN_FIELD);
 
-        JTextFieldFixture scanField = fields.stream()
-                .filter(JTextFieldFixture::isShowing)
-                .findFirst()
-                .orElseThrow(() ->
-                        new AssertionError("No visible Scan ID input field found"));
+            if (fields.size() != 1) {
+                return false;
+            }
 
-        scanField.setText(scanId);
-        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
+            JTextFieldFixture field = fields.get(0);
+            field.setText(scanId);
+            return scanId.equals(field.getText());
+        });
+
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.enter();
     }
 
     /**
