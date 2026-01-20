@@ -18,7 +18,7 @@ public class TestAscaRealTime extends BaseUITest{
     @Video
     @DisplayName("Verify ASCA Real-Time Scan is enabled and success message is shown")
     public void testASCACheckBoxEnableSuccessMsg() {
-        // Given: User is logged in and welcome page is loaded
+        // Given: User is logged in and welcome page is loade
         openSettings();
 
         // When: User navigates to CxOne Assist page
