@@ -103,6 +103,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         pane.setText(htmlContent);
         pane.setEditable(false);
         pane.setOpaque(false);
+        pane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
         return pane;
     }
     /**
