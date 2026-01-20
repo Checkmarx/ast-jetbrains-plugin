@@ -77,7 +77,7 @@ public class ScanResultsPannelPage {
             locateAndClickOnButton(RESET_PROJECT_SELECTION);
         }
         boolean resetSuccess = validateIfProjectSelectionIsReset(maxAttempts);
-        if (!resetSuccess && maxAttempts > 1) {
+        if (!resetSuccess && maxAttempts > 0) {
             log("Project selection reset failed. Retrying...");
             resetProjectSelection(maxAttempts - 1);
         }
@@ -203,7 +203,7 @@ public class ScanResultsPannelPage {
         boolean projectNameReset = pollingWaitForElement(SELECTED_PROJECT_NAME_NONE, true);
         boolean branchNameReset = pollingWaitForElement(SELECTED_BRANCH_NAME_NONE, true);
         hasAnyComponent(SELECTED_SCAN_ID_NONE);
-        if ((!projectNameReset || !branchNameReset) && maxAttempts > 1) {
+        if ((!projectNameReset || !branchNameReset) && maxAttempts > 0) {
             log("Project selection is not reset. Retrying...");
             resetProjectSelection(maxAttempts);
         } else {
