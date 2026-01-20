@@ -12,4 +12,8 @@ public class ScannerConfig {
     private String enabledMessage;
     private String disabledMessage;
     private String errorMessage;
+
+    public String getErrorMessage() {
+        return null;
+    }
 }

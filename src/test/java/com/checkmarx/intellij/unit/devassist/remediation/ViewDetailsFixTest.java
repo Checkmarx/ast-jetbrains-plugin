@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.unit.devassist.remediation;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.remediation.ViewDetailsFix;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.notification.NotificationGroup;
@@ -85,7 +85,7 @@ public class ViewDetailsFixTest {
     @DisplayName("getFamilyName returns expected constant")
     void testGetFamilyName_functionality() {
         ViewDetailsFix fix = new ViewDetailsFix(issue);
-        assertEquals(Constants.RealTimeConstants.VIEW_DETAILS_FIX_NAME, fix.getFamilyName());
+        assertEquals(DevAssistConstants.VIEW_DETAILS_FIX_NAME, fix.getFamilyName());
     }
 
     @Test

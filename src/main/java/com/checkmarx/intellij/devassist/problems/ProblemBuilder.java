@@ -5,17 +5,10 @@ import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
 import com.checkmarx.intellij.devassist.remediation.ViewDetailsFix;
 import com.checkmarx.intellij.devassist.ui.ProblemDescription;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
-import com.checkmarx.intellij.util.SeverityLevel;
-import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
-import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * The ProblemBuilder class is a utility class responsible for constructing
@@ -26,17 +19,9 @@ import java.util.Map;
  * <p>
  * This class cannot be instantiated.
  */
-public class ProblemBuilder {
+public final class ProblemBuilder {
 
-    private static final Map<String, ProblemHighlightType> SEVERITY_HIGHLIGHT_TYPE_MAP = new HashMap<>();
     private static final ProblemDescription PROBLEM_DESCRIPTION_INSTANCE = new ProblemDescription();
-
-    /*
-     * Static initializer to initialize the mapping from severity levels to problem highlight types.
-     */
-    static {
-        initSeverityToHighlightMap();
-    }
 
     /**
      * Private constructor to prevent instantiation.
@@ -45,55 +30,28 @@ public class ProblemBuilder {
     }
 
     /**
-     * Initializes the mapping from severity levels to problem highlight types.
-     */
-    private static void initSeverityToHighlightMap() {
-        SEVERITY_HIGHLIGHT_TYPE_MAP.put(SeverityLevel.MALICIOUS.getSeverity(), ProblemHighlightType.GENERIC_ERROR);
-        SEVERITY_HIGHLIGHT_TYPE_MAP.put(SeverityLevel.CRITICAL.getSeverity(), ProblemHighlightType.GENERIC_ERROR);
-        SEVERITY_HIGHLIGHT_TYPE_MAP.put(SeverityLevel.HIGH.getSeverity(), ProblemHighlightType.GENERIC_ERROR);
-        SEVERITY_HIGHLIGHT_TYPE_MAP.put(SeverityLevel.MEDIUM.getSeverity(), ProblemHighlightType.WARNING);
-        SEVERITY_HIGHLIGHT_TYPE_MAP.put(SeverityLevel.LOW.getSeverity(), ProblemHighlightType.WEAK_WARNING);
-    }
-
-    /**
      * Builds a ProblemDescriptor for the given scan issue.
      *
-     * @param file              the PsiFile being inspected
-     * @param manager           the InspectionManager
+     * @param problemHelper     the problem helper containing relevant scan issue information
      * @param scanIssue         the scan issue
-     * @param document          the document
      * @param problemLineNumber the line number where the problem was found
-     * @param isOnTheFly        whether the inspection is on-the-fly
      * @return a ProblemDescriptor instance
      */
-    static ProblemDescriptor build(@NotNull PsiFile file, @NotNull InspectionManager manager,
-                                   @NotNull ScanIssue scanIssue, @NotNull Document document,
-                                   int problemLineNumber, boolean isOnTheFly) {
+    static ProblemDescriptor build(@NotNull ProblemHelper problemHelper, @NotNull ScanIssue scanIssue, int problemLineNumber) {
 
-        TextRange problemRange = DevAssistUtils.getTextRangeForLine(document, problemLineNumber);
+        TextRange problemRange = DevAssistUtils.getTextRangeForLine(problemHelper.getDocument(), problemLineNumber);
         String description = PROBLEM_DESCRIPTION_INSTANCE.formatDescription(scanIssue);
-        ProblemHighlightType highlightType = determineHighlightType(scanIssue);
 
-        return manager.createProblemDescriptor(
-                file,
+        return problemHelper.getManager().createProblemDescriptor(
+                problemHelper.getFile(),
                 problemRange,
                 description,
-                highlightType,
-                isOnTheFly,
+                ProblemHighlightType.GENERIC_ERROR,
+                problemHelper.isOnTheFly(),
                 new CxOneAssistFix(scanIssue),
                 new ViewDetailsFix(scanIssue)
                 /*new IgnoreVulnerabilityFix(scanIssue),
                 new IgnoreAllThisTypeFix(scanIssue)*/
         );
-    }
-
-    /**
-     * Determines the highlight type for a specific scan detail.
-     *
-     * @param scanIssue the scan detail
-     * @return the problem highlight type
-     */
-    private static ProblemHighlightType determineHighlightType(ScanIssue scanIssue) {
-        return SEVERITY_HIGHLIGHT_TYPE_MAP.getOrDefault(scanIssue.getSeverity(), ProblemHighlightType.WEAK_WARNING);
     }
 }

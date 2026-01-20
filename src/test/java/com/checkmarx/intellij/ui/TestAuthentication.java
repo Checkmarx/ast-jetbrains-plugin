@@ -6,11 +6,15 @@ import org.junit.jupiter.api.Test;
 public class TestAuthentication extends BaseUITest{
     @Test
     @Video
-    public void testASTAuthentication() {
-        // Test wrong connection
-        testASTConnection(false);
-
+    public void testASTSuccessAuthentication() {
         // Test successfully connection
         testASTConnection(true);
+    }
+
+    @Test
+    @Video
+    public void testASTFailedAuthentication() {
+        // Test wrong connection
+        testASTConnection(false);
     }
 }

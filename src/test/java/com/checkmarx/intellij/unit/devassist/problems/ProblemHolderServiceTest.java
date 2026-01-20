@@ -38,11 +38,11 @@ class ProblemHolderServiceTest {
     }
 
     @Test
-    void testAddProblems_ValidInput() {
+    void testAddScanIssues_ValidInput() {
         String filePath = "testFile.java";
         List<ScanIssue> issues = Collections.singletonList(new ScanIssue());
 
-        service.addProblems(filePath, issues);
+        service.addScanIssues(filePath, issues);
 
         Map<String, List<ScanIssue>> allIssues = service.getAllIssues();
         assertTrue(allIssues.containsKey(filePath));
@@ -56,13 +56,13 @@ class ProblemHolderServiceTest {
     }
 
     @Test
-    void testRemoveAllProblemsOfType_ValidType() {
+    void testRemoveAllScanIssuesOfType_ValidType() {
         String filePath = "testFile.java";
         ScanIssue issue = mock(ScanIssue.class);
         when(issue.getScanEngine()).thenReturn(ScanEngine.OSS);
-        service.addProblems(filePath, Collections.singletonList(issue));
+        service.addScanIssues(filePath, Collections.singletonList(issue));
 
-        service.removeAllProblemsOfType("OSS");
+        service.removeAllScanIssuesOfType("OSS");
         assertTrue(service.getAllIssues().get(filePath).isEmpty());
     }
 
