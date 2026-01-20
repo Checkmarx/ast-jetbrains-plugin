@@ -19,15 +19,16 @@ public class DevAssistPromotionalPanel extends JPanel {
     public DevAssistPromotionalPanel() {
         // Compact layout: small insets, minimal gaps between text elements
         // Row constraints: image can shrink, text rows are fixed, extra space goes to bottom
-        super(new MigLayout("fill, insets 10 15 10 15, wrap 1", "[center, grow]", "[shrink 100]3[]3[]3[]push"));
+        // Gap after image is 0 to reduce space between image and title
+        super(new MigLayout("fill, insets 10 15 10 15, wrap 1", "[center, grow]", "[shrink 100]0[]3[]3[]push"));
         buildUI();
     }
 
     private void buildUI() {
-        // Load promotional image using shared utility
-        JBLabel imageLabel = new JBLabel(CommonPanels.loadCubeIcon());
+        // Load gradient promotional image for DevAssist upsell
+        JBLabel imageLabel = new JBLabel(CommonPanels.loadGradientCubeIcon());
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        add(imageLabel, "growx");
+        add(imageLabel, "growx, gapbottom 0");
 
         // Title - compact font size
         JBLabel titleLabel = new JBLabel(Bundle.message(Resource.UPSELL_DEV_ASSIST_TITLE));

@@ -37,8 +37,8 @@ public class FindingsPromotionalPanel extends JPanel {
     }
 
     private void buildUI() {
-        // Load promotional image using shared utility
-        JBLabel imageLabel = new JBLabel(CommonPanels.loadCubeIcon());
+        // Load regular promotional image for Findings panel
+        JBLabel imageLabel = new JBLabel(CommonPanels.loadRegularCubeIcon());
         imageLabel.setHorizontalAlignment(SwingConstants.LEFT);
         add(imageLabel, "growx");
 

@@ -13,7 +13,10 @@ import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.net.URL;
+import javax.imageio.ImageIO;
+import java.io.IOException;
 
 /**
  * Utility class providing common UI panels used across tool windows.
@@ -21,7 +24,12 @@ import java.net.URL;
  */
 public final class CommonPanels {
 
-    private static final String CUBE_ICON_PATH = "/icons/cx-one-assist-cube.png";
+    private static final String GRADIENT_CUBE_ICON_PATH = "/icons/gradient_dark.png";
+    private static final String REGULAR_CUBE_ICON_PATH = "/icons/regular_dark.png";
+    
+    // Target dimensions for the promotional images
+    private static final int GRADIENT_ICON_MAX_WIDTH = 300;  // Full stretch for DevAssist panel
+    private static final int REGULAR_ICON_MAX_WIDTH = 240;   // Larger size for Findings panel
 
     private CommonPanels() {
         // Utility class - no instantiation
@@ -56,16 +64,67 @@ public final class CommonPanels {
     }
 
     /**
-     * Loads the promotional cube icon used in upsell/promotional panels.
-     * Currently loads PNG, but structured for easy migration to SVG when design assets are available.
+     * Loads the gradient cube icon used in DevAssistPromotionalPanel.
+     * This is a full-stretch promotional image with gradient styling.
+     * Image is scaled to fit the panel while maintaining aspect ratio.
      *
-     * @return the promotional cube icon, or null if not found
+     * @return the gradient cube icon scaled to appropriate size, or null if not found
      */
-    public static Icon loadCubeIcon() {
-        URL imageUrl = CommonPanels.class.getResource(CUBE_ICON_PATH);
-        if (imageUrl != null) {
+    public static Icon loadGradientCubeIcon() {
+        return loadAndScaleIcon(GRADIENT_CUBE_ICON_PATH, GRADIENT_ICON_MAX_WIDTH);
+    }
+
+    /**
+     * Loads the regular cube icon used in FindingsPromotionalPanel.
+     * This is a compact promotional image with standard styling.
+     * Image is scaled to fit the compact panel while maintaining aspect ratio.
+     *
+     * @return the regular cube icon scaled to appropriate size, or null if not found
+     */
+    public static Icon loadRegularCubeIcon() {
+        return loadAndScaleIcon(REGULAR_CUBE_ICON_PATH, REGULAR_ICON_MAX_WIDTH);
+    }
+
+    /**
+     * Loads an image from the given path and scales it to the specified max width
+     * while maintaining aspect ratio.
+     *
+     * @param iconPath the resource path to the icon
+     * @param maxWidth the maximum width to scale the image to
+     * @return the scaled icon, or null if not found or error occurs
+     */
+    private static Icon loadAndScaleIcon(String iconPath, int maxWidth) {
+        URL imageUrl = CommonPanels.class.getResource(iconPath);
+        if (imageUrl == null) {
+            return null;
+        }
+        
+        try {
+            BufferedImage originalImage = ImageIO.read(imageUrl);
+            if (originalImage == null) {
+                return new ImageIcon(imageUrl);
+            }
+            
+            int originalWidth = originalImage.getWidth();
+            int originalHeight = originalImage.getHeight();
+            
+            // Calculate scaled dimensions maintaining aspect ratio
+            if (originalWidth <= maxWidth) {
+                return new ImageIcon(originalImage);
+            }
+            
+            double scale = (double) maxWidth / originalWidth;
+            int scaledWidth = maxWidth;
+            int scaledHeight = (int) (originalHeight * scale);
+            
+            // Use high-quality scaling
+            Image scaledImage = originalImage.getScaledInstance(
+                    scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
+            
+            return new ImageIcon(scaledImage);
+        } catch (IOException e) {
+            // Fallback to unscaled image if scaling fails
             return new ImageIcon(imageUrl);
         }
-        return null;
     }
 }
