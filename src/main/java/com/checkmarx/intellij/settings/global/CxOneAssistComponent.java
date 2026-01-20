@@ -76,7 +76,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private boolean mcpInstallInProgress;
     private Timer mcpClearTimer;
     private String lastNotificationEngine;
-    private Project project;
+
 
     private final JBLabel containerToolLabel = new JBLabel();
     private Timer containerToolTimer;
@@ -630,29 +630,20 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     }
 
     private void validateIACEngine(){
-      String engineName = state.getContainersTool();
-        ApplicationManager.getApplication().invokeLater(() -> {
-             project = CommonDataKeys.PROJECT.getData(
-                     DataManager.getInstance().getDataContext()
-            );
-        });
-        if (project == null) {
-            return;
-        }
+        String engineName = state.getContainersTool();
           try{
               CxWrapperFactory.build().checkEngineExist(engineName);
-             lastNotificationEngine = "";
+              lastNotificationEngine = "";
           }
           catch (Exception e){
               if(engineName.equalsIgnoreCase(lastNotificationEngine)){
                   return;
               }
-             //  showContainerEngineStatus(e.getMessage(), JBColor.RED);
               lastNotificationEngine = engineName;
               ApplicationManager.getApplication().invokeLater(() -> {
-                  Utils.showNotification(DevAssistConstants.IAC_ENGINE_VALIDATION_ERROR, String.format("%s %s",e.getMessage(),DevAssistConstants.IAC_PREREQUISITE),
+                  Utils.showAppLevelNotification(DevAssistConstants.IAC_ENGINE_VALIDATION_ERROR, String.format("%s %s",e.getMessage(),DevAssistConstants.IAC_PREREQUISITE),
                           NotificationType.WARNING,
-                          project, true,Bundle.message(Resource.DEVASSIST_DOC_LINK));
+                           true,Bundle.message(Resource.DEVASSIST_DOC_LINK));
               });
           }
     }
