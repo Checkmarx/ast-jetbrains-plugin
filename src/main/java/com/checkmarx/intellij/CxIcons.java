@@ -29,7 +29,7 @@ public final class CxIcons {
     }
 
     public static Icon getCxOneAssistCubeIcon() {
-        return IconLoader.getIcon("/icons/cx-one-assist-cube.png", CxIcons.class);
+        return IconLoader.getIcon("/icons/regular_dark.png", CxIcons.class);
     }
 
     public static final Icon STAR_ACTION = IconLoader.getIcon("/icons/devassist/star-action.svg", CxIcons.class);
