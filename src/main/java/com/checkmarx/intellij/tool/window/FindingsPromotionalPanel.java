@@ -39,7 +39,7 @@ public class FindingsPromotionalPanel extends JPanel {
     private void buildUI() {
         // Load regular promotional image for Findings panel
         JBLabel imageLabel = new JBLabel(CommonPanels.loadRegularCubeIcon());
-        imageLabel.setHorizontalAlignment(SwingConstants.LEFT);
+        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(imageLabel, "growx");
 
         // Description - wrapped text

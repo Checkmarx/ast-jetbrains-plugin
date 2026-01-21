@@ -307,7 +307,7 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         promotionalScrollPane.setBorder(BorderFactory.createMatteBorder(0, 2, 0, 0, Gray._100));
 
         // Create splitter with vertical divider (false = left/right layout)
-        JBSplitter splitter = new JBSplitter(false, 0.6f);
+        JBSplitter splitter = new JBSplitter(false, 0.7f);
         splitter.setFirstComponent(scrollPane);
         splitter.setSecondComponent(promotionalScrollPane);
         splitter.setDividerWidth(3);
