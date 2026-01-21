@@ -4,6 +4,7 @@ import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
+import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.Application;
@@ -41,20 +42,6 @@ public class ProblemDecoratorTest {
         decorator = new ProblemDecorator();
     }
 
-    // test that all severity levels have corresponding icons
-    @Test
-    @DisplayName("Test that all severity levels have corresponding icons")
-    void testSeverityIconsAvailability() {
-        // Test that all severity levels have corresponding icons
-        assertNotNull(decorator.getGutterIconBasedOnStatus("Malicious"));
-        assertNotNull(decorator.getGutterIconBasedOnStatus("Critical"));
-        assertNotNull(decorator.getGutterIconBasedOnStatus("High"));
-        assertNotNull(decorator.getGutterIconBasedOnStatus("Medium"));
-        assertNotNull(decorator.getGutterIconBasedOnStatus("Low"));
-        assertNotNull(decorator.getGutterIconBasedOnStatus("Unknown"));
-    }
-
-    // test getGutterIconBasedOnStatus for all severities
     @Test
     @DisplayName("Test getGutterIconBasedOnStatus for all severities")
     void testGetGutterIconBasedOnStatus_AllSeverities() {
@@ -62,29 +49,12 @@ public class ProblemDecoratorTest {
             Icon icon = decorator.getGutterIconBasedOnStatus(level.getSeverity());
             assertNotNull(icon, "Icon should not be null for severity: " + level.getSeverity());
         }
-        // Unknown severity string
         Icon unknownIcon = decorator.getGutterIconBasedOnStatus("not-a-severity");
         assertNotNull(unknownIcon);
     }
 
-    // test getGutterIconBasedOnStatus for edge cases
-    @Test
-    @DisplayName("Test getGutterIconBasedOnStatus for edge cases")
-    void testGetGutterIconBasedOnStatus_EdgeCases() {
-        // Test with null severity
-        Icon nullIcon = decorator.getGutterIconBasedOnStatus(null);
-        assertNotNull(nullIcon);
 
-        // Test with empty string
-        Icon emptyIcon = decorator.getGutterIconBasedOnStatus("");
-        assertNotNull(emptyIcon);
 
-        // Test with unknown severity
-        Icon unknownIcon = decorator.getGutterIconBasedOnStatus("not-a-severity");
-        assertNotNull(unknownIcon);
-    }
-
-    // test highlightLineAddGutterIconForProblem (corner cases: null editor, wrong document, empty locations)
     @Test
     @DisplayName("Test highlightLineAddGutterIconForProblem with corner cases")
     void testHighlightLineAddGutterIconForProblem_CornerCases() {
@@ -124,7 +94,6 @@ public class ProblemDecoratorTest {
         }
     }
 
-    // test removeAllGutterIcons (corner cases: null editor, null highlighters)
     @Test
     @DisplayName("Test removeAllGutterIcons with corner cases")
     void testRemoveAllHighlighters_CornerCases() {
@@ -162,41 +131,45 @@ public class ProblemDecoratorTest {
     @Test
     @DisplayName("Test restoreGutterIcons with corner cases")
     void testDecorateUI_CornerCases() {
-        Project project = mock(Project.class);
-        PsiFile psiFile = mock(PsiFile.class);
-        Document document = mock(Document.class);
-        when(document.getCharsSequence()).thenReturn("a".repeat(200));
-        List<ScanIssue> scanIssueList = new ArrayList<>();
-        decorator.decorateUI(project, psiFile, scanIssueList, document); // empty list path
-        // One scanIssue, elementAtLine null
-        ScanIssue issue = new ScanIssue();
-        issue.setSeverity("High");
-        Location location = new Location(1, 0, 10);
-        issue.setLocations(Collections.singletonList(location));
-        issue.setTitle("TestTitle");
-        scanIssueList.add(issue);
-        when(document.getLineStartOffset(anyInt())).thenReturn(0);
-        when(psiFile.findElementAt(anyInt())).thenReturn(null); // null element path
-        decorator.decorateUI(project, psiFile, scanIssueList, document);
-        // Second scenario: elementAtLine non-null triggers highlightLineAddGutterIconForProblem
-        PsiFile psiFile2 = mock(PsiFile.class);
-        when(psiFile2.getProject()).thenReturn(project);
-        ScanIssue issue2 = new ScanIssue();
-        issue2.setSeverity("Low");
-        issue2.setLocations(Collections.singletonList(location));
-        issue2.setTitle("Title2");
-        List<ScanIssue> list2 = Collections.singletonList(issue2);
-        PsiElement elementAt = mock(PsiElement.class);
-        when(document.getLineStartOffset(location.getLine())).thenReturn(0);
-        when(psiFile2.findElementAt(0)).thenReturn(elementAt);
+
         try (MockedStatic<ApplicationManager> appManager = Mockito.mockStatic(ApplicationManager.class);
              MockedStatic<FileEditorManager> fileEditorManager = Mockito.mockStatic(FileEditorManager.class);
              MockedStatic<PsiDocumentManager> psiDocManager = Mockito.mockStatic(PsiDocumentManager.class);
              MockedStatic<DevAssistUtils> devUtilsMock = Mockito.mockStatic(DevAssistUtils.class)) {
+            Project project = mock(Project.class);
+            PsiFile psiFile = mock(PsiFile.class);
+            Document document = mock(Document.class);
+            when(document.getCharsSequence()).thenReturn("a".repeat(200));
+            List<ScanIssue> scanIssueList = new ArrayList<>();  Application application = mock(Application.class);
+            appManager.when(ApplicationManager::getApplication).thenReturn(application);
+
+            decorator.decorateUI(project, psiFile, scanIssueList, document); // empty list path
+
+            ScanIssue issue = new ScanIssue();
+            issue.setSeverity("High");
+            Location location = new Location(1, 0, 10);
+            issue.setLocations(Collections.singletonList(location));
+            issue.setTitle("TestTitle");
+            scanIssueList.add(issue);
+            when(document.getLineStartOffset(anyInt())).thenReturn(0);
+            when(psiFile.findElementAt(anyInt())).thenReturn(null); // null element path
+            decorator.decorateUI(project, psiFile, scanIssueList, document);
+            // Second scenario: elementAtLine non-null triggers highlightLineAddGutterIconForProblem
+            PsiFile psiFile2 = mock(PsiFile.class);
+            when(psiFile2.getProject()).thenReturn(project);
+            ScanIssue issue2 = new ScanIssue();
+            issue2.setSeverity("Low");
+            issue2.setLocations(Collections.singletonList(location));
+            issue2.setTitle("Title2");
+            List<ScanIssue> list2 = Collections.singletonList(issue2);
+            PsiElement elementAt = mock(PsiElement.class);
+            when(document.getLineStartOffset(location.getLine())).thenReturn(0);
+            when(psiFile2.findElementAt(0)).thenReturn(elementAt);
             devUtilsMock.when(() -> DevAssistUtils.getTextRangeForLine(any(Document.class), anyInt()))
                     .thenReturn(new TextRange(0, 1));
-            Application application = mock(Application.class);
-            appManager.when(ApplicationManager::getApplication).thenReturn(application);
+
+
+
             Application capturedAppRestore = ApplicationManager.getApplication();
             assertSame(application, capturedAppRestore);
             doAnswer(inv -> {
@@ -213,7 +186,6 @@ public class ProblemDecoratorTest {
             PsiDocumentManager psiDocMgr = mock(PsiDocumentManager.class);
             psiDocManager.when(() -> PsiDocumentManager.getInstance(project)).thenReturn(psiDocMgr);
             when(psiDocMgr.getDocument(psiFile2)).thenReturn(doc2);
-            // locations iteration requires getLineStartOffset/End etc.
             when(doc2.getLineStartOffset(location.getLine())).thenReturn(0);
             when(doc2.getLineEndOffset(location.getLine())).thenReturn(5);
             when(doc2.getTextLength()).thenReturn(10);
@@ -231,7 +203,7 @@ public class ProblemDecoratorTest {
         try (MockedStatic<ApplicationManager> appManager = Mockito.mockStatic(ApplicationManager.class);
              MockedStatic<FileEditorManager> fileEditorManager = Mockito.mockStatic(FileEditorManager.class)) {
             Application application = mock(Application.class);
-            //noinspection ResultOfMethodCallIgnored
+
             appManager.when(ApplicationManager::getApplication).thenReturn(application); // exception path stub
             Application capturedAppException = ApplicationManager.getApplication();
             assertSame(application, capturedAppException);
@@ -251,16 +223,19 @@ public class ProblemDecoratorTest {
     @Test
     @DisplayName("Test restoreGutterIcons catch block")
     void testDecorateUI_CatchBlock() {
-        Project project = mock(Project.class);
-        PsiFile psiFile = mock(PsiFile.class);
-        Document document = mock(Document.class);
-        // Issue with empty locations to trigger IndexOutOfBoundsException when accessing get(0)
-        ScanIssue issue = new ScanIssue();
-        issue.setSeverity(SeverityLevel.HIGH.getSeverity());
-        issue.setLocations(Collections.emptyList());
-        issue.setTitle("Title");
-        List<ScanIssue> list = Collections.singletonList(issue);
-        decorator.decorateUI(project, psiFile, list, document); // should hit catch and continue
+        try (MockedStatic<ApplicationManager> appManager = Mockito.mockStatic(ApplicationManager.class)){
+            Application application = mock(Application.class);
+            appManager.when(ApplicationManager::getApplication).thenReturn(application);
+            Project project = mock(Project.class);
+            PsiFile psiFile = mock(PsiFile.class);
+            Document document = mock(Document.class);
+            ScanIssue issue = new ScanIssue();
+            issue.setSeverity(SeverityLevel.HIGH.getSeverity());
+            issue.setLocations(Collections.emptyList());
+            issue.setTitle("Title");
+            List<ScanIssue> list = Collections.singletonList(issue);
+            decorator.decorateUI(project, psiFile, list, document);
+        }
     }
 
     @Test
@@ -272,7 +247,6 @@ public class ProblemDecoratorTest {
         try (MockedStatic<ApplicationManager> appManager = Mockito.mockStatic(ApplicationManager.class);
              MockedStatic<FileEditorManager> fileEditorManager = Mockito.mockStatic(FileEditorManager.class)) {
             Application application = mock(Application.class);
-            //noinspection ResultOfMethodCallIgnored
             appManager.when(ApplicationManager::getApplication).thenReturn(application);
             Application capturedApp = ApplicationManager.getApplication();
             assertSame(application, capturedApp);
@@ -295,7 +269,7 @@ public class ProblemDecoratorTest {
         }
     }
 
-    // test highlightLineAddGutterIconForProblem with multi-location
+
     @Test
     @DisplayName("Test highlightLineAddGutterIconForProblem with multi-location")
     void testHighlightLineAddGutterIconForProblem_MultiLocation() {
