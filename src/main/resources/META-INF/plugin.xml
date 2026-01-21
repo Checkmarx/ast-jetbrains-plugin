@@ -35,7 +35,8 @@
                 serviceImplementation="com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState"/>
 
         <applicationConfigurable
-                instance="com.checkmarx.intellij.settings.global.CxOneAssistConfigurable"
+                id="settings.ast.assist"
+                provider="com.checkmarx.intellij.settings.global.CxOneAssistConfigurableProvider"
                 parentId="settings.ast"
                 bundle="messages.CxBundle"
                 key="CXONE_ASSIST_TITLE"/>

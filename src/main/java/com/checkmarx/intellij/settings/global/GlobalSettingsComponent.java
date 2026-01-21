@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.settings.global;
 
+import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
@@ -71,6 +72,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
     private final JButton connectButton = new JButton(Bundle.message(Resource.CONNECT_BUTTON));
     private final JBLabel validateResult = new JBLabel();
+    private CxLinkLabel assistLink;
 
 
     private boolean sessionConnected = false;
@@ -173,6 +175,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
             logoutButton.requestFocusInWindow();
         }
 
+        updateAssistLinkVisibility();
+
         SwingUtilities.invokeLater(() -> {
             if (useApiKey) {
                 apiKeyField.requestFocusInWindow();
@@ -248,6 +252,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
             state.setUserPrefSecretDetectionRealtime(SETTINGS_STATE.getUserPrefSecretDetectionRealtime());
             state.setUserPrefContainersRealtime(SETTINGS_STATE.getUserPrefContainersRealtime());
             state.setUserPrefIacRealtime(SETTINGS_STATE.getUserPrefIacRealtime());
+
+            // License flags – must be preserved to control UI elements like Assist link
+            state.setDevAssistLicenseEnabled(SETTINGS_STATE.isDevAssistLicenseEnabled());
+            state.setOneAssistLicenseEnabled(SETTINGS_STATE.isOneAssistLicenseEnabled());
         }
         return state;
     }
@@ -294,10 +302,35 @@ public class GlobalSettingsComponent implements SettingsComponent {
         SETTINGS_STATE.setAuthenticated(true);
         SETTINGS_STATE.setLastValidationSuccess(true);
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
+        fetchAndStoreLicenseStatus();
+        SwingUtilities.invokeLater(this::updateAssistLinkVisibility);
         logoutButton.requestFocusInWindow();
 
         // Complete post-authentication setup
         completeAuthenticationSetup(String.valueOf(apiKeyField.getPassword()));
+    }
+
+    /**
+     * Fetches tenant settings from the API and stores license status in the global state.
+     * Clears license flags before fetching to ensure stale values are not used on API failure.
+     */
+    private void fetchAndStoreLicenseStatus() {
+        // Clear stale license flags first (fail-safe: if API call fails, flags remain false)
+        SETTINGS_STATE.setDevAssistLicenseEnabled(false);
+        SETTINGS_STATE.setOneAssistLicenseEnabled(false);
+        try {
+            java.util.Map<String, String> tenantSettings = TenantSetting.getTenantSettingsMap(
+                    getStateFromFields(), getSensitiveStateFromFields());
+            boolean devAssistEnabled = Boolean.parseBoolean(
+                    tenantSettings.getOrDefault(TenantSetting.KEY_DEV_ASSIST, "false"));
+            boolean oneAssistEnabled = Boolean.parseBoolean(
+                    tenantSettings.getOrDefault(TenantSetting.KEY_ONE_ASSIST, "false"));
+            SETTINGS_STATE.setDevAssistLicenseEnabled(devAssistEnabled);
+            SETTINGS_STATE.setOneAssistLicenseEnabled(oneAssistEnabled);
+            LOGGER.info("License status: devAssist=" + devAssistEnabled + ", oneAssist=" + oneAssistEnabled);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to check tenant license status", e);
+        }
     }
 
     /**
@@ -373,7 +406,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
                         Bundle.message(Resource.MCP_INSTALL_ERROR),
                         NotificationType.ERROR,
-                        project
+                        project, false,""
                 );
                 LOGGER.warn("MCP install error", (Exception) result);
             } else if (Boolean.TRUE.equals(result)) {
@@ -381,14 +414,14 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
                         Bundle.message(Resource.MCP_CONFIG_SAVED),
                         NotificationType.INFORMATION,
-                        project
+                        project,false,""
                 );
             } else if (Boolean.FALSE.equals(result)) {
                 Utils.showNotification(
                         Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
                         Bundle.message(Resource.MCP_CONFIG_UP_TO_DATE),
                         NotificationType.INFORMATION,
-                        project
+                        project,false,""
                 );
             }
         }));
@@ -471,7 +504,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
             notifyAuthSuccess();
-
+            fetchAndStoreLicenseStatus();
+            updateAssistLinkVisibility();
             // Complete post-authentication setup
             completeAuthenticationSetup(SENSITIVE_SETTINGS_STATE.getRefreshToken());
         });
@@ -568,7 +602,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
 
         // === CxOne Assist link section ===
-        CxLinkLabel assistLink = new CxLinkLabel(
+        assistLink = new CxLinkLabel(
                 Bundle.message(Resource.GO_TO_CXONE_ASSIST_LINK),
                 e -> {
                     DataContext context = DataManager.getInstance().getDataContext(mainPanel);
@@ -578,9 +612,21 @@ public class GlobalSettingsComponent implements SettingsComponent {
                     Configurable configurable = settings.find("settings.ast.assist");
                     if (configurable instanceof CxOneAssistConfigurable) {
                         settings.select(configurable);
+                    } else {
+                        // Configurable not in tree (Settings opened before authentication)
+                        // Close and reopen Settings to rebuild the tree
+                        java.awt.Window dialog = SwingUtilities.getWindowAncestor(mainPanel);
+                        if (dialog != null) {
+                            dialog.dispose();
+                        }
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            com.intellij.openapi.options.ShowSettingsUtil.getInstance()
+                                    .showSettingsDialog(project, CxOneAssistConfigurable.class);
+                        });
                     }
                 }
         );
+        assistLink.setVisible(shouldShowAssistLink());
         mainPanel.add(assistLink, "wrap, gapleft 5, gaptop 10");
     }
 
@@ -737,6 +783,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
         setFieldsEditable(true);
         updateConnectButtonState();
         SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+        // Clear license flags on logout to ensure fresh check on next login
+        SETTINGS_STATE.setDevAssistLicenseEnabled(false);
+        SETTINGS_STATE.setOneAssistLicenseEnabled(false);
+        updateAssistLinkVisibility();
         // Don't clear MCP status on logout - keep it for next login
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.LOGOUT_SUCCESS));
         SETTINGS_STATE.setLastValidationSuccess(true);
@@ -745,6 +795,24 @@ public class GlobalSettingsComponent implements SettingsComponent {
         }
         apply();
         updateConnectButtonState(); // Ensure the Connect button state is updated
+
+        // Close the Settings dialog to force rebuild of the settings tree
+        // This ensures the CxOne Assist sub-panel disappears immediately after logout
+        closeSettingsDialog();
+    }
+
+    /**
+     * Closes the Settings dialog if currently open.
+     * This forces IntelliJ to rebuild the settings tree on next open,
+     * ensuring conditional configurables (like CxOne Assist) are re-evaluated.
+     */
+    private void closeSettingsDialog() {
+        SwingUtilities.invokeLater(() -> {
+            java.awt.Window dialog = SwingUtilities.getWindowAncestor(mainPanel);
+            if (dialog != null) {
+                dialog.dispose();
+            }
+        });
     }
 
     // Setting state after session expired.
@@ -755,10 +823,13 @@ public class GlobalSettingsComponent implements SettingsComponent {
         logoutButton.setEnabled(false);
         setFieldsEditable(true);
 
-        // Clear authentication and MCP status
+        // Clear authentication, MCP status, and license flags
         SETTINGS_STATE.setAuthenticated(false);
         SETTINGS_STATE.setMcpEnabled(false);
         SETTINGS_STATE.setMcpStatusChecked(false);
+        SETTINGS_STATE.setDevAssistLicenseEnabled(false);
+        SETTINGS_STATE.setOneAssistLicenseEnabled(false);
+        updateAssistLinkVisibility();
         if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
             SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
         }
@@ -766,6 +837,22 @@ public class GlobalSettingsComponent implements SettingsComponent {
         updateConnectButtonState(); // Update button state after all changes
     }
 
+
+    private boolean shouldShowAssistLink() {
+        return SETTINGS_STATE.isAuthenticated()
+                && (SETTINGS_STATE.isOneAssistLicenseEnabled() || SETTINGS_STATE.isDevAssistLicenseEnabled());
+    }
+
+    private void updateAssistLinkVisibility() {
+    if (assistLink == null) {
+            return;
+        }
+        boolean visible = shouldShowAssistLink();
+        assistLink.setVisible(visible);
+        assistLink.setEnabled(visible);
+        mainPanel.revalidate();
+        mainPanel.repaint();
+    }
 
     private void addSectionHeader(Resource resource, boolean required) {
         validatePanel();
@@ -876,7 +963,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 Utils.showNotification(Bundle.message(Resource.LOGOUT_SUCCESS_TITLE),
                         Bundle.message(Resource.LOGOUT_SUCCESS),
                         NotificationType.INFORMATION,
-                        project)
+                        project,false,"")
         );
     }
 
@@ -888,7 +975,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 Utils.showNotification(Bundle.message(Resource.SUCCESS_AUTHENTICATION_TITLE),
                         Bundle.message(Resource.VALIDATE_SUCCESS),
                         NotificationType.INFORMATION,
-                        project)
+                        project,false,"")
         );
     }
 
@@ -900,7 +987,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 Utils.showNotification(Bundle.message(Resource.ERROR_AUTHENTICATION_TITLE),
                         errorMsg,
                         NotificationType.ERROR,
-                        project)
+                        project,false,"")
         );
     }
 

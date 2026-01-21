@@ -21,6 +21,7 @@ public class CxWrapperFactory {
             throws CxException, IOException {
         final CxConfig.CxConfigBuilder builder = CxConfig.builder();
 
+        builder.agentName(Constants.JET_BRAINS_AGENT_NAME);
         if(isCredentialExpired(state, sensitiveState)){
             Utils.notifySessionExpired();
             return new CxWrapper(builder.build());

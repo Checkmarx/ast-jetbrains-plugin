@@ -48,9 +48,12 @@ public class ScanIssue {
     private String packageManager;
     private String cve;
     private ScanEngine scanEngine;
-    private String filePath;
+    private String filePath; // It refers to original file path from project workspace (VirtualFile Path)
     private String imageTag;
     private String fileType;
+    private String secretValue;
+    private String similarityId;
+    private Integer ruleId;
     private Integer problematicLineNumber;
 
 

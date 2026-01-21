@@ -26,11 +26,13 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
 
     private final IacRealtimeResults iacRealtimeResults;
     private final String fileType;
+    private final String filePath;
     private final List<ScanIssue> scanIssues;
 
-    public IacScanResultAdaptor(IacRealtimeResults iacRealtimeResults, String fileType) {
+    public IacScanResultAdaptor(IacRealtimeResults iacRealtimeResults, String fileType, String filePath) {
         this.iacRealtimeResults = iacRealtimeResults;
         this.fileType = fileType;
+        this.filePath = filePath;
         this.scanIssues = buildIssues();
     }
 
@@ -180,9 +182,10 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
         }
         scanIssue.setDescription(iacScanIssue.get(0).issue.getDescription());
         scanIssue.setSeverity(iacScanIssue.get(0).issue.getSeverity());
-        scanIssue.setFilePath(iacScanIssue.get(0).issue.getFilePath());
+        scanIssue.setFilePath(this.filePath);
         scanIssue.setScanEngine(ScanEngine.IAC);
         scanIssue.setFileType(this.fileType);
+        scanIssue.setSimilarityId(iacScanIssue.get(0).issue.getSimilarityId());
         scanIssue.setScanIssueId(getUniqueId(iacScanIssue.get(0).issue));
         return scanIssue;
     }
@@ -211,6 +214,7 @@ public class IacScanResultAdaptor implements ScanResult<IacRealtimeResults> {
         vulnerability.setActualValue(vulnerabilityObj.getActualValue());
         vulnerability.setExpectedValue(vulnerabilityObj.getExpectedValue());
         vulnerability.setTitle(vulnerabilityObj.getTitle());
+        vulnerability.setSimilarityId(vulnerabilityObj.getSimilarityId());
         return vulnerability;
     }
 

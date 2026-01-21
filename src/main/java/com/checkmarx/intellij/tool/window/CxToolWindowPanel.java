@@ -6,12 +6,10 @@ import com.checkmarx.intellij.commands.results.Results;
 import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import com.checkmarx.intellij.components.TreeUtils;
 import com.checkmarx.intellij.project.ProjectResultsService;
-import com.checkmarx.intellij.devassist.configuration.ScannerLifeCycleManager;
 import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.checkmarx.intellij.service.StateService;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.settings.global.GlobalSettingsComponent;
-import com.checkmarx.intellij.settings.global.GlobalSettingsConfigurable;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
 import com.checkmarx.intellij.tool.window.actions.StartScanAction;
 import com.checkmarx.intellij.tool.window.actions.filter.FilterBaseAction;
@@ -25,28 +23,21 @@ import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.ui.Splitter;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.SearchTextField;
-import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.treeStructure.Tree;
-import com.intellij.uiDesigner.core.GridConstraints;
-import com.intellij.uiDesigner.core.GridLayoutManager;
-import com.intellij.util.ui.JBUI;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
-import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.*;
@@ -98,15 +89,40 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         this.project = project;
         this.projectResultsService = project.getService(ProjectResultsService.class);
-        Runnable r = () -> {
-            if (new GlobalSettingsComponent().isValid()) {
-                drawMainPanel();
-                ScannerRegistry registry = project.getService(ScannerRegistry.class);
-                registry.registerAllScanners(project);
 
-            } else {
+        // License Matrix for Scan Results tab:
+        // - NOT authenticated: Show auth panel
+        // - Authenticated + One Assist = TRUE: Show actual Scan Results content
+        // - Authenticated + One Assist = FALSE, Dev Assist = TRUE: Show promotional upsell panel
+        // - Authenticated + One Assist = FALSE, Dev Assist = FALSE: Show actual Scan Results content
+        Runnable r = () -> {
+            if (!new GlobalSettingsComponent().isValid()) {
+                LOGGER.info("CxToolWindowPanel: Not authenticated - showing auth panel");
                 drawAuthPanel();
                 projectResultsService.indexResults(project, Results.emptyResults);
+            } else {
+                // Authenticated - check licenses (cached in GlobalSettingsState during authentication)
+                GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
+                boolean hasOneAssist = settingsState.isOneAssistLicenseEnabled();
+                boolean hasDevAssist = settingsState.isDevAssistLicenseEnabled();
+
+                LOGGER.info("CxToolWindowPanel: Authenticated, hasOneAssist=" + hasOneAssist
+                        + ", hasDevAssist=" + hasDevAssist);
+
+                if (hasOneAssist) {
+                    // One Assist = TRUE: Show actual Scan Results
+                    drawMainPanel();
+                    ScannerRegistry registry = project.getService(ScannerRegistry.class);
+                    registry.registerAllScanners(project);
+                } else if (hasDevAssist) {
+                    // One Assist = FALSE, Dev Assist = TRUE: Show promotional upsell
+                    drawPromotionalPanel();
+                } else {
+                    // One Assist = FALSE, Dev Assist = FALSE: Show actual Scan Results
+                    drawMainPanel();
+                    ScannerRegistry registry = project.getService(ScannerRegistry.class);
+                    registry.registerAllScanners(project);
+                }
             }
         };
 
@@ -171,30 +187,26 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     }
 
     /**
-     * Draw a panel with logo and a button to settings, when settings are invalid
-     *
+     * Draw a panel with logo and a button to settings, when settings are invalid.
      */
     private void drawAuthPanel() {
         removeAll();
-        JPanel wrapper = new JPanel(new GridBagLayout());
+        setContent(CommonPanels.createAuthPanel(project));
+    }
 
-        JPanel panel = new JPanel(new GridLayoutManager(2, 1, JBUI.emptyInsets(), -1, -1));
+    /**
+     * Draw a promotional upsell panel for Scan Results.
+     * Shown when authenticated with Dev Assist license but no One Assist license.
+     */
+    private void drawPromotionalPanel() {
+        LOGGER.info("drawPromotionalPanel: Drawing promotional upsell panel for Scan Results");
+        removeAll();
 
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(0);
-        panel.add(new JBLabel(CxIcons.CHECKMARX_80), constraints);
+        ScanResultsUpsellPanel promotionalPanel = new ScanResultsUpsellPanel();
+        setContent(promotionalPanel);
 
-        JButton comp = new JButton(Bundle.message(Resource.OPEN_SETTINGS_BUTTON));
-        comp.addActionListener(e -> ShowSettingsUtil.getInstance()
-                .showSettingsDialog(project, GlobalSettingsConfigurable.class));
-
-        constraints = new GridConstraints();
-        constraints.setRow(1);
-        panel.add(comp, constraints);
-
-        wrapper.add(panel);
-
-        setContent(wrapper);
+        revalidate();
+        repaint();
     }
 
     @Override

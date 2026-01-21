@@ -14,9 +14,14 @@ import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.ProblemDescriptor;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
@@ -47,11 +52,13 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
     public ProblemDescriptor[] startScanAndCreateProblemDescriptors(ProblemHelper.ProblemHelperBuilder problemHelperBuilder) {
         ProblemHelper problemHelper = problemHelperBuilder.build();
 
-        LOGGER.info(format("RTS: Scan started for file: %s.", problemHelper.getFile().getName()));
+        LOGGER.info(format("RTS: On demand scan started for file: %s.", problemHelper.getFile().getName()));
 
         List<ScanIssue> allScanIssues = scanFile(problemHelper.getFilePath(), problemHelper.getFile(), ScanEngine.ALL);
         if (allScanIssues.isEmpty()) {
-            LOGGER.info(format("RTS: No scan issues found for file: %s.", problemHelper.getFile().getName()));
+            LOGGER.info(format("RTS: On demand scan completed with no scan issues for file: %s.", problemHelper.getFile().getName()));
+            // decorate UI only for ignored vulnerability if no scan issues found
+            decorateUIForIgnoreVulnerability(problemHelper.getFile(), allScanIssues);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         problemHelperBuilder.scanIssueList(allScanIssues);
@@ -59,15 +66,48 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         problemHelper.getProblemHolderService().addScanIssues(problemHelper.getFilePath(), allScanIssues);
 
         //Creating problems
-        List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptors(problemHelperBuilder.build(), Boolean.TRUE));
+        List<ProblemDescriptor> allProblems = new ArrayList<>(createProblemDescriptorsWithDecoration(problemHelperBuilder.build()));
         if (allProblems.isEmpty()) {
-            LOGGER.info(format("RTS: Problem not found for file: %s. ", problemHelper.getFile().getName()));
+            LOGGER.info(format("RTS: On demand scan completed with no problems for file: %s. ", problemHelper.getFile().getName()));
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         //Caching all the problem descriptor in the problem holder service
         problemHelper.getProblemHolderService().addProblemDescriptors(problemHelper.getFilePath(), allProblems);
-        LOGGER.info(format("RTS: Scanning completed for file: %s and %s problem descriptors created.", problemHelper.getFile().getName(), allProblems.size()));
+        LOGGER.info(format("RTS: On demand Scanning completed for file: %s and %s problem descriptors created.", problemHelper.getFile().getName(), allProblems.size()));
         return allProblems.toArray(new ProblemDescriptor[0]);
+    }
+
+    /**
+     * Creates problem descriptors with decoration.
+     * It will first remove all the highlighters and gutter from the current file and
+     * create the problem descriptors and also add gutter icons, highlighters in the editor.
+     *
+     * @param problemHelper - The {@link ProblemHelper} which contains required data to create problem descriptors.
+     * @return a {@link List} of {@link ProblemDescriptor} instances representing the detected issues, or an empty list if no issues are found.
+     */
+    private List<ProblemDescriptor> createProblemDescriptorsWithDecoration(ProblemHelper problemHelper) {
+        if (isScanIssuePresent(problemHelper.getScanIssueList(), problemHelper.getFile().getName())) {
+            // remove all existing gutter icons before adding new ones
+            ProblemDecorator.removeAllHighlighters(problemHelper.getFile().getProject());
+            // decorate UI only for ignored vulnerability if no scan issues found
+            decorateUIForIgnoreVulnerability(problemHelper.getFile(), problemHelper.getScanIssueList());
+            return createProblemDescriptors(problemHelper, Boolean.TRUE);
+        }
+        return Collections.emptyList();
+    }
+
+    /**
+     * Creates problem descriptors without decoration.
+     * It will create the problem descriptors without adding gutter icons, highlighters in the editor.
+     *
+     * @param problemHelper - The {@link ProblemHelper} which contains required data to create problem descriptors.
+     * @return a {@link List} of {@link ProblemDescriptor} instances representing the detected issues, or an empty list if no issues are found.
+     */
+    public List<ProblemDescriptor> createProblemDescriptorsWithoutDecoration(ProblemHelper problemHelper) {
+        if (isScanIssuePresent(problemHelper.getScanIssueList(), problemHelper.getFile().getName())) {
+            return createProblemDescriptors(problemHelper, Boolean.FALSE);
+        }
+        return Collections.emptyList();
     }
 
     /**
@@ -78,15 +118,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
      *                      must not be null and should include a list of scan issues to process.
      * @return a {@link List} of {@link ProblemDescriptor} instances representing the detected issues, or an empty list if no issues are found.
      */
-    public List<ProblemDescriptor> createProblemDescriptors(ProblemHelper problemHelper, boolean isDecoratorEnabled) {
-        if (problemHelper.getScanIssueList().isEmpty()) {
-            LOGGER.warn(format("RTS: No scan issues found to create problem descriptor for file: %s.", problemHelper.getFile().getName()));
-            return Collections.emptyList();
-        }
-        if (isDecoratorEnabled) {
-            // if decorator is enabled, remove all existing gutter icons before adding new ones
-            ProblemDecorator.removeAllHighlighters(problemHelper.getFile().getProject());
-        }
+    private List<ProblemDescriptor> createProblemDescriptors(ProblemHelper problemHelper, boolean isDecoratorEnabled) {
         List<ProblemDescriptor> problems = new ArrayList<>();
         ScanIssueProcessor processor = new ScanIssueProcessor(problemHelper);
 
@@ -132,9 +164,8 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
                 .filePath(filePath)
                 .problemHolderService(problemHolderService)
                 .supportedScanners(supportedEnabledScanners)
-                .problemDecorator(new ProblemDecorator())
+                .problemDecorator(this.problemDecorator)
                 .build();
-
         return getCachedProblemDescriptorsForNonModifiedFile(problemHelper, filePath, file);
     }
 
@@ -163,11 +194,13 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         if (scanIssueList.isEmpty()) {
             LOGGER.warn(format("RTS: No existing scan issues found for file: %s.", filePath));
             resetEditorAndResults(file.getProject(), filePath);
+            decorateUIForIgnoreVulnerability(file, scanIssueList); // decorate UI only for ignored vulnerability if no scan issues found
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         List<ProblemDescriptor> problemDescriptorsList = problemHelper.getProblemHolderService().getProblemDescriptors(filePath);
         if (problemDescriptorsList.isEmpty()) {
-            // File dose doesn't have any existing problem descriptors, but it may have existing scan results (unknown or ok).
+            decorateUIForIgnoreVulnerability(file, scanIssueList); // decorate UI only for ignored vulnerability if no scan issues found
+            // The file doesn't have any existing problem descriptors, but it may have existing scan results (unknown or ok).
             LOGGER.warn(format("RTS: No existing problem descriptors found for file: %s or no enabled scanners found.", filePath));
             return ProblemDescriptor.EMPTY_ARRAY;
         }
@@ -175,14 +208,14 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         // Get all scan engines from existing scan issues
         List<ScanEngine> existingScanEngineList = scanIssueList.stream().map(ScanIssue::getScanEngine).collect(Collectors.toList());
 
-        // Check if any engine from existing scan results is not present in current enabled scan engine list
+        // Check if any engine from existing scan results is not present in the current enabled scan engine list
         boolean hasDisabledEngines = existingScanEngineList.stream().anyMatch(engine -> !enabledScanEngines.contains(engine));
         boolean isThemeChanged = isThemeChanged(file); // Check if the theme has changed
 
         // if scan engines state and theme are not changed, return the existing problem descriptor list
         if (!hasDisabledEngines && !isThemeChanged) {
             LOGGER.info(format("RTS: No change in scanners state and theme, Returning existing problem descriptors for file: %s.", file.getName()));
-            problemDecorator.decorateUI(file.getProject(), file, scanIssueList, problemHelper.getDocument());
+            decorateUI(problemHelper.getDocument(), file, scanIssueList);
             return problemDescriptorsList.toArray(new ProblemDescriptor[0]);
         }
         List<ProblemDescriptor> updatedScannerProblems;
@@ -200,19 +233,33 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         if (isThemeChanged) {
             ProblemHelper updatedHelper = problemHelper.toBuilder(problemHelper).scanIssueList(updatedScanIssueList).build();
             updatedScannerProblems = createProblemDescriptorsOnThemeChanged(updatedHelper);
-        }else {
+        } else {
             updatedScannerProblems = getEnabledScannerProblems(filePath, problemDescriptorsList, enabledScanEngines);
         }
         LOGGER.info(format("RTS: Decorating UI as per the latest state of the scanners using existing results for file: %s.", file.getName()));
 
         // Update gutter icons and problem descriptors for the file according to the latest state of scan settings.
-        problemDecorator.decorateUI(file.getProject(), file, updatedScanIssueList, problemHelper.getDocument());
+        decorateUI(problemHelper.getDocument(), file, updatedScanIssueList);
 
         problemHelper.getProblemHolderService().addScanIssues(filePath, updatedScanIssueList);
         problemHelper.getProblemHolderService().addProblemDescriptors(filePath, updatedScannerProblems);
 
         LOGGER.info(format("RTS: Completed retrieving problem descriptor for non modified file: %s.", file.getName()));
         return !updatedScannerProblems.isEmpty() ? updatedScannerProblems.toArray(new ProblemDescriptor[0]) : ProblemDescriptor.EMPTY_ARRAY;
+    }
+
+    /**
+     * Decorating UI, - ensure all UI modifications (e.g., adding gutter icons) are executed in a write-safe, non-blocking context.
+     */
+    public void decorateUI(Document document, PsiFile file, List<ScanIssue> scanIssueList) {
+        problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
+    }
+
+    /**
+     * Decorating UI, - ensure all UI modifications (e.g., adding gutter icons) are executed in a write-safe, non-blocking context.
+     */
+    public void decorateUIForIgnoreVulnerability(PsiFile file, List<ScanIssue> scanIssueList) {
+        problemDecorator.decorateUIForIgnoredVulnerability(file.getProject(), file, scanIssueList);
     }
 
     /**
@@ -223,16 +270,17 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
      * @return the problem descriptors.
      */
     private ProblemDescriptor[] getCachedProblemsOnScheduledScanCompletion(ProblemHolderService problemHolderService, String filePath, Document document, PsiFile file) {
+        updateScanSourceFlag(file, Boolean.FALSE);
 
         List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
         if (scanIssueList.isEmpty()) {
             LOGGER.warn(format("RTS: No existing scan issues found after schedule scan completion for file: %s.", filePath));
             resetEditorAndResults(file.getProject(), filePath);
+            decorateUIForIgnoreVulnerability(file, scanIssueList); // decorate UI only for ignored vulnerability if no scan issues found
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         // Update gutter icons and problem descriptors for the file according to the latest state of scan settings.
-        problemDecorator.decorateUI(file.getProject(), file, scanIssueList, document);
-        updateScanSourceFlag(file, Boolean.FALSE);
+        decorateUI(document, file, scanIssueList);
 
         // Problem descriptors already cached, if no problem descriptor found means all results received with OK or Unknown status
         List<ProblemDescriptor> problemDescriptorsList = problemHolderService.getProblemDescriptors(filePath);
@@ -252,7 +300,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         // Reload problem descriptions icons on theme change, as the inspection tooltip doesn't support dynamic icon change in the tooltip description.
         ProblemDescription.reloadIcons();
 
-        List<ProblemDescriptor> problemList = createProblemDescriptors(problemHelper, Boolean.FALSE);
+        List<ProblemDescriptor> problemList = createProblemDescriptorsWithoutDecoration(problemHelper);
         LOGGER.info(format("RTS: Completed problem descriptor creation using existing scan results on theme changed for the file: %s.", problemHelper.getFile().getName()));
         return problemList;
     }
@@ -314,5 +362,41 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
             problemHolderService.removeScanIssues(filePath);
         }
         LOGGER.debug(format("RTS: Resetting editor state (remove icons and problems) for project: %s.", project.getName()));
+    }
+
+    /**
+     * Check if a scan issue list is present for the given file.
+     *
+     * @return true if the scan issue list is present, false otherwise.
+     */
+    private boolean isScanIssuePresent(List<ScanIssue> scanIssueList, String fileName) {
+        if (Objects.isNull(scanIssueList) || scanIssueList.isEmpty()) {
+            LOGGER.warn(format("RTS: No scan issues found to create problem descriptor for file: %s.", fileName));
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Triggers an inspection on the current selected file by adding a space character at the beginning of the file.
+     *
+     * @param project current project
+     */
+    public void triggerInspection(Project project) {
+        try {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                VirtualFile virtualFile = DevAssistUtils.getCurrentSelectedFile(project);
+                if (Objects.nonNull(virtualFile)) {
+                    Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
+                    if (Objects.nonNull(document)) {
+                        int textLength = document.getTextLength();
+                        WriteCommandAction.runWriteCommandAction(project, ()
+                                -> document.insertString(textLength, " "));
+                    }
+                }
+            }, ModalityState.NON_MODAL);
+        } catch (Exception e) {
+            LOGGER.warn("RTS: Failed to trigger inspection on the current selected file.", e);
+        }
     }
 }

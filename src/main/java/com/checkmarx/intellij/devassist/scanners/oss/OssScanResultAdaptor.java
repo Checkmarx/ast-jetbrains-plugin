@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
  */
 public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
     private final OssRealtimeResults ossRealtimeResults;
+    private final String filePath;
     private final List<ScanIssue> scanIssues;
 
     /**
@@ -32,8 +33,9 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
      *
      * @param ossRealtimeResults the OSS real-time scan results to be wrapped by this adapter
      */
-    public OssScanResultAdaptor(OssRealtimeResults ossRealtimeResults) {
+    public OssScanResultAdaptor(OssRealtimeResults ossRealtimeResults, String filePath) {
         this.ossRealtimeResults = ossRealtimeResults;
+        this.filePath = filePath;
         this.scanIssues = buildIssues();
     }
 
@@ -95,7 +97,7 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
         scanIssue.setPackageVersion(packageObj.getPackageVersion());
         scanIssue.setScanEngine(ScanEngine.OSS);
         scanIssue.setSeverity(packageObj.getStatus());
-        scanIssue.setFilePath(packageObj.getFilePath());
+        scanIssue.setFilePath(this.filePath);
 
         if (Objects.nonNull(packageObj.getLocations()) && !packageObj.getLocations().isEmpty()) {
             packageObj.getLocations().forEach(location ->

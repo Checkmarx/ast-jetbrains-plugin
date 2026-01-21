@@ -1,7 +1,9 @@
 package com.checkmarx.intellij.devassist.utils;
 
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
@@ -10,15 +12,19 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileEditor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -165,9 +171,9 @@ public class DevAssistUtils {
      * @return true if the scan package is a problem, false otherwise
      */
     public static boolean isProblem(String severity) {
-        if (severity.equalsIgnoreCase(SeverityLevel.OK.getSeverity())) {
-            return false;
-        } else return !severity.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity());
+        return !severity.equalsIgnoreCase(SeverityLevel.OK.getSeverity()) &&
+                !severity.equalsIgnoreCase(SeverityLevel.UNKNOWN.getSeverity()) &&
+                !severity.equalsIgnoreCase(Constants.IGNORE_LABEL);
     }
 
     /**
@@ -254,12 +260,12 @@ public class DevAssistUtils {
                 CopyPasteManager.getInstance().setContents(new StringSelection(textToCopy));
                 Utils.showNotification(notificationTitle, notificationContent,
                         NotificationType.INFORMATION,
-                        project);
+                        project,false,"");
             });
             return true;
         } catch (Exception exception) {
             LOGGER.debug("Failed to copy text to clipboard: ", exception);
-            Utils.showNotification(notificationTitle, "Failed to copy text to clipboard.", NotificationType.ERROR, null);
+            Utils.showNotification(notificationTitle, "Failed to copy text to clipboard.", NotificationType.ERROR, null,false,"");
             return false;
         }
     }
@@ -287,7 +293,6 @@ public class DevAssistUtils {
      * @return a unique id
      */
     public static String generateUniqueId(int line, String title, String description) {
-        //return UUID.randomUUID().toString();
         String input = line + title + description;
         return DevAssistUtils.encodeBase64(input);
     }
@@ -360,5 +365,118 @@ public class DevAssistUtils {
                 .filter(vulnerability -> vulnerability.getVulnerabilityId().equals(vulnerabilityId))
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * Extracts the prefix from the input string
+     * (e.g., "/AIAssistantInput" from "/AIAssistantInput-f85ebab5-dca9-4805-a452-2e189acff4b3.chatInput")
+     * and checks if it is present in the AI assistant generated files list.
+     *
+     * @param input      the input string
+     * @param prefixList the list of prefixes to check against
+     * @return true if the prefix is present in the list, false otherwise
+     */
+    public static boolean isAIAssistantEvent(String input, List<String> prefixList) {
+        if (input == null || prefixList == null) return false;
+        int dashIndex = input.indexOf('-');
+        String prefix = dashIndex > 0 ? input.substring(0, dashIndex) : input;
+        return prefixList.contains(prefix);
+    }
+
+    /**
+     * Get the currently selected file in the editor, if its not found then get most recently focused open file
+     *
+     * @param project - currently open project
+     * @return VirtualFile
+     */
+    public static VirtualFile getCurrentSelectedFile(Project project) {
+        if (isProjectDisposed(project)) {
+            LOGGER.warn("Project is disposed of. Cannot get current selected file.");
+            return null;
+        }
+        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+        if (Objects.isNull(fileEditorManager)) {
+            LOGGER.warn("File editor manager is null. Cannot get current selected file.");
+            return null;
+        }
+        FileEditor editor = fileEditorManager.getSelectedEditor();
+        if (Objects.isNull(editor) || Objects.isNull(editor.getFile())) {
+            LOGGER.warn("Selected file editor is null or no active file in the editor. Cannot get selected active file.");
+            VirtualFile[] virtualFiles = getCurrentOpenFiles(project);
+            return virtualFiles.length > 0 ? virtualFiles[0] : null; // return most recently focused an open file
+        }
+        return editor.getFile();
+    }
+
+    /**
+     * Get the currently active file in the editor
+     *
+     * @param project - currently open project
+     * @return VirtualFile[]
+     */
+    public static VirtualFile[] getCurrentOpenFiles(Project project) {
+        try {
+            FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+            if (Objects.isNull(fileEditorManager)) {
+                LOGGER.warn("File editor manager is null. Cannot get current active file.");
+                return new VirtualFile[0];
+            }
+            return fileEditorManager.getSelectedFiles();
+        } catch (Exception e) {
+            LOGGER.warn("Exception occurred while getting current active file.", e);
+            return new VirtualFile[0];
+        }
+    }
+
+    /**
+     * Checks if the project is disposed of.
+     *
+     * @param project - Jetbrains project
+     * @return true if the project is disposed, false otherwise.
+     */
+    public static boolean isProjectDisposed(Project project) {
+        return Objects.isNull(project) || project.isDisposed();
+    }
+
+    /**
+     * Checks if the virtual file is a GitHub Copilot or AI Assistant generated file.
+     * E.g., On opening or typing prompt in the chat of GitHub Copilot, AI Assistant it's generating
+     * the fake file with the name Dummy.txt, or AIAssistant so ignoring those files to be scanned.
+     *
+     * @param filePath - VirtualFile path.
+     * @return true if the file is a GitHub Copilot/AI agent - generated file, false otherwise.
+     */
+    public static boolean isAIAgentEvent(String filePath) {
+        boolean isFilePathMatched = DevAssistConstants.AI_AGENT_FILES.stream()
+                .anyMatch(agentFile -> agentFile.equals(filePath));
+        if (!isFilePathMatched) {
+            return DevAssistUtils.isAIAssistantEvent(filePath, DevAssistConstants.AI_AGENT_FILES);
+        }
+        return true;
+    }
+
+    /**
+     * Returns the path to the temporary ignore file for the given project.
+     *
+     * @param project the project for which to get the ignore file path
+     * @return the path to the temporary ignore file, or null if the ignore manager is not available
+     */
+    public static String getIgnoreFilePath(@NotNull Project project) {
+        return new IgnoreManager(project).getIgnoreTempFilePath();
+    }
+
+    /**
+     * Get PsiFile by original file path.
+     *
+     * @param project  - currently open project
+     * @param filePath - full file path including directory
+     * @return PsiFile
+     */
+    public static PsiFile getPsiFileByFilePath(Project project, String filePath) {
+        VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByPath(filePath);
+        if (virtualFile != null) {
+            return PsiManager.getInstance(project).findFile(virtualFile);
+        }
+        return null;
     }
 }

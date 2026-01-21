@@ -1,17 +1,18 @@
 package com.checkmarx.intellij.devassist.configuration;
 
+import com.checkmarx.intellij.devassist.inspection.CxOneAssistInspectionMgr;
 import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
-import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * ScannerLifeCycleManager is Project level service i.e it is distinct for each project
+ * ScannerLifeCycleManager is a Project level service i.e., it is distinct for each project
  * Manages the Lifecycle of Scanner for the project
- * Triggers the Start and Stop of the Scanner for  Project based on global settings
+ * Triggers the Start and Stop of the Scanner for Project based on global settings
  */
 
 @Getter
@@ -53,6 +54,7 @@ public final class ScannerLifeCycleManager implements Disposable {
             if (isEnabled) start(type);
             else stop(type);
         }
+        startInspection();
     }
 
     /**
@@ -80,10 +82,26 @@ public final class ScannerLifeCycleManager implements Disposable {
         for (ScanEngine type : ScanEngine.values()) {
             stop(type);
         }
+        startInspection();
     }
 
     @Override
     public void dispose() {
         stopAll();
+    }
+
+    /**
+     * Initiates the inspection process for the project by triggering an inspection
+     * through the CxOneAssistInspectionMgr service.
+     * <p>
+     * This method acts as a utility to start a project-wide inspection
+     * and is invoked during lifecycle changes such as starting or stopping
+     * scanners to ensure the latest state is reflected in inspection results.
+     * <p>
+     * The inspection manager operates at the project scope and is
+     * dependent on the current project's context.
+     */
+    private void startInspection() {
+        new CxOneAssistInspectionMgr().triggerInspection(project);
     }
 }
