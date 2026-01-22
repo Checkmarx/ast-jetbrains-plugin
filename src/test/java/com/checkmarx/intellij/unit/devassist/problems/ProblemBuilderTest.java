@@ -10,6 +10,7 @@ import com.checkmarx.intellij.devassist.remediation.ViewDetailsFix;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.codeInspection.InspectionManager;
+import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.openapi.editor.Document;
@@ -53,10 +54,15 @@ class ProblemBuilderTest {
         ScanIssue scanIssue = mock(ScanIssue.class);
         when(scanIssue.getScanEngine()).thenReturn(com.checkmarx.intellij.devassist.utils.ScanEngine.OSS);
         when(scanIssue.getSeverity()).thenReturn(String.valueOf(SeverityLevel.MEDIUM));
+        when(scanIssue.getTitle()).thenReturn("Test Issue");
+        when(scanIssue.getPackageVersion()).thenReturn("1.0.0");
+        when(scanIssue.getVulnerabilities()).thenReturn(Collections.emptyList());
+        when(scanIssue.getScanIssueId()).thenReturn("test-id");
 
+        // Mock createProblemDescriptor with 4 LocalQuickFix parameters (for OSS engine)
         when(manager.createProblemDescriptor(eq(psiFile), any(TextRange.class), anyString(),
                 eq(ProblemHighlightType.GENERIC_ERROR), eq(true),
-                any(CxOneAssistFix.class), any(ViewDetailsFix.class)))
+                any(LocalQuickFix.class), any(LocalQuickFix.class), any(LocalQuickFix.class), any(LocalQuickFix.class)))
                 .thenReturn(expectedDescriptor);
 
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {

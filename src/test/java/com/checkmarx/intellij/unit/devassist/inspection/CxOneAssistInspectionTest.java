@@ -153,8 +153,11 @@ class CxOneAssistInspectionTest {
             when(holderService.getProblemDescriptors("/repo/file.tf")).thenReturn(List.of(descriptor));
             when(problemHolderService.getProblemDescriptors("/repo/file.tf")).thenReturn(List.of(descriptor));
 
+            // Mock decorateUI to avoid exceptions
+            doNothing().when(inspectionMgr).decorateUI(eq(document), eq(psiFile), anyList());
+
             ProblemDescriptor[] descriptors = inspection.checkFile(psiFile, inspectionManager, true);
-            assertEquals(0, descriptors.length);
+            assertEquals(1, descriptors.length);
         }
     }
 

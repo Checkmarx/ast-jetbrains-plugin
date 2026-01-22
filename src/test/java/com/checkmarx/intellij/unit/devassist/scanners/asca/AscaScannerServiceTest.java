@@ -82,7 +82,7 @@ class AscaScannerServiceTest {
             CxWrapper wrapper = mock(CxWrapper.class);
             ScanResult scanResult = mock(ScanResult.class);
             when(scanResult.getError()).thenReturn(null);
-            when(wrapper.ScanAsca(anyString(), eq(true), anyString(),null)).thenReturn(scanResult);
+            when(wrapper.ScanAsca(anyString(), eq(true), anyString(), isNull())).thenReturn(scanResult);
 
             factory.when(com.checkmarx.intellij.settings.global.CxWrapperFactory::build).thenReturn(wrapper);
 
