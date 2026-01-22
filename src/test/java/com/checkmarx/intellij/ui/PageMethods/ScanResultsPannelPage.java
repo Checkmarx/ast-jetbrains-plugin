@@ -177,7 +177,6 @@ public class ScanResultsPannelPage {
         find(JTextFieldFixture.class, SCAN_FIELD).setText(scanId);
         new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
 
-
     }
 
     /**
