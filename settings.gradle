@@ -1,2 +1,6 @@
 rootProject.name = 'ast-jetbrains-plugin'
 
+// Include the three modules
+include 'common-lib'
+include 'plugin-devassist'
+include 'plugin-core'

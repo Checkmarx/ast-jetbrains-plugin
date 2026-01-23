@@ -1,0 +1,73 @@
+plugins {
+    id 'java'
+    id 'io.freefair.lombok' version '8.6'
+    id 'org.jetbrains.intellij' version '1.17.4'
+}
+
+group 'com.checkmarx'
+version System.getenv('RELEASE_VERSION') ?: "dev"
+
+def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION')
+
+repositories {
+    mavenCentral()
+    maven {
+        url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
+    }
+    maven {
+        url = 'https://oss.sonatype.org/content/repositories/snapshots'
+    }
+}
+
+dependencies {
+    // Checkmarx AST CLI Java Wrapper
+    if (javaWrapperVersion == "" || javaWrapperVersion == null) {
+        implementation('com.checkmarx.ast:ast-cli-java-wrapper:2.4.17.6-dev'){
+            exclude group: 'junit', module: 'junit'
+        }
+    } else {
+        implementation('com.checkmarx.ast:ast-cli-java-wrapper:' + javaWrapperVersion){
+            exclude group: 'junit', module: 'junit'
+        }
+    }
+
+    // MigLayout for UI components
+    implementation 'com.miglayout:miglayout-swing:11.3'
+
+    // Jackson for JSON processing
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.16.1"))
+
+    // Test dependencies
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    testImplementation 'org.mockito:mockito-core:5.15.2'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.0.0'
+}
+
+// IntelliJ Platform configuration
+intellij {
+    version = '2022.2.1'
+    updateSinceUntilBuild = false
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+        showStandardStreams = true
+    }
+}
+

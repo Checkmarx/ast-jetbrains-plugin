@@ -135,6 +135,10 @@ java {
     }
 }
 
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
 patchPluginXml {
     sinceBuild = '222'
 }

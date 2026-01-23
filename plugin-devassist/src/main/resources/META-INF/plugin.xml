@@ -1,0 +1,93 @@
+<idea-plugin>
+    <id>com.checkmarx.checkmarx-one-assist-jetbrains-plugin</id>
+    <name>Checkmarx One Assist</name>
+    <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
+
+    <description><![CDATA[
+    <b>Checkmarx One Assist – AI guided remediation.</b>
+    <p>An advanced security agent that delivers real-time context-aware prevention, remediation, and guidance to developers from the IDE.</p>
+    <ul>
+        <li><b>OSS</b> Realtime scanner identifies risks in open source packages used in your project.</li>
+        <li><b>Secrets</b> Realtime scanner identifies risks in detected secrets used in your project.</li>
+        <li><b>Container</b> Realtime scanner identifies risks in container images used in your project.</li>
+        <li><b>IAC</b> Realtime scanner identifies infrastructure configuration risks in your project.</li>
+        <li><b>ASCA</b> Realtime scanner identifies insecure patterns in your project source code.</li>
+        <li>MCP-based agentic AI remediation.</li>
+        <li>AI-powered explanation of risk details.</li>
+    </ul>
+    <p>Full user's manual can be found <a href="https://docs.checkmarx.com/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-pluging.html">here</a>.</p>
+    ]]></description>
+
+    <change-notes><![CDATA[
+      <b>Version 1.0</b>
+        <ul>
+            <li>Initial release of Checkmarx One Assist as a standalone plugin</li>
+            <li>Real-time security scanning for OSS, Secrets, Containers, IAC, and ASCA</li>
+            <li>MCP-based AI remediation</li>
+        </ul>
+    ]]></change-notes>
+
+    <!-- Requires IntelliJ Platform -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- CxOne Assist Settings -->
+        <applicationConfigurable
+                id="settings.ast.assist"
+                provider="com.checkmarx.intellij.settings.global.CxOneAssistConfigurableProvider"
+                parentId="tools"
+                bundle="messages.CxBundle"
+                key="CXONE_ASSIST_TITLE"/>
+
+        <!-- Auto-install MCP at IDE startup if already authenticated -->
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService"/>
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
+
+        <!-- Tool Window for DevAssist Findings -->
+        <toolWindow id="Checkmarx One Assist"
+                    anchor="bottom"
+                    icon="com.checkmarx.intellij.CxIcons.CHECKMARX_13"
+                    factoryClass="com.checkmarx.intellij.devassist.ui.findings.window.DevAssistToolWindowFactory"/>
+
+        <!-- Notification Group -->
+        <notificationGroup id="Checkmarx.OneAssist.Notifications" displayType="BALLOON"
+                           bundle="messages.CxBundle" key="NOTIFICATION_GROUP_NAME" isLogByDefault="true"/>
+
+        <!-- CxOne Assist Inspection -->
+        <localInspection
+                displayName="CxOneAssist"
+                groupName="CxOneAssist"
+                groupPath="Checkmarx"
+                enabledByDefault="true"
+                implementationClass="com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection"/>
+
+        <!-- Register tooltip link handler -->
+        <codeInsight.linkHandler
+                prefix="#cxonedevassist/"
+                handlerClass="com.checkmarx.intellij.devassist.remediation.RemediationLinkHandler"/>
+    </extensions>
+
+    <applicationListeners>
+        <!-- MCP Uninstall Handler -->
+        <listener class="com.checkmarx.intellij.devassist.configuration.mcp.McpUninstallHandler"
+                  topic="com.intellij.ide.plugins.DynamicPluginListener"/>
+    </applicationListeners>
+
+    <actions>
+        <!-- DevAssist Vulnerability Toolbar Group -->
+        <group id="VulnerabilityToolbarGroup">
+            <action id="Checkmarx.DevAssistOpenSettings"
+                    class="com.checkmarx.intellij.tool.window.actions.OpenSettingsAction"
+                    icon="AllIcons.General.Settings"/>
+            <separator/>
+            <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
+            <action id="VulnerabilityCritical" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityCriticalFilter" />
+            <action id="VulnerabilityHigh" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
+            <action id="VulnerabilityMedium" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
+            <action id="VulnerabilityLow" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
+            <separator/>
+        </group>
+    </actions>
+
+</idea-plugin>
+

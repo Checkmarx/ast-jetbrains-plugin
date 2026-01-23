@@ -43,10 +43,6 @@
 
         <projectService serviceImplementation="com.checkmarx.intellij.project.ProjectResultsService"/>
 
-        <!-- Auto-install MCP at IDE startup if already authenticated -->
-        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService"/>
-        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
-
         <toolWindow id="Checkmarx"
                     anchor="bottom"
                     icon="com.checkmarx.intellij.CxIcons.CHECKMARX_13"
@@ -67,18 +63,18 @@
                 groupName="CxOneAssist"
                 groupPath="Checkmarx"
                 enabledByDefault="true"
-                implementationClass="com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection"/>
+                implementationClass="inspection.com.checkmarx.intellij.devassist.CxOneAssistInspection"/>
 
         <!-- Register tooltip link handler -->
         <codeInsight.linkHandler
                 prefix="#cxonedevassist/"
-                handlerClass="com.checkmarx.intellij.devassist.remediation.RemediationLinkHandler"/>
+                handlerClass="remediation.com.checkmarx.intellij.devassist.RemediationLinkHandler"/>
     </extensions>
 
     <applicationListeners>
         <listener class="com.checkmarx.intellij.project.ProjectListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
-        <listener class="com.checkmarx.intellij.devassist.configuration.mcp.McpUninstallHandler"
+        <listener class="mcp.configuration.com.checkmarx.intellij.devassist.McpUninstallHandler"
                   topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     </applicationListeners>
 
@@ -132,18 +128,6 @@
             <action id="Checkmarx.CollapseAll"
                     class="com.checkmarx.intellij.tool.window.actions.CollapseAllAction"
                     icon="AllIcons.Actions.Collapseall"/>
-        </group>
-        <group id="VulnerabilityToolbarGroup">
-            <action id="Checkmarx.DevAssistOpenSettings"
-                    class="com.checkmarx.intellij.tool.window.actions.OpenSettingsAction"
-                    icon="AllIcons.General.Settings"/>
-            <separator/>
-            <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
-            <action id="VulnerabilityCritical" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityCriticalFilter" />
-            <action id="VulnerabilityHigh" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
-            <action id="VulnerabilityMedium" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
-            <action id="VulnerabilityLow" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
-            <separator/>
         </group>
     </actions>
 
