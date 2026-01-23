@@ -9,6 +9,7 @@ import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.MarkupModel;
@@ -254,7 +255,7 @@ public class ProblemDecoratorTest {
                 Runnable r = inv.getArgument(0);
                 r.run();
                 return null;
-            }).when(application).invokeLater(any(Runnable.class));
+            }).when(application).invokeLater(any(Runnable.class), any(ModalityState.class));
             FileEditorManager fileMgr = mock(FileEditorManager.class);
             fileEditorManager.when(() -> FileEditorManager.getInstance(project)).thenReturn(fileMgr);
             Editor editor = mock(Editor.class);
