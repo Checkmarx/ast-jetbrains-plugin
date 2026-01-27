@@ -802,22 +802,59 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
 
         private JPanel buildLastUpdatedColumn() {
-            JPanel panel = new JPanel(new BorderLayout());
+            JPanel panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
             panel.setOpaque(false);
             setColumnSizes(panel, 120, 140, 160, getCalculatedRowHeight());
+
+            // Add spacer for top section (title row) - empty space to skip past title
+            JPanel topSpacer = new JPanel();
+            topSpacer.setOpaque(false);
+            Dimension topSize = new Dimension(Integer.MAX_VALUE, JBUI.scale(TOP_LINE_HEIGHT));
+            topSpacer.setPreferredSize(topSize);
+            topSpacer.setMinimumSize(new Dimension(0, JBUI.scale(TOP_LINE_HEIGHT)));
+            topSpacer.setMaximumSize(topSize);
+            panel.add(topSpacer);
+
+            // Middle section - aligned with description row
+            JPanel middleWrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, JBUI.scale(2)));
+            middleWrapper.setOpaque(false);
+            Dimension middleSize = new Dimension(Integer.MAX_VALUE, JBUI.scale(actualDescHeight + 4));
+            middleWrapper.setPreferredSize(middleSize);
+            middleWrapper.setMinimumSize(new Dimension(0, JBUI.scale(DESC_LINE_HEIGHT_MIN)));
+            middleWrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(DESC_LINE_HEIGHT_MAX + 4)));
 
             JLabel label = new JLabel(formatRelativeDate(entry.dateAdded));
             label.setFont(new Font(FONT_FAMILY_MENLO, Font.PLAIN, 14));
             label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setVerticalAlignment(SwingConstants.CENTER);  // Align to top for dynamic height
-            panel.add(label, BorderLayout.CENTER);
+            middleWrapper.add(label);
+
+            panel.add(middleWrapper);
             return panel;
         }
 
         private JPanel buildActionsColumn() {
-            JPanel panel = new JPanel(new GridBagLayout());
+            JPanel panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
             panel.setOpaque(false);
             setColumnSizes(panel, 120, 140, 160, getCalculatedRowHeight());
+
+            // Add spacer for top section (title row) - empty space to skip past title
+            JPanel topSpacer = new JPanel();
+            topSpacer.setOpaque(false);
+            Dimension topSize = new Dimension(Integer.MAX_VALUE, JBUI.scale(TOP_LINE_HEIGHT));
+            topSpacer.setPreferredSize(topSize);
+            topSpacer.setMinimumSize(new Dimension(0, JBUI.scale(TOP_LINE_HEIGHT)));
+            topSpacer.setMaximumSize(topSize);
+            panel.add(topSpacer);
+
+            // Middle section - aligned with description row
+            JPanel middleWrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, JBUI.scale(2)));
+            middleWrapper.setOpaque(false);
+            Dimension middleSize = new Dimension(Integer.MAX_VALUE, JBUI.scale(actualDescHeight + 4));
+            middleWrapper.setPreferredSize(middleSize);
+            middleWrapper.setMinimumSize(new Dimension(0, JBUI.scale(DESC_LINE_HEIGHT_MIN)));
+            middleWrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(DESC_LINE_HEIGHT_MAX + 4)));
 
             JButton reviveButton = new JButton(CxIcons.Ignored.REVIVE);
             reviveButton.setBorder(BorderFactory.createEmptyBorder());
@@ -825,13 +862,14 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             reviveButton.setFocusPainted(false);
             reviveButton.setOpaque(false);
             reviveButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            reviveButton.addActionListener(e -> new IgnoreManager(project).reviveSingleEntry(entry));
-                    LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown"));
-            clearSelection();
-            GridBagConstraints gbc = new GridBagConstraints();
-            gbc.anchor = GridBagConstraints.FIRST_LINE_START;
-            gbc.insets = JBUI.insetsTop(10);
-            panel.add(reviveButton, gbc);
+            reviveButton.addActionListener(e -> {
+                LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown"));
+                new IgnoreManager(project).reviveSingleEntry(entry);
+                clearSelection();
+            });
+            middleWrapper.add(reviveButton);
+
+            panel.add(middleWrapper);
             return panel;
         }
 
