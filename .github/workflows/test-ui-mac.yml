@@ -50,7 +50,7 @@ jobs:
         run: curl --fail -sv --retry "45" --retry-delay "15" --retry-connrefused "http://127.0.0.1:8580"
       # Run tests
       - name: Tests
-        run: ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui.TestGeneral
+        run: ./gradlew test -PuiWaitDuration=800 --info --tests com.checkmarx.intellij.ui*
       # Save video if tests fail
       - name: Move video
         if: ${{ failure() }}
