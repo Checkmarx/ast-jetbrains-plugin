@@ -18,7 +18,9 @@ import java.awt.event.KeyEvent;
 import java.time.Duration;
 import java.util.List;
 
+import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.openSettings;
 import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.testASTConnection;
+import static com.checkmarx.intellij.ui.PageMethods.ScanResultsPannelPage.enterScanIdAndSelect;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
@@ -54,8 +56,14 @@ public abstract class BaseUITest {
             // Resize Checkmarx One plugin so that all toolbar icons are visible
             resizeToolBar();
 
-            // Connect to AST
-            testASTConnection(true);
+            // ✅ Connect only if not already connected
+            if (!isASTConnected()) {
+                log("AST not connected. Establishing connection...");
+                testASTConnection(true);
+            } else {
+                click(OK_BTN);
+                log("AST already connected. Skipping connection step.");
+            }
 
             initialized = true;
             log("Initialization finished");
@@ -145,8 +153,9 @@ public abstract class BaseUITest {
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         focusCxWindow();
         clearSelection();
-        find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
-        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
+       /* find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
+        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);*/
+        enterScanIdAndSelect(true);
         waitFor(() -> {
             focusCxWindow();
             return hasAnyComponent(TREE)
@@ -221,5 +230,10 @@ public abstract class BaseUITest {
             log(filter.popState().name());
             return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
         });
+    }
+
+    public static boolean isASTConnected() {
+        openSettings();
+        return hasAnyComponent(SUCCESSFUL_LOGIN_MESSAGE);
     }
 }

@@ -126,7 +126,7 @@ public class Xpath {
     static final String MAGIC_RESOLVE = "//div[@defaulticon='magicResolve.svg']";
     @Language("XPath")
     public
-    static final String PROJECT_DOES_NOT_MATCH = "//div[@accessiblename.key='PROJECT_DOES_NOT_MATCH_TITLE']";
+    static final String PROJECT_DOES_NOT_MATCH = "//div[@class='JEditorPane']";
     @Language("XPath")
     public
     static final String BRANCH_DOES_NOT_MATCH = "//div[@accessiblename.key='BRANCH_DOES_NOT_MATCH_TITLE']";
@@ -191,6 +191,9 @@ public class Xpath {
     @Language("XPath")
     public static final String INVALID_TENANT_ERROR =
             "//div[@accessiblename='Tenant \"invalid-tenant\" not found. Please check your tenant name.' and @class='JBLabel' and @text='<html>Tenant \"invalid-tenant\" not found. Please check your tenant name.</html>']";
+    @Language("XPath")
+    public
+    static final String SUCCESSFUL_LOGIN_MESSAGE = "//div[@visible_text_keys='VALIDATE_SUCCESS']";
     //CxOne Assist Page XPaths
     @Language("XPath")
     public static final String GO_TO_CXONE_ASSIST_LINK = "//div[@mytext='Go to Checkmarx One Assist']";
