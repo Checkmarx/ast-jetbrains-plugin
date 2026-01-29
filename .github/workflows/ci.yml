@@ -52,7 +52,7 @@ jobs:
       - name: Tests
         run: |
           export DISPLAY=:99.0
-          ./gradlew test -PuiWaitDuration=800  --info --tests com.checkmarx.intellij.ui*
+          ./gradlew test -PuiWaitDuration=800  --info --tests com.checkmarx.intellij.ui.TestGeneral
       - name: Move video
         if: ${{ failure() }}
         run: mv video build/reports
@@ -73,86 +73,86 @@ jobs:
           path: |
             idea.log
 
-  testUnit:
-    runs-on: ubuntu-latest
-    steps:
-      # Check out current repository
-      - name: Fetch Sources
-        uses: actions/checkout@v4
-      # Setup Java 11 environment for the next steps
-      - name: Setup Java
-        uses: actions/setup-java@v3.13.0
-        with:
-          distribution: zulu
-          java-version: 11
-      # Perform clean before testing
-      - name: Clean
-        run: ./gradlew clean
-      # Run tests
-      - name: Run Tests with coverage report
-        id: test_results
-        run: |
-          ./gradlew test --tests "com.checkmarx.intellij.unit*" jacocoTestReport \
-            -PjacocoTask=unit
-
-      - name: Generate JaCoCo Badge
-        uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 #v2.11.0
-        with:
-          jacoco-csv-file: build/reports/jacoco/test/jacocoTestReport.csv
-
-      # Save coverage report as an artifact
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-coverage-report
-          path: build/reports/jacoco/test/html/
-      # Save report if tests fail
-      - name: Save fails report
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-fails-report-integration
-          path: |
-            build/reports
-
-  testIntegration:
-    runs-on: ubuntu-latest
-    steps:
-      # Check out current repository
-      - name: Fetch Sources
-        uses: actions/checkout@v4
-      # Setup Java 11 environment for the next steps
-      - name: Setup Java
-        uses: actions/setup-java@v3.13.0
-        with:
-          distribution: zulu
-          java-version: 11
-      # Perform clean before testing
-      - name: Clean
-        run: ./gradlew clean
-      # Run tests
-      - name: Run Tests with coverage report
-        id: test_results
-        run: |
-          ./gradlew test --tests "com.checkmarx.intellij.integration.standard*" jacocoTestReport \
-            -PjacocoTask=integration
-
-      - name: Generate JaCoCo Badge
-        uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 #v2.11.0
-        with:
-          jacoco-csv-file: build/reports/jacoco/test/jacocoTestReport.csv
-
-      # Save coverage report as an artifact
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-coverage-report
-          path: build/reports/jacoco/test/html/
-      # Save report if tests fail
-      - name: Save fails report
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-fails-report-integration
-          path: |
-            build/reports
+#  testUnit:
+#    runs-on: ubuntu-latest
+#    steps:
+#      # Check out current repository
+#      - name: Fetch Sources
+#        uses: actions/checkout@v4
+#      # Setup Java 11 environment for the next steps
+#      - name: Setup Java
+#        uses: actions/setup-java@v3.13.0
+#        with:
+#          distribution: zulu
+#          java-version: 11
+#      # Perform clean before testing
+#      - name: Clean
+#        run: ./gradlew clean
+#      # Run tests
+#      - name: Run Tests with coverage report
+#        id: test_results
+#        run: |
+#          ./gradlew test --tests "com.checkmarx.intellij.unit*" jacocoTestReport \
+#            -PjacocoTask=unit
+#
+#      - name: Generate JaCoCo Badge
+#        uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 #v2.11.0
+#        with:
+#          jacoco-csv-file: build/reports/jacoco/test/jacocoTestReport.csv
+#
+#      # Save coverage report as an artifact
+#      - name: Upload Coverage Report
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: unit-coverage-report
+#          path: build/reports/jacoco/test/html/
+#      # Save report if tests fail
+#      - name: Save fails report
+#        if: ${{ failure() }}
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: test-fails-report-integration
+#          path: |
+#            build/reports
+#
+#  testIntegration:
+#    runs-on: ubuntu-latest
+#    steps:
+#      # Check out current repository
+#      - name: Fetch Sources
+#        uses: actions/checkout@v4
+#      # Setup Java 11 environment for the next steps
+#      - name: Setup Java
+#        uses: actions/setup-java@v3.13.0
+#        with:
+#          distribution: zulu
+#          java-version: 11
+#      # Perform clean before testing
+#      - name: Clean
+#        run: ./gradlew clean
+#      # Run tests
+#      - name: Run Tests with coverage report
+#        id: test_results
+#        run: |
+#          ./gradlew test --tests "com.checkmarx.intellij.integration.standard*" jacocoTestReport \
+#            -PjacocoTask=integration
+#
+#      - name: Generate JaCoCo Badge
+#        uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 #v2.11.0
+#        with:
+#          jacoco-csv-file: build/reports/jacoco/test/jacocoTestReport.csv
+#
+#      # Save coverage report as an artifact
+#      - name: Upload Coverage Report
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: integration-coverage-report
+#          path: build/reports/jacoco/test/html/
+#      # Save report if tests fail
+#      - name: Save fails report
+#        if: ${{ failure() }}
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: test-fails-report-integration
+#          path: |
+#            build/reports

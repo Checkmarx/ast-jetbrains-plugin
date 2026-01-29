@@ -5,10 +5,11 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.tool.window.Severity;
-import com.intellij.remoterobot.fixtures.JListFixture;
+
 import com.intellij.remoterobot.fixtures.JTreeFixture;
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -39,6 +40,7 @@ public class TestGeneral extends BaseUITest {
 
     @Test
     @Video
+    @DisplayName("End-to-End Scan Results Panel and Result Validation")
     public void testEndToEnd() throws InterruptedException {
         checkAllTheComponentsInScanResultsPannel();
         validateResultPannel();
@@ -46,6 +48,7 @@ public class TestGeneral extends BaseUITest {
 
     @Test
     @Video
+    @DisplayName("Filter Functionality: Enable/Disable Severities and Tree Validation")
     public void testFilters() {
         waitForScanIdSelection();
 
@@ -60,6 +63,7 @@ public class TestGeneral extends BaseUITest {
 
     @Test
     @Video
+    @DisplayName("Invalid Scan ID Handling")
     public void testInvalidScanId() {
         waitFor(() -> {
             enterScanIdAndSelect(false);
@@ -73,6 +77,7 @@ public class TestGeneral extends BaseUITest {
 
     @Test
     @Video
+    @DisplayName("Selection of Project, Branch, and Scan")
     public void testSelection() {
         resetProjectSelection(1);
         testSelectionAction(findSelection("Project"), "Project", Environment.PROJECT_NAME);
@@ -85,6 +90,7 @@ public class TestGeneral extends BaseUITest {
 
     @Test
     @Video
+    @DisplayName("Clear Selection After Test")
     public void testClearSelection() {
         testSelection();
         resetProjectSelection(1);
