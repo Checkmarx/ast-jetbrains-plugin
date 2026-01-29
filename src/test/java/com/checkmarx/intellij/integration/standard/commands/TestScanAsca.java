@@ -6,7 +6,6 @@ import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.integration.standard.BaseTest;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -34,7 +33,10 @@ public class TestScanAsca extends BaseTest {
         );
 
         Assertions.assertNotNull(virtualFile, "The virtual file should not be null.");
-        Project project = ProjectManager.getInstance().getDefaultProject();
+
+        // Use the test fixture's project instead of default project
+        // This ensures the project has a proper base path set up
+        Project project = getProject();
 
         // Retrieve the PsiFile in a read action
         PsiFile psiFile = ApplicationManager.getApplication().runReadAction((Computable<PsiFile>) () ->
