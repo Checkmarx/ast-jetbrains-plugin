@@ -43,6 +43,8 @@
 
         <projectService serviceImplementation="com.checkmarx.intellij.project.ProjectResultsService"/>
 
+        <!-- Sync license flags from server on IDE startup to ensure UI shows correct panels -->
+        <postStartupActivity implementation="com.checkmarx.intellij.startup.LicenseFlagSyncStartupActivity"/>
         <!-- Auto-install MCP at IDE startup if already authenticated -->
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService"/>
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
