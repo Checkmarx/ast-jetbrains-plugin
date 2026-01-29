@@ -76,12 +76,8 @@ public class ScanResultsPannelPage {
         if (!isPresent) {
             locateAndClickOnButton(RESET_PROJECT_SELECTION);
         }
-//        boolean resetSuccess =
+
         validateIfProjectSelectionIsReset(maxAttempts);
-//        if (!resetSuccess && maxAttempts > 0) {
-//            log("Project selection reset failed. Retrying...");
-//            resetProjectSelection(maxAttempts - 1);
-//        }
     }
 
     /**
@@ -205,14 +201,17 @@ public class ScanResultsPannelPage {
         boolean branchNameReset = pollingWaitForElement(SELECTED_BRANCH_NAME_NONE, true);
         hasAnyComponent(SELECTED_SCAN_ID_NONE);
         log("Is none project selected: " + projectNameReset + ", Is none branch selected: " + branchNameReset);
-        if ((!projectNameReset || !branchNameReset) && maxAttempts > 0) {
+        if (projectNameReset && branchNameReset) {
+            log("Project selection reset successfully.");
+            return true;
+        } else if (maxAttempts > 0) {
             log("Project selection is not reset. Retrying...");
-            resetProjectSelection(maxAttempts);
+            resetProjectSelection(maxAttempts - 1);
+            return false;
         } else {
-            log("Project selection is not reset.");
+            log("Project selection is not reset. No more attempts.");
             return false;
         }
-        return true;
     }
 
     /**

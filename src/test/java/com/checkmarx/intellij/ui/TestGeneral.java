@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.EnumSet;
 import java.util.List;
 
+import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.*;
 import static com.checkmarx.intellij.ui.PageMethods.ScanResultsPannelPage.*;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
@@ -32,7 +33,9 @@ public class TestGeneral extends BaseUITest {
 
     @BeforeEach
     public void checkResults() {
-        openScanResultsPanel();
+        openSettings();
+        logoutIfUserIsAlreadyLoggedIn();
+        performLoginUsingApiKey(true);
         resetProjectSelection(1);
         enterScanIdAndSelect(true);
         validateProjectLoadedSuccessfully();
