@@ -36,6 +36,7 @@ public class TestGeneral extends BaseUITest {
         openSettings();
         logoutIfUserIsAlreadyLoggedIn();
         performLoginUsingApiKey(true);
+        validateSuccessfulLogin(true);
         resetProjectSelection(1);
         enterScanIdAndSelect(true);
         validateProjectLoadedSuccessfully();
