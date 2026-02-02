@@ -12,12 +12,12 @@ dependencies {
 }
 
 intellij {
-    version = "${rootProject.varIntellijVersion}"
+    version = "${intellijVersion}"
     updateSinceUntilBuild = false
 }
 
 patchPluginXml {
-    sinceBuild = "${rootProject.varSinceBuildVersion}"
+    sinceBuild = "${sinceBuildVersion}"
 }
 
 publishPlugin {
