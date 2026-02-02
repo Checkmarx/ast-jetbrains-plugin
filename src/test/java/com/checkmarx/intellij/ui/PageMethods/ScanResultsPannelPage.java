@@ -69,6 +69,19 @@ public class ScanResultsPannelPage {
         //Need to set focus on reset by clicking
         pollingWaitForElement(PROJECT_NAME_NULL,false);
 
+        // Early return optimization: Check if project, branch, and scan are already set to 'none'
+        // This prevents unnecessary UI interactions when selections are already in the reset state
+        boolean projectAlreadyNone = hasAnyComponent(SELECTED_PROJECT_NAME_NONE);
+        boolean branchAlreadyNone = hasAnyComponent(SELECTED_BRANCH_NAME_NONE);
+        boolean scanAlreadyNone = hasAnyComponent(SELECTED_SCAN_ID_NONE);
+
+        if (projectAlreadyNone && branchAlreadyNone && scanAlreadyNone) {
+            log("Project, branch, and scan are already reset to 'none'. No action needed.");
+            return;
+        }
+
+        // Proceed with reset button clicks if selections are not already reset
+        locateAndClickOnButton(RESET_PROJECT_SELECTION);
         boolean isElementEnabled = waitForElementEnabled(RESET_PROJECT_SELECTION);
         log("Checking if Reset Project Selection button is clickable: " + isElementEnabled);
         locateAndClickOnButton(RESET_PROJECT_SELECTION);
@@ -76,11 +89,8 @@ public class ScanResultsPannelPage {
         if (!isPresent) {
             locateAndClickOnButton(RESET_PROJECT_SELECTION);
         }
-        boolean resetSuccess = validateIfProjectSelectionIsReset(maxAttempts);
-        if (!resetSuccess && maxAttempts > 1) {
-            log("Project selection reset failed. Retrying...");
-            resetProjectSelection(maxAttempts - 1);
-        }
+
+        validateIfProjectSelectionIsReset(maxAttempts);
     }
 
     /**
@@ -173,10 +183,22 @@ public class ScanResultsPannelPage {
      */
     public static void enterScanIdAndSelect(boolean validScanId) {
         String scanId = validScanId ? Environment.SCAN_ID : "invalid-scan-id";
-        log("Scan ID to enter: " + scanId);
-        find(JTextFieldFixture.class, SCAN_FIELD).setText(scanId);
-        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
 
+        waitFor(() -> {
+            List<JTextFieldFixture> fields =
+                    findAll(JTextFieldFixture.class, SCAN_FIELD);
+
+            if (fields.size() != 1) {
+                return false;
+            }
+
+            JTextFieldFixture field = fields.get(0);
+            field.setText(scanId);
+            return scanId.equals(field.getText());
+        });
+
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.enter();
     }
 
     /**
@@ -191,14 +213,18 @@ public class ScanResultsPannelPage {
         boolean projectNameReset = pollingWaitForElement(SELECTED_PROJECT_NAME_NONE, true);
         boolean branchNameReset = pollingWaitForElement(SELECTED_BRANCH_NAME_NONE, true);
         hasAnyComponent(SELECTED_SCAN_ID_NONE);
-        if ((!projectNameReset || !branchNameReset) && maxAttempts > 1) {
+        log("Is none project selected: " + projectNameReset + ", Is none branch selected: " + branchNameReset);
+        if (projectNameReset && branchNameReset) {
+            log("Project selection reset successfully.");
+            return true;
+        } else if (maxAttempts > 0) {
             log("Project selection is not reset. Retrying...");
-            resetProjectSelection(maxAttempts);
+            resetProjectSelection(maxAttempts - 1);
+            return false;
         } else {
-            log("Project selection is not reset.");
+            log("Project selection is not reset. No more attempts.");
             return false;
         }
-        return true;
     }
 
     /**
@@ -296,6 +322,7 @@ public class ScanResultsPannelPage {
 
         List<String> rows = tree.collectRows();
 
+        log("Sent Vulnerability Name"+name);
         Optional<Integer> indexOpt = IntStream.range(0, rows.size())
                 .filter(i -> rows.get(i).contains(name))
                 .boxed()
