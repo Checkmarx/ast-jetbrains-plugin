@@ -1,0 +1,30 @@
+<idea-plugin>
+    <id>com.checkmarx.ignite-jetbrains-plugin</id>
+    <name>Checkmarx Ignite</name>
+    <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
+
+    <description><![CDATA[
+    Checkmarx Ignite plugin for JetBrains IDEs.
+    ]]></description>
+
+    <change-notes><![CDATA[
+      <b>Initial Release</b>
+        <ul>
+            <li>Initial version of Checkmarx Ignite plugin.</li>
+        </ul>
+    ]]></change-notes>
+
+    <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+
+</idea-plugin>
+
