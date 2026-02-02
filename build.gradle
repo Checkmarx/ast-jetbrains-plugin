@@ -5,57 +5,76 @@ plugins {
     id 'jacoco'
 }
 
-group "${projectGroup}"
-version System.getenv('RELEASE_VERSION') ?: "dev"
-
 def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION') ?: defaultJavaWrapperVersion
 
-repositories {
+// Common configuration for all projects
+allprojects {
+    group "${projectGroup}"
+    version System.getenv('RELEASE_VERSION') ?: "dev"
 
-    mavenCentral()
-    maven {
-        url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
+    repositories {
+        mavenCentral()
+        maven {
+            url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
+        }
+        maven {
+            url = 'https://oss.sonatype.org/content/repositories/snapshots'
+        }
     }
-    maven {
-        url = 'https://oss.sonatype.org/content/repositories/snapshots'
+}
+
+// Common configuration for all submodules
+subprojects {
+    apply plugin: 'java'
+
+    java {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(Integer.parseInt(javaVersion)))
+        }
     }
+
+    dependencies {
+        testImplementation "com.intellij.remoterobot:remote-robot:${remoteRobotVersion}"
+        testImplementation("com.intellij.remoterobot:remote-fixtures:${remoteRobotVersion}") {
+            exclude group: 'com.square.okio', module: 'okio'
+        }
+        testImplementation "com.squareup.okio:okio:${okioVersion}"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:${junitBomVersion}"
+        testImplementation "com.squareup.okhttp3:okhttp:${okhttpVersion}"
+        testImplementation 'junit:junit:4.11-redhat-1'
+        testImplementation 'junit:junit:4.13.1'
+        testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.15.2'
+
+        // Video Recording
+        testImplementation('com.automation-remarks:video-recorder-junit5:2.0') {
+            exclude group: 'log4j', module: 'log4j'
+        }
+        testImplementation "org.apache.logging.log4j:log4j-api:${log4jVersion}"
+        testImplementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitEngineVersion}"
+
+        // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
+        implementation "com.miglayout:miglayout-swing:${miglayoutVersion}"
+
+        implementation("com.checkmarx.ast:ast-cli-java-wrapper:${javaWrapperVersion}"){
+            exclude group: 'junit', module: 'junit'
+        }
+        implementation(platform("com.fasterxml.jackson:jackson-bom:${jacksonBomVersion}"))
+        // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
+
+        testImplementation "org.mockito:mockito-core:${mockitoVersion}"
+        testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
+    }
+}
+
+// Root level variables for use in submodules
+ext {
+    varIntellijVersion = "${intellijVersion}"
+    varSinceBuildVersion = "${sinceBuildVersion}"
 }
 
 jacoco {
     toolVersion = "${jacocoVersion}"
-}
-
-dependencies {
-    testImplementation "com.intellij.remoterobot:remote-robot:${remoteRobotVersion}"
-    testImplementation("com.intellij.remoterobot:remote-fixtures:${remoteRobotVersion}") {
-        exclude group: 'com.square.okio', module: 'okio'
-    }
-    testImplementation "com.squareup.okio:okio:${okioVersion}"
-    testImplementation "org.junit.jupiter:junit-jupiter-api:${junitBomVersion}"
-    testImplementation "com.squareup.okhttp3:okhttp:${okhttpVersion}"
-    testImplementation 'junit:junit:4.11-redhat-1'
-    testImplementation 'junit:junit:4.13.1'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.15.2'
-
-    // Video Recording
-    testImplementation('com.automation-remarks:video-recorder-junit5:2.0') {
-        exclude group: 'log4j', module: 'log4j'
-    }
-    testImplementation "org.apache.logging.log4j:log4j-api:${log4jVersion}"
-    testImplementation "org.apache.logging.log4j:log4j-core:${log4jVersion}"
-    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitEngineVersion}"
-
-    // https://mvnrepository.com/artifact/com.miglayout/miglayout-swing
-    implementation "com.miglayout:miglayout-swing:${miglayoutVersion}"
-
-    implementation("com.checkmarx.ast:ast-cli-java-wrapper:${javaWrapperVersion}"){
-        exclude group: 'junit', module: 'junit'
-    }
-    implementation(platform("com.fasterxml.jackson:jackson-bom:${jacksonBomVersion}"))
-    // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
-
-    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
-    testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}" // maybe remove
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
@@ -114,18 +133,10 @@ jacocoTestReport {
     }
 }
 
-
-
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
     if (project.hasProperty("rchannels")) {
         channels = [rchannels.toString()]
-    }
-}
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(Integer.parseInt(javaVersion)))
     }
 }
 

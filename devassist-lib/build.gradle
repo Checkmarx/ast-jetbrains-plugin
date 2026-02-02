@@ -5,21 +5,7 @@ plugins {
 group = 'com.checkmarx.intellij.devassist'
 version = rootProject.version
 
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    testImplementation platform("org.junit:junit-bom:${rootProject.junitBomVersion}")
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-}
 
 test {
     useJUnitPlatform()
-}
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(Integer.parseInt(rootProject.javaVersion)))
-    }
 }

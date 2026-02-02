@@ -6,22 +6,18 @@ plugins {
 group = 'com.checkmarx.intellij.ignite'
 version = rootProject.version
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    testImplementation platform("org.junit:junit-bom:${rootProject.junitBomVersion}")
-    testImplementation 'org.junit.jupiter:junit-jupiter'
+    implementation project(':common-lib')
+    implementation project(':devassist-lib')
 }
 
 intellij {
-    version = "${rootProject.intellijVersion}"
+    version = "${rootProject.varIntellijVersion}"
     updateSinceUntilBuild = false
 }
 
 patchPluginXml {
-    sinceBuild = "${rootProject.sinceBuildVersion}"
+    sinceBuild = "${rootProject.varSinceBuildVersion}"
 }
 
 publishPlugin {
@@ -31,12 +27,6 @@ publishPlugin {
 
 test {
     useJUnitPlatform()
-}
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(Integer.parseInt(rootProject.javaVersion)))
-    }
 }
 
 // Configure the plugin to generate a distributable zip file

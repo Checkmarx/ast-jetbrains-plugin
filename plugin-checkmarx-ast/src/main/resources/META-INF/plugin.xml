@@ -1,0 +1,38 @@
+<idea-plugin>
+    <id>com.checkmarx.checkmarx-ast-jetbrains-plugin</id>
+    <name>Checkmarx</name>
+    <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
+
+    <description><![CDATA[
+    The Checkmarx One JetBrains plugin enables you to import results from a Checkmarx One scan directly into your IDE and run new scans from the IDE.<br>
+    Full user's manual can be found <a href="https://docs.checkmarx.com/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-pluging.html">here</a>.
+    ]]></description>
+
+    <change-notes><![CDATA[
+      <b>Checkmarx One Assist – AI guided remediation.</b>
+        <ul>
+            <li>An advanced security agent that delivers real-time context-aware prevention, remediation, and guidance to developers from the IDE.</li>
+            <li><b>OSS</b> Realtime scanner identifies risks in open source packages used in your project.</li>
+            <li><b>Secrets</b> Realtime scanner identifies risks in detected secrets used in your project.</li>
+            <li><b>Container</b> Realtime scanner identifies risks in container images used in your project.</li>
+            <li><b>IAC</b> Realtime scanner identifies infrastructure configuration risks in your project.</li>
+            <li><b>ASCA</b> Realtime scanner identifies insecure patterns in your project source code.</li>
+            <li>MCP-based agentic AI remediation.</li>
+            <li>AI-powered explanation of risk details.</li>
+        </ul>
+    ]]></change-notes>
+
+    <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+
+</idea-plugin>
+
