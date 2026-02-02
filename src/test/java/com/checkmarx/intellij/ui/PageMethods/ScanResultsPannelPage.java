@@ -68,6 +68,19 @@ public class ScanResultsPannelPage {
     public static void resetProjectSelection(int maxAttempts) {
         //Need to set focus on reset by clicking
         pollingWaitForElement(PROJECT_NAME_NULL,false);
+
+        // Early return optimization: Check if project, branch, and scan are already set to 'none'
+        // This prevents unnecessary UI interactions when selections are already in the reset state
+        boolean projectAlreadyNone = hasAnyComponent(SELECTED_PROJECT_NAME_NONE);
+        boolean branchAlreadyNone = hasAnyComponent(SELECTED_BRANCH_NAME_NONE);
+        boolean scanAlreadyNone = hasAnyComponent(SELECTED_SCAN_ID_NONE);
+
+        if (projectAlreadyNone && branchAlreadyNone && scanAlreadyNone) {
+            log("Project, branch, and scan are already reset to 'none'. No action needed.");
+            return;
+        }
+
+        // Proceed with reset button clicks if selections are not already reset
         locateAndClickOnButton(RESET_PROJECT_SELECTION);
         boolean isElementEnabled = waitForElementEnabled(RESET_PROJECT_SELECTION);
         log("Checking if Reset Project Selection button is clickable: " + isElementEnabled);
