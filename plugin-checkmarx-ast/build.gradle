@@ -1,0 +1,58 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij'
+    id 'io.freefair.lombok'
+}
+
+group = 'com.checkmarx.intellij.ast'
+version = rootProject.version
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':common-lib')
+    implementation project(':devassist-lib')
+
+    testImplementation platform("org.junit:junit-bom:${rootProject.junitBomVersion}")
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation "org.mockito:mockito-core:${rootProject.mockitoVersion}"
+    testImplementation "org.mockito:mockito-junit-jupiter:${rootProject.mockitoVersion}"
+}
+
+intellij {
+    version = "${rootProject.intellijVersion}"
+    updateSinceUntilBuild = false
+}
+
+patchPluginXml {
+    sinceBuild = "${rootProject.sinceBuildVersion}"
+}
+
+publishPlugin {
+    token.set System.getenv("PUBLISH_TOKEN")
+    channels = ['stable']
+}
+
+test {
+    useJUnitPlatform()
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(Integer.parseInt(rootProject.javaVersion)))
+    }
+}
+
+// Configure the plugin to generate a distributable zip file
+tasks.named('buildPlugin') {
+    archiveBaseName.set('checkmarx-ast-plugin')
+}
+
+// Ensure the plugin zip is created in the build/distributions directory
+tasks.named('prepareSandbox') {
+    doLast {
+        println "Plugin prepared in: ${destinationDir}"
+    }
+}
