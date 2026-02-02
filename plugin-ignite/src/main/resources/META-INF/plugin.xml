@@ -1,6 +1,6 @@
 <idea-plugin>
-    <id>com.checkmarx.ignite-jetbrains-plugin</id>
-    <name>Checkmarx Ignite</name>
+    <id>com.checkmarx.devassist-jetbrains-plugin</id>
+    <name>Checkmarx Developer Assist</name>
     <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
 
     <description><![CDATA[
