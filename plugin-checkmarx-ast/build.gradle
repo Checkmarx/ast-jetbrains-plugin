@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'org.jetbrains.intellij'
+    id 'io.freefair.lombok'
 }
 
 group = 'com.checkmarx.intellij.ast'

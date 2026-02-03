@@ -1,0 +1,168 @@
+package com.checkmarx.intellij.ast.window.actions.selection;
+
+import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.common.commands.Scan;
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.window.CxToolWindowPanel;
+import com.checkmarx.intellij.common.window.actions.selection.BaseSelectionGroup;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.DumbAware;
+import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
+
+/**
+ * Action group for selecting a scan in the UI.
+ */
+public class ScanSelectionGroup extends BaseSelectionGroup {
+
+    private static final Logger LOGGER = Utils.getLogger(ScanSelectionGroup.class);
+
+    private static final DateTimeFormatter sourceFormat = DateTimeFormatter.ISO_DATE_TIME;
+    private static final DateTimeFormatter prettyFormat = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+    private static final String scanFormat = "%s  %s";
+
+    public ScanSelectionGroup(@NotNull Project project) {
+        super(project);
+        String storedValue = propertiesComponent.getValue(Constants.SELECTED_SCAN_PROPERTY);
+        if (Utils.isNotBlank(storedValue)) {
+            ApplicationManager.getApplication().invokeLater(() -> Optional.ofNullable(getCxToolWindowPanel(project))
+                                                                          .ifPresent(cxToolWindowPanel -> cxToolWindowPanel.selectScan(
+                                                                                  unFormatScan(storedValue))));
+        }
+    }
+
+    @Override
+    protected void clear() {
+        propertiesComponent.setValue(Constants.SELECTED_SCAN_PROPERTY, null);
+        removeAll();
+    }
+
+    @Override
+    protected void override(com.checkmarx.ast.scan.Scan scan) {
+        propertiesComponent.setValue(Constants.SELECTED_SCAN_PROPERTY, formatScan(scan, false));
+    }
+
+    /**
+     * Remove all children and repopulate by getting a project's list of scans.
+     *
+     * @param projectId selected project
+     * @param branch    selected branch
+     */
+    public void refresh(String projectId, String branch, Boolean selectLatestScan) {
+        setEnabled(false);
+        removeAll();
+        CompletableFuture.supplyAsync((Supplier<List<com.checkmarx.ast.scan.Scan>>) () -> {
+            try {
+                return Utils.isBlank(projectId) || Utils.isBlank(branch)
+                       ? Collections.emptyList()
+                       : Scan.getList(projectId, branch);
+            } catch (IOException | URISyntaxException | InterruptedException | CxException e) {
+                LOGGER.warn(e);
+                return Collections.emptyList();
+            }
+        }).thenAccept((List<com.checkmarx.ast.scan.Scan> scans) -> {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                for (com.checkmarx.ast.scan.Scan scan : scans) {
+                    if(scan == scans.get(0)) {
+                        add(new Action(scan.getId(), formatScan(scan, true)));
+                    } else {
+                        add(new Action(scan.getId(), formatScan(scan, false)));
+                    }
+                }
+                if (!scans.isEmpty() && selectLatestScan) {
+                    select(scans.get(0).getId(), formatScan(scans.get(0), true));
+                }
+                setEnabled(true);
+                refreshPanel(project);
+            });
+        });
+    }
+
+    @Override
+    @NotNull
+    protected String getTitle() {
+        if (getChildrenCount() == 0) {
+            return Bundle.message(Resource.SCAN_SELECT_PREFIX) + ": " + (isEnabled() ? NONE_SELECTED : "...");
+        }
+        String storedScan = propertiesComponent.getValue(Constants.SELECTED_SCAN_PROPERTY);
+        return Bundle.message(Resource.SCAN_SELECT_PREFIX) + ": " + (Utils.isBlank(storedScan)
+                                                                     ? NONE_SELECTED
+                                                                     : storedScan);
+    }
+
+    /**
+     * Selects a scan. This implies:
+     * - Storing the selected scan in the IDE state;
+     * - Triggering redrawing of the panel with the new scan id
+     *
+     * @param scanId        selected scan's id
+     * @param formattedScan scan formatted for showing in the label
+     */
+    private void select(String scanId, String formattedScan) {
+        propertiesComponent.setValue(Constants.SELECTED_SCAN_PROPERTY, formattedScan);
+        Optional<CxToolWindowPanel> toolWindowPanel = Optional.ofNullable(getCxToolWindowPanel(project));
+        toolWindowPanel.ifPresent(cxToolWindowPanel -> cxToolWindowPanel.selectScan(scanId));
+        refreshPanel(project);
+    }
+
+    /**
+     * Formats a scan for displaying in the list
+     *
+     * @param scan scan to format
+     * @return formatted string for scan, see {@link ScanSelectionGroup#scanFormat}
+     */
+    @NotNull
+    private String formatScan(com.checkmarx.ast.scan.Scan scan, boolean isLatest) {
+        return String.format(scanFormat,
+                             LocalDateTime.parse(scan.getCreatedAt(), sourceFormat).format(prettyFormat),
+                             scan.getId()) + Utils.formatLatest(isLatest);
+    }
+
+    /**
+     * Gets the scan id from a formatted string, reversing.
+     *
+     * @param formattedScan formatted scan string
+     * @return scan id
+     */
+    @NotNull
+    private String unFormatScan(@NotNull String formattedScan) {
+        String[] split = formattedScan.replace(Utils.formatLatest(true), "").split(" ");
+        return split[split.length - 1];
+    }
+
+    /**
+     * Action performed when a scan is selected
+     */
+    private class Action extends AnAction implements DumbAware {
+
+        private final String name;
+        private final String scanId;
+
+        public Action(String scanId, String name) {
+            super(name);
+            this.name = name;
+            this.scanId = scanId;
+        }
+
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            select(scanId, name);
+        }
+    }
+}

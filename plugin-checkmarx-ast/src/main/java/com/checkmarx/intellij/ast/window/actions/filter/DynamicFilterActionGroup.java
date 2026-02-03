@@ -1,0 +1,22 @@
+package com.checkmarx.intellij.ast.window.actions.filter;
+
+import com.checkmarx.intellij.common.service.StateService;
+import com.checkmarx.intellij.common.window.actions.filter.CustomStateFilter;
+import com.intellij.openapi.actionSystem.ActionGroup;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import org.jetbrains.annotations.NotNull;
+
+public class DynamicFilterActionGroup extends ActionGroup {
+
+    private final StateService stateService;
+
+    public DynamicFilterActionGroup() {
+        stateService = StateService.getInstance();
+    }
+
+    @Override
+    public AnAction @NotNull [] getChildren(@NotNull AnActionEvent e) {
+        return stateService.getCustomStateFilters().toArray(new CustomStateFilter[0]);
+    }
+}
