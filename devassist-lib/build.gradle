@@ -12,7 +12,7 @@ dependencies {
 }
 
 intellij {
-    version = "${rootProject.intellijVersion}"
+    version = "${intellijVersion}"
     updateSinceUntilBuild = false
 }
 
