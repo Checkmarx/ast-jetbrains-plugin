@@ -1,0 +1,79 @@
+package com.checkmarx.intellij.ast.window.actions;
+
+import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.commands.Scan;
+import com.intellij.ide.ActivityTracker;
+import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
+import lombok.SneakyThrows;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
+import java.util.Objects;
+
+public class CancelScanAction extends AnAction implements CxToolWindowAction {
+
+    private static final Logger LOGGER = Utils.getLogger(CancelScanAction.class);
+
+    public CancelScanAction() {
+        super(Bundle.messagePointer(Resource.CANCEL_SCAN_ACTION));
+    }
+
+    /**
+     * {@inheritDoc}
+     * Cancel current checkmarx scan.
+     */
+    @Override
+    public void actionPerformed(@NotNull AnActionEvent e) {
+        PropertiesComponent propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(e.getProject()));
+        ProgressManager.getInstance().run(new Task.Backgroundable(e.getProject(), Bundle.message(Resource.SCAN_CANCELING_TITLE)){
+            @SneakyThrows
+            public void run(@NotNull ProgressIndicator progressIndicator) {
+                try {
+                    StartScanAction.cancelRunningScan();
+                    String scanId = propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY);
+                    LOGGER.info(Bundle.message(Resource.SCAN_CANCELING_INFO, scanId));
+                    Scan.scanCancel(scanId);
+                    LOGGER.info(Bundle.message(Resource.SCAN_CANCELED, scanId));
+                    propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, Utils.EMPTY);
+                    ActivityTracker.getInstance().inc();
+                    Utils.notifyScan(null, Bundle.message(Resource.SCAN_CANCELED_SUCCESSFULLY), e.getProject(), null, NotificationType.INFORMATION, null);
+                } catch (Exception ex) {
+                    LOGGER.debug("Exception:", ex);
+                }
+            }
+        });
+    }
+
+    @Override
+    public void update(@NotNull AnActionEvent e) {
+        try {
+            super.update(e);
+
+            e.getPresentation().setVisible(StartScanAction.getUserHasPermissionsToScan());
+
+            PropertiesComponent propertiesComponent = PropertiesComponent.getInstance(Objects.requireNonNull(e.getProject()));
+            boolean isScanRunning = Utils.isNotBlank(propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY));
+            e.getPresentation().setEnabled(isScanRunning);
+        }
+        catch (Exception ex) {
+            e.getPresentation().setEnabled(true);
+        }
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
+    }
+}
