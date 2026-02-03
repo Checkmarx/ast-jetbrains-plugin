@@ -67,12 +67,6 @@ subprojects {
     }
 }
 
-// Root level variables for use in submodules
-ext {
-    varIntellijVersion = "${intellijVersion}"
-    varSinceBuildVersion = "${sinceBuildVersion}"
-}
-
 jacoco {
     toolVersion = "${jacocoVersion}"
 }
