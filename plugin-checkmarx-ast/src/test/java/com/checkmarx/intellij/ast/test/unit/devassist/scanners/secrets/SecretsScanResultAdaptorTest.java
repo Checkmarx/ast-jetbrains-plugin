@@ -1,12 +1,12 @@
 package com.checkmarx.intellij.ast.test.unit.devassist.scanners.secrets;
 
-import com.checkmarx.ast.realtime.RealtimeLocation;
-import com.checkmarx.ast.secretsrealtime.SecretsRealtimeResults;
+import com.checkmarx.intellij.devassist.scanners.secrets.SecretsScanResultAdaptor;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
-import com.checkmarx.intellij.devassist.scanners.secrets.SecretsScanResultAdaptor;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.checkmarx.ast.secretsrealtime.SecretsRealtimeResults;
+import com.checkmarx.ast.realtime.RealtimeLocation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,8 +16,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class SecretsScanResultAdaptorTest {
 

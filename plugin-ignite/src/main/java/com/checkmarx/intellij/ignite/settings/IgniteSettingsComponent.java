@@ -1091,4 +1091,9 @@ public class IgniteSettingsComponent implements SettingsComponent {
             LOGGER.debug("[Auth] Realtime scanners already disabled");
         }
     }
+
+    @Override
+    public JPanel getMainPanel() {
+        return mainPanel;
+    }
 }

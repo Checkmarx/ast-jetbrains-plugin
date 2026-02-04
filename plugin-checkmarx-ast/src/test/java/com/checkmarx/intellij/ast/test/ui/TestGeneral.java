@@ -2,15 +2,12 @@ package com.checkmarx.intellij.ast.test.ui;
 
 import com.automation.remarks.junit5.Video;
 import com.checkmarx.intellij.Bundle;
+import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.Severity;
-import com.intellij.remoterobot.fixtures.JButtonFixture;
-import com.intellij.remoterobot.fixtures.JListFixture;
-import com.intellij.remoterobot.fixtures.JTextFieldFixture;
-import com.intellij.remoterobot.fixtures.JTreeFixture;
+import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.intellij.lang.annotations.Language;
 import org.junit.jupiter.api.Assertions;
@@ -18,10 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.awt.event.KeyEvent;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;

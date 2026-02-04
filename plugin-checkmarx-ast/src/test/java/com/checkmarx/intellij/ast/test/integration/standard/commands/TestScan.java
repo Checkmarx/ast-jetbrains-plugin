@@ -2,8 +2,8 @@ package com.checkmarx.intellij.ast.test.integration.standard.commands;
 
 import com.checkmarx.ast.project.Project;
 import com.checkmarx.intellij.ast.test.integration.Environment;
-import com.checkmarx.intellij.ast.test.integration.standard.BaseTest;
 import com.checkmarx.intellij.commands.Scan;
+import com.checkmarx.intellij.ast.test.integration.standard.BaseTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

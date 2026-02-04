@@ -1,12 +1,12 @@
 package com.checkmarx.intellij.ast.test.service;
 
-import com.checkmarx.intellij.common.auth.AuthService;
-import com.checkmarx.intellij.common.auth.OAuthCallbackServer;
-import com.checkmarx.intellij.common.resources.Bundle;
-import com.checkmarx.intellij.common.resources.Resource;
-import com.checkmarx.intellij.ast.settings.GlobalSettingsSensitiveState;
-import com.checkmarx.intellij.common.utils.HttpClientUtils;
-import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.Bundle;
+import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.Resource;
+import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.helper.OAuthCallbackServer;
+import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.util.HttpClientUtils;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

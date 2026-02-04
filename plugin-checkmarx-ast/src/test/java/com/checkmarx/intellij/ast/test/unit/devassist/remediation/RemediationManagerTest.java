@@ -6,15 +6,12 @@ import com.checkmarx.intellij.devassist.remediation.prompts.CxOneAssistFixPrompt
 import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
-import com.intellij.notification.NotificationGroup;
-import com.intellij.notification.NotificationGroupManager;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.notification.NotificationGroup;
+import com.intellij.notification.NotificationGroupManager;
 import com.intellij.openapi.project.Project;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.mockito.MockedStatic;
 
 import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;

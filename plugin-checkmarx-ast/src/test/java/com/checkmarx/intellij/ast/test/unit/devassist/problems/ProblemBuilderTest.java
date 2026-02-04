@@ -5,6 +5,8 @@ import com.checkmarx.intellij.devassist.problems.ProblemBuilder;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.remediation.ViewDetailsFix;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.codeInspection.InspectionManager;

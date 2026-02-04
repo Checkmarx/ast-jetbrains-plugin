@@ -3,6 +3,7 @@ package com.checkmarx.intellij.ast.test.unit.devassist.scanners.iac;
 import com.checkmarx.ast.iacrealtime.IacRealtimeResults;
 import com.checkmarx.ast.realtime.RealtimeLocation;
 import com.checkmarx.ast.wrapper.CxWrapper;
+import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.scanners.iac.IacScannerService;

@@ -2,7 +2,6 @@ package com.checkmarx.intellij.ast.test.unit.devassist.welcomedialog;
 
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.devassist.ui.WelcomeDialog;
-import com.intellij.ui.components.JBCheckBox;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -10,6 +9,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import com.intellij.ui.components.JBCheckBox;
 
 import static org.junit.jupiter.api.Assertions.*;
 

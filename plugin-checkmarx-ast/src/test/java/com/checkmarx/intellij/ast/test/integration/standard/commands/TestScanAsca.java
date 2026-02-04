@@ -1,8 +1,9 @@
 package com.checkmarx.intellij.ast.test.integration.standard.commands;
 
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.intellij.ast.test.integration.standard.BaseTest;
 import com.checkmarx.intellij.devassist.scanners.asca.AscaScannerService;
+import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.ast.test.integration.standard.BaseTest;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;

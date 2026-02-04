@@ -1,8 +1,10 @@
 package com.checkmarx.intellij.ast.test.unit.tool.window.actions;
 
 import com.checkmarx.intellij.Constants;
+import com.checkmarx.intellij.commands.Scan;
 import com.checkmarx.intellij.tool.window.actions.CancelScanAction;
 import com.checkmarx.intellij.tool.window.actions.StartScanAction;
+import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -15,7 +17,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
