@@ -3,8 +3,8 @@ package com.checkmarx.intellij.ast.test.unit;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.tool.window.actions.selection.BranchSelectionGroup;
 import com.checkmarx.intellij.tool.window.actions.selection.ScanSelectionGroup;
-import com.intellij.openapi.project.Project;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.util.messages.MessageBus;
 import com.intellij.util.messages.MessageBusConnection;
@@ -15,7 +15,6 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.lang.reflect.Field;
-
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;

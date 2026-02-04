@@ -2,7 +2,6 @@ package com.checkmarx.intellij.ast.test.unit.devassist.scanners.iac;
 
 import com.checkmarx.intellij.devassist.scanners.iac.IacScannerCommand;
 import com.checkmarx.intellij.devassist.scanners.iac.IacScannerService;
-
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;

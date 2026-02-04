@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode.UPGRADE_TO_VERSION_LABEL;
-import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
+import static com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode.UPGRADE_TO_VERSION_LABEL;
 
 public class TestSca extends BaseUITest {
     @Test

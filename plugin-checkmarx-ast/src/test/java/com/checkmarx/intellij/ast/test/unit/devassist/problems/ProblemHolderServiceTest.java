@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.ast.test.unit.devassist.problems;
-import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+
 import com.checkmarx.intellij.devassist.model.ScanIssue;
+import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.project.Project;
@@ -10,9 +11,12 @@ import com.intellij.util.messages.MessageBus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 class ProblemHolderServiceTest {

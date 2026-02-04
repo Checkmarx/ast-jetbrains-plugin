@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.ast.test.unit.devassist.registry;
 
+import com.checkmarx.intellij.devassist.basescanner.ScannerCommand;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
-import com.checkmarx.intellij.devassist.basescanner.ScannerCommand;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.GlobalSettingsState;
@@ -12,10 +12,11 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.*;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
-import java.lang.reflect.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 

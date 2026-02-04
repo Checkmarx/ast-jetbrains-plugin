@@ -2,7 +2,6 @@ package com.checkmarx.intellij.ast.test.unit.devassist.scanners.asca;
 
 import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.scanners.asca.AscaScanResultAdaptor;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
@@ -15,7 +14,8 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class AscaScanResultAdaptorTest {
 

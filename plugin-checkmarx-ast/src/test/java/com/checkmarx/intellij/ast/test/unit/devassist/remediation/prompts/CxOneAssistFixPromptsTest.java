@@ -5,7 +5,8 @@ import com.checkmarx.intellij.util.SeverityLevel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("CxOneAssistFixPrompts Tests - Full Branch Coverage")
 public class CxOneAssistFixPromptsTest {

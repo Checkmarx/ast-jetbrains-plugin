@@ -1,7 +1,6 @@
 package com.checkmarx.intellij.ast.test.unit.tool.window.actions.group.by;
 
 import com.checkmarx.intellij.tool.window.actions.group.by.GroupByActionGroup;
-import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.Presentation;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,8 +9,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class GroupByActionGroupTest {

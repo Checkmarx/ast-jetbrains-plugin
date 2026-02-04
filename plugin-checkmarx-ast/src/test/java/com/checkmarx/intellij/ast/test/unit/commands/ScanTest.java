@@ -1,7 +1,6 @@
 package com.checkmarx.intellij.ast.test.unit.commands;
 
 import com.checkmarx.ast.scan.Scan;
-import com.checkmarx.ast.wrapper.CxConfig;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.Constants;

@@ -2,8 +2,8 @@ package com.checkmarx.intellij.ast.test.unit.devassist.scanners.secrets;
 
 import com.checkmarx.ast.secretsrealtime.SecretsRealtimeResults;
 import com.checkmarx.ast.wrapper.CxWrapper;
-import com.checkmarx.intellij.devassist.scanners.secrets.SecretsScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
+import com.checkmarx.intellij.devassist.scanners.secrets.SecretsScannerService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;

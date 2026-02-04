@@ -2,15 +2,17 @@ package com.checkmarx.intellij.ast.test.ui;
 
 import com.automation.remarks.junit5.Video;
 import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.checkmarx.intellij.Resource;
+import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.intellij.remoterobot.fixtures.ActionButtonFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
-import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
+
+import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.find;
+import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.hasAnyComponent;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
 
 public class TestTriggerScan extends BaseUITest {

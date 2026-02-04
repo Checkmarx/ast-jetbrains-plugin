@@ -1,11 +1,11 @@
 package com.checkmarx.intellij.ast.test.integration.standard.commands;
 
 import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.checkmarx.intellij.Resource;
-import com.checkmarx.intellij.commands.results.obj.ResultGetState;
-import com.checkmarx.intellij.commands.results.Results;
+import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.checkmarx.intellij.ast.test.integration.standard.BaseTest;
+import com.checkmarx.intellij.commands.results.Results;
+import com.checkmarx.intellij.commands.results.obj.ResultGetState;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.ThrowingSupplier;

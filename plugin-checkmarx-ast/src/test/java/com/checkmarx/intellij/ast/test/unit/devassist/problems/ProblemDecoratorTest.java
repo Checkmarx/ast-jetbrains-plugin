@@ -4,7 +4,6 @@ import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
-import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.util.SeverityLevel;
 import com.intellij.openapi.application.Application;
@@ -32,7 +31,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.*;
 
 public class ProblemDecoratorTest {
