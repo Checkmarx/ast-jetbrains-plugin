@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.devassist.telemetry;
 
-import com.checkmarx.intellij.common.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -46,15 +46,16 @@ public final class TelemetryService {
     private static final String ENGINE_CONTAINERS = "Containers";
 
     // Private constructor to prevent instantiation - using static methods
-    private TelemetryService() {}
+    private TelemetryService() {
+    }
 
     /**
      * Sets user event data for logs.
      * This method is called when users interact with remediation options.
      *
-     * @param eventType the type of event (e.g., "click")
-     * @param subType the specific action (e.g., "fixWithAIChat", "viewDetails")
-     * @param engine the scan engine type
+     * @param eventType       the type of event (e.g., "click")
+     * @param subType         the specific action (e.g., "fixWithAIChat", "viewDetails")
+     * @param engine          the scan engine type
      * @param problemSeverity the severity of the issue
      */
     public static void setUserEventDataForLogs(String eventType, String subType, String engine, String problemSeverity) {
@@ -88,8 +89,8 @@ public final class TelemetryService {
      * Sets user event data for detection logs.
      * This method is called when scan operations complete to track detection statistics.
      *
-     * @param scanType the type of scan (e.g., "secrets", "iac", "asca", "oss")
-     * @param status the severity level status
+     * @param scanType   the type of scan (e.g., "secrets", "iac", "asca", "oss")
+     * @param status     the severity level status
      * @param totalCount the number of issues found for this severity level
      */
     public static void setUserEventDataForDetectionLogs(String scanType, String status, int totalCount) {
@@ -125,9 +126,9 @@ public final class TelemetryService {
     /**
      * Logs user action for scan issue remediation activities.
      *
-     * @param scanIssue the scan issue being acted upon
+     * @param scanIssue     the scan issue being acted upon
      * @param actionSubType the specific action sub-type for telemetry
-     * @param actionName the action name for logging purposes
+     * @param actionName    the action name for logging purposes
      */
     private static void logUserAction(ScanIssue scanIssue, String actionSubType, String actionName) {
         if (Objects.isNull(scanIssue)) {

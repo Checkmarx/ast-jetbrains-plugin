@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.common.commands;
 
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.common.settings.global.CxWrapperFactory;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsSensitiveState;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
+import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.intellij.openapi.diagnostic.Logger;
 
 import java.io.IOException;

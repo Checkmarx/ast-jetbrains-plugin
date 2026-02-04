@@ -102,7 +102,7 @@ public class BranchSelectionGroup extends BaseSelectionGroup {
             List<String> branches = null;
             try {
                 boolean isSCMProject = Utils.getRootRepository(project) != null;
-                branches = com.checkmarx.intellij.common.commands.Project.getBranches(UUID.fromString(projectId), isSCMProject);
+                branches = com.checkmarx.intellij.ast.commands.Project.getBranches(UUID.fromString(projectId), isSCMProject);
             } catch (Exception e) {
                 LOGGER.warn(e);
                 LOGGER.error(Resource.CANNOT_FIND_BRANCH + e.getMessage());

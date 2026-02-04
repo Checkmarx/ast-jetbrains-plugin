@@ -3,7 +3,7 @@ package com.checkmarx.intellij.ast.window.results.tree;
 import com.checkmarx.ast.results.Results;
 import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.ast.results.result.ScaPackageData;
-import com.checkmarx.intellij.ast.window.GroupBy;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupBy;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.checkmarx.intellij.ast.window.results.tree.nodes.NonLeafNode;
 import com.checkmarx.intellij.ast.window.results.tree.nodes.ResultNode;
@@ -22,7 +22,7 @@ import javax.swing.tree.TreeNode;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.checkmarx.intellij.ast.window.GroupBy.SCA_TYPE;
+import static com.checkmarx.intellij.ast.window.actions.group.by.GroupBy.SCA_TYPE;
 
 /**
  * Factory for result trees

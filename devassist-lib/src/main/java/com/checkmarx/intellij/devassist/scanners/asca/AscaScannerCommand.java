@@ -23,7 +23,7 @@ public class AscaScannerCommand extends BaseScannerCommand {
     }
 
     public AscaScannerCommand(@NotNull Disposable parentDisposable,
-                             @NotNull Project project) {
+                              @NotNull Project project) {
         this(parentDisposable, project, new AscaScannerService());
     }
 

@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.devassist.configuration.mcp;
 
 import com.checkmarx.intellij.common.commands.TenantSetting;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsSensitiveState;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
@@ -72,6 +72,7 @@ public final class McpInstallService implements StartupActivity.DumbAware {
 
     /**
      * Installs MCP configuration asynchronously, without user notifications.
+     *
      * @param credential token / API key for Authorization header
      * @return future resolving to Boolean (true = changed, false = unchanged, null = error)
      */

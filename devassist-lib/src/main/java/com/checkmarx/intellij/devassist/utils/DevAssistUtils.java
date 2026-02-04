@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.devassist.utils;
 
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.SeverityLevel;
 import com.checkmarx.intellij.common.utils.Utils;

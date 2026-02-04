@@ -11,7 +11,7 @@ import lombok.Setter;
  * This class is primarily used for identifying specific ranges in code, such as
  * vulnerable code segments or other points of interest identified during a scan.
  * Instances of this class are used within scan result models such as {@code ScanIssue}.
- *
+ * <p>
  * Attributes:
  * - line: The line number in the file where the vulnerability is found.
  * - startIndex: The starting character index within the line for the vulnerability.

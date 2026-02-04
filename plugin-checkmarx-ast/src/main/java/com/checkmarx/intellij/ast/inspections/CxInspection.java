@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.ast.inspections;
 
-import com.checkmarx.intellij.common.inspections.CxVisitor;
 import com.intellij.codeInspection.LocalInspectionTool;
 import com.intellij.codeInspection.ProblemsHolder;
 import com.intellij.psi.PsiElementVisitor;

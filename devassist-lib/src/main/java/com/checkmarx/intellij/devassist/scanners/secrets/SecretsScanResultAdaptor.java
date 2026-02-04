@@ -33,7 +33,7 @@ public class SecretsScanResultAdaptor implements ScanResult<SecretsRealtimeResul
      */
     public SecretsScanResultAdaptor(SecretsRealtimeResults secretsRealtimeResults, String filePath) {
         this.secretsRealtimeResults = secretsRealtimeResults;
-        this.filePath =filePath;
+        this.filePath = filePath;
         this.scanIssues = buildIssues();
     }
 

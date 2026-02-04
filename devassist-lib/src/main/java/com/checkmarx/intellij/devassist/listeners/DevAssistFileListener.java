@@ -113,7 +113,7 @@ public class DevAssistFileListener {
         try {
             if (Objects.isNull(path) || path.isEmpty()) return;
             ProblemHolderService.getInstance(project).removeProblemDescriptorsForFile(path);
-        }catch (Exception e){
+        } catch (Exception e) {
             LOGGER.debug("Exception occurred while removing problem descriptor", e);
         }
     }

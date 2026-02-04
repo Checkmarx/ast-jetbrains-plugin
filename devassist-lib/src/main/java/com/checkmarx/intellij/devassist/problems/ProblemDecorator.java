@@ -331,7 +331,7 @@ public class ProblemDecorator {
                     return;
                 }
                 String relativePath = getRelativePath(project, psiFile);
-                if (relativePath == null){
+                if (relativePath == null) {
                     LOGGER.info(format("RTS-Decorator: Decorating UI for ignored vulnerability for file: %s", psiFile.getName()));
                 }
                 MarkupModel markupModel = editor.getMarkupModel();

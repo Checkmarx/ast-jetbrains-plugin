@@ -41,7 +41,8 @@ public final class IgnoreEntry {
         public boolean active;
         public Integer line;
 
-        public FileReference() {}
+        public FileReference() {
+        }
 
         public FileReference(String relativePath, boolean b, int line) {
             this.path = relativePath;

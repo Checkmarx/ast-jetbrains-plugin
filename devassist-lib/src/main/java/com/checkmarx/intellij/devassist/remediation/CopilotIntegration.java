@@ -62,7 +62,7 @@ import java.util.function.Consumer;
  * notified to paste manually.
  *
  * @see <a href="https://github.com/orgs/community/discussions/172311">GitHub
- *      Copilot API Discussion</a>
+ * Copilot API Discussion</a>
  */
 public final class CopilotIntegration {
 
@@ -73,7 +73,7 @@ public final class CopilotIntegration {
     /**
      * Configuration for timing delays in UI automation.
      * These values are tuned for typical IDE response times.
-     * 
+     *
      * <p>All delays can be overridden via system properties for troubleshooting:
      * <ul>
      *   <li>{@code -Dcx.copilot.delay.open=1500} - Delay after opening Copilot</li>
@@ -84,23 +84,35 @@ public final class CopilotIntegration {
      * </ul>
      */
     private static final class Timing {
-        /** Delay after opening Copilot to allow UI to fully render (default: 1200ms) */
+        /**
+         * Delay after opening Copilot to allow UI to fully render (default: 1200ms)
+         */
         static final int COPILOT_OPEN_DELAY_MS = Integer.getInteger("cx.copilot.delay.open", 1200);
 
-        /** Delay for Agent mode UI panel to fully load after mode switch (default: 800ms) */
+        /**
+         * Delay for Agent mode UI panel to fully load after mode switch (default: 800ms)
+         */
         static final int AGENT_MODE_DELAY_MS = Integer.getInteger("cx.copilot.delay.mode", 800);
 
-        /** Delay for dropdown popup to open (default: 100ms) */
+        /**
+         * Delay for dropdown popup to open (default: 100ms)
+         */
         static final int POPUP_OPEN_DELAY_MS = Integer.getInteger("cx.copilot.delay.popup.open", 100);
 
-        /** Delay after selecting item in dropdown (default: 100ms) */
+        /**
+         * Delay after selecting item in dropdown (default: 100ms)
+         */
         static final int POPUP_SELECT_DELAY_MS = Integer.getInteger("cx.copilot.delay.popup.select", 100);
 
-        /** Delay after closing dropdown popup (default: 200ms) */
+        /**
+         * Delay after closing dropdown popup (default: 200ms)
+         */
         static final int POPUP_CLOSE_DELAY_MS = Integer.getInteger("cx.copilot.delay.popup.close", 200);
     }
 
-    /** Known Copilot action IDs for opening the chat window */
+    /**
+     * Known Copilot action IDs for opening the chat window
+     */
     private static final String[] COPILOT_CHAT_ACTION_IDS = {
             "copilot.chat.show",
             "GitHub.Copilot.Chat.Show",
@@ -108,7 +120,9 @@ public final class CopilotIntegration {
             "copilot.chat.openChat"
     };
 
-    /** Known Copilot tool window IDs */
+    /**
+     * Known Copilot tool window IDs
+     */
     private static final String[] COPILOT_TOOL_WINDOW_IDS = {
             "GitHub Copilot Chat",
             "Copilot Chat",
@@ -117,17 +131,23 @@ public final class CopilotIntegration {
 
     // ==================== Copilot UI Component Constants ====================
 
-    /** Copilot chat mode names */
+    /**
+     * Copilot chat mode names
+     */
     private static final class ChatMode {
         static final String AGENT = "agent";
         static final String ASK = "ask";
         static final String EDIT = "edit";
         static final String PLAN = "plan";
-        /** Pattern to identify Agent mode by ID in combo box items */
+        /**
+         * Pattern to identify Agent mode by ID in combo box items
+         */
         static final String AGENT_ID_PATTERN = "id=agent";
     }
 
-    /** Copilot UI component class name patterns */
+    /**
+     * Copilot UI component class name patterns
+     */
     private static final class CopilotUIComponents {
         static final String CHAT_MODE_COMBO_BOX = "ChatMode";
         static final String MODE_COMBO = "ModeCombo";
@@ -141,13 +161,21 @@ public final class CopilotIntegration {
      * Result of a Copilot integration operation.
      */
     public enum OperationResult {
-        /** Full automation succeeded - prompt was sent to Copilot */
+        /**
+         * Full automation succeeded - prompt was sent to Copilot
+         */
         FULL_SUCCESS,
-        /** Partial success - Copilot opened but automation may have issues */
+        /**
+         * Partial success - Copilot opened but automation may have issues
+         */
         PARTIAL_SUCCESS,
-        /** Copilot not available - prompt copied to clipboard only */
+        /**
+         * Copilot not available - prompt copied to clipboard only
+         */
         COPILOT_NOT_AVAILABLE,
-        /** Operation failed completely */
+        /**
+         * Operation failed completely
+         */
         FAILED
     }
 
@@ -315,7 +343,7 @@ public final class CopilotIntegration {
 
     /**
      * Schedules the automated prompt entry sequence.
-     * 
+     *
      * <p>
      * This method runs asynchronously to avoid blocking the EDT. It performs:
      * <ol>
@@ -323,7 +351,7 @@ public final class CopilotIntegration {
      * <li>Switch to Agent mode via component automation</li>
      * <li>Paste prompt and send message</li>
      * </ol>
-     * 
+     *
      * <p>
      * If automation fails, the prompt remains in clipboard for manual paste.
      *
@@ -591,7 +619,7 @@ public final class CopilotIntegration {
      * Copilot typically has an icon button next to/below the input field.
      */
     private static @Nullable AbstractButton findActionButton(@NotNull ToolWindow toolWindow,
-            @NotNull JTextComponent inputField) {
+                                                             @NotNull JTextComponent inputField) {
         Container parent = inputField.getParent();
 
         // Walk up the hierarchy looking for sibling buttons
@@ -915,8 +943,8 @@ public final class CopilotIntegration {
         }
 
         // Try common method names first
-        String[] methodNames = { "getName", "getDisplayName", "getText", "getLabel", "getTitle", "name",
-                "displayName" };
+        String[] methodNames = {"getName", "getDisplayName", "getText", "getLabel", "getTitle", "name",
+                "displayName"};
         for (String methodName : methodNames) {
             try {
                 Method method = item.getClass().getMethod(methodName);
@@ -932,7 +960,7 @@ public final class CopilotIntegration {
         }
 
         // Try common field names
-        String[] fieldNames = { "name", "displayName", "text", "label", "title", "mode", "value" };
+        String[] fieldNames = {"name", "displayName", "text", "label", "title", "mode", "value"};
         for (String fieldName : fieldNames) {
             try {
                 Field field = item.getClass().getDeclaredField(fieldName);
@@ -1167,7 +1195,7 @@ public final class CopilotIntegration {
      * Finds a button with specific text (case-insensitive) in component hierarchy.
      */
     private static @Nullable AbstractButton findButtonWithText(@NotNull Component component,
-            @NotNull String textToFind) {
+                                                               @NotNull String textToFind) {
         if (component instanceof AbstractButton) {
             AbstractButton button = (AbstractButton) component;
             if (button.getText() != null && button.getText().toLowerCase().contains(textToFind.toLowerCase())) {
@@ -1335,7 +1363,7 @@ public final class CopilotIntegration {
     /**
      * Copies text to the system clipboard.
      * Must run on EDT to avoid "System clipboard is unavailable" issues.
-     * 
+     *
      * @return true if successful, false otherwise
      */
     private static boolean copyToClipboard(@NotNull String text) {

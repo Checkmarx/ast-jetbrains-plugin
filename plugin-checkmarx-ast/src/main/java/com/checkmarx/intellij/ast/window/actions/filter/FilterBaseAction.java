@@ -1,10 +1,10 @@
 package com.checkmarx.intellij.ast.window.actions.filter;
 
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.window.CustomResultState;
-import com.checkmarx.intellij.common.window.Severity;
-import com.checkmarx.intellij.common.window.actions.CxToolWindowAction;
+import com.checkmarx.intellij.ast.window.actions.CxToolWindowAction;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ToggleAction;
@@ -79,7 +79,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
 
         @Override
         protected Filterable getFilterable() {
-            return Severity.CRITICAL;
+            return SeverityFilter.CRITICAL;
         }
     }
 
@@ -91,7 +91,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
 
         @Override
         protected Filterable getFilterable() {
-            return Severity.HIGH;
+            return SeverityFilter.HIGH;
         }
     }
 
@@ -103,7 +103,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
 
         @Override
         protected Filterable getFilterable() {
-            return Severity.MEDIUM;
+            return SeverityFilter.MEDIUM;
         }
     }
 
@@ -115,7 +115,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
 
         @Override
         protected Filterable getFilterable() {
-            return Severity.LOW;
+            return SeverityFilter.LOW;
         }
     }
 
@@ -127,7 +127,7 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
 
         @Override
         protected Filterable getFilterable() {
-            return Severity.INFO;
+            return SeverityFilter.INFO;
         }
     }
 

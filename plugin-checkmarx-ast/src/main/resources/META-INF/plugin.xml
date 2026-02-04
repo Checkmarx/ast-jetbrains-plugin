@@ -27,27 +27,27 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationConfigurable instance="com.checkmarx.intellij.common.settings.global.GlobalSettingsConfigurable"
+        <applicationConfigurable instance="com.checkmarx.intellij.ast.settings.GlobalSettingsConfigurable"
                                  parentId="tools"
                                  bundle="messages.CxBundle" key="SETTINGS_TITLE"/>
-        <applicationService serviceImplementation="com.checkmarx.intellij.common.settings.global.GlobalSettingsState"/>
+        <applicationService serviceImplementation="com.checkmarx.intellij.common.settings.GlobalSettingsState"/>
         <applicationService
-                serviceImplementation="com.checkmarx.intellij.common.settings.global.GlobalSettingsSensitiveState"/>
+                serviceImplementation="com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState"/>
 
         <applicationConfigurable
                 id="settings.ast.assist"
-                provider="com.checkmarx.intellij.common.settings.global.CxOneAssistConfigurableProvider"
+                provider="com.checkmarx.intellij.devassist.settings.CxOneAssistConfigurableProvider"
                 parentId="settings.ast"
                 bundle="messages.CxBundle"
                 key="CXONE_ASSIST_TITLE"/>
 
-        <projectService serviceImplementation="com.checkmarx.intellij.common.project.ProjectResultsService"/>
+        <projectService serviceImplementation="com.checkmarx.intellij.ast.project.ProjectResultsService"/>
 
         <!-- Sync license flags from server on IDE startup to ensure UI shows correct panels -->
         <postStartupActivity implementation="com.checkmarx.intellij.common.startup.LicenseFlagSyncStartupActivity"/>
         <!-- Auto-install MCP at IDE startup if already authenticated -->
-        <postStartupActivity implementation="com.checkmarx.intellij.common.devassist.configuration.mcp.McpInstallService"/>
-        <postStartupActivity implementation="com.checkmarx.intellij.common.devassist.configuration.GlobalScannerStartupActivity"/>
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService"/>
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
 
         <toolWindow id="Checkmarx"
                     anchor="bottom"
@@ -69,18 +69,18 @@
                 groupName="CxOneAssist"
                 groupPath="Checkmarx"
                 enabledByDefault="true"
-                implementationClass="com.checkmarx.intellij.common.devassist.inspection.CxOneAssistInspection"/>
+                implementationClass="com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection"/>
 
         <!-- Register tooltip link handler -->
         <codeInsight.linkHandler
                 prefix="#cxonedevassist/"
-                handlerClass="com.checkmarx.intellij.common.devassist.remediation.RemediationLinkHandler"/>
+                handlerClass="com.checkmarx.intellij.devassist.remediation.RemediationLinkHandler"/>
     </extensions>
 
     <applicationListeners>
-        <listener class="com.checkmarx.intellij.common.project.ProjectListener"
+        <listener class="com.checkmarx.intellij.ast.project.ProjectListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
-        <listener class="com.checkmarx.intellij.common.devassist.configuration.mcp.McpUninstallHandler"
+        <listener class="com.checkmarx.intellij.devassist.configuration.mcp.McpUninstallHandler"
                   topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     </applicationListeners>
 
@@ -101,15 +101,15 @@
                     class="com.checkmarx.intellij.ast.window.actions.selection.ResetSelectionAction"/>
             <separator/>
             <action id="Checkmarx.Critical"
-                    class="com.checkmarx.intellij.common.window.actions.filter.FilterBaseAction$CriticalFilter"/>
+                    class="com.checkmarx.intellij.ast.window.actions.filter.FilterBaseAction$CriticalFilter"/>
             <action id="Checkmarx.High"
-                    class="com.checkmarx.intellij.common.window.actions.filter.FilterBaseAction$HighFilter"/>
+                    class="com.checkmarx.intellij.ast.window.actions.filter.FilterBaseAction$HighFilter"/>
             <action id="Checkmarx.Medium"
-                    class="com.checkmarx.intellij.common.window.actions.filter.FilterBaseAction$MediumFilter"/>
+                    class="com.checkmarx.intellij.ast.window.actions.filter.FilterBaseAction$MediumFilter"/>
             <action id="Checkmarx.Low"
-                    class="com.checkmarx.intellij.common.window.actions.filter.FilterBaseAction$LowFilter"/>
+                    class="com.checkmarx.intellij.ast.window.actions.filter.FilterBaseAction$LowFilter"/>
             <group id="Checkmarx.DynamicFilters"
-                   class="com.checkmarx.intellij.common.window.actions.filter.DynamicFilterActionGroup"
+                   class="com.checkmarx.intellij.ast.window.actions.filter.DynamicFilterActionGroup"
                    icon="AllIcons.General.Filter"
                    popup="true"/>
             <separator/>
@@ -140,11 +140,11 @@
                     class="com.checkmarx.intellij.ast.window.actions.OpenSettingsAction"
                     icon="AllIcons.General.Settings"/>
             <separator/>
-            <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.common.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
-            <action id="VulnerabilityCritical" class="com.checkmarx.intellij.common.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityCriticalFilter" />
-            <action id="VulnerabilityHigh" class="com.checkmarx.intellij.common.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
-            <action id="VulnerabilityMedium" class="com.checkmarx.intellij.common.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
-            <action id="VulnerabilityLow" class="com.checkmarx.intellij.common.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
+            <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
+            <action id="VulnerabilityCritical" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityCriticalFilter" />
+            <action id="VulnerabilityHigh" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
+            <action id="VulnerabilityMedium" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
+            <action id="VulnerabilityLow" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
             <separator/>
         </group>
     </actions>

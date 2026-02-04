@@ -3,9 +3,9 @@ package com.checkmarx.intellij.ignite.ui.actions;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.CxIcons;
-import com.checkmarx.intellij.common.devassist.ui.findings.window.CxIgnoredFindings;
-import com.checkmarx.intellij.common.devassist.utils.ScanEngine;
-import com.checkmarx.intellij.common.window.Severity;
+import com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -291,19 +291,19 @@ public class IgnoredFindingsToolbarActions {
     }
 
     public static class IgnoredMaliciousFilter extends IgnoredFindingsSeverityFilter {
-        @Override protected Filterable getFilterable() { return Severity.MALICIOUS; }
+        @Override protected Filterable getFilterable() { return SeverityFilter.MALICIOUS; }
     }
     public static class IgnoredCriticalFilter extends IgnoredFindingsSeverityFilter {
-        @Override protected Filterable getFilterable() { return Severity.CRITICAL; }
+        @Override protected Filterable getFilterable() { return SeverityFilter.CRITICAL; }
     }
     public static class IgnoredHighFilter extends IgnoredFindingsSeverityFilter {
-        @Override protected Filterable getFilterable() { return Severity.HIGH; }
+        @Override protected Filterable getFilterable() { return SeverityFilter.HIGH; }
     }
     public static class IgnoredMediumFilter extends IgnoredFindingsSeverityFilter {
-        @Override protected Filterable getFilterable() { return Severity.MEDIUM; }
+        @Override protected Filterable getFilterable() { return SeverityFilter.MEDIUM; }
     }
     public static class IgnoredLowFilter extends IgnoredFindingsSeverityFilter {
-        @Override protected Filterable getFilterable() { return Severity.LOW; }
+        @Override protected Filterable getFilterable() { return SeverityFilter.LOW; }
     }
 
     // ========== State Managers (Singleton Pattern) ==========
@@ -368,13 +368,13 @@ public class IgnoredFindingsToolbarActions {
         private static final IgnoredFindingsSeverityFilterState INSTANCE = new IgnoredFindingsSeverityFilterState();
         private final Set<Filterable> selectedFilters = Collections.synchronizedSet(new HashSet<>());
 
-        private IgnoredFindingsSeverityFilterState() { selectedFilters.addAll(Severity.DEFAULT_SEVERITIES); }
+        private IgnoredFindingsSeverityFilterState() { selectedFilters.addAll(SeverityFilter.DEFAULT_SEVERITIES); }
 
         public static IgnoredFindingsSeverityFilterState getInstance() { return INSTANCE; }
 
         /** Returns selected filters, restoring defaults if empty. */
         public Set<Filterable> getFilters() {
-            if (selectedFilters.isEmpty()) selectedFilters.addAll(Severity.DEFAULT_SEVERITIES);
+            if (selectedFilters.isEmpty()) selectedFilters.addAll(SeverityFilter.DEFAULT_SEVERITIES);
             return selectedFilters;
         }
 

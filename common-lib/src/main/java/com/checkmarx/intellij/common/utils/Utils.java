@@ -1,11 +1,10 @@
 package com.checkmarx.intellij.common.utils;
 
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.resources.Bundle;
-import com.checkmarx.intellij.common.service.StateService;
+import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.SettingsListener;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.icons.AllIcons;
@@ -408,7 +407,7 @@ public final class Utils {
      * Checking the requested filter is enabled or not by the user
      *
      * @param enabledFilterValues Set<String> which contains enabled filters values
-     * @param filterValue         - Label of filter {@link StateService}
+     * @param filterValue         - Label of filter { StateService}
      * @return true if requester filter is present in enabledFilterValues otherwise false
      */
     public static boolean isFilterEnabled(Set<String> enabledFilterValues, String filterValue) {
@@ -467,6 +466,20 @@ public final class Utils {
             return GlobalSettingsState.getInstance().isAuthenticated();
         } catch (Exception e) {
             LOGGER.error("Exception occurred while checking user authentication.", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Checks if the user is authenticated by retrieving the authentication state
+     * from the global settings.
+     *
+     * @return true if the user is authenticated, false otherwise
+     */
+    public static boolean isAuthenticated(){
+        try {
+           return GlobalSettingsState.getInstance().isAuthenticated();
+        } catch (Exception e) {
             return false;
         }
     }

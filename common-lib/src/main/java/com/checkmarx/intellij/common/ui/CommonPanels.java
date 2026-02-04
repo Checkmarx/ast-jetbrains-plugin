@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.common.ui;
 
-import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.CxIcons;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsConfigurable;
+import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.utils.Constants;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBLabel;
@@ -53,7 +53,7 @@ public final class CommonPanels {
 
         JButton openSettingsButton = new JButton(Bundle.message(Resource.OPEN_SETTINGS_BUTTON));
         openSettingsButton.addActionListener(e ->
-                ShowSettingsUtil.getInstance().showSettingsDialog(project, GlobalSettingsConfigurable.class));
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, Constants.GLOBAL_SETTINGS_ID));
 
         constraints = new GridConstraints();
         constraints.setRow(1);

@@ -36,9 +36,9 @@ public final class ScannerRegistry implements Disposable {
      *
      * @param project current IntelliJ project
      */
-    public ScannerRegistry( @NotNull Project project){
-        this.project=project;
-        Disposer.register(this,project);
+    public ScannerRegistry(@NotNull Project project) {
+        this.project = project;
+        Disposer.register(this, project);
         scannerInitialization();
     }
 
@@ -46,12 +46,12 @@ public final class ScannerRegistry implements Disposable {
      * Populates the registry with every scanner the plugin currently supports.
      * New scanners should be added here to be available project-wide.
      */
-    private void scannerInitialization(){
-        this.setScanner(ScanEngine.OSS.name(), new OssScannerCommand(this,project));
-        this.setScanner(ScanEngine.CONTAINERS.name(),new ContainerScannerCommand(this,project));
-        this.setScanner(ScanEngine.SECRETS.name(), new SecretsScannerCommand(this,project));
-        this.setScanner(ScanEngine.IAC.name(), new IacScannerCommand(this,project));
-        this.setScanner(ScanEngine.ASCA.name(), new AscaScannerCommand(this,project));
+    private void scannerInitialization() {
+        this.setScanner(ScanEngine.OSS.name(), new OssScannerCommand(this, project));
+        this.setScanner(ScanEngine.CONTAINERS.name(), new ContainerScannerCommand(this, project));
+        this.setScanner(ScanEngine.SECRETS.name(), new SecretsScannerCommand(this, project));
+        this.setScanner(ScanEngine.IAC.name(), new IacScannerCommand(this, project));
+        this.setScanner(ScanEngine.ASCA.name(), new AscaScannerCommand(this, project));
     }
 
     /**
@@ -61,9 +61,9 @@ public final class ScannerRegistry implements Disposable {
      * @param id      unique scanner identifier
      * @param scanner scanner command implementation
      */
-    private void setScanner(String id, ScannerCommand scanner){
+    private void setScanner(String id, ScannerCommand scanner) {
         Disposer.register(this, scanner);
-        this.scannerMap.put(id,scanner);
+        this.scannerMap.put(id, scanner);
     }
 
     /**
@@ -73,16 +73,16 @@ public final class ScannerRegistry implements Disposable {
      * @param project target project for scanner registration
      */
 
-    public void registerAllScanners(Project project){
-        scannerMap.values().forEach(scanner->scanner.register(project));
+    public void registerAllScanners(Project project) {
+        scannerMap.values().forEach(scanner -> scanner.register(project));
     }
 
     /**
      * De-registers every scanner from the stored project, effectively stopping
      * all realtime scanning activity.
      */
-    public void deregisterAllScanners(){
-        scannerMap.values().forEach(scanner->scanner.deregister(project));
+    public void deregisterAllScanners() {
+        scannerMap.values().forEach(scanner -> scanner.deregister(project));
     }
 
     /**
@@ -90,9 +90,9 @@ public final class ScannerRegistry implements Disposable {
      *
      * @param scannerId scanner identifier
      */
-    public void registerScanner(String scannerId){
-        ScannerCommand scanner= getScanner(scannerId);
-        if(scanner!=null) scanner.register(project);
+    public void registerScanner(String scannerId) {
+        ScannerCommand scanner = getScanner(scannerId);
+        if (scanner != null) scanner.register(project);
     }
 
 
@@ -101,9 +101,9 @@ public final class ScannerRegistry implements Disposable {
      *
      * @param scannerId scanner identifier
      */
-    public void deregisterScanner(String scannerId){
-        ScannerCommand scanner= getScanner(scannerId);
-        if(scanner!=null){
+    public void deregisterScanner(String scannerId) {
+        ScannerCommand scanner = getScanner(scannerId);
+        if (scanner != null) {
             scanner.deregister(project);
             scanner.dispose();
         }
@@ -116,7 +116,7 @@ public final class ScannerRegistry implements Disposable {
      * @return scanner command instance or {@code null} when not found
      */
 
-    public ScannerCommand getScanner(String scannerId){
+    public ScannerCommand getScanner(String scannerId) {
         return this.scannerMap.get(scannerId);
     }
 
@@ -127,8 +127,8 @@ public final class ScannerRegistry implements Disposable {
      */
     @Override
     public void dispose() {
-      this.deregisterAllScanners();
-      scannerMap.clear();
+        this.deregisterAllScanners();
+        scannerMap.clear();
     }
 
 }

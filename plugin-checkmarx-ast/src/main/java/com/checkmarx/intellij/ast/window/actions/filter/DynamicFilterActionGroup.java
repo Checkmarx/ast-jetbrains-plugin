@@ -1,7 +1,6 @@
 package com.checkmarx.intellij.ast.window.actions.filter;
 
-import com.checkmarx.intellij.common.service.StateService;
-import com.checkmarx.intellij.common.window.actions.filter.CustomStateFilter;
+import com.checkmarx.intellij.ast.service.StateService;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;

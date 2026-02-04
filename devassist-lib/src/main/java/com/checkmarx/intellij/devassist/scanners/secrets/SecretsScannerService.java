@@ -2,8 +2,8 @@ package com.checkmarx.intellij.devassist.scanners.secrets;
 
 import com.checkmarx.ast.secretsrealtime.SecretsRealtimeResults;
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.common.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
@@ -100,9 +100,9 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
 
         // Check if it's a realtime ignore file
         return filePath.contains("/.vscode/.checkmarxIgnored") ||
-               filePath.contains("/.vscode/.checkmarxIgnoredTempList") ||
-               filePath.contains("\\.vscode\\.checkmarxIgnored") ||
-               filePath.contains("\\.vscode\\.checkmarxIgnoredTempList");
+                filePath.contains("/.vscode/.checkmarxIgnoredTempList") ||
+                filePath.contains("\\.vscode\\.checkmarxIgnored") ||
+                filePath.contains("\\.vscode\\.checkmarxIgnoredTempList");
     }
 
     /**
@@ -127,7 +127,7 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
         try {
             LocalTime time = LocalTime.now();
             String timeSuffix = String.format("%02d%02d", time.getMinute(), time.getSecond());
-            String combined = relativePath + timeSuffix + UUID.randomUUID().toString().substring(0,5);
+            String combined = relativePath + timeSuffix + UUID.randomUUID().toString().substring(0, 5);
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = digest.digest(combined.getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
@@ -185,7 +185,7 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
      * @return ScanResult of type SecretsRealtimeResults (TODO: Replace with actual type)
      */
     public ScanResult<SecretsRealtimeResults> scan(@NotNull PsiFile file, @NotNull String uri) {
-        if (!this.shouldScanFile(uri,file)) {
+        if (!this.shouldScanFile(uri, file)) {
             return null;
         }
 
@@ -237,8 +237,8 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
      * then update the issue location in .checkmarxIgnored file to render the gutter icon at the correct location.
      *
      * @param tempFilePath - The temporary file path of the file to be scanned
-     * @param project - The project instance
-     * @param filePath - The original file path of the file to be scanned
+     * @param project      - The project instance
+     * @param filePath     - The original file path of the file to be scanned
      *
      */
     private void updateIgnoredFileDataOnLatestResult(String tempFilePath, Project project, String filePath) {

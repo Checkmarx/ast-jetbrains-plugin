@@ -2,8 +2,8 @@ package com.checkmarx.intellij.ast.inspections;
 
 import com.checkmarx.ast.results.result.Node;
 import com.checkmarx.ast.results.result.Result;
+import com.checkmarx.intellij.ast.project.ProjectResultsService;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.common.project.ProjectResultsService;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.ProblemsHolder;
 import com.intellij.openapi.diagnostic.Logger;
@@ -24,7 +24,7 @@ import java.util.Set;
  */
 public class CxVisitor extends PsiElementVisitor {
 
-    private static final Logger LOGGER = Utils.getLogger(com.checkmarx.intellij.common.inspections.CxVisitor.class);
+    private static final Logger LOGGER = Utils.getLogger(CxVisitor.class);
     private final Set<Integer> registeredNodes = new HashSet<>();
     private static final String descriptionFormat = "%s - %s - %s";
 

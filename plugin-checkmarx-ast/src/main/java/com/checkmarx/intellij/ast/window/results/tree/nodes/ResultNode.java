@@ -13,10 +13,9 @@ import com.checkmarx.ast.wrapper.CxConstants;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.common.components.CxLinkLabel;
 import com.checkmarx.intellij.common.components.PaneUtils;
-import com.checkmarx.intellij.common.service.StateService;
-import com.checkmarx.intellij.common.settings.global.CxWrapperFactory;
-import com.checkmarx.intellij.common.window.FileNode;
-import com.checkmarx.intellij.common.window.Severity;
+import com.checkmarx.intellij.ast.service.StateService;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.icons.AllIcons;
@@ -153,7 +152,7 @@ public class ResultNode extends DefaultMutableTreeNode {
 
     @NotNull
     public Icon getIcon() {
-        return Severity.valueOf(getResult().getSeverity()).getIcon();
+        return SeverityFilter.valueOf(getResult().getSeverity()).getIcon();
     }
 
     /**
@@ -586,7 +585,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         stateComboBox.setEnabled(triageEnabled);
 
         //Constructing selection of Severity combobox
-        final ComboBox<Severity> severityComboBox = new ComboBox<>(Severity.values());
+        final ComboBox<SeverityFilter> severityComboBox = new ComboBox<>(SeverityFilter.values());
         severityComboBox.setEditable(true);
         severityComboBox.setSelectedItem(result.getSeverity());
         severityComboBox.setEnabled(triageEnabled);
@@ -760,7 +759,7 @@ public class ResultNode extends DefaultMutableTreeNode {
         triageChanges.add(firstLabel, "span, wrap");
 
         JLabel severityLabel = new JLabel(String.format("<html>%s</html>", predicate.getSeverity()));
-        severityLabel.setIcon(Severity.valueOf(predicate.getSeverity()).getIcon());
+        severityLabel.setIcon(SeverityFilter.valueOf(predicate.getSeverity()).getIcon());
         triageChanges.add(severityLabel, "span, wrap");
 
         JLabel stateLabel = new JLabel(String.format("<html>%s</html>", predicate.getState()));

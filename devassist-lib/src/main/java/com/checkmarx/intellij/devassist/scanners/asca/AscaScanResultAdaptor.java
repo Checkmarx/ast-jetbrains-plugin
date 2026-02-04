@@ -221,7 +221,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
     private String getUniqueId(ScanDetail scanIssue) {
         if (Objects.nonNull(scanIssue)) {
             return DevAssistUtils.generateUniqueId(scanIssue.getLine(),
-                    scanIssue.getRuleID()+scanIssue.getRuleName(), scanIssue.getFileName());
+                    scanIssue.getRuleID() + scanIssue.getRuleName(), scanIssue.getFileName());
         }
         return ScanEngine.ASCA.name();
     }

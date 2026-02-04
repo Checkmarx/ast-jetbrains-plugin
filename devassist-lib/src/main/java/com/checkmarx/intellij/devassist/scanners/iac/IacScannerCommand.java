@@ -14,14 +14,14 @@ public class IacScannerCommand extends BaseScannerCommand {
     private final Project project;
     private final IacScannerService iacScannerService;
 
-    private IacScannerCommand(@NotNull Disposable parentDisposable,  @NotNull  Project project, @NotNull IacScannerService iacScannerService) {
+    private IacScannerCommand(@NotNull Disposable parentDisposable, @NotNull Project project, @NotNull IacScannerService iacScannerService) {
         super(parentDisposable, IacScannerService.createConfig());
-        this.project=project;
-        this.iacScannerService=iacScannerService;
+        this.project = project;
+        this.iacScannerService = iacScannerService;
     }
 
-    public IacScannerCommand(@NotNull Disposable disposable, @NotNull Project project){
-        this(disposable,project,new IacScannerService());
+    public IacScannerCommand(@NotNull Disposable disposable, @NotNull Project project) {
+        this(disposable, project, new IacScannerService());
     }
 
     /**
@@ -29,11 +29,11 @@ public class IacScannerCommand extends BaseScannerCommand {
      */
 
     @Override
-    public void initializeScanner(){
+    public void initializeScanner() {
     }
 
     @Override
-    public void dispose(){
+    public void dispose() {
         super.dispose();
     }
 

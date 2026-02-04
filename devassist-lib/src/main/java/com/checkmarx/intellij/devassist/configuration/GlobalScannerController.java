@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.devassist.configuration;
 
-import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.settings.SettingsListener;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;

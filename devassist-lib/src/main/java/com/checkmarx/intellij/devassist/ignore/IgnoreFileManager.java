@@ -103,7 +103,8 @@ public final class IgnoreFileManager {
         try (InputStream inputStream = Files.newInputStream(ignoreFile)) {
             ObjectMapper mapper = new ObjectMapper();
             Map<String, IgnoreEntry> data = mapper.readValue(inputStream,
-                    new TypeReference<Map<String, IgnoreEntry>>() {});
+                    new TypeReference<Map<String, IgnoreEntry>>() {
+                    });
             ignoreData.clear();
             ignoreData.putAll(data);
         } catch (IOException e) {
@@ -115,6 +116,7 @@ public final class IgnoreFileManager {
 
     /**
      * Returns all ignore entries.
+     *
      * @return list of ignore entries.
      */
     public List<IgnoreEntry> getAllIgnoreEntries() {
@@ -124,6 +126,7 @@ public final class IgnoreFileManager {
     /**
      * Returns the ignore data map for this project.
      * This is an instance method to ensure project-level isolation.
+     *
      * @return the ignore data map
      */
     public Map<String, IgnoreEntry> getIgnoreData() {
@@ -188,7 +191,7 @@ public final class IgnoreFileManager {
                                 Paths.get(scannedTempPath).getFileName().toString(),
                                 file.line,
                                 entry.ruleId
-                                ));
+                        ));
                     }
                     break;
                 default:
@@ -213,7 +216,7 @@ public final class IgnoreFileManager {
      */
     public boolean reviveEntry(IgnoreEntry entryToRevive) {
         String entryKey = ignoreData.entrySet().stream()
-                .filter(e ->  matchesEntry(e.getValue(), entryToRevive))
+                .filter(e -> matchesEntry(e.getValue(), entryToRevive))
                 .map(Map.Entry::getKey)
                 .findFirst()
                 .orElse(null);
@@ -272,6 +275,7 @@ public final class IgnoreFileManager {
     /**
      * Returns the path to the temporary ignore list.
      * Creates the file if it doesn't exist.
+     *
      * @return path to the temporary ignore list.
      *
      */
@@ -307,6 +311,7 @@ public final class IgnoreFileManager {
 
     /**
      * normalizes the given file path to be relative to the project's workspace root.
+     *
      * @param filePath
      * @return
      */
@@ -360,20 +365,20 @@ public final class IgnoreFileManager {
             }
             updateIgnoreTempList();
         }
-            // Remove entries where all files are inactive
-            List<String> keysToRemove = new ArrayList<>();
-            for (Map.Entry<String, IgnoreEntry> entry : ignoreData.entrySet()) {
-                boolean hasActive = entry.getValue().files.stream().anyMatch(f -> f.active);
-                if (!hasActive) {
-                    keysToRemove.add(entry.getKey());
-                }
+        // Remove entries where all files are inactive
+        List<String> keysToRemove = new ArrayList<>();
+        for (Map.Entry<String, IgnoreEntry> entry : ignoreData.entrySet()) {
+            boolean hasActive = entry.getValue().files.stream().anyMatch(f -> f.active);
+            if (!hasActive) {
+                keysToRemove.add(entry.getKey());
             }
-            if (!keysToRemove.isEmpty()) {
-                for (String key : keysToRemove) {
-                    ignoreData.remove(key);
-                }
-                saveIgnoreFile();
+        }
+        if (!keysToRemove.isEmpty()) {
+            for (String key : keysToRemove) {
+                ignoreData.remove(key);
             }
+            saveIgnoreFile();
+        }
 
     }
 
@@ -414,7 +419,8 @@ public final class IgnoreFileManager {
         // Deep copy via JSON round-trip
         try {
             String json = MAPPER.writeValueAsString(src);
-            return MAPPER.readValue(json, new TypeReference<Map<String, IgnoreEntry>>() {});
+            return MAPPER.readValue(json, new TypeReference<Map<String, IgnoreEntry>>() {
+            });
         } catch (IOException e) {
             LOGGER.warn("Failed to deep copy ignoreData, falling back to shallow copy", e);
             return new HashMap<>(src);

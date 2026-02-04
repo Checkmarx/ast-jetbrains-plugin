@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ast.window;
 
-import com.checkmarx.intellij.common.devassist.ui.findings.window.CxFindingsWindow;
-import com.checkmarx.intellij.common.devassist.ui.findings.window.CxIgnoredFindings;
-import com.checkmarx.intellij.common.devassist.utils.DevAssistConstants;
+import com.checkmarx.intellij.devassist.ui.findings.window.CxFindingsWindow;
+import com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;

@@ -379,7 +379,7 @@ public final class CxOneAssistFixPrompts {
 
         prompt.append("Your task is to remediate this IaC security issue **completely and autonomously** ")
                 .append("using the internal codeRemediation tool in Checkmarx MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n");
-        prompt.append(WARNING +"️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
+        prompt.append(WARNING + "️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
                 .append(actualLineNumber)
                 .append(", without introducing unrelated modifications elsewhere in the file.\n\n");
 

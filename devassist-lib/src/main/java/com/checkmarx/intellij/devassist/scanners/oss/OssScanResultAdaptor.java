@@ -160,10 +160,10 @@ public class OssScanResultAdaptor implements ScanResult<OssRealtimeResults> {
     /**
      * Generates a unique ID for the given scan issue.
      */
-    private String getUniqueId(ScanIssue scanIssue){
+    private String getUniqueId(ScanIssue scanIssue) {
         int line = (Objects.nonNull(scanIssue.getLocations()) && !scanIssue.getLocations().isEmpty())
                 ? scanIssue.getLocations().get(0).getLine() : 0;
-        return DevAssistUtils.generateUniqueId(line, scanIssue.getPackageManager()+scanIssue.getTitle(),
+        return DevAssistUtils.generateUniqueId(line, scanIssue.getPackageManager() + scanIssue.getTitle(),
                 scanIssue.getPackageVersion());
     }
 }

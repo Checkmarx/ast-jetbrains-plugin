@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.ast.commands;
 
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.common.settings.global.CxWrapperFactory;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import lombok.NonNull;
 
 import java.io.IOException;

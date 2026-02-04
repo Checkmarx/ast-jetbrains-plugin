@@ -2,8 +2,8 @@ package com.checkmarx.intellij.devassist.scanners.iac;
 
 import com.checkmarx.ast.iacrealtime.IacRealtimeResults;
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.common.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
@@ -193,7 +193,7 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start IAC Realtime Scan On File: " + uri);
                 IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(), DevAssistUtils.getIgnoreFilePath(psiFile.getProject()));
-                IacScanResultAdaptor scanResultAdaptor = new IacScanResultAdaptor(scanResults,fileType, uri);
+                IacScanResultAdaptor scanResultAdaptor = new IacScanResultAdaptor(scanResults, fileType, uri);
                 TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.IAC);
                 // Update line numbers for ignored IaC issues if any exist
                 updateIgnoredFileDataOnLatestResult(tempFilePath, psiFile.getProject(), uri);
@@ -217,11 +217,11 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
      * then update the issue location in .checkmarxIgnored file to render the gutter icon at the correct location.
      *
      * @param tempFilePath - The temporary file path of the file to be scanned
-     * @param project - The project instance
-     * @param filePath - The original file path of the file to be scanned
+     * @param project      - The project instance
+     * @param filePath     - The original file path of the file to be scanned
      *
      */
-    private void updateIgnoredFileDataOnLatestResult(String tempFilePath, Project project, String filePath){
+    private void updateIgnoredFileDataOnLatestResult(String tempFilePath, Project project, String filePath) {
         try {
             IgnoreManager ignoreManager = new IgnoreManager(project);
             if (ignoreManager.hasIgnoredEntries(ScanEngine.IAC)) {
@@ -232,7 +232,7 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
                     ignoreManager.updateLineNumbersForIgnoredEntries(fullScanResultAdaptor, filePath);
                 }
             }
-        }catch (IOException | CxException | InterruptedException e) {
+        } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn("RTS-IaC: Exception occurred while performing full scan without passing ignore file to update .checkmarxIgnored file", e);
         }
     }

@@ -4,6 +4,7 @@ import com.checkmarx.intellij.devassist.basescanner.BaseScannerCommand;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
+
 /**
  * Container Scanner Command that manages the lifecycle of container realtime scanning.
  * Integrates with the scanner registry system to handle enabling/disabling of container scanning.
@@ -14,14 +15,14 @@ public class ContainerScannerCommand extends BaseScannerCommand {
     private final Project project;
     private final ContainerScannerService containerScannerService;
 
-    private ContainerScannerCommand(@NotNull Disposable disposable, @NotNull Project project, @NotNull ContainerScannerService containerScannerService ) {
+    private ContainerScannerCommand(@NotNull Disposable disposable, @NotNull Project project, @NotNull ContainerScannerService containerScannerService) {
         super(disposable, ContainerScannerService.createConfig());
         this.containerScannerService = containerScannerService;
         this.project = project;
     }
 
     public ContainerScannerCommand(@NotNull Disposable disposable, Project project) {
-       this(disposable, project, new ContainerScannerService());
+        this(disposable, project, new ContainerScannerService());
     }
 
     /**
@@ -29,7 +30,7 @@ public class ContainerScannerCommand extends BaseScannerCommand {
      */
 
     @Override
-    public void initializeScanner(){
+    public void initializeScanner() {
     }
 
     /**
@@ -38,7 +39,7 @@ public class ContainerScannerCommand extends BaseScannerCommand {
      */
 
     @Override
-    public void dispose(){
+    public void dispose() {
         super.dispose();
     }
 

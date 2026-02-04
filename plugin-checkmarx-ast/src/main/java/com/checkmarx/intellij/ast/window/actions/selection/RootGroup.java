@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.ast.window.actions.selection;
 
+import com.checkmarx.intellij.ast.commands.Scan;
 import com.checkmarx.intellij.ast.window.actions.CxToolWindowAction;
-import com.checkmarx.intellij.common.commands.Scan;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;

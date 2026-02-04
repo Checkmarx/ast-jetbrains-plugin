@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.common.window;
 
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import lombok.Getter;
 

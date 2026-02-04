@@ -1,11 +1,10 @@
 package com.checkmarx.intellij.ast.window.actions;
 
-import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.common.utils.Constants;
-import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.ast.commands.Scan;
 import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.common.commands.Scan;
 import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.NotificationType;
@@ -19,7 +18,6 @@ import com.intellij.openapi.progress.Task;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
 import java.util.Objects;
 
 public class CancelScanAction extends AnAction implements CxToolWindowAction {

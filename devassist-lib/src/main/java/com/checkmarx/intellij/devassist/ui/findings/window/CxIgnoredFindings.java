@@ -4,11 +4,11 @@ import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.SettingsListener;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsComponent;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.common.window.CommonPanels;
-import com.checkmarx.intellij.common.window.DevAssistPromotionalPanel;
+import com.checkmarx.intellij.common.ui.CommonPanels;
+import com.checkmarx.intellij.common.ui.DevAssistPromotionalPanel;
+import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.checkmarx.intellij.devassist.ignore.IgnoreEntry;
 import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
@@ -16,7 +16,6 @@ import com.checkmarx.intellij.devassist.ui.actions.IgnoredFindingsToolbarActions
 import com.checkmarx.intellij.devassist.ui.layout.WrapLayout;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
-import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
@@ -188,7 +187,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
     private void checkSettingsAndDraw() {
         try {
-            if (!new GlobalSettingsComponent().isValid()) {
+            if (!Utils.isAuthenticated()) {
                 LOGGER.info("CxIgnoredFindings: Not authenticated - showing auth panel");
                 drawAuthPanel();
             } else {
@@ -230,9 +229,11 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
     }
 
-    /** Checks if an ignored file was modified externally and refreshes the UI while preserving selections. */
+    /**
+     * Checks if an ignored file was modified externally and refreshes the UI while preserving selections.
+     */
     private void checkAndRefreshIfNeeded() {
-        if (!new GlobalSettingsComponent().isValid()) return;
+        if (!Utils.isAuthenticated()) return;
 
         try {
             Path ignoreFilePath = getIgnoreFilePath();
@@ -262,7 +263,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
     }
 
-    /** Displays the authentication panel when settings are not configured. */
+    /**
+     * Displays the authentication panel when settings are not configured.
+     */
     private void drawAuthPanel() {
         removeAll();
         setContent(CommonPanels.createAuthPanel(project));
@@ -302,7 +305,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         LOGGER.info("drawPromotionalPanel: Promotional panel set as content");
     }
 
-    /** Draws the main panel with toolbar, header, and scrollable findings list. */
+    /**
+     * Draws the main panel with toolbar, header, and scrollable findings list.
+     */
 
     private void drawMainPanel() {
         removeAll();
@@ -355,7 +360,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return panel;
     }
 
-    /** Creates a toolbar with severity filters, type filter dropdown, and sort dropdown. */
+    /**
+     * Creates a toolbar with severity filters, type filter dropdown, and sort dropdown.
+     */
 
     private ActionToolbar createActionToolbar() {
         DefaultActionGroup actionGroup = new DefaultActionGroup();
@@ -376,9 +383,11 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     }
 
 
-    /** Applies current filters and sort, then refreshes the display. */
+    /**
+     * Applies current filters and sort, then refreshes the display.
+     */
     private void applyFiltersAndRefresh() {
-        if (!new GlobalSettingsComponent().isValid()) return;
+        if (!Utils.isAuthenticated()) return;
 
         Set<Filterable> severityFilters = IgnoredFindingsToolbarActions.IgnoredFindingsSeverityFilterState.getInstance().getFilters();
         Set<ScanEngine> typeFilters = IgnoredFindingsToolbarActions.TypeFilterState.getInstance().getSelectedEngines();
@@ -466,7 +475,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         ignoredListPanel.repaint();
     }
 
-    /** Creates a header with selection bar and column titles: Checkbox, Risk, Last Updated, Actions. */
+    /**
+     * Creates a header with selection bar and column titles: Checkbox, Risk, Last Updated, Actions.
+     */
     private JPanel createHeaderPanel() {
         headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
@@ -499,7 +510,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return headerPanel;
     }
 
-    /** Creates the selection bar (count label | divider | clear | revive buttons). Height=56px. */
+    /**
+     * Creates the selection bar (count label | divider | clear | revive buttons). Height=56px.
+     */
     private JPanel createSelectionBar() {
         JPanel bar = new JPanel();
         bar.setLayout(new BoxLayout(bar, BoxLayout.X_AXIS));
@@ -516,7 +529,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         // Vertical divider (24x40)
         Dimension divSize = new Dimension(JBUI.scale(24), JBUI.scale(40));
         JPanel divider = new JPanel() {
-            @Override protected void paintComponent(Graphics g) {
+            @Override
+            protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 g.setColor(DIVIDER_COLOR);
                 g.drawLine(getWidth() / 2, 8, getWidth() / 2, getHeight() - 8);
@@ -549,17 +563,24 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return bar;
     }
 
-    /** Creates a clickable label with hand cursor. */
+    /**
+     * Creates a clickable label with hand cursor.
+     */
     private JLabel createClickableLabel(Icon icon, java.util.function.Consumer<MouseEvent> onClick) {
         JLabel label = new JLabel(icon);
         label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         label.addMouseListener(new MouseAdapter() {
-            @Override public void mouseClicked(MouseEvent e) { onClick.accept(e); }
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                onClick.accept(e);
+            }
         });
         return label;
     }
 
-    /** Revives all selected entries. */
+    /**
+     * Revives all selected entries.
+     */
     private void reviveSelectedEntries() {
         List<IgnoreEntry> selectedEntries = entryPanels.stream()
                 .filter(IgnoredEntryPanel::isSelected)
@@ -571,13 +592,17 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     }
 
 
-    /** Clears all selections. */
+    /**
+     * Clears all selections.
+     */
     private void clearSelection() {
         entryPanels.forEach(panel -> panel.setSelected(false));
         updateSelectionState();
     }
 
-    /** Updates the selection bar visibility and count based on current selections. */
+    /**
+     * Updates the selection bar visibility and count based on current selections.
+     */
     private void updateSelectionState() {
         long selectedCount = entryPanels.stream().filter(IgnoredEntryPanel::isSelected).count();
         boolean hasSelection = selectedCount > 0;
@@ -619,7 +644,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return panel;
     }
 
-    /** Creates Risk column header (left-aligned, expands). */
+    /**
+     * Creates Risk column header (left-aligned, expands).
+     */
     private JPanel createRiskColumnHeader() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(20), 0));
         panel.setOpaque(false);
@@ -633,7 +660,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return panel;
     }
 
-    /** Creates Last Updated column header (center-aligned, fixed 120-160px). */
+    /**
+     * Creates Last Updated column header (center-aligned, fixed 120-160px).
+     */
     private JPanel createLastUpdatedColumnHeader() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         panel.setOpaque(false);
@@ -647,9 +676,11 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return panel;
     }
 
-    /** Refreshes entries from IgnoreManager and handles empty/non-empty state transitions. */
+    /**
+     * Refreshes entries from IgnoreManager and handles empty/non-empty state transitions.
+     */
     private void refreshIgnoredEntries() {
-        if (!new GlobalSettingsComponent().isValid()) return;
+        if (!Utils.isAuthenticated()) return;
 
         try {
             List<IgnoreEntry> entries = new IgnoreManager(project).getIgnoredEntries();
@@ -684,7 +715,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         updateSelectionState();
     }
 
-    /** Updates select-all checkbox based on individual selections (removes listeners to prevent recursion). */
+    /**
+     * Updates select-all checkbox based on individual selections (removes listeners to prevent recursion).
+     */
     private void updateSelectAllCheckbox() {
         if (selectAllCheckbox == null || entryPanels.isEmpty()) return;
 
@@ -820,7 +853,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
 
         // ---------- Column Layout Helpers ----------
 
-        /** Creates a vertical BoxLayout panel with standard column sizing (120-160px width). */
+        /**
+         * Creates a vertical BoxLayout panel with standard column sizing (120-160px width).
+         */
         private JPanel createVerticalColumnPanel() {
             JPanel panel = new JPanel();
             panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -829,7 +864,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return panel;
         }
 
-        /** Creates a spacer panel to skip past the title row (aligns content with description). */
+        /**
+         * Creates a spacer panel to skip past the title row (aligns content with description).
+         */
         private JPanel createTopSpacer() {
             JPanel spacer = new JPanel();
             spacer.setOpaque(false);
@@ -840,7 +877,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return spacer;
         }
 
-        /** Creates a wrapper panel for middle section content (aligned with description row). */
+        /**
+         * Creates a wrapper panel for middle section content (aligned with description row).
+         */
         private JPanel createMiddleWrapper() {
             JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, JBUI.scale(2)));
             wrapper.setOpaque(false);
@@ -851,7 +890,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return wrapper;
         }
 
-        /** Creates the Revive button (restores an ignored finding to active state). */
+        /**
+         * Creates the Revive button (restores an ignored finding to active state).
+         */
         private JButton createReviveButton() {
             JButton btn = new JButton(CxIcons.Ignored.REVIVE);
             btn.setBorder(JBUI.Borders.empty());  // Simplified border creation
@@ -881,7 +922,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         private int actualDescHeight = DESC_LINE_HEIGHT_MAX;
         private int actualBottomHeight = BOTTOM_LINE_HEIGHT_MIN;
 
-        /** Builds the Risk column content: title line, description, and file buttons. */
+        /**
+         * Builds the Risk column content: title line, description, and file buttons.
+         */
         private JPanel buildRiskContent() {
             JPanel panel = new JPanel();
             panel.setOpaque(false);
@@ -904,8 +947,10 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             String descText = getDescriptionText(), truncatedDesc = truncateDescription(descText);
             JTextArea descArea = new JTextArea(truncatedDesc);
             descArea.setFont(new Font(FONT_FAMILY_MENLO, Font.PLAIN, 14));
-            descArea.setLineWrap(true); descArea.setWrapStyleWord(true);
-            descArea.setEditable(false); descArea.setOpaque(false);
+            descArea.setLineWrap(true);
+            descArea.setWrapStyleWord(true);
+            descArea.setEditable(false);
+            descArea.setOpaque(false);
             descArea.setToolTipText(descText);
             actualDescHeight = calculateDescriptionHeight(truncatedDesc, descArea.getFont());
             setFlexibleHeight(descArea, actualDescHeight, DESC_LINE_HEIGHT_MAX);
@@ -930,7 +975,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return panel;
         }
 
-        /** Sets flexible height sizing (min=pref=height, max allows expansion). */
+        /**
+         * Sets flexible height sizing (min=pref=height, max allows expansion).
+         */
         private void setFlexibleHeight(JComponent c, int height, int maxHeight) {
             c.setPreferredSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(height)));
             c.setMinimumSize(new Dimension(0, JBUI.scale(height)));
@@ -995,7 +1042,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return TOP_LINE_HEIGHT + actualDescHeight + 4 + actualBottomHeight;
         }
 
-        /** Truncates text to DESC_MAX_LINES lines (~120 chars/line). Adds "..." if truncated. */
+        /**
+         * Truncates text to DESC_MAX_LINES lines (~120 chars/line). Adds "..." if truncated.
+         */
         private String truncateDescription(String text) {
             if (text == null || text.isEmpty()) return text;
             // 120 chars per line * DESC_MAX_LINES (2) = 240 chars max
@@ -1008,7 +1057,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return truncated + "...";
         }
 
-        /** Returns the description text. For OSS with MALICIOUS severity, shows special message. */
+        /**
+         * Returns the description text. For OSS with MALICIOUS severity, shows special message.
+         */
         private String getDescriptionText() {
             // Special case: OSS/SCA with MALICIOUS severity
             if (entry.type == ScanEngine.OSS && "MALICIOUS".equalsIgnoreCase(entry.severity)) {
@@ -1029,25 +1080,36 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         private Icon getCardIcon() {
             String sev = entry.severity != null ? entry.severity.toLowerCase() : "medium";
             switch (entry.type) {
-                case OSS: return selectCardIcon(CxIcons.Ignored.CARD_PACKAGE_CRITICAL, CxIcons.Ignored.CARD_PACKAGE_HIGH,
-                        CxIcons.Ignored.CARD_PACKAGE_MEDIUM, CxIcons.Ignored.CARD_PACKAGE_LOW, CxIcons.Ignored.CARD_PACKAGE_MALICIOUS, sev);
-                case SECRETS: return selectCardIcon(CxIcons.Ignored.CARD_SECRET_CRITICAL, CxIcons.Ignored.CARD_SECRET_HIGH,
-                        CxIcons.Ignored.CARD_SECRET_MEDIUM, CxIcons.Ignored.CARD_SECRET_LOW, CxIcons.Ignored.CARD_SECRET_MALICIOUS, sev);
-                case CONTAINERS: return selectCardIcon(CxIcons.Ignored.CARD_CONTAINERS_CRITICAL, CxIcons.Ignored.CARD_CONTAINERS_HIGH,
-                        CxIcons.Ignored.CARD_CONTAINERS_MEDIUM, CxIcons.Ignored.CARD_CONTAINERS_LOW, CxIcons.Ignored.CARD_CONTAINERS_MALICIOUS, sev);
-                default: return selectCardIcon(CxIcons.Ignored.CARD_VULNERABILITY_CRITICAL, CxIcons.Ignored.CARD_VULNERABILITY_HIGH,
-                        CxIcons.Ignored.CARD_VULNERABILITY_MEDIUM, CxIcons.Ignored.CARD_VULNERABILITY_LOW, CxIcons.Ignored.CARD_VULNERABILITY_MALICIOUS, sev);
+                case OSS:
+                    return selectCardIcon(CxIcons.Ignored.CARD_PACKAGE_CRITICAL, CxIcons.Ignored.CARD_PACKAGE_HIGH,
+                            CxIcons.Ignored.CARD_PACKAGE_MEDIUM, CxIcons.Ignored.CARD_PACKAGE_LOW, CxIcons.Ignored.CARD_PACKAGE_MALICIOUS, sev);
+                case SECRETS:
+                    return selectCardIcon(CxIcons.Ignored.CARD_SECRET_CRITICAL, CxIcons.Ignored.CARD_SECRET_HIGH,
+                            CxIcons.Ignored.CARD_SECRET_MEDIUM, CxIcons.Ignored.CARD_SECRET_LOW, CxIcons.Ignored.CARD_SECRET_MALICIOUS, sev);
+                case CONTAINERS:
+                    return selectCardIcon(CxIcons.Ignored.CARD_CONTAINERS_CRITICAL, CxIcons.Ignored.CARD_CONTAINERS_HIGH,
+                            CxIcons.Ignored.CARD_CONTAINERS_MEDIUM, CxIcons.Ignored.CARD_CONTAINERS_LOW, CxIcons.Ignored.CARD_CONTAINERS_MALICIOUS, sev);
+                default:
+                    return selectCardIcon(CxIcons.Ignored.CARD_VULNERABILITY_CRITICAL, CxIcons.Ignored.CARD_VULNERABILITY_HIGH,
+                            CxIcons.Ignored.CARD_VULNERABILITY_MEDIUM, CxIcons.Ignored.CARD_VULNERABILITY_LOW, CxIcons.Ignored.CARD_VULNERABILITY_MALICIOUS, sev);
             }
         }
 
-        /** Selects the appropriate card icon based on severity. */
+        /**
+         * Selects the appropriate card icon based on severity.
+         */
         private Icon selectCardIcon(Icon critical, Icon high, Icon medium, Icon low, Icon malicious, String sev) {
             switch (sev) {
-                case "critical": return critical;
-                case "high": return high;
-                case "low": return low;
-                case "malicious": return malicious;
-                default: return medium;
+                case "critical":
+                    return critical;
+                case "high":
+                    return high;
+                case "low":
+                    return low;
+                case "malicious":
+                    return malicious;
+                default:
+                    return medium;
             }
         }
 
@@ -1061,8 +1123,8 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
          * Adds file buttons directly to the container (which also contains the engine chip).
          * This ensures the engine chip and file buttons are on the same line using WrapLayout.
          *
-         * @param container   the container to add buttons to (uses WrapLayout)
-         * @param engineChip  the engine chip label (first component, preserved during collapse)
+         * @param container  the container to add buttons to (uses WrapLayout)
+         * @param engineChip the engine chip label (first component, preserved during collapse)
          */
         private void addFileButtonsToContainer(JPanel container, JLabel engineChip) {
             List<IgnoreEntry.FileReference> activeFiles = entry.files != null
@@ -1117,7 +1179,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             }
         }
 
-        /** Creates a file button with pill shape styling and file icon. */
+        /**
+         * Creates a file button with pill shape styling and file icon.
+         */
         private JButton createFileButton(IgnoreEntry.FileReference file) {
             JButton btn = createPillButton(formatFileLabel(file));
             btn.setToolTipText(file.path + (file.line != null ? ":" + file.line : ""));
@@ -1125,7 +1189,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return btn;
         }
 
-        /** Creates a pill-shaped button with FILE_ICON, rounded corners, and theme-aware styling. */
+        /**
+         * Creates a pill-shaped button with FILE_ICON, rounded corners, and theme-aware styling.
+         */
         private JButton createPillButton(String text) {
             JButton btn = new JButton(text) {
                 @Override
@@ -1145,7 +1211,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 }
 
                 @Override
-                public Color getForeground() { return TEXT_COLOR; }
+                public Color getForeground() {
+                    return TEXT_COLOR;
+                }
             };
             // Configure pill button appearance
             btn.setIcon(CxIcons.Ignored.FILE_ICON);
@@ -1164,7 +1232,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return btn;
         }
 
-        /** Creates an underlined text link for expand/collapse actions. */
+        /**
+         * Creates an underlined text link for expand/collapse actions.
+         */
         private JLabel createUnderlinedLink(String text) {
             JLabel label = new JLabel("<html><u>" + text + "</u></html>");
             label.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, 12));
@@ -1174,15 +1244,22 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return label;
         }
 
-        /** Revalidates hierarchy from container up to scroll pane for expand/collapse. */
+        /**
+         * Revalidates hierarchy from container up to scroll pane for expand/collapse.
+         */
         private void propagateRevalidateForExpansion(Container container) {
             // Walk up hierarchy, revalidating each level until we hit the scroll pane
             for (Container c = container; c != null; c = c.getParent()) {
                 c.revalidate();
-                if (c instanceof JScrollPane) { c.repaint(); break; }
+                if (c instanceof JScrollPane) {
+                    c.repaint();
+                    break;
+                }
             }
             // Force immediate layout recalculation on this panel
-            invalidate(); validate(); repaint();
+            invalidate();
+            validate();
+            repaint();
         }
 
         // ---------- File Navigation ----------
@@ -1271,14 +1348,18 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 if (days < 7) return days + " days ago";
                 if (days < 30) return (days / 7) + " weeks ago";
                 return days < 365 ? (days / 30) + " months ago" : (days / 365) + " years ago";
-            } catch (Exception ex) { return isoDate; }
+            } catch (Exception ex) {
+                return isoDate;
+            }
         }
 
         // ---------- UI Helpers ----------
 
         private static final int CHECKBOX_COL_WIDTH = 50;
 
-        /** Creates a panel for the checkbox column with dynamic dimensions based on row content. */
+        /**
+         * Creates a panel for the checkbox column with dynamic dimensions based on row content.
+         */
         private JPanel createCheckboxColumnPanel() {
             JPanel panel = new JPanel(new BorderLayout());
             panel.setOpaque(false);
@@ -1289,7 +1370,9 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return panel;
         }
 
-        /** Sets column sizing: 120-160px width, dynamic height based on row content. */
+        /**
+         * Sets column sizing: 120-160px width, dynamic height based on row content.
+         */
         private void setColumnSizes(JPanel panel, int minH) {
             panel.setMinimumSize(new Dimension(JBUI.scale(120), JBUI.scale(minH)));
             panel.setPreferredSize(new Dimension(JBUI.scale(140), JBUI.scale(getCalculatedRowHeight())));
@@ -1302,6 +1385,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
                 public void mouseEntered(MouseEvent e) {
                     setBackground(JBUI.CurrentTheme.ToolWindow.background().brighter());
                 }
+
                 @Override
                 public void mouseExited(MouseEvent e) {
                     setBackground(JBUI.CurrentTheme.ToolWindow.background());
@@ -1309,7 +1393,12 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             });
         }
 
-        public boolean isSelected() { return selectCheckBox.isSelected(); }
-        public void setSelected(boolean selected) { selectCheckBox.setSelected(selected); }
+        public boolean isSelected() {
+            return selectCheckBox.isSelected();
+        }
+
+        public void setSelected(boolean selected) {
+            selectCheckBox.setSelected(selected);
+        }
     }
 }

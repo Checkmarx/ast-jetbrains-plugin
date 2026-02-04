@@ -1,13 +1,12 @@
 package com.checkmarx.intellij.ast.window.actions.selection;
 
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.common.commands.Scan;
+import com.checkmarx.intellij.ast.commands.Scan;
+import com.checkmarx.intellij.ast.window.CxToolWindowPanel;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.common.window.CxToolWindowPanel;
-import com.checkmarx.intellij.common.window.actions.selection.BaseSelectionGroup;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;

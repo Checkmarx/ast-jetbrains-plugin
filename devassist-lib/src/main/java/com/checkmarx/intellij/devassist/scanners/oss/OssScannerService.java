@@ -2,8 +2,8 @@ package com.checkmarx.intellij.devassist.scanners.oss;
 
 import com.checkmarx.ast.ossrealtime.OssRealtimeResults;
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.common.settings.global.CxWrapperFactory;
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
@@ -68,8 +68,8 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
      * @param filePath absolute path to the file
      * @return {@code true} if the file should be scanned; {@code false} otherwise
      */
-    public boolean shouldScanFile(String filePath,PsiFile psiFile) {
-        if (!super.shouldScanFile(filePath,psiFile)) {
+    public boolean shouldScanFile(String filePath, PsiFile psiFile) {
+        if (!super.shouldScanFile(filePath, psiFile)) {
             return false;
         }
         return this.isManifestFilePatternMatching(filePath);
@@ -116,7 +116,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
         try {
             LocalTime time = LocalTime.now();
             String timeSuffix = String.format("%02d%02d", time.getMinute(), time.getSecond());
-            String combined = relativePath + timeSuffix + UUID.randomUUID().toString().substring(0,5);
+            String combined = relativePath + timeSuffix + UUID.randomUUID().toString().substring(0, 5);
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = digest.digest(combined.getBytes(StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
@@ -231,7 +231,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
      * @return ScanResult of type OssRealtimeResults
      */
     public ScanResult<OssRealtimeResults> scan(@NotNull PsiFile file, @NotNull String uri) {
-        if (!this.shouldScanFile(uri,file)) {
+        if (!this.shouldScanFile(uri, file)) {
             return null;
         }
         Path tempSubFolder = this.getTempSubFolderPath(file);
@@ -266,13 +266,13 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
      * then update the issue location in .checkmarxIgnored file to render the gutter icon at the correct location.
      *
      * @param tempFilePath - The temporary file path of the file to be scanned
-     * @param project - The project instance
-     * @param filePath - The original file path of the file to be scanned
+     * @param project      - The project instance
+     * @param filePath     - The original file path of the file to be scanned
      *
      */
     private void updateIgnoredFileDataOnLatestResult(String tempFilePath, Project project, String filePath) {
         try {
-            IgnoreManager ignoreManager =  new IgnoreManager(project);
+            IgnoreManager ignoreManager = new IgnoreManager(project);
             if (ignoreManager.hasIgnoredEntries(ScanEngine.OSS)) {
                 LOGGER.debug("OSS: Performing full scan to update line numbers for ignored packages");
                 OssRealtimeResults fullScanResults = CxWrapperFactory.build()

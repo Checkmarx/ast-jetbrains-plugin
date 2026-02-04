@@ -19,7 +19,7 @@ public class SecretsScannerCommand extends BaseScannerCommand {
     }
 
     public SecretsScannerCommand(@NotNull Disposable parentDisposable,
-                                @NotNull Project project) {
+                                 @NotNull Project project) {
         this(parentDisposable, project, new SecretsScannerService());
     }
 

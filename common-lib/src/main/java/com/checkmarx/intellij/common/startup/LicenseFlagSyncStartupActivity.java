@@ -2,8 +2,8 @@ package com.checkmarx.intellij.common.startup;
 
 import com.checkmarx.intellij.common.commands.TenantSetting;
 import com.checkmarx.intellij.common.settings.SettingsListener;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsSensitiveState;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;

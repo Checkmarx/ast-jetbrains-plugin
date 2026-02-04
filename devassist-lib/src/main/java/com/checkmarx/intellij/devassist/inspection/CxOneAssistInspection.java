@@ -125,7 +125,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
                     .scheduleScan(filePath, problemHelperBuilder.build(), ScanEngine.ALL);
             if (isScanScheduled) {
                 List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
-                if (scanIssueList.isEmpty()){
+                if (scanIssueList.isEmpty()) {
                     // decorate UI only for ignored vulnerability if no scan issues found
                     cxOneAssistInspectionMgr.decorateUIForIgnoreVulnerability(file, scanIssueList);
                     return ProblemDescriptor.EMPTY_ARRAY;

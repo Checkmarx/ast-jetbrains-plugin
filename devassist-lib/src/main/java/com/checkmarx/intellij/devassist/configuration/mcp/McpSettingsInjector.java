@@ -16,13 +16,16 @@ public final class McpSettingsInjector {
     private static final ObjectMapper M = new ObjectMapper();
     private static final String FALLBACK_BASE = "https://ast-master-components.dev.cxast.net";
 
-    private McpSettingsInjector() {}
+    private McpSettingsInjector() {
+    }
 
-    /** Adds or updates the Checkmarx MCP server entry. Returns true if file was updated. */
+    /**
+     * Adds or updates the Checkmarx MCP server entry. Returns true if file was updated.
+     */
     public static boolean installForCopilot(String token) throws Exception {
-        String issuer  = tryExtractIssuer(token);
+        String issuer = tryExtractIssuer(token);
         String baseUrl = deriveBaseUrlFromIssuer(issuer);
-        String mcpUrl  = baseUrl + "/api/security-mcp/mcp";
+        String mcpUrl = baseUrl + "/api/security-mcp/mcp";
 
         Path cfg = resolveCopilotMcpConfigPath();
         boolean changed = mergeCheckmarxServer(cfg, mcpUrl, token);
@@ -34,7 +37,9 @@ public final class McpSettingsInjector {
         return changed;
     }
 
-    /** Removes the Checkmarx MCP server entry. Returns true if removal happened. */
+    /**
+     * Removes the Checkmarx MCP server entry. Returns true if removal happened.
+     */
     public static boolean uninstallFromCopilot() throws Exception {
         Path cfg = resolveCopilotMcpConfigPath();
         boolean removed = removeCheckmarxServer(cfg);
@@ -95,7 +100,8 @@ public final class McpSettingsInjector {
             byte[] payload = Base64.getUrlDecoder().decode(parts[1]);
             String json = new String(payload, StandardCharsets.UTF_8);
             Map<String, Object> map =
-                    M.readValue(json, new TypeReference<Map<String, Object>>() {});
+                    M.readValue(json, new TypeReference<Map<String, Object>>() {
+                    });
             Object iss = map.get("iss");
             return iss != null ? iss.toString() : null;
         } catch (Exception e) {
@@ -106,7 +112,7 @@ public final class McpSettingsInjector {
 
     @SuppressWarnings("unchecked")
     private static boolean mergeCheckmarxServer(Path configPath, String url, String token) throws Exception {
-        Map<String, Object> root    = readJson(configPath);
+        Map<String, Object> root = readJson(configPath);
         Map<String, Object> servers = (Map<String, Object>) root
                 .getOrDefault("servers", new LinkedHashMap<>());
 
@@ -161,7 +167,8 @@ public final class McpSettingsInjector {
         try {
             String content = stripLineComments(Files.readString(path));
             Map<String, Object> map =
-                    M.readValue(content, new TypeReference<Map<String, Object>>() {});
+                    M.readValue(content, new TypeReference<Map<String, Object>>() {
+                    });
             return (map == null || map.isEmpty()) ? emptyServersRoot() : map;
         } catch (Exception e) {
             LOG.warn("Failed to read existing Copilot MCP config, starting fresh", e);
@@ -177,7 +184,9 @@ public final class McpSettingsInjector {
         return s.replaceAll("(?m)^\\s*//.*$", "");
     }
 
-    /** Public accessor used by UI components to locate the MCP configuration file. */
+    /**
+     * Public accessor used by UI components to locate the MCP configuration file.
+     */
     public static Path getMcpJsonPath() {
         return resolveCopilotMcpConfigPath();
     }

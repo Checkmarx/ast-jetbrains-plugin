@@ -4,6 +4,7 @@ import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
@@ -11,7 +12,6 @@ import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
-import com.checkmarx.intellij.common.settings.global.CxWrapperFactory;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -65,7 +65,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      * ASCA only scans files with supported programming language extensions.
      *
      * @param filePath absolute path to the file
-     * @param psiFile the PSI file object
+     * @param psiFile  the PSI file object
      * @return {@code true} if the file should be scanned; {@code false} otherwise
      */
     @Override
@@ -90,7 +90,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      * Based on VSCode implementation: only scan .java, .cs, .go, .py, .js, .jsx files.
      *
      * @param filePath path to the file
-     * @param psiFile the PSI file object
+     * @param psiFile  the PSI file object
      * @return {@code true} if the file has a supported extension; {@code false} otherwise
      */
     private boolean hasSupportedExtension(String filePath, PsiFile psiFile) {
@@ -111,7 +111,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
 
         if (!isSupported) {
             LOGGER.debug("ASCA scanner: extension '" + extension + "' not in supported list: " +
-                DevAssistConstants.ASCA_SUPPORTED_EXTENSIONS);
+                    DevAssistConstants.ASCA_SUPPORTED_EXTENSIONS);
         }
 
         return isSupported;
@@ -121,7 +121,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      * Scans the given PsiFile using the ASCA scanner.
      *
      * @param psiFile the PSI file to scan
-     * @param uri the file path URI
+     * @param uri     the file path URI
      * @return ScanResult containing ASCA scan results, or null if scan fails
      */
     @Override
@@ -208,7 +208,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      */
     private ScanResult scanAscaFile(String path, boolean ascaLatestVersion, String agent, String ignoreFilePath)
             throws IOException, CxException, InterruptedException {
-        return CxWrapperFactory.build().ScanAsca(path, ascaLatestVersion, agent,null);
+        return CxWrapperFactory.build().ScanAsca(path, ascaLatestVersion, agent, null);
     }
 
     /**
@@ -340,8 +340,8 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
 
         // Remove path separators and dangerous characters
         String sanitized = fileName.replaceAll("[/\\\\:*?\"<>|]", "_")
-                                  .replaceAll("\\.\\.+", ".") // Replace multiple dots with single dot
-                                  .trim();
+                .replaceAll("\\.\\.+", ".") // Replace multiple dots with single dot
+                .trim();
 
         // Ensure file name is not empty after sanitization
         if (sanitized.isEmpty() || sanitized.equals(".") || sanitized.equals("..")) {
@@ -410,7 +410,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      */
     public boolean installAsca() {
         try {
-            ScanResult res = CxWrapperFactory.build().ScanAsca("", true, Constants.JET_BRAINS_AGENT_NAME,null);
+            ScanResult res = CxWrapperFactory.build().ScanAsca("", true, Constants.JET_BRAINS_AGENT_NAME, null);
             if (res.getError() != null) {
                 LOGGER.warn(Strings.join("ASCA installation error: ", res.getError().getDescription()));
                 return false;
@@ -429,8 +429,8 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
      * then update the issue location in .checkmarxIgnored file to render the gutter icon at the correct location.
      *
      * @param tempFilePath - The temporary file path of the file to be scanned
-     * @param project - The project instance
-     * @param filePath - The original file path of the file to be scanned
+     * @param project      - The project instance
+     * @param filePath     - The original file path of the file to be scanned
      *
      */
     private void updateIgnoredFileDataOnLatestResult(String tempFilePath, Project project, String filePath, String agent, boolean ascLatestVersion) {

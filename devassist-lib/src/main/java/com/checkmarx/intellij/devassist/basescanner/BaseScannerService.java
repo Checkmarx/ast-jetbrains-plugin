@@ -19,6 +19,7 @@ import java.util.stream.Stream;
  * Base implementation of {@link ScannerService} that wires respective ScannerConig called
  * from different scannerServices
  * provides helpers for deciding when to scan files and scanners managing temporary  folders.
+ *
  * @param <T> is type of ScanResult produced by concrete scanner Scan method implementations
  */
 
@@ -62,7 +63,6 @@ public class BaseScannerService<T> implements ScannerService<T> {
     }
 
 
-
     /**
      * Builds the path to a temporary sub-folder within the system temp directory.
      *
@@ -85,12 +85,9 @@ public class BaseScannerService<T> implements ScannerService<T> {
         try {
             Files.createDirectories(folderPath);
         } catch (IOException e) {
-            LOGGER.warn("Failed to create temporary folder:"+ folderPath, e);
+            LOGGER.warn("Failed to create temporary folder:" + folderPath, e);
         }
     }
-
-
-
 
 
     /**
@@ -98,7 +95,7 @@ public class BaseScannerService<T> implements ScannerService<T> {
      *
      * @param tempFolder root path of the temporary folder to remove
      */
-    protected void deleteTempFolder( @NotNull Path tempFolder) {
+    protected void deleteTempFolder(@NotNull Path tempFolder) {
         if (Files.notExists(tempFolder)) {
             return;
         }

@@ -3,6 +3,7 @@ package com.checkmarx.intellij.devassist.scanners.containers;
 import com.checkmarx.ast.containersrealtime.ContainersRealtimeResults;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
@@ -10,7 +11,6 @@ import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
-import com.checkmarx.intellij.common.settings.global.CxWrapperFactory;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
@@ -89,11 +89,10 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
         List<PathMatcher> pathMatchers = DevAssistConstants.CONTAINERS_FILE_PATTERNS.stream().map(f -> FileSystems.getDefault().getPathMatcher("glob:" + f)).collect(Collectors.toList());
         for (PathMatcher pathMatcher : pathMatchers) {
             if (pathMatcher.matches(Paths.get(filePath.toLowerCase()))) {
-                if(DevAssistUtils.isDockerComposeFile(filePath.toLowerCase())){
-                    fileType= DevAssistConstants.DOCKER_COMPOSE;
-                }
-                else if(DevAssistUtils.isDockerFile(filePath.toLowerCase())){
-                    fileType= DevAssistConstants.DOCKERFILE;
+                if (DevAssistUtils.isDockerComposeFile(filePath.toLowerCase())) {
+                    fileType = DevAssistConstants.DOCKER_COMPOSE;
+                } else if (DevAssistUtils.isDockerFile(filePath.toLowerCase())) {
+                    fileType = DevAssistConstants.DOCKERFILE;
                 }
                 return true;
             }
@@ -134,8 +133,8 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
     /**
      * Persists the container file into the temporary directory for scanning.
      *
-     * @param tempSubFolder    destination temp directory
-     * @param psiFile             PSI file containing the manifest contents
+     * @param tempSubFolder destination temp directory
+     * @param psiFile       PSI file containing the manifest contents
      * @return pair of full file path and temp directory path
      * @throws IOException if writing the file fails
      */
@@ -174,19 +173,20 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
      * Checks whether the supplied file path matches any of the helm extension .
      *
      * @param filePath path to evaluate
-     * @param psiFile PsiFile to evaluate
+     * @param psiFile  PsiFile to evaluate
      * @return {@code true} if a helm pattern matches; {@code false} otherwise
      */
 
-    public  boolean isHelmFile(@NotNull PsiFile psiFile,@NotNull String filePath) {
+    public boolean isHelmFile(@NotNull PsiFile psiFile, @NotNull String filePath) {
         if (DevAssistUtils.isYamlFile(psiFile)) {
             if (DevAssistConstants.CONTAINER_HELM_EXCLUDED_FILES.contains(psiFile.getName().toLowerCase())) {
                 return false;
             }
-            if(filePath.toLowerCase().contains("/helm/")){
-                fileType= DevAssistConstants.HELM;
+            if (filePath.toLowerCase().contains("/helm/")) {
+                fileType = DevAssistConstants.HELM;
                 return true;
-            };
+            }
+            ;
         }
         return false;
     }
@@ -195,7 +195,7 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
      * Scans the given Psi file using OssScanner wrapper method.
      *
      * @param psiFile - the file to scan
-     * @param uri  - the file path
+     * @param uri     - the file path
      * @return ScanResult of type OssRealtimeResults
      */
     @Override
@@ -241,18 +241,18 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
      * then update the issue location in .checkmarxIgnored file to render the gutter icon at the correct location.
      *
      * @param tempFilePath - The temporary file path of the file to be scanned
-     * @param project - The project instance
-     * @param filePath - The original file path of the file to be scanned
+     * @param project      - The project instance
+     * @param filePath     - The original file path of the file to be scanned
      *
      */
     private void updateIgnoredFileDataOnLatestResult(String tempFilePath, Project project, String filePath) {
         try {
-            IgnoreManager ignoreManager =  new IgnoreManager(project);
+            IgnoreManager ignoreManager = new IgnoreManager(project);
             if (ignoreManager.hasIgnoredEntries(ScanEngine.CONTAINERS)) {
                 LOGGER.debug("IaC: Performing full scan to update line numbers for ignored packages");
                 ContainersRealtimeResults fullScanResults = CxWrapperFactory.build().containersRealtimeScan(tempFilePath, "");
                 if (fullScanResults != null) {
-                    ContainerScanResultAdaptor fullScanResultAdaptor = new ContainerScanResultAdaptor(fullScanResults,fileType, filePath);
+                    ContainerScanResultAdaptor fullScanResultAdaptor = new ContainerScanResultAdaptor(fullScanResults, fileType, filePath);
                     ignoreManager.updateLineNumbersForIgnoredEntries(fullScanResultAdaptor, filePath);
                 }
             }

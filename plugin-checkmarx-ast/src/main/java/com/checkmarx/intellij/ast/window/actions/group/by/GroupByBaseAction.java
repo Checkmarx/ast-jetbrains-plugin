@@ -1,7 +1,6 @@
 package com.checkmarx.intellij.ast.window.actions.group.by;
 
-import com.checkmarx.intellij.common.window.GroupBy;
-import com.checkmarx.intellij.common.window.actions.CxToolWindowAction;
+import com.checkmarx.intellij.ast.window.actions.CxToolWindowAction;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ToggleAction;

@@ -68,7 +68,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
         setEnabled(false);
         CompletableFuture.supplyAsync((Supplier<List<com.checkmarx.ast.project.Project>>) () -> {
             try {
-                List<com.checkmarx.ast.project.Project> list = com.checkmarx.intellij.common.commands.Project.getList();
+                List<com.checkmarx.ast.project.Project> list = com.checkmarx.intellij.ast.commands.Project.getList();
                 return list != null ? list : Collections.emptyList();
             } catch (Exception e) {
                 LOGGER.warn(e);

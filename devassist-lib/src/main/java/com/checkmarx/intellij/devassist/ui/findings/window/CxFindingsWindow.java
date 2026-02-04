@@ -2,14 +2,13 @@ package com.checkmarx.intellij.devassist.ui.findings.window;
 
 import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.settings.SettingsListener;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsComponent;
-import com.checkmarx.intellij.common.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.SeverityLevel;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.common.window.CommonPanels;
-import com.checkmarx.intellij.common.window.DevAssistPromotionalPanel;
-import com.checkmarx.intellij.common.window.FindingsPromotionalPanel;
+import com.checkmarx.intellij.common.ui.CommonPanels;
+import com.checkmarx.intellij.common.ui.DevAssistPromotionalPanel;
+import com.checkmarx.intellij.common.ui.FindingsPromotionalPanel;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.Location;
@@ -115,7 +114,7 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         // - Authenticated + no license: Show full-screen promotional panel
         Runnable settingsCheckRunnable = () -> {
             try {
-                if (!new GlobalSettingsComponent().isValid()) {
+                if (!Utils.isAuthenticated()) {
                     LOGGER.info("CxFindingsWindow: Not authenticated - showing auth panel");
                     drawAuthPanel();
                 } else {
@@ -458,7 +457,7 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
                     .collect(Collectors.toList());
             if (!filteredScanDetails.isEmpty())
                 ApplicationManager.getApplication().runReadAction(() ->
-                    createFileNode(filePath, filteredScanDetails, fileName));
+                        createFileNode(filePath, filteredScanDetails, fileName));
         }
         ((DefaultTreeModel) tree.getModel()).reload();
         expandNodesByFilePath();

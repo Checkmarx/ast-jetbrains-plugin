@@ -74,19 +74,19 @@ public final class IgnoreManager {
         LOGGER.debug(String.format("RTS-Ignore: Adding ignore entry for issue: %s", issueToIgnore.getTitle()));
 
         String vulnerabilityKey = createJsonKeyForIgnoreEntry(issueToIgnore, clickId);
-        if(vulnerabilityKey.isEmpty()){
+        if (vulnerabilityKey.isEmpty()) {
             LOGGER.debug("RTS-Ignore: Ignoring vulnerability failed. Vulnerability key is empty.");
             return;
         }
         // Convert ScanIssue → IgnoreEntry
         IgnoreEntry ignoreEntry = buildIgnoreEntry(issueToIgnore, clickId);
         if (Objects.isNull(ignoreEntry)) {
-            Utils.showNotification(Bundle.message(Resource.IGNORE_FAILED), "", NotificationType.ERROR, project,false,"");
+            Utils.showNotification(Bundle.message(Resource.IGNORE_FAILED), "", NotificationType.ERROR, project, false, "");
             return;
         }
         LOGGER.debug(String.format("RTS-Ignore: Ignoring %s", vulnerabilityKey));
         ignoreFileManager.updateIgnoreData(vulnerabilityKey, ignoreEntry);
-        scanFileAndUpdateResults(issueToIgnore.getFilePath(),issueToIgnore.getScanEngine());
+        scanFileAndUpdateResults(issueToIgnore.getFilePath(), issueToIgnore.getScanEngine());
         showIgnoreSuccessNotification(project, issueToIgnore, vulnerabilityKey);
         LOGGER.debug(String.format("RTS-Ignore: Successfully added ignore entry for issue: %s", issueToIgnore.getTitle()));
     }
@@ -115,7 +115,7 @@ public final class IgnoreManager {
         if (allIssues.isEmpty()) return;
         IgnoreEntry ignoreEntry = buildIgnoreEntry(issueToIgnore, clickId);
         if (Objects.isNull(ignoreEntry)) {
-            Utils.showNotification(Bundle.message(Resource.IGNORE_FAILED), "", NotificationType.ERROR, project,false,"");
+            Utils.showNotification(Bundle.message(Resource.IGNORE_FAILED), "", NotificationType.ERROR, project, false, "");
             return;
         }
         List<IgnoreEntry.FileReference> fileRefs = new ArrayList<>();
@@ -157,7 +157,7 @@ public final class IgnoreManager {
         // Perform the revive operation (sets all file references to inactive)
         boolean success = ignoreFileManager.reviveEntry(entryToRevive);
         if (!success) {
-            Utils.showNotification(Bundle.message(Resource.REVIVE_FAILED), entryToRevive.getPackageName(), NotificationType.ERROR, project,false,"");
+            Utils.showNotification(Bundle.message(Resource.REVIVE_FAILED), entryToRevive.getPackageName(), NotificationType.ERROR, project, false, "");
             LOGGER.warn(format("RTS-Ignore: Failed to revive entry: %s", entryToRevive.getPackageName()));
             return;
         }
@@ -212,9 +212,9 @@ public final class IgnoreManager {
             if (!failedIgnoreEntry.isEmpty()) {
                 message += String.format(" (%d failed)", failedIgnoreEntry.size());
             }
-            Utils.showNotification(message, "", NotificationType.INFORMATION, project,false,"");
+            Utils.showNotification(message, "", NotificationType.INFORMATION, project, false, "");
         } else {
-            Utils.showNotification("Failed to revive entries", "", NotificationType.ERROR, project,false,"");
+            Utils.showNotification("Failed to revive entries", "", NotificationType.ERROR, project, false, "");
         }
     }
 
@@ -226,20 +226,21 @@ public final class IgnoreManager {
      */
     private void triggerRescanForEntry(IgnoreEntry entry) {
         for (IgnoreEntry.FileReference fileRef : entry.getFiles()) {
-                String fullPath = Paths.get(Objects.requireNonNull(project.getBasePath()),
-                        fileRef.getPath()).toString().replace("\\", "/");
-                VirtualFile vFile = LocalFileSystem.getInstance().findFileByPath(fullPath);
-                if (vFile != null) {
-                    // Trigger rescan based on scanner type
-                    scanFileAndUpdateResults(fullPath, entry.getType());
-                } else {
-                    LOGGER.warn(String.format("RTS-Ignore: Could not find file for rescan: %s", fullPath));
-                }
+            String fullPath = Paths.get(Objects.requireNonNull(project.getBasePath()),
+                    fileRef.getPath()).toString().replace("\\", "/");
+            VirtualFile vFile = LocalFileSystem.getInstance().findFileByPath(fullPath);
+            if (vFile != null) {
+                // Trigger rescan based on scanner type
+                scanFileAndUpdateResults(fullPath, entry.getType());
+            } else {
+                LOGGER.warn(String.format("RTS-Ignore: Could not find file for rescan: %s", fullPath));
             }
+        }
     }
 
     /**
      * Retrieves all ignore entries from the ignore file.
+     *
      * @return list of ignore entries
      */
     public List<IgnoreEntry> getIgnoredEntries() {
@@ -479,19 +480,19 @@ public final class IgnoreManager {
                 vulnerability = DevAssistUtils.getVulnerabilityDetails(detail,
                         clickId.equals(QUICK_FIX) ? detail.getScanIssueId() : clickId);
                 return Objects.nonNull(vulnerability) ?
-                formatJsonKeyForIgnoreEntry(detail.getScanEngine(), vulnerability.getTitle(), vulnerability.getSimilarityId(), relativePath): "";
+                        formatJsonKeyForIgnoreEntry(detail.getScanEngine(), vulnerability.getTitle(), vulnerability.getSimilarityId(), relativePath) : "";
             case ASCA:
                 vulnerability = DevAssistUtils.getVulnerabilityDetails(detail,
                         clickId.equals(QUICK_FIX) ? detail.getScanIssueId() : clickId);
                 return Objects.nonNull(vulnerability) ?
-                formatJsonKeyForIgnoreEntry(detail.getScanEngine(), vulnerability.getTitle(), detail.getRuleId().toString(), relativePath) : "";
+                        formatJsonKeyForIgnoreEntry(detail.getScanEngine(), vulnerability.getTitle(), detail.getRuleId().toString(), relativePath) : "";
             default:
                 LOGGER.warn("Unknown scan engine: " + detail.getScanEngine() + ", using fallback key");
                 return formatJsonKeyForIgnoreEntry(detail.getScanEngine(), "", "", detail.getTitle());
         }
     }
 
-    private String formatJsonKeyForIgnoreEntry(ScanEngine scanEngine, String title, String packageName, String path){
+    private String formatJsonKeyForIgnoreEntry(ScanEngine scanEngine, String title, String packageName, String path) {
         if (scanEngine == ScanEngine.CONTAINERS) {
             return format("%s:%s", title, packageName);
         } else {
@@ -503,22 +504,22 @@ public final class IgnoreManager {
     private void showIgnoreSuccessNotification(Project project, ScanIssue detail, String vulnerabilityKey) {
         switch (detail.getScanEngine()) {
             case OSS:
-                Utils.showNotification("Package", detail.getTitle() + "@" + detail.getPackageVersion() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project,false,"");
+                Utils.showNotification("Package", detail.getTitle() + "@" + detail.getPackageVersion() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project, false, "");
                 break;
             case SECRETS:
-                Utils.showNotification("Secret", detail.getTitle() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project,false,"");
+                Utils.showNotification("Secret", detail.getTitle() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project, false, "");
                 break;
             case ASCA:
-                Utils.showNotification("ASCA rule", vulnerabilityKey.split(":", 2)[0] + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project,false,"");
+                Utils.showNotification("ASCA rule", vulnerabilityKey.split(":", 2)[0] + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project, false, "");
                 break;
             case CONTAINERS:
-                Utils.showNotification("Container", detail.getTitle() + "@" + detail.getImageTag() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project,false,"");
+                Utils.showNotification("Container", detail.getTitle() + "@" + detail.getImageTag() + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project, false, "");
                 break;
             case IAC:
-                Utils.showNotification("IaC finding", vulnerabilityKey.split(":", 2)[0] + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project,false,"");
+                Utils.showNotification("IaC finding", vulnerabilityKey.split(":", 2)[0] + " " + Bundle.message(Resource.IGNORE_SUCCESS), NotificationType.INFORMATION, project, false, "");
                 break;
             default:
-                Utils.showNotification(Bundle.message(Resource.IGNORE_SUCCESS), "", NotificationType.INFORMATION, project,false,"");
+                Utils.showNotification(Bundle.message(Resource.IGNORE_SUCCESS), "", NotificationType.INFORMATION, project, false, "");
                 break;
 
         }
@@ -585,12 +586,12 @@ public final class IgnoreManager {
      */
     public void updateLineNumbersForIgnoredEntries(ScanResult<?> fullScanResults, String filePath) {
         List<ScanIssue> allIssuesForFile = fullScanResults.getIssues();
-        if(allIssuesForFile == null || allIssuesForFile.isEmpty()) {
+        if (allIssuesForFile == null || allIssuesForFile.isEmpty()) {
             LOGGER.debug(String.format("RTS-Ignore: No issues found in scan results for file: %s", filePath));
             return;
         }
         ScanEngine scanEngineType = allIssuesForFile.get(0).getScanEngine();
-        if(Objects.isNull(scanEngineType)) {
+        if (Objects.isNull(scanEngineType)) {
             LOGGER.debug(String.format("RTS-Ignore: Scan engine type is null for file: %s", filePath));
             return;
         }
@@ -616,7 +617,8 @@ public final class IgnoreManager {
             if (matchingScanIssue != null) {
                 String matchingIssuePath = ignoreFileManager.normalizePath(matchingScanIssue.getFilePath());
                 if (matchingIssuePath.equals(relativePath)) {
-                    if(Objects.isNull(matchingScanIssue.getLocations()) || matchingScanIssue.getLocations().isEmpty()) continue;
+                    if (Objects.isNull(matchingScanIssue.getLocations()) || matchingScanIssue.getLocations().isEmpty())
+                        continue;
                     // The matching scan issue is from the current file - update line number if needed
                     int newLineNumber = Optional.of(matchingScanIssue.getLocations().get(0).getLine()).orElse(0);
                     // Find the file reference for this file path
@@ -658,7 +660,7 @@ public final class IgnoreManager {
         if (!keysToRemove.isEmpty()) {
             for (String keyToRemove : keysToRemove) {
                 ignoreFileManager.getIgnoreData().remove(keyToRemove);
-                toUpdate=true;
+                toUpdate = true;
             }
         }
         if (toUpdate) {
@@ -694,7 +696,7 @@ public final class IgnoreManager {
     private List<String> createIgnoreKeysForScanIssue(ScanIssue scanIssue) {
         List<String> keys = new ArrayList<>();
         // Default behavior (OSS, SECRETS, CONTAINERS)
-        if (scanIssue.getScanEngine().equals(ScanEngine.IAC)  || scanIssue.getScanEngine().equals(ScanEngine.ASCA)) {
+        if (scanIssue.getScanEngine().equals(ScanEngine.IAC) || scanIssue.getScanEngine().equals(ScanEngine.ASCA)) {
             // IAC / ASCA – build key for EACH vulnerability
             if (scanIssue.getVulnerabilities() == null || scanIssue.getVulnerabilities().isEmpty()) {
                 LOGGER.debug("RTS-Ignore: No vulnerabilities found for scan issue: {}", scanIssue.getTitle());
@@ -710,7 +712,7 @@ public final class IgnoreManager {
                     keys.add(key);
                 }
             }
-        }else{
+        } else {
             String key = createJsonKeyForIgnoreEntry(scanIssue, QUICK_FIX);
             if (!key.isEmpty()) {
                 keys.add(key);

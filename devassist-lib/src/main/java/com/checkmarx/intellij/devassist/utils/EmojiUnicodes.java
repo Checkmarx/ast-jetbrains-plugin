@@ -11,16 +11,17 @@ package com.checkmarx.intellij.devassist.utils;
  */
 public final class EmojiUnicodes {
 
-    private EmojiUnicodes() {}
+    private EmojiUnicodes() {
+    }
 
     // ✅ Green check mark
-    public static final String CHECK  = "\u2705";
+    public static final String CHECK = "\u2705";
 
     // ❌ Red cross mark
-    public static final String CROSS  = "\u274C";
+    public static final String CROSS = "\u274C";
 
     // 🔒 Lock
-    public static final String LOCK   = "\uD83D\uDD12";
+    public static final String LOCK = "\uD83D\uDD12";
 
     // 🔁 Repeat Button
     public static final String REPEAT = "\uD83D\uDD01";

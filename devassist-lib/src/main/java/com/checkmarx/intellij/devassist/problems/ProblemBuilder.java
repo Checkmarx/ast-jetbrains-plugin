@@ -58,13 +58,13 @@ public final class ProblemBuilder {
                 getFixes(scanIssue)
         );
     }
-    
+
     private static LocalQuickFix[] getFixes(ScanIssue scanIssue) {
         List<LocalQuickFix> localQuickFixes = new ArrayList<>();
         localQuickFixes.add(new CxOneAssistFix(scanIssue));
         localQuickFixes.add(new ViewDetailsFix(scanIssue));
         localQuickFixes.add(new IgnoreVulnerabilityFix(scanIssue));
-        if (ScanEngine.CONTAINERS.equals(scanIssue.getScanEngine()) ||  ScanEngine.OSS.equals(scanIssue.getScanEngine())) {
+        if (ScanEngine.CONTAINERS.equals(scanIssue.getScanEngine()) || ScanEngine.OSS.equals(scanIssue.getScanEngine())) {
             localQuickFixes.add(new IgnoreAllThisTypeFix(scanIssue));
         }
         return localQuickFixes.toArray(new LocalQuickFix[0]);
