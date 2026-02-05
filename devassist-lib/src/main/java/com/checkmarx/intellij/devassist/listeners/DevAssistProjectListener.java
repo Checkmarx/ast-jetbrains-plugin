@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * ProjectListener is responsible for listening for project open events and registering all scanners for the project.
  */
-public class ProjectListener implements ProjectManagerListener {
+public class DevAssistProjectListener implements ProjectManagerListener {
 
     @Override
     public void projectOpened(@NotNull Project project) {

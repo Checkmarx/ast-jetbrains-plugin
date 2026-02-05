@@ -27,12 +27,15 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+
+        <toolWindow id="Checkmarx"
+                    anchor="bottom"
+                    icon="com.checkmarx.intellij.common.resources.CxIcons.CHECKMARX_13"
+                    factoryClass="com.checkmarx.intellij.ast.window.CxToolWindowFactory"/>
+
         <applicationConfigurable instance="com.checkmarx.intellij.ast.settings.GlobalSettingsConfigurable"
                                  parentId="tools"
                                  bundle="messages.CxBundle" key="SETTINGS_TITLE"/>
-        <applicationService serviceImplementation="com.checkmarx.intellij.common.settings.GlobalSettingsState"/>
-        <applicationService
-                serviceImplementation="com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState"/>
 
         <applicationConfigurable
                 id="settings.ast.assist"
@@ -41,6 +44,9 @@
                 bundle="messages.CxBundle"
                 key="CXONE_ASSIST_TITLE"/>
 
+        <applicationService serviceImplementation="com.checkmarx.intellij.common.settings.GlobalSettingsState"/>
+        <applicationService serviceImplementation="com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState"/>
+
         <projectService serviceImplementation="com.checkmarx.intellij.ast.project.ProjectResultsService"/>
 
         <!-- Sync license flags from server on IDE startup to ensure UI shows correct panels -->
@@ -48,11 +54,6 @@
         <!-- Auto-install MCP at IDE startup if already authenticated -->
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService"/>
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
-
-        <toolWindow id="Checkmarx"
-                    anchor="bottom"
-                    icon="com.checkmarx.intellij.common.resources.CxIcons.CHECKMARX_13"
-                    factoryClass="com.checkmarx.intellij.ast.window.CxToolWindowFactory"/>
 
         <notificationGroup id="Checkmarx.Notifications" displayType="BALLOON"
                            bundle="messages.CxBundle" key="NOTIFICATION_GROUP_NAME" isLogByDefault="true"/>
@@ -79,6 +80,9 @@
 
     <applicationListeners>
         <listener class="com.checkmarx.intellij.ast.project.ProjectListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+        <!-- Register project listener to register scanners from devassist -->
+        <listener class="com.checkmarx.intellij.devassist.listeners.DevAssistProjectListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
         <listener class="com.checkmarx.intellij.devassist.configuration.mcp.McpUninstallHandler"
                   topic="com.intellij.ide.plugins.DynamicPluginListener"/>
