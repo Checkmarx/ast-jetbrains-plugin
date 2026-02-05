@@ -47,6 +47,13 @@ import java.time.ZoneId;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * IgniteSettingsComponent is a user interface component responsible for managing
+ * and interacting with settings related to the Ignite application's integration
+ * within the IntelliJ IDEA platform. It handles various authentication methods,
+ * API configurations, and user preferences while ensuring their proper validation
+ * and persistence.
+ */
 public class IgniteSettingsComponent implements SettingsComponent {
     private static final Logger LOGGER = Utils.getLogger(IgniteSettingsComponent.class);
 
@@ -78,8 +85,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
     private CxLinkLabel assistLink;
 
 
-    private boolean sessionConnected = false;
-
     public IgniteSettingsComponent() {
         if (SETTINGS_STATE == null) {
             SETTINGS_STATE = GlobalSettingsState.getInstance();
@@ -107,7 +112,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
         if (!additionalParametersField.getText().trim().equals(SETTINGS_STATE.getAdditionalParameters())) {
             return true;
         }
-
 
 
         if (apiKeyRadio.isSelected() != SETTINGS_STATE.isApiKeyEnabled()) {
@@ -219,7 +223,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     /**
      * Creates a GlobalSettingsState object from the current UI field values.
-     *
+     * <p>
      * IMPORTANT: This method must preserve ALL existing state fields that are not directly
      * managed by this UI panel, including user preferences for realtime scanners.
      * Failure to copy these fields will result in them being reset to default values
@@ -283,8 +287,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
                 CompletableFuture.runAsync(() -> {
                     try {
                         Authentication.validateConnection(getStateFromFields(), getSensitiveStateFromFields());
-                        sessionConnected = true;
-                        SwingUtilities.invokeLater(() -> onAuthSuccessApiKey());
+                        SwingUtilities.invokeLater(this::onAuthSuccessApiKey);
                         LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
                     } catch (Exception e) {
                         handleConnectionFailure(e);
@@ -349,7 +352,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
         boolean mcpServerEnabled = false;
         try {
             mcpServerEnabled = TenantSetting.isAiMcpServerEnabled(
-                getStateFromFields(), getSensitiveStateFromFields());
+                    getStateFromFields(), getSensitiveStateFromFields());
         } catch (Exception ex) {
             LOGGER.warn("Failed MCP server check", ex);
         }
@@ -411,7 +414,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
                         Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
                         Bundle.message(Resource.MCP_INSTALL_ERROR),
                         NotificationType.ERROR,
-                        project, false,""
+                        project, false, ""
                 );
                 LOGGER.warn("MCP install error", (Exception) result);
             } else if (Boolean.TRUE.equals(result)) {
@@ -419,14 +422,14 @@ public class IgniteSettingsComponent implements SettingsComponent {
                         Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
                         Bundle.message(Resource.MCP_CONFIG_SAVED),
                         NotificationType.INFORMATION,
-                        project,false,""
+                        project, false, ""
                 );
             } else if (Boolean.FALSE.equals(result)) {
                 Utils.showNotification(
                         Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
                         Bundle.message(Resource.MCP_CONFIG_UP_TO_DATE),
                         NotificationType.INFORMATION,
-                        project,false,""
+                        project, false, ""
                 );
             }
         }));
@@ -495,7 +498,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
      */
     private void handleOAuthSuccess(Map<String, Object> refreshTokenDetails) {
         SwingUtilities.invokeLater(() -> {
-            sessionConnected = true;
             setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
             validateResult.setVisible(true);
             logoutButton.setEnabled(true);
@@ -523,7 +525,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
      */
     private void handleOAuthFailure(String error) {
         SwingUtilities.invokeLater(() -> {
-            sessionConnected = false;
             SETTINGS_STATE.setValidationInProgress(false);
             SETTINGS_STATE.setValidationExpiry(null);
             SETTINGS_STATE.setAuthenticated(false);
@@ -557,12 +558,10 @@ public class IgniteSettingsComponent implements SettingsComponent {
     }
 
 
-
     private void setValidationResult(String message, JBColor color) {
         validateResult.setText(String.format("<html>%s</html>", message));
         validateResult.setForeground(color);
     }
-
 
 
     private void buildGUI() {
@@ -605,7 +604,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
         mainPanel.add(new JBLabel());
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
                 "gapleft 5,gapbottom 10, wrap");
-
 
 
         // === CxOne Assist link section ===
@@ -780,7 +778,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     // Setting state on log out.
     private void setLogoutState() {
-        sessionConnected = false;
         oauthRadio.setSelected(true);
         validateResult.setText(Bundle.message(Resource.LOGOUT_SUCCESS));
         validateResult.setForeground(JBColor.GREEN);
@@ -826,7 +823,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     // Setting state after session expired.
     private void setSessionExpired() {
-        sessionConnected = false;
         oauthRadio.setSelected(true);
         connectButton.setEnabled(true);
         logoutButton.setEnabled(false);
@@ -853,7 +849,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
     }
 
     private void updateAssistLinkVisibility() {
-    if (assistLink == null) {
+        if (assistLink == null) {
             return;
         }
         boolean visible = shouldShowAssistLink();
@@ -972,7 +968,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
                 Utils.showNotification(Bundle.message(Resource.LOGOUT_SUCCESS_TITLE),
                         Bundle.message(Resource.LOGOUT_SUCCESS),
                         NotificationType.INFORMATION,
-                        project,false,"")
+                        project, false, "")
         );
     }
 
@@ -984,7 +980,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
                 Utils.showNotification(Bundle.message(Resource.SUCCESS_AUTHENTICATION_TITLE),
                         Bundle.message(Resource.VALIDATE_SUCCESS),
                         NotificationType.INFORMATION,
-                        project,false,"")
+                        project, false, "")
         );
     }
 
@@ -996,7 +992,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
                 Utils.showNotification(Bundle.message(Resource.ERROR_AUTHENTICATION_TITLE),
                         errorMsg,
                         NotificationType.ERROR,
-                        project,false,"")
+                        project, false, "")
         );
     }
 
@@ -1046,11 +1042,26 @@ public class IgniteSettingsComponent implements SettingsComponent {
         }
 
         // Priority 2: For new users, enable all scanners as sensible defaults
-        if (!st.isAscaRealtime()) { st.setAscaRealtime(true); changed = true; }
-        if (!st.isOssRealtime()) { st.setOssRealtime(true); changed = true; }
-        if (!st.isSecretDetectionRealtime()) { st.setSecretDetectionRealtime(true); changed = true; }
-        if (!st.isContainersRealtime()) { st.setContainersRealtime(true); changed = true; }
-        if (!st.isIacRealtime()) { st.setIacRealtime(true); changed = true; }
+        if (!st.isAscaRealtime()) {
+            st.setAscaRealtime(true);
+            changed = true;
+        }
+        if (!st.isOssRealtime()) {
+            st.setOssRealtime(true);
+            changed = true;
+        }
+        if (!st.isSecretDetectionRealtime()) {
+            st.setSecretDetectionRealtime(true);
+            changed = true;
+        }
+        if (!st.isContainersRealtime()) {
+            st.setContainersRealtime(true);
+            changed = true;
+        }
+        if (!st.isIacRealtime()) {
+            st.setIacRealtime(true);
+            changed = true;
+        }
 
         if (changed) {
             // Save the "all enabled" defaults as initial user preferences for future preservation
@@ -1078,11 +1089,26 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
         // Disable all scanners for security (MCP not available)
         boolean changed = false;
-        if (st.isAscaRealtime()) { st.setAscaRealtime(false); changed = true; }
-        if (st.isOssRealtime()) { st.setOssRealtime(false); changed = true; }
-        if (st.isSecretDetectionRealtime()) { st.setSecretDetectionRealtime(false); changed = true; }
-        if (st.isContainersRealtime()) { st.setContainersRealtime(false); changed = true; }
-        if (st.isIacRealtime()) { st.setIacRealtime(false); changed = true; }
+        if (st.isAscaRealtime()) {
+            st.setAscaRealtime(false);
+            changed = true;
+        }
+        if (st.isOssRealtime()) {
+            st.setOssRealtime(false);
+            changed = true;
+        }
+        if (st.isSecretDetectionRealtime()) {
+            st.setSecretDetectionRealtime(false);
+            changed = true;
+        }
+        if (st.isContainersRealtime()) {
+            st.setContainersRealtime(false);
+            changed = true;
+        }
+        if (st.isIacRealtime()) {
+            st.setIacRealtime(false);
+            changed = true;
+        }
 
         if (changed) {
             LOGGER.debug("[Auth] Disabled all realtime scanners while preserving user preferences");
@@ -1090,10 +1116,5 @@ public class IgniteSettingsComponent implements SettingsComponent {
         } else {
             LOGGER.debug("[Auth] Realtime scanners already disabled");
         }
-    }
-
-    @Override
-    public JPanel getMainPanel() {
-        return mainPanel;
     }
 }

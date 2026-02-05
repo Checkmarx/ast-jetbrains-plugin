@@ -15,17 +15,16 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 
 /**
- * {@link SearchableConfigurable} for drawing the plugin's global settings window inside intellij application settings.
- * Implements {@link NoScroll} to disable scrolling as all fields should be
- * scrollable on their own.
+ * Settings child node under "Checkmarx Developer Assist" for Dev Assist realtime features.
  */
-public class IgniteSettingsConfigurable implements SearchableConfigurable, Configurable.NoScroll {
+public class DevAssistConfigurable implements SearchableConfigurable, Configurable.NoScroll {
 
     private SettingsComponent settingsComponent;
 
     @Override
     public @NotNull @NonNls String getId() {
-        return Constants.IGNITE_PLUGIN_SETTINGS_ID;
+        // Place under the same search group; ID should be unique
+        return Constants.IGNITE_PLUGIN_SETTINGS_ID + ".assist";
     }
 
     @Override
@@ -35,28 +34,32 @@ public class IgniteSettingsConfigurable implements SearchableConfigurable, Confi
 
     @Override
     public @NotNull @Nls String getDisplayName() {
-        return Bundle.message(Resource.IGNITE_PLUGIN_SETTINGS_TITLE);
+        return Bundle.message(Resource.IGNITE_PLUGIN_SETTINGS_CHILD_TITLE);
     }
 
     @Override
     public @Nullable JComponent createComponent() {
-        settingsComponent = new IgniteSettingsComponent();
+        settingsComponent = new DevAssistComponent();
         return settingsComponent.getMainPanel();
     }
 
     @Override
     public boolean isModified() {
-        return settingsComponent.isModified();
+        return settingsComponent != null && settingsComponent.isModified();
     }
 
     @Override
     public void apply() throws ConfigurationException {
-        settingsComponent.apply();
+        if (settingsComponent != null) {
+            settingsComponent.apply();
+        }
     }
 
     @Override
     public void reset() {
-        settingsComponent.reset();
+        if (settingsComponent != null) {
+            settingsComponent.reset();
+        }
         SearchableConfigurable.super.reset();
     }
 }
