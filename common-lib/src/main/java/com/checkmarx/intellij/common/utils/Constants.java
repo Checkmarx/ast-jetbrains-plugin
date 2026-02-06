@@ -16,7 +16,6 @@ public final class Constants {
     public static final String LOGGER_CAT_PREFIX = "CX#";
 
     public static final String GLOBAL_SETTINGS_ID = "settings.ast";
-    public static final String IGNITE_PLUGIN_SETTINGS_ID = "settings.ignite";
     public static final String TOOL_WINDOW_ID = "Checkmarx";
     public static final String ACTION_GROUP_ID = "Checkmarx.Toolbar";
     public static final String NOTIFICATION_GROUP_ID = "Checkmarx.Notifications";
@@ -33,10 +32,7 @@ public final class Constants {
     public static final String HTML_FONT_YELLOW_FORMAT = "<html><font color=%s>%s</font></html>";
     public static final String HTML_FONT_BLUE_FORMAT = "<html><font color=%s>%s</font></html>";
     public static final String HTML_BOLD_FORMAT = "<html><b>%s</b></html>";
-    public static final String HELP_HTML = "<html><a href=\"\">%s</a></html>";
-    public static final String HREF_HTML = "<html><a href=%s>%s</a>";
     public static final String NODE_FORMAT = "%s | %s";
-    public static final String FILE_FORMAT = "%s:%d (%s)";
     public static final String SUMMARY_FORMAT = "%s | %s | %s | %s";
     public static final String FIELD_FORMAT = "<html>%s%s:</html>";
     public static final String REQUIRED_MARK = "<span style=\"color:#ff0000\">*</span>";
@@ -49,7 +45,6 @@ public final class Constants {
 
     public static final String FIELD_NAME_API_KEY = "apiKey";
     public static final String FIELD_NAME_ADDITIONAL_PARAMETERS = "additionalParameters";
-    public static final String FIELD_NAME_ASCA = "ascaCheckBox";
 
     public static final String SELECTED_PROJECT_PROPERTY = "Checkmarx.SelectedProject";
     public static final String SELECTED_BRANCH_PROPERTY = "Checkmarx.SelectedBranch";
@@ -59,12 +54,6 @@ public final class Constants {
     public static final String SCAN_TYPE_SCA = "sca";
     public static final String SCAN_TYPE_KICS = "kics";
     public static final String SCAN_TYPE_SCS = "scs";
-
-    public static final String SCAN_STATE_CONFIRMED = "confirmed";
-    public static final String SCAN_STATE_TO_VERIFY = "to_verify";
-
-    public static final String SCAN_SEVERITY_HIGH = "high";
-    public static final String SCAN_SEVERITY_LOW = "low";
 
     public static final int DEFAULT_COLUMN = 0;
     public static final int FILE_PATH_MAX_LEN = 45;
