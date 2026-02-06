@@ -1,10 +1,10 @@
-package com.checkmarx.intellij.devassist.ui;
+package com.checkmarx.intellij.ast.ui;
 
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.resources.Resource;
-import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;

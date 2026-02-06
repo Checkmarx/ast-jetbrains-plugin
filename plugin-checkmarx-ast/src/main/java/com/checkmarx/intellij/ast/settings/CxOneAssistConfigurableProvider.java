@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.devassist.settings;
+package com.checkmarx.intellij.ast.settings;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.intellij.openapi.options.Configurable;

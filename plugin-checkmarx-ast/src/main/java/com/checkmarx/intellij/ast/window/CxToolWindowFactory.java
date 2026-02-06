@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.ast.window;
 
+import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.devassist.ui.findings.window.CxFindingsWindow;
 import com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
@@ -87,7 +88,7 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
                                          @NotNull ContentManager contentManager) {
         try {
             Content customProblemContent = contentManager.getFactory().createContent(null, DevAssistConstants.DEVASSIST_TAB, false);
-            final CxFindingsWindow vulnerabilityToolWindow = new CxFindingsWindow(project, customProblemContent);
+            final CxFindingsWindow vulnerabilityToolWindow = new CxFindingsWindow(project, customProblemContent, Constants.TOOL_WINDOW_ID);
             customProblemContent.setComponent(vulnerabilityToolWindow);
             contentManager.addContent(customProblemContent);
             Disposer.register(project, vulnerabilityToolWindow);

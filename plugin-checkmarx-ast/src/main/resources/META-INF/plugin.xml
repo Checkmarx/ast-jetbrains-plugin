@@ -39,7 +39,7 @@
 
         <applicationConfigurable
                 id="settings.ast.assist"
-                provider="com.checkmarx.intellij.devassist.settings.CxOneAssistConfigurableProvider"
+                provider="com.checkmarx.intellij.ast.settings.CxOneAssistConfigurableProvider"
                 parentId="settings.ast"
                 bundle="messages.CxBundle"
                 key="CXONE_ASSIST_TITLE"/>
@@ -150,6 +150,12 @@
             <action id="VulnerabilityMedium" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
             <action id="VulnerabilityLow" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
             <separator/>
+            <action id="Findings.ExpandAll"
+                    class="com.checkmarx.intellij.common.window.actions.ExpandAllAction"
+                    icon="AllIcons.Actions.Expandall"/>
+            <action id="Findings.CollapseAll"
+                    class="com.checkmarx.intellij.common.window.actions.CollapseAllAction"
+                    icon="AllIcons.Actions.Collapseall"/>
         </group>
     </actions>
 

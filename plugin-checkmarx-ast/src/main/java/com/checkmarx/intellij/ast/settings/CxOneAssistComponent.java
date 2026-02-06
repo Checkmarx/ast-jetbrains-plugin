@@ -1,13 +1,13 @@
-package com.checkmarx.intellij.devassist.settings;
+package com.checkmarx.intellij.ast.settings;
 
 import com.checkmarx.intellij.common.commands.TenantSetting;
 import com.checkmarx.intellij.common.components.CxLinkLabel;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
-import com.checkmarx.intellij.common.settings.SettingsComponent;
-import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.SettingsComponent;
+import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;

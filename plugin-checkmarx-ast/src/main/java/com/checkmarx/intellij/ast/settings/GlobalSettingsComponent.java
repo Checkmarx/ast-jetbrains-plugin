@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.ast.settings;
 
+import com.checkmarx.intellij.ast.ui.WelcomeDialog;
 import com.checkmarx.intellij.common.auth.AuthService;
 import com.checkmarx.intellij.common.commands.Authentication;
 import com.checkmarx.intellij.common.commands.TenantSetting;
@@ -14,8 +15,6 @@ import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.InputValidator;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
-import com.checkmarx.intellij.devassist.settings.CxOneAssistConfigurable;
-import com.checkmarx.intellij.devassist.ui.WelcomeDialog;
 import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.DataContext;
