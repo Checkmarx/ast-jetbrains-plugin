@@ -91,6 +91,7 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
     private static Set<String> expandedPathsSet = new HashSet<>();
     private final Content content;
     private final Timer timer;
+    private final String PLUGIN_TOOL_WINDOW_ID;
 
     private final RemediationManager remediationManager = new RemediationManager();
 
@@ -100,12 +101,13 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
     private FindingsPromotionalPanel promotionalPanel;
     private JBScrollPane promotionalScrollPane;
 
-    public CxFindingsWindow(Project project, Content content) {
+    public CxFindingsWindow(Project project, Content content, String  pluginToolWindowId) {
         super(false, true);
         this.project = project;
         this.tree = new SimpleTree();
         this.rootNode = new DefaultMutableTreeNode();
         this.content = content;
+        this.PLUGIN_TOOL_WINDOW_ID = pluginToolWindowId;
 
         // Setup initial UI based on authentication and license status
         // License Matrix for Findings tab:
@@ -254,30 +256,6 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
     }
 
     /**
-     * Draw the main panel with toolbar and tree inside a scroll pane.
-     * This is the findings content panel (used as part of split view).
-     */
-    private void drawMainPanel() {
-        LOGGER.info("drawMainPanel: Drawing main panel with tree");
-
-        // Initialize tree components if not already done
-        initializeTreeIfNeeded();
-
-        // Create and set toolbar
-        ActionToolbar toolbar = createActionToolbar();
-        toolbar.setTargetComponent(this);
-        setToolbar(toolbar.getComponent());
-
-        // Add tree inside scroll pane
-        JBScrollPane scrollPane = new JBScrollPane(tree);
-        setContent(scrollPane);
-
-        revalidate();
-        repaint();
-        LOGGER.info("drawMainPanel: Main panel set as content");
-    }
-
-    /**
      * Draw a split view with findings panel on left and promotional panel on right.
      * Shown when authenticated and at least one license (One Assist OR Dev Assist) is active.
      */
@@ -355,7 +333,7 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
      * so we search for tabs that start with the base name.
      */
     private void navigateToIgnoredFindingsTab() {
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(Constants.TOOL_WINDOW_ID);
+        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow(PLUGIN_TOOL_WINDOW_ID);
         if (toolWindow != null) {
             ContentManager contentManager = toolWindow.getContentManager();
             // Find the tab by checking if display name starts with the base name
@@ -676,9 +654,9 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
         if (count > 0) {
             JBColor jbColor = new JBColor(Gray._10, Gray._190);
             String hexColor = "#" + Integer.toHexString(jbColor.getRGB()).substring(2);
-            content.setDisplayName("<html>" + DevAssistConstants.DEVASSIST_TAB + " <span style='color:" + hexColor + "'>" + count + "</span></html>");
+            content.setDisplayName("<html>" + getVulnerabilityFindingWindowName() + " <span style='color:" + hexColor + "'>" + count + "</span></html>");
         } else {
-            content.setDisplayName(DevAssistConstants.DEVASSIST_TAB);
+            content.setDisplayName(getVulnerabilityFindingWindowName());
         }
     }
 
@@ -708,15 +686,8 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
             newGroup.add(a);
         }
 
-        // Add Expand/Collapse actions
-        AnAction expandAll = ActionManager.getInstance().getAction("Checkmarx.ExpandAll");
-        AnAction collapseAll = ActionManager.getInstance().getAction("Checkmarx.CollapseAll");
-
-        newGroup.add(expandAll);
-        newGroup.add(collapseAll);
-
         ActionToolbar toolbar = ActionManager.getInstance()
-                .createActionToolbar(Constants.TOOL_WINDOW_ID, newGroup, false);
+                .createActionToolbar(PLUGIN_TOOL_WINDOW_ID, newGroup, false);
 
         toolbar.setTargetComponent(this);
         return toolbar;
@@ -748,5 +719,16 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
     private List<String> getSeverityList() {
         return Arrays.stream(SeverityLevel.values())
                 .map(SeverityLevel::getSeverity).collect(Collectors.toList());
+    }
+
+    /**
+     * Get finding window name
+     * @return name
+     */
+    private String getVulnerabilityFindingWindowName(){
+        if(PLUGIN_TOOL_WINDOW_ID.equals(Constants.TOOL_WINDOW_ID)){
+            return DevAssistConstants.DEVASSIST_TAB;
+        }else
+            return DevAssistConstants.IGNITE_FINDINGS_WINDOW_NAME;
     }
 }
