@@ -1,7 +1,7 @@
-package com.checkmarx.intellij.devassist.test.welcomedialog;
+package com.checkmarx.intellij.ast.test.unit.welcomedialog;
 
+import com.checkmarx.intellij.ast.ui.WelcomeDialog;
 import com.checkmarx.intellij.common.resources.Resource;
-import com.checkmarx.intellij.devassist.ui.WelcomeDialog;
 import com.intellij.ui.components.JBCheckBox;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
