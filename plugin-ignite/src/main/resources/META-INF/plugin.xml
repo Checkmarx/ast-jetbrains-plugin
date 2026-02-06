@@ -52,8 +52,8 @@
 
         <!-- Register DevAssist Settings as a child page under Checkmarx Developer Assist -->
         <applicationConfigurable
-                id="settings.ignite.assist"
-                provider="com.checkmarx.intellij.ignite.settings.DevAssistConfigurableProvider"
+                id="settings.ignite.realtime"
+                provider="com.checkmarx.intellij.ignite.settings.RealtimeScannersSettingsConfigurableProvider"
                 parentId="settings.ignite"
                 bundle="messages.CxBundle"
                 key="IGNITE_PLUGIN_SETTINGS_CHILD_TITLE"/>
@@ -94,26 +94,23 @@
                   topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     </applicationListeners>
 
+    <!-- Finding Window Toolbar Actions -->
     <actions>
-        <group id="Checkmarx.Toolbar">
-            <action id="Checkmarx.ExpandAll"
-                    class="com.checkmarx.intellij.ignite.window.actions.ExpandAllAction"
-                    icon="AllIcons.Actions.Expandall"/>
-            <action id="Checkmarx.CollapseAll"
-                    class="com.checkmarx.intellij.ignite.window.actions.CollapseAllAction"
-                    icon="AllIcons.Actions.Collapseall"/>
-        </group>
-
         <group id="VulnerabilityToolbarGroup">
+            <action id="Ignite.OpenSettings" class="com.checkmarx.intellij.ignite.window.actions.OpenIgniteSettingsAction"
+                    icon="AllIcons.General.Settings"/>
+            <separator/>
             <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
             <action id="VulnerabilityCritical" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityCriticalFilter" />
             <action id="VulnerabilityHigh" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
             <action id="VulnerabilityMedium" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
             <action id="VulnerabilityLow" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
             <separator/>
+            <action id="Ignite.ExpandAll" class="com.checkmarx.intellij.common.window.actions.ExpandAllAction"
+                    icon="AllIcons.Actions.Expandall"/>
+            <action id="Ignite.CollapseAll" class="com.checkmarx.intellij.common.window.actions.CollapseAllAction"
+                    icon="AllIcons.Actions.Collapseall"/>
         </group>
     </actions>
-
-    <!-- Actions are added dynamically by the tool window -->
 </idea-plugin>
 

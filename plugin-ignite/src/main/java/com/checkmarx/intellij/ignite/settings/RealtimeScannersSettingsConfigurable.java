@@ -3,7 +3,7 @@ package com.checkmarx.intellij.ignite.settings;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.SettingsComponent;
-import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.ignite.utils.IgniteConstants;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SearchableConfigurable;
@@ -15,16 +15,16 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 
 /**
- * Settings child node under "Checkmarx Developer Assist" for Dev Assist realtime features.
+ * Settings child node under "Checkmarx Developer Assist" for realtime scanners settings.
  */
-public class DevAssistConfigurable implements SearchableConfigurable, Configurable.NoScroll {
+public class RealtimeScannersSettingsConfigurable implements SearchableConfigurable, Configurable.NoScroll {
 
     private SettingsComponent settingsComponent;
 
     @Override
     public @NotNull @NonNls String getId() {
         // Place under the same search group; ID should be unique
-        return Constants.IGNITE_PLUGIN_SETTINGS_ID + ".assist";
+        return IgniteConstants.PLUGIN_CHILD_REALTIME_SETTINGS_ID;
     }
 
     @Override
@@ -39,7 +39,7 @@ public class DevAssistConfigurable implements SearchableConfigurable, Configurab
 
     @Override
     public @Nullable JComponent createComponent() {
-        settingsComponent = new DevAssistComponent();
+        settingsComponent = new RealtimeScannersSettingsComponent();
         return settingsComponent.getMainPanel();
     }
 

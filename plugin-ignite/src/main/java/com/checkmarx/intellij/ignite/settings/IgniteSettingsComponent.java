@@ -14,14 +14,14 @@ import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.InputValidator;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
-import com.checkmarx.intellij.devassist.settings.CxOneAssistConfigurable;
-import com.checkmarx.intellij.devassist.ui.WelcomeDialog;
+import com.checkmarx.intellij.ignite.ui.IgniteWelcomeDialog;
 import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.Configurable;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.options.ex.Settings;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
@@ -542,7 +542,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     private void showWelcomeDialog(boolean mcpEnabled) {
         try {
-            WelcomeDialog dlg = new WelcomeDialog(project, mcpEnabled);
+            IgniteWelcomeDialog dlg = new IgniteWelcomeDialog(project, mcpEnabled);
             dlg.show();
         } catch (Exception ex) {
             LOGGER.warn("Failed to show welcome dialog", ex);
@@ -615,7 +615,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
                     if (settings == null) return;
 
                     Configurable configurable = settings.find("settings.ast.assist");
-                    if (configurable instanceof CxOneAssistConfigurable) {
+                    if (configurable instanceof RealtimeScannersSettingsConfigurable) {
                         settings.select(configurable);
                     } else {
                         // Configurable not in tree (Settings opened before authentication)
@@ -624,10 +624,8 @@ public class IgniteSettingsComponent implements SettingsComponent {
                         if (dialog != null) {
                             dialog.dispose();
                         }
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            com.intellij.openapi.options.ShowSettingsUtil.getInstance()
-                                    .showSettingsDialog(project, CxOneAssistConfigurable.class);
-                        });
+                        ApplicationManager.getApplication().invokeLater(() -> ShowSettingsUtil.getInstance()
+                                .showSettingsDialog(project, RealtimeScannersSettingsConfigurable.class));
                     }
                 }
         );

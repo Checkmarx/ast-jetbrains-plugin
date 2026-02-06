@@ -7,7 +7,7 @@ import com.intellij.openapi.options.ConfigurableProvider;
 /**
  * Provides the Dev Assist settings page only when the user is authenticated and holds a Dev Assist license.
  */
-public class DevAssistConfigurableProvider extends ConfigurableProvider {
+public class RealtimeScannersSettingsConfigurableProvider extends ConfigurableProvider {
 
     @Override
     public boolean canCreateConfigurable() {
@@ -18,6 +18,6 @@ public class DevAssistConfigurableProvider extends ConfigurableProvider {
 
     @Override
     public Configurable createConfigurable() {
-        return new DevAssistConfigurable();
+        return new RealtimeScannersSettingsConfigurable();
     }
 }

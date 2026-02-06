@@ -42,9 +42,9 @@ import java.util.concurrent.CompletableFuture;
  * Settings component for managing Checkmarx One Assist real-time scanner configurations.
  * Displays controls for OSS, Secrets, and Containers real-time scanners.
  */
-public class DevAssistComponent implements SettingsComponent, Disposable {
+public class RealtimeScannersSettingsComponent implements SettingsComponent, Disposable {
 
-    private static final Logger LOGGER = Utils.getLogger(DevAssistComponent.class);
+    private static final Logger LOGGER = Utils.getLogger(RealtimeScannersSettingsComponent.class);
 
     private final JPanel mainPanel = new JPanel(new MigLayout("", "[][grow]"));
     private final JBLabel assistMessageLabel = new JBLabel();
@@ -80,7 +80,7 @@ public class DevAssistComponent implements SettingsComponent, Disposable {
     private final JBLabel containerToolLabel = new JBLabel();
     private Timer containerToolTimer;
 
-    public DevAssistComponent() {
+    public RealtimeScannersSettingsComponent() {
         buildUI();
         reset();
         addAscaCheckBoxListener();
