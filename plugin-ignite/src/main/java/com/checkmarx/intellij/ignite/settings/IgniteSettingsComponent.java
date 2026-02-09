@@ -30,6 +30,7 @@ import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPasswordField;
+import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.messages.MessageBus;
 import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
@@ -54,8 +55,8 @@ import java.util.concurrent.CompletableFuture;
 public class IgniteSettingsComponent implements SettingsComponent {
     private static final Logger LOGGER = Utils.getLogger(IgniteSettingsComponent.class);
 
-    private static GlobalSettingsState SETTINGS_STATE;
-    private static GlobalSettingsSensitiveState SENSITIVE_SETTINGS_STATE;
+    private static GlobalSettingsState globalSettingsState;
+    private static GlobalSettingsSensitiveState globalSettingsSensitiveState;
     private final MessageBus messageBus = ApplicationManager.getApplication().getMessageBus();
     private final Project project = ProjectManager.getInstance().getDefaultProject();
 
@@ -65,20 +66,21 @@ public class IgniteSettingsComponent implements SettingsComponent {
     @Getter
     private final JBPasswordField apiKeyField = new JBPasswordField();
     private final ButtonGroup authGroup = new ButtonGroup();
-    private final JRadioButton apiKeyRadio = new JRadioButton("API Key");
-    private final JButton logoutButton = new JButton("Log out");
+    private final JRadioButton apiKeyRadio = new JRadioButton(getMessage(Resource.API_KEY));
+    private final JButton logoutButton = new JButton(getMessage(Resource.LOG_OUT));
 
-    private final JButton connectButton = new JButton(Bundle.message(Resource.CONNECT_BUTTON));
+    private final JButton connectButton = new JButton(getMessage(Resource.IGNITE_PLUGIN_SETTINGS_SIGN_IN_BUTTON));
     private final JBLabel validateResult = new JBLabel();
     private CxLinkLabel assistLink;
-
+    @Getter
+    private final ExpandableTextField additionalParametersField = new ExpandableTextField();
 
     public IgniteSettingsComponent() {
-        if (SETTINGS_STATE == null) {
-            SETTINGS_STATE = GlobalSettingsState.getInstance();
+        if (globalSettingsState == null) {
+            globalSettingsState = GlobalSettingsState.getInstance();
         }
-        if (SENSITIVE_SETTINGS_STATE == null) {
-            SENSITIVE_SETTINGS_STATE = GlobalSettingsSensitiveState.getInstance();
+        if (globalSettingsSensitiveState == null) {
+            globalSettingsSensitiveState = GlobalSettingsSensitiveState.getInstance();
         }
         addValidateConnectionListener();
 
@@ -89,18 +91,18 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     @Override
     public boolean isModified() {
-        if (SETTINGS_STATE == null) {
-            SETTINGS_STATE = GlobalSettingsState.getInstance();
+        if (globalSettingsState == null) {
+            globalSettingsState = GlobalSettingsState.getInstance();
         }
-        if (SENSITIVE_SETTINGS_STATE == null) {
-            SENSITIVE_SETTINGS_STATE = GlobalSettingsSensitiveState.getInstance();
+        if (globalSettingsSensitiveState == null) {
+            globalSettingsSensitiveState = GlobalSettingsSensitiveState.getInstance();
         }
 
-        if (apiKeyRadio.isSelected() != SETTINGS_STATE.isApiKeyEnabled()) {
+        if (apiKeyRadio.isSelected() != globalSettingsState.isApiKeyEnabled()) {
             return true;
         }
 
-        return !String.valueOf(apiKeyField.getPassword()).equals(SENSITIVE_SETTINGS_STATE.getApiKey());
+        return !String.valueOf(apiKeyField.getPassword()).equals(globalSettingsSensitiveState.getApiKey());
     }
 
     @Override
@@ -108,27 +110,27 @@ public class IgniteSettingsComponent implements SettingsComponent {
         // Always persist auth state
         GlobalSettingsState state = getStateFromFields();
 
-        state.setAuthenticated(SETTINGS_STATE.isAuthenticated());
-        state.setValidationInProgress(SETTINGS_STATE.isValidationInProgress());
-        state.setRefreshTokenExpiry(SETTINGS_STATE.getRefreshTokenExpiry());
-        state.setValidationExpiry(SETTINGS_STATE.getValidationExpiry());
-        state.setValidationMessage(SETTINGS_STATE.getValidationMessage());
-        state.setLastValidationSuccess(SETTINGS_STATE.isLastValidationSuccess());
-        SETTINGS_STATE.apply(state);
-        SENSITIVE_SETTINGS_STATE.apply(state, getSensitiveStateFromFields());
+        state.setAuthenticated(globalSettingsState.isAuthenticated());
+        state.setValidationInProgress(globalSettingsState.isValidationInProgress());
+        state.setRefreshTokenExpiry(globalSettingsState.getRefreshTokenExpiry());
+        state.setValidationExpiry(globalSettingsState.getValidationExpiry());
+        state.setValidationMessage(globalSettingsState.getValidationMessage());
+        state.setLastValidationSuccess(globalSettingsState.isLastValidationSuccess());
+        globalSettingsState.apply(state);
+        globalSettingsSensitiveState.apply(state, getSensitiveStateFromFields());
         messageBus.syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied();
     }
 
     @Override
     public void reset() {
-        if (SETTINGS_STATE == null) {
-            SETTINGS_STATE = GlobalSettingsState.getInstance();
+        if (globalSettingsState == null) {
+            globalSettingsState = GlobalSettingsState.getInstance();
         }
-        if (SENSITIVE_SETTINGS_STATE == null) {
-            SENSITIVE_SETTINGS_STATE = GlobalSettingsSensitiveState.getInstance();
+        if (globalSettingsSensitiveState == null) {
+            globalSettingsSensitiveState = GlobalSettingsSensitiveState.getInstance();
         }
-        boolean isValidating = SETTINGS_STATE.isValidationInProgress();
-        boolean useApiKey = SETTINGS_STATE.isApiKeyEnabled();
+        boolean isValidating = globalSettingsState.isValidationInProgress();
+        boolean useApiKey = globalSettingsState.isApiKeyEnabled();
         boolean isAuthValid = isValid();
 
         setInputFields();
@@ -140,7 +142,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
             connectButton.setEnabled(false);
             logoutButton.setEnabled(false);
         } else if (!isAuthValid) { // Not authenticated (token expired, new authentication, logout)
-            SETTINGS_STATE.setValidationInProgress(false);
+            globalSettingsState.setValidationInProgress(false);
             setValidationResult();
             setSessionExpired();
         } else { // Authenticated
@@ -165,21 +167,23 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     // Getting existing saved input details from the setting state.
     private void setInputFields() {
-        apiKeyField.setText(SENSITIVE_SETTINGS_STATE.getApiKey());
+        additionalParametersField.setText(globalSettingsState.getAdditionalParameters());
+
+        apiKeyField.setText(globalSettingsSensitiveState.getApiKey());
     }
 
     //Setting validation result to UI
     private void setValidationResult() {
         // Restore validation UI
-        if (SETTINGS_STATE.isValidationInProgress()) {
-            setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
+        if (globalSettingsState.isValidationInProgress()) {
+            setValidationResult(getMessage(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
             validateResult.setVisible(true);
         } else {
-            if (SETTINGS_STATE.isLastValidationSuccess() && !StringUtils.isBlank(SETTINGS_STATE.getValidationMessage())) { // success message
-                setValidationResult(SETTINGS_STATE.getValidationMessage(), JBColor.GREEN);
+            if (globalSettingsState.isLastValidationSuccess() && !StringUtils.isBlank(globalSettingsState.getValidationMessage())) { // success message
+                setValidationResult(globalSettingsState.getValidationMessage(), JBColor.GREEN);
                 validateResult.setVisible(true);
-            } else if (!StringUtils.isBlank(SETTINGS_STATE.getValidationMessage())) { // Error messages
-                setValidationResult(SETTINGS_STATE.getValidationMessage(), JBColor.RED);
+            } else if (!StringUtils.isBlank(globalSettingsState.getValidationMessage())) { // Error messages
+                setValidationResult(globalSettingsState.getValidationMessage(), JBColor.RED);
                 validateResult.setVisible(true);
             } else {
                 validateResult.setVisible(false);
@@ -198,34 +202,37 @@ public class IgniteSettingsComponent implements SettingsComponent {
     private GlobalSettingsState getStateFromFields() {
         GlobalSettingsState state = new GlobalSettingsState();
 
+        // Fields directly managed by this UI panel
+        state.setAdditionalParameters(additionalParametersField.getText().trim());
+
         state.setApiKeyEnabled(apiKeyRadio.isSelected());
 
         // Preserve all other state fields from the current settings
-        if (SETTINGS_STATE != null) {
+        if (globalSettingsState != null) {
             // Realtime scanner active states
-            state.setAscaRealtime(SETTINGS_STATE.isAscaRealtime());
-            state.setOssRealtime(SETTINGS_STATE.isOssRealtime());
-            state.setSecretDetectionRealtime(SETTINGS_STATE.isSecretDetectionRealtime());
-            state.setContainersRealtime(SETTINGS_STATE.isContainersRealtime());
-            state.setIacRealtime(SETTINGS_STATE.isIacRealtime());
-            state.setContainersTool(SETTINGS_STATE.getContainersTool());
+            state.setAscaRealtime(globalSettingsState.isAscaRealtime());
+            state.setOssRealtime(globalSettingsState.isOssRealtime());
+            state.setSecretDetectionRealtime(globalSettingsState.isSecretDetectionRealtime());
+            state.setContainersRealtime(globalSettingsState.isContainersRealtime());
+            state.setIacRealtime(globalSettingsState.isIacRealtime());
+            state.setContainersTool(globalSettingsState.getContainersTool());
 
             // MCP and dialog state
-            state.setWelcomeShown(SETTINGS_STATE.isWelcomeShown());
-            state.setMcpEnabled(SETTINGS_STATE.isMcpEnabled());
-            state.setMcpStatusChecked(SETTINGS_STATE.isMcpStatusChecked());
+            state.setWelcomeShown(globalSettingsState.isWelcomeShown());
+            state.setMcpEnabled(globalSettingsState.isMcpEnabled());
+            state.setMcpStatusChecked(globalSettingsState.isMcpStatusChecked());
 
             // User preferences for realtime scanners - CRITICAL for preference preservation
-            state.setUserPreferencesSet(SETTINGS_STATE.getUserPreferencesSet());
-            state.setUserPrefAscaRealtime(SETTINGS_STATE.getUserPrefAscaRealtime());
-            state.setUserPrefOssRealtime(SETTINGS_STATE.getUserPrefOssRealtime());
-            state.setUserPrefSecretDetectionRealtime(SETTINGS_STATE.getUserPrefSecretDetectionRealtime());
-            state.setUserPrefContainersRealtime(SETTINGS_STATE.getUserPrefContainersRealtime());
-            state.setUserPrefIacRealtime(SETTINGS_STATE.getUserPrefIacRealtime());
+            state.setUserPreferencesSet(globalSettingsState.getUserPreferencesSet());
+            state.setUserPrefAscaRealtime(globalSettingsState.getUserPrefAscaRealtime());
+            state.setUserPrefOssRealtime(globalSettingsState.getUserPrefOssRealtime());
+            state.setUserPrefSecretDetectionRealtime(globalSettingsState.getUserPrefSecretDetectionRealtime());
+            state.setUserPrefContainersRealtime(globalSettingsState.getUserPrefContainersRealtime());
+            state.setUserPrefIacRealtime(globalSettingsState.getUserPrefIacRealtime());
 
             // License flags – must be preserved to control UI elements like Assist link
-            state.setDevAssistLicenseEnabled(SETTINGS_STATE.isDevAssistLicenseEnabled());
-            state.setOneAssistLicenseEnabled(SETTINGS_STATE.isOneAssistLicenseEnabled());
+            state.setDevAssistLicenseEnabled(globalSettingsState.isDevAssistLicenseEnabled());
+            state.setOneAssistLicenseEnabled(globalSettingsState.isOneAssistLicenseEnabled());
         }
         return state;
     }
@@ -233,8 +240,8 @@ public class IgniteSettingsComponent implements SettingsComponent {
     private GlobalSettingsSensitiveState getSensitiveStateFromFields() {
         GlobalSettingsSensitiveState state = new GlobalSettingsSensitiveState();
         char[] apiKey = apiKeyField.getPassword();
-        state.setApiKey(apiKey != null ? String.valueOf(apiKey) : SENSITIVE_SETTINGS_STATE.getApiKey());
-        state.setRefreshToken(SENSITIVE_SETTINGS_STATE.getRefreshToken());
+        state.setApiKey(apiKey != null ? String.valueOf(apiKey) : globalSettingsSensitiveState.getApiKey());
+        state.setRefreshToken(globalSettingsSensitiveState.getRefreshToken());
         return state;
     }
 
@@ -243,7 +250,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
             connectButton.setEnabled(false);
             validateResult.setVisible(true);
             validateResult.requestFocusInWindow();
-            setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
+            setValidationResult(getMessage(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
             setInvalidAuthState("");
 
             if (apiKeyRadio.isSelected()) {
@@ -251,7 +258,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
                     try {
                         Authentication.validateConnection(getStateFromFields(), getSensitiveStateFromFields());
                         SwingUtilities.invokeLater(this::onAuthSuccessApiKey);
-                        LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
+                        LOGGER.info(getMessage(Resource.IGNITE_PLUGIN_AUTH_SUCCESS_MSG));
                     } catch (Exception e) {
                         handleConnectionFailure(e);
                     }
@@ -262,13 +269,13 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     private void onAuthSuccessApiKey() {
         // Set basic authentication success state
-        setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
+        setValidationResult(getMessage(Resource.IGNITE_PLUGIN_AUTH_SUCCESS_MSG), JBColor.GREEN);
         logoutButton.setEnabled(true);
         connectButton.setEnabled(false);
         setFieldsEditable(false);
-        SETTINGS_STATE.setAuthenticated(true);
-        SETTINGS_STATE.setLastValidationSuccess(true);
-        SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
+        globalSettingsState.setAuthenticated(true);
+        globalSettingsState.setLastValidationSuccess(true);
+        globalSettingsState.setValidationMessage(getMessage(Resource.IGNITE_PLUGIN_AUTH_SUCCESS_MSG));
         // Reset session expired notification flag on successful login
         Utils.resetSessionExpiredNotificationFlag();
         fetchAndStoreLicenseStatus();
@@ -285,8 +292,8 @@ public class IgniteSettingsComponent implements SettingsComponent {
      */
     private void fetchAndStoreLicenseStatus() {
         // Clear stale license flags first (fail-safe: if API call fails, flags remain false)
-        SETTINGS_STATE.setDevAssistLicenseEnabled(false);
-        SETTINGS_STATE.setOneAssistLicenseEnabled(false);
+        globalSettingsState.setDevAssistLicenseEnabled(false);
+        globalSettingsState.setOneAssistLicenseEnabled(false);
         try {
             Map<String, String> tenantSettings = TenantSetting.getTenantSettingsMap(
                     getStateFromFields(), getSensitiveStateFromFields());
@@ -294,8 +301,8 @@ public class IgniteSettingsComponent implements SettingsComponent {
                     tenantSettings.getOrDefault(TenantSetting.KEY_DEV_ASSIST, "false"));
             boolean oneAssistEnabled = Boolean.parseBoolean(
                     tenantSettings.getOrDefault(TenantSetting.KEY_ONE_ASSIST, "false"));
-            SETTINGS_STATE.setDevAssistLicenseEnabled(devAssistEnabled);
-            SETTINGS_STATE.setOneAssistLicenseEnabled(oneAssistEnabled);
+            globalSettingsState.setDevAssistLicenseEnabled(devAssistEnabled);
+            globalSettingsState.setOneAssistLicenseEnabled(oneAssistEnabled);
             LOGGER.info("License status: devAssist=" + devAssistEnabled + ", oneAssist=" + oneAssistEnabled);
         } catch (Exception e) {
             LOGGER.warn("Failed to check tenant license status", e);
@@ -319,13 +326,13 @@ public class IgniteSettingsComponent implements SettingsComponent {
         }
 
         // Determine if MCP status has actually changed to avoid resetting user preferences on simple re-authentication
-        boolean previousMcpEnabled = SETTINGS_STATE.isMcpEnabled();
-        boolean mcpStatusPreviouslyChecked = SETTINGS_STATE.isMcpStatusChecked();
+        boolean previousMcpEnabled = globalSettingsState.isMcpEnabled();
+        boolean mcpStatusPreviouslyChecked = globalSettingsState.isMcpStatusChecked();
         boolean mcpStatusChanged = mcpStatusPreviouslyChecked && (previousMcpEnabled != mcpServerEnabled);
 
         // Store MCP status and authentication state
-        SETTINGS_STATE.setMcpEnabled(mcpServerEnabled);
-        SETTINGS_STATE.setMcpStatusChecked(true);
+        globalSettingsState.setMcpEnabled(mcpServerEnabled);
+        globalSettingsState.setMcpStatusChecked(true);
         apply();
 
         // Configure realtime scanners based on MCP status - only modify settings when necessary to preserve user preferences during routine re-authentication
@@ -372,23 +379,23 @@ public class IgniteSettingsComponent implements SettingsComponent {
         }).thenAccept(result -> SwingUtilities.invokeLater(() -> {
             if (result instanceof Exception) {
                 Utils.showNotification(
-                        Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
-                        Bundle.message(Resource.MCP_INSTALL_ERROR),
+                        getMessage(Resource.MCP_NOTIFICATION_TITLE),
+                        getMessage(Resource.MCP_INSTALL_ERROR),
                         NotificationType.ERROR,
                         project, false, ""
                 );
                 LOGGER.warn("MCP install error", (Exception) result);
             } else if (Boolean.TRUE.equals(result)) {
                 Utils.showNotification(
-                        Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
-                        Bundle.message(Resource.MCP_CONFIG_SAVED),
+                        getMessage(Resource.MCP_NOTIFICATION_TITLE),
+                        getMessage(Resource.MCP_CONFIG_SAVED),
                         NotificationType.INFORMATION,
                         project, false, ""
                 );
             } else if (Boolean.FALSE.equals(result)) {
                 Utils.showNotification(
-                        Bundle.message(Resource.MCP_NOTIFICATION_TITLE),
-                        Bundle.message(Resource.MCP_CONFIG_UP_TO_DATE),
+                        getMessage(Resource.MCP_NOTIFICATION_TITLE),
+                        getMessage(Resource.MCP_CONFIG_UP_TO_DATE),
                         NotificationType.INFORMATION,
                         project, false, ""
                 );
@@ -407,7 +414,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     private void handleConnectionFailure(Exception e) {
         SwingUtilities.invokeLater(() -> {
-            setValidationResult(Bundle.message(Resource.VALIDATE_ERROR), JBColor.RED);
+            setValidationResult(getMessage(Resource.VALIDATE_ERROR), JBColor.RED);
             connectButton.setEnabled(true);
         });
         LOGGER.error("Connection failed", e);
@@ -422,9 +429,9 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     private void buildGUI() {
         mainPanel.setLayout(new MigLayout("", "[][grow]", ""));
-        mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.HELP_JETBRAINS),
+        mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.IGNITE_PLUGIN_SETTINGS_HELP_LINK_LABEL),
                 "span, growx, wrap, gapbottom 10");
-        addSectionHeader(Resource.CREDENTIALS_SECTION, false);
+        addSectionHeader(Resource.IGNITE_PLUGIN_SETTINGS_AUTH_SECTION, false);
         mainPanel.add(apiKeyRadio, "aligny top");
         mainPanel.add(apiKeyField, "growx, wrap, aligny top");
 
@@ -441,8 +448,15 @@ public class IgniteSettingsComponent implements SettingsComponent {
         mainPanel.add(logoutButton, "gaptop 10, wrap");
         mainPanel.add(validateResult, "span 2, gaptop 5, wrap");
 
+        addSectionHeader(Resource.SCAN_SECTION, false);
+        addField(Resource.ADDITIONAL_PARAMETERS, additionalParametersField, false, false);
+        mainPanel.add(new JBLabel());
+        mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
+                "gapleft 5,gapbottom 10, wrap");
+
+
         // === CxOne Assist link section ===
-        assistLink = new CxLinkLabel("Go to "+ Bundle.message(Resource.IGNITE_PLUGIN_SETTINGS_CHILD_TITLE),
+        assistLink = new CxLinkLabel("Go to " + getMessage(Resource.IGNITE_PLUGIN_SETTINGS_CHILD_TITLE),
                 e -> {
                     DataContext context = DataManager.getInstance().getDataContext(mainPanel);
                     Settings settings = context.getData(Settings.KEY);
@@ -464,7 +478,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
                 }
         );
         assistLink.setVisible(shouldShowAssistLink());
-        mainPanel.add(assistLink, "wrap, gapleft 0, gaptop 10");
+        mainPanel.add(assistLink, "wrap, gapleft 5, gaptop 10");
     }
 
     private void setupFields() {
@@ -490,9 +504,11 @@ public class IgniteSettingsComponent implements SettingsComponent {
         });
 
         logoutButton.setName("logoutButton");
+        additionalParametersField.setName(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS);
+
         apiKeyField.setEnabled(false);
         logoutButton.setEnabled(false);
-        boolean useApiKey = SETTINGS_STATE.isApiKeyEnabled();
+        boolean useApiKey = globalSettingsState.isApiKeyEnabled();
         apiKeyRadio.setSelected(useApiKey);
     }
 
@@ -502,7 +518,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
         if (apiKeyRadio.isSelected()) {
             enabled = !String.valueOf(apiKeyField.getPassword()).trim().isEmpty();
         }
-        if (SETTINGS_STATE.isAuthenticated() || SETTINGS_STATE.isValidationInProgress()) {
+        if (globalSettingsState.isAuthenticated() || globalSettingsState.isValidationInProgress()) {
             enabled = false;
         }
         connectButton.setEnabled(enabled);
@@ -539,25 +555,25 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     // Setting state on log out.
     private void setLogoutState() {
-        validateResult.setText(Bundle.message(Resource.LOGOUT_SUCCESS));
+        validateResult.setText(getMessage(Resource.LOGOUT_SUCCESS));
         validateResult.setForeground(JBColor.GREEN);
         validateResult.setVisible(true);
         connectButton.setEnabled(true);
         logoutButton.setEnabled(false);
         setFieldsEditable(true);
         updateConnectButtonState();
-        SETTINGS_STATE.setAuthenticated(false); // Update authentication state
+        globalSettingsState.setAuthenticated(false); // Update authentication state
         // Clear license flags on logout to ensure fresh check on next login
-        SETTINGS_STATE.setDevAssistLicenseEnabled(false);
-        SETTINGS_STATE.setOneAssistLicenseEnabled(false);
+        globalSettingsState.setDevAssistLicenseEnabled(false);
+        globalSettingsState.setOneAssistLicenseEnabled(false);
         updateAssistLinkVisibility();
         // Don't clear MCP status on logout - keep it for next login
-        SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.LOGOUT_SUCCESS));
-        SETTINGS_STATE.setLastValidationSuccess(true);
+        globalSettingsState.setValidationMessage(getMessage(Resource.LOGOUT_SUCCESS));
+        globalSettingsState.setLastValidationSuccess(true);
         // Reset session expired notification flag to prepare for next session
         Utils.resetSessionExpiredNotificationFlag();
-        if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
-            SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
+        if (!globalSettingsState.isApiKeyEnabled()) { // if oauth login is enabled
+            globalSettingsSensitiveState.deleteRefreshToken();
         }
         apply();
         updateConnectButtonState(); // Ensure the Connect button state is updated
@@ -588,14 +604,14 @@ public class IgniteSettingsComponent implements SettingsComponent {
         setFieldsEditable(true);
 
         // Clear authentication, MCP status, and license flags
-        SETTINGS_STATE.setAuthenticated(false);
-        SETTINGS_STATE.setMcpEnabled(false);
-        SETTINGS_STATE.setMcpStatusChecked(false);
-        SETTINGS_STATE.setDevAssistLicenseEnabled(false);
-        SETTINGS_STATE.setOneAssistLicenseEnabled(false);
+        globalSettingsState.setAuthenticated(false);
+        globalSettingsState.setMcpEnabled(false);
+        globalSettingsState.setMcpStatusChecked(false);
+        globalSettingsState.setDevAssistLicenseEnabled(false);
+        globalSettingsState.setOneAssistLicenseEnabled(false);
         updateAssistLinkVisibility();
-        if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
-            SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
+        if (!globalSettingsState.isApiKeyEnabled()) { // if oauth login is enabled
+            globalSettingsSensitiveState.deleteRefreshToken();
         }
         apply();
         updateConnectButtonState(); // Update button state after all changes
@@ -603,8 +619,8 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
 
     private boolean shouldShowAssistLink() {
-        return SETTINGS_STATE.isAuthenticated()
-                && (SETTINGS_STATE.isOneAssistLicenseEnabled() || SETTINGS_STATE.isDevAssistLicenseEnabled());
+        return globalSettingsState.isAuthenticated()
+                && (globalSettingsState.isOneAssistLicenseEnabled() || globalSettingsState.isDevAssistLicenseEnabled());
     }
 
     private void updateAssistLinkVisibility() {
@@ -621,10 +637,23 @@ public class IgniteSettingsComponent implements SettingsComponent {
     private void addSectionHeader(Resource resource, boolean required) {
         validatePanel();
         String labelText = String.format(Constants.FIELD_FORMAT,
-                Bundle.message(resource),
+                getMessage(resource),
                 required ? Constants.REQUIRED_MARK : "");
         mainPanel.add(new JBLabel(labelText), "split 2, span");
         mainPanel.add(new JSeparator(), "growx, wrap");
+    }
+
+    private void addField(Resource resource, Component field, boolean gapAfter, boolean required) {
+        validatePanel();
+        String constraints = "grow, wrap";
+        if (gapAfter) {
+            constraints += ", " + Constants.FIELD_GAP_BOTTOM;
+        }
+        String label = String.format(Constants.FIELD_FORMAT,
+                getMessage(resource),
+                required ? Constants.REQUIRED_MARK : "");
+        mainPanel.add(new JBLabel(label), gapAfter ? Constants.FIELD_GAP_BOTTOM : "");
+        mainPanel.add(field, constraints);
     }
 
     private void updateFieldLabels() {
@@ -643,17 +672,17 @@ public class IgniteSettingsComponent implements SettingsComponent {
      * @return true, if authentication is valid otherwise false
      */
     public boolean isValid() {
-        if (SETTINGS_STATE.isAuthenticated() && StringUtil.isEmpty(SENSITIVE_SETTINGS_STATE.getApiKey())
-                && StringUtil.isEmpty(SENSITIVE_SETTINGS_STATE.getRefreshToken())) {
+        if (globalSettingsState.isAuthenticated() && StringUtil.isEmpty(globalSettingsSensitiveState.getApiKey())
+                && StringUtil.isEmpty(globalSettingsSensitiveState.getRefreshToken())) {
             //This condition handles if the user is authenticated but no sensitive data is present (due to explicitly clearing it form storage)
             setInvalidAuthState("");
             return false;
-        } else if (SETTINGS_STATE.isAuthenticated() && !SETTINGS_STATE.isApiKeyEnabled() &&
-                SENSITIVE_SETTINGS_STATE.isTokenExpired(SETTINGS_STATE.getRefreshTokenExpiry())) {
-            setInvalidAuthState(Bundle.message(Resource.ERROR_SESSION_EXPIRED));
+        } else if (globalSettingsState.isAuthenticated() && !globalSettingsState.isApiKeyEnabled() &&
+                globalSettingsSensitiveState.isTokenExpired(globalSettingsState.getRefreshTokenExpiry())) {
+            setInvalidAuthState(getMessage(Resource.ERROR_SESSION_EXPIRED));
             return false;
         }
-        return SETTINGS_STATE.isAuthenticated() && SENSITIVE_SETTINGS_STATE.isValid(SETTINGS_STATE);
+        return globalSettingsState.isAuthenticated() && globalSettingsSensitiveState.isValid(globalSettingsState);
     }
 
     /**
@@ -662,9 +691,9 @@ public class IgniteSettingsComponent implements SettingsComponent {
      * @param message - message to display on UI
      */
     private void setInvalidAuthState(String message) {
-        SETTINGS_STATE.setValidationMessage(message);
-        SETTINGS_STATE.setLastValidationSuccess(false);
-        SETTINGS_STATE.setAuthenticated(false);
+        globalSettingsState.setValidationMessage(message);
+        globalSettingsState.setLastValidationSuccess(false);
+        globalSettingsState.setAuthenticated(false);
     }
 
     private void setFieldsEditable(boolean editable) {
@@ -685,8 +714,8 @@ public class IgniteSettingsComponent implements SettingsComponent {
      */
     private void notifyLogout() {
         ApplicationManager.getApplication().invokeLater(() ->
-                Utils.showNotification(Bundle.message(Resource.LOGOUT_SUCCESS_TITLE),
-                        Bundle.message(Resource.LOGOUT_SUCCESS),
+                Utils.showNotification(getMessage(Resource.LOGOUT_SUCCESS_TITLE),
+                        getMessage(Resource.LOGOUT_SUCCESS),
                         NotificationType.INFORMATION,
                         project, false, "")
         );
@@ -698,8 +727,8 @@ public class IgniteSettingsComponent implements SettingsComponent {
      * @return true, if validation time is exceeded than current time otherwise false.
      */
     private boolean isValidateTimeExpired() {
-        if (!StringUtils.isBlank(SETTINGS_STATE.getValidationExpiry())) {
-            return LocalDateTime.parse(SETTINGS_STATE.getValidationExpiry()).isBefore(LocalDateTime.now());
+        if (!StringUtils.isBlank(globalSettingsState.getValidationExpiry())) {
+            return LocalDateTime.parse(globalSettingsState.getValidationExpiry()).isBefore(LocalDateTime.now());
         }
         return false;
     }
@@ -801,5 +830,15 @@ public class IgniteSettingsComponent implements SettingsComponent {
         } else {
             LOGGER.debug("[Auth] Realtime scanners already disabled");
         }
+    }
+
+    /**
+     * Get message from the resource
+     *
+     * @param resource - Resource enum
+     * @return message from the resource
+     */
+    String getMessage(Resource resource) {
+        return Bundle.message(resource);
     }
 }
