@@ -53,10 +53,25 @@ public final class ProblemBuilder {
                 problemHelper.getFile(),
                 problemRange,
                 description,
-                ProblemHighlightType.GENERIC_ERROR,
+                getHighlightType(problemHelper),
                 problemHelper.isOnTheFly(),
                 getFixes(scanIssue)
         );
+    }
+
+    /**
+     * Determines the appropriate ProblemHighlightType based on the file type.
+     * Shell script files (.sh) use explicit ERROR type to bypass the ShErrorFilter
+     * that filters out highlights based on inspection-configured severity.
+     *
+     * @param problemHelper the problem helper containing file information
+     * @return ERROR for shell scripts, GENERIC_ERROR for all other file types
+     */
+    private static ProblemHighlightType getHighlightType(@NotNull ProblemHelper problemHelper) {
+        String fileName = problemHelper.getFile().getName();
+        return fileName.toLowerCase().endsWith(".sh")
+                ? ProblemHighlightType.ERROR
+                : ProblemHighlightType.GENERIC_ERROR;
     }
     
     private static LocalQuickFix[] getFixes(ScanIssue scanIssue) {

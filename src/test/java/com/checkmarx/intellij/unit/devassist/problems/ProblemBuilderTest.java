@@ -32,9 +32,10 @@ import static org.mockito.Mockito.*;
 class ProblemBuilderTest {
 
     @Test
-    @DisplayName("build delegates to InspectionManager and returns descriptor")
+    @DisplayName("build delegates to InspectionManager and returns descriptor with GENERIC_ERROR for non-shell files")
     void testBuildReturnsDescriptor() throws Exception {
         PsiFile psiFile = mock(PsiFile.class);
+        when(psiFile.getName()).thenReturn("file.tf");
         Project project = mock(Project.class);
         InspectionManager manager = mock(InspectionManager.class);
         Document document = mock(Document.class);
@@ -63,6 +64,54 @@ class ProblemBuilderTest {
         when(manager.createProblemDescriptor(eq(psiFile), any(TextRange.class), anyString(),
                 eq(ProblemHighlightType.GENERIC_ERROR), eq(true),
                 any(LocalQuickFix.class), any(LocalQuickFix.class), any(LocalQuickFix.class), any(LocalQuickFix.class)))
+                .thenReturn(expectedDescriptor);
+
+        try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
+            utils.when(() -> DevAssistUtils.getTextRangeForLine(document, 1))
+                    .thenReturn(TextRange.create(0, 5));
+
+            Method build = ProblemBuilder.class.getDeclaredMethod("build",
+                    ProblemHelper.class, ScanIssue.class, int.class);
+            build.setAccessible(true);
+            ProblemDescriptor descriptor = (ProblemDescriptor) build.invoke(null, helper, scanIssue, 1);
+            assertNotNull(descriptor);
+            assertSame(expectedDescriptor, descriptor);
+        }
+    }
+
+    @Test
+    @DisplayName("build uses ERROR for shell script files to bypass ShErrorFilter")
+    void testBuildUsesErrorForShellScripts() throws Exception {
+        PsiFile psiFile = mock(PsiFile.class);
+        when(psiFile.getName()).thenReturn("deploy.sh");
+        Project project = mock(Project.class);
+        InspectionManager manager = mock(InspectionManager.class);
+        Document document = mock(Document.class);
+        ProblemDescriptor expectedDescriptor = mock(ProblemDescriptor.class);
+
+        ProblemHelper helper = ProblemHelper.builder(psiFile, project)
+                .manager(manager)
+                .document(document)
+                .filePath("/repo/deploy.sh")
+                .isOnTheFly(true)
+                .supportedScanners(Collections.emptyList())
+                .scanIssueList(Collections.emptyList())
+                .problemHolderService(mock(ProblemHolderService.class))
+                .problemDecorator(mock(ProblemDecorator.class))
+                .build();
+
+        ScanIssue scanIssue = mock(ScanIssue.class);
+        when(scanIssue.getScanEngine()).thenReturn(com.checkmarx.intellij.devassist.utils.ScanEngine.SECRETS);
+        when(scanIssue.getSeverity()).thenReturn(String.valueOf(SeverityLevel.HIGH));
+        when(scanIssue.getTitle()).thenReturn("Secret Detected");
+        when(scanIssue.getPackageVersion()).thenReturn(null);
+        when(scanIssue.getVulnerabilities()).thenReturn(Collections.emptyList());
+        when(scanIssue.getScanIssueId()).thenReturn("secret-id");
+
+        // Mock createProblemDescriptor with ERROR for shell scripts (3 LocalQuickFix for non-OSS/CONTAINERS)
+        when(manager.createProblemDescriptor(eq(psiFile), any(TextRange.class), anyString(),
+                eq(ProblemHighlightType.ERROR), eq(true),
+                any(LocalQuickFix.class), any(LocalQuickFix.class), any(LocalQuickFix.class)))
                 .thenReturn(expectedDescriptor);
 
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
