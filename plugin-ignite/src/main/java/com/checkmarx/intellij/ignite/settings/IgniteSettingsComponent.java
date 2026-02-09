@@ -1,6 +1,5 @@
 package com.checkmarx.intellij.ignite.settings;
 
-import com.checkmarx.intellij.common.auth.AuthService;
 import com.checkmarx.intellij.common.commands.Authentication;
 import com.checkmarx.intellij.common.commands.TenantSetting;
 import com.checkmarx.intellij.common.components.CxLinkLabel;
@@ -11,10 +10,10 @@ import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.settings.SettingsComponent;
 import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.utils.Constants;
-import com.checkmarx.intellij.common.utils.InputValidator;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
 import com.checkmarx.intellij.ignite.ui.IgniteWelcomeDialog;
+import com.checkmarx.intellij.ignite.utils.IgniteConstants;
 import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.DataContext;
@@ -31,7 +30,6 @@ import com.intellij.ui.DocumentAdapter;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPasswordField;
-import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.messages.MessageBus;
 import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
@@ -43,7 +41,6 @@ import javax.swing.event.DocumentEvent;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -68,17 +65,8 @@ public class IgniteSettingsComponent implements SettingsComponent {
     @Getter
     private final JBPasswordField apiKeyField = new JBPasswordField();
     private final ButtonGroup authGroup = new ButtonGroup();
-    private final JRadioButton oauthRadio = new JRadioButton("OAuth");
-    private final JTextField baseUrlField = new JTextField();
-    private final JTextField tenantField = new JTextField();
     private final JRadioButton apiKeyRadio = new JRadioButton("API Key");
     private final JButton logoutButton = new JButton("Log out");
-    private final JBLabel oauthLabel = new JBLabel("(Login using Checkmarx One credentials)");
-    private final JBLabel baseUrlLabel = new JBLabel();
-    private final JBLabel tenantLabel = new JBLabel();
-
-    @Getter
-    private final ExpandableTextField additionalParametersField = new ExpandableTextField();
 
     private final JButton connectButton = new JButton(Bundle.message(Resource.CONNECT_BUTTON));
     private final JBLabel validateResult = new JBLabel();
@@ -108,12 +96,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
             SENSITIVE_SETTINGS_STATE = GlobalSettingsSensitiveState.getInstance();
         }
 
-        // Check only editable values
-        if (!additionalParametersField.getText().trim().equals(SETTINGS_STATE.getAdditionalParameters())) {
-            return true;
-        }
-
-
         if (apiKeyRadio.isSelected() != SETTINGS_STATE.isApiKeyEnabled()) {
             return true;
         }
@@ -132,13 +114,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
         state.setValidationExpiry(SETTINGS_STATE.getValidationExpiry());
         state.setValidationMessage(SETTINGS_STATE.getValidationMessage());
         state.setLastValidationSuccess(SETTINGS_STATE.isLastValidationSuccess());
-
-        String baseUrl = baseUrlField.getText();
-        String tenant = tenantField.getText();
-
-        state.setBaseUrl(!StringUtils.isBlank(baseUrl) ? baseUrl.trim() : SETTINGS_STATE.getBaseUrl());
-        state.setTenant(!StringUtils.isBlank(tenant) ? tenant.trim() : SETTINGS_STATE.getTenant());
-
         SETTINGS_STATE.apply(state);
         SENSITIVE_SETTINGS_STATE.apply(state, getSensitiveStateFromFields());
         messageBus.syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied();
@@ -170,9 +145,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
             setSessionExpired();
         } else { // Authenticated
             apiKeyRadio.setSelected(useApiKey);
-            oauthRadio.setSelected(!useApiKey);
-            baseUrlField.setEnabled(!useApiKey);
-            tenantField.setEnabled(!useApiKey);
             apiKeyField.setEnabled(useApiKey);
 
             updateFieldLabels();
@@ -187,19 +159,13 @@ public class IgniteSettingsComponent implements SettingsComponent {
         SwingUtilities.invokeLater(() -> {
             if (useApiKey) {
                 apiKeyField.requestFocusInWindow();
-            } else {
-                baseUrlField.requestFocusInWindow();
             }
         });
     }
 
     // Getting existing saved input details from the setting state.
     private void setInputFields() {
-        additionalParametersField.setText(SETTINGS_STATE.getAdditionalParameters());
-
         apiKeyField.setText(SENSITIVE_SETTINGS_STATE.getApiKey());
-        baseUrlField.setText(SETTINGS_STATE.getBaseUrl());
-        tenantField.setText(SETTINGS_STATE.getTenant());
     }
 
     //Setting validation result to UI
@@ -231,9 +197,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
      */
     private GlobalSettingsState getStateFromFields() {
         GlobalSettingsState state = new GlobalSettingsState();
-
-        // Fields directly managed by this UI panel
-        state.setAdditionalParameters(additionalParametersField.getText().trim());
 
         state.setApiKeyEnabled(apiKeyRadio.isSelected());
 
@@ -293,8 +256,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
                         handleConnectionFailure(e);
                     }
                 });
-            } else {
-                proceedOAuthAuthentication();
             }
         });
     }
@@ -435,111 +396,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
         }));
     }
 
-    /**
-     * Proceed for authentication using OAUth
-     */
-    private void proceedOAuthAuthentication() {
-        if (!validateBaseUrl()) {
-            return; // Abort if UI validation fails
-        }
-        String baseUrl = baseUrlField.getText().trim().replaceAll("/+$", "");
-        String tenant = tenantField.getText().trim();
-
-        if (tenant.isEmpty()) {
-            setValidationResult("Tenant name cannot be empty", JBColor.RED);
-            connectButton.setEnabled(false);
-            return;
-        }
-        connectButton.setEnabled(false);
-        InputValidator.validateConnection(baseUrl, tenant).thenAccept(result -> {
-            SwingUtilities.invokeLater(() -> {
-                if (!result.isValid) {
-                    // Validation failed – show error message
-                    setValidationResult(result.error, JBColor.RED);
-                    connectButton.setEnabled(true);
-                    SETTINGS_STATE.setValidationInProgress(false);
-                    apply();
-                } else {
-                    // Show OAuth confirmation dialog
-                    int userChoice = Messages.showOkCancelDialog(
-                            "You will be redirected to OAuth login in your default browser. Are you sure you want to continue?",
-                            "Continue to OAuth Login",
-                            "Continue", "Cancel", Messages.getQuestionIcon()
-                    );
-
-                    if (userChoice == Messages.OK) {
-                        // Start OAuth authentication
-                        setFieldsEditable(false);
-                        setValidationResult(Bundle.message(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
-                        SETTINGS_STATE.setValidationInProgress(true);
-                        SETTINGS_STATE.setValidationExpiry(getValidationExpiry());
-                        apply();
-
-                        new AuthService(project).authenticate(baseUrl, tenant, authResult -> {
-                            if (authResult.containsKey(Constants.AuthConstants.REFRESH_TOKEN)) {
-                                handleOAuthSuccess(authResult); // Extract token
-                            } else {
-                                handleOAuthFailure(authResult.get(Constants.AuthConstants.ERROR).toString());
-                            }
-                        });
-                    } else {
-                        connectButton.setEnabled(true);
-                        validateResult.setVisible(false);
-                        SETTINGS_STATE.setValidationInProgress(false);
-                        apply();
-                    }
-                }
-            });
-        });
-    }
-
-    /**
-     * Handle post-authentication success state
-     */
-    private void handleOAuthSuccess(Map<String, Object> refreshTokenDetails) {
-        SwingUtilities.invokeLater(() -> {
-            setValidationResult(Bundle.message(Resource.VALIDATE_SUCCESS), JBColor.GREEN);
-            validateResult.setVisible(true);
-            logoutButton.setEnabled(true);
-            connectButton.setEnabled(false);
-            setFieldsEditable(false);
-            SETTINGS_STATE.setAuthenticated(true);
-            SETTINGS_STATE.setValidationInProgress(false);
-            SETTINGS_STATE.setValidationExpiry(null);
-            SETTINGS_STATE.setLastValidationSuccess(true);
-            SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
-            SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
-            SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
-            // Reset session expired notification flag on successful login
-            Utils.resetSessionExpiredNotificationFlag();
-            notifyAuthSuccess();
-            fetchAndStoreLicenseStatus();
-            updateAssistLinkVisibility();
-            // Complete post-authentication setup
-            completeAuthenticationSetup(SENSITIVE_SETTINGS_STATE.getRefreshToken());
-        });
-    }
-
-    /**
-     * Handle post-authentication failure state
-     */
-    private void handleOAuthFailure(String error) {
-        SwingUtilities.invokeLater(() -> {
-            SETTINGS_STATE.setValidationInProgress(false);
-            SETTINGS_STATE.setValidationExpiry(null);
-            SETTINGS_STATE.setAuthenticated(false);
-
-            setValidationResult(error, JBColor.RED);
-            validateResult.setVisible(true);
-
-            connectButton.setEnabled(true);
-            setFieldsEditable(true);
-
-            apply();
-            notifyAuthError(error);
-        });
-    }
-
     private void showWelcomeDialog(boolean mcpEnabled) {
         try {
             IgniteWelcomeDialog dlg = new IgniteWelcomeDialog(project, mcpEnabled);
@@ -569,29 +425,15 @@ public class IgniteSettingsComponent implements SettingsComponent {
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.HELP_JETBRAINS),
                 "span, growx, wrap, gapbottom 10");
         addSectionHeader(Resource.CREDENTIALS_SECTION, false);
-        mainPanel.add(oauthRadio, "split 2, span");
-        mainPanel.add(oauthLabel, "gapleft 5, wrap");
-        mainPanel.add(baseUrlLabel);
-        mainPanel.add(baseUrlField, "growx, wrap");
-        mainPanel.add(tenantLabel);
-        mainPanel.add(tenantField, "growx, wrap");
         mainPanel.add(apiKeyRadio, "aligny top");
         mainPanel.add(apiKeyField, "growx, wrap, aligny top");
 
-        oauthRadio.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                setFieldsEditable(true);
-                updateFieldLabels();
-                updateConnectButtonState();
-                SwingUtilities.invokeLater(() -> baseUrlField.requestFocusInWindow());
-            }
-        });
         apiKeyRadio.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 setFieldsEditable(true);
                 updateFieldLabels();
                 updateConnectButtonState();
-                SwingUtilities.invokeLater(() -> apiKeyField.requestFocusInWindow());
+                SwingUtilities.invokeLater(apiKeyField::requestFocusInWindow);
             }
         });
 
@@ -599,22 +441,14 @@ public class IgniteSettingsComponent implements SettingsComponent {
         mainPanel.add(logoutButton, "gaptop 10, wrap");
         mainPanel.add(validateResult, "span 2, gaptop 5, wrap");
 
-        addSectionHeader(Resource.SCAN_SECTION, false);
-        addField(Resource.ADDITIONAL_PARAMETERS, additionalParametersField, false, false);
-        mainPanel.add(new JBLabel());
-        mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
-                "gapleft 5,gapbottom 10, wrap");
-
-
         // === CxOne Assist link section ===
-        assistLink = new CxLinkLabel(
-                Bundle.message(Resource.GO_TO_CXONE_ASSIST_LINK),
+        assistLink = new CxLinkLabel("Go to "+ Bundle.message(Resource.IGNITE_PLUGIN_SETTINGS_CHILD_TITLE),
                 e -> {
                     DataContext context = DataManager.getInstance().getDataContext(mainPanel);
                     Settings settings = context.getData(Settings.KEY);
                     if (settings == null) return;
 
-                    Configurable configurable = settings.find("settings.ast.assist");
+                    Configurable configurable = settings.find(IgniteConstants.PLUGIN_CHILD_REALTIME_SETTINGS_ID);
                     if (configurable instanceof RealtimeScannersSettingsConfigurable) {
                         settings.select(configurable);
                     } else {
@@ -630,48 +464,18 @@ public class IgniteSettingsComponent implements SettingsComponent {
                 }
         );
         assistLink.setVisible(shouldShowAssistLink());
-        mainPanel.add(assistLink, "wrap, gapleft 5, gaptop 10");
+        mainPanel.add(assistLink, "wrap, gapleft 0, gaptop 10");
     }
 
     private void setupFields() {
         apiKeyField.setName(Constants.FIELD_NAME_API_KEY);
-        baseUrlField.setName("baseUrlField");
-        tenantField.setName("tenantField");
-        oauthRadio.setName("oauthRadio");
         apiKeyRadio.setName("apiKeyRadio");
-        authGroup.add(oauthRadio);
         authGroup.add(apiKeyRadio);
-
-        // Add validation for baseUrlField
-        baseUrlField.getDocument().addDocumentListener(new DocumentAdapter() {
-            @Override
-            protected void textChanged(@NotNull DocumentEvent e) {
-                validateBaseUrl();
-                updateConnectButtonState();
-            }
-        });
-
-        tenantField.getDocument().addDocumentListener(new DocumentAdapter() {
-            @Override
-            protected void textChanged(@NotNull DocumentEvent e) {
-                updateConnectButtonState();
-            }
-        });
 
         apiKeyField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
                 updateConnectButtonState();
-            }
-        });
-
-        // Listener to update state when switching to OAuth
-        oauthRadio.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                setFieldsEditable(true);
-                updateFieldLabels();
-                updateConnectButtonState();
-                SwingUtilities.invokeLater(() -> baseUrlField.requestFocusInWindow());
             }
         });
 
@@ -686,59 +490,18 @@ public class IgniteSettingsComponent implements SettingsComponent {
         });
 
         logoutButton.setName("logoutButton");
-        additionalParametersField.setName(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS);
-
-
-        // Set initial field states
-        baseUrlField.setEnabled(true);
-        tenantField.setEnabled(true);
         apiKeyField.setEnabled(false);
         logoutButton.setEnabled(false);
-        baseUrlLabel.setText(String.format(Constants.FIELD_FORMAT, "Checkmarx One Base URL", Constants.REQUIRED_MARK));
-        tenantLabel.setText(String.format(Constants.FIELD_FORMAT, "Tenant Name", Constants.REQUIRED_MARK));
-
         boolean useApiKey = SETTINGS_STATE.isApiKeyEnabled();
         apiKeyRadio.setSelected(useApiKey);
-        oauthRadio.setSelected(!useApiKey);
-    }
-
-    private boolean validateBaseUrl() {
-        String rawInput = baseUrlField.getText().trim();
-
-        if (rawInput.matches(".*/{2,}$")) {
-            setValidationResult("Invalid base URL", JBColor.RED);
-            connectButton.setEnabled(false);
-            return false;
-        }
-
-        if (rawInput.isEmpty()) {
-            setValidationResult("", JBColor.GREEN);
-            connectButton.setEnabled(false);
-            return false;
-        }
-
-        if (!InputValidator.isValidUrl(rawInput)) {
-            setValidationResult("Invalid URL format", JBColor.RED);
-            connectButton.setEnabled(false);
-            return false;
-        }
-
-        setValidationResult("", JBColor.GREEN);
-        return true;
     }
 
     private void updateConnectButtonState() {
         boolean enabled = false;
 
-        if (oauthRadio.isSelected()) {
-            boolean isBaseUrlValid = InputValidator.isValidUrl(baseUrlField.getText().trim());
-            boolean isBaseUrlNotEmpty = !baseUrlField.getText().trim().isEmpty();
-            boolean isTenantNotEmpty = !tenantField.getText().trim().isEmpty();
-            enabled = isBaseUrlValid && isBaseUrlNotEmpty && isTenantNotEmpty;
-        } else if (apiKeyRadio.isSelected()) {
+        if (apiKeyRadio.isSelected()) {
             enabled = !String.valueOf(apiKeyField.getPassword()).trim().isEmpty();
         }
-
         if (SETTINGS_STATE.isAuthenticated() || SETTINGS_STATE.isValidationInProgress()) {
             enabled = false;
         }
@@ -776,7 +539,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     // Setting state on log out.
     private void setLogoutState() {
-        oauthRadio.setSelected(true);
         validateResult.setText(Bundle.message(Resource.LOGOUT_SUCCESS));
         validateResult.setForeground(JBColor.GREEN);
         validateResult.setVisible(true);
@@ -821,7 +583,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
 
     // Setting state after session expired.
     private void setSessionExpired() {
-        oauthRadio.setSelected(true);
         connectButton.setEnabled(true);
         logoutButton.setEnabled(false);
         setFieldsEditable(true);
@@ -866,29 +627,8 @@ public class IgniteSettingsComponent implements SettingsComponent {
         mainPanel.add(new JSeparator(), "growx, wrap");
     }
 
-    private void addField(Resource resource, Component field, boolean gapAfter, boolean required) {
-        validatePanel();
-        String constraints = "grow, wrap";
-        if (gapAfter) {
-            constraints += ", " + Constants.FIELD_GAP_BOTTOM;
-        }
-        String label = String.format(Constants.FIELD_FORMAT,
-                Bundle.message(resource),
-                required ? Constants.REQUIRED_MARK : "");
-        mainPanel.add(new JBLabel(label), gapAfter ? Constants.FIELD_GAP_BOTTOM : "");
-        mainPanel.add(field, constraints);
-    }
-
     private void updateFieldLabels() {
-        if (oauthRadio.isSelected()) {
-            baseUrlLabel.setText(String.format(Constants.FIELD_FORMAT, "Checkmarx One Base URL", Constants.REQUIRED_MARK));
-            tenantLabel.setText(String.format(Constants.FIELD_FORMAT, "Tenant Name", Constants.REQUIRED_MARK));
-            apiKeyRadio.setText("API Key");
-        } else {
-            baseUrlLabel.setText("Checkmarx One Base URL");
-            tenantLabel.setText("Tenant Name");
-            apiKeyRadio.setText(String.format(Constants.FIELD_FORMAT, "API Key", Constants.REQUIRED_MARK));
-        }
+        apiKeyRadio.setText(String.format(Constants.FIELD_FORMAT, "API Key", Constants.REQUIRED_MARK));
     }
 
     private void validatePanel() {
@@ -928,33 +668,15 @@ public class IgniteSettingsComponent implements SettingsComponent {
     }
 
     private void setFieldsEditable(boolean editable) {
-        boolean oauthSelected = oauthRadio.isSelected();
         boolean apiKeySelected = apiKeyRadio.isSelected();
-
-        // Enable/disable input fields
-        baseUrlField.setEnabled(editable && oauthSelected);
-        tenantField.setEnabled(editable && oauthSelected);
         apiKeyField.setEnabled(editable && apiKeySelected);
-
-        // Always keep radio buttons enabled
-        oauthRadio.setEnabled(editable);
         apiKeyRadio.setEnabled(editable);
 
         // System default colors
         Color enabledColor = UIManager.getColor("Label.foreground");
         Color disabledColor = UIManager.getColor("Label.disabledForeground");
 
-        // Simulate label fading manually
-        oauthRadio.setForeground((editable && oauthRadio.isSelected()) ? enabledColor : disabledColor);
-        oauthLabel.setForeground((editable && oauthSelected) ? enabledColor : disabledColor);
-        baseUrlLabel.setForeground((editable && oauthSelected) ? enabledColor : disabledColor);
-        tenantLabel.setForeground((editable && oauthSelected) ? enabledColor : disabledColor);
         apiKeyRadio.setForeground((editable && apiKeySelected) ? enabledColor : disabledColor);
-
-        // Repaint to ensure update
-        baseUrlLabel.repaint();
-        tenantLabel.repaint();
-        oauthLabel.repaint();
         apiKeyRadio.repaint();
     }
 
@@ -969,41 +691,6 @@ public class IgniteSettingsComponent implements SettingsComponent {
                         project, false, "")
         );
     }
-
-    /**
-     * Display notification on notification area on successful authentication
-     */
-    private void notifyAuthSuccess() {
-        ApplicationManager.getApplication().invokeLater(() ->
-                Utils.showNotification(Bundle.message(Resource.SUCCESS_AUTHENTICATION_TITLE),
-                        Bundle.message(Resource.VALIDATE_SUCCESS),
-                        NotificationType.INFORMATION,
-                        project, false, "")
-        );
-    }
-
-    /**
-     * Display notification on notification area on failure authentication
-     */
-    private void notifyAuthError(String errorMsg) {
-        ApplicationManager.getApplication().invokeLater(() ->
-                Utils.showNotification(Bundle.message(Resource.ERROR_AUTHENTICATION_TITLE),
-                        errorMsg,
-                        NotificationType.ERROR,
-                        project, false, "")
-        );
-    }
-
-    /**
-     * Getting login validation timeout datetime
-     *
-     * @return timestamp
-     */
-    private String getValidationExpiry() {
-        long timeoutSeconds = Constants.AuthConstants.TIME_OUT_SECONDS + 5L;
-        return Utils.convertToLocalDateTime(timeoutSeconds, ZoneId.systemDefault()).toString();
-    }
-
 
     /**
      * Checking if authentication validation time expired
