@@ -2,7 +2,7 @@ package com.checkmarx.intellij.ast.window.actions.group.by;
 
 import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.intellij.common.utils.Constants;
-import com.checkmarx.intellij.common.window.CustomResultState;
+import com.checkmarx.intellij.ast.results.CustomResultState;
 import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 
 import java.util.Arrays;

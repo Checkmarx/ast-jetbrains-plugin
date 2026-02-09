@@ -5,7 +5,7 @@ import com.checkmarx.intellij.common.settings.FilterProvider;
 import com.checkmarx.intellij.common.settings.FilterProviderRegistry;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
-import com.checkmarx.intellij.common.window.CustomResultState;
+import com.checkmarx.intellij.ast.results.CustomResultState;
 import com.checkmarx.intellij.ast.window.actions.filter.CustomStateFilter;
 import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;

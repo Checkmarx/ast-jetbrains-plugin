@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.common.window;
+package com.checkmarx.intellij.ast.results;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;

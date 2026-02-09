@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.ast.window.actions.filter;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
-import com.checkmarx.intellij.common.window.CustomResultState;
+import com.checkmarx.intellij.ast.results.CustomResultState;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import org.jetbrains.annotations.NotNull;
