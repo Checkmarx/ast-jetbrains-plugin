@@ -49,20 +49,20 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
     private final JPanel mainPanel = new JPanel(new MigLayout("", "[][grow]"));
     private final JBLabel assistMessageLabel = new JBLabel();
 
-    private final JBLabel ascaTitle = new JBLabel(formatTitle("Checkmarx AI Secure Coding Assistant (ASCA): Activate ASCA:"));
+    private final JBLabel ascaTitle = new JBLabel(formatTitle(Bundle.message(Resource.IGNITE_PLUGIN_REALTIME_SCANNERS_ASCA_TITLE)));
     private final JBCheckBox ascaCheckbox = new JBCheckBox("Scan your file as you code");
     private final JBLabel ascaInstallationMsg = new JBLabel();
 
-    private final JBLabel ossTitle = new JBLabel(formatTitle(Bundle.message(Resource.OSS_REALTIME_TITLE)));
+    private final JBLabel ossTitle = new JBLabel(formatTitle(Bundle.message(Resource.IGNITE_PLUGIN_REALTIME_SCANNERS_OSS_TITLE)));
     private final JBCheckBox ossCheckbox = new JBCheckBox(Bundle.message(Resource.OSS_REALTIME_CHECKBOX));
 
-    private final JBLabel secretsTitle = new JBLabel(formatTitle(Bundle.message(Resource.SECRETS_REALTIME_TITLE)));
+    private final JBLabel secretsTitle = new JBLabel(formatTitle(Bundle.message(Resource.IGNITE_PLUGIN_REALTIME_SCANNERS_SECRETS_TITLE)));
     private final JBCheckBox secretsCheckbox = new JBCheckBox(Bundle.message(Resource.SECRETS_REALTIME_CHECKBOX));
 
-    private final JBLabel containersTitle = new JBLabel(formatTitle(Bundle.message(Resource.CONTAINERS_REALTIME_TITLE)));
+    private final JBLabel containersTitle = new JBLabel(formatTitle(Bundle.message(Resource.IGNITE_PLUGIN_REALTIME_SCANNERS_CONTAINERS_TITLE)));
     private final JBCheckBox containersCheckbox = new JBCheckBox(Bundle.message(Resource.CONTAINERS_REALTIME_CHECKBOX));
 
-    private final JBLabel iacTitle = new JBLabel(formatTitle(Bundle.message(Resource.IAC_REALTIME_TITLE)));
+    private final JBLabel iacTitle = new JBLabel(formatTitle(Bundle.message(Resource.IGNITE_PLUGIN_REALTIME_SCANNERS_IAC_TITLE)));
     private final JBCheckBox iacCheckbox = new JBCheckBox(Bundle.message(Resource.IAC_REALTIME_CHECKBOX));
 
     private final ComboBox<String> containersToolCombo = new ComboBox<>(new String[]{"docker", "podman"});
@@ -132,7 +132,7 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         mainPanel.add(iacCheckbox, "wrap, gapbottom 10, gapleft 15");
 
 
-        JBLabel containersLabel = new JBLabel(formatTitle(Bundle.message(Resource.IAC_REALTIME_SCANNER_PREFIX)));
+        JBLabel containersLabel = new JBLabel(formatTitle(Bundle.message(Resource.IGNITE_PLUGIN_REALTIME_SCANNERS_IAC_PREFIX)));
         mainPanel.add(containersLabel, "split 2, span, gaptop 10");
         mainPanel.add(new JSeparator(), "growx, wrap");
         mainPanel.add(new JBLabel(Bundle.message(Resource.CONTAINERS_TOOL_DESCRIPTION)), "wrap, gapleft 15");

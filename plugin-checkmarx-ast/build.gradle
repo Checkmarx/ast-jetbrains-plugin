@@ -23,7 +23,9 @@ patchPluginXml {
 
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
-    channels = ['stable']
+    if (project.hasProperty("rchannels")) {
+        channels = [rchannels.toString()]
+    }
 }
 
 test {
