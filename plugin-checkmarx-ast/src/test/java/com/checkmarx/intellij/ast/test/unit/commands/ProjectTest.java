@@ -3,8 +3,8 @@ package com.checkmarx.intellij.ast.test.unit.commands;
 import com.checkmarx.ast.project.Project;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
-import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.settings.global.CxWrapperFactory;
+import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,7 +42,7 @@ class ProjectTest {
             when(mockWrapper.projectList("limit=10000")).thenReturn(expectedProjects);
 
             // Act
-            List<Project> result = com.checkmarx.intellij.commands.Project.getList();
+            List<Project> result = com.checkmarx.intellij.ast.commands.Project.getList();
 
             // Assert
             assertNotNull(result);
@@ -59,8 +59,7 @@ class ProjectTest {
             when(mockWrapper.projectList(anyString())).thenThrow(mock(CxException.class));
 
             // Act & Assert
-            assertThrows(CxException.class, () ->
-                com.checkmarx.intellij.commands.Project.getList()
+            assertThrows(CxException.class, com.checkmarx.intellij.ast.commands.Project::getList
             );
         }
     }
@@ -76,7 +75,7 @@ class ProjectTest {
             when(mockWrapper.projectBranches(eq(projectId), eq(""))).thenReturn(expectedBranches);
 
             // Act
-            List<String> result = com.checkmarx.intellij.commands.Project.getBranches(projectId, false);
+            List<String> result = com.checkmarx.intellij.ast.commands.Project.getBranches(projectId, false);
 
             // Assert
             assertNotNull(result);
@@ -96,7 +95,7 @@ class ProjectTest {
             when(mockWrapper.projectBranches(eq(projectId), eq(""))).thenReturn(new ArrayList<>(branches));
 
             // Act
-            List<String> result = com.checkmarx.intellij.commands.Project.getBranches(projectId, true);
+            List<String> result = com.checkmarx.intellij.ast.commands.Project.getBranches(projectId, true);
 
             // Assert
             assertNotNull(result);
@@ -117,7 +116,7 @@ class ProjectTest {
 
             // Act & Assert
             assertThrows(CxException.class, () ->
-                com.checkmarx.intellij.commands.Project.getBranches(projectId, false)
+                    com.checkmarx.intellij.ast.commands.Project.getBranches(projectId, false)
             );
         }
     }

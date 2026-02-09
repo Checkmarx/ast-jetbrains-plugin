@@ -3,8 +3,8 @@ package com.checkmarx.intellij.ast.test.integration.standard;
 import com.checkmarx.ast.project.Project;
 import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
-import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
-import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess;
 import com.intellij.testFramework.ServiceContainerUtil;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
@@ -61,7 +61,7 @@ public abstract class BaseTest extends BasePlatformTestCase {
 
     protected final Project getEnvProject() {
         return Assertions.assertDoesNotThrow(() -> {
-            java.util.List<Project> projects = com.checkmarx.intellij.commands.Project.getList();
+            java.util.List<Project> projects = com.checkmarx.intellij.ast.commands.Project.getList();
 
             // Debug: Print available projects and expected project name
             System.out.println("=== DEBUG: Project Search ===");
