@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.ast.test.unit.tool.window.results.tree;
 
-import com.checkmarx.intellij.tool.window.results.tree.ResultsTreeCellRenderer;
-import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
+import com.checkmarx.intellij.ast.window.results.tree.ResultsTreeCellRenderer;
+import com.checkmarx.intellij.ast.window.results.tree.nodes.ResultNode;
 import com.intellij.ui.treeStructure.Tree;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

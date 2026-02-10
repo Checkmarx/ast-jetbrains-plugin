@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ast.test.unit.tool.window.actions.group.by;
 
-import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
-import com.checkmarx.intellij.tool.window.GroupBy;
-import com.checkmarx.intellij.tool.window.actions.group.by.GroupByBaseAction;
+import com.checkmarx.intellij.ast.window.CxToolWindowPanel;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupBy;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupByBaseAction;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 

@@ -3,8 +3,8 @@ package com.checkmarx.intellij.ast.test.unit.commands;
 import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
-import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.settings.global.CxWrapperFactory;
+import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,7 +49,7 @@ class ScanTest {
             when(mockScan.getId()).thenReturn(expectedScanId);
 
             // Act
-            String result = com.checkmarx.intellij.commands.Scan.getLatestScanId();
+            String result = com.checkmarx.intellij.ast.commands.Scan.getLatestScanId();
 
             // Assert
             assertNotNull(result);
@@ -72,7 +72,7 @@ class ScanTest {
             when(mockWrapper.scanList(expectedFilter)).thenReturn(expectedScans);
 
             // Act
-            List<Scan> result = com.checkmarx.intellij.commands.Scan.getList(projectId, branch);
+            List<Scan> result = com.checkmarx.intellij.ast.commands.Scan.getList(projectId, branch);
 
             // Assert
             assertNotNull(result);
@@ -91,7 +91,7 @@ class ScanTest {
             when(mockWrapper.scanShow(any(UUID.class))).thenReturn(mockScan);
 
             // Act
-            Scan result = com.checkmarx.intellij.commands.Scan.scanShow(scanId);
+            Scan result = com.checkmarx.intellij.ast.commands.Scan.scanShow(scanId);
 
             // Assert
             assertNotNull(result);
@@ -112,7 +112,7 @@ class ScanTest {
             when(mockWrapper.scanCreate(any(Map.class), anyString())).thenReturn(mockScan);
 
             // Act
-            Scan result = com.checkmarx.intellij.commands.Scan.scanCreate(sourcePath, projectName, branchName);
+            Scan result = com.checkmarx.intellij.ast.commands.Scan.scanCreate(sourcePath, projectName, branchName);
 
             // Assert
             assertNotNull(result);
@@ -137,7 +137,7 @@ class ScanTest {
 
             // Act & Assert
             assertDoesNotThrow(() -> {
-                com.checkmarx.intellij.commands.Scan.scanCancel(scanId);
+                com.checkmarx.intellij.ast.commands.Scan.scanCancel(scanId);
                 verify(mockWrapper).scanCancel(scanId);
             });
         }
@@ -154,7 +154,7 @@ class ScanTest {
 
             // Act & Assert
             assertThrows(CxException.class, () ->
-                com.checkmarx.intellij.commands.Scan.scanCancel(scanId)
+                com.checkmarx.intellij.ast.commands.Scan.scanCancel(scanId)
             );
         }
     }

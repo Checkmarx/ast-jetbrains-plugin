@@ -6,13 +6,13 @@ import com.checkmarx.ast.learnMore.Sample;
 import com.checkmarx.ast.results.result.*;
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
-import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Resource;
-import com.checkmarx.intellij.Utils;
-import com.checkmarx.intellij.settings.global.CxWrapperFactory;
-import com.checkmarx.intellij.tool.window.Severity;
-import com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode;
+import com.checkmarx.intellij.ast.window.results.tree.nodes.ResultNode;
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBLabel;
@@ -233,13 +233,13 @@ class ResultNodeTest {
 
     @Test
     void getIcon_ReturnsSeverityIcon() {
-        when(mockResult.getSeverity()).thenReturn(Severity.HIGH.name());
+        when(mockResult.getSeverity()).thenReturn(SeverityFilter.HIGH.name());
         when(mockResultData.getQueryName()).thenReturn(QUERY_NAME);
         resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
 
         Icon icon = resultNode.getIcon();
         assertNotNull(icon);
-        assertEquals(Severity.HIGH.getIcon(), icon);
+        assertEquals(SeverityFilter.HIGH.getIcon(), icon);
     }
 
     @Test
@@ -356,9 +356,9 @@ class ResultNodeTest {
         when(mockNode.getLine()).thenReturn(LINE_NUMBER);
         when(mockResultData.getNodes()).thenReturn(Collections.singletonList(mockNode));
         when(mockResult.getType()).thenReturn("SAST");
-        when(mockResult.getSeverity()).thenReturn(Severity.HIGH.name());
+        when(mockResult.getSeverity()).thenReturn(SeverityFilter.HIGH.name());
 
-        
+
         resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
         
         // Execute
@@ -378,7 +378,7 @@ class ResultNodeTest {
         when(mockResultData.getPackageData()).thenReturn(Collections.singletonList(mockPackageData));
         when(mockResult.getType()).thenReturn("SAST");
         when(mockResult.getId()).thenReturn(RESULT_ID);
-        when(mockResult.getSeverity()).thenReturn(Severity.HIGH.name());
+        when(mockResult.getSeverity()).thenReturn(SeverityFilter.HIGH.name());
 
         resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
 
@@ -398,11 +398,11 @@ class ResultNodeTest {
         when(mockResultData.getFileName()).thenReturn(FILE_NAME);
         when(mockResultData.getLine()).thenReturn(LINE_NUMBER);
         when(mockResult.getType()).thenReturn("SAST");
-        when(mockResult.getSeverity()).thenReturn(Severity.HIGH.name());
+        when(mockResult.getSeverity()).thenReturn(SeverityFilter.HIGH.name());
         when(mockResult.getId()).thenReturn(RESULT_ID);
 
         resultNode = new ResultNode(mockResult, mockProject, SCAN_ID);
-        
+
         // Execute
         JPanel panel = resultNode.buildResultPanel(() -> {}, () -> {});
         
@@ -435,7 +435,7 @@ class ResultNodeTest {
         JPanel headerPanel = (JPanel) panel.getComponent(0);
         JLabel titleLabel = (JLabel) headerPanel.getComponent(0);
         assertTrue(titleLabel.getText().contains("test-package:1.0.0"));
-        assertEquals(Severity.HIGH.getIcon(), titleLabel.getIcon());
+        assertEquals(SeverityFilter.HIGH.getIcon(), titleLabel.getIcon());
     }
 
     @Test
@@ -487,7 +487,7 @@ class ResultNodeTest {
         JPanel headerPanel = (JPanel) panel.getComponent(0);
         JLabel titleLabel = (JLabel) headerPanel.getComponent(0);
         assertTrue(titleLabel.getText().contains("test-package:1.0.0"));
-        assertEquals(Severity.HIGH.getIcon(), titleLabel.getIcon());
+        assertEquals(SeverityFilter.HIGH.getIcon(), titleLabel.getIcon());
     }
 
     @Test
@@ -510,7 +510,7 @@ class ResultNodeTest {
     void buildResultPanel_WithScsType_AddsLearnMoreAndRemediationTabs() {
         // Setup
         when(mockResult.getType()).thenReturn(Constants.SCAN_TYPE_SCS);
-        when(mockResult.getSeverity()).thenReturn(Severity.HIGH.name());
+        when(mockResult.getSeverity()).thenReturn(SeverityFilter.HIGH.name());
         when(mockResultData.getRuleName()).thenReturn("Hardcoded Password");
         when(mockResultData.getRuleDescription()).thenReturn("Some description");
         when(mockResultData.getRemediation()).thenReturn("Some remediation");

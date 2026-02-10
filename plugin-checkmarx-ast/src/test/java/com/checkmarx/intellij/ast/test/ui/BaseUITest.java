@@ -1,10 +1,10 @@
 package com.checkmarx.intellij.ast.test.ui;
 
-import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.ast.test.integration.Environment;
-import com.checkmarx.intellij.tool.window.GroupBy;
-import com.checkmarx.intellij.tool.window.Severity;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupBy;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.stepsProcessing.StepLogger;
@@ -338,7 +338,7 @@ public abstract class BaseUITest {
         groupAction("Severity");
     }
 
-    protected void toggleFilter(Severity severity, boolean enabled) {
+    protected void toggleFilter(SeverityFilter severity, boolean enabled) {
         @Language("XPath") String xpath = TestGeneral.filterXPath(severity);
         waitFor(() -> {
             click(xpath);

@@ -3,14 +3,14 @@ package com.checkmarx.intellij.ast.test.unit.tool.window.results.tree;
 import com.checkmarx.ast.results.Results;
 import com.checkmarx.ast.results.result.Data;
 import com.checkmarx.ast.results.result.Result;
-import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Resource;
-import com.checkmarx.intellij.tool.window.CustomResultState;
-import com.checkmarx.intellij.tool.window.GroupBy;
-import com.checkmarx.intellij.tool.window.Severity;
-import com.checkmarx.intellij.tool.window.actions.filter.Filterable;
-import com.checkmarx.intellij.tool.window.results.tree.ResultsTreeFactory;
-import com.checkmarx.intellij.tool.window.results.tree.nodes.NonLeafNode;
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.ast.results.CustomResultState;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupBy;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
+import com.checkmarx.intellij.common.window.actions.filter.Filterable;
+import com.checkmarx.intellij.ast.window.results.tree.ResultsTreeFactory;
+import com.checkmarx.intellij.ast.window.results.tree.nodes.NonLeafNode;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.treeStructure.Tree;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +53,7 @@ class ResultsTreeFactoryTest {
         groupByList.add(GroupBy.SCA_TYPE);
 
         enabledFilters = new HashSet<>();
-        enabledFilters.add(Severity.HIGH);
+        enabledFilters.add(SeverityFilter.HIGH);
         enabledFilters.add(new CustomResultState("TO_VERIFY", "To Verify"));
 
         // Set up default mock result

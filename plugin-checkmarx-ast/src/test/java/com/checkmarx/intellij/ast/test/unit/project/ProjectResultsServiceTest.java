@@ -2,7 +2,7 @@ package com.checkmarx.intellij.ast.test.unit.project;
 
 import com.checkmarx.ast.results.result.Node;
 import com.checkmarx.ast.results.result.Result;
-import com.checkmarx.intellij.project.ProjectResultsService;
+import com.checkmarx.intellij.ast.project.ProjectResultsService;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

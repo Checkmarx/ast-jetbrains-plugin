@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ast.test.unit.components;
 
-import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Resource;
-import com.checkmarx.intellij.components.CxLinkLabel;
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.components.CxLinkLabel;
 import com.intellij.ui.HyperlinkLabel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +15,7 @@ import java.awt.event.MouseEvent;
 import java.net.URI;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 

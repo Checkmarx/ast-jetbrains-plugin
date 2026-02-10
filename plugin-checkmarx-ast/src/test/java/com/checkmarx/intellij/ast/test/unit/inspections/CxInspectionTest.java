@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.ast.test.unit.inspections;
 
-import com.checkmarx.intellij.inspections.CxInspection;
-import com.checkmarx.intellij.inspections.CxVisitor;
+import com.checkmarx.intellij.ast.inspections.CxInspection;
+import com.checkmarx.intellij.ast.inspections.CxVisitor;
 import com.intellij.codeInspection.ProblemsHolder;
 import com.intellij.psi.PsiElementVisitor;
 import org.junit.jupiter.api.BeforeEach;

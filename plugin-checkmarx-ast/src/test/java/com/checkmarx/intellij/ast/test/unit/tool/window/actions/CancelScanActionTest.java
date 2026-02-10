@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ast.test.unit.tool.window.actions;
 
-import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.tool.window.actions.CancelScanAction;
-import com.checkmarx.intellij.tool.window.actions.StartScanAction;
+import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.ast.window.actions.CancelScanAction;
+import com.checkmarx.intellij.ast.window.actions.StartScanAction;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;

@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.ast.test.unit;
 
-import com.checkmarx.intellij.Constants;
-import com.checkmarx.intellij.commands.Scan;
-import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
-import com.checkmarx.intellij.tool.window.actions.StartScanAction;
+import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.ast.commands.Scan;
+import com.checkmarx.intellij.ast.window.CxToolWindowPanel;
+import com.checkmarx.intellij.ast.window.actions.StartScanAction;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
@@ -37,11 +37,11 @@ public class StartScanActionTest {
     private PropertiesComponent mockPropertiesComponent;
 
     @Mock
-    private com.checkmarx.intellij.tool.window.actions.selection.RootGroup mockRootGroup;
+    private com.checkmarx.intellij.ast.window.actions.selection.RootGroup mockRootGroup;
 
 
     @Mock
-    private com.checkmarx.intellij.tool.window.actions.selection.BranchSelectionGroup mockBranchSelectionGroup;
+    private com.checkmarx.intellij.ast.window.actions.selection.BranchSelectionGroup mockBranchSelectionGroup;
 
 
     @Mock
@@ -72,7 +72,7 @@ public class StartScanActionTest {
     @Test
     public void testCreateScan_whenUseLocalBranch_shouldUseActiveBranchName() throws Exception {
         try (MockedStatic<ActivityTracker> activityTrackerMockedStatic = mockStatic(ActivityTracker.class);
-             MockedStatic<com.checkmarx.intellij.commands.Scan> scanMockedStatic = mockStatic(com.checkmarx.intellij.commands.Scan.class);
+             MockedStatic<com.checkmarx.intellij.ast.commands.Scan> scanMockedStatic = mockStatic(com.checkmarx.intellij.ast.commands.Scan.class);
              MockedStatic<ProgressManager> progressManagerMockedStatic = mockStatic(ProgressManager.class);
              MockedStatic<VcsRepositoryManager> vcsRepositoryManagerMockedStatic = mockStatic(VcsRepositoryManager.class)) {
 
@@ -100,7 +100,7 @@ public class StartScanActionTest {
             ArgumentCaptor<String> pathCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<String> projectCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<String> branchCaptor = ArgumentCaptor.forClass(String.class);
-            scanMockedStatic.verify(() -> com.checkmarx.intellij.commands.Scan.scanCreate(pathCaptor.capture(), projectCaptor.capture(), branchCaptor.capture()));
+            scanMockedStatic.verify(() -> com.checkmarx.intellij.ast.commands.Scan.scanCreate(pathCaptor.capture(), projectCaptor.capture(), branchCaptor.capture()));
             
             verify(mockPropertiesComponent).setValue(Constants.RUNNING_SCAN_ID_PROPERTY, "scanId");
             verify(mockActivityTracker).inc();
@@ -112,7 +112,7 @@ public class StartScanActionTest {
     private void mockScanCreateMethod(MockedStatic<Scan> scanMockedStatic) {
         com.checkmarx.ast.scan.Scan mockScan = mock(com.checkmarx.ast.scan.Scan.class);
         when(mockScan.getId()).thenReturn("scanId");
-        scanMockedStatic.when(() ->   com.checkmarx.intellij.commands.Scan.scanCreate(any(), any(), any())).thenReturn(mockScan);
+        scanMockedStatic.when(() ->   com.checkmarx.intellij.ast.commands.Scan.scanCreate(any(), any(), any())).thenReturn(mockScan);
     }
 
     private void setupStaticMocks(MockedStatic<ActivityTracker> activityTrackerMockedStatic, ActivityTracker mockActivityTracker, MockedStatic<ProgressManager> progressManagerMockedStatic, ProgressManager mockProgressManager, MockedStatic<VcsRepositoryManager> vcsRepositoryManagerMockedStatic) {
