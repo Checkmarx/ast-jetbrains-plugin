@@ -179,7 +179,7 @@ public class ScanResultsPannelPage {
 
     /**
      * Enters the scan ID in the scan field and selects it in the UI.
-     * Implements retry logic to handle transient network/timeout issues.
+     * Implements retry logic to handle transient network/timeout issues and focus problems in CI environments.
      *
      * @param validScanId If true, enters a valid scan ID; otherwise, enters an invalid scan ID.
      */
@@ -190,6 +190,9 @@ public class ScanResultsPannelPage {
 
         while (retryCount < maxRetries) {
             try {
+                // Ensure Checkmarx window has focus before attempting to interact with scan field
+                focusCxWindow();
+
                 waitFor(() -> {
                     List<JTextFieldFixture> fields =
                             findAll(JTextFieldFixture.class, SCAN_FIELD);
@@ -200,7 +203,25 @@ public class ScanResultsPannelPage {
                     }
 
                     JTextFieldFixture field = fields.get(0);
+
+                    // Check if field is visible and showing before attempting to interact
+                    if (!field.isShowing()) {
+                        log("Scan field is not showing, waiting...");
+                        return false;
+                    }
+
                     try {
+                        // Click on the field first to ensure it gains focus
+                        field.click();
+
+                        // Small delay to let the UI stabilize after click
+                        try {
+                            Thread.sleep(300);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                        }
+
+                        // Now set the text
                         field.setText(scanId);
                         String currentText = field.getText();
                         boolean textMatches = scanId.equals(currentText);
@@ -228,15 +249,16 @@ public class ScanResultsPannelPage {
                     throw e;
                 }
 
-                // Wait before retry
+                // Wait before retry to let UI recover
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep(3000);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException("Interrupted while waiting to retry", ie);
                 }
 
                 // Try to refocus the window before retry
+                log("Refocusing Checkmarx window before retry...");
                 focusCxWindow();
             }
         }
