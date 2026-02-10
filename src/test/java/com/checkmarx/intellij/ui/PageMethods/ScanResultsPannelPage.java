@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
+import static com.checkmarx.intellij.ui.BaseUITest.focusCxWindow;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.TestConstants.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
@@ -178,27 +179,67 @@ public class ScanResultsPannelPage {
 
     /**
      * Enters the scan ID in the scan field and selects it in the UI.
+     * Implements retry logic to handle transient network/timeout issues.
      *
      * @param validScanId If true, enters a valid scan ID; otherwise, enters an invalid scan ID.
      */
     public static void enterScanIdAndSelect(boolean validScanId) {
         String scanId = validScanId ? Environment.SCAN_ID : "invalid-scan-id";
+        int maxRetries = 3;
+        int retryCount = 0;
 
-        waitFor(() -> {
-            List<JTextFieldFixture> fields =
-                    findAll(JTextFieldFixture.class, SCAN_FIELD);
+        while (retryCount < maxRetries) {
+            try {
+                waitFor(() -> {
+                    List<JTextFieldFixture> fields =
+                            findAll(JTextFieldFixture.class, SCAN_FIELD);
 
-            if (fields.size() != 1) {
-                return false;
+                    if (fields.size() != 1) {
+                        log("Expected 1 scan field, found: " + fields.size());
+                        return false;
+                    }
+
+                    JTextFieldFixture field = fields.get(0);
+                    try {
+                        field.setText(scanId);
+                        String currentText = field.getText();
+                        boolean textMatches = scanId.equals(currentText);
+                        if (!textMatches) {
+                            log("Text mismatch - expected: '" + scanId + "', actual: '" + currentText + "'");
+                        }
+                        return textMatches;
+                    } catch (Exception e) {
+                        log("Error setting text in scan field: " + e.getMessage());
+                        return false;
+                    }
+                });
+
+                Keyboard keyboard = new Keyboard(remoteRobot);
+                keyboard.enter();
+                log("Successfully entered scan ID: " + scanId);
+                return; // Success - exit method
+
+            } catch (Exception e) {
+                retryCount++;
+                log("Attempt " + retryCount + " failed to enter scan ID. Error: " + e.getMessage());
+
+                if (retryCount >= maxRetries) {
+                    log("Max retries reached. Throwing exception.");
+                    throw e;
+                }
+
+                // Wait before retry
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted while waiting to retry", ie);
+                }
+
+                // Try to refocus the window before retry
+                focusCxWindow();
             }
-
-            JTextFieldFixture field = fields.get(0);
-            field.setText(scanId);
-            return scanId.equals(field.getText());
-        });
-
-        Keyboard keyboard = new Keyboard(remoteRobot);
-        keyboard.enter();
+        }
     }
 
     /**
