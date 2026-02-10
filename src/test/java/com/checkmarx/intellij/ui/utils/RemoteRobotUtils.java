@@ -4,15 +4,25 @@ import com.intellij.remoterobot.RemoteRobot;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.search.locators.Locators;
 import com.intellij.remoterobot.utils.UtilsKt;
+import okhttp3.OkHttpClient;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class RemoteRobotUtils {
 
-    public static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580");
+    // Create OkHttpClient with extended timeouts to prevent SocketTimeoutException in CI environments
+    private static final OkHttpClient customHttpClient = new OkHttpClient.Builder()
+            .connectTimeout(120, TimeUnit.SECONDS)    // 2 minutes for connection
+            .readTimeout(120, TimeUnit.SECONDS)       // 2 minutes for read operations
+            .writeTimeout(120, TimeUnit.SECONDS)      // 2 minutes for write operations
+            .callTimeout(180, TimeUnit.SECONDS)       // 3 minutes for entire call
+            .build();
+
+    public static final RemoteRobot remoteRobot = new RemoteRobot("http://127.0.0.1:8580", customHttpClient);
 
     public static boolean hasAnyComponent(@Language("XPath") String xpath) {
         System.out.println("Checking hasAnyComponent: " + xpath);
