@@ -1,5 +1,6 @@
-package com.checkmarx.intellij.ast.results;
+package com.checkmarx.intellij.ast.commands.helper;
 
+import com.checkmarx.intellij.ast.commands.Results;
 import lombok.Data;
 
 /**

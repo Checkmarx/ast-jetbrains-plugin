@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.ast.test.unit.project;
 
-import com.checkmarx.intellij.ast.results.Results;
+import com.checkmarx.intellij.ast.commands.Results;
 import com.checkmarx.intellij.ast.project.ProjectListener;
 import com.checkmarx.intellij.ast.project.ProjectResultsService;
 import com.intellij.openapi.project.Project;

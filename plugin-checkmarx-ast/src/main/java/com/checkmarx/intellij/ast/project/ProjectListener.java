@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.ast.project;
 
-import com.checkmarx.intellij.ast.results.Results;
+import com.checkmarx.intellij.ast.commands.Results;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManagerListener;
 import org.jetbrains.annotations.NotNull;

@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.ast.window;
 
-import com.checkmarx.intellij.ast.results.Results;
-import com.checkmarx.intellij.ast.results.ResultGetState;
+import com.checkmarx.intellij.ast.commands.Results;
+import com.checkmarx.intellij.ast.commands.helper.ResultGetState;
 import com.checkmarx.intellij.ast.project.ProjectResultsService;
 import com.checkmarx.intellij.ast.settings.GlobalSettingsComponent;
 import com.checkmarx.intellij.ast.window.actions.StartScanAction;
