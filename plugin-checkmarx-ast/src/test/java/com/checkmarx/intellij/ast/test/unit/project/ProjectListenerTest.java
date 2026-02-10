@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ast.test.unit.project;
 
-import com.checkmarx.intellij.commands.results.Results;
-import com.checkmarx.intellij.project.ProjectListener;
-import com.checkmarx.intellij.project.ProjectResultsService;
+import com.checkmarx.intellij.ast.results.Results;
+import com.checkmarx.intellij.ast.project.ProjectListener;
+import com.checkmarx.intellij.ast.project.ProjectResultsService;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

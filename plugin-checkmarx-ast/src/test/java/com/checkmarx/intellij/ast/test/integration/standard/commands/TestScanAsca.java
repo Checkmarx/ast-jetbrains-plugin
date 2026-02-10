@@ -13,6 +13,8 @@ import com.intellij.psi.PsiManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Paths;
+
 public class TestScanAsca extends BaseTest {
     AscaScannerService ascaScannerService = new AscaScannerService();
 
@@ -25,13 +27,16 @@ public class TestScanAsca extends BaseTest {
         });
     }
 
-    private PsiFile createPsiFileFromPath(String filePath) {
+    private PsiFile createPsiFileFromPath(String relativePath) {
+        // Convert relative path to absolute path
+        String absolutePath = Paths.get("").toAbsolutePath().resolve(relativePath).toString();
+
         // Retrieve the VirtualFile in a read action
         VirtualFile virtualFile = ApplicationManager.getApplication().runReadAction((Computable<VirtualFile>) () ->
-                LocalFileSystem.getInstance().findFileByPath(filePath)
+                LocalFileSystem.getInstance().findFileByPath(absolutePath)
         );
 
-        Assertions.assertNotNull(virtualFile, "The virtual file should not be null.");
+        Assertions.assertNotNull(virtualFile, "The virtual file should not be null. Path: " + absolutePath);
 
         // Use the test fixture's project instead of default project
         // This ensures the project has a proper base path set up
@@ -48,7 +53,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithVulnerabilities_Success() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/integration/standard/data/python-vul-file.py");
+        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/ast/test/integration/standard/data/python-vul-file.py");
 
         Assertions.assertDoesNotThrow(() -> {
             com.checkmarx.intellij.devassist.common.ScanResult<ScanResult> scanResult =
@@ -62,7 +67,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithNoVulnerabilities_Success() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/integration/standard/data/csharp-no-vul.cs");
+        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/ast/test/integration/standard/data/csharp-no-vul.cs");
 
         Assertions.assertDoesNotThrow(() -> {
             com.checkmarx.intellij.devassist.common.ScanResult<ScanResult> scanResult =
@@ -79,7 +84,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithoutExtension_Fail() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/integration/standard/data/file");
+        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/ast/test/integration/standard/data/file");
 
         // File without extension should either be filtered out (null result) or produce empty results
         com.checkmarx.intellij.devassist.common.ScanResult<ScanResult> scanResult =

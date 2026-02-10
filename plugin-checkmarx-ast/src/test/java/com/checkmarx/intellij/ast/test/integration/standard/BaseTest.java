@@ -27,7 +27,7 @@ public abstract class BaseTest extends BasePlatformTestCase {
 
         // Allow access to test data directory for file-based tests
         String projectRoot = Paths.get("").toAbsolutePath().toString();
-        String testDataPath = Paths.get(projectRoot, "src", "test", "java", "com", "checkmarx", "intellij", "integration", "standard", "data").toString();
+        String testDataPath = Paths.get(projectRoot, "plugin-checkmarx-ast", "src", "test", "java", "com", "checkmarx", "intellij", "ast", "test", "integration", "standard", "data").toString();
         VfsRootAccess.allowRootAccess(getTestRootDisposable(), testDataPath);
 
         // Mock IgnoreFileManager to return a valid temp path

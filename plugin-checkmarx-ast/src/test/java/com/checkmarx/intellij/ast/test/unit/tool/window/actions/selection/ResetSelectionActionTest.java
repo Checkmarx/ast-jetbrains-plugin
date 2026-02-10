@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.ast.test.unit.tool.window.actions.selection;
 
-import com.checkmarx.intellij.tool.window.CxToolWindowPanel;
-import com.checkmarx.intellij.tool.window.actions.selection.ResetSelectionAction;
+import com.checkmarx.intellij.ast.window.CxToolWindowPanel;
+import com.checkmarx.intellij.ast.window.actions.selection.ResetSelectionAction;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.Presentation;
@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)

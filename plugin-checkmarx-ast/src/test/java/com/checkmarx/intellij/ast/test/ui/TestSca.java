@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.ast.test.ui;
 
 import com.automation.remarks.junit5.Video;
-import com.checkmarx.intellij.tool.window.Severity;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import org.junit.jupiter.api.Assertions;
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
-import static com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode.UPGRADE_TO_VERSION_LABEL;
+import static com.checkmarx.intellij.ast.window.results.tree.nodes.ResultNode.UPGRADE_TO_VERSION_LABEL;
 
 public class TestSca extends BaseUITest {
     @Test
@@ -24,7 +24,7 @@ public class TestSca extends BaseUITest {
         waitForScanIdSelection();
 
         severity();
-        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, true));
+        Arrays.stream(SeverityFilter.values()).forEach(severity -> toggleFilter(severity, true));
 
         navigate("Scan", 2);
         navigate("sca", 3);

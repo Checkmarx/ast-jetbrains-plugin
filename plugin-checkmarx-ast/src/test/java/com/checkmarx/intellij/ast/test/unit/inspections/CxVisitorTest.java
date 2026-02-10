@@ -2,8 +2,8 @@ package com.checkmarx.intellij.ast.test.unit.inspections;
 
 import com.checkmarx.ast.results.result.Node;
 import com.checkmarx.ast.results.result.Result;
-import com.checkmarx.intellij.inspections.CxVisitor;
-import com.checkmarx.intellij.project.ProjectResultsService;
+import com.checkmarx.intellij.ast.inspections.CxVisitor;
+import com.checkmarx.intellij.ast.project.ProjectResultsService;
 import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.codeInspection.ProblemsHolder;
 import com.intellij.openapi.editor.Document;

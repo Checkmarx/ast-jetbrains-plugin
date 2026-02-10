@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.ast.test.unit.components;
 
-import com.checkmarx.intellij.components.PaneUtils;
+import com.checkmarx.intellij.common.components.PaneUtils;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.SideBorder;
 import org.junit.jupiter.api.Test;

@@ -1,12 +1,12 @@
 package com.checkmarx.intellij.ast.test.ui;
 
 import com.automation.remarks.junit5.Video;
-import com.checkmarx.intellij.Bundle;
-import com.checkmarx.intellij.Resource;
-import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.ast.test.integration.Environment;
-import com.checkmarx.intellij.tool.window.GroupBy;
-import com.checkmarx.intellij.tool.window.Severity;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupBy;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.intellij.remoterobot.fixtures.JButtonFixture;
 import com.intellij.remoterobot.fixtures.JListFixture;
 import com.intellij.remoterobot.fixtures.JTextFieldFixture;
@@ -45,11 +45,11 @@ public class TestGeneral extends BaseUITest {
         waitForScanIdSelection();
 
         // disable all severities and check for empty tree
-        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, false));
+        Arrays.stream(SeverityFilter.values()).forEach(severity -> toggleFilter(severity, false));
         navigate("Scan", 1);
 
         // enable all severities and check for at least 1 result
-        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, true));
+        Arrays.stream(SeverityFilter.values()).forEach(severity -> toggleFilter(severity, true));
         navigate("Scan", 2);
     }
 
@@ -113,7 +113,7 @@ public class TestGeneral extends BaseUITest {
         urgent();
 
         // enable all severities and check for at least 1 result
-        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, true));
+        Arrays.stream(SeverityFilter.values()).forEach(severity -> toggleFilter(severity, true));
 
         navigate("Scan", 2);
         navigate("sast", 4);
@@ -256,7 +256,7 @@ public class TestGeneral extends BaseUITest {
     }
 
     @Language("XPath")
-    public static String filterXPath(Severity filter) {
+    public static String filterXPath(SeverityFilter filter) {
         return String.format("//div[@myicon='%s.svg']", filter.tooltipSupplier().get().toLowerCase());
     }
 }

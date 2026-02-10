@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.ast.test.unit.tool.window.actions.group.by;
 
-import com.checkmarx.intellij.tool.window.actions.group.by.GroupByActionGroup;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupByActionGroup;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.Presentation;
 import org.junit.jupiter.api.BeforeEach;

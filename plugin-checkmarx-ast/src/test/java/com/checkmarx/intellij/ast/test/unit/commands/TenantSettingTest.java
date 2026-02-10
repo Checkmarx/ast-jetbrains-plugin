@@ -2,10 +2,10 @@ package com.checkmarx.intellij.ast.test.unit.commands;
 
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
-import com.checkmarx.intellij.commands.TenantSetting;
-import com.checkmarx.intellij.settings.global.CxWrapperFactory;
-import com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState;
-import com.checkmarx.intellij.settings.global.GlobalSettingsState;
+import com.checkmarx.intellij.common.commands.TenantSetting;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
+import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
