@@ -65,10 +65,10 @@ subprojects {
         testImplementation "org.mockito:mockito-core:${mockitoVersion}"
         testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
     }
-}
 
-jacoco {
-    toolVersion = "${jacocoVersion}"
+    jacoco {
+        toolVersion = "${jacocoVersion}"
+    }
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
@@ -80,61 +80,3 @@ intellij {
 runPluginVerifier {
     ideVersions = verifierIdeVersions.split(',').toList()
 }
-
-downloadRobotServerPlugin {
-    version = "${remoteRobotVersion}"
-}
-
-test {
-    useJUnitPlatform()
-    systemProperty 'uiWaitDuration', project.findProperty('uiWaitDuration') ?: 300
-    testLogging {
-        events "passed", "skipped", "failed", "standardOut", "standardError"
-        showExceptions true
-        showCauses true
-        showStackTraces true
-        showStandardStreams = true
-    }
-    jacoco {
-        includeNoLocationClasses = true
-        excludes = ["jdk.internal.*"]
-    }
-}
-
-runIdeForUiTests {
-    systemProperty 'jb.privacy.policy.text', '<!--999.999-->'
-    systemProperty 'jb.consents.confirmation.enabled', 'false'
-}
-
-def jacocoTask = project.hasProperty('jacocoTask') ? project.jacocoTask : "unit"
-
-jacocoTestReport {
-    dependsOn test
-    classDirectories.setFrom(instrumentCode)
-
-    if (jacocoTask == "integration") {
-        afterEvaluate {
-            classDirectories.setFrom(files(classDirectories.files.collect {
-                fileTree(dir: it, include: 'com/checkmarx/intellij/commands/**',
-                        exclude: 'com/checkmarx/intellij/commands/results/obj')
-            }))
-        }
-    }
-
-    reports {
-        csv.required = true
-        html.required = true
-    }
-}
-
-publishPlugin {
-    token.set System.getenv("PUBLISH_TOKEN")
-    if (project.hasProperty("rchannels")) {
-        channels = [rchannels.toString()]
-    }
-}
-
-patchPluginXml {
-    sinceBuild = "${sinceBuildVersion}"
-}
-

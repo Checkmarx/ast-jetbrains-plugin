@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.jetbrains.intellij'
     id 'io.freefair.lombok'
+    id 'jacoco'
 }
 
 group = 'com.checkmarx.intellij.ast'
@@ -17,21 +18,6 @@ intellij {
     updateSinceUntilBuild = false
 }
 
-patchPluginXml {
-    sinceBuild = "${sinceBuildVersion}"
-}
-
-publishPlugin {
-    token.set System.getenv("PUBLISH_TOKEN")
-    if (project.hasProperty("rchannels")) {
-        channels = [rchannels.toString()]
-    }
-}
-
-test {
-    useJUnitPlatform()
-}
-
 // Configure the plugin to generate a distributable zip file
 tasks.named('buildPlugin') {
     archiveBaseName.set('checkmarx-ast-plugin')
@@ -41,5 +27,66 @@ tasks.named('buildPlugin') {
 tasks.named('prepareSandbox') {
     doLast {
         println "Plugin prepared in: ${destinationDir}"
+    }
+}
+
+runPluginVerifier {
+    ideVersions = verifierIdeVersions.split(',').toList()
+}
+
+downloadRobotServerPlugin {
+    version = "${remoteRobotVersion}"
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty 'uiWaitDuration', project.findProperty('uiWaitDuration') ?: 300
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+        showStandardStreams = true
+    }
+    jacoco {
+        includeNoLocationClasses = true
+        excludes = ["jdk.internal.*"]
+    }
+}
+
+runIdeForUiTests {
+    systemProperty 'jb.privacy.policy.text', '<!--999.999-->'
+    systemProperty 'jb.consents.confirmation.enabled', 'false'
+}
+
+def jacocoTask = project.hasProperty('jacocoTask') ? project.jacocoTask : "unit"
+
+jacocoTestReport {
+    dependsOn test
+    classDirectories.setFrom(instrumentCode)
+
+    if (jacocoTask == "integration") {
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, include: 'com/checkmarx/intellij/ast/commands/**',
+                        exclude: 'com/checkmarx/intellij/ast/commands/helper')
+            }))
+        }
+    }
+
+    reports {
+        csv.required = true
+        html.required = true
+    }
+}
+
+patchPluginXml {
+    sinceBuild = "${sinceBuildVersion}"
+}
+
+publishPlugin {
+    token.set System.getenv("PUBLISH_TOKEN")
+    if (project.hasProperty("rchannels")) {
+        channels = [rchannels.toString()]
     }
 }
