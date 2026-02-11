@@ -52,6 +52,36 @@ test {
         includeNoLocationClasses = true
         excludes = ["jdk.internal.*"]
     }
+    // Ensure dependency tests run before this plugin's tests
+    dependsOn ':common-lib:test'
+    dependsOn ':devassist-lib:test'
+}
+
+// Ensure dependency tests run during build and check tasks
+check {
+    dependsOn ':common-lib:test'
+    dependsOn ':devassist-lib:test'
+}
+
+build {
+    dependsOn ':common-lib:test'
+    dependsOn ':devassist-lib:test'
+}
+
+// Custom task to build plugin without running any tests
+tasks.register('buildWithoutTests') {
+    description = 'Builds the plugin without running tests from this or dependency projects'
+    group = 'build'
+    dependsOn 'assemble'
+}
+
+// Custom task to build plugin with only library tests (no plugin tests)
+tasks.register('buildWithLibTests') {
+    description = 'Builds the plugin with library tests but without plugin tests'
+    group = 'build'
+    dependsOn ':common-lib:test'
+    dependsOn ':devassist-lib:test'
+    dependsOn 'assemble'
 }
 
 runIdeForUiTests {
