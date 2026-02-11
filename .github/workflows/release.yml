@@ -62,6 +62,8 @@ on:
 
 permissions:
   contents: write
+  packages: write
+  id-token: write
 
 env:
   CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
