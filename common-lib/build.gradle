@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.checkmarx.intellij.common'
-version = rootProject.version
+version = System.getenv('RELEASE_VERSION') ?: "dev"
 
 intellij {
     version = "${intellijVersion}"

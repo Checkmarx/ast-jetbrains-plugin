@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.checkmarx.intellij.ast'
-version = rootProject.version
+version = System.getenv('AST_RELEASE_VERSION') ?: System.getenv('RELEASE_VERSION') ?: "dev"
 
 dependencies {
     implementation project(':common-lib')

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.checkmarx.intellij.ignite'
-version = rootProject.version
+version = System.getenv('IGNITE_RELEASE_VERSION') ?: System.getenv('RELEASE_VERSION') ?: "dev"
 
 dependencies {
     implementation project(':common-lib')
@@ -23,7 +23,13 @@ patchPluginXml {
 
 publishPlugin {
     token.set System.getenv("PUBLISH_TOKEN")
-    channels = ['stable']
+    if (project.hasProperty("rchannels")) {
+        channels = [rchannels.toString()]
+    }
+}
+
+runPluginVerifier {
+    ideVersions = verifierIdeVersions.split(',').toList()
 }
 
 test {

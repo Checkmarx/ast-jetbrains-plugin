@@ -3,9 +3,22 @@ name: Release
 on:
   workflow_call:
     inputs:
+      plugin:
+        description: 'Which plugin(s) to release'
+        required: false
+        type: string
+        default: 'both'
       tag:
-        description: 'Next release tag'
-        required: true
+        description: '[Deprecated] Legacy single version input; used when ast_version/ignite_version are missing'
+        required: false
+        type: string
+      ast_version:
+        description: 'Version for plugin-checkmarx-ast (required if releasing ast or both)'
+        required: false
+        type: string
+      ignite_version:
+        description: 'Version for plugin-ignite (required if releasing ignite or both)'
+        required: false
         type: string
       javawrapperversion:
         description: 'Java Wrapper Version'
@@ -17,9 +30,26 @@ on:
         type: string
   workflow_dispatch:
     inputs:
+      plugin:
+        description: 'Which plugin(s) to release'
+        required: false
+        type: choice
+        options:
+          - both
+          - checkmarx-ast
+          - ignite
+        default: 'both'
       tag:
-        description: 'Next release tag'
-        required: true
+        description: '[Deprecated] Legacy single version input; used when ast_version/ignite_version are missing'
+        required: false
+        type: string
+      ast_version:
+        description: 'Version for plugin-checkmarx-ast (required if releasing ast or both)'
+        required: false
+        type: string
+      ignite_version:
+        description: 'Version for plugin-ignite (required if releasing ignite or both)'
+        required: false
         type: string
       javawrapperversion:
         description: 'Java Wrapper Version'
@@ -29,6 +59,9 @@ on:
         description: 'Channels to publish development releases'
         required: false
         type: string
+
+permissions:
+  contents: write
 
 env:
   CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
@@ -45,7 +78,62 @@ env:
 
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      plugin: ${{ steps.resolve.outputs.plugin }}
+      ast_version: ${{ steps.resolve.outputs.ast_version }}
+      ignite_version: ${{ steps.resolve.outputs.ignite_version }}
+    steps:
+      - name: Resolve and validate inputs
+        id: resolve
+        run: |
+          PLUGIN="${{ inputs.plugin }}"
+          AST_VERSION="${{ inputs.ast_version }}"
+          IGNITE_VERSION="${{ inputs.ignite_version }}"
+          LEGACY_TAG="${{ inputs.tag }}"
+
+          if [[ -z "${PLUGIN}" ]]; then
+            PLUGIN="both"
+          fi
+
+          case "${PLUGIN}" in
+            both|checkmarx-ast|ignite) ;;
+            *)
+              echo "::error::Invalid plugin value '${PLUGIN}'. Supported values: both, checkmarx-ast, ignite."
+              exit 1
+              ;;
+          esac
+
+          if [[ -n "${LEGACY_TAG}" ]]; then
+            echo "::warning::Input 'tag' is deprecated. Prefer ast_version/ignite_version."
+            if [[ -z "${AST_VERSION}" ]]; then
+              AST_VERSION="${LEGACY_TAG}"
+            fi
+            if [[ -z "${IGNITE_VERSION}" ]]; then
+              IGNITE_VERSION="${LEGACY_TAG}"
+            fi
+          fi
+
+          if [[ "${PLUGIN}" == "both" || "${PLUGIN}" == "checkmarx-ast" ]]; then
+            if [[ -z "${AST_VERSION}" ]]; then
+              echo "::error::ast_version is required when releasing checkmarx-ast."
+              exit 1
+            fi
+          fi
+          if [[ "${PLUGIN}" == "both" || "${PLUGIN}" == "ignite" ]]; then
+            if [[ -z "${IGNITE_VERSION}" ]]; then
+              echo "::error::ignite_version is required when releasing ignite."
+              exit 1
+            fi
+          fi
+
+          echo "plugin=${PLUGIN}" >> "$GITHUB_OUTPUT"
+          echo "ast_version=${AST_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "ignite_version=${IGNITE_VERSION}" >> "$GITHUB_OUTPUT"
+
   verify:
+    needs: [ validate ]
     runs-on: ubuntu-latest
     steps:
       # Check out current repository
@@ -56,18 +144,24 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf /usr/local/lib/android
-          sudo docker system prune -af 
+          sudo docker system prune -af
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@v3.13.0
         with:
           distribution: zulu
           java-version: 11
-      # Run verifier
+      # Run verifier for selected plugin(s)
       - name: Run plugin verifier
-        run: ./gradlew runPluginVerifier
+        run: |
+          if [[ "${{ needs.validate.outputs.plugin }}" == "both" || "${{ needs.validate.outputs.plugin }}" == "checkmarx-ast" ]]; then
+            AST_RELEASE_VERSION="${{ needs.validate.outputs.ast_version }}" RELEASE_VERSION="${{ needs.validate.outputs.ast_version }}" ./gradlew :plugin-checkmarx-ast:runPluginVerifier
+          fi
+          if [[ "${{ needs.validate.outputs.plugin }}" == "both" || "${{ needs.validate.outputs.plugin }}" == "ignite" ]]; then
+            IGNITE_RELEASE_VERSION="${{ needs.validate.outputs.ignite_version }}" RELEASE_VERSION="${{ needs.validate.outputs.ignite_version }}" ./gradlew :plugin-ignite:runPluginVerifier
+          fi
         env:
-          JAVA_TOOL_OPTIONS: > 
+          JAVA_TOOL_OPTIONS: >
            -DpasswordSafe.enabled=false
       # Upload verifier report
       - name: Upload report
@@ -75,7 +169,10 @@ jobs:
         if: always()
         with:
           name: verifier-report
-          path: build/reports/pluginVerifier
+          path: |
+            plugin-checkmarx-ast/build/reports/pluginVerifier
+            plugin-ignite/build/reports/pluginVerifier
+
   testIntegration:
     needs: [ verify ]
     runs-on: ubuntu-latest
@@ -103,13 +200,18 @@ jobs:
           name: test-fails-report-integration
           path: |
             build/reports
+
   deleteDevReleases:
+    needs: [ validate, verify, testIntegration ]
     uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/delete-dev-releases.yml@main
     with:
       tag: ${{ inputs.rchannels }}
     secrets: inherit
-    if: inputs.rchannels
+    if: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
+
   release:
+    needs: [ validate, verify, testIntegration, deleteDevReleases ]
+    if: ${{ always() && needs.validate.result == 'success' && needs.verify.result == 'success' && needs.testIntegration.result == 'success' && (needs.deleteDevReleases.result == 'success' || needs.deleteDevReleases.result == 'skipped') }}
     runs-on: ubuntu-latest
     outputs:
       TAG_NAME: ${{ steps.set_outputs.outputs.TAG_NAME }}
@@ -124,31 +226,139 @@ jobs:
         with:
           distribution: zulu
           java-version: 11
-      # Set the tag in an env var
-      - name: Set env
-        run: |
-          echo "RELEASE_VERSION=${{ inputs.tag }}" >> $GITHUB_ENV
-          echo "JAVA_WRAPPER_VERSION=${{ inputs.javawrapperversion }}" >> $GITHUB_ENV
-      - name: Create Release Name
-        run: |
-          echo "Creating release name"
-          if [ -z "${{ inputs.rchannels }}" ]; then
-            echo "GH_RELEASE_TAG_NAME=${{ env.RELEASE_VERSION }}" >> $GITHUB_ENV
-          else
-           echo "GH_RELEASE_TAG_NAME=${{ env.RELEASE_VERSION }}-${{ inputs.rchannels }}" >> $GITHUB_ENV
-          fi
-          echo "Release name - ${{ env.GH_RELEASE_TAG_NAME }}"
 
-      # Build plugin
+      # Set version environment variables
+      - name: Set versions
+        run: |
+          echo "AST_RELEASE_VERSION=${{ needs.validate.outputs.ast_version }}" >> $GITHUB_ENV
+          echo "IGNITE_RELEASE_VERSION=${{ needs.validate.outputs.ignite_version }}" >> $GITHUB_ENV
+          echo "JAVA_WRAPPER_VERSION=${{ inputs.javawrapperversion }}" >> $GITHUB_ENV
+
+      # Create release tag name
+      - name: Create release tag
+        run: |
+          if [[ "${{ needs.validate.outputs.plugin }}" == "both" ]]; then
+            TAG="ast-v${{ needs.validate.outputs.ast_version }}+ignite-v${{ needs.validate.outputs.ignite_version }}"
+          elif [[ "${{ needs.validate.outputs.plugin }}" == "checkmarx-ast" ]]; then
+            TAG="ast-v${{ needs.validate.outputs.ast_version }}"
+          elif [[ "${{ needs.validate.outputs.plugin }}" == "ignite" ]]; then
+            TAG="ignite-v${{ needs.validate.outputs.ignite_version }}"
+          fi
+
+          # Apply channel suffix for pre-releases
+          if [[ -n "${{ inputs.rchannels }}" ]]; then
+            TAG="${TAG}-${{ inputs.rchannels }}"
+          fi
+
+          echo "GH_RELEASE_TAG_NAME=${TAG}" >> $GITHUB_ENV
+
+      # Create individual git tags for discoverability when releasing both
+      - name: Create individual tags
+        if: ${{ needs.validate.outputs.plugin == 'both' && (inputs.rchannels == '' || inputs.rchannels == null) }}
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+
+          AST_TAG="ast-v${{ needs.validate.outputs.ast_version }}"
+          IGNITE_TAG="ignite-v${{ needs.validate.outputs.ignite_version }}"
+
+          if git rev-parse "${AST_TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag ${AST_TAG} already exists."
+            exit 1
+          fi
+          if git rev-parse "${IGNITE_TAG}" >/dev/null 2>&1; then
+            echo "::error::Tag ${IGNITE_TAG} already exists."
+            exit 1
+          fi
+
+          git tag "${AST_TAG}"
+          git tag "${IGNITE_TAG}"
+          git push origin "${AST_TAG}"
+          git push origin "${IGNITE_TAG}"
+
+      # Build selected plugin(s)
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew buildPlugin --info
+        run: |
+          if [[ "${{ needs.validate.outputs.plugin }}" == "both" ]]; then
+            AST_RELEASE_VERSION="${{ needs.validate.outputs.ast_version }}" RELEASE_VERSION="${{ needs.validate.outputs.ast_version }}" ./gradlew :plugin-checkmarx-ast:buildPlugin --info
+            IGNITE_RELEASE_VERSION="${{ needs.validate.outputs.ignite_version }}" RELEASE_VERSION="${{ needs.validate.outputs.ignite_version }}" ./gradlew :plugin-ignite:buildPlugin --info
+          elif [[ "${{ needs.validate.outputs.plugin }}" == "checkmarx-ast" ]]; then
+            AST_RELEASE_VERSION="${{ needs.validate.outputs.ast_version }}" RELEASE_VERSION="${{ needs.validate.outputs.ast_version }}" ./gradlew :plugin-checkmarx-ast:buildPlugin --info
+          elif [[ "${{ needs.validate.outputs.plugin }}" == "ignite" ]]; then
+            IGNITE_RELEASE_VERSION="${{ needs.validate.outputs.ignite_version }}" RELEASE_VERSION="${{ needs.validate.outputs.ignite_version }}" ./gradlew :plugin-ignite:buildPlugin --info
+          fi
 
       - name: Extract CLI version
         run: |
           chmod +x ./.github/scripts/extract_cli_version.sh
           ./.github/scripts/extract_cli_version.sh cx-linux
+
+      # Collect release assets (newly built + carry forward from previous release)
+      - name: Collect assets
+        run: |
+          mkdir -p release-assets
+
+          # Copy newly built plugin(s)
+          if [[ "${{ needs.validate.outputs.plugin }}" == "both" || "${{ needs.validate.outputs.plugin }}" == "checkmarx-ast" ]]; then
+            cp plugin-checkmarx-ast/build/distributions/*.zip release-assets/
+          fi
+          if [[ "${{ needs.validate.outputs.plugin }}" == "both" || "${{ needs.validate.outputs.plugin }}" == "ignite" ]]; then
+            cp plugin-ignite/build/distributions/*.zip release-assets/
+          fi
+
+          CHANNEL="${{ inputs.rchannels }}"
+
+          # Download the OTHER plugin's ZIP from the most recent compatible release.
+          if [[ "${{ needs.validate.outputs.plugin }}" == "checkmarx-ast" || "${{ needs.validate.outputs.plugin }}" == "ignite" ]]; then
+            if [[ "${{ needs.validate.outputs.plugin }}" == "checkmarx-ast" ]]; then
+              ASSET_GLOB="checkmarx-ignite-plugin-*.zip"
+              ASSET_REGEX="^checkmarx-ignite-plugin-.*\\.zip$"
+              CARRY_PLUGIN="ignite"
+            else
+              ASSET_GLOB="checkmarx-ast-plugin-*.zip"
+              ASSET_REGEX="^checkmarx-ast-plugin-.*\\.zip$"
+              CARRY_PLUGIN="checkmarx-ast"
+            fi
+
+            RELEASES_JSON="$(mktemp)"
+            gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" > "${RELEASES_JSON}"
+
+            if [[ -n "${CHANNEL}" ]]; then
+              SOURCE_TAG="$(jq -r --arg channel "${CHANNEL}" --arg regex "${ASSET_REGEX}" '
+                map(
+                  select(.draft == false)
+                  | select(.tag_name | endswith("-" + $channel))
+                  | select(any(.assets[]?; (.name | test($regex))))
+                )
+                | .[0].tag_name // empty
+              ' "${RELEASES_JSON}")"
+            else
+              SOURCE_TAG="$(jq -r --arg regex "${ASSET_REGEX}" '
+                map(
+                  select(.draft == false and .prerelease == false)
+                  | select(any(.assets[]?; (.name | test($regex))))
+                )
+                | .[0].tag_name // empty
+              ' "${RELEASES_JSON}")"
+            fi
+
+            if [[ -z "${SOURCE_TAG}" ]]; then
+              echo "::error::Unable to find a compatible previous release asset for ${CARRY_PLUGIN} (${ASSET_GLOB})"
+              exit 1
+            fi
+
+            echo "Carrying ${CARRY_PLUGIN} asset from release tag: ${SOURCE_TAG}"
+            gh release download "${SOURCE_TAG}" --pattern "${ASSET_GLOB}" --dir release-assets --repo "${GITHUB_REPOSITORY}"
+
+            if ! ls release-assets/${ASSET_GLOB} >/dev/null 2>&1; then
+              echo "::error::Expected carried asset ${ASSET_GLOB} was not downloaded."
+              exit 1
+            fi
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Create the release or prerelease
       - name: Create Release or Prerelease
@@ -156,25 +366,37 @@ jobs:
         with:
           tag_name: ${{ env.GH_RELEASE_TAG_NAME }}
           name: ${{ env.GH_RELEASE_TAG_NAME }}
-          files: build/distributions/*
+          files: release-assets/*
           generate_release_notes: true
           prerelease: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
+          body: |
+            ## Plugins in this release
+            ${{ (needs.validate.outputs.plugin == 'both' || needs.validate.outputs.plugin == 'checkmarx-ast') && format('- **Checkmarx (AST)**: v{0} (NEW)', needs.validate.outputs.ast_version) || format('- **Checkmarx (AST)**: carried from previous release') }}
+            ${{ (needs.validate.outputs.plugin == 'both' || needs.validate.outputs.plugin == 'ignite') && format('- **Checkmarx Developer Assist (Ignite)**: v{0} (NEW)', needs.validate.outputs.ignite_version) || format('- **Checkmarx Developer Assist (Ignite)**: carried from previous release') }}
 
       - name: Echo CLI version and tag name to outputs
         id: set_outputs
         run: |
-          echo "::set-output name=TAG_NAME::${{ env.GH_RELEASE_TAG_NAME }}"
-          echo "::set-output name=CLI_VERSION::${{ env.CLI_VERSION }}"
+          echo "TAG_NAME=${{ env.GH_RELEASE_TAG_NAME }}" >> "$GITHUB_OUTPUT"
+          echo "CLI_VERSION=${{ env.CLI_VERSION }}" >> "$GITHUB_OUTPUT"
 
-      # Publish the plugin in marketplace
+      # Publish selected plugin(s) to JetBrains Marketplace
       - name: Publish Plugin
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         run: |
-          if [ -z "${{ inputs.rchannels }}" ]; then
-            ./gradlew publishPlugin
-          else
-            ./gradlew publishPlugin -Prchannels=${{ inputs.rchannels }}
+          CHANNEL_ARG=""
+          if [[ -n "${{ inputs.rchannels }}" ]]; then
+            CHANNEL_ARG="-Prchannels=${{ inputs.rchannels }}"
+          fi
+
+          if [[ "${{ needs.validate.outputs.plugin }}" == "both" ]]; then
+            AST_RELEASE_VERSION="${{ needs.validate.outputs.ast_version }}" RELEASE_VERSION="${{ needs.validate.outputs.ast_version }}" ./gradlew :plugin-checkmarx-ast:publishPlugin $CHANNEL_ARG
+            IGNITE_RELEASE_VERSION="${{ needs.validate.outputs.ignite_version }}" RELEASE_VERSION="${{ needs.validate.outputs.ignite_version }}" ./gradlew :plugin-ignite:publishPlugin $CHANNEL_ARG
+          elif [[ "${{ needs.validate.outputs.plugin }}" == "checkmarx-ast" ]]; then
+            AST_RELEASE_VERSION="${{ needs.validate.outputs.ast_version }}" RELEASE_VERSION="${{ needs.validate.outputs.ast_version }}" ./gradlew :plugin-checkmarx-ast:publishPlugin $CHANNEL_ARG
+          elif [[ "${{ needs.validate.outputs.plugin }}" == "ignite" ]]; then
+            IGNITE_RELEASE_VERSION="${{ needs.validate.outputs.ignite_version }}" RELEASE_VERSION="${{ needs.validate.outputs.ignite_version }}" ./gradlew :plugin-ignite:publishPlugin $CHANNEL_ARG
           fi
 
   notify:

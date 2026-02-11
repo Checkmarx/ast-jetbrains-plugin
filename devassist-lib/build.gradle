@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.checkmarx.intellij.devassist'
-version = rootProject.version
+version = System.getenv('RELEASE_VERSION') ?: "dev"
 
 dependencies {
     api project(':common-lib')

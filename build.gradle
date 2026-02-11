@@ -10,7 +10,7 @@ def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION') ?: defaultJavaWra
 // Common configuration for all projects
 allprojects {
     group "${projectGroup}"
-    version System.getenv('RELEASE_VERSION') ?: "dev"
+    // Version is set independently per subproject
 
     repositories {
         mavenCentral()
