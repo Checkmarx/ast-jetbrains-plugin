@@ -70,12 +70,12 @@
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
 
         <!-- DevAssist Inspection (from devassist-lib) -->
-        <localInspection language="" 
-                         displayName="CxOneAssist"
-                         groupName="Checkmarx"
-                         enabledByDefault="true"
-                         level="WARNING"
-                         implementationClass="com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection"/>
+        <localInspection
+                displayName="CxDevAssist"
+                groupName="CxDevAssist"
+                groupPath="Checkmarx Developer Assist"
+                enabledByDefault="true"
+                implementationClass="com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection"/>
 
         <!-- DevAssist Remediation Link Handler (from devassist-lib) -->
         <codeInsight.linkHandler prefix="#cxonedevassist/"
