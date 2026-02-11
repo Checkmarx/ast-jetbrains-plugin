@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.utils;
 
+import com.checkmarx.intellij.common.context.PluginContext;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.SeverityLevel;
@@ -478,5 +479,39 @@ public class DevAssistUtils {
             return PsiManager.getInstance(project).findFile(virtualFile);
         }
         return null;
+    }
+
+    /**
+     * Get a Quick fix name based on the plugin context.
+     *
+     * @return Quick fix name
+     */
+    public static String getAssistQuickFixName() {
+        try {
+            return PluginContext.getInstance().isIgnitePlugin()
+                    ? DevAssistConstants.IGNITE_FIX_WITH_DEV_ASSIST
+                    : DevAssistConstants.FIX_WITH_CXONE_ASSIST;
+        } catch (Exception e) {
+            LOGGER.warn("Failed to get quick fix name, exception: {}", e);
+            return DevAssistConstants.FIX_WITH_CXONE_ASSIST;
+        }
+    }
+
+    /**
+     * Get a Quick fix name based on the plugin context.
+     *
+     * @return Quick fix name
+     */
+    public static String getAgentName() {
+        try {
+            PluginContext pluginContext = PluginContext.getInstance();
+            return pluginContext != null && pluginContext.isIgnitePlugin()
+                    && pluginContext.getPluginDisplayName() != null && !pluginContext.getPluginDisplayName().isEmpty()
+                    ? pluginContext.getPluginDisplayName()
+                    : DevAssistConstants.CX_AGENT_NAME;
+        } catch (Exception e) {
+            LOGGER.warn("Failed to get agent name, exception: {}", e);
+            return DevAssistConstants.CX_AGENT_NAME;
+        }
     }
 }

@@ -59,6 +59,12 @@ public final class ProblemBuilder {
         );
     }
 
+    /**
+     * Get all required local fixes
+     *
+     * @param scanIssue - scan issue
+     * @return Array of LocalQuickFix
+     */
     private static LocalQuickFix[] getFixes(ScanIssue scanIssue) {
         List<LocalQuickFix> localQuickFixes = new ArrayList<>();
         localQuickFixes.add(new CxOneAssistFix(scanIssue));

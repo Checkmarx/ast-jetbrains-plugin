@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.ui;
 
+import com.checkmarx.intellij.common.context.PluginContext;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.SeverityLevel;
 import com.checkmarx.intellij.common.utils.Utils;
@@ -61,6 +62,12 @@ public final class ProblemDescription {
         DESCRIPTION_ICON.put(PACKAGE, getImage(Constants.ImagePaths.PACKAGE_PNG));
         DESCRIPTION_ICON.put(DEV_ASSIST, getImage(Constants.ImagePaths.DEV_ASSIST_PNG));
         DESCRIPTION_ICON.put(CONTAINER, getImage(Constants.ImagePaths.CONTAINER_PNG));
+
+        //Ignite Icons
+        if (PluginContext.getInstance().isIgnitePlugin()){
+            LOGGER.debug("Loaded popup icons for ignite plugin..");
+            DESCRIPTION_ICON.put(DEV_ASSIST, getImage(Constants.ImagePaths.IGNITE_DEV_ASSIST_PNG));
+        }
     }
 
     /**
@@ -436,7 +443,7 @@ public final class ProblemDescription {
                 .append("<td style='padding:0 10px 0 0;margin:0;'>")
                 .append("<a href=\"#cxonedevassist/copyfixprompt").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")
                 .append("style='text-decoration: none; color: #4470EC; font-family: inter; white-space: nowrap; margin:0; padding:0;'>")
-                .append(DevAssistConstants.FIX_WITH_CXONE_ASSIST)
+                .append(DevAssistUtils.getAssistQuickFixName())
                 .append("</a></td>")
                 .append("<td style='padding:0 10px 0 0;margin:0;'>")
                 .append("<a href=\"#cxonedevassist/viewdetails").append(SEPERATOR).append(scanIssueId).append(SEPERATOR).append(engineName).append("\" ")

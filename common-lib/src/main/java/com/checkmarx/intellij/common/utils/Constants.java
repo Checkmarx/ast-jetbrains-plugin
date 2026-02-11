@@ -135,6 +135,9 @@ public final class Constants {
         public static final String HIGH_16_PNG = "/icons/devassist/tooltip/severity_count/high";
         public static final String MEDIUM_16_PNG = "/icons/devassist/tooltip/severity_count/medium";
         public static final String LOW_16_PNG = "/icons/devassist/tooltip/severity_count/low";
+
+        //IGNITE ICONS
+        public static final String IGNITE_DEV_ASSIST_PNG = "/icons/devassist/tooltip/ignite_devassist";
     }
 
 }

@@ -74,6 +74,7 @@ public final class DevAssistConstants {
 
     //Dev Assist Fixes Constants
     public static final String FIX_WITH_CXONE_ASSIST = "Fix with Checkmarx One Assist";
+    public static final String IGNITE_FIX_WITH_DEV_ASSIST = "Fix with Checkmarx Developer Assist";
     public static final String VIEW_DETAILS_FIX_NAME = "View details";
     public static final String IGNORE_THIS_VULNERABILITY_FIX_NAME = "Ignore this vulnerability";
     public static final String IGNORE_ALL_OF_THIS_TYPE_FIX_NAME = "Ignore all of this type";
@@ -127,7 +128,6 @@ public final class DevAssistConstants {
     public static final String DOCKERFILE = "dockerfile";
     public static final String DOCKER_COMPOSE = "docker-compose";
     public static final String HELM = "helm";
-    public static final String UNKNOWN = "unknown";
 
     //Container Image description constants
     public static final String MALICIOUS_RISK_CONTAINER = "Malicious-risk container image";
@@ -137,9 +137,7 @@ public final class DevAssistConstants {
     public static final String LOW_RISK_CONTAINER = "Low-risk container image";
 
     //Tooltip description constants
-    public static final String RISK_PACKAGE = "risk package";
     public static final String SEVERITY_PACKAGE = "Severity Package";
-    public static final String PACKAGE_DETECTED = "package detected";
     public static final String THEME = "THEME";
     // Dev Assist Remediation
     public static final String CX_AGENT_NAME = "Checkmarx One Assist";

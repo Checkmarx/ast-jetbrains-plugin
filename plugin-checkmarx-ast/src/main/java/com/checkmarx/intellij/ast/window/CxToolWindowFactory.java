@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.ast.window;
 
+import com.checkmarx.intellij.common.context.PluginContext;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.devassist.ui.findings.window.CxFindingsWindow;
 import com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings;
@@ -13,6 +14,8 @@ import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentManager;
 import org.jetbrains.annotations.NotNull;
+
+import static java.lang.String.format;
 
 /**
  * Factory class to build {@link CxToolWindowPanel} panels.
@@ -48,6 +51,12 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
     @Override
     public void createToolWindowContent(@NotNull Project project,
                                         @NotNull ToolWindow toolWindow) {
+        // Register plugin context (only once)
+        if (PluginContext.getInstance().isPlugin(PluginContext.PLUGIN_CHECKMARX_AST)) {
+            PluginContext.getInstance().setPluginName(PluginContext.PLUGIN_CHECKMARX_AST);
+            PluginContext.getInstance().setPluginDisplayName(Constants.TOOL_WINDOW_ID);
+            LOG.info(format("Registered plugin context: %s", PluginContext.PLUGIN_CHECKMARX_AST));
+        }
 
         ContentManager contentManager = toolWindow.getContentManager();
 
