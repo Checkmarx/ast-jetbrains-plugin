@@ -1,0 +1,116 @@
+<idea-plugin>
+    <id>com.checkmarx.devassist-jetbrains-plugin</id>
+    <name>Checkmarx Developer Assist</name>
+    <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
+
+    <description><![CDATA[
+    Checkmarx Developer Assist an advanced security agent that delivers real-time context-aware prevention, remediation, and guidance to developers from the IDE.
+    It provides real-time security scanning and get instant feedback on security vulnerabilities, secrets, IaC misconfigurations, and more as you code.<br>
+
+    <b>Checkmarx Developer Assist – Features.</b>
+        <ul>
+            <li><b>OSS, Secrets, Container, IAC and ASCA</b> Realtime Scanners.</li>
+            <li>MCP-based agentic AI remediation.</li>
+            <li>AI-powered explanation of risk details.</li>
+            <li>Rich UI for vulnerabilities highlighting in the editor.</li>
+            <li>Centralize finding window to display all vulnerabilities in the project.</li>
+            <li>Ignore Vulnerabilities.</li>
+            <li>Revive Ignored Vulnerabilities.</li>
+        </ul>
+    ]]></description>
+
+    <change-notes><![CDATA[
+      <b>Checkmarx One Assist – AI guided remediation.</b>
+        <ul>
+            <li>An advanced security agent that delivers real-time context-aware prevention, remediation, and guidance to developers from the IDE.</li>
+            <li><b>OSS</b> Realtime scanner identifies risks in open source packages used in your project.</li>
+            <li><b>Secrets</b> Realtime scanner identifies risks in detected secrets used in your project.</li>
+            <li><b>Container</b> Realtime scanner identifies risks in container images used in your project.</li>
+            <li><b>IAC</b> Realtime scanner identifies infrastructure configuration risks in your project.</li>
+            <li><b>ASCA</b> Realtime scanner identifies insecure patterns in your project source code.</li>
+            <li>MCP-based agentic AI remediation.</li>
+            <li>AI-powered explanation of risk details.</li>
+        </ul>
+    ]]></change-notes>
+
+    <!-- Dependencies -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <!-- Extensions -->
+    <extensions defaultExtensionNs="com.intellij">
+
+        <!-- Tool Window (DevAssist Only) -->
+        <toolWindow id="Checkmarx Developer Assist"
+                    anchor="bottom"
+                    icon="com.checkmarx.intellij.common.resources.CxIcons.CHECKMARX_13"
+                    factoryClass="com.checkmarx.intellij.ignite.window.IgniteToolWindowFactory"/>
+
+        <!-- Register Checkmarx Developer Assist settings main page under IDE Settings -> tools -->
+        <applicationConfigurable instance="com.checkmarx.intellij.ignite.settings.IgniteSettingsConfigurable"
+                                 parentId="tools"
+                                 bundle="messages.CxBundle" key="IGNITE_PLUGIN_SETTINGS_TITLE"/>
+
+        <!-- Register DevAssist Settings as a child page under Checkmarx Developer Assist -->
+        <applicationConfigurable
+                id="settings.ignite.realtime"
+                provider="com.checkmarx.intellij.ignite.settings.RealtimeScannersSettingsConfigurableProvider"
+                parentId="settings.ignite"
+                bundle="messages.CxBundle"
+                key="IGNITE_PLUGIN_SETTINGS_CHILD_TITLE"/>
+
+        <!-- Main Settings states persistence classes (from common-lib) -->
+        <applicationService serviceImplementation="com.checkmarx.intellij.common.settings.GlobalSettingsState"/>
+        <applicationService serviceImplementation="com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState"/>
+
+        <!-- Startup Activities -->
+        <!-- Sync license flags from server on IDE startup to ensure UI shows correct panels -->
+        <postStartupActivity implementation="com.checkmarx.intellij.common.startup.LicenseFlagSyncStartupActivity"/>
+        <!-- Auto-install MCP at IDE startup if already authenticated -->
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService"/>
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
+
+        <!-- DevAssist Inspection (from devassist-lib) -->
+        <localInspection language="" 
+                         displayName="CxOneAssist"
+                         groupName="Checkmarx"
+                         enabledByDefault="true"
+                         level="WARNING"
+                         implementationClass="com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection"/>
+
+        <!-- DevAssist Remediation Link Handler (from devassist-lib) -->
+        <codeInsight.linkHandler prefix="#cxonedevassist/"
+                                 handlerClass="com.checkmarx.intellij.devassist.remediation.RemediationLinkHandler"/>
+
+        <!-- Notifications -->
+        <notificationGroup id="Checkmarx.Notifications" displayType="BALLOON"/>
+    </extensions>
+
+    <!-- Application Listeners (from devassist-lib) -->
+    <applicationListeners>
+        <!-- Register scanners from devassist -->
+        <listener class="com.checkmarx.intellij.devassist.listeners.DevAssistProjectListener"
+                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+        <listener class="com.checkmarx.intellij.devassist.configuration.mcp.McpUninstallHandler"
+                  topic="com.intellij.ide.plugins.DynamicPluginListener"/>
+    </applicationListeners>
+
+    <!-- Finding Window Toolbar Actions -->
+    <actions>
+        <group id="VulnerabilityToolbarGroup">
+            <action id="Ignite.OpenSettings" class="com.checkmarx.intellij.ignite.window.actions.OpenIgniteSettingsAction"
+                    icon="AllIcons.General.Settings"/>
+            <separator/>
+            <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
+            <action id="VulnerabilityCritical" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityCriticalFilter" />
+            <action id="VulnerabilityHigh" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityHighFilter" />
+            <action id="VulnerabilityMedium" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
+            <action id="VulnerabilityLow" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
+            <separator/>
+            <action id="Ignite.ExpandAll" class="com.checkmarx.intellij.common.window.actions.ExpandAllAction"
+                    icon="AllIcons.Actions.Expandall"/>
+            <action id="Ignite.CollapseAll" class="com.checkmarx.intellij.common.window.actions.CollapseAllAction"
+                    icon="AllIcons.Actions.Collapseall"/>
+        </group>
+    </actions>
+</idea-plugin>
+

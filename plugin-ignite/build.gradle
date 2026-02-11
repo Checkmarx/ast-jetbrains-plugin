@@ -1,0 +1,49 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij'
+    id 'io.freefair.lombok'
+}
+
+group = 'com.checkmarx.intellij.ignite'
+version = System.getenv('IGNITE_RELEASE_VERSION') ?: System.getenv('RELEASE_VERSION') ?: "dev"
+
+dependencies {
+    implementation project(':common-lib')
+    implementation project(':devassist-lib')
+}
+
+intellij {
+    version = "${intellijVersion}"
+    updateSinceUntilBuild = false
+}
+
+patchPluginXml {
+    sinceBuild = "${sinceBuildVersion}"
+}
+
+publishPlugin {
+    token.set System.getenv("PUBLISH_TOKEN")
+    if (project.hasProperty("rchannels")) {
+        channels = [rchannels.toString()]
+    }
+}
+
+runPluginVerifier {
+    ideVersions = verifierIdeVersions.split(',').toList()
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Configure the plugin to generate a distributable zip file
+tasks.named('buildPlugin') {
+    archiveBaseName.set('checkmarx-ignite-plugin')
+}
+
+// Ensure the plugin zip is created in the build/distributions directory
+tasks.named('prepareSandbox') {
+    doLast {
+        println "Plugin prepared in: ${destinationDir}"
+    }
+}

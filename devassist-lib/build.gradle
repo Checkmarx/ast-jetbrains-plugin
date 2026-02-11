@@ -1,0 +1,21 @@
+plugins {
+    id 'java-library'
+    id 'io.freefair.lombok'
+    id 'org.jetbrains.intellij'
+}
+
+group = 'com.checkmarx.intellij.devassist'
+version = System.getenv('RELEASE_VERSION') ?: "dev"
+
+dependencies {
+    api project(':common-lib')
+}
+
+intellij {
+    version = "${intellijVersion}"
+    updateSinceUntilBuild = false
+}
+
+test {
+    useJUnitPlatform()
+}

@@ -10,17 +10,19 @@ jobs:
   set_tag:
     runs-on: ubuntu-latest
     outputs:
-      tag_name: ${{ steps.tagname.outputs.tag_name }}
+      tag_version: ${{ steps.tagname.outputs.tag_version }}
     steps:
-      - name: Create tagname
-        run: echo "tag_name=2.0.$(date +%s)" >> "$GITHUB_OUTPUT"
+      - name: Create version
+        run: echo "tag_version=2.0.$(date +%s)" >> "$GITHUB_OUTPUT"
         id: tagname
-      - name: Print tagname
-        run: echo "created tag ${{ steps.tagname.outputs.tag_name }}"
+      - name: Print version
+        run: echo "created version ${{ steps.tagname.outputs.tag_version }}"
   nightly:
     needs: set_tag
     uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/release.yml@main
     with:
-      tag: ${{ needs.set_tag.outputs.tag_name }}
+      plugin: "both"
+      ast_version: ${{ needs.set_tag.outputs.tag_version }}
+      ignite_version: ${{ needs.set_tag.outputs.tag_version }}
       rchannels: "nightly"
     secrets: inherit
