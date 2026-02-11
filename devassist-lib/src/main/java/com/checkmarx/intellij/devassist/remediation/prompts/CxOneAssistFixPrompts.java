@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.devassist.remediation.prompts;
 
 import com.checkmarx.intellij.common.utils.SeverityLevel;
-import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 
 import static com.checkmarx.intellij.devassist.utils.EmojiUnicodes.*;
 
@@ -10,7 +10,7 @@ import static com.checkmarx.intellij.devassist.utils.EmojiUnicodes.*;
  */
 public final class CxOneAssistFixPrompts {
 
-    private static final String AGENT_NAME = DevAssistConstants.CX_AGENT_NAME;
+    private static final String AGENT_NAME = DevAssistUtils.getAgentName();
 
     private CxOneAssistFixPrompts() {
         throw new IllegalStateException("Cannot instantiate CxOneAssistFixPrompts class");
@@ -28,7 +28,7 @@ public final class CxOneAssistFixPrompts {
     public static String buildSCARemediationPrompt(String packageName, String packageVersion,
                                                    String packageManager, String severity) {
         StringBuilder prompt = new StringBuilder();
-
+        System.out.println("AGENT_NAME=>" + AGENT_NAME);
         prompt.append("You are the ").append(AGENT_NAME).append(".\n\n")
                 .append("A security issue has been detected in `").append(packageName).append("@").append(packageVersion).append("` (package manager: `").append(packageManager).append("`).\n")
                 .append("**Severity:** `").append(severity).append("`\n")

@@ -564,7 +564,7 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
     private JPopupMenu createPopupMenu(ScanIssue detail) {
         JPopupMenu popup = new JPopupMenu();
 
-        JMenuItem fixWithCxOneAssist = new JMenuItem(DevAssistConstants.FIX_WITH_CXONE_ASSIST);
+        JMenuItem fixWithCxOneAssist = new JMenuItem(DevAssistUtils.getAssistQuickFixName());
         fixWithCxOneAssist.addActionListener(ev -> {
             TelemetryService.logFixWithCxOneAssistAction(detail);
             remediationManager.fixWithCxOneAssist(project, detail, QUICK_FIX);

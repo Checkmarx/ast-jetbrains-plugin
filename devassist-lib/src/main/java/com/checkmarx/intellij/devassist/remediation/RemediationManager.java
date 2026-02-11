@@ -7,7 +7,6 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.remediation.prompts.CxOneAssistFixPrompts;
 import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
-import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.diagnostic.Logger;
@@ -364,6 +363,6 @@ public final class RemediationManager {
      * Get the notification title for the given scan engine.
      */
     private String getNotificationTitle(ScanEngine scanEngine) {
-        return DevAssistConstants.CX_AGENT_NAME + " - " + scanEngine.name();
+        return DevAssistUtils.getAgentName() + " - " + scanEngine.name();
     }
 }

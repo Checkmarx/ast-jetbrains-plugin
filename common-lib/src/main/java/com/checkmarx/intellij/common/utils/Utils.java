@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.common.utils;
 
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.common.context.PluginContext;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.SettingsListener;
@@ -481,6 +482,19 @@ public final class Utils {
            return GlobalSettingsState.getInstance().isAuthenticated();
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Get a Quick fix name based on the plugin context.
+     * @return Quick fix name
+     */
+    public static String getPluginDisplayName(){
+        try {
+            return PluginContext.getInstance().getPluginDisplayName();
+        } catch (Exception e) {
+            LOGGER.warn("Failed to get plugin display name, exception: {}", e);
+            return Constants.TOOL_WINDOW_ID;
         }
     }
 }

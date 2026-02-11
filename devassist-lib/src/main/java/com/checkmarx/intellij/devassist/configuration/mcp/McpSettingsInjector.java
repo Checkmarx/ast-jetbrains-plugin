@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.devassist.configuration.mcp;
 
 import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.utils.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.openapi.diagnostic.Logger;
@@ -13,7 +14,7 @@ import java.util.*;
 
 public final class McpSettingsInjector {
     private static final Logger LOG = Logger.getInstance(McpSettingsInjector.class);
-    private static final ObjectMapper M = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String FALLBACK_BASE = "https://ast-master-components.dev.cxast.net";
 
     private McpSettingsInjector() {
@@ -100,7 +101,7 @@ public final class McpSettingsInjector {
             byte[] payload = Base64.getUrlDecoder().decode(parts[1]);
             String json = new String(payload, StandardCharsets.UTF_8);
             Map<String, Object> map =
-                    M.readValue(json, new TypeReference<Map<String, Object>>() {
+                    MAPPER.readValue(json, new TypeReference<Map<String, Object>>() {
                     });
             Object iss = map.get("iss");
             return iss != null ? iss.toString() : null;
@@ -126,19 +127,21 @@ public final class McpSettingsInjector {
         requestInit.put("headers", headers);
         serverEntry.put("requestInit", requestInit);
 
-        Map<String, Object> existing = (Map<String, Object>) servers.get(Constants.TOOL_WINDOW_ID);
+        String mcpServerKey = getMCPServerKey();
+
+        Map<String, Object> existing = (Map<String, Object>) servers.get(mcpServerKey);
         boolean changed = !Objects.equals(existing, serverEntry);
 
         if (!changed) {
             return false;
         }
 
-        servers.put(Constants.TOOL_WINDOW_ID, serverEntry);
+        servers.put(mcpServerKey, serverEntry);
         root.put("servers", servers);
 
         Files.createDirectories(configPath.getParent());
         Files.writeString(configPath,
-                M.writerWithDefaultPrettyPrinter().writeValueAsString(root));
+                MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(root));
         return true;
     }
 
@@ -150,15 +153,17 @@ public final class McpSettingsInjector {
         Object serversObj = root.get("servers");
         if (!(serversObj instanceof Map)) return false;
 
+        String mcpServerKey = getMCPServerKey();
+
         Map<String, Object> servers = (Map<String, Object>) serversObj;
-        boolean removed = servers.remove(Constants.TOOL_WINDOW_ID) != null;
+        boolean removed = servers.remove(mcpServerKey) != null;
         if (!removed) {
             return false;
         }
 
         root.put("servers", servers);
         Files.writeString(configPath,
-                M.writerWithDefaultPrettyPrinter().writeValueAsString(root));
+                MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(root));
         return true;
     }
 
@@ -167,7 +172,7 @@ public final class McpSettingsInjector {
         try {
             String content = stripLineComments(Files.readString(path));
             Map<String, Object> map =
-                    M.readValue(content, new TypeReference<Map<String, Object>>() {
+                    MAPPER.readValue(content, new TypeReference<Map<String, Object>>() {
                     });
             return (map == null || map.isEmpty()) ? emptyServersRoot() : map;
         } catch (Exception e) {
@@ -189,6 +194,15 @@ public final class McpSettingsInjector {
      */
     public static Path getMcpJsonPath() {
         return resolveCopilotMcpConfigPath();
+    }
+
+    /**
+     * Get mcp server key to register in mcp.json for connection details
+     *
+     * @return plugin-specific mcp server key
+     */
+    private static String getMCPServerKey() {
+        return Utils.getPluginDisplayName();
     }
 }
 

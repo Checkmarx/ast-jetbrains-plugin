@@ -13,11 +13,13 @@ public final class McpUninstallHandler implements DynamicPluginListener {
 
     private static final Logger LOG = Logger.getInstance(McpUninstallHandler.class);
     private static final String CHECKMARX_PLUGIN_ID = "com.checkmarx.checkmarx-ast-jetbrains-plugin";
+    private static final String IGNITE_PLUGIN_ID = "com.checkmarx.devassist-jetbrains-plugin";
 
     @Override
     public void beforePluginUnload(@NotNull IdeaPluginDescriptor pluginDescriptor, boolean isUpdate) {
         // Only clean up when our plugin is being uninstalled (not updated)
-        if (!isUpdate && CHECKMARX_PLUGIN_ID.equals(pluginDescriptor.getPluginId().getIdString())) {
+        if (!isUpdate && (CHECKMARX_PLUGIN_ID.equals(pluginDescriptor.getPluginId().getIdString())
+                || IGNITE_PLUGIN_ID.equals(pluginDescriptor.getPluginId().getIdString()))) {
             try {
                 // Call the existing uninstall method directly
                 boolean removed = McpSettingsInjector.uninstallFromCopilot();

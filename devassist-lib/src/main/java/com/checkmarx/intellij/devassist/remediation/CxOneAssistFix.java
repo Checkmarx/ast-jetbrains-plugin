@@ -4,7 +4,7 @@ import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
-import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -61,7 +61,7 @@ public class CxOneAssistFix implements LocalQuickFix, Iconable {
     @NotNull
     @Override
     public String getFamilyName() {
-        return DevAssistConstants.FIX_WITH_CXONE_ASSIST;
+        return DevAssistUtils.getAssistQuickFixName();
     }
 
     /**

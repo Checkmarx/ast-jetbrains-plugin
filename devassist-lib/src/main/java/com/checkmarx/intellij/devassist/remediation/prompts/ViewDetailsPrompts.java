@@ -2,7 +2,7 @@ package com.checkmarx.intellij.devassist.remediation.prompts;
 
 import com.checkmarx.intellij.common.utils.SeverityLevel;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
-import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 
 import java.util.List;
 
@@ -17,7 +17,7 @@ public final class ViewDetailsPrompts {
         throw new IllegalStateException("Cannot instantiate ViewDetailsPrompts class");
     }
 
-    private static final String AGENT_NAME = DevAssistConstants.CX_AGENT_NAME;
+    private static final String AGENT_NAME = DevAssistUtils.getAgentName();
 
     /**
      * Generates a detailed prompt for explaining the security issue of an SCA/OSS.
