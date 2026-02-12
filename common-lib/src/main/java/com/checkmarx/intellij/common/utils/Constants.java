@@ -16,6 +16,7 @@ public final class Constants {
     public static final String LOGGER_CAT_PREFIX = "CX#";
 
     public static final String GLOBAL_SETTINGS_ID = "settings.ast";
+    public static final String DEVASSIST_SETTINGS_ID = "settings.devassist";
     public static final String TOOL_WINDOW_ID = "Checkmarx";
     public static final String ACTION_GROUP_ID = "Checkmarx.Toolbar";
     public static final String NOTIFICATION_GROUP_ID = "Checkmarx.Notifications";

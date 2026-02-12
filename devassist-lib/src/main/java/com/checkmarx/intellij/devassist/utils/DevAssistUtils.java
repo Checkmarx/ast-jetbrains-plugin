@@ -488,7 +488,7 @@ public class DevAssistUtils {
      */
     public static String getAssistQuickFixName() {
         try {
-            return PluginContext.getInstance().isIgnitePlugin()
+            return PluginContext.getInstance().isDevAssistPlugin()
                     ? DevAssistConstants.IGNITE_FIX_WITH_DEV_ASSIST
                     : DevAssistConstants.FIX_WITH_CXONE_ASSIST;
         } catch (Exception e) {
@@ -505,7 +505,7 @@ public class DevAssistUtils {
     public static String getAgentName() {
         try {
             PluginContext pluginContext = PluginContext.getInstance();
-            return pluginContext != null && pluginContext.isIgnitePlugin()
+            return pluginContext != null && pluginContext.isDevAssistPlugin()
                     && pluginContext.getPluginDisplayName() != null && !pluginContext.getPluginDisplayName().isEmpty()
                     ? pluginContext.getPluginDisplayName()
                     : DevAssistConstants.CX_AGENT_NAME;

@@ -19,9 +19,9 @@ import static java.lang.String.format;
 /**
  * Factory for creating the Checkmarx Developer Assist tool window with realtime scanners features only.
  */
-public class IgniteToolWindowFactory implements ToolWindowFactory, DumbAware {
+public class CxDevAssistToolWindowFactory implements ToolWindowFactory, DumbAware {
 
-    private static final Logger LOGGER = Logger.getInstance(IgniteToolWindowFactory.class);
+    private static final Logger LOGGER = Logger.getInstance(CxDevAssistToolWindowFactory.class);
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {

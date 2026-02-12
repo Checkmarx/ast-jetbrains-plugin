@@ -31,7 +31,7 @@ public final class PluginContext {
     private static final Logger LOGGER = Logger.getInstance(PluginContext.class);
 
     // Plugin identifiers
-    public static final String PLUGIN_IGNITE = "plugin-ignite";
+    public static final String PLUGIN_IGNITE = "plugin-checkmarx-devassist";
     public static final String PLUGIN_CHECKMARX_AST = "plugin-checkmarx-ast";
 
     @Getter
@@ -76,7 +76,7 @@ public final class PluginContext {
      *
      * @return true if plugin-ignite is active
      */
-    public boolean isIgnitePlugin() {
+    public boolean isDevAssistPlugin() {
         return PLUGIN_IGNITE.equals(pluginName);
     }
 

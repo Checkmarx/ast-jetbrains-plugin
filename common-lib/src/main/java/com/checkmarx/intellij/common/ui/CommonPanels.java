@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.common.ui;
 
+import com.checkmarx.intellij.common.context.PluginContext;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.resources.Resource;
@@ -26,7 +27,7 @@ public final class CommonPanels {
 
     private static final String GRADIENT_CUBE_ICON_PATH = "/icons/gradient_dark.png";
     private static final String REGULAR_CUBE_ICON_PATH = "/icons/regular_dark.png";
-    
+
     // Target dimensions for the promotional images
     private static final int GRADIENT_ICON_MAX_WIDTH = 300;  // Full stretch for DevAssist panel
     private static final int REGULAR_ICON_MAX_WIDTH = 240;   // Larger size for Findings panel
@@ -53,7 +54,7 @@ public final class CommonPanels {
 
         JButton openSettingsButton = new JButton(Bundle.message(Resource.OPEN_SETTINGS_BUTTON));
         openSettingsButton.addActionListener(e ->
-                ShowSettingsUtil.getInstance().showSettingsDialog(project, Constants.GLOBAL_SETTINGS_ID));
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, getPluginSettingsId()));
 
         constraints = new GridConstraints();
         constraints.setRow(1);
@@ -98,33 +99,48 @@ public final class CommonPanels {
         if (imageUrl == null) {
             return null;
         }
-        
+
         try {
             BufferedImage originalImage = ImageIO.read(imageUrl);
             if (originalImage == null) {
                 return new ImageIcon(imageUrl);
             }
-            
+
             int originalWidth = originalImage.getWidth();
             int originalHeight = originalImage.getHeight();
-            
+
             // Calculate scaled dimensions maintaining aspect ratio
             if (originalWidth <= maxWidth) {
                 return new ImageIcon(originalImage);
             }
-            
+
             double scale = (double) maxWidth / originalWidth;
             int scaledWidth = maxWidth;
             int scaledHeight = (int) (originalHeight * scale);
-            
+
             // Use high-quality scaling
             Image scaledImage = originalImage.getScaledInstance(
                     scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
-            
+
             return new ImageIcon(scaledImage);
         } catch (IOException e) {
             // Fallback to unscaled image if scaling fails
             return new ImageIcon(imageUrl);
+        }
+    }
+
+    /**
+     * Get plugin settings id
+     *
+     * @return settings id
+     */
+    private static String getPluginSettingsId() {
+        try {
+            return PluginContext.getInstance().isDevAssistPlugin()
+                    ? Constants.DEVASSIST_SETTINGS_ID
+                    : Constants.GLOBAL_SETTINGS_ID;
+        } catch (Exception e) {
+            return Constants.GLOBAL_SETTINGS_ID;
         }
     }
 }

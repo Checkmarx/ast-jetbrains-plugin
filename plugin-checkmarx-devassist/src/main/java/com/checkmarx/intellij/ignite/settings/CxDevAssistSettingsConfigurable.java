@@ -3,7 +3,7 @@ package com.checkmarx.intellij.ignite.settings;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.SettingsComponent;
-import com.checkmarx.intellij.ignite.utils.IgniteConstants;
+import com.checkmarx.intellij.common.utils.Constants;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SearchableConfigurable;
@@ -25,7 +25,7 @@ public class CxDevAssistSettingsConfigurable implements SearchableConfigurable, 
 
     @Override
     public @NotNull @NonNls String getId() {
-        return IgniteConstants.PLUGIN_PARENT_SETTINGS_ID;
+        return Constants.DEVASSIST_SETTINGS_ID;
     }
 
     @Override

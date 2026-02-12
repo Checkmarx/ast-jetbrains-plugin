@@ -43,7 +43,7 @@
         <toolWindow id="Checkmarx Developer Assist"
                     anchor="bottom"
                     icon="com.checkmarx.intellij.common.resources.CxIcons.CHECKMARX_13"
-                    factoryClass="com.checkmarx.intellij.ignite.window.IgniteToolWindowFactory"/>
+                    factoryClass="com.checkmarx.intellij.ignite.window.CxDevAssistToolWindowFactory"/>
 
         <!-- Register Checkmarx Developer Assist settings main page under IDE Settings -> tools -->
         <applicationConfigurable instance="com.checkmarx.intellij.ignite.settings.CxDevAssistSettingsConfigurable"
@@ -52,9 +52,9 @@
 
         <!-- Register DevAssist Settings as a child page under Checkmarx Developer Assist -->
         <applicationConfigurable
-                id="settings.ignite.realtime"
+                id="settings.devassist.realtime"
                 provider="com.checkmarx.intellij.ignite.settings.RealtimeScannersSettingsConfigurableProvider"
-                parentId="settings.ignite"
+                parentId="settings.devassist"
                 bundle="messages.CxBundle"
                 key="IGNITE_PLUGIN_SETTINGS_CHILD_TITLE"/>
 

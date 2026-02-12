@@ -64,7 +64,7 @@ public final class ProblemDescription {
         DESCRIPTION_ICON.put(CONTAINER, getImage(Constants.ImagePaths.CONTAINER_PNG));
 
         //Ignite Icons
-        if (PluginContext.getInstance().isIgnitePlugin()){
+        if (PluginContext.getInstance().isDevAssistPlugin()){
             LOGGER.debug("Loaded popup icons for ignite plugin..");
             DESCRIPTION_ICON.put(DEV_ASSIST, getImage(Constants.ImagePaths.IGNITE_DEV_ASSIST_PNG));
         }
