@@ -46,7 +46,7 @@
                     factoryClass="com.checkmarx.intellij.ignite.window.IgniteToolWindowFactory"/>
 
         <!-- Register Checkmarx Developer Assist settings main page under IDE Settings -> tools -->
-        <applicationConfigurable instance="com.checkmarx.intellij.ignite.settings.IgniteSettingsConfigurable"
+        <applicationConfigurable instance="com.checkmarx.intellij.ignite.settings.CxDevAssistSettingsConfigurable"
                                  parentId="tools"
                                  bundle="messages.CxBundle" key="IGNITE_PLUGIN_SETTINGS_TITLE"/>
 
