@@ -2,10 +2,10 @@ package com.checkmarx.intellij.devassist.test.inspection;
 
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.basescanner.ScannerService;
-import com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection;
-import com.checkmarx.intellij.devassist.inspection.CxOneAssistInspectionMgr;
-import com.checkmarx.intellij.devassist.inspection.CxOneAssistScanScheduler;
-import com.checkmarx.intellij.devassist.inspection.CxOneAssistScanStateHolder;
+import com.checkmarx.intellij.devassist.inspection.DevAssistInspection;
+import com.checkmarx.intellij.devassist.inspection.DevAssistInspectionMgr;
+import com.checkmarx.intellij.devassist.inspection.DevAssistScanScheduler;
+import com.checkmarx.intellij.devassist.inspection.DevAssistScanStateHolder;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
@@ -32,32 +32,32 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class CxOneAssistInspectionTest {
+class DevAssistInspectionTest {
 
-    private CxOneAssistInspection inspection;
+    private DevAssistInspection inspection;
     private InspectionManager inspectionManager;
     private Project project;
     private PsiFile psiFile;
     private VirtualFile virtualFile;
     private Document document;
     private ProblemHolderService holderService;
-    private CxOneAssistInspectionMgr inspectionMgr;
-    private CxOneAssistScanStateHolder stateHolder;
+    private DevAssistInspectionMgr inspectionMgr;
+    private DevAssistScanStateHolder stateHolder;
     private PsiDocumentManager psiDocumentManager;
     private ScannerService<?> scannerService;
     private ProblemHolderService problemHolderService;
 
     @BeforeEach
     void setUp() throws Exception {
-        inspection = new CxOneAssistInspection();
+        inspection = new DevAssistInspection();
         inspectionManager = mock(InspectionManager.class);
         project = mock(Project.class);
         psiFile = mock(PsiFile.class);
         virtualFile = mock(VirtualFile.class);
         document = mock(Document.class);
         holderService = mock(ProblemHolderService.class);
-        inspectionMgr = mock(CxOneAssistInspectionMgr.class);
-        stateHolder = mock(CxOneAssistScanStateHolder.class);
+        inspectionMgr = mock(DevAssistInspectionMgr.class);
+        stateHolder = mock(DevAssistScanStateHolder.class);
         psiDocumentManager = mock(PsiDocumentManager.class);
         scannerService = mock(ScannerService.class);
         problemHolderService = mock(ProblemHolderService.class);
@@ -101,14 +101,14 @@ class CxOneAssistInspectionTest {
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class);
-             MockedStatic<CxOneAssistScanStateHolder> state = mockStatic(CxOneAssistScanStateHolder.class)) {
+             MockedStatic<DevAssistScanStateHolder> state = mockStatic(DevAssistScanStateHolder.class)) {
             auth.when(Utils::isUserAuthenticated).thenReturn(true);
             devUtils.when(DevAssistUtils::isAnyScannerEnabled).thenReturn(true);
             devUtils.when(DevAssistUtils::isDarkTheme).thenReturn(false);
             psiMgr.when(() -> PsiDocumentManager.getInstance(project)).thenReturn(psiDocumentManager);
             when(psiDocumentManager.getDocument(psiFile)).thenReturn(document);
             holder.when(() -> ProblemHolderService.getInstance(project)).thenReturn(holderService);
-            state.when(() -> CxOneAssistScanStateHolder.getInstance(project)).thenReturn(stateHolder);
+            state.when(() -> DevAssistScanStateHolder.getInstance(project)).thenReturn(stateHolder);
 
             long composite = 5L ^ 10L ^ 7L;
             when(stateHolder.getTimeStamp("/repo/file.tf")).thenReturn(composite);
@@ -134,7 +134,7 @@ class CxOneAssistInspectionTest {
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class);
-             MockedStatic<CxOneAssistScanStateHolder> state = mockStatic(CxOneAssistScanStateHolder.class)) {
+             MockedStatic<DevAssistScanStateHolder> state = mockStatic(DevAssistScanStateHolder.class)) {
 
             auth.when(Utils::isUserAuthenticated).thenReturn(true);
             devUtils.when(DevAssistUtils::isAnyScannerEnabled).thenReturn(true);
@@ -146,7 +146,7 @@ class CxOneAssistInspectionTest {
         ProblemDescriptor descriptor = mock(ProblemDescriptor.class);
             when(holderService.getProblemDescriptors("/repo/file.tf")).thenReturn(List.of(descriptor));
 
-            state.when(() -> CxOneAssistScanStateHolder.getInstance(project)).thenReturn(stateHolder);
+            state.when(() -> DevAssistScanStateHolder.getInstance(project)).thenReturn(stateHolder);
             when(stateHolder.getTimeStamp("/repo/file.tf")).thenReturn(null);
 
             setupSchedulerMock(true);
@@ -177,14 +177,14 @@ class CxOneAssistInspectionTest {
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class);
-             MockedStatic<CxOneAssistScanStateHolder> state = mockStatic(CxOneAssistScanStateHolder.class)) {
+             MockedStatic<DevAssistScanStateHolder> state = mockStatic(DevAssistScanStateHolder.class)) {
 
             auth.when(Utils::isUserAuthenticated).thenReturn(true);
             devUtils.when(DevAssistUtils::isAnyScannerEnabled).thenReturn(true);
             psiMgr.when(() -> PsiDocumentManager.getInstance(project)).thenReturn(psiDocumentManager);
             when(psiDocumentManager.getDocument(psiFile)).thenReturn(document);
             holder.when(() -> ProblemHolderService.getInstance(project)).thenReturn(holderService);
-            state.when(() -> CxOneAssistScanStateHolder.getInstance(project)).thenReturn(stateHolder);
+            state.when(() -> DevAssistScanStateHolder.getInstance(project)).thenReturn(stateHolder);
             when(stateHolder.getTimeStamp("/repo/file.tf")).thenReturn(null);
 
             setupSchedulerMock(false);
@@ -202,7 +202,7 @@ class CxOneAssistInspectionTest {
     }
 
     private void setupSchedulerMock(boolean scheduleResult) {
-        CxOneAssistScanScheduler scheduler = mock(CxOneAssistScanScheduler.class, invocation -> {
+        DevAssistScanScheduler scheduler = mock(DevAssistScanScheduler.class, invocation -> {
             if ("scheduleScan".equals(invocation.getMethod().getName())) {
                 return scheduleResult;
             }

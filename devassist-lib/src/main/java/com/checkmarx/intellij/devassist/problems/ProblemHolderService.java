@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.devassist.model.ScanIssue;
-import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.remediation.DevAssistFix;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.openapi.components.Service;
@@ -180,7 +180,7 @@ public final class ProblemHolderService {
             return;
         }
         problemDescriptors.removeIf(descriptor -> {
-            CxOneAssistFix fix = (CxOneAssistFix) descriptor.getFixes()[0];
+            DevAssistFix fix = (DevAssistFix) descriptor.getFixes()[0];
             return fix != null && scanEngine.name().equalsIgnoreCase(fix.getScanIssue().getScanEngine().name());
         });
     }

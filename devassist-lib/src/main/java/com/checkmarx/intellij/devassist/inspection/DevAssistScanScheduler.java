@@ -33,9 +33,9 @@ import static java.lang.String.format;
  * only the latest request will be executed after a delay. This helps to avoid
  * redundant scans and improves performance.
  */
-public class CxOneAssistScanScheduler {
+public class DevAssistScanScheduler {
 
-    private static final Logger LOGGER = Logger.getInstance(CxOneAssistScanScheduler.class);
+    private static final Logger LOGGER = Logger.getInstance(DevAssistScanScheduler.class);
     private static final int SCHEDULED_DELAY = 1000;
 
     private final Project project;
@@ -46,7 +46,7 @@ public class CxOneAssistScanScheduler {
     private final Map<String, Long> scanRequestTimeMap = new ConcurrentHashMap<>();
     private final Map<String, Long> lastRestartTimeMap = new ConcurrentHashMap<>(); // Track the last restart per file
     private final ReentrantLock lock = new ReentrantLock();
-    private final CxOneAssistInspectionMgr cxOneAssistInspectionMgr = new CxOneAssistInspectionMgr();
+    private final DevAssistInspectionMgr cxOneAssistInspectionMgr = new DevAssistInspectionMgr();
 
 
     /**
@@ -54,7 +54,7 @@ public class CxOneAssistScanScheduler {
      *
      * @param project - The IntelliJ Project instance
      */
-    private CxOneAssistScanScheduler(@NotNull Project project) {
+    private DevAssistScanScheduler(@NotNull Project project) {
         this.project = project;
     }
 
@@ -64,10 +64,10 @@ public class CxOneAssistScanScheduler {
      * @param project - The IntelliJ Project instance
      * @return the singleton CxOneAssistScanScheduler instance for the project
      */
-    public static CxOneAssistScanScheduler getInstance(Project project) {
-        CxOneAssistScanScheduler existingScheduler = project.getUserData(SCHEDULER_INSTANCE_KEY);
+    public static DevAssistScanScheduler getInstance(Project project) {
+        DevAssistScanScheduler existingScheduler = project.getUserData(SCHEDULER_INSTANCE_KEY);
         if (existingScheduler != null) return existingScheduler;
-        CxOneAssistScanScheduler newScheduler = new CxOneAssistScanScheduler(project);
+        DevAssistScanScheduler newScheduler = new DevAssistScanScheduler(project);
         project.putUserData(SCHEDULER_INSTANCE_KEY, newScheduler);
         return newScheduler;
     }

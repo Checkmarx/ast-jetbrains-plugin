@@ -33,9 +33,9 @@ import static java.lang.String.format;
  * <p>
  * This fix is categorized under the "Fix with CXOne Assist" family for easy identification and grouping.
  */
-public class CxOneAssistFix implements LocalQuickFix, Iconable {
+public class DevAssistFix implements LocalQuickFix, Iconable {
 
-    private static final Logger LOGGER = Utils.getLogger(CxOneAssistFix.class);
+    private static final Logger LOGGER = Utils.getLogger(DevAssistFix.class);
 
     @Getter
     @SafeFieldForPreview
@@ -47,7 +47,7 @@ public class CxOneAssistFix implements LocalQuickFix, Iconable {
      *
      * @param scanIssue the scan issue that this fix targets; includes details such as severity, title, and description
      */
-    public CxOneAssistFix(ScanIssue scanIssue) {
+    public DevAssistFix(ScanIssue scanIssue) {
         super();
         this.scanIssue = scanIssue;
     }

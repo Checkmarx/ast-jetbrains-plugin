@@ -36,10 +36,10 @@ import static java.lang.String.format;
  * with real-time scanner services and provides problem highlights and fixes for
  * identified issues.
  */
-public class CxOneAssistInspection extends LocalInspectionTool {
+public class DevAssistInspection extends LocalInspectionTool {
 
-    private static final Logger LOGGER = Utils.getLogger(CxOneAssistInspection.class);
-    private final CxOneAssistInspectionMgr cxOneAssistInspectionMgr = new CxOneAssistInspectionMgr();
+    private static final Logger LOGGER = Utils.getLogger(DevAssistInspection.class);
+    private final DevAssistInspectionMgr devAssistInspectionMgr = new DevAssistInspectionMgr();
     private final ProblemDecorator problemDecorator = new ProblemDecorator();
 
     /**
@@ -76,14 +76,14 @@ public class CxOneAssistInspection extends LocalInspectionTool {
             resetEditorAndResults(file.getProject(), filePath);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
-        List<ScannerService<?>> supportedScanners = this.cxOneAssistInspectionMgr.getSupportedScanner(filePath, file);
+        List<ScannerService<?>> supportedScanners = this.devAssistInspectionMgr.getSupportedScanner(filePath, file);
         if (supportedScanners.isEmpty()) {
             LOGGER.warn(format("RTS: No supported scanner enabled for this file: %s.", file.getName()));
             resetEditorAndResults(file.getProject(), filePath);
             return ProblemDescriptor.EMPTY_ARRAY;
         }
         ProblemHolderService problemHolderService = ProblemHolderService.getInstance(file.getProject());
-        CxOneAssistScanStateHolder scanStateHolder = CxOneAssistScanStateHolder.getInstance(file.getProject());
+        DevAssistScanStateHolder scanStateHolder = DevAssistScanStateHolder.getInstance(file.getProject());
         if (Objects.isNull(problemHolderService) || Objects.isNull(scanStateHolder)) {
             LOGGER.warn(format("RTS: Problem holder or timestamp holder not found for project: %s.", file.getProject().getName()));
             resetEditorAndResults(file.getProject(), filePath);
@@ -121,20 +121,20 @@ public class CxOneAssistInspection extends LocalInspectionTool {
                     supportedScanners, filePath, problemHolderService);
 
             // Schedule a debounced scan to avoid excessive scanning during rapid file changes (background scan)
-            boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(file.getProject())
+            boolean isScanScheduled = DevAssistScanScheduler.getInstance(file.getProject())
                     .scheduleScan(filePath, problemHelperBuilder.build(), ScanEngine.ALL);
             if (isScanScheduled) {
                 List<ScanIssue> scanIssueList = problemHolderService.getScanIssueByFile(filePath);
                 if (scanIssueList.isEmpty()) {
                     // decorate UI only for ignored vulnerability if no scan issues found
-                    cxOneAssistInspectionMgr.decorateUIForIgnoreVulnerability(file, scanIssueList);
+                    devAssistInspectionMgr.decorateUIForIgnoreVulnerability(file, scanIssueList);
                     return ProblemDescriptor.EMPTY_ARRAY;
                 }
-                cxOneAssistInspectionMgr.decorateUI(document, file, scanIssueList);
+                devAssistInspectionMgr.decorateUI(document, file, scanIssueList);
                 return problemHolderService.getProblemDescriptors(filePath).toArray(new ProblemDescriptor[0]);
             }
             LOGGER.info(format("RTS: Failed to schedule the scan for file: %s. Now scanning file using fallback..", file.getName()));
-            return cxOneAssistInspectionMgr.startScanAndCreateProblemDescriptors(problemHelperBuilder);
+            return devAssistInspectionMgr.startScanAndCreateProblemDescriptors(problemHelperBuilder);
         } catch (Exception exception) {
             LOGGER.warn(format("RTS: Exception occurred while scanning file: %s", filePath), exception);
             return ProblemDescriptor.EMPTY_ARRAY;
@@ -146,7 +146,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
      */
     private ProblemDescriptor[] getExistingProblemDescriptors(ProblemHolderService problemHolderService, String filePath, Document document,
                                                               PsiFile file, List<ScannerService<?>> supportedScanners, InspectionManager manager) {
-        return this.cxOneAssistInspectionMgr
+        return this.devAssistInspectionMgr
                 .getExistingProblems(problemHolderService, filePath, document, file, supportedScanners, manager);
     }
 
@@ -156,7 +156,7 @@ public class CxOneAssistInspection extends LocalInspectionTool {
      * @param project the project to reset results for
      */
     private void resetEditorAndResults(Project project, String filePath) {
-        this.cxOneAssistInspectionMgr.resetEditorAndResults(project, filePath);
+        this.devAssistInspectionMgr.resetEditorAndResults(project, filePath);
     }
 
     /**

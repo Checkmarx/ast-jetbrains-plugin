@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.devassist.configuration;
 
-import com.checkmarx.intellij.devassist.inspection.CxOneAssistInspectionMgr;
+import com.checkmarx.intellij.devassist.inspection.DevAssistInspectionMgr;
 import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.Disposable;
@@ -102,6 +102,6 @@ public final class ScannerLifeCycleManager implements Disposable {
      * dependent on the current project's context.
      */
     private void startInspection() {
-        new CxOneAssistInspectionMgr().triggerInspection(project);
+        new DevAssistInspectionMgr().triggerInspection(project);
     }
 }

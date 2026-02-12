@@ -63,9 +63,9 @@ import java.util.stream.Collectors;
  * @see IgnoreManager
  * @see IgnoredFindingsToolbarActions
  */
-public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposable {
+public class DevAssistIgnoredFindings extends SimpleToolWindowPanel implements Disposable {
 
-    private static final Logger LOGGER = Utils.getLogger(CxIgnoredFindings.class);
+    private static final Logger LOGGER = Utils.getLogger(DevAssistIgnoredFindings.class);
     private static final String IGNORE_FILE_PATH = ".idea/.checkmarxIgnored";
     private static final String FONT_FAMILY_MENLO = "Menlo";
     private static final String FONT_FAMILY_INTER = "Inter";
@@ -120,7 +120,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
      * @param project the current IntelliJ project
      * @param content the tool window content for tab title updates
      */
-    public CxIgnoredFindings(Project project, Content content) {
+    public DevAssistIgnoredFindings(Project project, Content content) {
         super(false, true);
         this.project = project;
         this.content = content;

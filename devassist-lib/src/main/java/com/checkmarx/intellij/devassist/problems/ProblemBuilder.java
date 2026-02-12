@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.devassist.problems;
 
 import com.checkmarx.intellij.devassist.model.ScanIssue;
-import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.remediation.DevAssistFix;
 import com.checkmarx.intellij.devassist.remediation.IgnoreAllThisTypeFix;
 import com.checkmarx.intellij.devassist.remediation.IgnoreVulnerabilityFix;
 import com.checkmarx.intellij.devassist.remediation.ViewDetailsFix;
@@ -67,7 +67,7 @@ public final class ProblemBuilder {
      */
     private static LocalQuickFix[] getFixes(ScanIssue scanIssue) {
         List<LocalQuickFix> localQuickFixes = new ArrayList<>();
-        localQuickFixes.add(new CxOneAssistFix(scanIssue));
+        localQuickFixes.add(new DevAssistFix(scanIssue));
         localQuickFixes.add(new ViewDetailsFix(scanIssue));
         localQuickFixes.add(new IgnoreVulnerabilityFix(scanIssue));
         if (ScanEngine.CONTAINERS.equals(scanIssue.getScanEngine()) || ScanEngine.OSS.equals(scanIssue.getScanEngine())) {

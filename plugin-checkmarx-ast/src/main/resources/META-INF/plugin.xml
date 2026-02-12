@@ -70,7 +70,7 @@
                 groupName="CxOneAssist"
                 groupPath="Checkmarx"
                 enabledByDefault="true"
-                implementationClass="com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection"/>
+                implementationClass="com.checkmarx.intellij.devassist.inspection.DevAssistInspection"/>
 
         <!-- Register tooltip link handler -->
         <codeInsight.linkHandler

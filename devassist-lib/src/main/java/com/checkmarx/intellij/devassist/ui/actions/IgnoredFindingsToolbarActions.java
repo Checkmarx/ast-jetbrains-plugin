@@ -5,6 +5,7 @@ import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
+import com.checkmarx.intellij.devassist.ui.findings.window.DevAssistIgnoredFindings;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.application.ApplicationManager;
@@ -32,7 +33,7 @@ import java.util.Set;
  * State is managed by singleton instances: {@link TypeFilterState}, {@link SortState},
  * and {@link IgnoredFindingsSeverityFilterState}.
  *
- * @see com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings
+ * @see DevAssistIgnoredFindings
  */
 public class IgnoredFindingsToolbarActions {
 

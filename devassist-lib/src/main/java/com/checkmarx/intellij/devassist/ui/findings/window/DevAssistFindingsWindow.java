@@ -79,9 +79,9 @@ import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FI
  * Uses a timer to periodically update the tab title with the current problem count.
  * Refactored to have separate drawAuthPanel() and drawMainPanel() following pattern in CxToolWindowPanel.
  */
-public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposable {
+public class DevAssistFindingsWindow extends SimpleToolWindowPanel implements Disposable {
 
-    private static final Logger LOGGER = Utils.getLogger(CxFindingsWindow.class);
+    private static final Logger LOGGER = Utils.getLogger(DevAssistFindingsWindow.class);
 
     private final Project project;
     private final SimpleTree tree;
@@ -101,7 +101,7 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
     private FindingsPromotionalPanel promotionalPanel;
     private JBScrollPane promotionalScrollPane;
 
-    public CxFindingsWindow(Project project, Content content, String  pluginToolWindowId) {
+    public DevAssistFindingsWindow(Project project, Content content, String  pluginToolWindowId) {
         super(false, true);
         this.project = project;
         this.tree = new SimpleTree();
@@ -154,8 +154,8 @@ public class CxFindingsWindow extends SimpleToolWindowPanel implements Disposabl
             // Subscribe to ignored findings count changes to update the promotional panel
             // This uses the same count that CxIgnoredFindings uses for its tab title
             project.getMessageBus().connect(this)
-                    .subscribe(CxIgnoredFindings.IGNORED_COUNT_TOPIC,
-                            (CxIgnoredFindings.IgnoredCountListener) count ->
+                    .subscribe(DevAssistIgnoredFindings.IGNORED_COUNT_TOPIC,
+                            (DevAssistIgnoredFindings.IgnoredCountListener) count ->
                                     ApplicationManager.getApplication().invokeLater(() -> refreshPromotionalPanel(count)));
 
             ApplicationManager.getApplication().getMessageBus()

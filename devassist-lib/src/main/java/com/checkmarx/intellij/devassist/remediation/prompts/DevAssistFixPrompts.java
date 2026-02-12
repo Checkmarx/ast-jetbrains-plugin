@@ -8,11 +8,11 @@ import static com.checkmarx.intellij.devassist.utils.EmojiUnicodes.*;
 /**
  * Checkmarx prompts for various remediation tasks.
  */
-public final class CxOneAssistFixPrompts {
+public final class DevAssistFixPrompts {
 
     private static final String AGENT_NAME = DevAssistUtils.getAgentName();
 
-    private CxOneAssistFixPrompts() {
+    private DevAssistFixPrompts() {
         throw new IllegalStateException("Cannot instantiate CxOneAssistFixPrompts class");
     }
 

@@ -8,7 +8,7 @@ import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.problems.ScanIssueProcessor;
-import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.remediation.DevAssistFix;
 import com.checkmarx.intellij.devassist.ui.ProblemDescription;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -36,11 +36,11 @@ import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.Keys.THE
 import static java.lang.String.format;
 
 /**
- * Manager class for handling inspections and problem descriptors related to CxOneAssist.
+ * Manager class for handling inspections and problem descriptors related to Dev Assist.
  */
-public final class CxOneAssistInspectionMgr extends ScanManager {
+public final class DevAssistInspectionMgr extends ScanManager {
 
-    private static final Logger LOGGER = Utils.getLogger(CxOneAssistInspectionMgr.class);
+    private static final Logger LOGGER = Utils.getLogger(DevAssistInspectionMgr.class);
     private final ProblemDecorator problemDecorator = new ProblemDecorator();
 
     /**
@@ -313,7 +313,7 @@ public final class CxOneAssistInspectionMgr extends ScanManager {
         List<ProblemDescriptor> enabledScannerProblems = new ArrayList<>();
         for (ProblemDescriptor descriptor : problemDescriptorsList) {
             try {
-                CxOneAssistFix cxOneAssistFix = (CxOneAssistFix) descriptor.getFixes()[0];
+                DevAssistFix cxOneAssistFix = (DevAssistFix) descriptor.getFixes()[0];
                 if (Objects.nonNull(cxOneAssistFix) && enabledScanEngines.contains(cxOneAssistFix.getScanIssue().getScanEngine())) {
                     enabledScannerProblems.add(descriptor);
                 }

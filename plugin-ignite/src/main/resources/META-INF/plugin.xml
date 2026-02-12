@@ -75,7 +75,7 @@
                 groupName="CxDevAssist"
                 groupPath="Checkmarx Developer Assist"
                 enabledByDefault="true"
-                implementationClass="com.checkmarx.intellij.devassist.inspection.CxOneAssistInspection"/>
+                implementationClass="com.checkmarx.intellij.devassist.inspection.DevAssistInspection"/>
 
         <!-- DevAssist Remediation Link Handler (from devassist-lib) -->
         <codeInsight.linkHandler prefix="#cxonedevassist/"

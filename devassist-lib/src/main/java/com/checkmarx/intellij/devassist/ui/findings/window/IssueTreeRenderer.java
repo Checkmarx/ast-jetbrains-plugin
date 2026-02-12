@@ -91,8 +91,8 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
         Object obj = node.getUserObject();
         Icon icon = null;
         LOGGER.debug("Rendering the result tree");
-        if (obj instanceof CxFindingsWindow.FileNodeLabel) {
-            CxFindingsWindow.FileNodeLabel info = (CxFindingsWindow.FileNodeLabel) obj;
+        if (obj instanceof DevAssistFindingsWindow.FileNodeLabel) {
+            DevAssistFindingsWindow.FileNodeLabel info = (DevAssistFindingsWindow.FileNodeLabel) obj;
             if (info.icon != null) {
                 setIcon(info.icon);
             }
@@ -110,8 +110,8 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
                     }
                 }
             }
-        } else if (obj instanceof CxFindingsWindow.ScanDetailWithPath) {
-            ScanIssue detail = ((CxFindingsWindow.ScanDetailWithPath) obj).detail;
+        } else if (obj instanceof DevAssistFindingsWindow.ScanDetailWithPath) {
+            ScanIssue detail = ((DevAssistFindingsWindow.ScanDetailWithPath) obj).detail;
 
             icon = vulnerabilityToIcon.getOrDefault(detail.getSeverity(), null);
             if (icon != null)

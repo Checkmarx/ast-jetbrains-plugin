@@ -2,7 +2,7 @@ package com.checkmarx.intellij.devassist.test.remediation;
 
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.remediation.RemediationManager;
-import com.checkmarx.intellij.devassist.remediation.prompts.CxOneAssistFixPrompts;
+import com.checkmarx.intellij.devassist.remediation.prompts.DevAssistFixPrompts;
 import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -61,16 +61,16 @@ public class RemediationManagerTest {
         ScanIssue issue = buildScanIssue(ScanEngine.OSS);
         RemediationManager manager = new RemediationManager();
 
-        try (MockedStatic<CxOneAssistFixPrompts> fixPrompts = mockStatic(CxOneAssistFixPrompts.class);
+        try (MockedStatic<DevAssistFixPrompts> fixPrompts = mockStatic(DevAssistFixPrompts.class);
              MockedStatic<DevAssistUtils> devAssist = mockStatic(DevAssistUtils.class)) {
-            fixPrompts.when(() -> CxOneAssistFixPrompts.buildSCARemediationPrompt(
+            fixPrompts.when(() -> DevAssistFixPrompts.buildSCARemediationPrompt(
                     anyString(), anyString(), anyString(), anyString())).thenReturn("prompt");
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(true);
 
             manager.fixWithCxOneAssist(project, issue, QUICK_FIX);
 
-            fixPrompts.verify(() -> CxOneAssistFixPrompts.buildSCARemediationPrompt(
+            fixPrompts.verify(() -> DevAssistFixPrompts.buildSCARemediationPrompt(
                     eq(issue.getTitle()), eq(issue.getPackageVersion()), eq(issue.getPackageManager()), eq(issue.getSeverity())));
             devAssist.verify(() -> DevAssistUtils.copyToClipboardWithNotification(eq("prompt"), anyString(), anyString(), eq(project)));
         }
@@ -83,16 +83,16 @@ public class RemediationManagerTest {
         ScanIssue issue = buildScanIssue(ScanEngine.OSS);
         RemediationManager manager = new RemediationManager();
 
-        try (MockedStatic<CxOneAssistFixPrompts> fixPrompts = mockStatic(CxOneAssistFixPrompts.class);
+        try (MockedStatic<DevAssistFixPrompts> fixPrompts = mockStatic(DevAssistFixPrompts.class);
              MockedStatic<DevAssistUtils> devAssist = mockStatic(DevAssistUtils.class)) {
-            fixPrompts.when(() -> CxOneAssistFixPrompts.buildSCARemediationPrompt(anyString(), anyString(), anyString(), anyString()))
+            fixPrompts.when(() -> DevAssistFixPrompts.buildSCARemediationPrompt(anyString(), anyString(), anyString(), anyString()))
                     .thenReturn("prompt");
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(false);
 
             manager.fixWithCxOneAssist(project, issue, QUICK_FIX);
 
-            fixPrompts.verify(() -> CxOneAssistFixPrompts.buildSCARemediationPrompt(
+            fixPrompts.verify(() -> DevAssistFixPrompts.buildSCARemediationPrompt(
                     eq(issue.getTitle()), eq(issue.getPackageVersion()), eq(issue.getPackageManager()), eq(issue.getSeverity())));
             devAssist.verify(() -> DevAssistUtils.copyToClipboardWithNotification(eq("prompt"), anyString(), anyString(), eq(project)));
         }

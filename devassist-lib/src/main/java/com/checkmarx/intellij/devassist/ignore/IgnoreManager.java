@@ -5,8 +5,8 @@ import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.common.ScanResult;
-import com.checkmarx.intellij.devassist.inspection.CxOneAssistInspectionMgr;
-import com.checkmarx.intellij.devassist.inspection.CxOneAssistScanScheduler;
+import com.checkmarx.intellij.devassist.inspection.DevAssistInspectionMgr;
+import com.checkmarx.intellij.devassist.inspection.DevAssistScanScheduler;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
@@ -279,13 +279,13 @@ public final class IgnoreManager {
                         .document(document)
                         .build();
 
-                boolean isScanScheduled = CxOneAssistScanScheduler.getInstance(project)
+                boolean isScanScheduled = DevAssistScanScheduler.getInstance(project)
                         .scheduleScan(filePath, problemHelper, scanEngine);
 
                 if (!isScanScheduled) {
                     LOGGER.debug("RTS-Ignore: Scan not scheduled, triggering inspection after ignoring vulnerability for file: {}.", filePath);
                     // trigger inspection if a scan is not scheduled
-                    new CxOneAssistInspectionMgr().triggerInspection(project);
+                    new DevAssistInspectionMgr().triggerInspection(project);
                 }
             }, ModalityState.NON_MODAL);
         } catch (Exception e) {

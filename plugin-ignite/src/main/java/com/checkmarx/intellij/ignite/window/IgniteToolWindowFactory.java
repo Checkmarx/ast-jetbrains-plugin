@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ignite.window;
 
 import com.checkmarx.intellij.common.context.PluginContext;
-import com.checkmarx.intellij.devassist.ui.findings.window.CxFindingsWindow;
-import com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings;
+import com.checkmarx.intellij.devassist.ui.findings.window.DevAssistFindingsWindow;
+import com.checkmarx.intellij.devassist.ui.findings.window.DevAssistIgnoredFindings;
 import com.checkmarx.intellij.ignite.utils.IgniteConstants;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
@@ -35,14 +35,14 @@ public class IgniteToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         // DevAssist Findings Tab
         Content findingsContent = contentFactory.createContent(null, IgniteConstants.FINDINGS_WINDOW_NAME, false);
-        CxFindingsWindow findingsWindow = new CxFindingsWindow(project, findingsContent, IgniteConstants.PLUGIN_NAME);
+        DevAssistFindingsWindow findingsWindow = new DevAssistFindingsWindow(project, findingsContent, IgniteConstants.PLUGIN_NAME);
         findingsContent.setComponent(findingsWindow);
         toolWindow.getContentManager().addContent(findingsContent);
         Disposer.register(project, findingsWindow);
 
         // DevAssist Ignored Findings Tab
         Content ignoredContent = contentFactory.createContent(null, IgniteConstants.IGNORED_FINDINGS_WINDOW_NAME, false);
-        CxIgnoredFindings ignoredFindings = new CxIgnoredFindings(project, ignoredContent);
+        DevAssistIgnoredFindings ignoredFindings = new DevAssistIgnoredFindings(project, ignoredContent);
         ignoredContent.setComponent(ignoredFindings);
         toolWindow.getContentManager().addContent(ignoredContent);
         Disposer.register(project, ignoredFindings);

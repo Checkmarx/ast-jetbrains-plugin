@@ -5,7 +5,7 @@ import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
-import com.checkmarx.intellij.devassist.remediation.prompts.CxOneAssistFixPrompts;
+import com.checkmarx.intellij.devassist.remediation.prompts.DevAssistFixPrompts;
 import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -202,7 +202,7 @@ public final class RemediationManager {
      * Builds remediation prompt for an OSS issue.
      */
     private String buildOSSRemediationPrompt(ScanIssue scanIssue) {
-        return CxOneAssistFixPrompts.buildSCARemediationPrompt(scanIssue.getTitle(), scanIssue.getPackageVersion(),
+        return DevAssistFixPrompts.buildSCARemediationPrompt(scanIssue.getTitle(), scanIssue.getPackageVersion(),
                 scanIssue.getPackageManager(), scanIssue.getSeverity());
     }
 
@@ -210,7 +210,7 @@ public final class RemediationManager {
      * Builds remediation prompt for a Secret issue.
      */
     private String buildSecretRemediationPrompt(ScanIssue scanIssue) {
-        return CxOneAssistFixPrompts.buildSecretRemediationPrompt(scanIssue.getTitle(),
+        return DevAssistFixPrompts.buildSecretRemediationPrompt(scanIssue.getTitle(),
                 scanIssue.getDescription(),
                 scanIssue.getSeverity());
     }
@@ -219,7 +219,7 @@ public final class RemediationManager {
      * Builds remediation prompt for a container issue.
      */
     private String buildContainerRemediationPrompt(ScanIssue scanIssue) {
-        return CxOneAssistFixPrompts.buildContainersRemediationPrompt(scanIssue.getFileType(),
+        return DevAssistFixPrompts.buildContainersRemediationPrompt(scanIssue.getFileType(),
                 scanIssue.getTitle(),
                 scanIssue.getImageTag(),
                 scanIssue.getSeverity());
@@ -241,7 +241,7 @@ public final class RemediationManager {
             return null;
         }
 
-        return CxOneAssistFixPrompts.buildIACRemediationPrompt(
+        return DevAssistFixPrompts.buildIACRemediationPrompt(
                 actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),
@@ -271,7 +271,7 @@ public final class RemediationManager {
             return null;
         }
 
-        return CxOneAssistFixPrompts.buildASCARemediationPrompt(
+        return DevAssistFixPrompts.buildASCARemediationPrompt(
                 actionId.equals(QUICK_FIX) ? scanIssue.getTitle() : vulnerability.getTitle(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getDescription() : vulnerability.getDescription(),
                 actionId.equals(QUICK_FIX) ? scanIssue.getSeverity() : vulnerability.getSeverity(),

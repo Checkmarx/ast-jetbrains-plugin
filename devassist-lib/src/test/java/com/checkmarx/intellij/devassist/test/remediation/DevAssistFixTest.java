@@ -2,7 +2,7 @@ package com.checkmarx.intellij.devassist.test.remediation;
 
 import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
-import com.checkmarx.intellij.devassist.remediation.CxOneAssistFix;
+import com.checkmarx.intellij.devassist.remediation.DevAssistFix;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.codeInspection.ProblemDescriptor;
@@ -19,7 +19,7 @@ import javax.swing.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-public class CxOneAssistFixTest {
+public class DevAssistFixTest {
 
     private Project project;
     private ProblemDescriptor descriptor;
@@ -65,21 +65,21 @@ public class CxOneAssistFixTest {
     @DisplayName("Constructor stores scanIssue reference")
     void testConstructor_functionality() {
         ScanIssue issue = new ScanIssue();
-        CxOneAssistFix fix = new CxOneAssistFix(issue);
+        DevAssistFix fix = new DevAssistFix(issue);
         assertSame(issue, fix.getScanIssue());
     }
 
     @Test
     @DisplayName("getFamilyName returns expected constant")
     void testGetFamilyName_functionality() {
-        CxOneAssistFix fix = new CxOneAssistFix(new ScanIssue());
+        DevAssistFix fix = new DevAssistFix(new ScanIssue());
         assertEquals(DevAssistConstants.FIX_WITH_CXONE_ASSIST, fix.getFamilyName());
     }
 
     @Test
     @DisplayName("getIcon returns star action icon")
     void testGetIcon_functionality() {
-        CxOneAssistFix fix = new CxOneAssistFix(new ScanIssue());
+        DevAssistFix fix = new DevAssistFix(new ScanIssue());
         Icon icon = fix.getIcon(0);
         assertNotNull(icon);
         assertEquals(CxIcons.STAR_ACTION, icon);
@@ -91,7 +91,7 @@ public class CxOneAssistFixTest {
         ScanIssue issue = new ScanIssue();
         issue.setScanEngine(ScanEngine.OSS);
         issue.setTitle("OSS Title");
-        CxOneAssistFix fix = new CxOneAssistFix(issue);
+        DevAssistFix fix = new DevAssistFix(issue);
         assertDoesNotThrow(() -> fix.applyFix(project, descriptor));
     }
 
@@ -101,7 +101,7 @@ public class CxOneAssistFixTest {
         ScanIssue issue = new ScanIssue();
         issue.setScanEngine(ScanEngine.ASCA);
         issue.setTitle("ASCA Title");
-        CxOneAssistFix fix = new CxOneAssistFix(issue);
+        DevAssistFix fix = new DevAssistFix(issue);
         assertDoesNotThrow(() -> fix.applyFix(project, descriptor));
     }
 
@@ -111,7 +111,7 @@ public class CxOneAssistFixTest {
         ScanIssue issue = new ScanIssue();
         issue.setScanEngine(ScanEngine.IAC); // engine not explicitly handled
         issue.setTitle("IAC Title");
-        CxOneAssistFix fix = new CxOneAssistFix(issue);
+        DevAssistFix fix = new DevAssistFix(issue);
         assertDoesNotThrow(() -> fix.applyFix(project, descriptor));
     }
 
@@ -120,7 +120,7 @@ public class CxOneAssistFixTest {
     void testApplyFix_nullScanEngineThrowsNpe_functionality() {
         ScanIssue issue = new ScanIssue(); // scanEngine left null
         issue.setTitle("Null Engine Title");
-        CxOneAssistFix fix = new CxOneAssistFix(issue);
+        DevAssistFix fix = new DevAssistFix(issue);
         assertThrows(NullPointerException.class, () -> fix.applyFix(project, descriptor));
     }
 }

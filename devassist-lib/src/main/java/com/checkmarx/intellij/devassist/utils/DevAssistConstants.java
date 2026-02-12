@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.devassist.utils;
 
-import com.checkmarx.intellij.devassist.inspection.CxOneAssistScanScheduler;
+import com.checkmarx.intellij.devassist.inspection.DevAssistScanScheduler;
 import com.intellij.openapi.util.Key;
 
 import java.util.List;
@@ -158,7 +158,7 @@ public final class DevAssistConstants {
             throw new IllegalStateException("Can't instantiate Keys class");
         }
 
-        public static final Key<CxOneAssistScanScheduler> SCHEDULER_INSTANCE_KEY = Key.create("CX_ONE_ASSIST_SCAN_SCHEDULER");
+        public static final Key<DevAssistScanScheduler> SCHEDULER_INSTANCE_KEY = Key.create("CX_ONE_ASSIST_SCAN_SCHEDULER");
         public static final Key<Boolean> SCAN_SOURCE_KEY = Key.create("SCAN_SOURCE");
         public static final Key<Boolean> THEME_KEY = Key.create(DevAssistConstants.THEME);
 

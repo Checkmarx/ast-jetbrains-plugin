@@ -2,8 +2,8 @@ package com.checkmarx.intellij.ast.window;
 
 import com.checkmarx.intellij.common.context.PluginContext;
 import com.checkmarx.intellij.common.utils.Constants;
-import com.checkmarx.intellij.devassist.ui.findings.window.CxFindingsWindow;
-import com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings;
+import com.checkmarx.intellij.devassist.ui.findings.window.DevAssistFindingsWindow;
+import com.checkmarx.intellij.devassist.ui.findings.window.DevAssistIgnoredFindings;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
@@ -68,7 +68,7 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
 
         // Third tab
         Content ignoredVulnerabilities = contentManager.getFactory().createContent(null, DevAssistConstants.IGNORED_FINDINGS_TAB, false);
-        final CxIgnoredFindings ignoredVulnerabilitiesWindow = new CxIgnoredFindings(project, ignoredVulnerabilities);
+        final DevAssistIgnoredFindings ignoredVulnerabilitiesWindow = new DevAssistIgnoredFindings(project, ignoredVulnerabilities);
         ignoredVulnerabilities.setComponent(ignoredVulnerabilitiesWindow);
         contentManager.addContent(ignoredVulnerabilities);
         Disposer.register(project, ignoredVulnerabilitiesWindow);
@@ -97,7 +97,7 @@ public class CxToolWindowFactory implements ToolWindowFactory, DumbAware {
                                          @NotNull ContentManager contentManager) {
         try {
             Content customProblemContent = contentManager.getFactory().createContent(null, DevAssistConstants.DEVASSIST_TAB, false);
-            final CxFindingsWindow vulnerabilityToolWindow = new CxFindingsWindow(project, customProblemContent, Constants.TOOL_WINDOW_ID);
+            final DevAssistFindingsWindow vulnerabilityToolWindow = new DevAssistFindingsWindow(project, customProblemContent, Constants.TOOL_WINDOW_ID);
             customProblemContent.setComponent(vulnerabilityToolWindow);
             contentManager.addContent(customProblemContent);
             Disposer.register(project, vulnerabilityToolWindow);
