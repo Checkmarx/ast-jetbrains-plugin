@@ -2,7 +2,7 @@ package com.checkmarx.intellij.ignite.window.actions;
 
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
-import com.checkmarx.intellij.ignite.settings.IgniteSettingsConfigurable;
+import com.checkmarx.intellij.ignite.settings.CxDevAssistSettingsConfigurable;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -26,7 +26,7 @@ public class OpenIgniteSettingsAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         ShowSettingsUtil.getInstance()
-                        .showSettingsDialog(e.getProject(), IgniteSettingsConfigurable.class);
+                        .showSettingsDialog(e.getProject(), CxDevAssistSettingsConfigurable.class);
     }
 
     @Override

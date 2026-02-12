@@ -19,7 +19,7 @@ import javax.swing.*;
  * Implements {@link NoScroll} to disable scrolling as all fields should be
  * scrollable on their own.
  */
-public class IgniteSettingsConfigurable implements SearchableConfigurable, Configurable.NoScroll {
+public class CxDevAssistSettingsConfigurable implements SearchableConfigurable, Configurable.NoScroll {
 
     private SettingsComponent settingsComponent;
 
@@ -40,7 +40,7 @@ public class IgniteSettingsConfigurable implements SearchableConfigurable, Confi
 
     @Override
     public @Nullable JComponent createComponent() {
-        settingsComponent = new IgniteSettingsComponent();
+        settingsComponent = new CxDevAssistSettingsComponent();
         return settingsComponent.getMainPanel();
     }
 

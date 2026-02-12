@@ -52,8 +52,8 @@ import java.util.concurrent.CompletableFuture;
  * API configurations, and user preferences while ensuring their proper validation
  * and persistence.
  */
-public class IgniteSettingsComponent implements SettingsComponent {
-    private static final Logger LOGGER = Utils.getLogger(IgniteSettingsComponent.class);
+public class CxDevAssistSettingsComponent implements SettingsComponent {
+    private static final Logger LOGGER = Utils.getLogger(CxDevAssistSettingsComponent.class);
 
     private static GlobalSettingsState globalSettingsState;
     private static GlobalSettingsSensitiveState globalSettingsSensitiveState;
@@ -75,7 +75,7 @@ public class IgniteSettingsComponent implements SettingsComponent {
     @Getter
     private final ExpandableTextField additionalParametersField = new ExpandableTextField();
 
-    public IgniteSettingsComponent() {
+    public CxDevAssistSettingsComponent() {
         if (globalSettingsState == null) {
             globalSettingsState = GlobalSettingsState.getInstance();
         }
