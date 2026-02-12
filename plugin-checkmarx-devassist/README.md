@@ -55,38 +55,26 @@ The Checkmarx One JetBrains plugin enables you to import results from a Checkmar
 
 # Overview
 
-Checkmarx continues to spearhead the shift-left approach to AppSec by bringing our powerful AppSec tools into your IDE. This empowers developers to identify vulnerabilities and remediate them **as they code**. The Checkmarx One (AST) JetBrains plugin integrates seamlessly into your IDE, enabling you to access the full functionality of your Checkmarx One account (SAST, SCA, IaC Security and Secret Detection) directly from your IDE.
-
-You can run new scans, or import results from scans run in your Checkmarx One account. Checkmarx provides detailed info about each vulnerability, including remediation recommendations and examples of effective remediation. The plugin enables you to navigate from a vulnerability to the relevant source code, so that you can easily zero-in on the problematic code and start working on remediation.
-
-This extension also includes **​Checkmarx One Developer Assist**, an agentic AI tool that delivers real-time context-aware prevention, remediation, and guidance to developers inside the IDE.
+The **​Checkmarx Developer Assist** plugin provides an agentic AI tool that delivers real-time context-aware prevention, remediation, and guidance to developers inside the IDE.
 
 > This plugin provides easy integration with JetBrains IDEs. It is officially supported for IntelliJ IDEA. It may work effectively for other JetBrains IDEs such as Rider, WebStorm, RubyMine, PyCharm, MPS, etc. However, Checkmarx does not guarantee full functionality and stability for these IDEs.
 
-**GIF - Triaging Results in the IDE**
-![Triaging Results in the IDE](https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/JetBrains_Triaging_Results.gif "Triaging Results in the IDE")
-
-**GIF - Running a Scan from the IDE**
-![Running a Scan from the IDE](https://raw.githubusercontent.com/Checkmarx/ci-cd-integrations/main/.images/JetBrains_Running_Scans_From_IDE.gif "Running a Scan from the IDE")
-
 ## Key Features
 - Access the full power of Checkmarx One (SAST, SCA, IaC Security, API Security, Container Security) directly from your IDE.
--   ASCA, a lightweight realtime source code scanner, enables developers to identify secure coding best practice violations in the file that they are working on **as they code**.
-- Run a new scan from your IDE even before committing the code, or import scan results from your Checkmarx One account.
+- ASCA, a lightweight realtime source code scanner, enables developers to identify secure coding best practice violations in the file that they are working on **as they code**.
 - Rescan an existing branch from your IDE or create a new branch in Checkmarx One for the local branch in your workspace.
 - Provides actionable results including remediation recommendations. Navigate from results panel directly to the highlighted vulnerable code in the editor and get right down to work on the remediation.
-- Connect to Checkmarx via API Key or OAuth user login flow
-- Group and filter results.
-- Triage results (by adjusting the severity and state and adding comments) directly from the JetBrains console (currently supported for SAST and IaC Security).
+- Connect to Checkmarx Developer Assist via API Key
 - Apply Auto Remediation to automatically remediate open source vulnerabilities, by updating to a non-vulnerable package version.
-- Links to Codebashing lessons.
 #### **Checkmarx One Developer Assist – AI guided remediation**
 - An advanced security agent that delivers real-time context-aware prevention, remediation, and guidance to developers from the IDE.
-- OSS Realtime scanner identifies risks in open source packages used in your project.
-> COMING SOON - additional realtime scanners for identifying risks in container images, as well as exposed secrets and IaC risks.
+- <b>OSS</b> Realtime scanner identifies risks in open source packages used in your project.
+- <b>Secrets</b> Realtime scanner identifies risks in detected secrets used in your project.
+- <b>Container</b> Realtime scanner identifies risks in container images used in your project.
+- <b>IAC</b> Realtime scanner identifies infrastructure configuration risks in your project.
+- <b>ASCA</b> Realtime scanner identifies insecure patterns in your project source code.
 - MCP-based agentic AI remediation.
 - AI powered explanation of risk details
-
 
 
 ## Prerequisites
@@ -94,20 +82,14 @@ This extension also includes **​Checkmarx One Developer Assist**, an agentic A
 - You are running IntelliJ version 2022.2+
 > Early versions of our plugin (2.0.16 and below) support JetBrains version 2021.1+ as well.
 > If you are using a JetBrains IDE other than IntelliJ (**Note:** these are not officially supported), make sure that you are using a version based on IntelliJ version 2022.2+.
-- You have access to Checkmarx One via:
-- an **API key** (see [Generating an API Key](https://checkmarx.com/resource/documents/en/34965-68618-generating-an-api-key.html)), OR
-- login credentials (Base URL, Tenant name, Username and Password).
-> 🔑 **Note:** The following are the minimum required roles for accessing the full functionality of the IDE plugins:
->  - Checkmarx One composite role ast-scanner
->  - IAM role default-roles
-     To use **Dev Assist**, you need the following additional prerequisites:
-- A Checkmarx One account with a **Checkmarx One Assist** license
+- You have access to Checkmarx Developer Assist via:
+- an **API key** (see [Generating an API Key](https://checkmarx.com/resource/documents/en/34965-68618-generating-an-api-key.html))
 - The **Checkmarx MCP** must be activated for your tenant account in the Checkmarx One UI under **Settings → Plugins**. This must be done by an account admin.
 - You must have **GitHub Copilot Chat  (AI Agent)** installed
 
 ## Initial Setup
 - Verify that all prerequisites are in place.
-- Install the **Checkmarx One** plugin and configure the settings as
+- Install the **Checkmarx Developer Assist** plugin and configure the settings as
   described [here](https://docs.checkmarx.com/en/34965-68734-installing-and-setting-up-the-checkmarx-one-jetbrains-pluging-68734.html#UUID-8d3bdd51-782c-2816-65e2-38d7529651c8_section-idm449017032697283334758018635).
 > Note: To use Dev Assist, you may need to **Start** the Checkmarx MCP server.
 **GIF – Installing and Setting Up the Plugin**
