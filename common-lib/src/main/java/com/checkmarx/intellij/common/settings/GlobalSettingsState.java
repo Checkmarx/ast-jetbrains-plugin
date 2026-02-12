@@ -8,6 +8,7 @@ import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import com.intellij.util.xmlb.annotations.Attribute;
+import com.intellij.util.xmlb.annotations.Transient;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -48,14 +49,8 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
 
     private String validationExpiry;
 
-    public @NotNull Set<Filterable> getFilters() {
-        if (filters.isEmpty() || filters.stream().allMatch(Objects::isNull)) {
-            filters = FilterProviderRegistry.getInstance().getDefaultFilters();
-        }
-        return filters;
-    }
-
     @NotNull
+    @Transient
     private Set<Filterable> filters = FilterProviderRegistry.getInstance().getDefaultFilters();
 
     private String baseUrl = "";
@@ -114,9 +109,24 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
         return this;
     }
 
+    public @NotNull Set<Filterable> getFilters() {
+        if (filters.isEmpty() || isValidFilterCollection(filters)) {
+            filters = FilterProviderRegistry.getInstance().getDefaultFilters();
+        }
+        return filters;
+    }
+
     @Override
     public void loadState(@NotNull GlobalSettingsState state) {
         XmlSerializerUtil.copyBean(state, this);
+
+        /*
+         *  Ensure a filter collection is properly initialized after deserialization
+         *  This handles the case where XML deserialization creates invalid filter objects
+         */
+        if (isValidFilterCollection(filters)) {
+            filters = FilterProviderRegistry.getInstance().getDefaultFilters();
+        }
     }
 
     /**
@@ -130,14 +140,14 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     // --- User Preference Methods ---
 
     /**
-    /**
+     *
      * Sets user preferences for realtime scanners, preserving individual choices across MCP enable/disable cycles.
      *
-     * @param ascaRealtime ASCA scanner preference
-     * @param ossRealtime OSS scanner preference
+     * @param ascaRealtime            ASCA scanner preference
+     * @param ossRealtime             OSS scanner preference
      * @param secretDetectionRealtime Secret Detection scanner preference
-     * @param containersRealtime Containers scanner preference
-     * @param iacRealtime Infrastructure as Code scanner preference
+     * @param containersRealtime      Containers scanner preference
+     * @param iacRealtime             Infrastructure as Code scanner preference
      */
     public void setUserPreferences(boolean ascaRealtime, boolean ossRealtime, boolean secretDetectionRealtime,
                                    boolean containersRealtime, boolean iacRealtime) {
@@ -214,24 +224,80 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     }
 
     // Getters and setters for ASCA realtime
-    public boolean isAscaRealtime() { return ascaRealtime; }
-    public void setAscaRealtime(boolean ascaRealtime) { this.ascaRealtime = ascaRealtime; }
+    public boolean isAscaRealtime() {
+        return ascaRealtime;
+    }
 
+    public void setAscaRealtime(boolean ascaRealtime) {
+        this.ascaRealtime = ascaRealtime;
+    }
 
 
     // Getters for user preferences (for debugging and verification)
-    public boolean getUserPreferencesSet() { return userPreferencesSet; }
-    public boolean getUserPrefAscaRealtime() { return userPrefAscaRealtime; }
-    public boolean getUserPrefOssRealtime() { return userPrefOssRealtime; }
-    public boolean getUserPrefSecretDetectionRealtime() { return userPrefSecretDetectionRealtime; }
-    public boolean getUserPrefContainersRealtime() { return userPrefContainersRealtime; }
-    public boolean getUserPrefIacRealtime() { return userPrefIacRealtime; }
+    public boolean getUserPreferencesSet() {
+        return userPreferencesSet;
+    }
+
+    public boolean getUserPrefAscaRealtime() {
+        return userPrefAscaRealtime;
+    }
+
+    public boolean getUserPrefOssRealtime() {
+        return userPrefOssRealtime;
+    }
+
+    public boolean getUserPrefSecretDetectionRealtime() {
+        return userPrefSecretDetectionRealtime;
+    }
+
+    public boolean getUserPrefContainersRealtime() {
+        return userPrefContainersRealtime;
+    }
+
+    public boolean getUserPrefIacRealtime() {
+        return userPrefIacRealtime;
+    }
 
     // Getters for license value
-    public boolean isDevAssistLicenseEnabled() { return isDevAssistLicenseEnabled; }
-    public boolean isOneAssistLicenseEnabled() { return isOneAssistLicenseEnabled; }
+    public boolean isDevAssistLicenseEnabled() {
+        return isDevAssistLicenseEnabled;
+    }
+
+    public boolean isOneAssistLicenseEnabled() {
+        return isOneAssistLicenseEnabled;
+    }
 
     // Setters for license value 
-    public void setDevAssistLicenseEnabled(boolean isDevAssistLicenseEnabled) { this.isDevAssistLicenseEnabled = isDevAssistLicenseEnabled; }
-    public void setOneAssistLicenseEnabled(boolean isOneAssistLicenseEnabled) { this.isOneAssistLicenseEnabled = isOneAssistLicenseEnabled; }
+    public void setDevAssistLicenseEnabled(boolean isDevAssistLicenseEnabled) {
+        this.isDevAssistLicenseEnabled = isDevAssistLicenseEnabled;
+    }
+
+    public void setOneAssistLicenseEnabled(boolean isOneAssistLicenseEnabled) {
+        this.isOneAssistLicenseEnabled = isOneAssistLicenseEnabled;
+    }
+
+    /**
+     * Checks if the filter collection is valid (contains proper Filterable objects).
+     * This is needed because XML deserialization can sometimes populate the Set with String objects
+     * instead of Filterable objects, causing ClassCastException.
+     */
+    private boolean isValidFilterCollection(Set<Filterable> filterSet) {
+        if (filterSet.isEmpty()) {
+            return true;
+        }
+        try {
+            // Check if all elements are either null or proper Filterable instances
+            for (Object element : filterSet) {
+                if (element != null && !(element instanceof Filterable)) {
+                    // Invalid element found (likely String from XML deserialization)
+                    return true;
+                }
+            }
+            // Check if all elements are null (which would require reinitializing)
+            return filterSet.stream().noneMatch(Objects::nonNull);
+        } catch (ClassCastException e) {
+            // If we get a ClassCastException during the check, the collection is invalid
+            return true;
+        }
+    }
 }

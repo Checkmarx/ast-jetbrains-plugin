@@ -109,8 +109,8 @@ public class StateService implements FilterProvider {
     }
 
     /**
-     * Implementation of FilterProvider interface.
-     * Returns the default set of filters including severity filters and custom state filters.
+     * Implementation of the FilterProvider interface.
+     * Returns the default set of filters, including severity filters and custom state filters.
      *
      * @return Set of default Filterable objects
      */
