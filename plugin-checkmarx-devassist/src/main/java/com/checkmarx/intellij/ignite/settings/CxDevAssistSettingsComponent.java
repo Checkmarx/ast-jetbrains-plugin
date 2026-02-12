@@ -40,7 +40,6 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import java.awt.*;
-import java.awt.event.ItemEvent;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -65,8 +64,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
 
     @Getter
     private final JBPasswordField apiKeyField = new JBPasswordField();
-    private final ButtonGroup authGroup = new ButtonGroup();
-    private final JRadioButton apiKeyRadio = new JRadioButton(getMessage(Resource.API_KEY));
+    private final JBLabel apiKeyLabel = new JBLabel(getMessage(Resource.API_KEY));
     private final JButton logoutButton = new JButton(getMessage(Resource.LOG_OUT));
 
     private final JButton connectButton = new JButton(getMessage(Resource.IGNITE_PLUGIN_SETTINGS_SIGN_IN_BUTTON));
@@ -76,14 +74,8 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
     private final ExpandableTextField additionalParametersField = new ExpandableTextField();
 
     public CxDevAssistSettingsComponent() {
-        if (globalSettingsState == null) {
-            globalSettingsState = GlobalSettingsState.getInstance();
-        }
-        if (globalSettingsSensitiveState == null) {
-            globalSettingsSensitiveState = GlobalSettingsSensitiveState.getInstance();
-        }
+        initState();
         addValidateConnectionListener();
-
         setupFields();
         buildGUI();
         addLogoutListener();
@@ -91,17 +83,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
 
     @Override
     public boolean isModified() {
-        if (globalSettingsState == null) {
-            globalSettingsState = GlobalSettingsState.getInstance();
-        }
-        if (globalSettingsSensitiveState == null) {
-            globalSettingsSensitiveState = GlobalSettingsSensitiveState.getInstance();
-        }
-
-        if (apiKeyRadio.isSelected() != globalSettingsState.isApiKeyEnabled()) {
-            return true;
-        }
-
+        initState();
         return !String.valueOf(apiKeyField.getPassword()).equals(globalSettingsSensitiveState.getApiKey());
     }
 
@@ -123,12 +105,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
 
     @Override
     public void reset() {
-        if (globalSettingsState == null) {
-            globalSettingsState = GlobalSettingsState.getInstance();
-        }
-        if (globalSettingsSensitiveState == null) {
-            globalSettingsSensitiveState = GlobalSettingsSensitiveState.getInstance();
-        }
+        initState();
         boolean isValidating = globalSettingsState.isValidationInProgress();
         boolean useApiKey = globalSettingsState.isApiKeyEnabled();
         boolean isAuthValid = isValid();
@@ -146,9 +123,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
             setValidationResult();
             setSessionExpired();
         } else { // Authenticated
-            apiKeyRadio.setSelected(useApiKey);
             apiKeyField.setEnabled(useApiKey);
-
             updateFieldLabels();
             setValidationResult();
             setFieldsEditable(false);
@@ -201,11 +176,9 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
      */
     private GlobalSettingsState getStateFromFields() {
         GlobalSettingsState state = new GlobalSettingsState();
-
         // Fields directly managed by this UI panel
         state.setAdditionalParameters(additionalParametersField.getText().trim());
-
-        state.setApiKeyEnabled(apiKeyRadio.isSelected());
+        state.setApiKeyEnabled(true);
 
         // Preserve all other state fields from the current settings
         if (globalSettingsState != null) {
@@ -253,17 +226,15 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
             setValidationResult(getMessage(Resource.VALIDATE_IN_PROGRESS), JBColor.GREEN);
             setInvalidAuthState("");
 
-            if (apiKeyRadio.isSelected()) {
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        Authentication.validateConnection(getStateFromFields(), getSensitiveStateFromFields());
-                        SwingUtilities.invokeLater(this::onAuthSuccessApiKey);
-                        LOGGER.info(getMessage(Resource.IGNITE_PLUGIN_AUTH_SUCCESS_MSG));
-                    } catch (Exception e) {
-                        handleConnectionFailure(e);
-                    }
-                });
-            }
+            CompletableFuture.runAsync(() -> {
+                try {
+                    Authentication.validateConnection(getStateFromFields(), getSensitiveStateFromFields());
+                    SwingUtilities.invokeLater(this::onAuthSuccessApiKey);
+                    LOGGER.info(getMessage(Resource.IGNITE_PLUGIN_AUTH_SUCCESS_MSG));
+                } catch (Exception e) {
+                    handleConnectionFailure(e);
+                }
+            });
         });
     }
 
@@ -432,17 +403,13 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.IGNITE_PLUGIN_SETTINGS_HELP_LINK_LABEL),
                 "span, growx, wrap, gapbottom 10");
         addSectionHeader(Resource.IGNITE_PLUGIN_SETTINGS_AUTH_SECTION, false);
-        mainPanel.add(apiKeyRadio, "aligny top");
+        mainPanel.add(apiKeyLabel, "aligny top");
         mainPanel.add(apiKeyField, "growx, wrap, aligny top");
 
-        apiKeyRadio.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                setFieldsEditable(true);
-                updateFieldLabels();
-                updateConnectButtonState();
-                SwingUtilities.invokeLater(apiKeyField::requestFocusInWindow);
-            }
-        });
+        setFieldsEditable(true);
+        updateFieldLabels();
+        updateConnectButtonState();
+        SwingUtilities.invokeLater(apiKeyField::requestFocusInWindow);
 
         mainPanel.add(connectButton, "gaptop 10");
         mainPanel.add(logoutButton, "gaptop 10, wrap");
@@ -453,7 +420,6 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
         mainPanel.add(new JBLabel());
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.ADDITIONAL_PARAMETERS_HELP, Resource.HELP_CLI),
                 "gapleft 5,gapbottom 10, wrap");
-
 
         // === CxOne Assist link section ===
         assistLink = new CxLinkLabel("Go to " + getMessage(Resource.IGNITE_PLUGIN_SETTINGS_CHILD_TITLE),
@@ -483,9 +449,6 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
 
     private void setupFields() {
         apiKeyField.setName(Constants.FIELD_NAME_API_KEY);
-        apiKeyRadio.setName("apiKeyRadio");
-        authGroup.add(apiKeyRadio);
-
         apiKeyField.getDocument().addDocumentListener(new DocumentAdapter() {
             @Override
             protected void textChanged(@NotNull DocumentEvent e) {
@@ -493,31 +456,20 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
             }
         });
 
-        // Listener to update state when switching to API Key
-        apiKeyRadio.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                setFieldsEditable(true);
-                updateFieldLabels();
-                updateConnectButtonState();
-                SwingUtilities.invokeLater(() -> apiKeyField.requestFocusInWindow());
-            }
-        });
+        setFieldsEditable(true);
+        updateFieldLabels();
+        updateConnectButtonState();
+        SwingUtilities.invokeLater(apiKeyField::requestFocusInWindow);
 
         logoutButton.setName("logoutButton");
         additionalParametersField.setName(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS);
 
         apiKeyField.setEnabled(false);
         logoutButton.setEnabled(false);
-        boolean useApiKey = globalSettingsState.isApiKeyEnabled();
-        apiKeyRadio.setSelected(useApiKey);
     }
 
     private void updateConnectButtonState() {
-        boolean enabled = false;
-
-        if (apiKeyRadio.isSelected()) {
-            enabled = !String.valueOf(apiKeyField.getPassword()).trim().isEmpty();
-        }
+        boolean enabled = !String.valueOf(apiKeyField.getPassword()).trim().isEmpty();
         if (globalSettingsState.isAuthenticated() || globalSettingsState.isValidationInProgress()) {
             enabled = false;
         }
@@ -657,7 +609,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
     }
 
     private void updateFieldLabels() {
-        apiKeyRadio.setText(String.format(Constants.FIELD_FORMAT, "API Key", Constants.REQUIRED_MARK));
+        apiKeyLabel.setText(String.format(Constants.FIELD_FORMAT, "API Key", Constants.REQUIRED_MARK));
     }
 
     private void validatePanel() {
@@ -697,16 +649,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
     }
 
     private void setFieldsEditable(boolean editable) {
-        boolean apiKeySelected = apiKeyRadio.isSelected();
-        apiKeyField.setEnabled(editable && apiKeySelected);
-        apiKeyRadio.setEnabled(editable);
-
-        // System default colors
-        Color enabledColor = UIManager.getColor("Label.foreground");
-        Color disabledColor = UIManager.getColor("Label.disabledForeground");
-
-        apiKeyRadio.setForeground((editable && apiKeySelected) ? enabledColor : disabledColor);
-        apiKeyRadio.repaint();
+        apiKeyField.setEnabled(editable);
     }
 
     /**
@@ -829,6 +772,18 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
             apply();
         } else {
             LOGGER.debug("[Auth] Realtime scanners already disabled");
+        }
+    }
+
+    /**
+     * Load state
+     */
+    private void initState() {
+        if (globalSettingsState == null) {
+            globalSettingsState = GlobalSettingsState.getInstance();
+        }
+        if (globalSettingsSensitiveState == null) {
+            globalSettingsSensitiveState = GlobalSettingsSensitiveState.getInstance();
         }
     }
 
