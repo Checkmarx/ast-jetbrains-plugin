@@ -1,11 +1,11 @@
 package com.checkmarx.intellij.devassist.test.problems;
 
+import com.checkmarx.intellij.common.utils.SeverityLevel;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
-import com.checkmarx.intellij.common.utils.SeverityLevel;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ModalityState;

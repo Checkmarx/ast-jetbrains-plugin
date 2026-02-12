@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.common.components;
 
 
-import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.HyperlinkLabel;

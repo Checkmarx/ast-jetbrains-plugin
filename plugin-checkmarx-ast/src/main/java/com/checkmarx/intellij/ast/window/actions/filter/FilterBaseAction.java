@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ast.window.actions.filter;
 
-import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.ast.results.CustomResultState;
 import com.checkmarx.intellij.ast.window.actions.CxToolWindowAction;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;

@@ -1,11 +1,11 @@
 package com.checkmarx.intellij.ast.test.ui;
 
 import com.automation.remarks.junit5.Video;
+import com.checkmarx.intellij.ast.test.integration.Environment;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupBy;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.ast.test.integration.Environment;
-import com.checkmarx.intellij.ast.window.actions.group.by.GroupBy;
 import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.intellij.remoterobot.fixtures.JButtonFixture;
 import com.intellij.remoterobot.fixtures.JListFixture;

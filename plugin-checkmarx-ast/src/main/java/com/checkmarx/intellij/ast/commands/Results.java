@@ -2,8 +2,8 @@ package com.checkmarx.intellij.ast.commands;
 
 import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.ast.commands.helper.ResultGetState;
-import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;

@@ -1,14 +1,14 @@
 package com.checkmarx.intellij.devassist.ui.findings.window;
 
 import com.checkmarx.intellij.common.resources.CxIcons;
-import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
-import com.checkmarx.intellij.common.utils.Constants;
-import com.checkmarx.intellij.common.utils.SeverityLevel;
-import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.ui.CommonPanels;
 import com.checkmarx.intellij.common.ui.DevAssistPromotionalPanel;
 import com.checkmarx.intellij.common.ui.FindingsPromotionalPanel;
+import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.utils.SeverityLevel;
+import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.Location;

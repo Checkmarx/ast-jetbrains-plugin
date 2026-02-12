@@ -1,12 +1,12 @@
 package com.checkmarx.intellij.devassist.test.registry;
 
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.devassist.basescanner.ScannerCommand;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
-import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;

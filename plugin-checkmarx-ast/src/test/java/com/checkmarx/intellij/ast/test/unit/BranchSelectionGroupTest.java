@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ast.test.unit;
 
-import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.ast.window.actions.selection.BranchSelectionGroup;
 import com.checkmarx.intellij.ast.window.actions.selection.ScanSelectionGroup;
+import com.checkmarx.intellij.common.utils.Constants;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindowManager;

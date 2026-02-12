@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.ast.window.actions.selection;
 
 import com.checkmarx.ast.scan.Scan;
-import com.checkmarx.intellij.common.resources.Resource;
-import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.ast.window.actions.CxToolWindowAction;
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;

@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.ast.test.ui;
 
 import com.automation.remarks.junit5.Video;
+import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
-import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.intellij.remoterobot.fixtures.ActionButtonFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
 import org.junit.jupiter.api.Assertions;

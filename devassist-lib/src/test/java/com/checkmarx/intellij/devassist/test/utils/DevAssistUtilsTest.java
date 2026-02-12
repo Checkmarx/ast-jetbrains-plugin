@@ -1,10 +1,10 @@
 package com.checkmarx.intellij.devassist.test.utils;
 
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.utils.SeverityLevel;
 import com.checkmarx.intellij.devassist.configuration.GlobalScannerController;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
-import com.checkmarx.intellij.common.settings.GlobalSettingsState;
-import com.checkmarx.intellij.common.utils.SeverityLevel;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;

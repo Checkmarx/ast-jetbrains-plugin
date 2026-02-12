@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ast.test.unit.settings.global;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
-import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.intellij.openapi.application.Application;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertSame;
 
 @ExtendWith(MockitoExtension.class)
 class GlobalSettingsStateTest {

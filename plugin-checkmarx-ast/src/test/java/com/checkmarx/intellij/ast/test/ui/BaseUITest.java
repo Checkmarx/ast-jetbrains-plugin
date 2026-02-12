@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.ast.test.ui;
 
-import com.checkmarx.intellij.common.utils.Constants;
-import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.checkmarx.intellij.ast.window.actions.group.by.GroupBy;
+import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.intellij.remoterobot.fixtures.*;
 import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;

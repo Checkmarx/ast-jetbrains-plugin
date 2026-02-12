@@ -1,8 +1,5 @@
 package com.checkmarx.intellij.ast.window.results.tree.nodes;
 
-import com.checkmarx.intellij.common.resources.CxIcons;
-import com.checkmarx.intellij.common.resources.Resource;
-import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.ast.codebashing.CodeBashing;
 import com.checkmarx.ast.learnMore.LearnMore;
 import com.checkmarx.ast.learnMore.Sample;
@@ -11,13 +8,16 @@ import com.checkmarx.ast.results.result.*;
 import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.ast.wrapper.CxConstants;
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.ast.service.StateService;
 import com.checkmarx.intellij.common.components.CxLinkLabel;
 import com.checkmarx.intellij.common.components.PaneUtils;
-import com.checkmarx.intellij.ast.service.StateService;
-import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
-import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.CxIcons;
+import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.intellij.icons.AllIcons;
 import com.intellij.ide.ui.LafManager;
 import com.intellij.ide.ui.LafManagerListener;

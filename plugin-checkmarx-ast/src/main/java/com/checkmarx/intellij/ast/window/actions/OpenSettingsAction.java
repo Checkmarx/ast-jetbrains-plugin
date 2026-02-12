@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ast.window.actions;
 
-import com.checkmarx.intellij.common.resources.Resource;
-import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.ast.settings.GlobalSettingsConfigurable;
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;

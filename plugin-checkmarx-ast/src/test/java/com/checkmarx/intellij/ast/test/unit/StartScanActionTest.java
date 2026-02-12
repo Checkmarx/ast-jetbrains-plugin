@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.ast.test.unit;
 
-import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.ast.commands.Scan;
 import com.checkmarx.intellij.ast.window.CxToolWindowPanel;
 import com.checkmarx.intellij.ast.window.actions.StartScanAction;
+import com.checkmarx.intellij.common.utils.Constants;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;

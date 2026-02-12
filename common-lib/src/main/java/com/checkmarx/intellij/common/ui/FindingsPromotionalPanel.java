@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.common.ui;
 
-import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.UIUtil;
 import net.miginfocom.swing.MigLayout;

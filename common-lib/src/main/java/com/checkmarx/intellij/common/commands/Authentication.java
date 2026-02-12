@@ -1,9 +1,9 @@
 package com.checkmarx.intellij.common.commands;
 
 import com.checkmarx.ast.wrapper.CxException;
-import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 
 import java.io.IOException;
 import java.net.URISyntaxException;

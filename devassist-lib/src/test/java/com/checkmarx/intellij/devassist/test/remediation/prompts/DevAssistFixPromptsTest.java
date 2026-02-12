@@ -1,7 +1,7 @@
 package com.checkmarx.intellij.devassist.test.remediation.prompts;
 
-import com.checkmarx.intellij.devassist.remediation.prompts.DevAssistFixPrompts;
 import com.checkmarx.intellij.common.utils.SeverityLevel;
+import com.checkmarx.intellij.devassist.remediation.prompts.DevAssistFixPrompts;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

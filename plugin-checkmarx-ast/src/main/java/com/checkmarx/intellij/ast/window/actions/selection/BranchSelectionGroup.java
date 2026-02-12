@@ -2,8 +2,8 @@ package com.checkmarx.intellij.ast.window.actions.selection;
 
 import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.intellij.common.resources.Bundle;
-import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;

@@ -1,12 +1,12 @@
 package com.checkmarx.intellij.devassist.test.mcp;
 
-import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.commands.TenantSetting;
+import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpUninstallHandler;
-import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
-import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.openapi.extensions.PluginId;
 import org.junit.jupiter.api.AfterEach;

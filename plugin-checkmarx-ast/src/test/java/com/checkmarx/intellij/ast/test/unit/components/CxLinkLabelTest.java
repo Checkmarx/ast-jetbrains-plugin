@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.ast.test.unit.components;
 
+import com.checkmarx.intellij.common.components.CxLinkLabel;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
-import com.checkmarx.intellij.common.components.CxLinkLabel;
 import com.intellij.ui.HyperlinkLabel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
