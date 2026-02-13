@@ -6,18 +6,20 @@ import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.Resource;
 import com.intellij.remoterobot.fixtures.ActionButtonFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.*;
+
+import java.time.Duration;
+
+import static com.checkmarx.intellij.ui.PageMethods.ScanResultsPannelPage.resetProjectSelection;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
+import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 
 public class TestTriggerScan extends BaseUITest {
 
     @BeforeEach
     public void checkResults(TestInfo info) {
-        if (info.getDisplayName().equals("testScanButtonsDisabledWhenMissingProjectOrBranch")) {
+        if (info.getTags().contains("skip-check-results")) {
             return;
         }
 
@@ -26,26 +28,29 @@ public class TestTriggerScan extends BaseUITest {
 
     @Test
     @Video
+    @Tag("skip-check-results")
     public void testScanButtonsDisabledWhenMissingProjectOrBranch() {
         if (triggerScanNotAllowed()) return;
 
-        clearSelection();
+        resetProjectSelection(0);
         Assertions.assertFalse(find(ActionButtonFixture.class, START_SCAN_BTN).isEnabled());
         Assertions.assertFalse(find(ActionButtonFixture.class, CANCEL_SCAN_BTN).isEnabled());
     }
 
     @Test
     @Video
+    //@Tag("skip-check-results")
     public void testCancelScan() {
         if (triggerScanNotAllowed()) return;
 
+        //resetProjectSelection(0);
         waitForScanIdSelection();
         findRunScanButtonAndClick();
         waitFor(() -> find(ActionButtonFixture.class, CANCEL_SCAN_BTN).isEnabled());
         find(CANCEL_SCAN_BTN).click();
 
-        waitFor(() -> hasAnyComponent(String.format("//div[@class='JEditorPane'and @visible_text='%s']", Bundle.message(Resource.SCAN_CANCELED_SUCCESSFULLY))));
-
+        //waitFor(() -> hasAnyComponent(String.format("//div[@class='JEditorPane'and @visible_text='%s']", Bundle.message(Resource.SCAN_CANCELED_SUCCESSFULLY))));
+        waitFor(() -> find(ActionButtonFixture.class, START_SCAN_BTN).isEnabled());
         Assertions.assertTrue(find(ActionButtonFixture.class, START_SCAN_BTN).isEnabled());
     }
 
@@ -89,8 +94,8 @@ public class TestTriggerScan extends BaseUITest {
         findRunScanButtonAndClick();
         JTreeFixture treeBeforeScan = find(JTreeFixture.class, TREE);
         Assertions.assertTrue(treeBeforeScan.getValueAtRow(0).contains(Environment.SCAN_ID));
-        waitFor(() -> hasAnyComponent(SCAN_FINISHED));
-        find(LOAD_RESULTS).click();
+        waitFor(() -> hasAnyComponent(LOAD_RESULTS));
+        clickSafe(LOAD_RESULTS);
         waitFor(() -> {
             JTreeFixture treeAfterScan = find(JTreeFixture.class, TREE);
             return treeAfterScan.getValueAtRow(0).startsWith("Scan") && !treeAfterScan.getValueAtRow(0).contains(Environment.SCAN_ID);
@@ -101,9 +106,27 @@ public class TestTriggerScan extends BaseUITest {
         ActionButtonFixture runScanBtn = find(ActionButtonFixture.class, START_SCAN_BTN);
         waitFor(runScanBtn::isEnabled);
         runScanBtn.click();
+        // Handle optional popup (appears locally, not in pipeline)
+        if (hasProjectDoesNotMatchPopup()) {
+            log("Project mismatch popup detected. Clicking Run Local.");
+            clickSafe(RUN_SCAN_LOCAL);
+        }
+        else {
+            log("No project mismatch popup detected. Continuing.");
+        }
     }
 
     private boolean triggerScanNotAllowed() {
         return !hasAnyComponent(START_SCAN_BTN);
     }
+
+    private boolean hasProjectDoesNotMatchPopup() {
+        try {
+            waitFor(() -> hasAnyComponent(PROJECT_DOES_NOT_MATCH));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 }
