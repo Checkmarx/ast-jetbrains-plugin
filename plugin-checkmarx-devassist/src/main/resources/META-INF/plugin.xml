@@ -20,7 +20,7 @@
     ]]></description>
 
     <change-notes><![CDATA[
-      <b>Checkmarx One Assist – AI guided remediation.</b>
+      <b>Checkmarx Developer Assist – AI guided remediation.</b>
         <ul>
             <li>An advanced security agent that delivers real-time context-aware prevention, remediation, and guidance to developers from the IDE.</li>
             <li><b>OSS</b> Realtime scanner identifies risks in open source packages used in your project.</li>
