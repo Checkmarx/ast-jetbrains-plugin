@@ -31,7 +31,7 @@ dependencies {
     testImplementation('com.intellij.remoterobot:remote-fixtures:' + remoteRobotVersion) {
         exclude group: 'com.square.okio', module: 'okio'
     }
-    testImplementation 'com.squareup.okio:okio:3.8.0'
+    testImplementation 'com.squareup.okio:okio:3.16.4'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.1'
     testImplementation 'com.squareup.okhttp3:okhttp:4.12.0'
     testImplementation 'junit:junit:4.11-redhat-1'
