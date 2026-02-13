@@ -13,9 +13,9 @@ import org.jetbrains.annotations.NotNull;
  * OpenIgniteSettingsAction class to open Checkmarx Developer Assist settings from the tool window.
  */
 @SuppressWarnings("ComponentNotRegistered")
-public class OpenIgniteSettingsAction extends AnAction {
+public class OpenCxDevAssistSettingsAction extends AnAction {
 
-    public OpenIgniteSettingsAction() {
+    public OpenCxDevAssistSettingsAction() {
         super(Bundle.messagePointer(Resource.SETTINGS_ACTION));
     }
 

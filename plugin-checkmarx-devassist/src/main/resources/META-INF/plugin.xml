@@ -97,7 +97,7 @@
     <!-- Finding Window Toolbar Actions -->
     <actions>
         <group id="VulnerabilityToolbarGroup">
-            <action id="Ignite.OpenSettings" class="com.checkmarx.intellij.ignite.window.actions.OpenIgniteSettingsAction"
+            <action id="Ignite.OpenSettings" class="com.checkmarx.intellij.ignite.window.actions.OpenCxDevAssistSettingsAction"
                     icon="AllIcons.General.Settings"/>
             <separator/>
             <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
