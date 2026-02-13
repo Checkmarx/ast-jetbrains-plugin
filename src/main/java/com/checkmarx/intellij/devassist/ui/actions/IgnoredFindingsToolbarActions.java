@@ -16,18 +16,34 @@ import javax.swing.*;
 import java.util.*;
 
 /**
- * Toolbar actions for the Ignored Findings tab.
- * Provides filter dropdown (vulnerability types), sort dropdown, and severity filters.
- * Uses independent state from CxFindingsWindow to avoid cross-tab interference.
+ * Toolbar actions for the Ignored Findings tab in the Checkmarx tool window.
+ *
+ * <p>This class provides:
+ * <ul>
+ *   <li><b>Severity filters</b> - Toggle buttons for MALICIOUS, CRITICAL, HIGH, MEDIUM, LOW</li>
+ *   <li><b>Type filter dropdown</b> - Filter by vulnerability type (SAST, SCA, Secrets, IaC, Containers)</li>
+ *   <li><b>Sort dropdown</b> - Sort by severity or last updated date</li>
+ * </ul>
+ *
+ * <p>Uses independent state from CxFindingsWindow to avoid cross-tab filter interference.
+ * State is managed by singleton instances: {@link TypeFilterState}, {@link SortState},
+ * and {@link IgnoredFindingsSeverityFilterState}.
+ *
+ * @see com.checkmarx.intellij.devassist.ui.findings.window.CxIgnoredFindings
  */
 public class IgnoredFindingsToolbarActions {
 
-    // ========== Message Topics ==========
+    // ========== Message Topics for Filter/Sort Changes ==========
 
+    /** Topic for vulnerability type filter changes. */
     public static final Topic<TypeFilterChanged> TYPE_FILTER_TOPIC =
             Topic.create("Type Filter Changed", TypeFilterChanged.class);
+
+    /** Topic for sort order changes. */
     public static final Topic<SortChanged> SORT_TOPIC =
             Topic.create("Sort Changed", SortChanged.class);
+
+    /** Topic for severity filter changes (independent from CxFindingsWindow). */
     public static final Topic<SeverityFilterChanged> SEVERITY_FILTER_TOPIC =
             Topic.create("Ignored Findings Severity Filter Changed", SeverityFilterChanged.class);
 
@@ -286,9 +302,13 @@ public class IgnoredFindingsToolbarActions {
         @Override protected Filterable getFilterable() { return Severity.LOW; }
     }
 
-    // ========== State Managers ==========
+    // ========== State Managers (Singleton Pattern) ==========
 
-    /** State manager for vulnerability type filters */
+    /**
+     * Singleton state manager for vulnerability type filters.
+     * Tracks which scan engines (SAST, SCA, Secrets, etc.) are selected.
+     * Thread-safe via synchronized set.
+     */
     public static class TypeFilterState {
         private static final TypeFilterState INSTANCE = new TypeFilterState();
         private final Set<ScanEngine> selectedEngines = Collections.synchronizedSet(EnumSet.allOf(ScanEngine.class));
@@ -296,6 +316,7 @@ public class IgnoredFindingsToolbarActions {
         private TypeFilterState() { selectedEngines.remove(ScanEngine.ALL); }
 
         public static TypeFilterState getInstance() { return INSTANCE; }
+
         public boolean isSelected(ScanEngine engine) { return selectedEngines.contains(engine); }
 
         public void setSelected(ScanEngine engine, boolean selected) {
@@ -303,8 +324,10 @@ public class IgnoredFindingsToolbarActions {
             else selectedEngines.remove(engine);
         }
 
+        /** Returns a copy of currently selected engines. */
         public Set<ScanEngine> getSelectedEngines() { return new HashSet<>(selectedEngines); }
 
+        /** Returns true if any engine is deselected (i.e., filtering is active). */
         public boolean hasActiveFilters() {
             Set<ScanEngine> allRealEngines = EnumSet.allOf(ScanEngine.class);
             allRealEngines.remove(ScanEngine.ALL);
@@ -312,7 +335,10 @@ public class IgnoredFindingsToolbarActions {
         }
     }
 
-    /** State manager for sort settings */
+    /**
+     * Singleton state manager for sort settings.
+     * Tracks the current sort field and date order.
+     */
     public static class SortState {
         private static final SortState INSTANCE = new SortState();
         private SortField sortField = SortField.SEVERITY_HIGH_TO_LOW;
@@ -329,7 +355,11 @@ public class IgnoredFindingsToolbarActions {
         public void setDateOrder(DateOrder dateOrder) { this.dateOrder = dateOrder; }
     }
 
-    /** State manager for severity filters - is independent of CxFindingsWindow */
+    /**
+     * Singleton state manager for severity filters.
+     * Independent from CxFindingsWindow to prevent cross-tab interference.
+     * Thread-safe via synchronized set.
+     */
     public static class IgnoredFindingsSeverityFilterState {
         private static final IgnoredFindingsSeverityFilterState INSTANCE = new IgnoredFindingsSeverityFilterState();
         private final Set<Filterable> selectedFilters = Collections.synchronizedSet(new HashSet<>());
@@ -338,6 +368,7 @@ public class IgnoredFindingsToolbarActions {
 
         public static IgnoredFindingsSeverityFilterState getInstance() { return INSTANCE; }
 
+        /** Returns selected filters, restoring defaults if empty. */
         public Set<Filterable> getFilters() {
             if (selectedFilters.isEmpty()) selectedFilters.addAll(Severity.DEFAULT_SEVERITIES);
             return selectedFilters;
@@ -353,7 +384,12 @@ public class IgnoredFindingsToolbarActions {
 
     // ========== Listener Interfaces ==========
 
+    /** Listener for vulnerability type filter changes. */
     public interface TypeFilterChanged { void filterChanged(); }
+
+    /** Listener for sort order changes. */
     public interface SortChanged { void sortChanged(); }
+
+    /** Listener for severity filter changes. */
     public interface SeverityFilterChanged { void filterChanged(); }
 }

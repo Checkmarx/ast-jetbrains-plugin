@@ -74,7 +74,7 @@ public class SecretsScanResultAdaptorTest {
                 Collections.singletonList(createMockLocation(5, 10, 25))
         );
         when(mockResults.getSecrets()).thenReturn(Collections.singletonList(mockSecret));
-        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults, "");
+        SecretsScanResultAdaptor adaptor = new SecretsScanResultAdaptor(mockResults, "test.js");
         // When
         List<ScanIssue> issues = adaptor.getIssues();
 
@@ -126,7 +126,7 @@ public class SecretsScanResultAdaptorTest {
         );
 
         when(mockResults.getSecrets()).thenReturn(Arrays.asList(secret1, secret2));
-        SecretsScanResultAdaptor adaptor= new SecretsScanResultAdaptor(mockResults, "");
+        SecretsScanResultAdaptor adaptor= new SecretsScanResultAdaptor(mockResults, "file1.js");
         // When
         List<ScanIssue> issues = adaptor.getIssues();
 
@@ -140,11 +140,11 @@ public class SecretsScanResultAdaptorTest {
         assertEquals("HIGH", issue1.getSeverity());
         assertEquals("file1.js", issue1.getFilePath());
 
-        // Verify second issue
+        // Verify second issue - both issues should have the same file path from constructor
         ScanIssue issue2 = issues.get(1);
         assertEquals("Database Password", issue2.getTitle());
         assertEquals("CRITICAL", issue2.getSeverity());
-        assertEquals("file2.js", issue2.getFilePath());
+        assertEquals("file1.js", issue2.getFilePath());
     }
 
     @Test

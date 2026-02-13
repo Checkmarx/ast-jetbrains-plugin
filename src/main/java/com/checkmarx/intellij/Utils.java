@@ -53,6 +53,9 @@ public final class Utils {
     private static Project cxProject;
     private static MessageBus messageBus;
 
+    // Flag to prevent duplicate "Session Expired" notifications
+    private static volatile boolean sessionExpiredNotificationShown = false;
+
     private static Project getCxProject() {
         if (cxProject == null && ApplicationManager.getApplication() != null) {
             cxProject = ProjectManager.getInstance().getDefaultProject();
@@ -370,9 +373,16 @@ public final class Utils {
     }
 
     /**
-     * Notify on user session expired and publish new state
+     * Notify on user session expired and publish new state.
+     * Uses a flag to prevent duplicate notifications when multiple services detect session expiry.
      */
     public static void notifySessionExpired() {
+        // Prevent duplicate notifications - only show once per session expiry
+        if (sessionExpiredNotificationShown) {
+            return;
+        }
+        sessionExpiredNotificationShown = true;
+
         ApplicationManager.getApplication().invokeLater(() ->
                 Utils.showNotification(Bundle.message(Resource.SESSION_EXPIRED_TITLE),
                         Bundle.message(Resource.ERROR_SESSION_EXPIRED),
@@ -382,6 +392,14 @@ public final class Utils {
         ApplicationManager.getApplication().invokeLater(() ->
                 getMessageBus().syncPublisher(SettingsListener.SETTINGS_APPLIED).settingsApplied()
         );
+    }
+
+    /**
+     * Resets the session expired notification flag.
+     * Should be called when user logs in successfully or explicitly logs out.
+     */
+    public static void resetSessionExpiredNotificationFlag() {
+        sessionExpiredNotificationShown = false;
     }
 
     /**

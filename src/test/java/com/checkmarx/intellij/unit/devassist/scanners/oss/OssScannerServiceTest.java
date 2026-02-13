@@ -14,6 +14,7 @@ import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
 import java.io.IOException;
@@ -103,8 +104,14 @@ public class OssScannerServiceTest {
         PsiFile psi = mockPsiFile("package.json");
         doReturn(true).when(service).shouldScanFile("package.json",psi);
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
-             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class)) {
+             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetry = mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class);
+             MockedConstruction<com.checkmarx.intellij.devassist.ignore.IgnoreManager> ignoreMgrConstruction = mockConstruction(com.checkmarx.intellij.devassist.ignore.IgnoreManager.class, (mock, context) -> {
+                 when(mock.hasIgnoredEntries(any())).thenReturn(false);
+             })) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
+            utils.when(() -> DevAssistUtils.getIgnoreFilePath(any(com.intellij.openapi.project.Project.class))).thenReturn("");
+            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
             CxWrapper wrapper = mock(CxWrapper.class);
             OssRealtimeResults realtimeResults = mock(OssRealtimeResults.class);
             when(realtimeResults.getPackages()).thenReturn(List.of());
@@ -123,8 +130,14 @@ public class OssScannerServiceTest {
         PsiFile psi = mockPsiFile("package.json");
         doReturn(true).when(service).shouldScanFile("package.json",psi);
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
-             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class)) {
+             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetry = mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class);
+             MockedConstruction<com.checkmarx.intellij.devassist.ignore.IgnoreManager> ignoreMgrConstruction = mockConstruction(com.checkmarx.intellij.devassist.ignore.IgnoreManager.class, (mock, context) -> {
+                 when(mock.hasIgnoredEntries(any())).thenReturn(false);
+             })) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
+            utils.when(() -> DevAssistUtils.getIgnoreFilePath(any(com.intellij.openapi.project.Project.class))).thenReturn("");
+            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
             CxWrapper wrapper = mock(CxWrapper.class);
             OssRealtimeResults realtimeResults = mock(OssRealtimeResults.class);
             OssRealtimeScanPackage pkg = mock(OssRealtimeScanPackage.class);
@@ -169,8 +182,14 @@ public class OssScannerServiceTest {
         PsiFile psi = mockPsiFile("package.json");
         doReturn(true).when(service).shouldScanFile("package.json",psi);
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
-             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class)) {
+             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetry = mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class);
+             MockedConstruction<com.checkmarx.intellij.devassist.ignore.IgnoreManager> ignoreMgrConstruction = mockConstruction(com.checkmarx.intellij.devassist.ignore.IgnoreManager.class, (mock, context) -> {
+                 when(mock.hasIgnoredEntries(any())).thenReturn(false);
+             })) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
+            utils.when(() -> DevAssistUtils.getIgnoreFilePath(any(com.intellij.openapi.project.Project.class))).thenReturn("");
+            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
             CxWrapper wrapper = mock(CxWrapper.class);
             OssRealtimeResults realtimeResults = mock(OssRealtimeResults.class);
             when(realtimeResults.getPackages()).thenReturn(List.of());

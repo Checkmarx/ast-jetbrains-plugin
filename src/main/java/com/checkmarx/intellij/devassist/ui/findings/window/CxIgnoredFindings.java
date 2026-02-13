@@ -35,6 +35,7 @@ import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
 import com.intellij.util.messages.Topic;
@@ -52,10 +53,9 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
 
 /**
  * Tool window panel for viewing and managing ignored vulnerability findings.
@@ -72,6 +72,24 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private static final String FONT_FAMILY_MENLO = "Menlo";
     private static final String FONT_FAMILY_INTER = "Inter";
     private static final String FONT_FAMILY_SF_PRO = "SF Pro";
+
+    // ========== Theme Colors (Figma design specs) ==========
+    // JBColor(lightColor, darkColor) - automatically switches based on current theme
+    private static final JBColor TEXT_COLOR = new JBColor(0x52545F, 0xADADAD);      // Text in pills and links
+    private static final JBColor LINK_COLOR = new JBColor(0x606572, 0xADADAD);      // Underlined links
+    private static final JBColor PILL_BG = new JBColor(0xFFFFFF, 0x323438);         // Pill button background (light=white, dark=gray)
+    private static final JBColor PILL_BORDER = new JBColor(0x9DA3B4, 0x43454A);     // Pill button border
+    private static final JBColor DIVIDER_COLOR = new JBColor(0xADADAD, 0xADADAD);   // Vertical divider line
+
+    // ========== Icon Lookup Maps ==========
+    private static final Map<String, Icon> SEVERITY_ICONS = Map.of(
+            "critical", CxIcons.Medium.CRITICAL, "high", CxIcons.Medium.HIGH,
+            "medium", CxIcons.Medium.MEDIUM, "low", CxIcons.Medium.LOW, "malicious", CxIcons.Medium.MALICIOUS);
+
+    private static final Map<ScanEngine, Icon> ENGINE_CHIP_ICONS = Map.of(
+            ScanEngine.SECRETS, CxIcons.Ignored.ENGINE_CHIP_SECRETS, ScanEngine.IAC, CxIcons.Ignored.ENGINE_CHIP_IAC,
+            ScanEngine.ASCA, CxIcons.Ignored.ENGINE_CHIP_SAST, ScanEngine.CONTAINERS, CxIcons.Ignored.ENGINE_CHIP_CONTAINERS,
+            ScanEngine.OSS, CxIcons.Ignored.ENGINE_CHIP_SCA);
 
     // ========== Topic for publishing ignored findings count changes ==========
     public static final Topic<IgnoredCountListener> IGNORED_COUNT_TOPIC =
@@ -94,7 +112,6 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     private JCheckBox selectAllCheckbox;
     private JPanel headerPanel;
     private JPanel selectionBarPanel;
-    private JPanel columnsPanel;
     private JLabel selectionCountLabel;
     private List<IgnoreEntry> allEntries = new ArrayList<>();
     private long lastKnownModificationTime = 0;
@@ -329,20 +346,14 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
     }
 
     private JPanel createEmptyMessagePanel(String message) {
-        JPanel container = new JPanel(new BorderLayout());
-        container.setBackground(JBUI.CurrentTheme.ToolWindow.background());
-
-        JPanel messagePanel = new JPanel(new BorderLayout());
-        messagePanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
-        messagePanel.setBorder(JBUI.Borders.empty(40));
-
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+        panel.setBorder(JBUI.Borders.empty(40));
         JLabel label = new JLabel(message, SwingConstants.CENTER);
         label.setFont(JBUI.Fonts.label(14));
         label.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
-        messagePanel.add(label, BorderLayout.CENTER);
-
-        container.add(messagePanel, BorderLayout.CENTER);
-        return container;
+        panel.add(label, BorderLayout.CENTER);
+        return panel;
     }
 
     /** Creates a toolbar with severity filters, type filter dropdown, and sort dropdown. */
@@ -417,17 +428,12 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
     }
 
-    /** Returns severity level (5=MALICIOUS, 4=CRITICAL, 3=HIGH, 2=MEDIUM, 1=LOW, 0=unknown). */
+    // Severity level lookup: MALICIOUS=5, CRITICAL=4, HIGH=3, MEDIUM=2, LOW=1, unknown=0
+    private static final Map<String, Integer> SEVERITY_LEVELS = Map.of(
+            "MALICIOUS", 5, "CRITICAL", 4, "HIGH", 3, "MEDIUM", 2, "LOW", 1);
+
     private int getSeverityLevel(String severity) {
-        if (severity == null) return 0;
-        switch (severity.toUpperCase()) {
-            case "MALICIOUS": return 5;
-            case "CRITICAL": return 4;
-            case "HIGH": return 3;
-            case "MEDIUM": return 2;
-            case "LOW": return 1;
-            default: return 0;
-        }
+        return severity == null ? 0 : SEVERITY_LEVELS.getOrDefault(severity.toUpperCase(), 0);
     }
 
     private int compareDates(String date1, String date2) {
@@ -471,23 +477,19 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         selectionBarPanel = createSelectionBar();
         selectionBarPanel.setVisible(false);
 
-        // Create columns panel
-        columnsPanel = new JPanel();
+        // Create columns panel: Checkbox | Risk (expands) | Last Updated | Actions
+        JPanel columnsPanel = new JPanel();
         columnsPanel.setLayout(new BoxLayout(columnsPanel, BoxLayout.X_AXIS));
         columnsPanel.setBackground(JBUI.CurrentTheme.ToolWindow.background());
         columnsPanel.setBorder(JBUI.Borders.empty(12, 0, 8, 0));
-
-        // Checkbox | Risk (expands) | Last Updated | Actions
         columnsPanel.add(createFixedColumn(50, createSelectAllCheckbox()));
         columnsPanel.add(Box.createRigidArea(new Dimension(JBUI.scale(12), 0)));
-        columnsPanel.add(createFlexibleColumn(Bundle.message(Resource.IGNORED_RISK_COLUMN), 400, 500, Integer.MAX_VALUE, FlowLayout.LEFT, FONT_FAMILY_INTER));
-        // Risk column expands to fill space - no glue needed here
-        // Use HTML to prevent text wrapping in header
-        columnsPanel.add(createFlexibleColumn("<html><nobr>" + Bundle.message(Resource.IGNORED_LAST_UPDATED_COLUMN) + "</nobr></html>", 120, 140, 160, FlowLayout.CENTER, FONT_FAMILY_SF_PRO));
-        columnsPanel.add(Box.createHorizontalGlue());  // Push Actions to right edge
+        columnsPanel.add(createRiskColumnHeader());
+        columnsPanel.add(createLastUpdatedColumnHeader());
+        columnsPanel.add(Box.createHorizontalGlue());
         columnsPanel.add(createFixedColumn(140, null));
 
-        // Container for both selection bar and columns (stacked vertically)
+        // Container for selection bar and columns (stacked vertically)
         JPanel headerContent = new JPanel();
         headerContent.setLayout(new BoxLayout(headerContent, BoxLayout.Y_AXIS));
         headerContent.setBackground(JBUI.CurrentTheme.ToolWindow.background());
@@ -498,82 +500,64 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return headerPanel;
     }
 
-    /** Creates the selection bar that appears when items are selected. */
+    /** Creates the selection bar (count label | divider | clear | revive buttons). Height=56px. */
     private JPanel createSelectionBar() {
-        // Use BoxLayout for horizontal alignment
         JPanel bar = new JPanel();
         bar.setLayout(new BoxLayout(bar, BoxLayout.X_AXIS));
         bar.setBackground(JBUI.CurrentTheme.ToolWindow.background());
+        bar.setBorder(JBUI.Borders.empty(8, 0));
+        Dimension barSize = new Dimension(Integer.MAX_VALUE, JBUI.scale(56));
+        bar.setPreferredSize(barSize);
+        bar.setMinimumSize(new Dimension(0, JBUI.scale(56)));
+        bar.setMaximumSize(barSize);
 
-        // Fixed height of 56px: 8px (top padding) + 40px (content) + 8px (bottom padding)
-        bar.setBorder(JBUI.Borders.empty(8, 0, 8, 0));
-        final int SELECTION_BAR_HEIGHT = 56;
-        bar.setPreferredSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(SELECTION_BAR_HEIGHT)));
-        bar.setMinimumSize(new Dimension(0, JBUI.scale(SELECTION_BAR_HEIGHT)));
-        bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(SELECTION_BAR_HEIGHT)));
-
-        // Width to fit the revive-selected button SVG (174x28)
-        final int REVIVE_SELECTED_BTN_WIDTH = 180;
-
-        // === "N Risks selected" - simple text with natural width ===
         selectionCountLabel = new JLabel("0 Risks selected");
         selectionCountLabel.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, 14));
-        selectionCountLabel.setForeground(UIManager.getColor("Label.foreground"));
 
-        // Content height is 40px (56px total - 8px top padding - 8px bottom padding)
-        final int CONTENT_HEIGHT = 40;
-
-        // === Vertical divider line ===
+        // Vertical divider (24x40)
+        Dimension divSize = new Dimension(JBUI.scale(24), JBUI.scale(40));
         JPanel divider = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
+            @Override protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                g.setColor(new Color(0xADADAD));
+                g.setColor(DIVIDER_COLOR);
                 g.drawLine(getWidth() / 2, 8, getWidth() / 2, getHeight() - 8);
             }
         };
         divider.setOpaque(false);
-        divider.setPreferredSize(new Dimension(JBUI.scale(24), JBUI.scale(CONTENT_HEIGHT)));
-        divider.setMinimumSize(new Dimension(JBUI.scale(24), JBUI.scale(CONTENT_HEIGHT)));
-        divider.setMaximumSize(new Dimension(JBUI.scale(24), JBUI.scale(CONTENT_HEIGHT)));
+        divider.setPreferredSize(divSize);
+        divider.setMinimumSize(divSize);
+        divider.setMaximumSize(divSize);
 
-        // === "X Clear Selections" button ===
-        JLabel clearSelectionBtn = new JLabel(CxIcons.Ignored.CLEAR_SELECTION);
-        clearSelectionBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        clearSelectionBtn.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                clearSelection();
-            }
-        });
+        // Clear and revive buttons
+        JLabel clearBtn = createClickableLabel(CxIcons.Ignored.CLEAR_SELECTION, e -> clearSelection());
+        JLabel reviveBtn = createClickableLabel(CxIcons.Ignored.REVIVE_SELECTED, e -> reviveSelectedEntries());
+        Dimension reviveSize = new Dimension(JBUI.scale(180), JBUI.scale(40));
+        JPanel revivePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        revivePanel.setOpaque(false);
+        revivePanel.setPreferredSize(reviveSize);
+        revivePanel.setMinimumSize(reviveSize);
+        revivePanel.setMaximumSize(reviveSize);
+        revivePanel.add(reviveBtn);
 
-        // === "Revive Selected" button - aligned to right ===
-        JPanel reviveSelectedPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-        reviveSelectedPanel.setOpaque(false);
-        reviveSelectedPanel.setPreferredSize(new Dimension(JBUI.scale(REVIVE_SELECTED_BTN_WIDTH), JBUI.scale(CONTENT_HEIGHT)));
-        reviveSelectedPanel.setMinimumSize(new Dimension(JBUI.scale(REVIVE_SELECTED_BTN_WIDTH), JBUI.scale(CONTENT_HEIGHT)));
-        reviveSelectedPanel.setMaximumSize(new Dimension(JBUI.scale(REVIVE_SELECTED_BTN_WIDTH), JBUI.scale(CONTENT_HEIGHT)));
-
-        JLabel reviveSelectedBtn = new JLabel(CxIcons.Ignored.REVIVE_SELECTED);
-        reviveSelectedBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        reviveSelectedBtn.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                reviveSelectedEntries();
-            }
-        });
-        reviveSelectedPanel.add(reviveSelectedBtn);
-
-        // Add components with proper spacing
+        // Assemble: count | divider | clear | glue | revive
         bar.add(selectionCountLabel);
-        bar.add(Box.createRigidArea(new Dimension(JBUI.scale(16), 0))); // Padding before divider
+        bar.add(Box.createRigidArea(new Dimension(JBUI.scale(16), 0)));
         bar.add(divider);
-        bar.add(Box.createRigidArea(new Dimension(JBUI.scale(8), 0))); // Padding after divider
-        bar.add(clearSelectionBtn);
-        bar.add(Box.createHorizontalGlue()); // Push Revive Selected to the right
-        bar.add(reviveSelectedPanel);
-
+        bar.add(Box.createRigidArea(new Dimension(JBUI.scale(8), 0)));
+        bar.add(clearBtn);
+        bar.add(Box.createHorizontalGlue());
+        bar.add(revivePanel);
         return bar;
+    }
+
+    /** Creates a clickable label with hand cursor. */
+    private JLabel createClickableLabel(Icon icon, java.util.function.Consumer<MouseEvent> onClick) {
+        JLabel label = new JLabel(icon);
+        label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        label.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { onClick.accept(e); }
+        });
+        return label;
     }
 
     /** Revives all selected entries. */
@@ -636,16 +620,29 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         return panel;
     }
 
-    @SuppressWarnings("MagicConstant")
-    private JPanel createFlexibleColumn(String title, int min, int pref, int max, int alignment, String fontFamily) {
-        JPanel panel = new JPanel(new FlowLayout(alignment, alignment == FlowLayout.LEFT ? JBUI.scale(20) : 0, 0));
+    /** Creates Risk column header (left-aligned, expands). */
+    private JPanel createRiskColumnHeader() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(20), 0));
         panel.setOpaque(false);
-        panel.setMinimumSize(new Dimension(JBUI.scale(min), JBUI.scale(HEADER_ROW_HEIGHT)));
-        panel.setPreferredSize(new Dimension(JBUI.scale(pref), JBUI.scale(HEADER_ROW_HEIGHT)));
-        panel.setMaximumSize(new Dimension(JBUI.scale(max), JBUI.scale(HEADER_ROW_HEIGHT)));
+        panel.setMinimumSize(new Dimension(JBUI.scale(400), JBUI.scale(HEADER_ROW_HEIGHT)));
+        panel.setPreferredSize(new Dimension(JBUI.scale(500), JBUI.scale(HEADER_ROW_HEIGHT)));
+        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(HEADER_ROW_HEIGHT)));
+        JLabel label = new JLabel(Bundle.message(Resource.IGNORED_RISK_COLUMN));
+        label.setFont(new Font(FONT_FAMILY_INTER, Font.PLAIN, 14));
+        label.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
+        panel.add(label);
+        return panel;
+    }
 
-        JLabel label = new JLabel(title);
-        label.setFont(new Font(fontFamily, Font.PLAIN, 14));
+    /** Creates Last Updated column header (center-aligned, fixed 120-160px). */
+    private JPanel createLastUpdatedColumnHeader() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        panel.setOpaque(false);
+        panel.setMinimumSize(new Dimension(JBUI.scale(120), JBUI.scale(HEADER_ROW_HEIGHT)));
+        panel.setPreferredSize(new Dimension(JBUI.scale(140), JBUI.scale(HEADER_ROW_HEIGHT)));
+        panel.setMaximumSize(new Dimension(JBUI.scale(160), JBUI.scale(HEADER_ROW_HEIGHT)));
+        JLabel label = new JLabel("<html><nobr>" + Bundle.message(Resource.IGNORED_LAST_UPDATED_COLUMN) + "</nobr></html>");
+        label.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, 14));
         label.setForeground(JBUI.CurrentTheme.Label.disabledForeground());
         panel.add(label);
         return panel;
@@ -802,37 +799,73 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
 
         private JPanel buildLastUpdatedColumn() {
-            JPanel panel = new JPanel(new BorderLayout());
-            panel.setOpaque(false);
-            setColumnSizes(panel, 120, 140, 160, getCalculatedRowHeight());
-
+            JPanel panel = createVerticalColumnPanel();
+            panel.add(createTopSpacer());
+            JPanel middleWrapper = createMiddleWrapper();
             JLabel label = new JLabel(formatRelativeDate(entry.dateAdded));
             label.setFont(new Font(FONT_FAMILY_MENLO, Font.PLAIN, 14));
             label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setVerticalAlignment(SwingConstants.CENTER);  // Align to top for dynamic height
-            panel.add(label, BorderLayout.CENTER);
+            middleWrapper.add(label);
+            panel.add(middleWrapper);
             return panel;
         }
 
         private JPanel buildActionsColumn() {
-            JPanel panel = new JPanel(new GridBagLayout());
-            panel.setOpaque(false);
-            setColumnSizes(panel, 120, 140, 160, getCalculatedRowHeight());
-
-            JButton reviveButton = new JButton(CxIcons.Ignored.REVIVE);
-            reviveButton.setBorder(BorderFactory.createEmptyBorder());
-            reviveButton.setContentAreaFilled(false);
-            reviveButton.setFocusPainted(false);
-            reviveButton.setOpaque(false);
-            reviveButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            reviveButton.addActionListener(e -> new IgnoreManager(project).reviveSingleEntry(entry));
-                    LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown"));
-            clearSelection();
-            GridBagConstraints gbc = new GridBagConstraints();
-            gbc.anchor = GridBagConstraints.FIRST_LINE_START;
-            gbc.insets = JBUI.insetsTop(10);
-            panel.add(reviveButton, gbc);
+            JPanel panel = createVerticalColumnPanel();
+            panel.add(createTopSpacer());
+            JPanel middleWrapper = createMiddleWrapper();
+            middleWrapper.add(createReviveButton());
+            panel.add(middleWrapper);
             return panel;
+        }
+
+        // ---------- Column Layout Helpers ----------
+
+        /** Creates a vertical BoxLayout panel with standard column sizing (120-160px width). */
+        private JPanel createVerticalColumnPanel() {
+            JPanel panel = new JPanel();
+            panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+            panel.setOpaque(false);
+            setColumnSizes(panel, getCalculatedRowHeight());
+            return panel;
+        }
+
+        /** Creates a spacer panel to skip past the title row (aligns content with description). */
+        private JPanel createTopSpacer() {
+            JPanel spacer = new JPanel();
+            spacer.setOpaque(false);
+            Dimension size = new Dimension(Integer.MAX_VALUE, JBUI.scale(TOP_LINE_HEIGHT));
+            spacer.setPreferredSize(size);
+            spacer.setMinimumSize(new Dimension(0, JBUI.scale(TOP_LINE_HEIGHT)));
+            spacer.setMaximumSize(size);
+            return spacer;
+        }
+
+        /** Creates a wrapper panel for middle section content (aligned with description row). */
+        private JPanel createMiddleWrapper() {
+            JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, JBUI.scale(2)));
+            wrapper.setOpaque(false);
+            Dimension size = new Dimension(Integer.MAX_VALUE, JBUI.scale(actualDescHeight + 4));
+            wrapper.setPreferredSize(size);
+            wrapper.setMinimumSize(new Dimension(0, JBUI.scale(DESC_LINE_HEIGHT_MIN)));
+            wrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(DESC_LINE_HEIGHT_MAX + 4)));
+            return wrapper;
+        }
+
+        /** Creates the Revive button (restores an ignored finding to active state). */
+        private JButton createReviveButton() {
+            JButton btn = new JButton(CxIcons.Ignored.REVIVE);
+            btn.setBorder(JBUI.Borders.empty());  // Simplified border creation
+            btn.setContentAreaFilled(false);
+            btn.setFocusPainted(false);
+            btn.setOpaque(false);
+            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            btn.addActionListener(e -> {
+                LOGGER.info("Revive clicked for: " + (entry.packageName != null ? entry.packageName : "unknown"));
+                new IgnoreManager(project).reviveSingleEntry(entry);
+                clearSelection();
+            });
+            return btn;
         }
 
         // ---------- Risk Panel Content ----------
@@ -842,88 +875,67 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         private static final int DESC_LINE_HEIGHT_MAX = 36;     // Max 2 lines of text (18px per line)
         private static final int DESC_LINE_HEIGHT_MIN = 18;     // Min 1 line of text
         private static final int DESC_MAX_LINES = 2;            // Maximum lines for description
-        private static final int BOTTOM_LINE_HEIGHT_MIN = 40;   // Min height for engine chip + file buttons (increased for button visibility)
-        private static final int BOTTOM_LINE_ITEM_HEIGHT = 32;  // Height per row of file buttons (increased for proper button display)
+        private static final int BOTTOM_LINE_HEIGHT_MIN = 40;   // Min height for engine chip + file buttons
+        private static final int BOTTOM_LINE_ITEM_HEIGHT = 32;  // Height per row of file buttons
 
         // Dynamic heights calculated during buildRiskContent()
         private int actualDescHeight = DESC_LINE_HEIGHT_MAX;
         private int actualBottomHeight = BOTTOM_LINE_HEIGHT_MIN;
 
+        /** Builds the Risk column content: title line, description, and file buttons. */
         private JPanel buildRiskContent() {
-            // Use BoxLayout with dynamic-height sections
             JPanel panel = new JPanel();
             panel.setOpaque(false);
             panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-            // 1. Top line: card icon + severity icon + name (FIXED HEIGHT = 50px)
+            // 1. Top line: card icon + severity icon + name (fixed 50px height)
             JPanel topLine = new JPanel(new FlowLayout(FlowLayout.LEFT, JBUI.scale(8), JBUI.scale(4)));
             topLine.setOpaque(false);
             topLine.add(new JLabel(getCardIcon()));
             topLine.add(new JLabel(getSeverityIcon()));
-
             String name = formatDisplayName();
             JLabel nameLabel = new JLabel(name);
             nameLabel.setFont(new Font(FONT_FAMILY_MENLO, Font.BOLD, 14));
             nameLabel.setToolTipText(name);
             topLine.add(nameLabel);
-            // Fix topLine height
-            Dimension topLineSize = new Dimension(Integer.MAX_VALUE, JBUI.scale(TOP_LINE_HEIGHT));
-            topLine.setPreferredSize(topLineSize);
-            topLine.setMinimumSize(new Dimension(0, JBUI.scale(TOP_LINE_HEIGHT)));
-            topLine.setMaximumSize(topLineSize);
+            setFlexibleHeight(topLine, TOP_LINE_HEIGHT, TOP_LINE_HEIGHT);
             panel.add(topLine);
 
-            // 2. Description line: DYNAMIC HEIGHT (shrinks for short text, max DESC_MAX_LINES lines)
-            String descText = getDescriptionText();
-            String truncatedDesc = truncateToLines(descText, DESC_MAX_LINES);
+            // 2. Description line: dynamic height (1-2 lines based on content)
+            String descText = getDescriptionText(), truncatedDesc = truncateDescription(descText);
             JTextArea descArea = new JTextArea(truncatedDesc);
             descArea.setFont(new Font(FONT_FAMILY_MENLO, Font.PLAIN, 14));
-            descArea.setLineWrap(true);
-            descArea.setWrapStyleWord(true);
-            descArea.setEditable(false);
-            descArea.setOpaque(false);
-            descArea.setToolTipText(descText);  // Full text in tooltip
-
-            // Calculate actual description height based on content
+            descArea.setLineWrap(true); descArea.setWrapStyleWord(true);
+            descArea.setEditable(false); descArea.setOpaque(false);
+            descArea.setToolTipText(descText);
             actualDescHeight = calculateDescriptionHeight(truncatedDesc, descArea.getFont());
-
-            Dimension descSize = new Dimension(Integer.MAX_VALUE, JBUI.scale(actualDescHeight));
-            descArea.setPreferredSize(descSize);
-            descArea.setMinimumSize(new Dimension(0, JBUI.scale(actualDescHeight)));
-            descArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(DESC_LINE_HEIGHT_MAX)));
+            setFlexibleHeight(descArea, actualDescHeight, DESC_LINE_HEIGHT_MAX);
 
             JPanel descLine = new JPanel(new BorderLayout());
             descLine.setOpaque(false);
             descLine.setBorder(JBUI.Borders.empty(JBUI.scale(2), JBUI.scale(8), JBUI.scale(2), 0));
             descLine.add(descArea, BorderLayout.CENTER);
-            // Dynamic descLine height (descArea height + padding)
-            int descLineHeight = JBUI.scale(actualDescHeight + 4);
-            descLine.setPreferredSize(new Dimension(Integer.MAX_VALUE, descLineHeight));
-            descLine.setMinimumSize(new Dimension(0, descLineHeight));
-            descLine.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(DESC_LINE_HEIGHT_MAX + 4)));
+            setFlexibleHeight(descLine, actualDescHeight + 4, DESC_LINE_HEIGHT_MAX + 4);
             panel.add(descLine);
 
-            // 3. Bottom line: engine chip + file buttons (DYNAMIC HEIGHT - expands for multiple file rows)
-            // Use WrapLayout for the entire bottom line so chip and buttons flow together on same line
+            // 3. Bottom line: engine chip + file buttons (expands for multiple rows)
             JPanel bottomLine = new JPanel(new WrapLayout(FlowLayout.LEFT, JBUI.scale(6), JBUI.scale(4)));
             bottomLine.setOpaque(false);
-
-            // Add engine chip first - it will be on the same line as file buttons
             JLabel engineChip = new JLabel(getEngineChipIcon());
             bottomLine.add(engineChip);
-
-            // Add file buttons directly to bottomLine
             addFileButtonsToContainer(bottomLine, engineChip);
-
-            // Calculate actual bottom height based on content (for initial sizing)
             actualBottomHeight = calculateBottomLineHeight(bottomLine);
-
-            // Set minimum height, but let the layout manager determine actual height
             bottomLine.setMinimumSize(new Dimension(0, JBUI.scale(BOTTOM_LINE_HEIGHT_MIN)));
-            // Don't set preferred/max height - let it grow naturally with content
             panel.add(bottomLine);
 
             return panel;
+        }
+
+        /** Sets flexible height sizing (min=pref=height, max allows expansion). */
+        private void setFlexibleHeight(JComponent c, int height, int maxHeight) {
+            c.setPreferredSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(height)));
+            c.setMinimumSize(new Dimension(0, JBUI.scale(height)));
+            c.setMaximumSize(new Dimension(Integer.MAX_VALUE, JBUI.scale(maxHeight)));
         }
 
         /**
@@ -984,105 +996,53 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return TOP_LINE_HEIGHT + actualDescHeight + 4 + actualBottomHeight;
         }
 
-        /**
-         * Truncates text to approximately the specified number of lines.
-         * Adds "..." if truncated.
-         * Uses character count based on expanded Risk column width.
-         */
-        private String truncateToLines(String text, int maxLines) {
+        /** Truncates text to DESC_MAX_LINES lines (~120 chars/line). Adds "..." if truncated. */
+        private String truncateDescription(String text) {
             if (text == null || text.isEmpty()) return text;
-
-            // With expanded Risk column, allow 120 chars per line
-            // For 2 lines: 120 * 2 = 240 characters max
-            int charsPerLine = 120;
-            int maxChars = maxLines * charsPerLine;
-
-            if (text.length() <= maxChars) {
-                return text;
-            }
-
-            // Truncate and add ellipsis
-            // Leave room for "..." (3 chars)
+            // 120 chars per line * DESC_MAX_LINES (2) = 240 chars max
+            int maxChars = DESC_MAX_LINES * 120;
+            if (text.length() <= maxChars) return text;
+            // Truncate with ellipsis, try to break at word boundary
             String truncated = text.substring(0, maxChars - 3);
-            // Try to break at a word boundary
             int lastSpace = truncated.lastIndexOf(' ');
-            if (lastSpace > (maxChars - 3) - 15) {
-                truncated = truncated.substring(0, lastSpace);
-            }
+            if (lastSpace > maxChars - 18) truncated = truncated.substring(0, lastSpace);
             return truncated + "...";
         }
 
-        /**
-         * Returns the description text based on scanner type and entry data.
-         * - ASCA (SAST): Display description field if available
-         * - IaC: Display description field if available
-         * - Secrets: Display description field if available
-         * - OSS (SCA): If severity is MALICIOUS, display "This is a malicious package!"; otherwise description or fallback
-         * - Containers: Display description field if available, or fallback
-         */
+        /** Returns the description text. For OSS with MALICIOUS severity, shows special message. */
         private String getDescriptionText() {
-            String fallback = Bundle.message(Resource.IGNORED_DESCRIPTION_NOT_AVAILABLE);
-
-            if (entry.type == null) {
-                return isNotBlank(entry.description) ? entry.description : fallback;
+            // Special case: OSS/SCA with MALICIOUS severity
+            if (entry.type == ScanEngine.OSS && "MALICIOUS".equalsIgnoreCase(entry.severity)) {
+                return Bundle.message(Resource.IGNORED_MALICIOUS_PACKAGE_DESC);
             }
-
-            switch (entry.type) {
-                case OSS:
-                    // For OSS/SCA: if severity is MALICIOUS, show special message
-                    if ("MALICIOUS".equalsIgnoreCase(entry.severity)) {
-                        return Bundle.message(Resource.IGNORED_MALICIOUS_PACKAGE_DESC);
-                    }
-                    return isNotBlank(entry.description) ? entry.description : fallback;
-
-                case ASCA:
-                case IAC:
-                case SECRETS:
-                    // For ASCA, IaC, Secrets: display description if available
-                    return isNotBlank(entry.description) ? entry.description : fallback;
-
-                case CONTAINERS:
-                    // For Containers: display description if available, or fallback
-                    return isNotBlank(entry.description) ? entry.description : fallback;
-
-                default:
-                    return isNotBlank(entry.description) ? entry.description : fallback;
-            }
-        }
-
-        private boolean isNotBlank(String str) {
-            return str != null && !str.trim().isEmpty();
+            // Default: use description if available, otherwise fallback
+            return (entry.description != null && !entry.description.isBlank())
+                    ? entry.description : Bundle.message(Resource.IGNORED_DESCRIPTION_NOT_AVAILABLE);
         }
 
         // ---------- Icon Helpers ----------
 
         private Icon getSeverityIcon() {
             if (entry.severity == null) return CxIcons.Small.UNKNOWN;
-            switch (entry.severity.toLowerCase()) {
-                case "critical": return CxIcons.Medium.CRITICAL;
-                case "high": return CxIcons.Medium.HIGH;
-                case "medium": return CxIcons.Medium.MEDIUM;
-                case "low": return CxIcons.Medium.LOW;
-                case "malicious": return CxIcons.Medium.MALICIOUS;
-                default: return CxIcons.Small.UNKNOWN;
-            }
+            return SEVERITY_ICONS.getOrDefault(entry.severity.toLowerCase(), CxIcons.Small.UNKNOWN);
         }
 
         private Icon getCardIcon() {
             String sev = entry.severity != null ? entry.severity.toLowerCase() : "medium";
             switch (entry.type) {
-                case OSS: return getCardIconBySeverity(CxIcons.Ignored.CARD_PACKAGE_CRITICAL, CxIcons.Ignored.CARD_PACKAGE_HIGH,
+                case OSS: return selectCardIcon(CxIcons.Ignored.CARD_PACKAGE_CRITICAL, CxIcons.Ignored.CARD_PACKAGE_HIGH,
                         CxIcons.Ignored.CARD_PACKAGE_MEDIUM, CxIcons.Ignored.CARD_PACKAGE_LOW, CxIcons.Ignored.CARD_PACKAGE_MALICIOUS, sev);
-                case SECRETS: return getCardIconBySeverity(CxIcons.Ignored.CARD_SECRET_CRITICAL, CxIcons.Ignored.CARD_SECRET_HIGH,
+                case SECRETS: return selectCardIcon(CxIcons.Ignored.CARD_SECRET_CRITICAL, CxIcons.Ignored.CARD_SECRET_HIGH,
                         CxIcons.Ignored.CARD_SECRET_MEDIUM, CxIcons.Ignored.CARD_SECRET_LOW, CxIcons.Ignored.CARD_SECRET_MALICIOUS, sev);
-                case CONTAINERS: return getCardIconBySeverity(CxIcons.Ignored.CARD_CONTAINERS_CRITICAL, CxIcons.Ignored.CARD_CONTAINERS_HIGH,
+                case CONTAINERS: return selectCardIcon(CxIcons.Ignored.CARD_CONTAINERS_CRITICAL, CxIcons.Ignored.CARD_CONTAINERS_HIGH,
                         CxIcons.Ignored.CARD_CONTAINERS_MEDIUM, CxIcons.Ignored.CARD_CONTAINERS_LOW, CxIcons.Ignored.CARD_CONTAINERS_MALICIOUS, sev);
-                default: return getCardIconBySeverity(CxIcons.Ignored.CARD_VULNERABILITY_CRITICAL, CxIcons.Ignored.CARD_VULNERABILITY_HIGH,
+                default: return selectCardIcon(CxIcons.Ignored.CARD_VULNERABILITY_CRITICAL, CxIcons.Ignored.CARD_VULNERABILITY_HIGH,
                         CxIcons.Ignored.CARD_VULNERABILITY_MEDIUM, CxIcons.Ignored.CARD_VULNERABILITY_LOW, CxIcons.Ignored.CARD_VULNERABILITY_MALICIOUS, sev);
             }
         }
 
-        private Icon getCardIconBySeverity(Icon critical, Icon high, Icon medium, Icon low, Icon malicious, String sev) {
+        /** Selects the appropriate card icon based on severity. */
+        private Icon selectCardIcon(Icon critical, Icon high, Icon medium, Icon low, Icon malicious, String sev) {
             switch (sev) {
                 case "critical": return critical;
                 case "high": return high;
@@ -1093,14 +1053,7 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
 
         private Icon getEngineChipIcon() {
-            switch (entry.type) {
-                case SECRETS: return CxIcons.Ignored.ENGINE_CHIP_SECRETS;
-                case IAC: return CxIcons.Ignored.ENGINE_CHIP_IAC;
-                case ASCA: return CxIcons.Ignored.ENGINE_CHIP_SAST;
-                case CONTAINERS: return CxIcons.Ignored.ENGINE_CHIP_CONTAINERS;
-                case OSS:
-                default: return CxIcons.Ignored.ENGINE_CHIP_SCA;
-            }
+            return ENGINE_CHIP_ICONS.getOrDefault(entry.type, CxIcons.Ignored.ENGINE_CHIP_SCA);
         }
 
         // ---------- File Buttons ----------
@@ -1165,154 +1118,72 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             }
         }
 
-        /**
-         * Creates a file button with pill shape styling and file icon.
-         */
+        /** Creates a file button with pill shape styling and file icon. */
         private JButton createFileButton(IgnoreEntry.FileReference file) {
-            String label = formatFileLabel(file);
-            JButton btn = createPillButton(label, CxIcons.Ignored.FILE_ICON);
+            JButton btn = createPillButton(formatFileLabel(file));
             btn.setToolTipText(file.path + (file.line != null ? ":" + file.line : ""));
             btn.addActionListener(ev -> navigateToFile(file));
             return btn;
         }
 
-        /**
-         * Creates a pill-shaped button with rounded corners and border styling.
-         * Dark theme: filled background (#323438) with border (#43454A)
-         * Light theme: transparent background with border only (#6F6F6F)
-         *
-         * @param text the button text
-         * @param icon optional icon to display before the text (can be null)
-         */
-        private JButton createPillButton(String text, Icon icon) {
+        /** Creates a pill-shaped button with FILE_ICON, rounded corners, and theme-aware styling. */
+        private JButton createPillButton(String text) {
             JButton btn = new JButton(text) {
                 @Override
                 protected void paintComponent(Graphics g) {
-                    boolean isDark = com.intellij.util.ui.UIUtil.isUnderDarcula();
+                    // Draw rounded pill background with theme-aware colors
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                    int width = getWidth();
-                    int height = getHeight();
-                    int arc = height; // Full pill shape for both themes
-
-                    if (isDark) {
-                        // Dark theme: filled background (#323438) with border (#43454A)
-                        g2.setColor(new Color(0x323438));
-                        g2.fillRoundRect(0, 0, width, height, arc, arc);
-                        g2.setColor(new Color(0x43454A));
-                        g2.drawRoundRect(0, 0, width - 1, height - 1, arc, arc);
-                    } else {
-                        // Light theme: transparent background, border only (#9DA3B4)
-                        g2.setColor(new Color(0x9DA3B4));
-                        g2.drawRoundRect(0, 0, width - 1, height - 1, arc, arc);
-                    }
-
+                    int arc = getHeight();
+                    // Fill background (JBColor auto-switches for dark/light theme)
+                    g2.setColor(PILL_BG);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+                    // Draw border
+                    g2.setColor(PILL_BORDER);
+                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, arc, arc);
                     g2.dispose();
-
-                    // Paint the text and icon
                     super.paintComponent(g);
                 }
 
                 @Override
-                public Color getForeground() {
-                    boolean isDark = com.intellij.util.ui.UIUtil.isUnderDarcula();
-                    return isDark ? new Color(0xADADAD) : new Color(0x52545F);
-                }
+                public Color getForeground() { return TEXT_COLOR; }
             };
-
-            if (icon != null) {
-                btn.setIcon(icon);
-                btn.setIconTextGap(JBUI.scale(3));
-            }
+            // Configure pill button appearance
+            btn.setIcon(CxIcons.Ignored.FILE_ICON);
+            btn.setIconTextGap(JBUI.scale(3));
             btn.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, JBUI.scale(12)));
-            btn.setBorder(JBUI.Borders.empty(0, 0));
+            btn.setBorder(JBUI.Borders.empty());
             btn.setContentAreaFilled(false);
             btn.setOpaque(false);
             btn.setFocusPainted(false);
             btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-            // Set fixed height of 24px
+            // Set fixed height for consistent pill appearance
             int pillHeight = JBUI.scale(24);
             btn.setPreferredSize(new Dimension(btn.getPreferredSize().width, pillHeight));
             btn.setMinimumSize(new Dimension(0, pillHeight));
             btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, pillHeight));
-
             return btn;
         }
 
-        /**
-         * Creates an underlined text link for expand/collapse actions.
-         * Styled as simple underlined text (not a pill button) per Figma design.
-         */
+        /** Creates an underlined text link for expand/collapse actions. */
         private JLabel createUnderlinedLink(String text) {
             JLabel label = new JLabel("<html><u>" + text + "</u></html>");
             label.setFont(new Font(FONT_FAMILY_SF_PRO, Font.PLAIN, 12));
-            // Use theme-specific colors per Figma: dark=#ADADAD, light=#606572
-            boolean isDarkTheme = com.intellij.util.ui.UIUtil.isUnderDarcula();
-            label.setForeground(isDarkTheme ? new Color(0xADADAD) : new Color(0x606572));
+            label.setForeground(LINK_COLOR);
             label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            label.setBorder(JBUI.Borders.empty(4, 4)); // Small padding for alignment
+            label.setBorder(JBUI.Borders.empty(4));
             return label;
         }
 
-        private void propagateRevalidate(Container container) {
-            // Revalidate the entire IgnoredEntryPanel to recalculate row height
-            Container parent = container;
-            while (parent != null) {
-                if (parent instanceof IgnoredEntryPanel) {
-                    parent.revalidate();
-                    parent.repaint();
-                    // Also revalidate the scroll pane to update scrollbar
-                    Container scrollParent = parent.getParent();
-                    while (scrollParent != null && !(scrollParent instanceof JScrollPane)) {
-                        scrollParent = scrollParent.getParent();
-                    }
-                    if (scrollParent != null) {
-                        scrollParent.revalidate();
-                        scrollParent.repaint();
-                    }
-                    return;
-                }
-                parent = parent.getParent();
-            }
-        }
-
-        /**
-         * Revalidates the entire component hierarchy when file buttons are expanded/collapsed.
-         * This ensures the row height properly adjusts to accommodate wrapped file buttons.
-         */
+        /** Revalidates hierarchy from container up to scroll pane for expand/collapse. */
         private void propagateRevalidateForExpansion(Container container) {
-            // First revalidate the container itself
-            container.revalidate();
-
-            // Walk up to find the IgnoredEntryPanel and revalidate the entire hierarchy
-            Container parent = container;
-            while (parent != null) {
-                parent.revalidate();
-                if (parent instanceof IgnoredEntryPanel) {
-                    // Found the entry panel - now revalidate all parents up to scroll pane
-                    Container scrollParent = parent.getParent();
-                    while (scrollParent != null) {
-                        scrollParent.revalidate();
-                        if (scrollParent instanceof JScrollPane) {
-                            break;
-                        }
-                        scrollParent = scrollParent.getParent();
-                    }
-                    // Force immediate layout recalculation
-                    parent.invalidate();
-                    parent.validate();
-                    parent.repaint();
-
-                    // Also repaint the scroll pane
-                    if (scrollParent != null) {
-                        scrollParent.repaint();
-                    }
-                    return;
-                }
-                parent = parent.getParent();
+            // Walk up hierarchy, revalidating each level until we hit the scroll pane
+            for (Container c = container; c != null; c = c.getParent()) {
+                c.revalidate();
+                if (c instanceof JScrollPane) { c.repaint(); break; }
             }
+            // Force immediate layout recalculation on this panel
+            invalidate(); validate(); repaint();
         }
 
         // ---------- File Navigation ----------
@@ -1378,46 +1249,35 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
         }
 
         private String formatDisplayName() {
-            String key = entry.packageName != null ? entry.packageName : Bundle.message(Resource.IGNORED_UNKNOWN);
-            switch (entry.type) {
-                case OSS:
-                    String mgr = entry.packageManager != null ? entry.packageManager : "pkg";
-                    String ver = entry.packageVersion != null ? entry.packageVersion : "";
-                    return mgr + "@" + key + (ver.isEmpty() ? "" : "@" + ver);
-                case ASCA:
-                    return entry.title != null ? entry.title : key;
-                case CONTAINERS:
-                    String tag = entry.imageTag != null ? entry.imageTag : entry.packageVersion;
-                    return key + (tag != null && !tag.isEmpty() ? "@" + tag : "");
-                case SECRETS:
-                case IAC:
-                default:
-                    return key;
+            String name = entry.packageName != null ? entry.packageName : Bundle.message(Resource.IGNORED_UNKNOWN);
+            if (entry.type == ScanEngine.OSS) {
+                String mgr = entry.packageManager != null ? entry.packageManager : "pkg";
+                String ver = entry.packageVersion != null && !entry.packageVersion.isEmpty() ? "@" + entry.packageVersion : "";
+                return mgr + "@" + name + ver;
+            } else if (entry.type == ScanEngine.ASCA) {
+                return entry.title != null ? entry.title : name;
+            } else if (entry.type == ScanEngine.CONTAINERS) {
+                String tag = entry.imageTag != null ? entry.imageTag : entry.packageVersion;
+                return name + (tag != null && !tag.isEmpty() ? "@" + tag : "");
             }
+            return name;
         }
 
         private String formatRelativeDate(String isoDate) {
             if (isoDate == null || isoDate.isEmpty()) return Bundle.message(Resource.IGNORED_UNKNOWN);
             try {
-                ZonedDateTime then = ZonedDateTime.parse(isoDate);
-                long days = ChronoUnit.DAYS.between(then.toLocalDate(), ZonedDateTime.now().toLocalDate());
+                long days = ChronoUnit.DAYS.between(ZonedDateTime.parse(isoDate).toLocalDate(), ZonedDateTime.now().toLocalDate());
                 if (days == 0) return Bundle.message(Resource.IGNORED_TODAY);
-                if (days == 1) return "1 day ago";
+                if (days < 2) return "1 day ago";
                 if (days < 7) return days + " days ago";
                 if (days < 30) return (days / 7) + " weeks ago";
-                if (days < 365) return (days / 30) + " months ago";
-                return (days / 365) + " years ago";
-            } catch (Exception ex) {
-                return isoDate;
-            }
+                return days < 365 ? (days / 30) + " months ago" : (days / 365) + " years ago";
+            } catch (Exception ex) { return isoDate; }
         }
 
         // ---------- UI Helpers ----------
 
         private static final int CHECKBOX_COL_WIDTH = 50;
-        // Default ROW_HEIGHT for columns that don't have dynamic content
-        // TOP_LINE_HEIGHT(50) + DESC_LINE_HEIGHT_MAX(54) + padding(4) + BOTTOM_LINE_HEIGHT_MIN(32) = 140
-        private static final int DEFAULT_ROW_HEIGHT = TOP_LINE_HEIGHT + DESC_LINE_HEIGHT_MAX + 4 + BOTTOM_LINE_HEIGHT_MIN;
 
         /** Creates a panel for the checkbox column with dynamic dimensions based on row content. */
         private JPanel createCheckboxColumnPanel() {
@@ -1430,12 +1290,11 @@ public class CxIgnoredFindings extends SimpleToolWindowPanel implements Disposab
             return panel;
         }
 
-        /** Sets horizontal sizing with dynamic height based on row content. */
-        private void setColumnSizes(JPanel panel, int minW, int prefW, int maxW, int minH) {
-            int dynamicHeight = getCalculatedRowHeight();
-            panel.setMinimumSize(new Dimension(JBUI.scale(minW), JBUI.scale(minH)));
-            panel.setPreferredSize(new Dimension(JBUI.scale(prefW), JBUI.scale(dynamicHeight)));
-            panel.setMaximumSize(new Dimension(JBUI.scale(maxW), Integer.MAX_VALUE)); // Allow expansion
+        /** Sets column sizing: 120-160px width, dynamic height based on row content. */
+        private void setColumnSizes(JPanel panel, int minH) {
+            panel.setMinimumSize(new Dimension(JBUI.scale(120), JBUI.scale(minH)));
+            panel.setPreferredSize(new Dimension(JBUI.scale(140), JBUI.scale(getCalculatedRowHeight())));
+            panel.setMaximumSize(new Dimension(JBUI.scale(160), Integer.MAX_VALUE));
         }
 
         private void setupHoverEffect() {

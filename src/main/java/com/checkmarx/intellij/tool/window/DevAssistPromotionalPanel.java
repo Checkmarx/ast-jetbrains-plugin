@@ -2,8 +2,9 @@ package com.checkmarx.intellij.tool.window;
 
 import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Resource;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBLabel;
-import com.intellij.util.ui.UIUtil;
+import com.intellij.util.ui.JBUI;
 import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
@@ -16,39 +17,37 @@ import java.awt.*;
  */
 public class DevAssistPromotionalPanel extends JPanel {
 
+    // Row constraints: [image]0px[title]3px[description]32px[contact]push
+    private static final String ROW_CONSTRAINTS = "[shrink 100]0[]3[]32[]push";
+
     public DevAssistPromotionalPanel() {
-        // Compact layout: small insets, minimal gaps between text elements
-        // Row constraints: image can shrink, text rows are fixed, extra space goes to bottom
-        // Gap after image is 0 to reduce space between image and title
-        super(new MigLayout("fill, insets 10 15 10 15, wrap 1", "[center, grow]", "[shrink 100]0[]3[]3[]push"));
-        buildUI();
+        super(new MigLayout("fill, insets 10 15 10 15, wrap 1", "[center, grow]", ROW_CONSTRAINTS));
+
+        // Image - gradient cube icon
+        add(centered(new JBLabel(CommonPanels.loadGradientCubeIcon())), "growx");
+
+        // Title - Inter Bold 15px (uses default theme colors)
+        add(styledLabel(Bundle.message(Resource.UPSELL_DEV_ASSIST_TITLE), Font.BOLD, 15, null), "growx");
+
+        // Description - Inter Regular 13px with line break after "instantly and"
+        String desc = Bundle.message(Resource.UPSELL_DEV_ASSIST_DESCRIPTION).replace("instantly and ", "instantly and<br>");
+        add(styledLabel("<html><div style='text-align:center'>" + desc + "</div></html>", Font.PLAIN, 13, null), "growx, wmin 100");
+
+        // Contact text - Inter Bold 13px, gray color (#787C87)
+        add(styledLabel(Bundle.message(Resource.UPSELL_DEV_ASSIST_CONTACT), Font.BOLD, 13, new JBColor(0x787C87, 0x787C87)), "growx");
     }
 
-    private void buildUI() {
-        // Load gradient promotional image for DevAssist upsell
-        JBLabel imageLabel = new JBLabel(CommonPanels.loadGradientCubeIcon());
-        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        add(imageLabel, "growx, gapbottom 0");
+    /** Centers a label horizontally. */
+    private JBLabel centered(JBLabel label) {
+        label.setHorizontalAlignment(SwingConstants.CENTER);
+        return label;
+    }
 
-        // Title - compact font size
-        JBLabel titleLabel = new JBLabel(Bundle.message(Resource.UPSELL_DEV_ASSIST_TITLE));
-        titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 16f));
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        add(titleLabel, "growx");
-
-        // Description - wrapped text
-        String descriptionText = Bundle.message(Resource.UPSELL_DEV_ASSIST_DESCRIPTION);
-        JBLabel descriptionLabel = new JBLabel("<html><div style='text-align: center;'>"
-                + descriptionText + "</div></html>");
-        descriptionLabel.setForeground(UIUtil.getLabelForeground());
-        descriptionLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        add(descriptionLabel, "growx, wmin 100");
-
-        // Contact admin message
-        JBLabel contactLabel = new JBLabel(Bundle.message(Resource.UPSELL_DEV_ASSIST_CONTACT));
-        contactLabel.setForeground(UIUtil.getLabelDisabledForeground());
-        contactLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        add(contactLabel, "growx");
+    /** Creates a styled, centered label with Inter font. */
+    private JBLabel styledLabel(String text, int style, int size, JBColor color) {
+        JBLabel label = centered(new JBLabel(text));
+        label.setFont(new Font("Inter", style, JBUI.scale(size)));
+        if (color != null) label.setForeground(color);
+        return label;
     }
 }
-
