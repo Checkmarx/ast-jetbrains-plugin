@@ -397,22 +397,24 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
         validateResult.setForeground(color);
     }
 
-
     private void buildGUI() {
-        mainPanel.setLayout(new MigLayout("", "[][grow]", ""));
+        // Remove default insets and reduce horizontal gaps so fields/buttons are shifted left
+        mainPanel.setLayout(new MigLayout("insets 0, gapx 5", "[][grow]", ""));
         mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.IGNITE_PLUGIN_SETTINGS_HELP_LINK_LABEL),
                 "span, growx, wrap, gapbottom 10");
         addSectionHeader(Resource.IGNITE_PLUGIN_SETTINGS_AUTH_SECTION, false);
         mainPanel.add(apiKeyLabel, "aligny top");
-        mainPanel.add(apiKeyField, "growx, wrap, aligny top");
+        // Shift apiKeyField left and define a consistent left gap to align with buttons
+        mainPanel.add(apiKeyField, "growx, wrap, aligny top, gapleft 0");
 
         setFieldsEditable(true);
         updateFieldLabels();
         updateConnectButtonState();
         SwingUtilities.invokeLater(apiKeyField::requestFocusInWindow);
 
-        mainPanel.add(connectButton, "gaptop 10");
-        mainPanel.add(logoutButton, "gaptop 10, wrap");
+        // Place both buttons in the second column (same as apiKeyField) and eliminate gap between them
+        mainPanel.add(connectButton, "skip 1, gaptop 10, gapleft 0, gapright 0, split 2, gapx 0");
+        mainPanel.add(logoutButton, "gaptop 10, gapleft 10, wrap");
         mainPanel.add(validateResult, "span 2, gaptop 5, wrap");
 
         addSectionHeader(Resource.SCAN_SECTION, false);
@@ -463,6 +465,10 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
 
         logoutButton.setName("logoutButton");
         additionalParametersField.setName(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS);
+
+        // Remove default margins to reduce spacing around buttons
+        connectButton.setMargin(new Insets(0, 0, 0, 0));
+        logoutButton.setMargin(new Insets(0, 5, 0, 0));
 
         apiKeyField.setEnabled(false);
         logoutButton.setEnabled(false);
