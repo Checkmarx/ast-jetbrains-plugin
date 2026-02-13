@@ -100,6 +100,20 @@ public final class PluginContext {
     }
 
     /**
+     * Get the settings configurable class name for the current plugin.
+     *
+     * @return the fully qualified class name of the settings configurable
+     */
+    public String getSettingsConfigurableClassName() {
+        if (isDevAssistPlugin()) {
+            return "com.checkmarx.intellij.ignite.settings.CxDevAssistSettingsConfigurable";
+        } else if (isCheckmarxAstPlugin()) {
+            return "com.checkmarx.intellij.ast.settings.GlobalSettingsConfigurable";
+        }
+        return null;
+    }
+
+    /**
      * Reset the plugin context (useful for testing).
      */
     public void reset() {

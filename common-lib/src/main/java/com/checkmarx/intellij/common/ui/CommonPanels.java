@@ -5,6 +5,7 @@ import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.utils.Constants;
+import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBLabel;
@@ -53,8 +54,18 @@ public final class CommonPanels {
         panel.add(new JBLabel(CxIcons.CHECKMARX_80), constraints);
 
         JButton openSettingsButton = new JButton(Bundle.message(Resource.OPEN_SETTINGS_BUTTON));
-        openSettingsButton.addActionListener(e ->
-                ShowSettingsUtil.getInstance().showSettingsDialog(project, getPluginSettingsId()));
+        // Open the specific settings panel dynamically via PluginContext; fallback to ID if needed
+        openSettingsButton.addActionListener(e -> {
+            try {
+                String className = PluginContext.getInstance().getSettingsConfigurableClassName();
+                Class<?> rawClass = Class.forName(className);
+                // Cast reflectively to a Configurable subclass type for the API call
+                Class<? extends Configurable> configClass = rawClass.asSubclass(Configurable.class);
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, configClass);
+            } catch (Exception ex) {
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, getPluginSettingsId());
+            }
+        });
 
         constraints = new GridConstraints();
         constraints.setRow(1);
