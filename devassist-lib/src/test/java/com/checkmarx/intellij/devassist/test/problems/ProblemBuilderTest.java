@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.test.problems;
 
+import com.checkmarx.intellij.common.context.PluginContext;
 import com.checkmarx.intellij.common.utils.SeverityLevel;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemBuilder;
@@ -11,10 +12,14 @@ import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -28,6 +33,28 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class ProblemBuilderTest {
+
+    static MockedStatic<ApplicationManager> appManagerMock;
+    static Application mockApp;
+    static PluginContext mockPluginContext;
+
+    @BeforeAll
+    static void setupStaticMocks() {
+        // Mock ApplicationManager.getApplication()
+        mockApp = mock(Application.class, RETURNS_DEEP_STUBS);
+        appManagerMock = mockStatic(ApplicationManager.class, CALLS_REAL_METHODS);
+        appManagerMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+
+        // Mock PluginContext service
+        mockPluginContext = mock(PluginContext.class);
+        when(mockPluginContext.isDevAssistPlugin()).thenReturn(false);
+        when(mockApp.getService(PluginContext.class)).thenReturn(mockPluginContext);
+    }
+
+    @AfterAll
+    static void tearDownStaticMocks() {
+        if (appManagerMock != null) appManagerMock.close();
+    }
 
     @Test
     @DisplayName("build delegates to InspectionManager and returns descriptor")

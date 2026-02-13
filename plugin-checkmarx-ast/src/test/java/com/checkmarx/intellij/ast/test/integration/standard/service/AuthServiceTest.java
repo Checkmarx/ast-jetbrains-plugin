@@ -68,22 +68,14 @@ public class AuthServiceTest {
     @BeforeEach
     protected void setUp() throws Exception {
         authService = spy(new AuthService(project));
-        // TODO: After modular refactoring, AuthService.server is protected and not accessible from this package.
-        // This test needs to be moved to common-lib or AuthService needs to expose a setter for testing.
-        // authService.server = callbackServer;
+        authService.setServer(callbackServer);
     }
 
     /**
      * Error Test, code verifier and code challenge null
-     * TODO: This test accesses protected method setAuthErrorResult which is not accessible after modular refactoring.
-     * Consider moving this test to common-lib module or making the method package-private for testing.
      */
     @Test
     public void testAuthenticate_codeVerifierNull_authError() {
-        // Test disabled due to protected access after modular refactoring
-        // The setAuthErrorResult method is protected in AuthService (common-lib)
-        // and cannot be accessed from this test package
-        /*
         try (MockedStatic<Utils> utilsMock = mockStatic(Utils.class)) {
             utilsMock.when(Utils::generateCodeVerifier).thenReturn(null);
             utilsMock.when(() -> Utils.generateCodeChallenge(null)).thenReturn(null);
@@ -91,24 +83,19 @@ public class AuthServiceTest {
             authService.authenticate(BASE_URL, TENANT, authResult);
             verify(authService).setAuthErrorResult(eq(authResult), eq(Bundle.message(Resource.VALIDATE_ERROR)));
         }
-        */
     }
 
     /**
      * Error test when code verifier null to generate a code challenge
-     * TODO: This test accesses protected method setAuthErrorResult which is not accessible after modular refactoring.
      */
     @Test
     public void testAuthenticate_codeChallengeException_authError() {
-        // Test disabled due to protected access after modular refactoring
-        /*
         try (MockedStatic<Utils> utilsMock = mockStatic(Utils.class)) {
             utilsMock.when(Utils::generateCodeVerifier).thenThrow(new RuntimeException("Code verifier null."));
             doNothing().when(authService).setAuthErrorResult(any(), anyString());
             authService.authenticate(BASE_URL, TENANT, authResult);
             verify(authService).setAuthErrorResult(eq(authResult), eq(Bundle.message(Resource.VALIDATE_ERROR)));
         }
-        */
     }
 
   /*  @Test
@@ -139,50 +126,36 @@ public class AuthServiceTest {
 
     /**
      * Error test, if port not available
-     * TODO: This test accesses protected methods which are not accessible after modular refactoring.
      */
     @Test
     void testProcessAuthentication_portUnavailable_authError() {
-        // Test disabled due to protected access after modular refactoring
-        // findAvailablePort, setAuthErrorResult, processAuthentication are protected in AuthService (common-lib)
-        /*
         doReturn(0).when(authService).findAvailablePort();
         doNothing().when(authService).setAuthErrorResult(any(), anyString());
         authService.processAuthentication(CODE_VERIFIER, CODE_CHALLENGE, BASE_URL, TENANT, authResult);
         verify(authService).setAuthErrorResult(eq(authResult), eq(Bundle.message(Resource.ERROR_PORT_NOT_AVAILABLE)));
-        */
     }
 
     /**
      * Success test return valid port
-     * TODO: This test accesses protected method findAvailablePort which is not accessible after modular refactoring.
      */
     @Test
     void testFindAvailablePort_returnsValidPort() {
-        // Test disabled due to protected access after modular refactoring
-        // findAvailablePort is protected in AuthService (common-lib)
-        /*
         int port = authService.findAvailablePort();
         // The result should be in the valid range or 0
         assertTrue((port >= 49152 && port <= 65535) || port == 0);
-        */
     }
 
     /**
-     * TODO: This test accesses protected methods which are not accessible after modular refactoring.
+     * Test when all port attempts fail, returns zero
      */
     @Test
     void testFindAvailablePort_allAttemptsFail_returnsZero() {
-        // Test disabled due to protected access after modular refactoring
-        // isPortAvailable, findAvailablePort are protected in AuthService (common-lib)
-        /*
         doReturn(false).when(authService).isPortAvailable(anyInt());
         int port = authService.findAvailablePort();
         assertEquals(0, port);
-        */
     }
 
-  /*  @Test
+    /*  @Test
     void testProcessAuthentication_validToken_authSuccess() throws Exception {
 
         Map<String, Object> mockTokenMap = getTokenMap();
@@ -290,28 +263,19 @@ public class AuthServiceTest {
 
     /**
      * Success test, extracting token from the response
-     * TODO: This test accesses protected method extractRefreshTokenDetails which is not accessible after modular refactoring.
      */
     @Test
     void testExtractRefreshTokenDetails_validJson_success() {
-        // Test disabled due to protected access after modular refactoring
-        // extractRefreshTokenDetails is protected in AuthService (common-lib)
-        /*
         Map<String, Object> result = authService.extractRefreshTokenDetails(getJsonResponse());
         assertEquals(MOCK_REFRESH, result.get(Constants.AuthConstants.REFRESH_TOKEN));
         assertNotNull(result.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY));
-        */
     }
 
     /**
      * Success test, saving token details
-     * TODO: This test accesses protected method saveToken which is not accessible after modular refactoring.
      */
     @Test
     void testSaveToken_callsGlobalSettings() {
-        // Test disabled due to protected access after modular refactoring
-        // saveToken is protected in AuthService (common-lib)
-        /*
         GlobalSettingsSensitiveState mockState = mock(GlobalSettingsSensitiveState.class);
         try (MockedStatic<GlobalSettingsSensitiveState> mockedStatic = mockStatic(GlobalSettingsSensitiveState.class)) {
             mockedStatic.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockState);
@@ -323,7 +287,6 @@ public class AuthServiceTest {
             verify(mockState).setRefreshToken(MOCK_REFRESH);
             verify(mockState).saveRefreshToken(MOCK_REFRESH);
         }
-        */
     }
 
     private Map<String, Object> getTokenMap() {

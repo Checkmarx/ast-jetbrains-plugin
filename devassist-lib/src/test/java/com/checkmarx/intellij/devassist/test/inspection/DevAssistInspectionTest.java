@@ -62,7 +62,7 @@ class DevAssistInspectionTest {
         scannerService = mock(ScannerService.class);
         problemHolderService = mock(ProblemHolderService.class);
 
-        injectField(inspection, "cxOneAssistInspectionMgr", inspectionMgr);
+        injectField(inspection, "devAssistInspectionMgr", inspectionMgr);
 
         when(inspectionManager.getProject()).thenReturn(project);
         when(psiFile.getProject()).thenReturn(project);

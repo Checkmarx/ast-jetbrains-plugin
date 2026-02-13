@@ -59,6 +59,15 @@ public class AuthService {
     }
 
     /**
+     * Sets the OAuth callback server. Exposed for testing purposes.
+     *
+     * @param server - OAuthCallbackServer instance
+     */
+    public void setServer(OAuthCallbackServer server) {
+        this.server = server;
+    }
+
+    /**
      * Authenticate user using OAuth2.0 Authorization Code with PKCE (Proof Key for Code Exchange) grant flow
      *
      * @param cxOneBaseUrl - Checkmarx One base URL provided by the user.
@@ -103,8 +112,8 @@ public class AuthService {
      * @param cxOneBaseUrl  - Checkmarx One base URL provided by the user.
      * @param cxOneTenant   - Checkmarx One-tenant URL provided by the user.
      */
-    protected void processAuthentication(String codeVerifier, String codeChallenge, String cxOneBaseUrl,
-                                         String cxOneTenant, Consumer<Map<String, Object>> authResult) {
+    public void processAuthentication(String codeVerifier, String codeChallenge, String cxOneBaseUrl,
+                                      String cxOneTenant, Consumer<Map<String, Object>> authResult) {
         try {
             String cxOneAuthEndpoint = getCxOneAuthEndpoint(cxOneBaseUrl, cxOneTenant);
             String cxOneTokenEndpoint = getCxOneTokenEndpoint(cxOneBaseUrl, cxOneTenant);
@@ -150,7 +159,7 @@ public class AuthService {
      * @param authResult  - Consumer<Map<String,String>> object which will used by UI to get the auth result
      * @param resultValue - String value to set in consumer
      */
-    protected void setAuthErrorResult(Consumer<Map<String, Object>> authResult, String resultValue) {
+    public void setAuthErrorResult(Consumer<Map<String, Object>> authResult, String resultValue) {
         Map<String, Object> resultMap = new HashMap<>();
         resultMap.put(Constants.AuthConstants.ERROR, resultValue);
         ApplicationManager.getApplication().invokeLater(() -> authResult.accept(resultMap));
@@ -220,7 +229,7 @@ public class AuthService {
      *
      * @return an available port number if found else 0
      */
-    protected int findAvailablePort() {
+    public int findAvailablePort() {
         SecureRandom random = new SecureRandom();
         int range = MAX_PORT - MIN_PORT + 1;
         for (int attempt = 1; attempt <= MAX_PORT_ATTEMPTS; attempt++) {
@@ -243,7 +252,7 @@ public class AuthService {
      * @param port the port to check
      * @return true if the port is available
      */
-    protected boolean isPortAvailable(int port) {
+    public boolean isPortAvailable(int port) {
         try (ServerSocket socket = new ServerSocket(port)) {
             socket.setReuseAddress(true);
             return true;
@@ -353,7 +362,7 @@ public class AuthService {
      * @param jsonString - token response body as json string
      * @return String - refresh token
      */
-    protected Map<String, Object> extractRefreshTokenDetails(String jsonString) {
+    public Map<String, Object> extractRefreshTokenDetails(String jsonString) {
         Map<String, Object> tokenDetails = new HashMap<>();
         try {
             JsonNode rootNode = new ObjectMapper().readTree(jsonString);
@@ -384,7 +393,7 @@ public class AuthService {
      *
      * @param refreshToken - Received refresh token from the response
      */
-    protected void saveToken(final String refreshToken) {
+    public void saveToken(final String refreshToken) {
         GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
         sensitiveState.setRefreshToken(refreshToken);
         sensitiveState.saveRefreshToken(refreshToken);
