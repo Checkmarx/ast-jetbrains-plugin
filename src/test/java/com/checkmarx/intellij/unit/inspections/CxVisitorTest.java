@@ -114,7 +114,7 @@ class CxVisitorTest {
         when(mockElement.getProject()).thenReturn(mockProject);
         when(mockFile.getProject()).thenReturn(mockProject);
         when(mockFile.getVirtualFile()).thenReturn(mockVirtualFile);
-        when(mockVirtualFile.getPath()).thenReturn("/test/path");
+        when(mockVirtualFile.getName()).thenReturn("/test/path");
         when(mockElement.getTextOffset()).thenReturn(10);
 
         when(mockNode.getColumn()).thenReturn(1);
@@ -159,7 +159,7 @@ class CxVisitorTest {
         when(mockElement.getProject()).thenReturn(mockProject);
         when(mockFile.getProject()).thenReturn(mockProject);
         when(mockFile.getVirtualFile()).thenReturn(mockVirtualFile);
-        when(mockVirtualFile.getPath()).thenReturn("/test/path");
+        when(mockVirtualFile.getName()).thenReturn("/test/path");
         when(mockElement.getTextOffset()).thenReturn(10);
 
         when(mockNode.getColumn()).thenReturn(1);

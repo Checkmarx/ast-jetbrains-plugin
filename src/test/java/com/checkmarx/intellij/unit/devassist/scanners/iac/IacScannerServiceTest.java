@@ -5,7 +5,9 @@ import com.checkmarx.ast.realtime.RealtimeLocation;
 import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.devassist.common.ScanResult;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.scanners.iac.IacScannerService;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -15,6 +17,7 @@ import com.intellij.psi.PsiFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
@@ -150,16 +153,23 @@ public class IacScannerServiceTest {
         when(virtualFile.exists()).thenReturn(true);
         when(virtualFile.getExtension()).thenReturn("tf");
         when(virtualFile.getPath()).thenReturn("/repo/main.tf");
+        when(psiFile.getProject()).thenReturn(mock(com.intellij.openapi.project.Project.class));
 
         Path tempDir = Files.createTempDirectory("iac-scan-test");
         IacScannerService testService = new TestableIacScannerService(tempDir);
 
         try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
-             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class)) {
+             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class);
+             MockedStatic<TelemetryService> telemetry = mockStatic(TelemetryService.class);
+             MockedConstruction<IgnoreManager> ignoreMgr = mockConstruction(IgnoreManager.class, (mock, context) -> {
+                 when(mock.hasIgnoredEntries(any())).thenReturn(false);
+             })) {
 
             utils.when(() -> DevAssistUtils.getFileContent(psiFile)).thenReturn("resource");
             utils.when(DevAssistUtils::getContainerTool).thenReturn("docker");
             utils.when(() -> DevAssistUtils.getFileExtension(psiFile)).thenReturn("tf");
+            utils.when(() -> DevAssistUtils.getIgnoreFilePath(any())).thenReturn("");
+            telemetry.when(() -> TelemetryService.logScanResults(any(ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
 
             CxWrapper wrapper = mock(CxWrapper.class);
             IacRealtimeResults results = mock(IacRealtimeResults.class);

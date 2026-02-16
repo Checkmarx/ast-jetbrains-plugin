@@ -302,6 +302,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
         SETTINGS_STATE.setAuthenticated(true);
         SETTINGS_STATE.setLastValidationSuccess(true);
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
+        // Reset session expired notification flag on successful login
+        Utils.resetSessionExpiredNotificationFlag();
         fetchAndStoreLicenseStatus();
         SwingUtilities.invokeLater(this::updateAssistLinkVisibility);
         logoutButton.requestFocusInWindow();
@@ -503,6 +505,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
             SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.VALIDATE_SUCCESS));
             SENSITIVE_SETTINGS_STATE.setRefreshToken(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN).toString());
             SETTINGS_STATE.setRefreshTokenExpiry(refreshTokenDetails.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).toString());
+            // Reset session expired notification flag on successful login
+            Utils.resetSessionExpiredNotificationFlag();
             notifyAuthSuccess();
             fetchAndStoreLicenseStatus();
             updateAssistLinkVisibility();
@@ -790,6 +794,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
         // Don't clear MCP status on logout - keep it for next login
         SETTINGS_STATE.setValidationMessage(Bundle.message(Resource.LOGOUT_SUCCESS));
         SETTINGS_STATE.setLastValidationSuccess(true);
+        // Reset session expired notification flag to prepare for next session
+        Utils.resetSessionExpiredNotificationFlag();
         if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
             SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
         }

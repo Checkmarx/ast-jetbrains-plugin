@@ -82,7 +82,7 @@ public class IacScanResultAdaptorTest {
                 List.of(location)
         );
 
-        IacScanResultAdaptor adaptor = new IacScanResultAdaptor(mockResults(List.of(issue)), "tf", "");
+        IacScanResultAdaptor adaptor = new IacScanResultAdaptor(mockResults(List.of(issue)), "tf", "/repo/main.tf");
         List<ScanIssue> issues = adaptor.getIssues();
 
         assertEquals(1, issues.size());

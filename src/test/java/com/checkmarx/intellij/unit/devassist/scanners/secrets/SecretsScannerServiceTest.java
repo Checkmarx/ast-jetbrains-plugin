@@ -5,11 +5,14 @@ import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.devassist.scanners.secrets.SecretsScannerService;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.checkmarx.intellij.settings.global.CxWrapperFactory;
+import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
 import java.nio.file.Path;
@@ -69,24 +72,32 @@ public class SecretsScannerServiceTest {
     @DisplayName("scan: integrates with wrapper and returns adaptor when wrapper returns results")
     void testScan_WithMockedWrapper() throws Exception {
         // Arrange - stable content and a mocked wrapper + results
+        Project mockProject = mock(Project.class);
         when(mockPsiFile.getName()).thenReturn("test.js");
+        when(mockPsiFile.getProject()).thenReturn(mockProject);
 
-        try (MockedStatic<DevAssistUtils> devAssistUtilsStatic = mockStatic(DevAssistUtils.class)) {
+        try (MockedStatic<DevAssistUtils> devAssistUtilsStatic = mockStatic(DevAssistUtils.class);
+             MockedStatic<CxWrapperFactory> wrapperFactoryStatic = mockStatic(CxWrapperFactory.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetryStatic = mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class);
+             MockedConstruction<com.checkmarx.intellij.devassist.ignore.IgnoreManager> ignoreMgrConstruction = mockConstruction(com.checkmarx.intellij.devassist.ignore.IgnoreManager.class, (mock, context) -> {
+                 when(mock.hasIgnoredEntries(any())).thenReturn(false);
+             })) {
+
             devAssistUtilsStatic.when(() -> DevAssistUtils.getFileContent(mockPsiFile)).thenReturn("file contents");
+            devAssistUtilsStatic.when(() -> DevAssistUtils.getIgnoreFilePath(any(Project.class))).thenReturn("");
+            telemetryStatic.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
 
             SecretsRealtimeResults mockResults = mock(SecretsRealtimeResults.class);
             when(mockResults.getSecrets()).thenReturn(List.of());
 
-            try (MockedStatic<CxWrapperFactory> wrapperFactoryStatic = mockStatic(CxWrapperFactory.class)) {
-                wrapperFactoryStatic.when(CxWrapperFactory::build).thenReturn(mockWrapper);
-                when(mockWrapper.secretsRealtimeScan(anyString(), anyString())).thenReturn(mockResults);
+            wrapperFactoryStatic.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            when(mockWrapper.secretsRealtimeScan(anyString(), anyString())).thenReturn(mockResults);
 
-                // Act
-                ScanResult<SecretsRealtimeResults> result = secretsScannerService.scan(mockPsiFile, "test.js");
+            // Act
+            ScanResult<SecretsRealtimeResults> result = secretsScannerService.scan(mockPsiFile, "test.js");
 
-                // Assert
-                assertNotNull(result, "Scan should return an adaptor/wrapper result when underlying wrapper returns a non-null object");
-            }
+            // Assert
+            assertNotNull(result, "Scan should return an adaptor/wrapper result when underlying wrapper returns a non-null object");
         }
     }
 
