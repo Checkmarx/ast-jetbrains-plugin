@@ -26,10 +26,10 @@ public class CxDevAssistToolWindowFactory implements ToolWindowFactory, DumbAwar
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         // Register plugin context (only once)
-        if (PluginContext.getInstance().isPlugin(PluginContext.PLUGIN_IGNITE)) {
-            PluginContext.getInstance().setPluginName(PluginContext.PLUGIN_IGNITE);
+        if (PluginContext.getInstance().isPlugin(PluginContext.PLUGIN_CHECKMARX_DEVASSIST)) {
+            PluginContext.getInstance().setPluginName(PluginContext.PLUGIN_CHECKMARX_DEVASSIST);
             PluginContext.getInstance().setPluginDisplayName(IgniteConstants.PLUGIN_NAME);
-            LOGGER.info(format("Registered plugin context: %s", PluginContext.PLUGIN_IGNITE));
+            LOGGER.info(format("Registered plugin context: %s", PluginContext.PLUGIN_CHECKMARX_DEVASSIST));
         }
         ContentFactory contentFactory = ContentFactory.getInstance();
 
