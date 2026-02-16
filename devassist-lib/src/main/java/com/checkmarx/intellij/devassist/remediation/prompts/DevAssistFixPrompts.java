@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.devassist.remediation.prompts;
 
 import com.checkmarx.intellij.common.utils.SeverityLevel;
+import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 
 import static com.checkmarx.intellij.devassist.utils.EmojiUnicodes.*;
@@ -11,6 +12,7 @@ import static com.checkmarx.intellij.devassist.utils.EmojiUnicodes.*;
 public final class DevAssistFixPrompts {
 
     private static final String AGENT_NAME = DevAssistUtils.getAgentName();
+    private static final String MCP_DISPLAY_NAME = Utils.getPluginDisplayName();
 
     private DevAssistFixPrompts() {
         throw new IllegalStateException("Cannot instantiate CxOneAssistFixPrompts class");
@@ -32,7 +34,8 @@ public final class DevAssistFixPrompts {
         prompt.append("You are the ").append(AGENT_NAME).append(".\n\n")
                 .append("A security issue has been detected in `").append(packageName).append("@").append(packageVersion).append("` (package manager: `").append(packageManager).append("`).\n")
                 .append("**Severity:** `").append(severity).append("`\n")
-                .append("Your task is to remediate the issue **completely and autonomously** using the internal PackageRemediation tool in Checkmarx MCP. Follow the exact instructions in `fix_instructions` - no assumptions or manual interaction allowed.\n\n");
+                .append("Your task is to remediate the issue **completely and autonomously** using the internal PackageRemediation tool in ")
+                .append(MCP_DISPLAY_NAME).append(" MCP. Follow the exact instructions in `fix_instructions` - no assumptions or manual interaction allowed.\n\n");
 
         prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
                 .append("Determine the issue type:\n")
@@ -151,7 +154,7 @@ public final class DevAssistFixPrompts {
         prompt.append("Step 2. TOOL CALL - Remediation Plan\n\n")
                 .append("Determine the programming language of the file where the secret was detected.  \n")
                 .append("If unknown, leave the `language` field empty.\n\n")
-                .append("Call the internal `codeRemediation` Checkmarx MCP tool with:\n\n")
+                .append("Call the internal `codeRemediation` ").append(MCP_DISPLAY_NAME).append(" MCP tool with:\n\n")
                 .append("```json\n")
                 .append("{\n")
                 .append("  \"type\": \"secret\",\n")
@@ -164,7 +167,7 @@ public final class DevAssistFixPrompts {
                 .append("  - `best_practices` - explain secure alternatives\n")
                 .append("  - `description` - contextual background\n\n")
                 .append("- If the tool is **not available**, display:\n")
-                .append("`[MCP ERROR] codeRemediation tool is not available. Please check the Checkmarx MCP server.`\n\n");
+                .append("`[MCP ERROR] codeRemediation tool is not available. Please check the ").append(MCP_DISPLAY_NAME).append(" MCP server.`\n\n");
 
         prompt.append("Step 3. ANALYSIS & RISK\n\n")
                 .append("Identify the type of secret (API key, token, credential). Explain:\n")
@@ -378,7 +381,7 @@ public final class DevAssistFixPrompts {
                 .append(problematicLineText).append("\n\n");
 
         prompt.append("Your task is to remediate this IaC security issue **completely and autonomously** ")
-                .append("using the internal codeRemediation tool in Checkmarx MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n");
+                .append("using the internal codeRemediation tool in ").append(MCP_DISPLAY_NAME).append(" MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n");
         prompt.append(WARNING + "️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
                 .append(actualLineNumber)
                 .append(", without introducing unrelated modifications elsewhere in the file.\n\n");
@@ -386,7 +389,7 @@ public final class DevAssistFixPrompts {
         prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
                 .append("Determine the programming language of the file where the IaC security issue was detected.\n")
                 .append("If unknown, leave the `language` field empty.\n\n")
-                .append("Call the internal `codeRemediation` Checkmarx MCP tool with:\n\n")
+                .append("Call the internal `codeRemediation` ").append(MCP_DISPLAY_NAME).append(" MCP tool with:\n\n")
                 .append("```json\n")
                 .append("{\n")
                 .append("  \"language\": \"[auto-detected programming language]\",\n")
@@ -403,7 +406,7 @@ public final class DevAssistFixPrompts {
         prompt.append("- If the tool is **available**, parse the response:\n")
                 .append("  - `remediation_steps` - exact steps to follow for remediation\n\n")
                 .append("- If the tool is **not available**, display:\n")
-                .append("`[MCP ERROR] codeRemediation tool is not available. Please check the Checkmarx MCP server.`\n\n");
+                .append("`[MCP ERROR] codeRemediation tool is not available. Please check the ").append(MCP_DISPLAY_NAME).append(" MCP server.`\n\n");
 
         prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
                 .append("- Read and execute each line in `remediation_steps`, in order.\n")
@@ -501,7 +504,8 @@ public final class DevAssistFixPrompts {
             prompt.append("\n");
         }
 
-        prompt.append("Your task is to remediate this security issue **completely and autonomously** using the internal codeRemediation tool in Checkmarx MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n")
+        prompt.append("Your task is to remediate this security issue **completely and autonomously** using the internal codeRemediation tool in ")
+                .append(MCP_DISPLAY_NAME).append(" MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n")
                 .append(WARNING + "️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
                 .append(problematicLineNumber != null ? problematicLineNumber + 1 : "[problematic line number]")
                 .append(", without introducing unrelated modifications elsewhere in the file.\n\n");
@@ -509,7 +513,7 @@ public final class DevAssistFixPrompts {
         prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
                 .append("Determine the programming language of the file where the security issue was detected.  \n")
                 .append("If unknown, leave the `language` field empty.\n\n")
-                .append("Call the internal `codeRemediation` Checkmarx MCP tool with:\n\n")
+                .append("Call the internal `codeRemediation` ").append(MCP_DISPLAY_NAME).append(" MCP tool with:\n\n")
                 .append("```json\n")
                 .append("{\n")
                 .append("  \"language\": \"[auto-detected programming language]\",\n")
@@ -525,7 +529,7 @@ public final class DevAssistFixPrompts {
                 .append("- If the tool is **available**, parse the response:\n")
                 .append("  - `remediation_steps` - exact steps to follow for remediation\n\n")
                 .append("- If the tool is **not available**, display:\n")
-                .append("  `[MCP ERROR] codeRemediation tool is not available. Please check the Checkmarx MCP server.`\n\n");
+                .append("  `[MCP ERROR] codeRemediation tool is not available. Please check the ").append(MCP_DISPLAY_NAME).append(" MCP server.`\n\n");
 
         prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
                 .append("- Read and execute each line in `remediation_steps`, in order.\n")

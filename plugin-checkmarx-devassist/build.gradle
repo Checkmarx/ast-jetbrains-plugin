@@ -62,7 +62,7 @@ tasks.register('buildWithLibTests') {
 
 // Configure the plugin to generate a distributable zip file
 tasks.named('buildPlugin') {
-    archiveBaseName.set('checkmarx-ignite-plugin')
+    archiveBaseName.set('checkmarx-devassist-plugin')
 }
 
 // Ensure the plugin zip is created in the build/distributions directory

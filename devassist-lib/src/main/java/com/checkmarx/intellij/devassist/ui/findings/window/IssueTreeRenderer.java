@@ -2,7 +2,7 @@ package com.checkmarx.intellij.devassist.ui.findings.window;
 
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
-import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.ColoredTreeCellRenderer;
 import com.intellij.ui.Gray;
@@ -39,10 +39,11 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
     private final Map<String, Icon> vulnerabilityToIcon;
     private final Map<String, Icon> vulnerabilityCountToIcon;
 
+    private static final String AGENT_NAME = DevAssistUtils.getAgentName();
+
     public IssueTreeRenderer(JTree tree, Map<String, Icon> vulnerabilityToIcon, Map<String, Icon> vulnerabilityCountToIcon) {
         this.vulnerabilityToIcon = vulnerabilityToIcon;
         this.vulnerabilityCountToIcon = vulnerabilityCountToIcon;
-
         tree.addMouseMotionListener(new MouseMotionAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
@@ -139,7 +140,7 @@ public class IssueTreeRenderer extends ColoredTreeCellRenderer {
                     append(detail.getDescription(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
                     break;
             }
-            append(" " + DevAssistConstants.CX_AGENT_NAME + " ", SimpleTextAttributes.GRAYED_ATTRIBUTES);
+            append(" " + AGENT_NAME + " ", SimpleTextAttributes.GRAYED_ATTRIBUTES);
 
             if (detail.getLocations() != null && !detail.getLocations().isEmpty()) {
                 var targetLoc = detail.getLocations().get(0);
