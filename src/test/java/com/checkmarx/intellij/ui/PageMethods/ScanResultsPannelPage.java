@@ -68,15 +68,14 @@ public class ScanResultsPannelPage {
      */
     public static void resetProjectSelection(int maxAttempts) {
         //Need to set focus on reset by clicking
+        locateAndClickOnButton(RESET_PROJECT_SELECTION);
         pollingWaitForElement(PROJECT_NAME_NULL,false);
 
         // Early return optimization: Check if project, branch, and scan are already set to 'none'
         // This prevents unnecessary UI interactions when selections are already in the reset state
-        boolean projectAlreadyNone = hasAnyComponent(SELECTED_PROJECT_NAME_NONE);
-        boolean branchAlreadyNone = hasAnyComponent(SELECTED_BRANCH_NAME_NONE);
-        boolean scanAlreadyNone = hasAnyComponent(SELECTED_SCAN_ID_NONE);
+        boolean isReset = checkProjctBranchScanSelectionIsReset();
 
-        if (projectAlreadyNone && branchAlreadyNone && scanAlreadyNone) {
+        if (isReset) {
             log("Project, branch, and scan are already reset to 'none'. No action needed.");
             return;
         }
@@ -459,5 +458,13 @@ public class ScanResultsPannelPage {
      */
     public static void findLatestScanSelection() {
         waitFor(() -> hasAnyComponent(String.format(LATEST_SCAN, Utils.formatLatest(true), Utils.formatLatest(true))));
+    }
+
+    public static boolean checkProjctBranchScanSelectionIsReset() {
+        boolean project = hasAnyComponent(SELECTED_PROJECT_NAME_NONE);
+        boolean branch = hasAnyComponent(SELECTED_BRANCH_NAME_NONE);
+        boolean scan = hasAnyComponent(SELECTED_SCAN_ID_NONE);
+
+        return project && branch && scan;
     }
 }

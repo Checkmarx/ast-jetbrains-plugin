@@ -23,7 +23,7 @@ public class Project {
             InterruptedException,
             CxException {
 
-        return CxWrapperFactory.build().projectList("limit=10000,tags-keys=SypherUIAutomationTag");
+        return CxWrapperFactory.build().projectList("limit=10000");
     }
 
     public static List<String> getBranches(@NonNull UUID projectId, boolean isSCMProject)
