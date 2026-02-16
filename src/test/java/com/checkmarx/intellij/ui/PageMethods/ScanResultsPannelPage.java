@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
+import static com.checkmarx.intellij.ui.BaseUITest.focusCxWindow;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ui.utils.TestConstants.*;
 import static com.checkmarx.intellij.ui.utils.UIHelper.*;
@@ -67,15 +68,14 @@ public class ScanResultsPannelPage {
      */
     public static void resetProjectSelection(int maxAttempts) {
         //Need to set focus on reset by clicking
+        locateAndClickOnButton(RESET_PROJECT_SELECTION);
         pollingWaitForElement(PROJECT_NAME_NULL,false);
 
         // Early return optimization: Check if project, branch, and scan are already set to 'none'
         // This prevents unnecessary UI interactions when selections are already in the reset state
-        boolean projectAlreadyNone = hasAnyComponent(SELECTED_PROJECT_NAME_NONE);
-        boolean branchAlreadyNone = hasAnyComponent(SELECTED_BRANCH_NAME_NONE);
-        boolean scanAlreadyNone = hasAnyComponent(SELECTED_SCAN_ID_NONE);
+        boolean isReset = checkProjctBranchScanSelectionIsReset();
 
-        if (projectAlreadyNone && branchAlreadyNone && scanAlreadyNone) {
+        if (isReset) {
             log("Project, branch, and scan are already reset to 'none'. No action needed.");
             return;
         }
@@ -178,27 +178,89 @@ public class ScanResultsPannelPage {
 
     /**
      * Enters the scan ID in the scan field and selects it in the UI.
+     * Implements retry logic to handle transient network/timeout issues and focus problems in CI environments.
      *
      * @param validScanId If true, enters a valid scan ID; otherwise, enters an invalid scan ID.
      */
     public static void enterScanIdAndSelect(boolean validScanId) {
         String scanId = validScanId ? Environment.SCAN_ID : "invalid-scan-id";
+        int maxRetries = 3;
+        int retryCount = 0;
 
-        waitFor(() -> {
-            List<JTextFieldFixture> fields =
-                    findAll(JTextFieldFixture.class, SCAN_FIELD);
+        while (retryCount < maxRetries) {
+            try {
+                // Ensure Checkmarx window has focus before attempting to interact with scan field
+                focusCxWindow();
 
-            if (fields.size() != 1) {
-                return false;
+                waitFor(() -> {
+                    List<JTextFieldFixture> fields =
+                            findAll(JTextFieldFixture.class, SCAN_FIELD);
+
+                    if (fields.size() != 1) {
+                        log("Expected 1 scan field, found: " + fields.size());
+                        return false;
+                    }
+
+                    JTextFieldFixture field = fields.get(0);
+
+                    // Check if field is visible and showing before attempting to interact
+                    if (!field.isShowing()) {
+                        log("Scan field is not showing, waiting...");
+                        return false;
+                    }
+
+                    try {
+                        // Click on the field first to ensure it gains focus
+                        field.click();
+
+                        // Small delay to let the UI stabilize after click
+                        try {
+                            Thread.sleep(300);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                        }
+
+                        // Now set the text
+                        field.setText(scanId);
+                        String currentText = field.getText();
+                        boolean textMatches = scanId.equals(currentText);
+                        if (!textMatches) {
+                            log("Text mismatch - expected: '" + scanId + "', actual: '" + currentText + "'");
+                        }
+                        return textMatches;
+                    } catch (Exception e) {
+                        log("Error setting text in scan field: " + e.getMessage());
+                        return false;
+                    }
+                });
+
+                Keyboard keyboard = new Keyboard(remoteRobot);
+                keyboard.enter();
+                log("Successfully entered scan ID: " + scanId);
+                return; // Success - exit method
+
+            } catch (Exception e) {
+                retryCount++;
+                log("Attempt " + retryCount + " failed to enter scan ID. Error: " + e.getMessage());
+
+                if (retryCount >= maxRetries) {
+                    log("Max retries reached. Throwing exception.");
+                    throw e;
+                }
+
+                // Wait before retry to let UI recover
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted while waiting to retry", ie);
+                }
+
+                // Try to refocus the window before retry
+                log("Refocusing Checkmarx window before retry...");
+                focusCxWindow();
             }
-
-            JTextFieldFixture field = fields.get(0);
-            field.setText(scanId);
-            return scanId.equals(field.getText());
-        });
-
-        Keyboard keyboard = new Keyboard(remoteRobot);
-        keyboard.enter();
+        }
     }
 
     /**
@@ -396,5 +458,13 @@ public class ScanResultsPannelPage {
      */
     public static void findLatestScanSelection() {
         waitFor(() -> hasAnyComponent(String.format(LATEST_SCAN, Utils.formatLatest(true), Utils.formatLatest(true))));
+    }
+
+    public static boolean checkProjctBranchScanSelectionIsReset() {
+        boolean project = hasAnyComponent(SELECTED_PROJECT_NAME_NONE);
+        boolean branch = hasAnyComponent(SELECTED_BRANCH_NAME_NONE);
+        boolean scan = hasAnyComponent(SELECTED_SCAN_ID_NONE);
+
+        return project && branch && scan;
     }
 }
