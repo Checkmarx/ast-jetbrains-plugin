@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.devassist.remediation;
 
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
@@ -89,6 +90,7 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
      * @return true if the action is successfully handled, false otherwise
      */
     private boolean handleActions(String link, Project project, ScanIssue scanIssue, String actionId) {
+        IgnoreManager ignoremanager = IgnoreManager.getInstance(project);
         switch (link) {
             case FIX:
                 TelemetryService.logFixWithCxOneAssistAction(scanIssue);
@@ -99,8 +101,11 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
                 remediationManager.viewDetails(project, scanIssue, actionId);
                 break;
             case IGNORE_THIS_TYPE:
+                ignoremanager.addIgnoredEntry(scanIssue, actionId);
                 TelemetryService.logIgnorePackageAction(scanIssue);
+                break;
             case IGNORE_ALL_OF_THIS_TYPE:
+                ignoremanager.addAllIgnoredEntry(scanIssue, actionId);
                 TelemetryService.logIgnoreAllAction(scanIssue);
                 break;
             default:

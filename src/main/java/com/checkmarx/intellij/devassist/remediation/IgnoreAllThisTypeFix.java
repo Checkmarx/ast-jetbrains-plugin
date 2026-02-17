@@ -2,8 +2,10 @@ package com.checkmarx.intellij.devassist.remediation;
 
 import com.checkmarx.intellij.CxIcons;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.util.IntentionFamilyName;
@@ -13,6 +15,8 @@ import com.intellij.openapi.util.Iconable;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+
+import static com.checkmarx.intellij.devassist.utils.DevAssistConstants.QUICK_FIX;
 
 /**
  * A quick fix implementation to ignore all issues of a specific type during real-time scanning.
@@ -72,5 +76,11 @@ public class IgnoreAllThisTypeFix implements LocalQuickFix, Iconable {
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
         LOGGER.info("applyFix called.." + getFamilyName() + " " + scanIssue.getTitle());
+        IgnoreManager.getInstance(project).addAllIgnoredEntry(scanIssue, QUICK_FIX);
+    }
+
+    @Override
+    public @NotNull IntentionPreviewInfo generatePreview(@NotNull Project project, @NotNull ProblemDescriptor previewDescriptor) {
+        return IntentionPreviewInfo.EMPTY;
     }
 }

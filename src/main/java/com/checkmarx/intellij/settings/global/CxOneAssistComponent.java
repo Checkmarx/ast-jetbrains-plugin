@@ -4,11 +4,16 @@ import com.checkmarx.intellij.Bundle;
 import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Resource;
 import com.checkmarx.intellij.Utils;
+import com.checkmarx.intellij.commands.TenantSetting;
 import com.checkmarx.intellij.components.CxLinkLabel;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.settings.SettingsComponent;
 import com.checkmarx.intellij.settings.SettingsListener;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
+import com.intellij.ide.DataManager;
+import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.Disposable;
@@ -23,6 +28,7 @@ import net.miginfocom.swing.MigLayout;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.awt.event.ItemEvent;
 import java.util.concurrent.CompletableFuture;
@@ -31,6 +37,7 @@ import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+
 
 /**
  * Settings component for managing Checkmarx One Assist real-time scanner configurations.
@@ -68,16 +75,21 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private CxLinkLabel installMcpLink;
     private boolean mcpInstallInProgress;
     private Timer mcpClearTimer;
+    private String lastNotificationEngine;
+
+
+    private final JBLabel containerToolLabel = new JBLabel();
+    private Timer containerToolTimer;
 
     public CxOneAssistComponent() {
         buildUI();
         reset();
         addAscaCheckBoxListener();
-
         connection = ApplicationManager.getApplication().getMessageBus().connect();
         connection.subscribe(SettingsListener.SETTINGS_APPLIED, new SettingsListener() {
             @Override
             public void settingsApplied() {
+
                 SwingUtilities.invokeLater(() -> {
                     LOGGER.debug("[CxOneAssist] Detected settings change, refreshing checkboxes.");
                     reset();
@@ -163,9 +175,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         if (mcpInstallInProgress) {
             return;
         }
-
         ensureState();
-
         // Check if MCP is enabled at tenant level (this should not happen since button is disabled, but defensive check)
         if (!state.isMcpEnabled()) {
             showMcpStatus(Bundle.message(Resource.CXONE_ASSIST_MCP_DISABLED_MESSAGE), JBColor.RED);
@@ -215,6 +225,22 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         mcpClearTimer.start();
     }
 
+    private void showContainerEngineStatus(String message, Color color) {
+        containerToolLabel.setText(message);
+        containerToolLabel.setForeground(color);
+        containerToolLabel.setVisible(true);
+
+        if (containerToolTimer != null) {
+            containerToolTimer.stop();
+        }
+        containerToolTimer = new Timer(5000, e -> {
+            containerToolLabel.setVisible(false);
+            containerToolLabel.setText("");
+        });
+        containerToolTimer.setRepeats(false);
+        containerToolTimer.start();
+    }
+
     /** Opens (and creates if necessary) the Copilot MCP configuration file then closes the settings dialog. */
     private void openMcpJson() {
         // Apply settings if modified, then close dialog window
@@ -225,7 +251,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         } catch (Exception ex) {
             LOGGER.warn("[CxOneAssist] Failed applying settings before closing dialog", ex);
         }
-        java.awt.Window w = SwingUtilities.getWindowAncestor(mainPanel);
+        Window w = SwingUtilities.getWindowAncestor(mainPanel);
         if (w != null) {
             w.dispose();
         }
@@ -299,6 +325,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         ApplicationManager.getApplication().getMessageBus()
                 .syncPublisher(SettingsListener.SETTINGS_APPLIED)
                 .settingsApplied();
+
+        ApplicationManager.getApplication().executeOnPooledThread(this::validateIACEngine);
     }
 
     @Override
@@ -321,26 +349,23 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private void updateAssistState() {
         ensureState();
         boolean authenticated = state.isAuthenticated();
+        boolean hasAssistLicense = state.isOneAssistLicenseEnabled() || state.isDevAssistLicenseEnabled();
 
-        if (!authenticated) {
-            ascaCheckbox.setEnabled(false);
-            ascaCheckbox.setSelected(false);
-            ossCheckbox.setEnabled(false);
-            ossCheckbox.setSelected(false);
-            secretsCheckbox.setEnabled(false);
-            secretsCheckbox.setSelected(false);
-            containersCheckbox.setEnabled(false);
-            containersCheckbox.setSelected(false);
-            iacCheckbox.setEnabled(false);
-            iacCheckbox.setSelected(false);
-            containersToolCombo.setEnabled(false);
-            installMcpLink.setEnabled(false);
-
-            assistMessageLabel.setText(Bundle.message(Resource.CXONE_ASSIST_LOGIN_MESSAGE));
-            assistMessageLabel.setForeground(JBColor.RED);
-            assistMessageLabel.setVisible(true);
+        if (!hasAssistLicense) {
+            // No Assist licenses: hide UI and hard-disable realtime scanners.
+            disableAssistUI("CxOne Assist is unavailable without a One Assist or Dev Assist license.",
+                    JBColor.RED,
+                    false);
             return;
         }
+
+        if (!authenticated) {
+            disableAssistUI(Bundle.message(Resource.CXONE_ASSIST_LOGIN_MESSAGE), JBColor.RED, true);
+            return;
+        }
+
+        // License present and authenticated - show panel
+        mainPanel.setVisible(true);
 
         // Check if MCP status hasn't been checked yet (upgrade scenario)
         if (!state.isMcpStatusChecked()) {
@@ -352,6 +377,72 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         boolean mcpEnabled = state.isMcpEnabled();
         boolean isAuthenticated = state.isAuthenticated();
         updateUIWithMcpStatus(mcpEnabled, isAuthenticated);
+    }
+
+    private void disableAssistUI(String message, Color color, boolean keepVisible) {
+        ensureState();
+
+        mainPanel.setVisible(keepVisible);
+
+        ascaCheckbox.setEnabled(false);
+        ossCheckbox.setEnabled(false);
+        secretsCheckbox.setEnabled(false);
+        containersCheckbox.setEnabled(false);
+        iacCheckbox.setEnabled(false);
+        containersToolCombo.setEnabled(false);
+        if (installMcpLink != null) {
+            installMcpLink.setEnabled(false);
+        }
+
+        // Preserve user preferences once before clearing, so they can be restored when license becomes available
+        if (!state.getUserPreferencesSet()) {
+            state.saveCurrentSettingsAsUserPreferences();
+        }
+
+        // Uncheck all realtime scanners in UI and state
+        ascaCheckbox.setSelected(false);
+        ossCheckbox.setSelected(false);
+        secretsCheckbox.setSelected(false);
+        containersCheckbox.setSelected(false);
+        iacCheckbox.setSelected(false);
+
+        boolean settingsChanged = false;
+        if (state.isAscaRealtime() || state.isAsca()) {
+            state.setAscaRealtime(false);
+            state.setAsca(false);
+            settingsChanged = true;
+        }
+        if (state.isOssRealtime()) {
+            state.setOssRealtime(false);
+            settingsChanged = true;
+        }
+        if (state.isSecretDetectionRealtime()) {
+            state.setSecretDetectionRealtime(false);
+            settingsChanged = true;
+        }
+        if (state.isContainersRealtime()) {
+            state.setContainersRealtime(false);
+            settingsChanged = true;
+        }
+        if (state.isIacRealtime()) {
+            state.setIacRealtime(false);
+            settingsChanged = true;
+        }
+
+        if (settingsChanged) {
+            GlobalSettingsState.getInstance().apply(state);
+            ApplicationManager.getApplication().getMessageBus()
+                    .syncPublisher(SettingsListener.SETTINGS_APPLIED)
+                    .settingsApplied();
+        }
+
+        if (keepVisible && message != null && !message.isBlank()) {
+            assistMessageLabel.setText(message);
+            assistMessageLabel.setForeground(color);
+            assistMessageLabel.setVisible(true);
+        } else {
+            assistMessageLabel.setVisible(false);
+        }
     }
 
 
@@ -464,7 +555,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             try {
                 GlobalSettingsState currentState = GlobalSettingsState.getInstance();
                 GlobalSettingsSensitiveState currentSensitiveState = GlobalSettingsSensitiveState.getInstance();
-                return com.checkmarx.intellij.commands.TenantSetting.isAiMcpServerEnabled(currentState, currentSensitiveState);
+                return TenantSetting.isAiMcpServerEnabled(currentState, currentSensitiveState);
             } catch (Exception ex) {
                 LOGGER.warn("Failed to check MCP status during upgrade scenario", ex);
                 return false; // Default to disabled on error
@@ -536,5 +627,24 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private void setAscaInstallationMsg(String message, JBColor color) {
         ascaInstallationMsg.setText(String.format("<html>%s</html>", message));
         ascaInstallationMsg.setForeground(color);
+    }
+
+    private void validateIACEngine(){
+        String engineName = state.getContainersTool();
+          try{
+              CxWrapperFactory.build().checkEngineExist(engineName);
+              lastNotificationEngine = "";
+          }
+          catch (Exception e){
+              if(engineName.equalsIgnoreCase(lastNotificationEngine)){
+                  return;
+              }
+              lastNotificationEngine = engineName;
+              ApplicationManager.getApplication().invokeLater(() -> {
+                  Utils.showAppLevelNotification(DevAssistConstants.IAC_ENGINE_VALIDATION_ERROR, String.format("%s %s",e.getMessage(),DevAssistConstants.IAC_PREREQUISITE),
+                          NotificationType.WARNING,
+                           true,Bundle.message(Resource.DEVASSIST_DOC_LINK));
+              });
+          }
     }
 }

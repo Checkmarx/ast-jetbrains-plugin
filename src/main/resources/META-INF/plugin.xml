@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>com.checkmarx.checkmarx-ast-jetbrains-plugin</id>
-    <name>Checkmarx AST</name>
+    <name>Checkmarx</name>
     <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
 
     <description><![CDATA[
@@ -35,7 +35,8 @@
                 serviceImplementation="com.checkmarx.intellij.settings.global.GlobalSettingsSensitiveState"/>
 
         <applicationConfigurable
-                instance="com.checkmarx.intellij.settings.global.CxOneAssistConfigurable"
+                id="settings.ast.assist"
+                provider="com.checkmarx.intellij.settings.global.CxOneAssistConfigurableProvider"
                 parentId="settings.ast"
                 bundle="messages.CxBundle"
                 key="CXONE_ASSIST_TITLE"/>
