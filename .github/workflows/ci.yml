@@ -92,7 +92,7 @@ jobs:
       - name: Run Tests with coverage report
         id: test_results
         run: |
-          ./gradlew test --tests "com.checkmarx.intellij.unit*" jacocoTestReport \
+          ./gradlew test --tests "com.checkmarx.intellij.*.test.unit*" --tests "com.checkmarx.intellij.devassist.test*" --tests "com.checkmarx.intellij.cxdevassist.test*" jacocoTestReport \
             -PjacocoTask=unit
 
       - name: Generate JaCoCo Badge
