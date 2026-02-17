@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -15,17 +16,21 @@ import java.util.stream.Collectors;
 import static com.checkmarx.intellij.tool.window.results.tree.nodes.ResultNode.UPGRADE_TO_VERSION_LABEL;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 
 public class TestSca extends BaseUITest {
+    EnumSet<Severity> exclude = EnumSet.of(Severity.MALICIOUS, Severity.INFO);
     @Test
     @Video
     public void testScaPanel() {
+        openCxToolWindow();
         getResults();
         waitForScanIdSelection();
 
         severity();
-        Arrays.stream(Severity.values()).forEach(severity -> toggleFilter(severity, true));
-
+        Arrays.stream(Severity.values())
+                .filter(severity -> !exclude.contains(severity))
+                .forEach(severity -> toggleFilter(severity, true));
         navigate("Scan", 2);
         navigate("sca", 3);
         navigate("Vulnerability", 4);
@@ -35,11 +40,11 @@ public class TestSca extends BaseUITest {
         List<RemoteText> scaHighNodes = tree.getData()
                                             .getAll()
                                             .stream()
-                                            .filter(t -> t.getText().startsWith("HIGH"))
+                                            .filter(t -> t.getText().startsWith("LOW"))
                                             .collect(Collectors.toList());
 
         if (scaHighNodes.size() != 0) {
-            navigate("HIGH", 4);
+            navigate("LOW", 4);
         }
 
         navigate("Maven", 2);
@@ -70,6 +75,7 @@ public class TestSca extends BaseUITest {
         }
 
         testFileNavigation();
+        openCxToolWindow();
     }
 }
 

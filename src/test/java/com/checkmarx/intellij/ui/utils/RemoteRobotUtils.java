@@ -5,6 +5,7 @@ import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.search.locators.Locators;
 import com.intellij.remoterobot.utils.UtilsKt;
 import org.intellij.lang.annotations.Language;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 import java.util.List;
@@ -40,5 +41,22 @@ public class RemoteRobotUtils {
 
     public static <T extends ComponentFixture> List<T> findAll(Class<T> cls, @Language("XPath") String xpath) {
         return remoteRobot.findAll(cls, Locators.byXpath(xpath));
+    }
+
+    /**
+     * Returns the text of the element found by the given XPath.
+     *
+     * @param xpath XPath of the element
+     * @return the text of the element, or null if not found or text is not available
+     */
+    public static String getText(@NotNull String xpath) {
+        try {
+            ComponentFixture fixture = remoteRobot.find(ComponentFixture.class, Locators.byXpath(xpath));
+            Object result = fixture.callJs("component.getText ? component.getText() : (component.getLabel ? component.getLabel() : null)");
+            return result != null ? result.toString() : null;
+        } catch (Exception e) {
+            System.err.println("Failed to get text for xpath: " + xpath + ", reason: " + e.getMessage());
+            return null;
+        }
     }
 }

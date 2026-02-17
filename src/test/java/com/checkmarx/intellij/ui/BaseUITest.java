@@ -1,16 +1,13 @@
 package com.checkmarx.intellij.ui;
 
-import com.checkmarx.intellij.Constants;
 import com.checkmarx.intellij.Utils;
 import com.checkmarx.intellij.integration.Environment;
 import com.checkmarx.intellij.tool.window.GroupBy;
 import com.checkmarx.intellij.tool.window.Severity;
 import com.intellij.remoterobot.fixtures.*;
-import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
 import com.intellij.remoterobot.stepsProcessing.StepLogger;
 import com.intellij.remoterobot.stepsProcessing.StepWorker;
 import com.intellij.remoterobot.utils.Keyboard;
-import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
@@ -19,13 +16,15 @@ import org.junit.jupiter.api.BeforeAll;
 
 import java.awt.event.KeyEvent;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
+import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.openSettings;
+import static com.checkmarx.intellij.ui.PageMethods.CheckmarxSettingsPage.testASTConnection;
+import static com.checkmarx.intellij.ui.PageMethods.ScanResultsPannelPage.enterScanIdAndSelect;
 import static com.checkmarx.intellij.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ui.utils.Xpath.*;
+import static com.intellij.remoterobot.search.locators.Locators.byXpath;
 
 public abstract class BaseUITest {
 
@@ -33,7 +32,6 @@ public abstract class BaseUITest {
     private static boolean initialized = false;
     private static int retries = 0;
     protected static ComponentFixture baseLabel;
-
     @BeforeAll
     public static void init() {
         if (!initialized) {
@@ -58,8 +56,14 @@ public abstract class BaseUITest {
             // Resize Checkmarx One plugin so that all toolbar icons are visible
             resizeToolBar();
 
-            // Connect to AST
-            testASTConnection(true);
+            // ✅ Connect only if not already connected
+            if (!isASTConnected()) {
+                log("AST not connected. Establishing connection...");
+                testASTConnection(true);
+            } else {
+                click(OK_BTN);
+                log("AST already connected. Skipping connection step.");
+            }
 
             initialized = true;
             log("Initialization finished");
@@ -68,7 +72,7 @@ public abstract class BaseUITest {
         }
     }
 
-    private static void resizeToolBar() {
+    public static void resizeToolBar() {
         focusCxWindow();
         Keyboard keyboard = new Keyboard(remoteRobot);
         for (int i = 0; i < 3; i++) {
@@ -81,18 +85,6 @@ public abstract class BaseUITest {
         }
     }
 
-    protected static void enter(String value) {
-        Keyboard keyboard = new Keyboard(remoteRobot);
-        waitFor(() -> {
-            for (int i = 0; i < value.length(); i++) {
-                keyboard.backspace();
-            }
-            keyboard.enterText(value);
-            return hasAnyComponent(String.format(VISIBLE_TEXT, value));
-        });
-        keyboard.enter();
-    }
-
     private static void trustClonedProject() {
         try {
             waitFor(() -> hasAnyComponent(TRUST_PROJECT) && find(TRUST_PROJECT).isShowing());
@@ -101,148 +93,21 @@ public abstract class BaseUITest {
         }
     }
 
-    static void setField(String fieldName, String value) {
-        log("Setting field " + fieldName);
-        @Language("XPath") String fieldXpath = String.format(FIELD_NAME, fieldName);
-        waitFor(() -> hasAnyComponent(fieldXpath) && find(fieldXpath).isShowing());
-        find(JTextFieldFixture.class, String.format(FIELD_NAME, fieldName), waitDuration).setText(value);
-    }
-
-    protected static void waitFor(Supplier<Boolean> condition) {
-        try {
-            RepeatUtilsKt.waitFor(waitDuration, condition::get);
-        } catch (WaitForConditionTimeoutException e) {
-            retries++;
-            if (retries < 3) {
-                focusCxWindow();
-            } else {
-                retries = 0;
-                throw e;
-            }
-        }
-    }
-
-    static void openCxToolWindow() {
-        log("Opening Cx Tool Window");
-        waitFor(() -> hasAnyComponent("//div[@tooltiptext.key='NOTIFICATION_GROUP_NAME']"));
-        if (!(hasAnyComponent(SETTINGS_ACTION) || hasAnyComponent(SETTINGS_BUTTON))) {
-            find("//div[@tooltiptext.key='NOTIFICATION_GROUP_NAME']").click();
-        }
-    }
-
-    protected static void log(String msg) {
-        StackTraceElement[] st = Thread.currentThread().getStackTrace();
-        System.out.printf("%s | %s: %s%n", Instant.now().toString(), st[2], msg);
-    }
-
-    protected static void testASTConnection(boolean validCredentials) {
-        openSettings();
-
-        //Logout if already authenticated
-        if (hasAnyComponent(LOGOUT_BUTTON)) {
-            log("Detected previous authentication. Logging out.");
-            click(LOGOUT_BUTTON);
-
-            if (hasAnyComponent(LOGOUT_CONFIRM_YES)) {
-                click(LOGOUT_CONFIRM_YES);
-            }
-
-            waitFor(() -> hasAnyComponent(API_KEY_RADIO));
-        }
-
-        //Select API Key radio
-        waitFor(() -> hasAnyComponent(API_KEY_RADIO));
-        find(API_KEY_RADIO).click();
-
-        // Set API key
-        String apiKey = validCredentials ? Environment.API_KEY : "invalid-api-key";
-        setField(Constants.FIELD_NAME_API_KEY, apiKey);
-
-        // Set additional parameter
-        setField(Constants.FIELD_NAME_ADDITIONAL_PARAMETERS, "--debug");
-
-        // Attempt connection
-        click(CONNECT_BUTTON);
-        waitFor(() -> !hasAnyComponent(VALIDATING_CONNECTION));
-
-        // Expect success or expect failure
-        if (validCredentials) {
-            Assertions.assertTrue(hasAnyComponent(SUCCESS_CONNECTION));
-            click(WELCOME_CLOSE_BUTTON);
-            click(OK_BTN);
-            waitFor(() -> hasAnyComponent(START_SCAN_BTN) && hasAnyComponent(CANCEL_SCAN_BTN));
-        } else {
-            Assertions.assertFalse(hasAnyComponent(SUCCESS_CONNECTION));
-            click(OK_BTN);
-            waitFor(() -> !hasAnyComponent(START_SCAN_BTN) && !hasAnyComponent(CANCEL_SCAN_BTN));
-        }
-    }
-
-    static void openSettings() {
-        waitFor(() -> {
-            focusCxWindow();
-            if (hasAnyComponent(SETTINGS_ACTION)) {
-                click(SETTINGS_ACTION);
-            } else if (hasAnyComponent(SETTINGS_BUTTON)) {
-                click(SETTINGS_BUTTON);
-            }
-            return hasAnyComponent(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY));
-        });
-    }
-
     protected static void testFileNavigation() {
-        waitFor(() -> {
-            focusCxWindow();
-            findAll(LINK_LABEL).get(0).doubleClick();
-            return hasAnyComponent(EDITOR);
-        });
+        focusCxWindow();
+        findAll(LINK_LABEL).get(0).doubleClick();
+        hideToolWindows(); // call once before checking editor
+
+        // Now wait for editor to appear
+        waitFor(() -> hasAnyComponent(EDITOR));
         Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
         //Confirming if editor is opened
         find(EditorFixture.class, EDITOR, waitDuration);
     }
 
-    protected void getResults() {
-        focusCxWindow();
-        waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
-        focusCxWindow();
-        find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
-        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
-        waitFor(() -> {
-            focusCxWindow();
-            return hasAnyComponent(String.format("//div[@class='Tree' and contains(@visible_text,'Scan %s')]", Environment.SCAN_ID));
-        });
-    }
-
     private static boolean hasSelection(String s) {
         return hasAnyComponent(String.format(HAS_SELECTION, s));
     }
-
-    protected void waitForScanIdSelection() {
-        focusCxWindow();
-        // check scan selection for the scan id
-        waitFor(() -> hasAnyComponent(String.format(SCAN_ID_SELECTION, Environment.SCAN_ID, Environment.SCAN_ID)));
-    }
-
-    protected void navigate(String prefix, int minExpectedSize) {
-        waitFor(() -> {
-            List<RemoteText> allNodes = find(JTreeFixture.class, TREE).getData()
-                    .getAll()
-                    .stream()
-                    .filter(t -> t.getText().startsWith(prefix))
-                    .collect(Collectors.toList());
-
-            if (allNodes.size() == 0) {
-                return false; // No matching nodes found
-            }
-
-            // Perform the action on all nodes that match the prefix
-            allNodes.forEach(node -> node.doubleClick());
-
-            // Check if the total number of nodes after action is >= minExpectedSize
-            return find(JTreeFixture.class, TREE).findAllText().size() >= minExpectedSize;
-        });
-    }
-
 
     @NotNull
     protected static ActionButtonFixture findSelection(String s) {
@@ -253,21 +118,61 @@ public abstract class BaseUITest {
         return find(ActionButtonFixture.class, xpath);
     }
 
-    protected void testSelectionAction(ActionButtonFixture selection, String prefix, String value) {
-        waitFor(() -> {
-            focusCxWindow();
-            System.out.println(selection.getTemplatePresentationText());
-            return selection.isEnabled() && selection.getTemplatePresentationText().contains(prefix);
-        });
-        waitFor(() -> {
-            focusCxWindow();
-            selection.click();
-            List<JListFixture> jListFixtures = findAll(JListFixture.class, MY_LIST);
+    public static void focusCxWindow() {
+        boolean cxPluginOpened = find(BASE_LABEL).hasText("Checkmarx");
+        System.out.println("Plugin opened: " + cxPluginOpened);
 
-            return jListFixtures.size() == 1 && jListFixtures.get(0).findAllText().size() > 0;
-        });
-        enter(value);
+        if (!cxPluginOpened) {
+            openCxToolWindow();
+            return;
+        }
+
+        if (baseLabel != null && baseLabel.isShowing()) {
+            baseLabel.click();
+        } else {
+            waitFor(() -> hasAnyComponent(BASE_LABEL));
+            baseLabel = find(BASE_LABEL);
+            baseLabel.click();
+        }
     }
+
+    protected static void expand() {
+        waitFor(() -> {
+            click(EXPAND_ACTION);
+            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
+        });
+    }
+
+    protected static void hideToolWindows() {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_F12);
+    }
+
+    protected void getResults() {
+        focusCxWindow();
+        waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
+        focusCxWindow();
+        clearSelection();
+       /* find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
+        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);*/
+        enterScanIdAndSelect(true);
+        waitFor(() -> {
+            focusCxWindow();
+            return hasAnyComponent(TREE)
+                    && !hasAnyComponent(
+                    GETTING_RESULT_TEXT
+            );
+        });
+    }
+
+    protected void waitForScanIdSelection() {
+        focusCxWindow();
+        // check scan selection for the scan id
+        log("inside waitForScanIdSelection");
+        waitFor(() -> hasAnyComponent(String.format(SCAN_ID_SELECTION, Environment.SCAN_ID, Environment.SCAN_ID)));
+    }
+
+
 
     protected void clearSelection() {
         waitFor(() -> {
@@ -287,27 +192,9 @@ public abstract class BaseUITest {
                 return false;
             }
             log("clicking refresh action button");
-            click(CLEAR_BTN);
+            click(RESET_PROJECT_SELECTION);
             return false;
         });
-    }
-
-    static void focusCxWindow() {
-        boolean cxPluginOpened = find(BASE_LABEL).hasText("Checkmarx");
-        System.out.println("Plugin opened: " + cxPluginOpened);
-
-        if(!cxPluginOpened) {
-            openCxToolWindow();
-            return;
-        }
-
-        if(baseLabel != null && baseLabel.isShowing()) {
-            baseLabel.click();
-        } else {
-            waitFor(() -> hasAnyComponent(BASE_LABEL));
-            baseLabel = find(BASE_LABEL);
-            baseLabel.click();
-        }
     }
 
     private void groupAction(String value) {
@@ -324,13 +211,6 @@ public abstract class BaseUITest {
             click(GROUP_BY_ACTION);
             List<JListFixture> myList = findAll(JListFixture.class, MY_LIST);
             return myList.size() == 1 && myList.get(0).findAllText().size() == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
-        });
-    }
-
-    protected void expand() {
-        waitFor(() -> {
-            click(EXPAND_ACTION);
-            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
         });
     }
 
@@ -352,4 +232,8 @@ public abstract class BaseUITest {
         });
     }
 
+    public static boolean isASTConnected() {
+        openSettings();
+        return hasAnyComponent(SUCCESSFUL_LOGIN_MESSAGE);
+    }
 }
