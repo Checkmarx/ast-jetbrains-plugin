@@ -43,20 +43,20 @@
         <toolWindow id="Checkmarx Developer Assist"
                     anchor="bottom"
                     icon="com.checkmarx.intellij.common.resources.CxIcons.CHECKMARX_13"
-                    factoryClass="com.checkmarx.intellij.ignite.window.CxDevAssistToolWindowFactory"/>
+                    factoryClass="com.checkmarx.intellij.cxdevassist.window.CxDevAssistToolWindowFactory"/>
 
         <!-- Register Checkmarx Developer Assist settings main page under IDE Settings -> tools -->
-        <applicationConfigurable instance="com.checkmarx.intellij.ignite.settings.CxDevAssistSettingsConfigurable"
+        <applicationConfigurable instance="com.checkmarx.intellij.cxdevassist.settings.CxDevAssistSettingsConfigurable"
                                  parentId="tools"
-                                 bundle="messages.CxBundle" key="IGNITE_PLUGIN_SETTINGS_TITLE"/>
+                                 bundle="messages.CxBundle" key="DEVASSIST_PLUGIN_SETTINGS_TITLE"/>
 
         <!-- Register DevAssist Settings as a child page under Checkmarx Developer Assist -->
         <applicationConfigurable
                 id="settings.devassist.realtime"
-                provider="com.checkmarx.intellij.ignite.settings.RealtimeScannersSettingsConfigurableProvider"
+                provider="com.checkmarx.intellij.cxdevassist.settings.RealtimeScannersSettingsConfigurableProvider"
                 parentId="settings.devassist"
                 bundle="messages.CxBundle"
-                key="IGNITE_PLUGIN_SETTINGS_CHILD_TITLE"/>
+                key="DEVASSIST_PLUGIN_SETTINGS_CHILD_TITLE"/>
 
         <!-- Main Settings states persistence classes (from common-lib) -->
         <applicationService serviceImplementation="com.checkmarx.intellij.common.settings.GlobalSettingsState"/>
@@ -97,7 +97,7 @@
     <!-- Finding Window Toolbar Actions -->
     <actions>
         <group id="VulnerabilityToolbarGroup">
-            <action id="Ignite.OpenSettings" class="com.checkmarx.intellij.ignite.window.actions.OpenCxDevAssistSettingsAction"
+            <action id="CxDevAssist.OpenSettings" class="com.checkmarx.intellij.cxdevassist.window.actions.OpenCxDevAssistSettingsAction"
                     icon="AllIcons.General.Settings"/>
             <separator/>
             <action id="VulnerabilityMalicious" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMaliciousFilter" />
@@ -106,9 +106,9 @@
             <action id="VulnerabilityMedium" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityMediumFilter"  />
             <action id="VulnerabilityLow" class="com.checkmarx.intellij.devassist.ui.actions.VulnerabilityFilterBaseAction$VulnerabilityLowFilter" />
             <separator/>
-            <action id="Ignite.ExpandAll" class="com.checkmarx.intellij.common.window.actions.ExpandAllAction"
+            <action id="CxDevAssist.ExpandAll" class="com.checkmarx.intellij.common.window.actions.ExpandAllAction"
                     icon="AllIcons.Actions.Expandall"/>
-            <action id="Ignite.CollapseAll" class="com.checkmarx.intellij.common.window.actions.CollapseAllAction"
+            <action id="CxDevAssist.CollapseAll" class="com.checkmarx.intellij.common.window.actions.CollapseAllAction"
                     icon="AllIcons.Actions.Collapseall"/>
         </group>
     </actions>

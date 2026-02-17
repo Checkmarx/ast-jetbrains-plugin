@@ -1,9 +1,9 @@
-package com.checkmarx.intellij.ignite.window;
+package com.checkmarx.intellij.cxdevassist.window;
 
 import com.checkmarx.intellij.common.context.PluginContext;
 import com.checkmarx.intellij.devassist.ui.findings.window.DevAssistFindingsWindow;
 import com.checkmarx.intellij.devassist.ui.findings.window.DevAssistIgnoredFindings;
-import com.checkmarx.intellij.ignite.utils.IgniteConstants;
+import com.checkmarx.intellij.cxdevassist.utils.CxDevAssistConstants;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -28,20 +28,20 @@ public class CxDevAssistToolWindowFactory implements ToolWindowFactory, DumbAwar
         // Register plugin context (only once)
         if (PluginContext.getInstance().isPlugin(PluginContext.PLUGIN_CHECKMARX_DEVASSIST)) {
             PluginContext.getInstance().setPluginName(PluginContext.PLUGIN_CHECKMARX_DEVASSIST);
-            PluginContext.getInstance().setPluginDisplayName(IgniteConstants.PLUGIN_NAME);
+            PluginContext.getInstance().setPluginDisplayName(CxDevAssistConstants.PLUGIN_NAME);
             LOGGER.info(format("Registered plugin context: %s", PluginContext.PLUGIN_CHECKMARX_DEVASSIST));
         }
         ContentFactory contentFactory = ContentFactory.getInstance();
 
         // DevAssist Findings Tab
-        Content findingsContent = contentFactory.createContent(null, IgniteConstants.FINDINGS_WINDOW_NAME, false);
-        DevAssistFindingsWindow findingsWindow = new DevAssistFindingsWindow(project, findingsContent, IgniteConstants.PLUGIN_NAME);
+        Content findingsContent = contentFactory.createContent(null, CxDevAssistConstants.FINDINGS_WINDOW_NAME, false);
+        DevAssistFindingsWindow findingsWindow = new DevAssistFindingsWindow(project, findingsContent, CxDevAssistConstants.PLUGIN_NAME);
         findingsContent.setComponent(findingsWindow);
         toolWindow.getContentManager().addContent(findingsContent);
         Disposer.register(project, findingsWindow);
 
         // DevAssist Ignored Findings Tab
-        Content ignoredContent = contentFactory.createContent(null, IgniteConstants.IGNORED_FINDINGS_WINDOW_NAME, false);
+        Content ignoredContent = contentFactory.createContent(null, CxDevAssistConstants.IGNORED_FINDINGS_WINDOW_NAME, false);
         DevAssistIgnoredFindings ignoredFindings = new DevAssistIgnoredFindings(project, ignoredContent);
         ignoredContent.setComponent(ignoredFindings);
         toolWindow.getContentManager().addContent(ignoredContent);

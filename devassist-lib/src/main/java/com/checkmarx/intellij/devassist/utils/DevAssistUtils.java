@@ -489,7 +489,7 @@ public class DevAssistUtils {
     public static String getAssistQuickFixName() {
         try {
             return PluginContext.getInstance().isDevAssistPlugin()
-                    ? DevAssistConstants.IGNITE_FIX_WITH_DEV_ASSIST
+                    ? DevAssistConstants.FIX_WITH_DEV_ASSIST
                     : DevAssistConstants.FIX_WITH_CXONE_ASSIST;
         } catch (Exception e) {
             LOGGER.warn("Failed to get quick fix name, exception: {}", e);

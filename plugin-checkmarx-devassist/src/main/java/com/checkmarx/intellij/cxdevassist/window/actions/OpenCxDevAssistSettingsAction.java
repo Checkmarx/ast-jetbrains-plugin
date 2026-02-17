@@ -1,8 +1,8 @@
-package com.checkmarx.intellij.ignite.window.actions;
+package com.checkmarx.intellij.cxdevassist.window.actions;
 
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
-import com.checkmarx.intellij.ignite.settings.CxDevAssistSettingsConfigurable;
+import com.checkmarx.intellij.cxdevassist.settings.CxDevAssistSettingsConfigurable;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -10,7 +10,7 @@ import com.intellij.openapi.options.ShowSettingsUtil;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * OpenIgniteSettingsAction class to open Checkmarx Developer Assist settings from the tool window.
+ * OpenCxDevAssistSettingsAction class to open Checkmarx Developer Assist settings from the tool window.
  */
 @SuppressWarnings("ComponentNotRegistered")
 public class OpenCxDevAssistSettingsAction extends AnAction {

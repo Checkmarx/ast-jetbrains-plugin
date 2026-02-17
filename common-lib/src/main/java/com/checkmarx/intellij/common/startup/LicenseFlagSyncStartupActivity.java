@@ -75,15 +75,11 @@ public class LicenseFlagSyncStartupActivity implements StartupActivity.DumbAware
                         ApplicationManager.getApplication().getMessageBus()
                                 .syncPublisher(SettingsListener.SETTINGS_APPLIED)
                                 .settingsApplied();
-                        LOGGER.debug("LicenseSyncStartupActivity: SETTINGS_APPLIED event published, UI panels will redraw");
+                        LOGGER.debug("LicenseSyncStartupActivity: License changed for the tenant, publishing event to reset the plugin UI.");
                     });
-                } else {
-                    LOGGER.debug("LicenseSyncStartupActivity: License flags unchanged, no UI update needed");
                 }
-
             } catch (Exception e) {
                 LOGGER.warn("LicenseSyncStartupActivity: Failed to fetch license flags from API", e);
-                // Don't change existing flags on error - keep cached values
             }
         });
     }

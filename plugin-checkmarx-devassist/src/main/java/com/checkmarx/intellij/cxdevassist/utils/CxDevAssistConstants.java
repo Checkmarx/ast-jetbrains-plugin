@@ -1,11 +1,11 @@
-package com.checkmarx.intellij.ignite.utils;
+package com.checkmarx.intellij.cxdevassist.utils;
 
 /**
- * Constants used in the ignite plugin.
+ * Constants used in the checkmarx developer plugin.
  */
-public final class IgniteConstants {
+public final class CxDevAssistConstants {
 
-    private IgniteConstants() {
+    private CxDevAssistConstants() {
         throw new IllegalStateException("Can not instantiate Utility class");
     }
 

@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.ignite.ui;
+package com.checkmarx.intellij.cxdevassist.ui;
 
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.CxIcons;
@@ -22,9 +22,9 @@ import javax.swing.*;
 import java.awt.*;
 
 /**
- * Welcome dialog for managing Checkmarx Developer Assist plugin features (ignite)
+ * Welcome dialog for managing Checkmarx Developer Assist plugin features
  */
-public class IgniteWelcomeDialog extends DialogWrapper {
+public class CxDevAssistWelcomeDialog extends DialogWrapper {
 
     private static final int WRAP_WIDTH = 250;
     private static final Dimension PREFERRED_DIALOG_SIZE = new Dimension(720, 460);
@@ -37,7 +37,7 @@ public class IgniteWelcomeDialog extends DialogWrapper {
     @Getter
     private JBCheckBox realTimeScannersCheckbox;
 
-    public IgniteWelcomeDialog(@Nullable Project project, boolean mcpEnabled) {
+    public CxDevAssistWelcomeDialog(@Nullable Project project, boolean mcpEnabled) {
         this(project, mcpEnabled, new DefaultRealTimeSettingsManager());
     }
 
@@ -48,7 +48,7 @@ public class IgniteWelcomeDialog extends DialogWrapper {
      * @param mcpEnabled      whether MCP is enabled for this tenant
      * @param settingsManager wrapper around settings reads/writes
      */
-    public IgniteWelcomeDialog(@Nullable Project project, boolean mcpEnabled, RealTimeSettingsManager settingsManager) {
+    public CxDevAssistWelcomeDialog(@Nullable Project project, boolean mcpEnabled, RealTimeSettingsManager settingsManager) {
         super(project, false);
         this.mcpEnabled = mcpEnabled;
         this.settingsManager = settingsManager;
@@ -73,13 +73,13 @@ public class IgniteWelcomeDialog extends DialogWrapper {
         JPanel leftPanel = new JPanel(new MigLayout("insets 20 20 20 20, gapy 10, wrap 1", "[grow]"));
 
         // Title
-        JBLabel title = new JBLabel(Bundle.message(Resource.IGNITE_PLUGIN_WELCOME_TITLE));
+        JBLabel title = new JBLabel(Bundle.message(Resource.DEVASSIST_PLUGIN_WELCOME_TITLE));
         title.setFont(title.getFont().deriveFont(Font.BOLD, 20f));
         leftPanel.add(title, "gapbottom 4");
 
         // Subtitle wrapped to a fixed width for consistent layout
         JBLabel subtitle = new JBLabel("<html><div style='width:" + WRAP_WIDTH + "px;'>" +
-                Bundle.message(Resource.IGNITE_PLUGIN_WELCOME_SUBTITLE) + "</div></html>");
+                Bundle.message(Resource.DEVASSIST_PLUGIN_WELCOME_SUBTITLE) + "</div></html>");
         subtitle.setForeground(UIUtil.getLabelForeground());
         leftPanel.add(subtitle);
 
@@ -128,7 +128,7 @@ public class IgniteWelcomeDialog extends DialogWrapper {
         realTimeScannersCheckbox.setContentAreaFilled(false);
         realTimeScannersCheckbox.setBackground(backgroundColor);
         header.add(realTimeScannersCheckbox);
-        JBLabel assistTitle = new JBLabel(Bundle.message(Resource.IGNITE_PLUGIN_WELCOME_CHECK_TITLE));
+        JBLabel assistTitle = new JBLabel(Bundle.message(Resource.DEVASSIST_PLUGIN_WELCOME_CHECK_TITLE));
         assistTitle.setFont(assistTitle.getFont().deriveFont(Font.BOLD));
         header.add(assistTitle, "growx, pushx");
         return header;
@@ -144,7 +144,7 @@ public class IgniteWelcomeDialog extends DialogWrapper {
             bulletsPanel.add(createBullet(Resource.WELCOME_MCP_INSTALLED_INFO));
         } else {
             // Show a theme-aware MCP disabled info icon
-            JBLabel mcpDisabledIcon = new JBLabel(CxIcons.getIGNITE_WELCOME_AI_ERROR());
+            JBLabel mcpDisabledIcon = new JBLabel(CxIcons.getDEVASSIST_WELCOME_AI_ERROR());
             mcpDisabledIcon.setHorizontalAlignment(SwingConstants.CENTER);
             bulletsPanel.add(mcpDisabledIcon, "growx, wrap");
         }

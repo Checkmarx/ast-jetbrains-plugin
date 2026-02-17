@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.ignite.settings;
+package com.checkmarx.intellij.cxdevassist.settings;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.intellij.openapi.options.Configurable;

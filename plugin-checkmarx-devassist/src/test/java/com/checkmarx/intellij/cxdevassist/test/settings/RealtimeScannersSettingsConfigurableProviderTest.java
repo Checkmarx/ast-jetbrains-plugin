@@ -1,8 +1,8 @@
-package com.checkmarx.intellij.ignite.test.settings;
+package com.checkmarx.intellij.cxdevassist.test.settings;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
-import com.checkmarx.intellij.ignite.settings.RealtimeScannersSettingsConfigurable;
-import com.checkmarx.intellij.ignite.settings.RealtimeScannersSettingsConfigurableProvider;
+import com.checkmarx.intellij.cxdevassist.settings.RealtimeScannersSettingsConfigurable;
+import com.checkmarx.intellij.cxdevassist.settings.RealtimeScannersSettingsConfigurableProvider;
 import com.intellij.openapi.options.Configurable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

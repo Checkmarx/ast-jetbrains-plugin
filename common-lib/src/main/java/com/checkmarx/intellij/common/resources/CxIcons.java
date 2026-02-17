@@ -36,7 +36,7 @@ public final class CxIcons {
     public static final Icon STAR_ACTION = IconLoader.getIcon("/icons/devassist/star-action.svg", CxIcons.class);
 
     @Getter
-    public static final Icon IGNITE_WELCOME_AI_ERROR =  IconLoader.getIcon("/icons/devassist/mcpEnabledError.svg", CxIcons.class);
+    public static final Icon DEVASSIST_WELCOME_AI_ERROR =  IconLoader.getIcon("/icons/devassist/mcpEnabledError.svg", CxIcons.class);
 
     /**
      * Inner static final class, to maintain the constants used in icons for the value 24*24.

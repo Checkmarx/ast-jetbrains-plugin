@@ -1,7 +1,7 @@
-package com.checkmarx.intellij.ignite.test.window.actions;
+package com.checkmarx.intellij.cxdevassist.test.window.actions;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
-import com.checkmarx.intellij.ignite.window.actions.OpenCxDevAssistSettingsAction;
+import com.checkmarx.intellij.cxdevassist.window.actions.OpenCxDevAssistSettingsAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;

@@ -1,7 +1,7 @@
-package com.checkmarx.intellij.ignite.test.window;
+package com.checkmarx.intellij.cxdevassist.test.window;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
-import com.checkmarx.intellij.ignite.window.CxDevAssistToolWindowFactory;
+import com.checkmarx.intellij.cxdevassist.window.CxDevAssistToolWindowFactory;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import org.junit.jupiter.api.AfterEach;

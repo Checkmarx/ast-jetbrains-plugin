@@ -19,7 +19,7 @@ public final class DevAssistConstants {
     // Tab Name Constants
     public static final String DEVASSIST_TAB = "Checkmarx One Assist Findings";
     public static final String IGNORED_FINDINGS_TAB = "Ignored Findings";
-    public static final String IGNITE_FINDINGS_WINDOW_NAME = "Checkmarx Developer Assist Findings";
+    public static final String DEVASSIST_PLUGIN_FINDINGS_WINDOW_NAME = "Checkmarx Developer Assist Findings";
 
     // OSS Scanner Constants
     public static final String ACTIVATE_OSS_REALTIME_SCANNER = "Activate OSS-Realtime";
@@ -74,7 +74,7 @@ public final class DevAssistConstants {
 
     //Dev Assist Fixes Constants
     public static final String FIX_WITH_CXONE_ASSIST = "Fix with Checkmarx One Assist";
-    public static final String IGNITE_FIX_WITH_DEV_ASSIST = "Fix with Checkmarx Developer Assist";
+    public static final String FIX_WITH_DEV_ASSIST = "Fix with Checkmarx Developer Assist";
     public static final String VIEW_DETAILS_FIX_NAME = "View details";
     public static final String IGNORE_THIS_VULNERABILITY_FIX_NAME = "Ignore this vulnerability";
     public static final String IGNORE_ALL_OF_THIS_TYPE_FIX_NAME = "Ignore all of this type";

@@ -1,18 +1,16 @@
-package com.checkmarx.intellij.ignite.test.ui;
+package com.checkmarx.intellij.cxdevassist.test.ui;
 
-import com.checkmarx.intellij.ignite.ui.IgniteWelcomeDialog;
-import com.checkmarx.intellij.ignite.ui.IgniteWelcomeDialog.RealTimeSettingsManager;
-import org.junit.jupiter.api.BeforeEach;
+import com.checkmarx.intellij.cxdevassist.ui.CxDevAssistWelcomeDialog;
+import com.checkmarx.intellij.cxdevassist.ui.CxDevAssistWelcomeDialog.RealTimeSettingsManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import javax.swing.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class IgniteWelcomeDialogTest {
+class CxDevAssistWelcomeDialogTest {
 
     static class FakeRealTimeSettingsManager implements RealTimeSettingsManager {
         boolean all;
@@ -45,11 +43,11 @@ class IgniteWelcomeDialogTest {
         }
     }
 
-    private IgniteWelcomeDialog createDialogBypassCtor(boolean mcpEnabled, RealTimeSettingsManager mgr) throws Exception {
+    private CxDevAssistWelcomeDialog createDialogBypassCtor(boolean mcpEnabled, RealTimeSettingsManager mgr) throws Exception {
         var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
         unsafeField.setAccessible(true);
         sun.misc.Unsafe unsafe = (sun.misc.Unsafe) unsafeField.get(null);
-        IgniteWelcomeDialog dialog = (IgniteWelcomeDialog) unsafe.allocateInstance(IgniteWelcomeDialog.class);
+        CxDevAssistWelcomeDialog dialog = (CxDevAssistWelcomeDialog) unsafe.allocateInstance(CxDevAssistWelcomeDialog.class);
 
         // Set required fields via reflection
         setField(dialog, "mcpEnabled", mcpEnabled);
@@ -85,7 +83,7 @@ class IgniteWelcomeDialogTest {
     @DisplayName("Dialog can be created with MCP enabled")
     void testDialogCreation_McpEnabled() throws Exception {
         FakeRealTimeSettingsManager mgr = new FakeRealTimeSettingsManager();
-        IgniteWelcomeDialog dialog = createDialogBypassCtor(true, mgr);
+        CxDevAssistWelcomeDialog dialog = createDialogBypassCtor(true, mgr);
         assertNotNull(dialog, "Dialog should be created");
     }
 
@@ -93,7 +91,7 @@ class IgniteWelcomeDialogTest {
     @DisplayName("Dialog can be created with MCP disabled")
     void testDialogCreation_McpDisabled() throws Exception {
         FakeRealTimeSettingsManager mgr = new FakeRealTimeSettingsManager();
-        IgniteWelcomeDialog dialog = createDialogBypassCtor(false, mgr);
+        CxDevAssistWelcomeDialog dialog = createDialogBypassCtor(false, mgr);
         assertNotNull(dialog, "Dialog should be created");
     }
 
@@ -108,7 +106,7 @@ class IgniteWelcomeDialogTest {
     @DisplayName("Settings manager can be accessed via reflection")
     void testSettingsManagerAccess() throws Exception {
         FakeRealTimeSettingsManager mgr = new FakeRealTimeSettingsManager(true, true);
-        IgniteWelcomeDialog dialog = createDialogBypassCtor(true, mgr);
+        CxDevAssistWelcomeDialog dialog = createDialogBypassCtor(true, mgr);
 
         Field field = findField(dialog.getClass(), "settingsManager");
         field.setAccessible(true);
@@ -121,7 +119,7 @@ class IgniteWelcomeDialogTest {
     @DisplayName("MCP enabled flag can be set and retrieved")
     void testMcpEnabledFlag() throws Exception {
         FakeRealTimeSettingsManager mgr = new FakeRealTimeSettingsManager();
-        IgniteWelcomeDialog dialog = createDialogBypassCtor(true, mgr);
+        CxDevAssistWelcomeDialog dialog = createDialogBypassCtor(true, mgr);
 
         Field field = findField(dialog.getClass(), "mcpEnabled");
         field.setAccessible(true);
@@ -136,8 +134,8 @@ class IgniteWelcomeDialogTest {
         FakeRealTimeSettingsManager mgr1 = new FakeRealTimeSettingsManager(true, true);
         FakeRealTimeSettingsManager mgr2 = new FakeRealTimeSettingsManager(false, false);
 
-        IgniteWelcomeDialog dialog1 = createDialogBypassCtor(true, mgr1);
-        IgniteWelcomeDialog dialog2 = createDialogBypassCtor(false, mgr2);
+        CxDevAssistWelcomeDialog dialog1 = createDialogBypassCtor(true, mgr1);
+        CxDevAssistWelcomeDialog dialog2 = createDialogBypassCtor(false, mgr2);
 
         assertNotSame(dialog1, dialog2, "Dialog instances should be different");
     }
@@ -166,17 +164,17 @@ class IgniteWelcomeDialogTest {
     @DisplayName("Dialog instance is of correct type")
     void testDialogInstanceType() throws Exception {
         FakeRealTimeSettingsManager mgr = new FakeRealTimeSettingsManager();
-        IgniteWelcomeDialog dialog = createDialogBypassCtor(true, mgr);
+        CxDevAssistWelcomeDialog dialog = createDialogBypassCtor(true, mgr);
 
-        assertInstanceOf(IgniteWelcomeDialog.class, dialog,
-                        "Instance should be of type IgniteWelcomeDialog");
+        assertInstanceOf(CxDevAssistWelcomeDialog.class, dialog,
+                        "Instance should be of type CxDevAssistWelcomeDialog");
     }
 
     @Test
     @DisplayName("Reflection-based field setting works correctly")
     void testReflectionFieldSetting() throws Exception {
         FakeRealTimeSettingsManager mgr = new FakeRealTimeSettingsManager();
-        IgniteWelcomeDialog dialog = createDialogBypassCtor(true, mgr);
+        CxDevAssistWelcomeDialog dialog = createDialogBypassCtor(true, mgr);
 
         setField(dialog, "mcpEnabled", false);
 

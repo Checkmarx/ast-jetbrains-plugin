@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.ignite.test.settings;
+package com.checkmarx.intellij.cxdevassist.test.settings;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import org.junit.jupiter.api.AfterEach;

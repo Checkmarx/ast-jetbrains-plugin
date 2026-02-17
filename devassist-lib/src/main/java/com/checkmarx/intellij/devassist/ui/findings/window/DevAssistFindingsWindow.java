@@ -729,6 +729,6 @@ public class DevAssistFindingsWindow extends SimpleToolWindowPanel implements Di
         if(PLUGIN_TOOL_WINDOW_ID.equals(Constants.TOOL_WINDOW_ID)){
             return DevAssistConstants.DEVASSIST_TAB;
         }else
-            return DevAssistConstants.IGNITE_FINDINGS_WINDOW_NAME;
+            return DevAssistConstants.DEVASSIST_PLUGIN_FINDINGS_WINDOW_NAME;
     }
 }

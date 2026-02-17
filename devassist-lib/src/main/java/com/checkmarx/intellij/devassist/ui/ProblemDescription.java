@@ -63,10 +63,10 @@ public final class ProblemDescription {
         DESCRIPTION_ICON.put(DEV_ASSIST, getImage(Constants.ImagePaths.DEV_ASSIST_PNG));
         DESCRIPTION_ICON.put(CONTAINER, getImage(Constants.ImagePaths.CONTAINER_PNG));
 
-        //Ignite Icons
+        //Dev assist plugin Icons
         if (PluginContext.getInstance().isDevAssistPlugin()){
-            LOGGER.debug("Loaded popup icons for ignite plugin..");
-            DESCRIPTION_ICON.put(DEV_ASSIST, getImage(Constants.ImagePaths.IGNITE_DEV_ASSIST_PNG));
+            LOGGER.debug("Loaded popup icons for devassist plugin..");
+            DESCRIPTION_ICON.put(DEV_ASSIST, getImage(Constants.ImagePaths.DEVASSIST_BADGE_PNG));
         }
     }
 

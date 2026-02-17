@@ -6,23 +6,21 @@ import com.intellij.openapi.diagnostic.Logger;
 import lombok.Getter;
 import lombok.Setter;
 
+import static java.lang.String.format;
+
 /**
  * Application-level service to store and retrieve the current plugin context.
- * This allows the module to know which plugin (plugin-ignite or plugin-checkmarx-ast)
+ * This allows the module to know which plugin (plugin-checkmarx-devassist or plugin-checkmarx-ast)
  * is currently using it, enabling plugin-specific behavior without tight coupling.
  * <p>
  * Usage:
  * <pre>
  * // Register plugin name (do this once during plugin initialization)
- * PluginContext.getInstance().setPluginName("plugin-ignite");
+ * PluginContext.getInstance().setPluginName("plugin-checkmarx-devassist");
  *
  * // Get plugin name anywhere in your code
  * String pluginName = PluginContext.getInstance().getPluginName();
  *
- * // Check which plugin is active
- * if (PluginContext.getInstance().isIgnitePlugin()) {
- *     // Ignite-specific logic
- * }
  * </pre>
  */
 @Service(Service.Level.APP)
@@ -35,10 +33,10 @@ public final class PluginContext {
     public static final String PLUGIN_CHECKMARX_AST = "plugin-checkmarx-ast";
 
     @Getter
-    private String pluginName;
+    private volatile String pluginName;
 
     @Setter
-    private String pluginDisplayName;
+    private volatile String pluginDisplayName;
 
     /**
      * Get the singleton instance of PluginContext.
@@ -52,14 +50,11 @@ public final class PluginContext {
     /**
      * Set the plugin name (should be called once during plugin initialization).
      *
-     * @param pluginName The plugin identifier (e.g., "plugin-ignite", "plugin-checkmarx-ast")
+     * @param pluginName The plugin identifier (e.g., "plugin-checkmarx-devassist", "plugin-checkmarx-ast")
      */
     public void setPluginName(String pluginName) {
-        if (this.pluginName != null && !this.pluginName.equals(pluginName)) {
-            LOGGER.warn("PluginContext: Changing plugin name from '" + this.pluginName + "' to '" + pluginName + "'");
-        }
         this.pluginName = pluginName;
-        LOGGER.info("PluginContext: Plugin name set to '" + pluginName + "'");
+        LOGGER.debug(format("PluginContext: Setting plugin name: %s", pluginName));
     }
 
     /**
@@ -72,9 +67,9 @@ public final class PluginContext {
     }
 
     /**
-     * Check if the current plugin is Ignite.
+     * Check if the current plugin is Checkmarx Developer Assist.
      *
-     * @return true if plugin-ignite is active
+     * @return true if plugin-checkmarx-devassist is active
      */
     public boolean isDevAssistPlugin() {
         return PLUGIN_CHECKMARX_DEVASSIST.equals(pluginName);
@@ -106,7 +101,7 @@ public final class PluginContext {
      */
     public String getSettingsConfigurableClassName() {
         if (isDevAssistPlugin()) {
-            return "com.checkmarx.intellij.ignite.settings.CxDevAssistSettingsConfigurable";
+            return "com.checkmarx.intellij.cxdevassist.settings.CxDevAssistSettingsConfigurable";
         } else if (isCheckmarxAstPlugin()) {
             return "com.checkmarx.intellij.ast.settings.GlobalSettingsConfigurable";
         }
@@ -119,7 +114,7 @@ public final class PluginContext {
     public void reset() {
         this.pluginName = null;
         this.pluginDisplayName = null;
-        LOGGER.info("PluginContext: Reset");
+        LOGGER.debug("PluginContext: Resetting plugin context.");
     }
 }
 

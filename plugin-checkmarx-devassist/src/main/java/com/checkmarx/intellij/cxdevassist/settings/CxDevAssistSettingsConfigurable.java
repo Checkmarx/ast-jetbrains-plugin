@@ -1,9 +1,9 @@
-package com.checkmarx.intellij.ignite.settings;
+package com.checkmarx.intellij.cxdevassist.settings;
 
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.SettingsComponent;
-import com.checkmarx.intellij.ignite.utils.IgniteConstants;
+import com.checkmarx.intellij.common.utils.Constants;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SearchableConfigurable;
@@ -15,16 +15,17 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 
 /**
- * Settings child node under "Checkmarx Developer Assist" for realtime scanners settings.
+ * {@link SearchableConfigurable} for drawing the plugin's global settings window inside intellij application settings.
+ * Implements {@link NoScroll} to disable scrolling as all fields should be
+ * scrollable on their own.
  */
-public class RealtimeScannersSettingsConfigurable implements SearchableConfigurable, Configurable.NoScroll {
+public class CxDevAssistSettingsConfigurable implements SearchableConfigurable, Configurable.NoScroll {
 
     private SettingsComponent settingsComponent;
 
     @Override
     public @NotNull @NonNls String getId() {
-        // Place under the same search group; ID should be unique
-        return IgniteConstants.PLUGIN_CHILD_REALTIME_SETTINGS_ID;
+        return Constants.DEVASSIST_SETTINGS_ID;
     }
 
     @Override
@@ -34,32 +35,28 @@ public class RealtimeScannersSettingsConfigurable implements SearchableConfigura
 
     @Override
     public @NotNull @Nls String getDisplayName() {
-        return Bundle.message(Resource.IGNITE_PLUGIN_SETTINGS_CHILD_TITLE);
+        return Bundle.message(Resource.DEVASSIST_PLUGIN_SETTINGS_TITLE);
     }
 
     @Override
     public @Nullable JComponent createComponent() {
-        settingsComponent = new RealtimeScannersSettingsComponent();
+        settingsComponent = new CxDevAssistSettingsComponent();
         return settingsComponent.getMainPanel();
     }
 
     @Override
     public boolean isModified() {
-        return settingsComponent != null && settingsComponent.isModified();
+        return settingsComponent.isModified();
     }
 
     @Override
     public void apply() throws ConfigurationException {
-        if (settingsComponent != null) {
-            settingsComponent.apply();
-        }
+        settingsComponent.apply();
     }
 
     @Override
     public void reset() {
-        if (settingsComponent != null) {
-            settingsComponent.reset();
-        }
+        settingsComponent.reset();
         SearchableConfigurable.super.reset();
     }
 }

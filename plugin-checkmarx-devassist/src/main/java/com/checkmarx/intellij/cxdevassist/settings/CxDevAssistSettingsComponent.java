@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.ignite.settings;
+package com.checkmarx.intellij.cxdevassist.settings;
 
 import com.checkmarx.intellij.common.commands.Authentication;
 import com.checkmarx.intellij.common.commands.TenantSetting;
@@ -12,8 +12,8 @@ import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
-import com.checkmarx.intellij.ignite.ui.IgniteWelcomeDialog;
-import com.checkmarx.intellij.ignite.utils.IgniteConstants;
+import com.checkmarx.intellij.cxdevassist.ui.CxDevAssistWelcomeDialog;
+import com.checkmarx.intellij.cxdevassist.utils.CxDevAssistConstants;
 import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.DataContext;
@@ -45,8 +45,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * IgniteSettingsComponent is a user interface component responsible for managing
- * and interacting with settings related to the Ignite application's integration
+ * CxDevAssistSettingsComponent is a user interface component responsible for managing
+ * and interacting with settings related to the Checkmarx Developer Assist application's integration
  * within the IntelliJ IDEA platform. It handles various authentication methods,
  * API configurations, and user preferences while ensuring their proper validation
  * and persistence.
@@ -67,7 +67,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
     private final JBLabel apiKeyLabel = new JBLabel(getMessage(Resource.API_KEY));
     private final JButton logoutButton = new JButton(getMessage(Resource.LOG_OUT));
 
-    private final JButton connectButton = new JButton(getMessage(Resource.IGNITE_PLUGIN_SETTINGS_SIGN_IN_BUTTON));
+    private final JButton connectButton = new JButton(getMessage(Resource.DEVASSIST_PLUGIN_SETTINGS_SIGN_IN_BUTTON));
     private final JBLabel validateResult = new JBLabel();
     private CxLinkLabel assistLink;
     @Getter
@@ -230,7 +230,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
                 try {
                     Authentication.validateConnection(getStateFromFields(), getSensitiveStateFromFields());
                     SwingUtilities.invokeLater(this::onAuthSuccessApiKey);
-                    LOGGER.info(getMessage(Resource.IGNITE_PLUGIN_AUTH_SUCCESS_MSG));
+                    LOGGER.info(getMessage(Resource.DEVASSIST_PLUGIN_AUTH_SUCCESS_MSG));
                 } catch (Exception e) {
                     handleConnectionFailure(e);
                 }
@@ -240,13 +240,13 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
 
     private void onAuthSuccessApiKey() {
         // Set basic authentication success state
-        setValidationResult(getMessage(Resource.IGNITE_PLUGIN_AUTH_SUCCESS_MSG), JBColor.GREEN);
+        setValidationResult(getMessage(Resource.DEVASSIST_PLUGIN_AUTH_SUCCESS_MSG), JBColor.GREEN);
         logoutButton.setEnabled(true);
         connectButton.setEnabled(false);
         setFieldsEditable(false);
         globalSettingsState.setAuthenticated(true);
         globalSettingsState.setLastValidationSuccess(true);
-        globalSettingsState.setValidationMessage(getMessage(Resource.IGNITE_PLUGIN_AUTH_SUCCESS_MSG));
+        globalSettingsState.setValidationMessage(getMessage(Resource.DEVASSIST_PLUGIN_AUTH_SUCCESS_MSG));
         // Reset session expired notification flag on successful login
         Utils.resetSessionExpiredNotificationFlag();
         fetchAndStoreLicenseStatus();
@@ -376,7 +376,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
 
     private void showWelcomeDialog(boolean mcpEnabled) {
         try {
-            IgniteWelcomeDialog dlg = new IgniteWelcomeDialog(project, mcpEnabled);
+            CxDevAssistWelcomeDialog dlg = new CxDevAssistWelcomeDialog(project, mcpEnabled);
             dlg.show();
         } catch (Exception ex) {
             LOGGER.warn("Failed to show welcome dialog", ex);
@@ -400,9 +400,9 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
     private void buildGUI() {
         // Remove default insets and reduce horizontal gaps so fields/buttons are shifted left
         mainPanel.setLayout(new MigLayout("insets 0, gapx 5", "[][grow]", ""));
-        mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.IGNITE_PLUGIN_SETTINGS_HELP_LINK_LABEL),
+        mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.DEVASSIST_PLUGIN_SETTINGS_HELP_LINK_LABEL),
                 "span, growx, wrap, gapbottom 10");
-        addSectionHeader(Resource.IGNITE_PLUGIN_SETTINGS_AUTH_SECTION, false);
+        addSectionHeader(Resource.DEVASSIST_PLUGIN_SETTINGS_AUTH_SECTION, false);
         mainPanel.add(apiKeyLabel, "aligny top");
         // Shift apiKeyField left and define a consistent left gap to align with buttons
         mainPanel.add(apiKeyField, "growx, wrap, aligny top, gapleft 0");
@@ -424,13 +424,13 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
                 "gapleft 5,gapbottom 10, wrap");
 
         // === CxOne Assist link section ===
-        assistLink = new CxLinkLabel("Go to " + getMessage(Resource.IGNITE_PLUGIN_SETTINGS_CHILD_TITLE),
+        assistLink = new CxLinkLabel("Go to " + getMessage(Resource.DEVASSIST_PLUGIN_SETTINGS_CHILD_TITLE),
                 e -> {
                     DataContext context = DataManager.getInstance().getDataContext(mainPanel);
                     Settings settings = context.getData(Settings.KEY);
                     if (settings == null) return;
 
-                    Configurable configurable = settings.find(IgniteConstants.PLUGIN_CHILD_REALTIME_SETTINGS_ID);
+                    Configurable configurable = settings.find(CxDevAssistConstants.PLUGIN_CHILD_REALTIME_SETTINGS_ID);
                     if (configurable instanceof RealtimeScannersSettingsConfigurable) {
                         settings.select(configurable);
                     } else {

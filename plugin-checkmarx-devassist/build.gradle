@@ -4,7 +4,7 @@ plugins {
     id 'io.freefair.lombok'
 }
 
-group = 'com.checkmarx.intellij.ignite'
+group = 'com.checkmarx.intellij.cxdevassist'
 version = rootProject.version
 
 dependencies {
@@ -62,7 +62,7 @@ tasks.register('buildWithLibTests') {
 
 // Configure the plugin to generate a distributable zip file
 tasks.named('buildPlugin') {
-    archiveBaseName.set('checkmarx-devassist-plugin')
+    archiveBaseName.set('checkmarx-developer-assist-plugin')
 }
 
 // Ensure the plugin zip is created in the build/distributions directory
