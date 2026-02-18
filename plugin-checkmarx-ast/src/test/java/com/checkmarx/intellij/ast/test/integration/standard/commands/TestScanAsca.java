@@ -53,7 +53,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithVulnerabilities_Success() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/ast/test/integration/standard/data/python-vul-file.py");
+        PsiFile psiFile = createPsiFileFromPath("src/test/resources/data/python-vul-file.py");
 
         Assertions.assertDoesNotThrow(() -> {
             com.checkmarx.intellij.devassist.common.ScanResult<ScanResult> scanResult =
@@ -67,7 +67,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithNoVulnerabilities_Success() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/ast/test/integration/standard/data/csharp-no-vul.cs");
+        PsiFile psiFile = createPsiFileFromPath("src/test/resources/data/csharp-no-vul.cs");
 
         Assertions.assertDoesNotThrow(() -> {
             com.checkmarx.intellij.devassist.common.ScanResult<ScanResult> scanResult =
@@ -84,7 +84,7 @@ public class TestScanAsca extends BaseTest {
 
     @Test
     public void testRunAscaScan_FileWithoutExtension_Fail() {
-        PsiFile psiFile = createPsiFileFromPath("src/test/java/com/checkmarx/intellij/ast/test/integration/standard/data/file");
+        PsiFile psiFile = createPsiFileFromPath("src/test/resources/data/file");
 
         // File without extension should either be filtered out (null result) or produce empty results
         com.checkmarx.intellij.devassist.common.ScanResult<ScanResult> scanResult =

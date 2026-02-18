@@ -62,14 +62,6 @@ public abstract class BaseTest extends BasePlatformTestCase {
     protected final Project getEnvProject() {
         return Assertions.assertDoesNotThrow(() -> {
             java.util.List<Project> projects = com.checkmarx.intellij.ast.commands.Project.getList();
-
-            // Debug: Print available projects and expected project name
-            System.out.println("=== DEBUG: Project Search ===");
-            System.out.println("Looking for project: '" + Environment.PROJECT_NAME + "'");
-            System.out.println("Available projects (" + projects.size() + " total):");
-            projects.forEach(p -> System.out.println("  - " + p.getName()));
-            System.out.println("============================");
-
             return projects.stream()
                     .filter(p -> p.getName().equals(Environment.PROJECT_NAME))
                     .findFirst()

@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.jetbrains.intellij'
     id 'io.freefair.lombok'
+    id 'jacoco'
 }
 
 group = 'com.checkmarx.intellij.cxdevassist'
@@ -28,7 +29,23 @@ publishPlugin {
 
 test {
     useJUnitPlatform()
+    jacoco {
+        includeNoLocationClasses = true
+        excludes = ["jdk.internal.*"]
+    }
 }
+
+jacocoTestReport {
+    dependsOn test
+    classDirectories.setFrom(instrumentCode)
+
+    reports {
+        xml.required = true
+        csv.required = true
+        html.required = true
+    }
+}
+
 // Note: Removed explicit test dependencies on common-lib and devassist-lib
 // to prevent their tests from running when testing plugin-checkmarx-devassist.
 // The implementation dependencies ensure the code is available without running tests.
