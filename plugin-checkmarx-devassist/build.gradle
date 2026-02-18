@@ -28,21 +28,21 @@ publishPlugin {
 
 test {
     useJUnitPlatform()
-    // Ensure dependency tests run before this plugin's tests
-    dependsOn ':common-lib:test'
-    dependsOn ':devassist-lib:test'
+    finalizedBy jacocoTestReport
 }
 
-// Ensure dependency tests run during build and check tasks
-check {
-    dependsOn ':common-lib:test'
-    dependsOn ':devassist-lib:test'
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = true
+    }
 }
 
-build {
-    dependsOn ':common-lib:test'
-    dependsOn ':devassist-lib:test'
-}
+// Note: Removed explicit test dependencies on common-lib and devassist-lib
+// to prevent their tests from running when testing plugin-checkmarx-devassist.
+// The implementation dependencies ensure the code is available without running tests.
 
 // Custom task to build plugin without running any tests
 tasks.register('buildWithoutTests') {
