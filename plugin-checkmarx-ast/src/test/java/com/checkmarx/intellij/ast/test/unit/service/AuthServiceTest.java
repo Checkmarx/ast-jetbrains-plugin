@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.ast.test.integration.standard.service;
+package com.checkmarx.intellij.ast.test.unit.service;
 
 import com.checkmarx.intellij.common.auth.AuthService;
 import com.checkmarx.intellij.common.auth.OAuthCallbackServer;

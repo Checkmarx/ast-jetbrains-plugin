@@ -2,6 +2,7 @@ plugins {
     id 'java-library'
     id 'io.freefair.lombok'
     id 'org.jetbrains.intellij'
+    id 'jacoco'
 }
 
 group = 'com.checkmarx.intellij.devassist'
@@ -18,4 +19,26 @@ intellij {
 
 test {
     useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+        showStandardStreams = true
+    }
+    jacoco {
+        includeNoLocationClasses = true
+        excludes = ["jdk.internal.*"]
+    }
+}
+
+jacocoTestReport {
+    dependsOn test
+    classDirectories.setFrom(instrumentCode)
+
+    reports {
+        xml.required = true
+        csv.required = true
+        html.required = true
+    }
 }

@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.jetbrains.intellij'
     id 'io.freefair.lombok'
+    id 'jacoco'
 }
 
 group = 'com.checkmarx.intellij.cxdevassist'
@@ -28,21 +29,33 @@ publishPlugin {
 
 test {
     useJUnitPlatform()
-    // Ensure dependency tests run before this plugin's tests
-    dependsOn ':common-lib:test'
-    dependsOn ':devassist-lib:test'
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+        showStandardStreams = true
+    }
+    jacoco {
+        includeNoLocationClasses = true
+        excludes = ["jdk.internal.*"]
+    }
 }
 
-// Ensure dependency tests run during build and check tasks
-check {
-    dependsOn ':common-lib:test'
-    dependsOn ':devassist-lib:test'
+jacocoTestReport {
+    dependsOn test
+    classDirectories.setFrom(instrumentCode)
+
+    reports {
+        xml.required = true
+        csv.required = true
+        html.required = true
+    }
 }
 
-build {
-    dependsOn ':common-lib:test'
-    dependsOn ':devassist-lib:test'
-}
+// Note: Removed explicit test dependencies on common-lib and devassist-lib
+// to prevent their tests from running when testing plugin-checkmarx-devassist.
+// The implementation dependencies ensure the code is available without running tests.
 
 // Custom task to build plugin without running any tests
 tasks.register('buildWithoutTests') {
