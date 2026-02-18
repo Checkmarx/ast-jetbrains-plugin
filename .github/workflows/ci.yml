@@ -115,9 +115,9 @@ jobs:
         with:
           name: test-fails-report-unit
           path: |
-            plugin-checkmarx-ast/build/reports
-            devassist-lib/build/reports
-            plugin-checkmarx-devassist/build/reports
+            plugin-checkmarx-ast/build/reports/tests
+            devassist-lib/build/reports/tests
+            plugin-checkmarx-devassist/build/reports/tests
 
   testIntegration:
     runs-on: ubuntu-latest
@@ -159,4 +159,4 @@ jobs:
         with:
           name: test-fails-report-integration
           path: |
-            plugin-checkmarx-ast/build/reports
+            plugin-checkmarx-ast/build/reports/tests

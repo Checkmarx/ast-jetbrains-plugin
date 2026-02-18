@@ -80,38 +80,3 @@ intellij {
 runPluginVerifier {
     ideVersions = verifierIdeVersions.split(',').toList()
 }
-
-// Aggregated JaCoCo report for all modules
-tasks.register('jacocoAggregatedReport', JacocoReport) {
-    description = 'Generates an aggregated JaCoCo coverage report from all subprojects'
-    group = 'verification'
-
-    dependsOn subprojects*.test
-
-    // Collect execution data from all subprojects
-    executionData.from = files(subprojects.collect { project ->
-        project.fileTree(dir: "${project.buildDir}/jacoco", include: '**/*.exec')
-    })
-
-    // Collect source and class files from all subprojects
-    subprojects.each { project ->
-        project.plugins.withType(JavaPlugin).whenPluginAdded {
-            sourceDirectories.from project.files(project.sourceSets.main.allSource.srcDirs)
-            classDirectories.from project.files(project.sourceSets.main.output)
-        }
-    }
-
-    // Filter out execution data that doesn't exist
-    doFirst {
-        executionData = files(executionData.findAll { it.exists() })
-    }
-
-    reports {
-        xml.required = true
-        html.required = true
-        csv.required = true
-        xml.outputLocation = file("${buildDir}/reports/jacoco/aggregate/jacocoAggregatedReport.xml")
-        html.outputLocation = file("${buildDir}/reports/jacoco/aggregate/html")
-        csv.outputLocation = file("${buildDir}/reports/jacoco/aggregate/jacocoAggregatedReport.csv")
-    }
-}

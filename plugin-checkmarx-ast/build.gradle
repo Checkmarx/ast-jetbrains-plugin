@@ -52,7 +52,6 @@ test {
         includeNoLocationClasses = true
         excludes = ["jdk.internal.*"]
     }
-    finalizedBy 'jacocoTestReport'
 }
 
 // Note: Removed explicit test dependencies on common-lib and devassist-lib
@@ -96,7 +95,6 @@ jacocoTestReport {
     }
 
     reports {
-        xml.required = true
         csv.required = true
         html.required = true
     }
