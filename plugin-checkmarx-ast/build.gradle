@@ -1,0 +1,112 @@
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij'
+    id 'io.freefair.lombok'
+    id 'jacoco'
+}
+
+group = 'com.checkmarx.intellij.ast'
+version = rootProject.version
+
+dependencies {
+    implementation project(':common-lib')
+    implementation project(':devassist-lib')
+}
+
+intellij {
+    version = "${intellijVersion}"
+    updateSinceUntilBuild = false
+}
+
+// Configure the plugin to generate a distributable zip file
+tasks.named('buildPlugin') {
+    archiveBaseName.set('checkmarx-ast-plugin')
+}
+
+// Ensure the plugin zip is created in the build/distributions directory
+tasks.named('prepareSandbox') {
+    doLast {
+        println "Plugin prepared in: ${destinationDir}"
+    }
+}
+
+runPluginVerifier {
+    ideVersions = verifierIdeVersions.split(',').toList()
+}
+
+downloadRobotServerPlugin {
+    version = "${remoteRobotVersion}"
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty 'uiWaitDuration', project.findProperty('uiWaitDuration') ?: 300
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+        showStandardStreams = true
+    }
+    jacoco {
+        includeNoLocationClasses = true
+        excludes = ["jdk.internal.*"]
+    }
+}
+
+// Note: Removed explicit test dependencies on common-lib and devassist-lib
+// to prevent their tests from running when testing plugin-checkmarx-ast.
+// The implementation dependencies ensure the code is available without running tests.
+
+// Custom task to build plugin without running any tests
+tasks.register('buildWithoutTests') {
+    description = 'Builds the plugin without running tests from this or dependency projects'
+    group = 'build'
+    dependsOn 'assemble'
+}
+
+// Custom task to build plugin with only library tests (no plugin tests)
+tasks.register('buildWithLibTests') {
+    description = 'Builds the plugin with library tests but without plugin tests'
+    group = 'build'
+    dependsOn ':common-lib:test'
+    dependsOn ':devassist-lib:test'
+    dependsOn 'assemble'
+}
+
+runIdeForUiTests {
+    systemProperty 'jb.privacy.policy.text', '<!--999.999-->'
+    systemProperty 'jb.consents.confirmation.enabled', 'false'
+}
+
+def jacocoTask = project.hasProperty('jacocoTask') ? project.jacocoTask : "unit"
+
+jacocoTestReport {
+    dependsOn test
+    classDirectories.setFrom(instrumentCode)
+
+    if (jacocoTask == "integration") {
+        afterEvaluate {
+            classDirectories.setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it, include: 'com/checkmarx/intellij/ast/commands/**',
+                        exclude: 'com/checkmarx/intellij/ast/commands/helper')
+            }))
+        }
+    }
+
+    reports {
+        csv.required = true
+        html.required = true
+    }
+}
+
+patchPluginXml {
+    sinceBuild = "${sinceBuildVersion}"
+}
+
+publishPlugin {
+    token.set System.getenv("PUBLISH_TOKEN")
+    if (project.hasProperty("rchannels")) {
+        channels = [rchannels.toString()]
+    }
+}
