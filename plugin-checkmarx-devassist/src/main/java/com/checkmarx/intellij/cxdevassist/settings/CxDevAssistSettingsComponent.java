@@ -400,7 +400,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
     private void buildGUI() {
         // Remove default insets and reduce horizontal gaps so fields/buttons are shifted left
         mainPanel.setLayout(new MigLayout("insets 0, gapx 5", "[][grow]", ""));
-        mainPanel.add(CxLinkLabel.buildDocLinkLabel(Constants.INTELLIJ_HELP, Resource.DEVASSIST_PLUGIN_SETTINGS_HELP_LINK_LABEL),
+        mainPanel.add(CxLinkLabel.buildDocLinkLabel(CxDevAssistConstants.DEVASSIST_HELP_LINK, Resource.DEVASSIST_PLUGIN_SETTINGS_HELP_LINK_LABEL),
                 "span, growx, wrap, gapbottom 10");
         addSectionHeader(Resource.DEVASSIST_PLUGIN_SETTINGS_AUTH_SECTION, false);
         mainPanel.add(apiKeyLabel, "aligny top");
