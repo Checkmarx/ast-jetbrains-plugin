@@ -44,7 +44,8 @@ jobs:
           export DISPLAY=:99.0
           Xvfb -ac :99 -screen 0 1920x1080x24 &
           sleep 10
-          ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
+          ./gradlew -i :plugin-checkmarx-ast:runIdeForUiTests > idea.log 2>&1 &
+          sleep 30
       # Wait for IDEA to be started
       - name: Health Check
         run: curl --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
@@ -52,7 +53,7 @@ jobs:
       - name: Tests
         run: |
           export DISPLAY=:99.0
-          ./gradlew test -PuiWaitDuration=800  --info --tests com.checkmarx.intellij.ui*
+          ./gradlew :plugin-checkmarx-ast:test -PuiWaitDuration=800 --info --tests "com.checkmarx.intellij.ast.test.ui*"
       - name: Move video
         if: ${{ failure() }}
         run: mv video build/reports
@@ -92,28 +93,35 @@ jobs:
       - name: Run Tests with coverage report
         id: test_results
         run: |
-          ./gradlew test --tests "com.checkmarx.intellij.unit*" jacocoTestReport \
-            -PjacocoTask=unit
+          ./gradlew :plugin-checkmarx-ast:test --tests "com.checkmarx.intellij.ast.test.unit*" \
+                    :devassist-lib:test --tests "com.checkmarx.intellij.devassist.test*" \
+                    :plugin-checkmarx-devassist:test --tests "com.checkmarx.intellij.cxdevassist.test*" \
+                    :plugin-checkmarx-ast:jacocoTestReport \
+                    :devassist-lib:jacocoTestReport \
+                    :plugin-checkmarx-devassist:jacocoTestReport \
+                    -PjacocoTask=unit
 
       - name: Generate JaCoCo Badge
         uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 #v2.11.0
         with:
-          jacoco-csv-file: build/reports/jacoco/test/jacocoTestReport.csv
+          jacoco-csv-file: plugin-checkmarx-ast/build/reports/jacoco/test/jacocoTestReport.csv
 
       # Save coverage report as an artifact
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage-report
-          path: build/reports/jacoco/test/html/
+          path: plugin-checkmarx-ast/build/reports/jacoco/test/html/
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: test-fails-report-integration
+          name: test-fails-report-unit
           path: |
-            build/reports
+            plugin-checkmarx-ast/build/reports/tests
+            devassist-lib/build/reports/tests
+            plugin-checkmarx-devassist/build/reports/tests
 
   testIntegration:
     runs-on: ubuntu-latest
@@ -134,20 +142,21 @@ jobs:
       - name: Run Tests with coverage report
         id: test_results
         run: |
-          ./gradlew test --tests "com.checkmarx.intellij.integration.standard*" jacocoTestReport \
-            -PjacocoTask=integration
+          ./gradlew :plugin-checkmarx-ast:test --tests "com.checkmarx.intellij.ast.test.integration.standard*" \
+                    :plugin-checkmarx-ast:jacocoTestReport \
+                    -PjacocoTask=integration
 
       - name: Generate JaCoCo Badge
         uses: cicirello/jacoco-badge-generator@f33476a5a3fd5a4f77cb5eef2ebe728c1dd5b921 #v2.11.0
         with:
-          jacoco-csv-file: build/reports/jacoco/test/jacocoTestReport.csv
+          jacoco-csv-file: plugin-checkmarx-ast/build/reports/jacoco/test/jacocoTestReport.csv
 
       # Save coverage report as an artifact
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
           name: integration-coverage-report
-          path: build/reports/jacoco/test/html/
+          path: plugin-checkmarx-ast/build/reports/jacoco/test/html/
       # Save report if tests fail
       - name: Save fails report
         if: ${{ failure() }}
@@ -155,4 +164,4 @@ jobs:
         with:
           name: test-fails-report-integration
           path: |
-            build/reports
+            plugin-checkmarx-ast/build/reports/tests

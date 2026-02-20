@@ -1,0 +1,15 @@
+version: 2
+
+# Exclude test data files from GitGuardian scanning
+# These files contain intentional vulnerable code samples for security testing purposes
+paths-ignore:
+  # Exclude specific vulnerability test file
+  - "**/python-vul-file.py"
+
+# Document the reason for exclusions
+metadata:
+  description: |
+    Test files containing intentional vulnerable code samples and fake credentials
+    for testing security scanner functionality. All secrets in excluded paths are
+    NOT real credentials and are used only for testing purposes.
+
