@@ -93,9 +93,9 @@ jobs:
       - name: Run Tests with coverage report
         id: test_results
         run: |
-          ./gradlew :plugin-checkmarx-ast:test --tests "com.checkmarx.intellij.*.test.unit*" \
-                    :devassist-lib:test \
-                    :plugin-checkmarx-devassist:test \
+          ./gradlew :plugin-checkmarx-ast:test --tests "com.checkmarx.intellij.ast.test.unit*" \
+                    :devassist-lib:test --tests "com.checkmarx.intellij.devassist.test*" \
+                    :plugin-checkmarx-devassist:test --tests "com.checkmarx.intellij.cxdevassist.test*" \
                     :plugin-checkmarx-ast:jacocoTestReport \
                     :devassist-lib:jacocoTestReport \
                     :plugin-checkmarx-devassist:jacocoTestReport \
@@ -142,7 +142,7 @@ jobs:
       - name: Run Tests with coverage report
         id: test_results
         run: |
-          ./gradlew :plugin-checkmarx-ast:test --tests "com.checkmarx.intellij.*.test.integration.standard*" \
+          ./gradlew :plugin-checkmarx-ast:test --tests "com.checkmarx.intellij.ast.test.integration.standard*" \
                     :plugin-checkmarx-ast:jacocoTestReport \
                     -PjacocoTask=integration
 
