@@ -4,19 +4,20 @@
     <vendor email="support@checkmarx.com" url="https://www.checkmarx.com">Checkmarx</vendor>
 
     <description><![CDATA[
-    Checkmarx Developer Assist an advanced security agent that delivers real-time context-aware prevention, remediation, and guidance to developers from the IDE.
-    It provides real-time security scanning and get instant feedback on security vulnerabilities, secrets, IaC misconfigurations, and more as you code.<br>
+    Checkmarx Developer Assist delivers context-aware security guidance directly within your IDE, helping prevent vulnerabilities before they reach the pipeline.
+    As developers write or refine both AI-generated and existing code, the plugin provides real-time detection, remediation, and actionable insights
+    so security is built into development from the start.<br><br>
 
-    <b>Checkmarx Developer Assist – Features.</b>
-        <ul>
-            <li><b>OSS, Secrets, Container, IAC and ASCA</b> Realtime Scanners.</li>
-            <li>MCP-based agentic AI remediation.</li>
-            <li>AI-powered explanation of risk details.</li>
-            <li>Rich UI for vulnerabilities highlighting in the editor.</li>
-            <li>Centralize finding window to display all vulnerabilities in the project.</li>
-            <li>Ignore Vulnerabilities.</li>
-            <li>Revive Ignored Vulnerabilities.</li>
-        </ul>
+    <p><strong>Key Features</strong></p>
+    <ul>
+      <li>Context-aware security guidance directly inside the IDE</li>
+      <li>Realtime vulnerability detection while coding</li>
+      <li>AI Secure Coding Assistant (ASCA) for secure coding best-practice violations in active files</li>
+      <li>Specialized scanners for open source, containers, secrets, and IaC risks</li>
+      <li>MCP-based agentic AI remediation workflows</li>
+      <li>AI-powered explanations of risk details</li>
+      <li>Reduce noise by marking false positives as ignored</li>
+    </ul>
     ]]></description>
 
     <change-notes><![CDATA[
