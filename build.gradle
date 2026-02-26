@@ -13,7 +13,8 @@ allprojects {
     version System.getenv('RELEASE_VERSION') ?: "dev"
 
     repositories {
-        mavenCentral()
+        mavenLocal()
+       // mavenCentral()
         maven {
             url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
         }
