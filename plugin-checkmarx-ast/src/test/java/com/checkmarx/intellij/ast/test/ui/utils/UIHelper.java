@@ -55,6 +55,27 @@ public class UIHelper {
     }
 
     /**
+     * Waits for the given condition to become true, using a custom wait duration.
+     * Retries up to 3 times if the condition times out, refocusing the Cx window if needed.
+     *
+     * @param condition The condition to wait for (returns true when satisfied)
+     * @param customDuration Custom duration to wait before timeout
+     */
+    public static void waitFor(Supplier<Boolean> condition, Duration customDuration) {
+        try {
+            RepeatUtilsKt.waitFor(customDuration, condition::get);
+        } catch (WaitForConditionTimeoutException e) {
+            retries++;
+            if (retries < 3) {
+                focusCxWindow();
+            } else {
+                retries = 0;
+                throw e;
+            }
+        }
+    }
+
+    /**
      * Logs a message with a timestamp and caller information.
      *
      * @param msg The message to log

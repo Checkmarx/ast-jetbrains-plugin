@@ -23,4 +23,19 @@ public class CxOneAssistFindingsTabPage {
             return trees.get(0).findAllText().stream().map(RemoteText::getText).anyMatch(token -> token.equals(fileName));
         });
     }
+
+    /**
+     * Checks if a vulnerable file is present in the CxOne Assist Findings Tree without waiting.
+     * @param fileName The filename to check
+     * @return true if the file is found, false otherwise
+     */
+    public static boolean checkIfVulnerableFileExists(String fileName) {
+        try {
+            List<JTreeFixture> trees = findAll(JTreeFixture.class, FINDINGS_TREE_XPATH);
+            if (trees.isEmpty()) return false;
+            return trees.get(0).findAllText().stream().map(RemoteText::getText).anyMatch(token -> token.equals(fileName));
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

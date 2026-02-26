@@ -48,6 +48,10 @@ public class CheckmarxSettingsPage {
             if (hasAnyComponent(LOGOUT_CONFIRM_YES)) {
                 click(LOGOUT_CONFIRM_YES);
             }
+
+            // After logout, the settings dialog closes, so we need to reopen it
+            log("Reopening settings after logout.");
+            openSettings();
         }
     }
 
