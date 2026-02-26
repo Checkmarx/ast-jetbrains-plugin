@@ -1299,17 +1299,30 @@ public class DevAssistIgnoredFindings extends SimpleToolWindowPanel implements D
         }
 
         private VirtualFile resolveVirtualFile(String path) {
-            if (path == null || path.isEmpty() || path.contains("..")) return null;
+            if (path == null || path.isEmpty()) return null;
 
             String workspaceRoot = project.getBasePath();
             if (workspaceRoot == null) return null;
 
-            if (com.intellij.openapi.util.io.FileUtil.isAbsolute(path)) {
-                return LocalFileSystem.getInstance().findFileByPath(path);
-            }
+            try {
+                // If path is absolute, use it directly
+                if (com.intellij.openapi.util.io.FileUtil.isAbsolute(path)) {
+                    return LocalFileSystem.getInstance().findFileByPath(path);
+                }
 
-            String cleanPath = path.startsWith("./") ? path.substring(2) : path;
-            return LocalFileSystem.getInstance().findFileByPath(workspaceRoot + "/" + cleanPath.replace("\\", "/"));
+                // If path contains ".." (relative path outside project), resolve it to absolute path
+                if (path.contains("..")) {
+                    java.nio.file.Path absolutePath = java.nio.file.Paths.get(workspaceRoot, path).normalize();
+                    return LocalFileSystem.getInstance().findFileByPath(absolutePath.toString().replace("\\", "/"));
+                }
+
+                // Otherwise, treat as relative path within project
+                String cleanPath = path.startsWith("./") ? path.substring(2) : path;
+                return LocalFileSystem.getInstance().findFileByPath(workspaceRoot + "/" + cleanPath.replace("\\", "/"));
+            } catch (Exception e) {
+                LOGGER.warn("Failed to resolve virtual file for path: " + path, e);
+                return null;
+            }
         }
 
         // ---------- Formatting Helpers ----------
