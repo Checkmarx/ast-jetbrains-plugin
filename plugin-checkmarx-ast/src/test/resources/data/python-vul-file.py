@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# ggignore: This file contains intentional vulnerabilities and fake credentials for testing purposes
+# WARNING: This is a test data file with intentional security vulnerabilities
+# All passwords, secrets, and credentials in this file are FAKE and for testing only
+# DO NOT use any credentials from this file in production systems
 import html  # Python 3 required
 import http.client
 import http.server
