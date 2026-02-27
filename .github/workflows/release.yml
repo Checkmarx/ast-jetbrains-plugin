@@ -181,7 +181,7 @@ jobs:
       - name: Clean
         run: ./gradlew clean
       - name: Tests
-        run: ./gradlew test -i --tests com.checkmarx.intellij.integration.standard*
+        run: ./gradlew :plugin-checkmarx-ast:test -i --tests com.checkmarx.intellij.integration.standard*
       - name: Save fails report
         if: ${{ failure() }}
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 #v4
