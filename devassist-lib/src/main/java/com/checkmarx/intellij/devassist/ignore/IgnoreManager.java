@@ -221,13 +221,14 @@ public final class IgnoreManager {
     /**
      * Triggers rescan for files affected by the revived entry.
      * Iterates through all file references and schedules a rescan for each revived file.
+     * Normalizes the file path to ensure it matches the path format used throughout the inspection system.
      *
      * @param entry The ignore entry containing file references to rescan
      */
     private void triggerRescanForEntry(IgnoreEntry entry) {
         for (IgnoreEntry.FileReference fileRef : entry.getFiles()) {
             String fullPath = Paths.get(Objects.requireNonNull(project.getBasePath()),
-                    fileRef.getPath()).toString().replace("\\", "/");
+                    fileRef.getPath()).normalize().toString().replace("\\", "/");
             VirtualFile vFile = LocalFileSystem.getInstance().findFileByPath(fullPath);
             if (vFile != null) {
                 // Trigger rescan based on scanner type
@@ -295,9 +296,6 @@ public final class IgnoreManager {
 
     /**
      * Converts a scan issue to an ignore entry.
-     *
-     * @param detail
-     * @return
      */
     private IgnoreEntry buildIgnoreEntry(ScanIssue detail, String clickId) {
         switch (detail.getScanEngine()) {
