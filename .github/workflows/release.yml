@@ -246,51 +246,51 @@ jobs:
           RELEASE_TYPE="${{ needs.resolve.outputs.releaseType }}"
           AST_VER="${{ needs.resolve.outputs.ast_version }}"
           DA_VER="${{ needs.resolve.outputs.devassist_version }}"
+          BODY_FILE="${RUNNER_TEMP}/release_body.md"
 
-          # --- "Plugins in this release" header (matching VS Code) ---
-          HEADER="### Plugins in this release\n"
-          if [[ "${RELEASE_TYPE}" == "checkmarx" || "${RELEASE_TYPE}" == "both" ]]; then
-            HEADER+="* **Checkmarx (AST):** ${AST_VER} (NEW)\n"
-          else
-            HEADER+="* **Checkmarx (AST):** ${AST_VER}\n"
-          fi
-          if [[ "${RELEASE_TYPE}" == "devAssist" || "${RELEASE_TYPE}" == "both" ]]; then
-            HEADER+="* **Checkmarx Developer Assist:** ${DA_VER} (NEW)\n"
-          else
-            HEADER+="* **Checkmarx Developer Assist:** ${DA_VER}\n"
-          fi
-          HEADER+="\n"
+          # --- "Plugins in this release" header ---
+          {
+            echo "### Plugins in this release"
+            echo ""
+            if [[ "${RELEASE_TYPE}" == "checkmarx" || "${RELEASE_TYPE}" == "both" ]]; then
+              echo "- **Checkmarx (AST):** ${AST_VER} (NEW)"
+            else
+              echo "- **Checkmarx (AST):** ${AST_VER}"
+            fi
+            if [[ "${RELEASE_TYPE}" == "devAssist" || "${RELEASE_TYPE}" == "both" ]]; then
+              echo "- **Checkmarx Developer Assist:** ${DA_VER} (NEW)"
+            else
+              echo "- **Checkmarx Developer Assist:** ${DA_VER}"
+            fi
+            echo ""
+          } > "$BODY_FILE"
 
           # --- Per-plugin changelogs ---
-          CX_SECTION=""
-          OUTPUT=$(bash ./.github/scripts/generateChangelog.sh \
+          bash ./.github/scripts/generateChangelog.sh \
             --plugin checkmarx \
             --version "${AST_VER}" \
             --repo "${{ github.repository }}" \
-            --dev "${{ inputs.rchannels != '' && inputs.rchannels != null }}")
-          CX_SECTION=$(echo "$OUTPUT" | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/p' | sed '1d;$d')
+            --dev "${{ inputs.rchannels != '' && inputs.rchannels != null }}" \
+            | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/{/RELEASE_BODY_START/d;/RELEASE_BODY_END/d;p}' \
+            >> "$BODY_FILE"
 
-          DA_SECTION=""
-          OUTPUT=$(bash ./.github/scripts/generateChangelog.sh \
+          echo "" >> "$BODY_FILE"
+          echo "---" >> "$BODY_FILE"
+          echo "" >> "$BODY_FILE"
+
+          bash ./.github/scripts/generateChangelog.sh \
             --plugin devassist \
             --version "${DA_VER}" \
             --repo "${{ github.repository }}" \
-            --dev "${{ inputs.rchannels != '' && inputs.rchannels != null }}")
-          DA_SECTION=$(echo "$OUTPUT" | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/p' | sed '1d;$d')
+            --dev "${{ inputs.rchannels != '' && inputs.rchannels != null }}" \
+            | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/{/RELEASE_BODY_START/d;/RELEASE_BODY_END/d;p}' \
+            >> "$BODY_FILE"
 
-          RELEASE_BODY="$(printf "%b" "${HEADER}")
+          echo "--- Release body ---"
+          cat "$BODY_FILE"
+          echo "--- End release body ---"
 
-          ${CX_SECTION}
-
-          ---
-
-          ${DA_SECTION}"
-
-          {
-            echo "RELEASE_BODY<<RELEASE_BODY_EOF"
-            echo "${RELEASE_BODY}"
-            echo "RELEASE_BODY_EOF"
-          } >> $GITHUB_ENV
+          echo "BODY_FILE=${BODY_FILE}" >> $GITHUB_ENV
 
       - name: Collect assets
         run: |
@@ -305,7 +305,7 @@ jobs:
           name: ${{ needs.resolve.outputs.gh_tag }}
           files: release-assets/*
           prerelease: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
-          body: ${{ env.RELEASE_BODY }}
+          body_path: ${{ env.BODY_FILE }}
 
       - name: Echo CLI version and tag name to outputs
         id: set_outputs

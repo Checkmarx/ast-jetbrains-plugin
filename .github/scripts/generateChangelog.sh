@@ -140,7 +140,7 @@ if [[ -n "$RAW_LOG" ]]; then
       fi
     fi
 
-    ENTRY="* ${MSG} by @${GH_USER}"
+    ENTRY="- ${MSG} by @${GH_USER}"
     MSG_LOWER=$(echo "$MSG" | tr '[:upper:]' '[:lower:]')
 
     if echo "$MSG" | grep -qE "^feat(\(.+\))?[:\!]" || echo "$MSG_LOWER" | grep -qiE "\b(add|added|adding|new feature|feature|implement|implemented)\b"; then
@@ -160,64 +160,76 @@ if [[ -n "$RAW_LOG" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Build the release body section
+# Build the release body section (write line-by-line for clean markdown)
 # ---------------------------------------------------------------------------
-BODY="## ${DISPLAY_NAME}: ${VERSION}\n\n### What's Changed\n\n"
+emit() { printf '%s\n' "$1"; }
+
+echo "RELEASE_BODY_START"
+
+emit "## ${DISPLAY_NAME}: ${VERSION}"
+emit ""
+emit "### What's Changed"
+emit ""
 
 section_added=false
 
 if [[ ${#FEATURES[@]} -gt 0 ]]; then
-  BODY+="#### New Features\n"
-  for e in "${FEATURES[@]}"; do BODY+="${e}\n"; done
-  BODY+="\n"
+  emit "#### New Features"
+  emit ""
+  for e in "${FEATURES[@]}"; do emit "$e"; done
+  emit ""
   section_added=true
 fi
 
 if [[ ${#FIXES[@]} -gt 0 ]]; then
-  BODY+="#### Bug Fixes\n"
-  for e in "${FIXES[@]}"; do BODY+="${e}\n"; done
-  BODY+="\n"
+  emit "#### Bug Fixes"
+  emit ""
+  for e in "${FIXES[@]}"; do emit "$e"; done
+  emit ""
   section_added=true
 fi
 
 if [[ ${#DOCS[@]} -gt 0 ]]; then
-  BODY+="#### Documentation\n"
-  for e in "${DOCS[@]}"; do BODY+="${e}\n"; done
-  BODY+="\n"
+  emit "#### Documentation"
+  emit ""
+  for e in "${DOCS[@]}"; do emit "$e"; done
+  emit ""
   section_added=true
 fi
 
 if [[ ${#REFACTORS[@]} -gt 0 ]]; then
-  BODY+="#### Refactor\n"
-  for e in "${REFACTORS[@]}"; do BODY+="${e}\n"; done
-  BODY+="\n"
+  emit "#### Refactor"
+  emit ""
+  for e in "${REFACTORS[@]}"; do emit "$e"; done
+  emit ""
   section_added=true
 fi
 
 if [[ ${#PERFS[@]} -gt 0 ]]; then
-  BODY+="#### Performance\n"
-  for e in "${PERFS[@]}"; do BODY+="${e}\n"; done
-  BODY+="\n"
+  emit "#### Performance"
+  emit ""
+  for e in "${PERFS[@]}"; do emit "$e"; done
+  emit ""
   section_added=true
 fi
 
 if [[ ${#OTHERS[@]} -gt 0 ]]; then
-  BODY+="#### Other Changes\n"
-  for e in "${OTHERS[@]}"; do BODY+="${e}\n"; done
-  BODY+="\n"
+  emit "#### Other Changes"
+  emit ""
+  for e in "${OTHERS[@]}"; do emit "$e"; done
+  emit ""
   section_added=true
 fi
 
 if [[ "$section_added" == "false" ]]; then
-  BODY+="_No changes_\n\n"
+  emit "_No changes_"
+  emit ""
 fi
 
 if [[ -n "$LAST_TAG" ]]; then
-  BODY+="**Full Changelog**: ${REPO_URL}/compare/${LAST_TAG}...${VERSION}\n"
+  emit "**Full Changelog**: ${REPO_URL}/compare/${LAST_TAG}...${VERSION}"
 else
-  BODY+="**Full Changelog**: ${REPO_URL}/releases/tag/${VERSION}\n"
+  emit "**Full Changelog**: ${REPO_URL}/releases/tag/${VERSION}"
 fi
 
-echo "RELEASE_BODY_START"
-echo -e "$BODY"
 echo "RELEASE_BODY_END"
