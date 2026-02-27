@@ -6,7 +6,7 @@
     <description><![CDATA[
     Checkmarx Developer Assist delivers context-aware security guidance directly within your IDE, helping prevent vulnerabilities before they reach the pipeline.
     As developers write or refine both AI-generated and existing code, the plugin provides real-time detection, remediation, and actionable insights
-    so security is built into development from the start.<br><br>
+    so security is built into development from the start. Full user's manual can be found <a href="https://docs.checkmarx.com/en/34965-549323-checkmarx-developer-assist---jetbrains-plugin.html">here</a>.<br><br>
 
     <p><strong>Key Features</strong></p>
     <ul>
