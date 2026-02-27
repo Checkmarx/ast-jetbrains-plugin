@@ -514,4 +514,25 @@ public class DevAssistUtils {
             return DevAssistConstants.CX_AGENT_NAME;
         }
     }
+
+    /**
+     * Generates a normalized relative path from the project base path.
+     * This method ensures consistent path formatting across different operating systems
+     * by converting backslashes to forward slashes.
+     *
+     * @param project  the current project
+     * @param filePath the virtual file path to normalize
+     * @return normalized relative path with forward slashes, or the original file path if normalization fails
+     */
+    public static String getNormalizePath(@NotNull Project project, @NotNull String filePath) {
+        try {
+            return Paths.get(Objects.requireNonNull(project.getBasePath()))
+                    .relativize(Paths.get(filePath))
+                    .toString()
+                    .replace("\\", "/");
+        } catch (Exception e) {
+            LOGGER.debug(format("Failed to normalize path for file: %s", filePath), e);
+            return filePath;
+        }
+    }
 }

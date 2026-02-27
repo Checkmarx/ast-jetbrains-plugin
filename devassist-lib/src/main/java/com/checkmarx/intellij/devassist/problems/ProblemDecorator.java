@@ -4,7 +4,6 @@ import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.utils.SeverityLevel;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.ignore.IgnoreEntry;
-import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
@@ -28,8 +27,6 @@ import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -330,7 +327,7 @@ public class ProblemDecorator {
                     // Only decorate the active editor of this file
                     return;
                 }
-                String relativePath = getRelativePath(project, psiFile);
+                String relativePath = DevAssistUtils.getNormalizePath(project, psiFile.getVirtualFile().getPath());
                 LOGGER.info(format("RTS-Decorator: Decorating UI for ignored vulnerability for file: %s with path: %s", psiFile.getName(), relativePath));
                 MarkupModel markupModel = editor.getMarkupModel();
                 addIconForIgnoredVulnerability(psiFile, scanIssueList, relativePath, ignoreEntryList, markupModel, editor);
@@ -349,13 +346,7 @@ public class ProblemDecorator {
         for (IgnoreEntry ignoredVulnerability : ignoreEntryList) {
             try {
                 List<IgnoreEntry.FileReference> matchingFileRefs = ignoredVulnerability.files.stream()
-                        .filter(fileRef -> {
-                            boolean matches = fileRef.path.equals(filePath) && fileRef.active;
-                            if (matches) {
-                                LOGGER.debug(format("RTS-Decorator: Found matching file reference - path: %s, line: %s", fileRef.path, fileRef.line));
-                            }
-                            return matches;
-                        })
+                        .filter(fileRef -> fileRef.path.equals(filePath) && fileRef.active)
                         .collect(Collectors.toList());
 
                 if (!matchingFileRefs.isEmpty()) {
@@ -394,33 +385,6 @@ public class ProblemDecorator {
         }
     }
 
-    /**
-     * Get a relative path of the given file.
-     * Uses IgnoreFileManager.normalizePath() for consistent path handling.
-     */
-    private @NotNull String getRelativePath(Project project, PsiFile psiFile) {
-        try {
-            String filePath = psiFile.getVirtualFile().getPath();
-            IgnoreFileManager ignoreFileManager = IgnoreFileManager.getInstance(project);
-            if (ignoreFileManager != null) {
-                // Use IgnoreFileManager to normalize the path, ensuring consistency with ignore file paths
-                return ignoreFileManager.normalizePath(filePath);
-            }
-            // Fallback: use Path.relativize if IgnoreFileManager is not available
-            String basePath = project.getBasePath();
-            if (basePath != null) {
-                return Path.of(basePath)
-                        .relativize(Paths.get(filePath))
-                        .toString()
-                        .replace("\\", "/");
-            }
-            return filePath;
-        } catch (Exception e) {
-            // Fallback to full path if normalization fails
-            LOGGER.debug(format("RTS-Decorator: Failed to get relative path for file: %s", psiFile.getName()), e);
-            return psiFile.getVirtualFile().getPath();
-        }
-    }
 
     /**
      * Helper class to hold relevant information for problem decoration.
