@@ -120,7 +120,7 @@ declare -a OTHERS=()
 
 if [[ -n "$RAW_LOG" ]]; then
   while IFS= read -r line; do
-    HASH=$(echo "$line" | cut -d'|||' -f1)
+    HASH=$(echo "$line" | awk -F'\\|\\|\\|' '{print $1}')
     MSG=$(echo "$line" | awk -F'\\|\\|\\|' '{print $2}')
     AUTHOR_NAME=$(echo "$line" | awk -F'\\|\\|\\|' '{print $3}')
 
