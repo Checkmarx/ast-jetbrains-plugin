@@ -124,6 +124,9 @@ if [[ -n "$RAW_LOG" ]]; then
     MSG=$(echo "$line" | awk -F'\\|\\|\\|' '{print $2}')
     AUTHOR_NAME=$(echo "$line" | awk -F'\\|\\|\\|' '{print $3}')
 
+    # Strip leading whitespace, then leading "* " or "- " from squash/merge commit subjects
+    MSG=$(echo "$MSG" | sed 's/^[[:space:]]*//' | sed 's/^[*-][[:space:]]*//')
+
     [[ -z "$MSG" ]] && continue
 
     if echo "$MSG" | grep -qiE "$EXCLUDE_REGEX"; then
