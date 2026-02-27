@@ -42,3 +42,7 @@ jacocoTestReport {
         html.required = true
     }
 }
+
+[buildSearchableOptions, patchPluginXml, verifyPlugin, runPluginVerifier, listProductsReleases, prepareSandbox, buildPlugin, jarSearchableOptions].each {
+    tasks.named(it.name) { enabled = false }
+}

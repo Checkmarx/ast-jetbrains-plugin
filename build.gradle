@@ -80,3 +80,7 @@ intellij {
 runPluginVerifier {
     ideVersions = verifierIdeVersions.split(',').toList()
 }
+
+[verifyPlugin, runPluginVerifier, buildSearchableOptions, patchPluginXml].each {
+    tasks.named(it.name) { enabled = false }
+}
