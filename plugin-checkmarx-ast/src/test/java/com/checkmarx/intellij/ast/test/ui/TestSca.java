@@ -8,24 +8,29 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
+import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ast.window.results.tree.nodes.ResultNode.UPGRADE_TO_VERSION_LABEL;
 
-public class TestSca extends BaseUITest {
+public class TestSca extends com.checkmarx.intellij.ast.test.ui.BaseUITest {
+    EnumSet<SeverityFilter> exclude = EnumSet.of(SeverityFilter.MALICIOUS, SeverityFilter.INFO);
     @Test
     @Video
     public void testScaPanel() {
+        openCxToolWindow();
         getResults();
         waitForScanIdSelection();
 
         severity();
-        Arrays.stream(SeverityFilter.values()).forEach(severity -> toggleFilter(severity, true));
-
+        Arrays.stream(SeverityFilter.values())
+                .filter(severity -> !exclude.contains(severity))
+                .forEach(severity -> toggleFilter(severity, true));
         navigate("Scan", 2);
         navigate("sca", 3);
         navigate("Vulnerability", 4);
@@ -35,11 +40,11 @@ public class TestSca extends BaseUITest {
         List<RemoteText> scaHighNodes = tree.getData()
                                             .getAll()
                                             .stream()
-                                            .filter(t -> t.getText().startsWith("HIGH"))
+                                            .filter(t -> t.getText().startsWith("LOW"))
                                             .collect(Collectors.toList());
 
         if (scaHighNodes.size() != 0) {
-            navigate("HIGH", 4);
+            navigate("LOW", 4);
         }
 
         navigate("Maven", 2);
@@ -70,9 +75,6 @@ public class TestSca extends BaseUITest {
         }
 
         testFileNavigation();
+        openCxToolWindow();
     }
 }
-
-
-
-

@@ -44,7 +44,8 @@ jobs:
           export DISPLAY=:99.0
           Xvfb -ac :99 -screen 0 1920x1080x24 &
           sleep 10
-          ./gradlew -i runIdeForUiTests > idea.log 2>&1 &
+          ./gradlew -i :plugin-checkmarx-ast:runIdeForUiTests > idea.log 2>&1 &
+          sleep 30
       # Wait for IDEA to be started
       - name: Health Check
         run: curl --fail -sv --retry "15" --retry-delay "10" --retry-connrefused "http://127.0.0.1:8580"
@@ -52,7 +53,7 @@ jobs:
       - name: Tests
         run: |
           export DISPLAY=:99.0
-          ./gradlew test -PuiWaitDuration=800  --info --tests com.checkmarx.intellij.ui*
+          ./gradlew :plugin-checkmarx-ast:test -PuiWaitDuration=800 --info --tests "com.checkmarx.intellij.ast.test.ui*"
       - name: Move video
         if: ${{ failure() }}
         run: mv video build/reports
@@ -92,9 +93,9 @@ jobs:
       - name: Run Tests with coverage report
         id: test_results
         run: |
-          ./gradlew :plugin-checkmarx-ast:test --tests "com.checkmarx.intellij.*.test.unit*" \
-                    :devassist-lib:test \
-                    :plugin-checkmarx-devassist:test \
+          ./gradlew :plugin-checkmarx-ast:test --tests "com.checkmarx.intellij.ast.test.unit*" \
+                    :devassist-lib:test --tests "com.checkmarx.intellij.devassist.test*" \
+                    :plugin-checkmarx-devassist:test --tests "com.checkmarx.intellij.cxdevassist.test*" \
                     :plugin-checkmarx-ast:jacocoTestReport \
                     :devassist-lib:jacocoTestReport \
                     :plugin-checkmarx-devassist:jacocoTestReport \
@@ -141,7 +142,7 @@ jobs:
       - name: Run Tests with coverage report
         id: test_results
         run: |
-          ./gradlew :plugin-checkmarx-ast:test --tests "com.checkmarx.intellij.*.test.integration.standard*" \
+          ./gradlew :plugin-checkmarx-ast:test --tests "com.checkmarx.intellij.ast.test.integration.standard*" \
                     :plugin-checkmarx-ast:jacocoTestReport \
                     -PjacocoTask=integration
 
