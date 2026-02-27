@@ -298,11 +298,21 @@ jobs:
           cp plugin-checkmarx-ast/build/distributions/*.zip release-assets/
           cp plugin-checkmarx-devassist/build/distributions/*.zip release-assets/
 
+      - name: Build release name
+        run: |
+          TAG="${{ needs.resolve.outputs.gh_tag }}"
+          if [[ -n "${{ inputs.rchannels }}" ]]; then
+            TIMESTAMP=$(date +%s)
+            echo "RELEASE_NAME=${TAG} (${TIMESTAMP})" >> "$GITHUB_ENV"
+          else
+            echo "RELEASE_NAME=${TAG}" >> "$GITHUB_ENV"
+          fi
+
       - name: Create Release or Prerelease
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 #v1
         with:
           tag_name: ${{ needs.resolve.outputs.gh_tag }}
-          name: ${{ needs.resolve.outputs.gh_tag }}
+          name: ${{ env.RELEASE_NAME }}
           files: release-assets/*
           prerelease: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
           body_path: ${{ env.BODY_FILE }}

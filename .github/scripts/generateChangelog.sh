@@ -177,7 +177,7 @@ emit ""
 section_added=false
 
 if [[ ${#FEATURES[@]} -gt 0 ]]; then
-  emit "#### New Features"
+  emit "#### 🚀 New Features"
   emit ""
   for e in "${FEATURES[@]}"; do emit "$e"; done
   emit ""
@@ -185,7 +185,7 @@ if [[ ${#FEATURES[@]} -gt 0 ]]; then
 fi
 
 if [[ ${#FIXES[@]} -gt 0 ]]; then
-  emit "#### Bug Fixes"
+  emit "#### 🐛 Bug Fixes"
   emit ""
   for e in "${FIXES[@]}"; do emit "$e"; done
   emit ""
@@ -193,7 +193,7 @@ if [[ ${#FIXES[@]} -gt 0 ]]; then
 fi
 
 if [[ ${#DOCS[@]} -gt 0 ]]; then
-  emit "#### Documentation"
+  emit "#### 📝 Documentation"
   emit ""
   for e in "${DOCS[@]}"; do emit "$e"; done
   emit ""
@@ -201,7 +201,7 @@ if [[ ${#DOCS[@]} -gt 0 ]]; then
 fi
 
 if [[ ${#REFACTORS[@]} -gt 0 ]]; then
-  emit "#### Refactor"
+  emit "#### ♻️ Refactor"
   emit ""
   for e in "${REFACTORS[@]}"; do emit "$e"; done
   emit ""
@@ -209,7 +209,7 @@ if [[ ${#REFACTORS[@]} -gt 0 ]]; then
 fi
 
 if [[ ${#PERFS[@]} -gt 0 ]]; then
-  emit "#### Performance"
+  emit "#### ⚡ Performance"
   emit ""
   for e in "${PERFS[@]}"; do emit "$e"; done
   emit ""
@@ -217,7 +217,7 @@ if [[ ${#PERFS[@]} -gt 0 ]]; then
 fi
 
 if [[ ${#OTHERS[@]} -gt 0 ]]; then
-  emit "#### Other Changes"
+  emit "#### 🔧 Other Changes"
   emit ""
   for e in "${OTHERS[@]}"; do emit "$e"; done
   emit ""
