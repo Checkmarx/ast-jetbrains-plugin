@@ -1,0 +1,239 @@
+package com.checkmarx.intellij.ast.test.ui;
+
+import com.checkmarx.intellij.ast.test.integration.Environment;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupBy;
+import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
+import com.intellij.remoterobot.fixtures.*;
+import com.intellij.remoterobot.stepsProcessing.StepLogger;
+import com.intellij.remoterobot.stepsProcessing.StepWorker;
+import com.intellij.remoterobot.utils.Keyboard;
+import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
+import org.intellij.lang.annotations.Language;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+
+import java.awt.event.KeyEvent;
+import java.time.Duration;
+import java.util.List;
+
+import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
+import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.openSettings;
+import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.testASTConnection;
+import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.enterScanIdAndSelect;
+import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.*;
+
+public abstract class BaseUITest {
+
+    protected static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
+    private static boolean initialized = false;
+    private static int retries = 0;
+    protected static ComponentFixture baseLabel;
+
+    @BeforeAll
+    public static void init() {
+        if (!initialized) {
+            log("Initializing the tests");
+            log("Wait duration set for " + waitDuration.getSeconds());
+            StepWorker.registerProcessor(new StepLogger());
+            if (hasAnyComponent(FLAT_WELCOME_FRAME)) {
+                find(FROM_VCS_TAB).click();
+                find(JTextFieldFixture.class, BORDERLESS_TEXT_FIELD, Duration.ofSeconds(10)).setText(Environment.REPO);
+                waitFor(() -> hasAnyComponent(CLONE_BUTTON) && find(JButtonFixture.class, CLONE_BUTTON).isEnabled());
+                find(CLONE_BUTTON).click();
+                trustClonedProject();
+                try {
+                    waitFor(() -> hasAnyComponent("//div[@class='ContentTabLabel']"));
+                } catch (WaitForConditionTimeoutException e) {
+                    // if exception is thrown, sync was successful, so we can keep going
+                }
+            }
+            // Open Checkmarx One plugin
+            openCxToolWindow();
+
+            // Resize Checkmarx One plugin so that all toolbar icons are visible
+            resizeToolBar();
+
+            // ✅ Connect only if not already connected
+            if (!isASTConnected()) {
+                log("AST not connected. Establishing connection...");
+                testASTConnection(true);
+            } else {
+                click(OK_BTN);
+                log("AST already connected. Skipping connection step.");
+            }
+
+            initialized = true;
+            log("Initialization finished");
+        } else {
+            log("Tests already initialized, skipping");
+        }
+    }
+
+    public static void resizeToolBar() {
+        focusCxWindow();
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        for (int i = 0; i < 3; i++) {
+            focusCxWindow();
+            if (remoteRobot.isMac()) {
+                keyboard.hotKey(KeyEvent.VK_SHIFT, KeyEvent.VK_META, KeyEvent.VK_UP);
+            } else {
+                keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_ALT, KeyEvent.VK_UP);
+            }
+        }
+    }
+
+    private static void trustClonedProject() {
+        try {
+            waitFor(() -> hasAnyComponent(TRUST_PROJECT) && find(TRUST_PROJECT).isShowing());
+            find(TRUST_PROJECT).click();
+        } catch (WaitForConditionTimeoutException ignored) {
+        }
+    }
+
+    protected static void testFileNavigation() {
+        focusCxWindow();
+        findAll(LINK_LABEL).get(0).doubleClick();
+        hideToolWindows(); // call once before checking editor
+
+        // Now wait for editor to appear
+        waitFor(() -> hasAnyComponent(EDITOR));
+        Assertions.assertDoesNotThrow(() -> find(EditorFixture.class, EDITOR, waitDuration));
+        //Confirming if editor is opened
+        find(EditorFixture.class, EDITOR, waitDuration);
+    }
+
+    private static boolean hasSelection(String s) {
+        return hasAnyComponent(String.format(HAS_SELECTION, s));
+    }
+
+    @NotNull
+    protected static ActionButtonFixture findSelection(String s) {
+        @Language("XPath") String xpath = String.format(
+                "//div[@class='ActionButtonWithText' and starts-with(@visible_text,'%s: ')]",
+                s);
+        waitFor(() -> hasAnyComponent(xpath));
+        return find(ActionButtonFixture.class, xpath);
+    }
+
+    public static void focusCxWindow() {
+        boolean cxPluginOpened = find(BASE_LABEL).hasText("Checkmarx");
+        System.out.println("Plugin opened: " + cxPluginOpened);
+
+        if (!cxPluginOpened) {
+            openCxToolWindow();
+            return;
+        }
+
+        if (baseLabel != null && baseLabel.isShowing()) {
+            baseLabel.click();
+        } else {
+            waitFor(() -> hasAnyComponent(BASE_LABEL));
+            baseLabel = find(BASE_LABEL);
+            baseLabel.click();
+        }
+    }
+
+    protected static void expand() {
+        waitFor(() -> {
+            click(EXPAND_ACTION);
+            return find(JTreeFixture.class, TREE).findAllText().size() > 1;
+        });
+    }
+
+    protected static void hideToolWindows() {
+        Keyboard keyboard = new Keyboard(remoteRobot);
+        keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_SHIFT, KeyEvent.VK_F12);
+    }
+
+    protected void getResults() {
+        focusCxWindow();
+        waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
+        focusCxWindow();
+        clearSelection();
+       /* find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
+        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);*/
+        enterScanIdAndSelect(true);
+        waitFor(() -> {
+            focusCxWindow();
+            return hasAnyComponent(TREE)
+                    && !hasAnyComponent(
+                    GETTING_RESULT_TEXT
+            );
+        });
+    }
+
+    protected void waitForScanIdSelection() {
+        focusCxWindow();
+        // check scan selection for the scan id
+        log("inside waitForScanIdSelection");
+        waitFor(() -> hasAnyComponent(String.format(SCAN_ID_SELECTION, Environment.SCAN_ID, Environment.SCAN_ID)));
+    }
+
+
+
+    protected void clearSelection() {
+        waitFor(() -> {
+            if (hasAnyComponent(NO_PROJECT_SELECTED)
+                    && findSelection("Project").isEnabled()
+                    && hasAnyComponent(NO_BRANCH_SELECTED)
+                    && hasAnyComponent(NO_SCAN_SELECTED)
+                    && !hasAnyComponent(TREE)
+                    && Utils.isBlank(find(JTextFieldFixture.class, SCAN_FIELD).getText())) {
+                log("clear selection done");
+                return true;
+            }
+            if (!findSelection("Scan").isShowing() || (findSelection("Scan").hasText("Scan: ..."))
+                    || (!findSelection("Branch").isShowing() || findSelection("Branch").hasText("Branch: ..."))
+                    || (!findSelection("Project").isShowing() || findSelection("Project").hasText("Project: ..."))) {
+                log("clear selection still in progress");
+                return false;
+            }
+            log("clicking refresh action button");
+            click(RESET_PROJECT_SELECTION);
+            return false;
+        });
+    }
+
+    private void groupAction(String value) {
+        openGroupBy();
+        waitFor(() -> {
+            enter(value);
+            return find(JTreeFixture.class, TREE).findAllText().size() == 1;
+        });
+    }
+
+    private void openGroupBy() {
+        expand();
+        waitFor(() -> {
+            click(GROUP_BY_ACTION);
+            List<JListFixture> myList = findAll(JListFixture.class, MY_LIST);
+            return myList.size() == 1 && myList.get(0).findAllText().size() == GroupBy.values().length - GroupBy.HIDDEN_GROUPS.size();
+        });
+    }
+
+    protected void severity() {
+        groupAction("Severity");
+    }
+
+    protected void toggleFilter(SeverityFilter severity, boolean enabled) {
+        @Language("XPath") String xpath = TestGeneral.filterXPath(severity);
+        waitFor(() -> {
+            click(xpath);
+            if (!hasAnyComponent(xpath)) {
+                return false;
+            }
+
+            ActionButtonFixture filter = find(ActionButtonFixture.class, xpath);
+            log(filter.popState().name());
+            return filter.popState().equals(enabled ? ActionButtonFixture.PopState.PUSHED : ActionButtonFixture.PopState.POPPED);
+        });
+    }
+
+    public static boolean isASTConnected() {
+        openSettings();
+        return hasAnyComponent(SUCCESSFUL_LOGIN_MESSAGE);
+    }
+}

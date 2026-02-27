@@ -1,0 +1,75 @@
+package com.checkmarx.intellij.ast.test.integration.standard;
+
+import com.checkmarx.ast.project.Project;
+import com.checkmarx.intellij.ast.test.integration.Environment;
+import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
+import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.intellij.openapi.vfs.newvfs.impl.VfsRootAccess;
+import com.intellij.testFramework.ServiceContainerUtil;
+import com.intellij.testFramework.fixtures.BasePlatformTestCase;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.mockito.Mockito;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import static org.mockito.Mockito.when;
+
+public abstract class BaseTest extends BasePlatformTestCase {
+
+    @BeforeEach
+    public final void setUp() throws Exception {
+        super.setUp();
+
+        // Allow access to test data directory for file-based tests
+        String projectRoot = Paths.get("").toAbsolutePath().toString();
+        String testDataPath = Paths.get(projectRoot, "plugin-checkmarx-ast", "src", "test", "java", "com", "checkmarx", "intellij", "ast", "test", "integration", "standard", "data").toString();
+        VfsRootAccess.allowRootAccess(getTestRootDisposable(), testDataPath);
+
+        // Mock IgnoreFileManager to return a valid temp path
+        // This prevents NullPointerException when project.getBasePath() returns null in tests
+        IgnoreFileManager mockIgnoreFileManager = Mockito.mock(IgnoreFileManager.class);
+        Path tempIgnoreFile = Files.createTempFile("checkmarxIgnoredTempList", ".json");
+        Files.writeString(tempIgnoreFile, "[]");
+        when(mockIgnoreFileManager.getTempListPath()).thenReturn(tempIgnoreFile);
+        ServiceContainerUtil.registerServiceInstance(getProject(), IgnoreFileManager.class, mockIgnoreFileManager);
+
+        GlobalSettingsState state = GlobalSettingsState.getInstance();
+        GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
+
+        // Set base URL and tenant from environment variables
+        state.setBaseUrl(Environment.BASE_URL);
+        state.setTenant(Environment.TENANT);
+        state.setApiKeyEnabled(true);
+
+        sensitiveState.setApiKey(System.getenv("CX_APIKEY"));
+    }
+
+    @AfterEach
+    public final void tearDown() throws Exception {
+        super.tearDown();
+        GlobalSettingsState state = GlobalSettingsState.getInstance();
+        GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
+
+        state.loadState(new GlobalSettingsState());
+        sensitiveState.reset();
+    }
+
+    protected final Project getEnvProject() {
+        return Assertions.assertDoesNotThrow(() -> {
+            java.util.List<Project> projects = com.checkmarx.intellij.ast.commands.Project.getList();
+            return projects.stream()
+                    .filter(p -> p.getName().equals(Environment.PROJECT_NAME))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError(
+                            "Project '" + Environment.PROJECT_NAME + "' not found. " +
+                            "Available projects: " + projects.stream()
+                                    .map(Project::getName)
+                                    .collect(java.util.stream.Collectors.joining(", "))));
+        });
+    }
+}

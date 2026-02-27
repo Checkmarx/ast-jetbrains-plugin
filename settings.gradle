@@ -1,2 +1,7 @@
 rootProject.name = 'ast-jetbrains-plugin'
 
+
+include 'common-lib'
+include 'devassist-lib'
+include 'plugin-checkmarx-ast'
+include 'plugin-checkmarx-devassist'

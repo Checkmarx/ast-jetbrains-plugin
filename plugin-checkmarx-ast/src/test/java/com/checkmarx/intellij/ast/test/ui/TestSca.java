@@ -1,0 +1,80 @@
+package com.checkmarx.intellij.ast.test.ui;
+
+import com.automation.remarks.junit5.Video;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
+import com.intellij.remoterobot.fixtures.JTreeFixture;
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.*;
+import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
+import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ast.window.results.tree.nodes.ResultNode.UPGRADE_TO_VERSION_LABEL;
+
+public class TestSca extends com.checkmarx.intellij.ast.test.ui.BaseUITest {
+    EnumSet<SeverityFilter> exclude = EnumSet.of(SeverityFilter.MALICIOUS, SeverityFilter.INFO);
+    @Test
+    @Video
+    public void testScaPanel() {
+        openCxToolWindow();
+        getResults();
+        waitForScanIdSelection();
+
+        severity();
+        Arrays.stream(SeverityFilter.values())
+                .filter(severity -> !exclude.contains(severity))
+                .forEach(severity -> toggleFilter(severity, true));
+        navigate("Scan", 2);
+        navigate("sca", 3);
+        navigate("Vulnerability", 4);
+        log("Checking SCA results");
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
+
+        List<RemoteText> scaHighNodes = tree.getData()
+                                            .getAll()
+                                            .stream()
+                                            .filter(t -> t.getText().startsWith("LOW"))
+                                            .collect(Collectors.toList());
+
+        if (scaHighNodes.size() != 0) {
+            navigate("LOW", 4);
+        }
+
+        navigate("Maven", 2);
+
+        Optional<String> cveRow = tree.collectRows().stream().filter(treeRow -> treeRow.startsWith("Maven")).findFirst();
+        int dsvwRowIdx = cveRow.map(s -> tree.collectRows().indexOf(s)).orElse(-1);
+
+        Assertions.assertTrue(dsvwRowIdx > 1);
+        waitFor(() -> {
+            tree.clickRow(dsvwRowIdx);
+            return findAll(LINK_LABEL).size() > 0;
+        });
+
+        // If there is an auto remediation to the file, there must be a label starting with Upgrade to version. Otherwise, no information must be displayed
+        if (hasAnyComponent(AUTO_REMEDIATION)) {
+            waitFor(() -> {
+                tree.clickRow(dsvwRowIdx);
+                return find(MAGIC_RESOLVE).getData()
+                                          .getAll()
+                                          .stream()
+                                          .anyMatch(element -> element.getText().startsWith(UPGRADE_TO_VERSION_LABEL));
+            });
+        } else {
+            waitFor(() -> {
+                tree.clickRow(dsvwRowIdx);
+                return findAll(NO_INFORMATION).size() > 0;
+            });
+        }
+
+        testFileNavigation();
+        openCxToolWindow();
+    }
+}

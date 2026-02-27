@@ -1,0 +1,16 @@
+package com.checkmarx.intellij.ast.window.actions.group.by;
+
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
+
+public class GroupByPackageAction extends GroupByBaseAction {
+
+    public GroupByPackageAction() {
+        super(Bundle.messagePointer(Resource.PACKAGE_ACTION));
+    }
+
+    @Override
+    protected GroupBy getGroupBy() {
+        return GroupBy.PACKAGE;
+    }
+}
