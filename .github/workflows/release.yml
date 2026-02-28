@@ -357,7 +357,10 @@ jobs:
     needs: release
     uses: Checkmarx/plugins-release-workflow/.github/workflows/release-notify.yml@main
     with:
-      product_name: JetBrains Plugin
+      product_name: >-
+        ${{ inputs.releaseType == 'checkmarx' && 'JetBrains Plugin - Checkmarx (AST)' ||
+            inputs.releaseType == 'devAssist' && 'JetBrains Plugin - DevAssist' ||
+            'JetBrains Plugin - Checkmarx (AST) & DevAssist' }}
       release_version: ${{ needs.release.outputs.TAG_NAME }}
       cli_release_version: ${{ needs.release.outputs.CLI_VERSION }}
       release_author: "Sypher Team"
