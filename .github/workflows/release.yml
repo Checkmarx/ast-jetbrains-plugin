@@ -33,6 +33,11 @@ on:
         required: false
         type: boolean
         default: true
+      skip_tests:
+        description: 'Skip integration tests'
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       tag:
@@ -69,6 +74,11 @@ on:
         required: false
         type: boolean
         default: true
+      skip_tests:
+        description: 'Skip integration tests'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -169,6 +179,7 @@ jobs:
 
   testIntegration:
     needs: [verify]
+    if: ${{ !inputs.skip_tests }}
     runs-on: ubuntu-latest
     steps:
       - name: Fetch Sources
@@ -200,7 +211,7 @@ jobs:
 
   release:
     needs: [resolve, verify, testIntegration, deleteDevReleases]
-    if: ${{ always() && needs.resolve.result == 'success' && needs.verify.result == 'success' && needs.testIntegration.result == 'success' && (needs.deleteDevReleases.result == 'success' || needs.deleteDevReleases.result == 'skipped') }}
+    if: ${{ always() && needs.resolve.result == 'success' && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') && (needs.deleteDevReleases.result == 'success' || needs.deleteDevReleases.result == 'skipped') }}
     runs-on: ubuntu-latest
     outputs:
       TAG_NAME: ${{ steps.set_outputs.outputs.TAG_NAME }}
