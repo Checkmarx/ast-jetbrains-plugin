@@ -9,7 +9,7 @@ set -euo pipefail
 #
 # Usage:
 #   ./generateChangelog.sh --plugin checkmarx --version 2.3.4 --repo Checkmarx/ast-jetbrains-plugin
-#   ./generateChangelog.sh --plugin devassist --version 1.0.0 --repo Checkmarx/ast-jetbrains-plugin --dev true
+#   ./generateChangelog.sh --plugin devassist --version 1.0.0 --repo Checkmarx/ast-jetbrains-plugin
 #
 # Outputs:
 #   Structured release body section on stdout between RELEASE_BODY_START / RELEASE_BODY_END
@@ -18,20 +18,18 @@ set -euo pipefail
 PLUGIN=""
 VERSION=""
 REPO=""
-IS_DEV="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --plugin)   PLUGIN="$2";  shift 2 ;;
     --version)  VERSION="$2"; shift 2 ;;
     --repo)     REPO="$2";    shift 2 ;;
-    --dev)      IS_DEV="$2";  shift 2 ;;
     *) echo "Unknown arg: $1" >&2; exit 1 ;;
   esac
 done
 
 if [[ -z "$PLUGIN" || -z "$VERSION" || -z "$REPO" ]]; then
-  echo "Usage: $0 --plugin checkmarx|devassist --version X.Y.Z --repo owner/repo [--dev true|false]" >&2
+  echo "Usage: $0 --plugin checkmarx|devassist --version X.Y.Z --repo owner/repo" >&2
   exit 1
 fi
 
@@ -101,12 +99,7 @@ EXCLUDE_REGEX="(update.*version.*automated|bump version|\[create-pull-request\] 
 # ---------------------------------------------------------------------------
 # Collect commits filtered by subproject paths
 # ---------------------------------------------------------------------------
-PATH_ARGS=""
-for p in "${GIT_PATHS[@]}"; do
-  PATH_ARGS="${PATH_ARGS} -- ${p}"
-done
-
-RAW_LOG=$(git log ${RANGE} --pretty=format:"%H|||%s|||%an" ${PATH_ARGS} 2>/dev/null || true)
+RAW_LOG=$(git log ${RANGE} --pretty=format:"%H|||%s|||%an" -- "${GIT_PATHS[@]}" 2>/dev/null || true)
 
 # ---------------------------------------------------------------------------
 # Categorize commits by conventional commit patterns
