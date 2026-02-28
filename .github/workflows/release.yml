@@ -207,7 +207,7 @@ jobs:
     with:
       tag: ${{ inputs.rchannels }}
     secrets: inherit
-    if: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
+    if: ${{ always() && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') && inputs.rchannels != '' && inputs.rchannels != null }}
 
   release:
     needs: [resolve, verify, testIntegration, deleteDevReleases]
