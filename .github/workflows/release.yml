@@ -265,26 +265,34 @@ jobs:
             echo ""
           } > "$BODY_FILE"
 
-          # --- Per-plugin changelogs ---
-          bash ./.github/scripts/generateChangelog.sh \
-            --plugin checkmarx \
-            --version "${AST_VER}" \
-            --repo "${{ github.repository }}" \
-            --dev "${{ inputs.rchannels != '' && inputs.rchannels != null }}" \
-            | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/{/RELEASE_BODY_START/d;/RELEASE_BODY_END/d;p}' \
-            >> "$BODY_FILE"
+          # --- Per-plugin changelogs (only for plugins being released as NEW) ---
+          FIRST_SECTION=true
 
-          echo "" >> "$BODY_FILE"
-          echo "---" >> "$BODY_FILE"
-          echo "" >> "$BODY_FILE"
+          if [[ "${RELEASE_TYPE}" == "checkmarx" || "${RELEASE_TYPE}" == "both" ]]; then
+            bash ./.github/scripts/generateChangelog.sh \
+              --plugin checkmarx \
+              --version "${AST_VER}" \
+              --repo "${{ github.repository }}" \
+              --dev "${{ inputs.rchannels != '' && inputs.rchannels != null }}" \
+              | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/{/RELEASE_BODY_START/d;/RELEASE_BODY_END/d;p}' \
+              >> "$BODY_FILE"
+            FIRST_SECTION=false
+          fi
 
-          bash ./.github/scripts/generateChangelog.sh \
-            --plugin devassist \
-            --version "${DA_VER}" \
-            --repo "${{ github.repository }}" \
-            --dev "${{ inputs.rchannels != '' && inputs.rchannels != null }}" \
-            | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/{/RELEASE_BODY_START/d;/RELEASE_BODY_END/d;p}' \
-            >> "$BODY_FILE"
+          if [[ "${RELEASE_TYPE}" == "devAssist" || "${RELEASE_TYPE}" == "both" ]]; then
+            if [[ "$FIRST_SECTION" == "false" ]]; then
+              echo "" >> "$BODY_FILE"
+              echo "---" >> "$BODY_FILE"
+              echo "" >> "$BODY_FILE"
+            fi
+            bash ./.github/scripts/generateChangelog.sh \
+              --plugin devassist \
+              --version "${DA_VER}" \
+              --repo "${{ github.repository }}" \
+              --dev "${{ inputs.rchannels != '' && inputs.rchannels != null }}" \
+              | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/{/RELEASE_BODY_START/d;/RELEASE_BODY_END/d;p}' \
+              >> "$BODY_FILE"
+          fi
 
           echo "--- Release body ---"
           cat "$BODY_FILE"
