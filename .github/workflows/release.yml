@@ -4,7 +4,20 @@ on:
   workflow_call:
     inputs:
       tag:
-        description: 'Next release tag'
+        description: 'Release tag (e.g. 2.3.4)'
+        required: true
+        type: string
+      releaseType:
+        description: 'Which plugin(s) to publish to marketplace (checkmarx | devAssist | both)'
+        required: false
+        type: string
+        default: 'both'
+      ast_version:
+        description: 'Version for checkmarx-ast-plugin zip (e.g. 2.0.1234567890)'
+        required: true
+        type: string
+      devassist_version:
+        description: 'Version for checkmarx-developer-assist-plugin zip (e.g. 1.0.1234567890)'
         required: true
         type: string
       javawrapperversion:
@@ -15,10 +28,37 @@ on:
         description: 'Channels to publish development releases'
         required: false
         type: string
+      publish:
+        description: 'Publish to JetBrains Marketplace'
+        required: false
+        type: boolean
+        default: true
+      skip_tests:
+        description: 'Skip integration tests'
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Next release tag'
+        description: 'Main release tag (e.g. 2.3.4)'
+        required: true
+        type: string
+      releaseType:
+        description: 'Which plugin(s) to publish to marketplace'
+        required: true
+        type: choice
+        options:
+          - both
+          - checkmarx
+          - devAssist
+        default: 'both'
+      ast_version:
+        description: 'Version for checkmarx-ast-plugin zip (e.g. 2.3.4)'
+        required: true
+        type: string
+      devassist_version:
+        description: 'Version for checkmarx-developer-assist-plugin zip (e.g. 1.0.0)'
         required: true
         type: string
       javawrapperversion:
@@ -29,6 +69,21 @@ on:
         description: 'Channels to publish development releases'
         required: false
         type: string
+      publish:
+        description: 'Publish to JetBrains Marketplace'
+        required: false
+        type: boolean
+        default: true
+      skip_tests:
+        description: 'Skip integration tests'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
 
 env:
   CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
@@ -43,12 +98,49 @@ env:
   CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
   CX_NOT_MATCH_TEST_SCAN_ID: ${{ secrets.CX_NOT_MATCH_TEST_SCAN_ID }}
 
-
 jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      releaseType: ${{ steps.vars.outputs.releaseType }}
+      ast_version: ${{ steps.vars.outputs.ast_version }}
+      devassist_version: ${{ steps.vars.outputs.devassist_version }}
+      gh_tag: ${{ steps.vars.outputs.gh_tag }}
+    steps:
+      - name: Resolve versions and tag
+        id: vars
+        run: |
+          TAG="${{ inputs.tag }}"
+          RELEASE_TYPE="${{ inputs.releaseType }}"
+          AST_VERSION="${{ inputs.ast_version }}"
+          DA_VERSION="${{ inputs.devassist_version }}"
+          CHANNEL="${{ inputs.rchannels }}"
+
+          if [[ -z "${RELEASE_TYPE}" ]]; then
+            RELEASE_TYPE="both"
+          fi
+
+          # Build GitHub release tag
+          if [[ -n "${CHANNEL}" ]]; then
+            GH_TAG="${TAG}-${CHANNEL}"
+          else
+            GH_TAG="${TAG}"
+          fi
+
+          echo "releaseType=${RELEASE_TYPE}" >> "$GITHUB_OUTPUT"
+          echo "ast_version=${AST_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "devassist_version=${DA_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "gh_tag=${GH_TAG}" >> "$GITHUB_OUTPUT"
+
+          echo "Release type: ${RELEASE_TYPE}"
+          echo "AST version: ${AST_VERSION}"
+          echo "DevAssist version: ${DA_VERSION}"
+          echo "GitHub tag: ${GH_TAG}"
+
   verify:
+    needs: [resolve]
     runs-on: ubuntu-latest
     steps:
-      # Check out current repository
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Free up disk space
@@ -56,46 +148,42 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf /usr/local/lib/android
-          sudo docker system prune -af 
-      # Setup Java 11 environment for the next steps
+          sudo docker system prune -af
       - name: Setup Java
         uses: actions/setup-java@v3.13.0
         with:
           distribution: zulu
           java-version: 11
-      # Run verifier
       - name: Run plugin verifier
-        run: ./gradlew runPluginVerifier
+        run: ./gradlew :plugin-checkmarx-ast:runPluginVerifier :plugin-checkmarx-devassist:runPluginVerifier
         env:
-          JAVA_TOOL_OPTIONS: > 
-           -DpasswordSafe.enabled=false
-      # Upload verifier report
+          JAVA_TOOL_OPTIONS: >
+            -DpasswordSafe.enabled=false
       - name: Upload report
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 #v4
         if: always()
         with:
           name: verifier-report
-          path: build/reports/pluginVerifier
+          path: |
+            plugin-checkmarx-ast/build/reports/pluginVerifier
+            plugin-checkmarx-devassist/build/reports/pluginVerifier
+
   testIntegration:
-    needs: [ verify ]
+    needs: [verify]
+    if: ${{ !inputs.skip_tests }}
     runs-on: ubuntu-latest
     steps:
-      # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
-      # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@v3.13.0
         with:
           distribution: zulu
           java-version: 11
-      # Perform clean before testing
       - name: Clean
         run: ./gradlew clean
-      # Run tests
       - name: Tests
-        run: ./gradlew test -i --tests com.checkmarx.intellij.integration.standard*
-      # Save report if tests fail
+        run: ./gradlew :plugin-checkmarx-ast:test -i --tests com.checkmarx.intellij.ast.test.integration.standard*
       - name: Save fails report
         if: ${{ failure() }}
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 #v4
@@ -103,78 +191,167 @@ jobs:
           name: test-fails-report-integration
           path: |
             build/reports
+
   deleteDevReleases:
+    needs: [resolve, verify, testIntegration]
     uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/delete-dev-releases.yml@main
     with:
       tag: ${{ inputs.rchannels }}
     secrets: inherit
-    if: inputs.rchannels
+    if: ${{ always() && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') && inputs.rchannels != '' && inputs.rchannels != null }}
+
   release:
+    needs: [resolve, verify, testIntegration, deleteDevReleases]
+    if: ${{ always() && needs.resolve.result == 'success' && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') && (needs.deleteDevReleases.result == 'success' || needs.deleteDevReleases.result == 'skipped') }}
     runs-on: ubuntu-latest
     outputs:
       TAG_NAME: ${{ steps.set_outputs.outputs.TAG_NAME }}
       CLI_VERSION: ${{ steps.set_outputs.outputs.CLI_VERSION }}
     steps:
-      # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
-      # Setup Java 11 environment for the next steps
+        with:
+          fetch-depth: 0
       - name: Setup Java
         uses: actions/setup-java@v3.13.0
         with:
           distribution: zulu
           java-version: 11
-      # Set the tag in an env var
-      - name: Set env
-        run: |
-          echo "RELEASE_VERSION=${{ inputs.tag }}" >> $GITHUB_ENV
-          echo "JAVA_WRAPPER_VERSION=${{ inputs.javawrapperversion }}" >> $GITHUB_ENV
-      - name: Create Release Name
-        run: |
-          echo "Creating release name"
-          if [ -z "${{ inputs.rchannels }}" ]; then
-            echo "GH_RELEASE_TAG_NAME=${{ env.RELEASE_VERSION }}" >> $GITHUB_ENV
-          else
-           echo "GH_RELEASE_TAG_NAME=${{ env.RELEASE_VERSION }}-${{ inputs.rchannels }}" >> $GITHUB_ENV
-          fi
-          echo "Release name - ${{ env.GH_RELEASE_TAG_NAME }}"
 
-      # Build plugin
-      - name: Build
+      - name: Set versions
+        run: |
+          echo "JAVA_WRAPPER_VERSION=${{ inputs.javawrapperversion }}" >> $GITHUB_ENV
+
+      # Always build BOTH plugins (both zips always present in release)
+      - name: Build plugin-checkmarx-ast
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew buildPlugin --info
+        run: |
+          RELEASE_VERSION="${{ needs.resolve.outputs.ast_version }}" \
+            ./gradlew :plugin-checkmarx-ast:buildPlugin --info
+
+      - name: Build plugin-checkmarx-devassist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_VERSION="${{ needs.resolve.outputs.devassist_version }}" \
+            ./gradlew :plugin-checkmarx-devassist:buildPlugin --info
 
       - name: Extract CLI version
         run: |
           chmod +x ./.github/scripts/extract_cli_version.sh
           ./.github/scripts/extract_cli_version.sh cx-linux
 
-      # Create the release or prerelease
+      - name: Generate Changelog
+        run: |
+          chmod +x ./.github/scripts/generateChangelog.sh
+          RELEASE_TYPE="${{ needs.resolve.outputs.releaseType }}"
+          AST_VER="${{ needs.resolve.outputs.ast_version }}"
+          DA_VER="${{ needs.resolve.outputs.devassist_version }}"
+          BODY_FILE="${RUNNER_TEMP}/release_body.md"
+
+          # --- "Plugins in this release" header ---
+          {
+            echo "### Plugins in this release"
+            echo ""
+            if [[ "${RELEASE_TYPE}" == "checkmarx" || "${RELEASE_TYPE}" == "both" ]]; then
+              echo "- **Checkmarx (AST):** ${AST_VER} (NEW)"
+            else
+              echo "- **Checkmarx (AST):** ${AST_VER}"
+            fi
+            if [[ "${RELEASE_TYPE}" == "devAssist" || "${RELEASE_TYPE}" == "both" ]]; then
+              echo "- **Checkmarx Developer Assist:** ${DA_VER} (NEW)"
+            else
+              echo "- **Checkmarx Developer Assist:** ${DA_VER}"
+            fi
+            echo ""
+          } > "$BODY_FILE"
+
+          # --- Per-plugin changelogs (only for plugins being released as NEW) ---
+          FIRST_SECTION=true
+
+          if [[ "${RELEASE_TYPE}" == "checkmarx" || "${RELEASE_TYPE}" == "both" ]]; then
+            bash ./.github/scripts/generateChangelog.sh \
+              --plugin checkmarx \
+              --version "${AST_VER}" \
+              --repo "${{ github.repository }}" \
+              | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/{/RELEASE_BODY_START/d;/RELEASE_BODY_END/d;p}' \
+              >> "$BODY_FILE"
+            FIRST_SECTION=false
+          fi
+
+          if [[ "${RELEASE_TYPE}" == "devAssist" || "${RELEASE_TYPE}" == "both" ]]; then
+            if [[ "$FIRST_SECTION" == "false" ]]; then
+              echo "" >> "$BODY_FILE"
+              echo "---" >> "$BODY_FILE"
+              echo "" >> "$BODY_FILE"
+            fi
+            bash ./.github/scripts/generateChangelog.sh \
+              --plugin devassist \
+              --version "${DA_VER}" \
+              --repo "${{ github.repository }}" \
+              | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/{/RELEASE_BODY_START/d;/RELEASE_BODY_END/d;p}' \
+              >> "$BODY_FILE"
+          fi
+
+          echo "--- Release body ---"
+          cat "$BODY_FILE"
+          echo "--- End release body ---"
+
+          echo "BODY_FILE=${BODY_FILE}" >> $GITHUB_ENV
+
+      - name: Collect assets
+        run: |
+          mkdir -p release-assets
+          cp plugin-checkmarx-ast/build/distributions/*.zip release-assets/
+          cp plugin-checkmarx-devassist/build/distributions/*.zip release-assets/
+
+      - name: Build release name
+        run: |
+          TAG="${{ needs.resolve.outputs.gh_tag }}"
+          if [[ -n "${{ inputs.rchannels }}" ]]; then
+            TIMESTAMP=$(date +%s)
+            echo "RELEASE_NAME=${TAG} (${TIMESTAMP})" >> "$GITHUB_ENV"
+          else
+            echo "RELEASE_NAME=${TAG}" >> "$GITHUB_ENV"
+          fi
+
       - name: Create Release or Prerelease
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 #v1
         with:
-          tag_name: ${{ env.GH_RELEASE_TAG_NAME }}
-          name: ${{ env.GH_RELEASE_TAG_NAME }}
-          files: build/distributions/*
-          generate_release_notes: true
+          tag_name: ${{ needs.resolve.outputs.gh_tag }}
+          name: ${{ env.RELEASE_NAME }}
+          files: release-assets/*
           prerelease: ${{ inputs.rchannels != '' && inputs.rchannels != null }}
+          body_path: ${{ env.BODY_FILE }}
 
       - name: Echo CLI version and tag name to outputs
         id: set_outputs
         run: |
-          echo "::set-output name=TAG_NAME::${{ env.GH_RELEASE_TAG_NAME }}"
-          echo "::set-output name=CLI_VERSION::${{ env.CLI_VERSION }}"
+          echo "TAG_NAME=${{ needs.resolve.outputs.gh_tag }}" >> "$GITHUB_OUTPUT"
+          echo "CLI_VERSION=${{ env.CLI_VERSION }}" >> "$GITHUB_OUTPUT"
 
-      # Publish the plugin in marketplace
+      # Publish only the plugin(s) selected by releaseType
       - name: Publish Plugin
+        if: ${{ inputs.publish != false }}
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
         run: |
-          if [ -z "${{ inputs.rchannels }}" ]; then
-            ./gradlew publishPlugin
-          else
-            ./gradlew publishPlugin -Prchannels=${{ inputs.rchannels }}
+          CHANNEL_ARG=""
+          if [[ -n "${{ inputs.rchannels }}" ]]; then
+            CHANNEL_ARG="-Prchannels=${{ inputs.rchannels }}"
+          fi
+
+          RELEASE_TYPE="${{ needs.resolve.outputs.releaseType }}"
+          if [[ "${RELEASE_TYPE}" == "both" || "${RELEASE_TYPE}" == "checkmarx" ]]; then
+            echo "Publishing plugin-checkmarx-ast..."
+            RELEASE_VERSION="${{ needs.resolve.outputs.ast_version }}" \
+              ./gradlew :plugin-checkmarx-ast:publishPlugin ${CHANNEL_ARG}
+          fi
+          if [[ "${RELEASE_TYPE}" == "both" || "${RELEASE_TYPE}" == "devAssist" ]]; then
+            echo "Publishing plugin-checkmarx-devassist..."
+            RELEASE_VERSION="${{ needs.resolve.outputs.devassist_version }}" \
+              ./gradlew :plugin-checkmarx-devassist:publishPlugin ${CHANNEL_ARG}
           fi
 
   notify:
@@ -182,7 +359,10 @@ jobs:
     needs: release
     uses: Checkmarx/plugins-release-workflow/.github/workflows/release-notify.yml@main
     with:
-      product_name: JetBrains Plugin
+      product_name: >-
+        ${{ inputs.releaseType == 'checkmarx' && 'JetBrains Plugin - Checkmarx (AST)' ||
+            inputs.releaseType == 'devAssist' && 'JetBrains Plugin - DevAssist' ||
+            'JetBrains Plugin - Checkmarx (AST) & DevAssist' }}
       release_version: ${{ needs.release.outputs.TAG_NAME }}
       cli_release_version: ${{ needs.release.outputs.CLI_VERSION }}
       release_author: "Sypher Team"

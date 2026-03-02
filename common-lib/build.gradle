@@ -19,3 +19,7 @@ tasks.withType(JavaCompile).configureEach {
 test {
     useJUnitPlatform()
 }
+
+[buildSearchableOptions, patchPluginXml, verifyPlugin, runPluginVerifier, listProductsReleases, prepareSandbox, buildPlugin, jarSearchableOptions].each {
+    tasks.named(it.name) { enabled = false }
+}
