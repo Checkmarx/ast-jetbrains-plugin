@@ -25,7 +25,7 @@ jobs:
         run: echo "created version ${{ steps.tagname.outputs.tag_version }}"
   nightly:
     needs: set_tag
-    uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/release.yml@main
+    uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/release.yml@feature/release-pipeline-v2
     with:
       tag: ${{ needs.set_tag.outputs.tag_version }}
       ast_version: ${{ needs.set_tag.outputs.ast_version }}
