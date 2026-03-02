@@ -30,6 +30,6 @@ jobs:
       tag: ${{ needs.set_tag.outputs.tag_version }}
       ast_version: ${{ needs.set_tag.outputs.ast_version }}
       devassist_version: ${{ needs.set_tag.outputs.devassist_version }}
-      releaseType: "checkmarx"
+      releaseType: "both"
       rchannels: "nightly"
     secrets: inherit
