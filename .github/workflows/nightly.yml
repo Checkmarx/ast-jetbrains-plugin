@@ -11,10 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag_version: ${{ steps.tagname.outputs.tag_version }}
+      ast_version: ${{ steps.tagname.outputs.ast_version }}
+      devassist_version: ${{ steps.tagname.outputs.devassist_version }}
     steps:
       - name: Create version
-        run: echo "tag_version=2.0.$(date +%s)" >> "$GITHUB_OUTPUT"
         id: tagname
+        run: |
+          TS=$(date +%s)
+          echo "tag_version=2.0.${TS}" >> "$GITHUB_OUTPUT"
+          echo "ast_version=2.0.${TS}" >> "$GITHUB_OUTPUT"
+          echo "devassist_version=1.0.${TS}" >> "$GITHUB_OUTPUT"
       - name: Print version
         run: echo "created version ${{ steps.tagname.outputs.tag_version }}"
   nightly:
@@ -22,6 +28,8 @@ jobs:
     uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/release.yml@main
     with:
       tag: ${{ needs.set_tag.outputs.tag_version }}
-      releaseType: "both"
+      ast_version: ${{ needs.set_tag.outputs.ast_version }}
+      devassist_version: ${{ needs.set_tag.outputs.devassist_version }}
+      releaseType: "checkmarx"
       rchannels: "nightly"
     secrets: inherit

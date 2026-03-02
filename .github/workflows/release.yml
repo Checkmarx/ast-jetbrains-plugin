@@ -13,12 +13,12 @@ on:
         type: string
         default: 'both'
       ast_version:
-        description: 'Version for checkmarx-ast-plugin zip (defaults to tag for nightly)'
-        required: false
+        description: 'Version for checkmarx-ast-plugin zip (e.g. 2.0.1234567890)'
+        required: true
         type: string
       devassist_version:
-        description: 'Version for checkmarx-developer-assist-plugin zip (defaults to tag for nightly)'
-        required: false
+        description: 'Version for checkmarx-developer-assist-plugin zip (e.g. 1.0.1234567890)'
+        required: true
         type: string
       javawrapperversion:
         description: 'Java Wrapper Version'
@@ -118,15 +118,6 @@ jobs:
 
           if [[ -z "${RELEASE_TYPE}" ]]; then
             RELEASE_TYPE="both"
-          fi
-
-          # For workflow_call (nightly), default plugin versions to tag if not provided.
-          # For workflow_dispatch (manual), both are required inputs.
-          if [[ -z "${AST_VERSION}" ]]; then
-            AST_VERSION="${TAG}"
-          fi
-          if [[ -z "${DA_VERSION}" ]]; then
-            DA_VERSION="${TAG}"
           fi
 
           # Build GitHub release tag
