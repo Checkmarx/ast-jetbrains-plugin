@@ -43,7 +43,7 @@ subprojects {
         testImplementation "com.squareup.okhttp3:okhttp:${okhttpVersion}"
         testImplementation 'junit:junit:4.11-redhat-1'
         testImplementation 'junit:junit:4.13.1'
-        testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.15.2'
+        testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.22.0'
 
         // Video Recording
         testImplementation('com.automation-remarks:video-recorder-junit5:2.0') {
