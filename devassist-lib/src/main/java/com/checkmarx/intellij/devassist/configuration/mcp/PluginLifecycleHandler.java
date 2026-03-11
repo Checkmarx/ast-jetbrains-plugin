@@ -2,6 +2,8 @@ package com.checkmarx.intellij.devassist.configuration.mcp;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
 import com.intellij.ide.plugins.DynamicPluginListener;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
@@ -46,13 +48,16 @@ public final class PluginLifecycleHandler implements DynamicPluginListener {
             GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
             if (settingsState != null) {
                 settingsState.setAuthenticated(false);
-                LOG.info("Checkmarx authentication session cleared during plugin uninstallation");
+                settingsState.setLastValidationSuccess(true);
+                settingsState.setValidationInProgress(false);
+                settingsState.setValidationMessage(Bundle.message(Resource.LOGOUT_SUCCESS));
+                LOG.debug("Checkmarx authentication session cleared during plugin uninstallation");
             }
 
             GlobalSettingsSensitiveState sensitiveState = GlobalSettingsSensitiveState.getInstance();
             if (sensitiveState != null) {
                 sensitiveState.deleteRefreshToken();
-                LOG.info("Checkmarx OAuth refresh token deleted during plugin uninstallation");
+                LOG.debug("Checkmarx OAuth refresh token deleted during plugin uninstallation");
             }
 
             // Force-save application settings to disk immediately so the authenticated=false
@@ -60,7 +65,7 @@ public final class PluginLifecycleHandler implements DynamicPluginListener {
             // Without this, the in-memory change would be lost and the new plugin would
             // still read authenticated=true from the persisted XML file on next startup.
             ApplicationManager.getApplication().saveSettings();
-            LOG.info("Application settings saved to disk after clearing Checkmarx auth session");
+            LOG.debug("Application settings saved to disk after clearing Checkmarx auth session");
         } catch (Exception ex) {
             LOG.warn("Failed to clear Checkmarx authentication session during plugin uninstallation", ex);
         }
@@ -73,7 +78,7 @@ public final class PluginLifecycleHandler implements DynamicPluginListener {
         try {
             boolean removed = McpSettingsInjector.uninstallFromCopilot();
             if (removed) {
-                LOG.info("Checkmarx MCP configuration removed during plugin uninstallation");
+                LOG.debug("Checkmarx MCP configuration removed during plugin uninstallation");
             } else {
                 LOG.debug("No Checkmarx MCP configuration found during plugin uninstallation");
             }
@@ -82,4 +87,3 @@ public final class PluginLifecycleHandler implements DynamicPluginListener {
         }
     }
 }
-
