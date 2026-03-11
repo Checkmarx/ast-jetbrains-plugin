@@ -4,14 +4,21 @@ import com.checkmarx.intellij.ast.results.CustomResultState;
 import com.checkmarx.intellij.ast.service.StateService;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
+import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.util.messages.MessageBus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Set;
 
 import static com.checkmarx.intellij.common.utils.Constants.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for StateService singleton class.
@@ -120,5 +127,81 @@ class StateServiceTest {
                         ((CustomResultState) f).getLabel().equals(SCA_HIDE_DEV_TEST_DEPENDENCIES));
         assertFalse(hasScaHide, "Should not contain SCA_HIDE_DEV_TEST_DEPENDENCIES in default filters");
     }
-}
 
+    /** Helper: mock the IntelliJ Application + CxWrapperFactory so buildCustomStateFilters() can run. */
+    private void withMockedInfra(MockedStatic<ApplicationManager> mockedApp,
+                                 MockedStatic<CxWrapperFactory> mockedFactory) {
+        Application mockApp = mock(Application.class);
+        MessageBus mockBus = mock(MessageBus.class);
+        when(mockApp.getMessageBus()).thenReturn(mockBus);
+        mockedApp.when(ApplicationManager::getApplication).thenReturn(mockApp);
+        mockedFactory.when(CxWrapperFactory::build).thenThrow(new RuntimeException("no connection"));
+    }
+
+    @Test
+    void getStatesNameListForSastTriage_ExcludesIgnoreAndNotIgnoreAndScaHide() {
+        StateService service = StateService.getInstance();
+        try (MockedStatic<ApplicationManager> mockedApp = mockStatic(ApplicationManager.class);
+             MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+
+            withMockedInfra(mockedApp, mockedFactory);
+            service.refreshCustomStateFilters();
+
+            List<String> triageList = service.getStatesNameListForSastTriage();
+
+            assertNotNull(triageList);
+            assertFalse(triageList.contains(IGNORE_LABEL), "Should exclude IGNORE_LABEL");
+            assertFalse(triageList.contains(NOT_IGNORE_LABEL), "Should exclude NOT_IGNORE_LABEL");
+            assertFalse(triageList.contains(SCA_HIDE_DEV_TEST_DEPENDENCIES), "Should exclude SCA_HIDE_DEV_TEST_DEPENDENCIES");
+        }
+    }
+
+    @Test
+    void getStatesNameListForSastTriage_IncludesConfirmedAndToVerify() {
+        StateService service = StateService.getInstance();
+        try (MockedStatic<ApplicationManager> mockedApp = mockStatic(ApplicationManager.class);
+             MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+
+            withMockedInfra(mockedApp, mockedFactory);
+            service.refreshCustomStateFilters();
+
+            List<String> triageList = service.getStatesNameListForSastTriage();
+
+            assertTrue(triageList.contains(CONFIRMED), "Should contain CONFIRMED");
+            assertTrue(triageList.contains(TO_VERIFY), "Should contain TO_VERIFY");
+        }
+    }
+
+    @Test
+    void getCustomStateFilters_CalledTwice_ReturnsSameCachedList() {
+        StateService service = StateService.getInstance();
+        try (MockedStatic<ApplicationManager> mockedApp = mockStatic(ApplicationManager.class);
+             MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+
+            withMockedInfra(mockedApp, mockedFactory);
+            service.refreshCustomStateFilters();
+
+            var filters1 = service.getCustomStateFilters();
+            var filters2 = service.getCustomStateFilters();
+            assertSame(filters1, filters2, "Second call should return same cached list");
+        }
+    }
+
+    @Test
+    void refreshCustomStateFilters_RebuildsList() {
+        StateService service = StateService.getInstance();
+        try (MockedStatic<ApplicationManager> mockedApp = mockStatic(ApplicationManager.class);
+             MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+
+            withMockedInfra(mockedApp, mockedFactory);
+            service.refreshCustomStateFilters();
+            var filters1 = service.getCustomStateFilters();
+
+            service.refreshCustomStateFilters();
+            var filters2 = service.getCustomStateFilters();
+
+            assertNotNull(filters2);
+            assertEquals(filters1.size(), filters2.size(), "Refreshed list should have same number of default filters");
+        }
+    }
+}

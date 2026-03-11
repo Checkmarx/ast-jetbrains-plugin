@@ -43,50 +43,61 @@ class GroupByBaseActionTest {
 
     @Test
     void isSelected_ReturnsInitialState() {
-        // Act & Assert
         assertFalse(testAction.isSelected(mockEvent));
     }
 
     @Test
     void setSelected_WhenStateIsTrue_UpdatesStateAndNotifiesPanel() {
-        // Act
         testAction.setSelected(mockEvent, true);
 
-        // Assert
         assertTrue(testAction.isSelected(mockEvent));
         verify(mockToolWindowPanel).changeGroupBy(GroupBy.FILE, true);
     }
 
     @Test
     void setSelected_WhenStateIsFalse_UpdatesStateAndNotifiesPanel() {
-        // Arrange
-        testAction.setSelected(mockEvent, true); // First set it to true
+        testAction.setSelected(mockEvent, true);
 
-        // Act
         testAction.setSelected(mockEvent, false);
 
-        // Assert
         assertFalse(testAction.isSelected(mockEvent));
         verify(mockToolWindowPanel).changeGroupBy(GroupBy.FILE, false);
     }
 
     @Test
     void setSelected_WhenPanelIsNull_OnlyUpdatesState() {
-        // Arrange
         TestGroupByAction actionWithNullPanel = new TestGroupByAction(null);
 
-        // Act
         actionWithNullPanel.setSelected(mockEvent, true);
 
-        // Assert
         assertTrue(actionWithNullPanel.isSelected(mockEvent));
         verifyNoInteractions(mockToolWindowPanel);
     }
 
     @Test
     void getActionUpdateThread_ReturnsEDT() {
-        // Act & Assert
         assertEquals(ActionUpdateThread.EDT, testAction.getActionUpdateThread());
+    }
+
+    @Test
+    void enumBackedActions_DefaultStateIsUnselected() {
+        for (GroupBy groupBy : GroupBy.values()) {
+            TestGroupByActionForEnum action = new TestGroupByActionForEnum(groupBy);
+            assertFalse(action.isSelected(mockEvent),
+                    "TestGroupByActionForEnum should start unselected for " + groupBy);
+        }
+    }
+
+    @Test
+    void enumBackedActions_SetSelectedTogglesState() {
+        for (GroupBy groupBy : GroupBy.values()) {
+            TestGroupByActionForEnum action = new TestGroupByActionForEnum(groupBy);
+            action.setSelected(mockEvent, false);
+            action.setSelected(mockEvent, true);
+            assertTrue(action.isSelected(mockEvent), "Expected selected after setSelected(true) for " + groupBy);
+            action.setSelected(mockEvent, false);
+            assertFalse(action.isSelected(mockEvent), "Expected unselected after setSelected(false) for " + groupBy);
+        }
     }
 
     private Map<GroupByBaseAction, GroupBy> concreteActionMap() {
@@ -131,6 +142,7 @@ class GroupByBaseActionTest {
         }
     }
 
+    /** Test subclass using GroupBy.FILE — for basic state tests with panel. */
     private static class TestGroupByAction extends GroupByBaseAction {
         private final CxToolWindowPanel panel;
 
@@ -147,6 +159,26 @@ class GroupByBaseActionTest {
         @Override
         public CxToolWindowPanel getCxToolWindowPanel(AnActionEvent e) {
             return panel;
+        }
+    }
+
+    /** Test subclass with configurable GroupBy — for @EnumSource parameterized tests. */
+    private static class TestGroupByActionForEnum extends GroupByBaseAction {
+        private final GroupBy groupBy;
+
+        TestGroupByActionForEnum(GroupBy groupBy) {
+            super(() -> "Test " + groupBy);
+            this.groupBy = groupBy;
+        }
+
+        @Override
+        protected GroupBy getGroupBy() {
+            return groupBy;
+        }
+
+        @Override
+        public CxToolWindowPanel getCxToolWindowPanel(AnActionEvent e) {
+            return null;
         }
     }
 }

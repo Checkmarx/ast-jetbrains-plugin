@@ -1,20 +1,24 @@
 package com.checkmarx.intellij.ast.test.unit.project;
 
+import com.checkmarx.ast.results.Results;
+import com.checkmarx.ast.results.result.Data;
 import com.checkmarx.ast.results.result.Node;
 import com.checkmarx.ast.results.result.Result;
 import com.checkmarx.intellij.ast.project.ProjectResultsService;
+import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectResultsServiceTest {
@@ -65,4 +69,40 @@ class ProjectResultsServiceTest {
         // Assert
         assertNull(result);
     }
-} 
+
+    @Test
+    void indexResults_WithInvalidProject_DoesNotThrow() {
+        Project differentProject = mock(Project.class);
+        Results results = mock(Results.class);
+        lenient().when(results.getTotalCount()).thenReturn(0);
+        lenient().when(results.getResults()).thenReturn(Collections.emptyList());
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(false);
+            assertDoesNotThrow(() -> projectResultsService.indexResults(differentProject, results));
+        }
+    }
+
+    @Test
+    void indexResults_WithEmptyResults_DoesNotThrow() {
+        Results results = mock(Results.class);
+        lenient().when(results.getResults()).thenReturn(Collections.emptyList());
+        lenient().when(results.getTotalCount()).thenReturn(0);
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+            assertDoesNotThrow(() -> projectResultsService.indexResults(mockProject, results));
+        }
+    }
+
+    @Test
+    void getResultsForFileAndLine_WithNullBasePath_ReturnsEmptyList() {
+        when(mockProject.getBasePath()).thenReturn(null);
+
+        List<Node> results = projectResultsService.getResultsForFileAndLine(
+                mockProject, "/some/file.java", 1);
+
+        assertTrue(results.isEmpty());
+    }
+}
+
