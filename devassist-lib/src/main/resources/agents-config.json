@@ -1,0 +1,245 @@
+{
+  "schema_version": "1.0",
+  "agents": [
+    {
+      "id": "github-copilot",
+      "display_name": "GitHub Copilot",
+      "enabled": true,
+      "priority": 1,
+
+      "detection": {
+        "tool_window_ids": [
+          "GitHub Copilot Chat",
+          "Copilot Chat",
+          "GitHub Copilot"
+        ],
+        "action_ids": [
+          "copilot.chat.show",
+          "GitHub.Copilot.Chat.Show",
+          "copilot.openChat",
+          "copilot.chat.openChat"
+        ]
+      },
+
+      "chat": {
+        "open_via_tool_window": true,
+        "open_via_action": true,
+        "preferred_tool_window_ids": [
+          "GitHub Copilot Chat",
+          "Copilot Chat"
+        ],
+        "preferred_action_ids": [
+          "copilot.chat.show",
+          "GitHub.Copilot.Chat.Show"
+        ]
+      },
+
+      "agent_mode": {
+        "required": true,
+        "strategy": "combo_box_popup",
+        "combo_box_class_patterns": ["ChatMode", "ModeCombo"],
+        "target_mode_name": "agent",
+        "target_mode_id_pattern": "id=agent",
+        "reflection_method_names": [
+          "getName", "getDisplayName", "getText",
+          "getLabel", "getTitle", "name", "displayName"
+        ],
+        "fallback_combo_index": 2,
+        "fallback_strategy": "button_click",
+        "button_text_patterns": ["Agent", "agent"]
+      },
+
+      "input": {
+        "component_type": "JTextComponent",
+        "search_strategy": "recursive_swing_traversal"
+      },
+
+      "send": {
+        "strategies": ["button_click", "enter_key"],
+        "button_text_patterns": ["send", "submit", "go", "run"],
+        "button_tooltip_patterns": ["send", "submit", "execute", "run"],
+        "button_class_patterns": ["send", "submit", "action", "run"]
+      },
+
+      "timing": {
+        "open_delay_ms": 1200,
+        "mode_switch_delay_ms": 800,
+        "popup_open_delay_ms": 100,
+        "popup_select_delay_ms": 100,
+        "popup_close_delay_ms": 200,
+        "system_property_prefix": "cx.copilot.delay"
+      },
+
+      "mcp": {
+        "config_path": {
+          "windows": "${LOCALAPPDATA}/github-copilot/intellij/mcp.json",
+          "macos": "${XDG_CONFIG_HOME:-~/.config}/github-copilot/intellij/mcp.json",
+          "linux": "${XDG_CONFIG_HOME:-~/.config}/github-copilot/intellij/mcp.json"
+        },
+        "root_property": "servers",
+        "server_key": "Checkmarx",
+        "entry_template": {
+          "url": "${mcp_url}",
+          "requestInit": {
+            "headers": {
+              "cx-origin": "Jetbrains",
+              "Authorization": "${token}"
+            }
+          }
+        }
+      }
+    },
+
+    {
+      "id": "claude-code",
+      "display_name": "Claude Code",
+      "enabled": true,
+      "priority": 2,
+
+      "detection": {
+        "tool_window_ids": [
+          "Claude",
+          "Claude Code",
+          "Claude Chat"
+        ],
+        "action_ids": [
+          "claude.chat.show",
+          "claude.openChat",
+          "ClaudeCode.OpenChat"
+        ]
+      },
+
+      "chat": {
+        "open_via_tool_window": true,
+        "open_via_action": true,
+        "preferred_tool_window_ids": [
+          "Claude",
+          "Claude Code"
+        ],
+        "preferred_action_ids": [
+          "claude.chat.show",
+          "ClaudeCode.OpenChat"
+        ]
+      },
+
+      "agent_mode": {
+        "required": false,
+        "strategy": "none",
+        "combo_box_class_patterns": [],
+        "target_mode_name": "",
+        "target_mode_id_pattern": "",
+        "reflection_method_names": [],
+        "fallback_combo_index": -1,
+        "fallback_strategy": "none",
+        "button_text_patterns": []
+      },
+
+      "input": {
+        "component_type": "JTextComponent",
+        "search_strategy": "recursive_swing_traversal"
+      },
+
+      "send": {
+        "strategies": ["enter_key", "button_click"],
+        "button_text_patterns": ["send", "submit", "run"],
+        "button_tooltip_patterns": ["send", "submit"],
+        "button_class_patterns": ["send", "submit"]
+      },
+
+      "timing": {
+        "open_delay_ms": 1500,
+        "mode_switch_delay_ms": 0,
+        "popup_open_delay_ms": 0,
+        "popup_select_delay_ms": 0,
+        "popup_close_delay_ms": 0,
+        "system_property_prefix": "cx.claude.delay"
+      },
+
+      "mcp": {
+        "config_path": {
+          "windows": "${USERPROFILE}/.claude/settings.json",
+          "macos": "~/.claude/settings.json",
+          "linux": "~/.claude/settings.json"
+        },
+        "root_property": "mcpServers",
+        "server_key": "Checkmarx Developer Assist",
+        "entry_template": {
+          "type": "sse",
+          "url": "${mcp_url}",
+          "headers": {
+            "cx-origin": "Jetbrains",
+            "Authorization": "Bearer ${token}"
+          }
+        }
+      }
+    },
+
+    {
+      "id": "future-agent-x",
+      "display_name": "Future Agent X",
+      "enabled": false,
+      "priority": 3,
+
+      "detection": {
+        "tool_window_ids": ["FutureAI Chat"],
+        "action_ids": ["futureai.chat.open"]
+      },
+
+      "chat": {
+        "open_via_tool_window": true,
+        "open_via_action": true,
+        "preferred_tool_window_ids": ["FutureAI Chat"],
+        "preferred_action_ids": ["futureai.chat.open"]
+      },
+
+      "agent_mode": {
+        "required": true,
+        "strategy": "button_click",
+        "combo_box_class_patterns": [],
+        "target_mode_name": "",
+        "target_mode_id_pattern": "",
+        "reflection_method_names": [],
+        "fallback_combo_index": -1,
+        "fallback_strategy": "none",
+        "button_text_patterns": ["Agent Mode", "Agentic"]
+      },
+
+      "input": {
+        "component_type": "JTextComponent",
+        "search_strategy": "recursive_swing_traversal"
+      },
+
+      "send": {
+        "strategies": ["enter_key"],
+        "button_text_patterns": [],
+        "button_tooltip_patterns": [],
+        "button_class_patterns": []
+      },
+
+      "timing": {
+        "open_delay_ms": 1000,
+        "mode_switch_delay_ms": 500,
+        "popup_open_delay_ms": 100,
+        "popup_select_delay_ms": 100,
+        "popup_close_delay_ms": 200,
+        "system_property_prefix": "cx.futureai.delay"
+      },
+
+      "mcp": {
+        "config_path": {
+          "windows": "${USERPROFILE}/.futureai/mcp-config.json",
+          "macos": "~/.futureai/mcp-config.json",
+          "linux": "~/.futureai/mcp-config.json"
+        },
+        "root_property": "mcpServers",
+        "server_key": "Checkmarx",
+        "entry_template": {
+          "url": "${mcp_url}",
+          "headers": {
+            "Authorization": "Bearer ${token}"
+          }
+        }
+      }
+    }
+  ]
+}

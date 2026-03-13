@@ -84,6 +84,7 @@
 
         <!-- Notifications -->
         <notificationGroup id="Checkmarx.Notifications" displayType="BALLOON"/>
+        <applicationService serviceImplementation="com.checkmarx.intellij.devassist.remediation.agent.AgentConfigLoader"/>
     </extensions>
 
     <!-- Application Listeners (from devassist-lib) -->

@@ -5,6 +5,7 @@ import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.remediation.agent.GenericAgentConnector;
 import com.checkmarx.intellij.devassist.remediation.prompts.DevAssistFixPrompts;
 import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
@@ -117,7 +118,7 @@ public final class RemediationManager {
      * @param project the project context
      * @return true if Copilot was successfully opened and prompt initiated, false otherwise
      */
-    private boolean fixWithAI(@NotNull String prompt, @NotNull Project project) {
+ /*   private boolean fixWithAI(@NotNull String prompt, @NotNull Project project) {
         try {
             CopilotIntegration.IntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed(prompt, project, null);
@@ -129,6 +130,33 @@ public final class RemediationManager {
                 LOGGER.debug("Fix with AI: Copilot not available - " + result.getMessage());
                 return false;
             }
+        } catch (Exception exception) {
+            LOGGER.debug("Failed to fix with AI: ", exception);
+            return false;
+        }
+    }
+*/
+
+    /**
+     * Sends a fix prompt to the highest-priority available AI agent for automated remediation.
+     * <p>
+     *   <li>Paste and send the prompt automatically</li>
+     * </ol>
+     * Uses the {@link GenericAgentConnector} which iterates all agents defined in
+     * {@code agents-config.json} in priority order and delivers the prompt to the first
+     * available agent. Supported agents include GitHub Copilot, Claude Code, and any
+     * future agents added via configuration (zero code changes required).
+     * <p>
+     * This method does NOT show any notifications - the caller is responsible for
+     * handling success/failure notifications.
+     *
+     * @param prompt  the fix prompt to send to the AI agent
+     * @param project the project context
+     * @return true if an AI agent was available and the prompt was delivered, false otherwise
+     */
+    private boolean fixWithAI(@NotNull String prompt, @NotNull Project project) {
+        try {
+            return GenericAgentConnector.sendPrompt(prompt, project);
         } catch (Exception exception) {
             LOGGER.debug("Failed to fix with AI: ", exception);
             return false;

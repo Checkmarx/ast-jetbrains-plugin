@@ -3,6 +3,7 @@ package com.checkmarx.intellij.devassist.configuration.mcp;
 import com.checkmarx.intellij.common.commands.TenantSetting;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.devassist.remediation.agent.GenericMcpInstaller;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
@@ -71,10 +72,13 @@ public final class McpInstallService implements StartupActivity.DumbAware {
     }
 
     /**
-     * Installs MCP configuration asynchronously, without user notifications.
+     * Installs MCP configuration asynchronously for ALL registered AI agents, without user notifications.
+     * <p>
+     * Uses {@link GenericMcpInstaller} to iterate all agent definitions from {@code agents-config.json}
+     * and install the Checkmarx MCP server entry in each agent's configuration file.
      *
      * @param credential token / API key for Authorization header
-     * @return future resolving to Boolean (true = changed, false = unchanged, null = error)
+     * @return future resolving to Boolean (true = any config changed, false = unchanged, null = error)
      */
     public static CompletableFuture<Boolean> installSilentlyAsync(String credential) {
         if (credential == null || credential.isBlank()) {
@@ -84,7 +88,7 @@ public final class McpInstallService implements StartupActivity.DumbAware {
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return McpSettingsInjector.installForCopilot(credential); // true if modified
+                return GenericMcpInstaller.installForAllAgents(credential);
             } catch (Exception ex) {
                 LOG.warn("MCP install failed", ex);
                 return null; // null signals failure

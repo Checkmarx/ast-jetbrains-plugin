@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.configuration.mcp;
 
+import com.checkmarx.intellij.devassist.remediation.agent.GenericMcpInstaller;
 import com.intellij.ide.plugins.DynamicPluginListener;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
@@ -7,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * Handles MCP cleanup when the Checkmarx plugin is uninstalled.
- * Calls the existing McpSettingsInjector.uninstallFromCopilot() method.
+ * Uses {@link GenericMcpInstaller} to remove Checkmarx MCP entries from ALL registered AI agents.
  */
 public final class McpUninstallHandler implements DynamicPluginListener {
 
@@ -21,12 +22,11 @@ public final class McpUninstallHandler implements DynamicPluginListener {
         if (!isUpdate && (CHECKMARX_PLUGIN_ID.equals(pluginDescriptor.getPluginId().getIdString())
                 || CX_DEVASSIST_PLUGIN_ID.equals(pluginDescriptor.getPluginId().getIdString()))) {
             try {
-                // Call the existing uninstall method directly
-                boolean removed = McpSettingsInjector.uninstallFromCopilot();
+                boolean removed = GenericMcpInstaller.uninstallFromAllAgents();
                 if (removed) {
-                    LOG.info("Checkmarx MCP configuration removed during plugin uninstallation");
+                    LOG.info("Checkmarx MCP configuration removed from all agents during plugin uninstallation");
                 } else {
-                    LOG.debug("No Checkmarx MCP configuration found during plugin uninstallation");
+                    LOG.debug("No Checkmarx MCP configuration found in any agent during plugin uninstallation");
                 }
             } catch (Exception ex) {
                 LOG.warn("Failed to remove Checkmarx MCP configuration during plugin uninstallation", ex);

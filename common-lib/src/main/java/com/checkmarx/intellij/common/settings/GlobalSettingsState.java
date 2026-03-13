@@ -104,6 +104,14 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @Attribute("userPrefIacRealtime")
     private boolean userPrefIacRealtime = false;
 
+    /**
+     * The ID of the preferred/default AI agent for remediation.
+     * Must match an {@code id} value in {@code agents-config.json}.
+     * Default: {@code "github-copilot"}.
+     */
+    @Attribute("defaultAiAgent")
+    private String defaultAiAgent = "github-copilot";
+
     @Override
     public @Nullable GlobalSettingsState getState() {
         return this;
