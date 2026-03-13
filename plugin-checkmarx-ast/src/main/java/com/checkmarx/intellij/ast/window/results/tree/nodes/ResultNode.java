@@ -8,6 +8,7 @@ import com.checkmarx.ast.results.result.*;
 import com.checkmarx.ast.scan.Scan;
 import com.checkmarx.ast.wrapper.CxConstants;
 import com.checkmarx.ast.wrapper.CxException;
+import com.checkmarx.intellij.ast.commands.Triage;
 import com.checkmarx.intellij.ast.service.StateService;
 import com.checkmarx.intellij.common.components.CxLinkLabel;
 import com.checkmarx.intellij.common.components.PaneUtils;
@@ -633,10 +634,9 @@ public class ResultNode extends DefaultMutableTreeNode {
 
             CompletableFuture.runAsync(() -> {
                 try {
-                    CxWrapperFactory.build().triageUpdate(
+                    Triage.triageUpdateForResult(
                             UUID.fromString(getProjectId()),
-                            result.getSimilarityId(),
-                            result.getType(),
+                            result,
                             newState,
                             commentText.getText(),
                             newSeverity);
@@ -726,10 +726,9 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         CompletableFuture.supplyAsync((Supplier<List<Predicate>>) () -> {
             try {
-                return CxWrapperFactory.build().triageShow(
+                return Triage.triageShowForResult(
                         UUID.fromString(getProjectId()),
-                        result.getSimilarityId(),
-                        result.getType());
+                        result);
             } catch (Throwable error) {
                 Utils.getLogger(ResultNode.class).error(error.getMessage(), error);
             }
@@ -1237,4 +1236,5 @@ public class ResultNode extends DefaultMutableTreeNode {
         codebashing.setHorizontalTextPosition(SwingConstants.LEFT);
         codebashing.setVerticalTextPosition(SwingConstants.CENTER);
     }
+
 }

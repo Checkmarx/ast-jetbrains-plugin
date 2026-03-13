@@ -20,7 +20,10 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static com.checkmarx.intellij.ast.commands.Triage.triageShow;
+import static com.checkmarx.intellij.ast.commands.Triage.triageScaShow;
+import static com.checkmarx.intellij.ast.commands.Triage.triageScaUpdate;
 import static com.checkmarx.intellij.ast.commands.Triage.triageUpdate;
+import static com.checkmarx.intellij.ast.commands.Triage.buildScaVulnerabilityIdentifiers;
 
 public class TestTriage extends BaseTest {
 
@@ -46,6 +49,52 @@ public class TestTriage extends BaseTest {
         Assertions.assertDoesNotThrow(() -> triageUpdate(
                 UUID.fromString(project.getId()), result.getSimilarityId(), result.getType(), result.getState().equalsIgnoreCase("confirmed") ? "to_verify" : "confirmed", "",
                 result.getSeverity().equalsIgnoreCase("high") ? "low" : "high"));
+    }
+
+    @Test
+    public void testShowPredicatesSca() {
+        Project project = getEnvProject();
+
+        CompletableFuture<ResultGetState> getFuture = Results.getResults(Environment.SCAN_ID);
+        ResultGetState results = Assertions.assertDoesNotThrow((ThrowingSupplier<ResultGetState>) getFuture::get);
+
+        Result scaResult = results.getResultOutput().getResults().stream()
+                .filter(res -> Constants.SCAN_TYPE_SCA.equalsIgnoreCase(res.getType()))
+                .filter(res -> buildScaVulnerabilityIdentifiers(res) != null)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No SCA result found with valid vulnerability identifiers"));
+
+        String vulnerabilities = buildScaVulnerabilityIdentifiers(scaResult);
+        Assertions.assertNotNull(vulnerabilities);
+        Assertions.assertDoesNotThrow(() -> triageScaShow(
+                UUID.fromString(project.getId()),
+                vulnerabilities,
+                scaResult.getType()));
+    }
+
+    @Test
+    public void testUpdatePredicatesSca() {
+        Project project = getEnvProject();
+
+        CompletableFuture<ResultGetState> getFuture = Results.getResults(Environment.SCAN_ID);
+        ResultGetState results = Assertions.assertDoesNotThrow((ThrowingSupplier<ResultGetState>) getFuture::get);
+
+        Result scaResult = results.getResultOutput().getResults().stream()
+                .filter(res -> Constants.SCAN_TYPE_SCA.equalsIgnoreCase(res.getType()))
+                .filter(res -> buildScaVulnerabilityIdentifiers(res) != null)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No SCA result found with valid vulnerability identifiers"));
+
+        String vulnerabilities = buildScaVulnerabilityIdentifiers(scaResult);
+        Assertions.assertNotNull(vulnerabilities);
+        String newState = "confirmed".equalsIgnoreCase(scaResult.getState()) ? "to_verify" : "confirmed";
+
+        Assertions.assertDoesNotThrow(() -> triageScaUpdate(
+                UUID.fromString(project.getId()),
+                newState,
+                "integration test SCA triage update",
+                vulnerabilities,
+                scaResult.getType()));
     }
 
     @Test

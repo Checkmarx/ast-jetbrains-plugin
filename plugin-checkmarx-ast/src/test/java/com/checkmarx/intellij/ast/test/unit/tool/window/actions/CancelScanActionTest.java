@@ -111,4 +111,37 @@ class CancelScanActionTest {
         // Assert
         assertEquals(ActionUpdateThread.BGT, result);
     }
-} 
+
+    @Test
+    void update_WhenProjectIsNull_SetsEnabledTrueViaExceptionPath() {
+        // When getProject() returns null, Objects.requireNonNull throws → exception path sets enabled=true
+        when(mockEvent.getProject()).thenReturn(null);
+        when(mockEvent.getPresentation()).thenReturn(mockPresentation);
+
+        try (MockedStatic<StartScanAction> startScanActionMockedStatic = mockStatic(StartScanAction.class)) {
+            startScanActionMockedStatic.when(StartScanAction::getUserHasPermissionsToScan).thenReturn(true);
+
+            cancelScanAction.update(mockEvent);
+
+            verify(mockPresentation).setEnabled(true);
+        }
+    }
+
+    @Test
+    void update_WhenScanIdNotBlank_EnablesAction() {
+        when(mockEvent.getProject()).thenReturn(mockProject);
+        when(mockEvent.getPresentation()).thenReturn(mockPresentation);
+
+        try (MockedStatic<StartScanAction> startScanActionMockedStatic = mockStatic(StartScanAction.class);
+             MockedStatic<PropertiesComponent> propertiesComponentMockedStatic = mockStatic(PropertiesComponent.class)) {
+
+            startScanActionMockedStatic.when(StartScanAction::getUserHasPermissionsToScan).thenReturn(true);
+            propertiesComponentMockedStatic.when(() -> PropertiesComponent.getInstance(mockProject)).thenReturn(mockPropertiesComponent);
+            when(mockPropertiesComponent.getValue(com.checkmarx.intellij.common.utils.Constants.RUNNING_SCAN_ID_PROPERTY)).thenReturn("non-empty-scan-id");
+
+            cancelScanAction.update(mockEvent);
+
+            verify(mockPresentation).setEnabled(true);
+        }
+    }
+}
