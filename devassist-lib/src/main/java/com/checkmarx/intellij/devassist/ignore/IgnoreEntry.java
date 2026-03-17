@@ -40,14 +40,19 @@ public final class IgnoreEntry {
         public String path;
         public boolean active;
         public Integer line;
+        public String problematicLine;
 
         public FileReference() {
         }
 
-        public FileReference(String relativePath, boolean b, int line) {
+        public FileReference(String relativePath, boolean b, int line, String problematicLine) {
             this.path = relativePath;
             this.active = b;
             this.line = line;
+            if (!problematicLine.isEmpty()) {
+                this.problematicLine = problematicLine;
+            }
+
         }
     }
 }
