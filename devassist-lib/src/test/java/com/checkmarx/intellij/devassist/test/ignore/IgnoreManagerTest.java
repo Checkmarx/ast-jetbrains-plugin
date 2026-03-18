@@ -332,8 +332,8 @@ class IgnoreManagerTest {
             entry.setPackageVersion("1.0.0");
 
             List<IgnoreEntry.FileReference> files = new ArrayList<>();
-            files.add(new IgnoreEntry.FileReference("file1.js", true, 10));
-            files.add(new IgnoreEntry.FileReference("file2.js", true, 20));
+            files.add(new IgnoreEntry.FileReference("file1.js", true, 10, ""));
+            files.add(new IgnoreEntry.FileReference("file2.js", true, 20, ""));
             entry.setFiles(files);
 
             when(ignoreFileManager.reviveEntry(entry)).thenReturn(true);
@@ -357,7 +357,7 @@ class IgnoreManagerTest {
             IgnoreEntry entry = new IgnoreEntry();
             entry.setPackageName("non-existent");
             entry.setType(ScanEngine.OSS);
-            entry.setFiles(List.of(new IgnoreEntry.FileReference("file.js", true, 1)));
+            entry.setFiles(List.of(new IgnoreEntry.FileReference("file.js", true, 1, "")));
 
             when(ignoreFileManager.reviveEntry(entry)).thenReturn(false);
             when(ignoreFileManager.getIgnoreData()).thenReturn(new HashMap<>());
@@ -382,13 +382,13 @@ class IgnoreManagerTest {
             entry1.setPackageName("package1");
             entry1.setType(ScanEngine.OSS);
             entry1.setTitle("Package 1");
-            entry1.setFiles(List.of(new IgnoreEntry.FileReference("file1.js", true, 1)));
+            entry1.setFiles(List.of(new IgnoreEntry.FileReference("file1.js", true, 1, "")));
 
             IgnoreEntry entry2 = new IgnoreEntry();
             entry2.setPackageName("package2");
             entry2.setType(ScanEngine.CONTAINERS);
             entry2.setTitle("Package 2");
-            entry2.setFiles(List.of(new IgnoreEntry.FileReference("file2.js", true, 2)));
+            entry2.setFiles(List.of(new IgnoreEntry.FileReference("file2.js", true, 2, "")));
 
             List<IgnoreEntry> entries = Arrays.asList(entry1, entry2);
 
@@ -413,13 +413,13 @@ class IgnoreManagerTest {
             entry1.setPackageName("package1");
             entry1.setType(ScanEngine.OSS);
             entry1.setTitle("Package 1");
-            entry1.setFiles(List.of(new IgnoreEntry.FileReference("file1.js", true, 1)));
+            entry1.setFiles(List.of(new IgnoreEntry.FileReference("file1.js", true, 1, "")));
 
             IgnoreEntry entry2 = new IgnoreEntry();
             entry2.setPackageName("package2");
             entry2.setType(ScanEngine.CONTAINERS);
             entry2.setTitle("Package 2");
-            entry2.setFiles(List.of(new IgnoreEntry.FileReference("file2.js", true, 2)));
+            entry2.setFiles(List.of(new IgnoreEntry.FileReference("file2.js", true, 2, "")));
 
             List<IgnoreEntry> entries = Arrays.asList(entry1, entry2);
 
@@ -467,7 +467,7 @@ class IgnoreManagerTest {
             entry.setPackageName("single-file-package");
             entry.setType(ScanEngine.ASCA);
             entry.setRuleId(123);
-            entry.setFiles(List.of(new IgnoreEntry.FileReference("app.java", true, 42)));
+            entry.setFiles(List.of(new IgnoreEntry.FileReference("app.java", true, 42, "")));
 
             when(ignoreFileManager.reviveEntry(entry)).thenReturn(true);
             when(ignoreFileManager.getIgnoreData()).thenReturn(new HashMap<>());
@@ -493,9 +493,9 @@ class IgnoreManagerTest {
             entry.setRuleId(456);
 
             List<IgnoreEntry.FileReference> files = new ArrayList<>();
-            files.add(new IgnoreEntry.FileReference("file1.java", true, 10));
-            files.add(new IgnoreEntry.FileReference("file2.java", true, 20));
-            files.add(new IgnoreEntry.FileReference("file3.java", true, 30));
+            files.add(new IgnoreEntry.FileReference("file1.java", true, 10, ""));
+            files.add(new IgnoreEntry.FileReference("file2.java", true, 20, ""));
+            files.add(new IgnoreEntry.FileReference("file3.java", true, 30, ""));
             entry.setFiles(files);
 
             when(ignoreFileManager.reviveEntry(entry)).thenReturn(true);
@@ -520,19 +520,19 @@ class IgnoreManagerTest {
             ossEntry.setPackageName("lodash");
             ossEntry.setType(ScanEngine.OSS);
             ossEntry.setTitle("OSS Package");
-            ossEntry.setFiles(List.of(new IgnoreEntry.FileReference("package.json", true, 1)));
+            ossEntry.setFiles(List.of(new IgnoreEntry.FileReference("package.json", true, 1, "")));
 
             IgnoreEntry ascaEntry = new IgnoreEntry();
             ascaEntry.setPackageName("SQL Injection");
             ascaEntry.setType(ScanEngine.ASCA);
             ascaEntry.setTitle("ASCA Issue");
-            ascaEntry.setFiles(List.of(new IgnoreEntry.FileReference("app.java", true, 42)));
+            ascaEntry.setFiles(List.of(new IgnoreEntry.FileReference("app.java", true, 42, "")));
 
             IgnoreEntry secretEntry = new IgnoreEntry();
             secretEntry.setPackageName("AWS_KEY");
             secretEntry.setType(ScanEngine.SECRETS);
             secretEntry.setTitle("Secret");
-            secretEntry.setFiles(List.of(new IgnoreEntry.FileReference("config.js", true, 5)));
+            secretEntry.setFiles(List.of(new IgnoreEntry.FileReference("config.js", true, 5, "")));
 
             List<IgnoreEntry> entries = Arrays.asList(ossEntry, ascaEntry, secretEntry);
 
@@ -559,9 +559,9 @@ class IgnoreManagerTest {
             entry.setRuleId(789);
 
             List<IgnoreEntry.FileReference> files = new ArrayList<>();
-            files.add(new IgnoreEntry.FileReference("active1.java", true, 10));
-            files.add(new IgnoreEntry.FileReference("inactive1.java", false, 20));
-            files.add(new IgnoreEntry.FileReference("active2.java", true, 30));
+            files.add(new IgnoreEntry.FileReference("active1.java", true, 10, ""));
+            files.add(new IgnoreEntry.FileReference("inactive1.java", false, 20, ""));
+            files.add(new IgnoreEntry.FileReference("active2.java", true, 30, ""));
             entry.setFiles(files);
 
             when(ignoreFileManager.reviveEntry(entry)).thenReturn(true);
@@ -589,8 +589,8 @@ class IgnoreManagerTest {
             entry.setTitle("Already Inactive");
 
             List<IgnoreEntry.FileReference> files = new ArrayList<>();
-            files.add(new IgnoreEntry.FileReference("file1.js", false, 1));
-            files.add(new IgnoreEntry.FileReference("file2.js", false, 2));
+            files.add(new IgnoreEntry.FileReference("file1.js", false, 1, ""));
+            files.add(new IgnoreEntry.FileReference("file2.js", false, 2, ""));
             entry.setFiles(files);
 
             when(ignoreFileManager.reviveEntry(entry)).thenReturn(true);
@@ -616,7 +616,7 @@ class IgnoreManagerTest {
             entry.setImageTag("1.19");
             entry.setType(ScanEngine.CONTAINERS);
             entry.setPackageName("nginx:1.19");
-            entry.setFiles(List.of(new IgnoreEntry.FileReference("Dockerfile", true, 1)));
+            entry.setFiles(List.of(new IgnoreEntry.FileReference("Dockerfile", true, 1, "")));
 
             when(ignoreFileManager.reviveEntry(entry)).thenReturn(true);
             when(ignoreFileManager.getIgnoreData()).thenReturn(new HashMap<>());
@@ -640,7 +640,7 @@ class IgnoreManagerTest {
             entry.setPackageName("S3 Bucket Public");
             entry.setSimilarityId("sim-123");
             entry.setType(ScanEngine.IAC);
-            entry.setFiles(List.of(new IgnoreEntry.FileReference("main.tf", true, 15)));
+            entry.setFiles(List.of(new IgnoreEntry.FileReference("main.tf", true, 15, "")));
 
             when(ignoreFileManager.reviveEntry(entry)).thenReturn(true);
             when(ignoreFileManager.getIgnoreData()).thenReturn(new HashMap<>());
@@ -666,7 +666,7 @@ class IgnoreManagerTest {
                 entry.setPackageName("package-" + i);
                 entry.setType(ScanEngine.OSS);
                 entry.setTitle("Package " + i);
-                entry.setFiles(List.of(new IgnoreEntry.FileReference("file" + i + ".js", true, i)));
+                entry.setFiles(List.of(new IgnoreEntry.FileReference("file" + i + ".js", true, i, "")));
                 entries.add(entry);
             }
 

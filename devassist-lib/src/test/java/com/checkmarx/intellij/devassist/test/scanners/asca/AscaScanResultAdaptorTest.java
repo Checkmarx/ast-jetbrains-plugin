@@ -6,6 +6,7 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.scanners.asca.AscaScanResultAdaptor;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -18,6 +19,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class AscaScanResultAdaptorTest {
+
+    private final Project project = mock(Project.class);
 
     private ScanResult mockResult(List<ScanDetail> details) {
         ScanResult result = mock(ScanResult.class);
@@ -44,18 +47,18 @@ class AscaScanResultAdaptorTest {
     @DisplayName("getResults returns original ScanResult reference")
     void getResultsReturnsOriginal() {
         ScanResult scanResult = mockResult(Collections.emptyList());
-        AscaScanResultAdaptor adaptor = new AscaScanResultAdaptor(scanResult, "/repo/Main.java");
+        AscaScanResultAdaptor adaptor = new AscaScanResultAdaptor(scanResult, "/repo/Main.java", project);
         assertSame(scanResult, adaptor.getResults());
     }
 
     @Test
     @DisplayName("getIssues returns empty list when results or details are null")
     void getIssuesHandlesNullInputs() {
-        AscaScanResultAdaptor nullAdaptor = new AscaScanResultAdaptor(null, "/repo/Main.java");
+        AscaScanResultAdaptor nullAdaptor = new AscaScanResultAdaptor(null, "/repo/Main.java", project);
         assertTrue(nullAdaptor.getIssues().isEmpty());
 
         AscaScanResultAdaptor emptyAdaptor =
-                new AscaScanResultAdaptor(mockResult(null), "/repo/Main.java");
+                new AscaScanResultAdaptor(mockResult(null), "/repo/Main.java", project);
         assertTrue(emptyAdaptor.getIssues().isEmpty());
     }
 
@@ -71,7 +74,7 @@ class AscaScanResultAdaptorTest {
         );
 
         AscaScanResultAdaptor adaptor =
-                new AscaScanResultAdaptor(mockResult(List.of(detail)), "/repo/Main.java");
+                new AscaScanResultAdaptor(mockResult(List.of(detail)), "/repo/Main.java", project);
 
         List<ScanIssue> issues = adaptor.getIssues();
         assertEquals(1, issues.size());
@@ -96,7 +99,7 @@ class AscaScanResultAdaptorTest {
         ScanDetail low = mockDetail(20, "Low", "LowRule", "low-desc", "low-fix");
 
         AscaScanResultAdaptor adaptor =
-                new AscaScanResultAdaptor(mockResult(Arrays.asList(low, critical)), "/repo/Main.java");
+                new AscaScanResultAdaptor(mockResult(Arrays.asList(low, critical)), "/repo/Main.java", project);
 
         List<ScanIssue> issues = adaptor.getIssues();
         assertEquals(1, issues.size(), "Same line entries should be grouped");
@@ -119,7 +122,7 @@ class AscaScanResultAdaptorTest {
     void getIssuesSkipsNullEntries() {
         ScanDetail valid = mockDetail(5, "Medium", "ValidRule", "desc", "remedy");
         AscaScanResultAdaptor adaptor =
-                new AscaScanResultAdaptor(mockResult(Arrays.asList(null, valid)), "/repo/Main.java");
+                new AscaScanResultAdaptor(mockResult(Arrays.asList(null, valid)), "/repo/Main.java", project);
 
         List<ScanIssue> issues = adaptor.getIssues();
         assertEquals(1, issues.size());
@@ -131,12 +134,10 @@ class AscaScanResultAdaptorTest {
     void mapSeverityTreatsInfoAsLow() {
         ScanDetail infoDetail = mockDetail(7, "info", "InfoRule", "desc", "remedy");
         AscaScanResultAdaptor adaptor =
-                new AscaScanResultAdaptor(mockResult(List.of(infoDetail)), "/repo/Main.java");
+                new AscaScanResultAdaptor(mockResult(List.of(infoDetail)), "/repo/Main.java", project);
 
         ScanIssue issue = adaptor.getIssues().get(0);
         assertEquals("Low", issue.getSeverity());
         assertEquals("Low", issue.getVulnerabilities().get(0).getSeverity());
     }
 }
-
-

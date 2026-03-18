@@ -91,8 +91,6 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         if (scanDetails.isEmpty()) {
             return Collections.emptyList();
         }
-        IgnoreFileManager ignoreFileManager = IgnoreFileManager.getInstance(project);
-        List<IgnoreEntry> ignoreEntries = ignoreFileManager.getAllIgnoreEntries();
         // Group scan details by line number, then sort by severity precedence
         Map<Integer, List<ScanDetail>> groupedIssues = scanDetails.stream()
                 .filter(Objects::nonNull)
@@ -108,7 +106,6 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         List<ScanIssue> issues = groupedIssues.values().stream()
                 .map(this::createScanIssueForGroup)
                 .filter(Objects::nonNull)
-                //.filter(issue -> !isIgnored(issue, ignoreEntries, filePath))
                 .collect(Collectors.toList());
 
         LOGGER.debug("ASCA adaptor: Converted " + issues.size() + " grouped scan issues for file: " + filePath);
