@@ -7,9 +7,11 @@ import com.checkmarx.intellij.common.settings.FilterProvider;
 import com.checkmarx.intellij.common.settings.FilterProviderRegistry;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
+import com.intellij.openapi.diagnostic.Logger;
 import lombok.Getter;
 
 import java.util.*;
@@ -17,12 +19,16 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.checkmarx.intellij.common.utils.Constants.*;
+import static java.lang.String.format;
 
 /**
  * StateService manages custom result states and provides default filters.
  * Implements FilterProvider to supply default filters to GlobalSettingsState.
  */
 public class StateService implements FilterProvider {
+
+    private final Logger logger = Utils.getLogger(StateService.class);
+
     @Getter
     private final Set<CustomResultState> states;
     @Getter
@@ -101,8 +107,9 @@ public class StateService implements FilterProvider {
                     .filter(label -> !defaultLabels.contains(label))
                     .map(label -> new CustomStateFilter(new CustomResultState(label)))
                     .forEach(filters::add);
-        } catch (Exception ignored) {
+        } catch (Exception exception) {
             // If custom states cannot be retrieved, continue with default filters.
+            logger.debug("Failed to retrieve custom states.", exception);
         }
 
         return filters;
@@ -111,8 +118,18 @@ public class StateService implements FilterProvider {
     /**
      * Implementation of the FilterProvider interface.
      * Returns the default set of filters, including severity filters and custom state filters.
+     * 
+     * This method is called on:
+     * 1. First IDE launch (when no filters are persisted)
+     * 2. When restoring persisted state fails
+     * 3. During filter initialization in GlobalSettingsState
+     * 
+     * The returned filters are always persisted to ensure:
+     * - User selections are remembered across IDE restarts
+     * - Default state/severity filters are applied on first launch
+     * - Custom filters can be added from the server
      *
-     * @return Set of default Filterable objects
+     * @return Set of default Filterable objects (includes SeverityFilter + CustomResultState objects)
      */
     @Override
     public Set<Filterable> getDefaultFilters() {
@@ -124,6 +141,33 @@ public class StateService implements FilterProvider {
                         && !s.getLabel().equals(SCA_HIDE_DEV_TEST_DEPENDENCIES)) // excluding from default filter
                         .collect(Collectors.toSet())
         );
+        logger.debug(format("Default filters initialized. Total count: %s, (Severity filters: %s, + Custom state filters)",
+                filters.size(), SeverityFilter.DEFAULT_SEVERITIES.size() ));
         return filters;
+    }
+
+    /**
+     * Resolves a persisted filter value string back to the matching Filterable instance.
+     * Checks SeverityFilter enum values first, then known custom states,
+     * and finally creates a new CustomResultState for unknown server-side states.
+     *
+     * @param filterValue the persisted value from {@link Filterable#getFilterValue()}
+     * @return Optional containing the resolved Filterable, never empty (falls back to new CustomResultState)
+     */
+    @Override
+    public Optional<Filterable> resolveFilterByValue(String filterValue) {
+        // Try SeverityFilter first
+        try {
+            return Optional.of(SeverityFilter.valueOf(filterValue));
+        } catch (IllegalArgumentException ignored) {
+            // Not a severity filter, continue
+        }
+        // Try known custom states by label
+        return states.stream()
+                .filter(s -> s.getLabel().equals(filterValue))
+                .map(s -> (Filterable) s)
+                .findFirst()
+                // For unknown (server-side) custom states, create on the fly
+                .or(() -> Optional.of(new CustomResultState(filterValue)));
     }
 }
