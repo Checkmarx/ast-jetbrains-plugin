@@ -3,6 +3,7 @@ package com.checkmarx.intellij.common.settings;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
@@ -56,15 +57,25 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
 
     private String validationExpiry;
 
-    @NotNull
+    /**
+     * Runtime (transient) filter set. Null means "not yet resolved"; resolved lazily by
+     * {@link #getFilters()} from {@link #filterValues} or from provider defaults.
+     */
     @Transient
-    private transient Set<Filterable> filters = FilterProviderRegistry.getInstance().getDefaultFilters();
+    private transient Set<Filterable> filters = null;
 
     /**
-     * Persisted representation of the selected filters as filter value strings.
-     * This survives IDE restarts while keeping the runtime {@code filters} set free
-     * from non-serializable objects that would cause XMLB ClassCastExceptions.
-     * Null means "use defaults" (first launch / legacy state).
+     * True when {@link #filters} was resolved while a {@link FilterProvider} was registered.
+     * False means resolution was partial (severities only) and must be retried once the
+     * provider registers.  This flag is never persisted.
+     */
+    @Transient
+    private transient volatile boolean resolvedWithProvider = false;
+
+    /**
+     * Persisted representation of the selected filters as filter-value strings.
+     * Survives IDE restarts. {@code null} means first launch (use full defaults).
+     * An empty set means the user removed every filter — also falls back to defaults.
      */
     @Nullable
     private Set<String> filterValues = null;
@@ -125,63 +136,64 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
 
     @Override
     public @Nullable GlobalSettingsState getState() {
-        initializeDefaultFiltersIfMissing();
-
-        if (shouldRefreshFiltersFromPersisted()) {
-            filters = restoreFiltersFromPersisted();
-        }
-
-        // Sync runtime filter objects → persisted string values before XMLB serializes this bean
-        if (!isInvalidFilterCollection(filters)) {
-            // If provider is not ready yet, keep unresolved persisted values instead of dropping custom states.
-            if (!(hasUnresolvedPersistedFilters() && !FilterProviderRegistry.getInstance().hasProvider())) {
-                filterValues = currentFilterValues();
-            }
+        // Only sync filterValues from the runtime filter set when it has been fully resolved
+        // with a registered provider. If filters is still null (provider not registered yet),
+        // the filterValues loaded from storage are correct as-is – do NOT overwrite them
+        // with a partial (severity-only) set.
+        if (resolvedWithProvider && filters != null && !isInvalidFilterCollection(filters)) {
+            filterValues = toFilterValues(filters);
         }
         return this;
     }
 
+    /**
+     * Returns the active filter set, lazily resolved from {@link #filterValues}.
+     *
+     * <p>If the last resolution ran before a {@link FilterProvider} was registered
+     * (e.g. very early during IDE startup), the set is re-resolved automatically
+     * once a provider becomes available, using the original persisted strings.
+     */
     @Transient
     public @NotNull Set<Filterable> getFilters() {
-        // Initialize defaults if no filters have been set
-        initializeDefaultFiltersIfMissing();
-
-        // If runtime filters are invalid or need refresh, restore from persisted values
-        if (isInvalidFilterCollection(filters) || shouldRefreshFiltersFromPersisted()) {
-            filters = restoreFiltersFromPersisted();
+        boolean providerNowAvailable = FilterProviderRegistry.getInstance().hasProvider();
+        if (filters == null || isInvalidFilterCollection(filters)
+                || (providerNowAvailable && !resolvedWithProvider)) {
+            // Re-resolve: either not yet resolved, or provider just became available
+            filters = resolveFiltersFromPersistedValues();
         }
-        
         return filters;
     }
 
+    /**
+     * Replaces the active filter set with {@code newFilters}.
+     *
+     * <p>After accepting the caller's selection, {@link #ensureMinimumFiltersPresent()}
+     * guarantees that at least one default-severity item <em>and</em> at least one
+     * default-custom-state item are always kept (requirement 6).
+     */
     @Transient
     public void setFilters(@Nullable Set<Filterable> newFilters) {
         if (newFilters == null || isInvalidFilterCollection(newFilters)) {
             this.filters = FilterProviderRegistry.getInstance().getDefaultFilters();
         } else {
             this.filters = new LinkedHashSet<>(newFilters);
+            ensureMinimumFiltersPresent();
         }
-        // Always keep persisted string set in sync with runtime filters
+        // Always keep the persisted string set in sync with the runtime filters
         this.filterValues = toFilterValues(this.filters);
-        logger.info("Filters updated by user. Persisted filter count: " + (filterValues != null ? filterValues.size() : 0));
+        // setFilters is only called from UI actions (after provider registers)
+        this.resolvedWithProvider = FilterProviderRegistry.getInstance().hasProvider();
+        logger.debug("Filters updated by user.");
     }
 
     @Override
     public void loadState(@NotNull GlobalSettingsState state) {
         XmlSerializerUtil.copyBean(state, this);
-
-        /*
-         * Restore the runtime filter collection from the persisted string values.
-         * filterValues is already copied by copyBean above.
-         * If null (first launch / legacy state), fall back to defaults.
-         */
-        if (filterValues != null && !filterValues.isEmpty()) {
-            logger.info("Loading persisted filters from storage. Filter count: " + filterValues.size());
-            filters = restoreFiltersFromPersisted();
-        } else {
-            logger.info("No persisted filters found. Initializing with defaults.");
-            initializeDefaultFiltersIfMissing();
-        }
+        // Reset runtime state so filters are lazily re-resolved from the just-restored
+        // filterValues on the next call to getFilters().
+        filters = null;
+        resolvedWithProvider = false;
+        logger.debug("State loaded from storage.");
     }
 
     /**
@@ -304,46 +316,104 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     }
 
     /**
-     * Rebuilds the runtime {@code filters} set from the persisted string values.
-     * Uses {@link FilterProviderRegistry#resolveFilterByValue(String)} for each value.
-     * Falls back to defaults if persisted values are null/empty.
+     * Resolves the runtime {@link #filters} set from the persisted {@link #filterValues} strings.
+     *
+     * <ul>
+     *   <li>If {@code filterValues} is {@code null} or empty (first launch / fully cleared state),
+     *       the full provider-default set is used and {@code filterValues} is populated.</li>
+     *   <li>Otherwise each persisted string is resolved back to a {@link Filterable} via
+     *       {@link FilterProviderRegistry#resolveFilterByValue(String)}.</li>
+     *   <li>If the resolved set has no {@link SeverityFilter} → all default severities are added
+     *       (requirement 5).</li>
+     *   <li>If the resolved set has no non-{@link SeverityFilter} entry (custom state) <em>and
+     *       a provider is registered</em> → all default custom-state filters are added (req 4).
+     *       When no provider is registered the persisted strings are preserved so the next
+     *       call (after the provider registers) can complete the resolution.</li>
+     * </ul>
+     *
+     * <p>{@code filterValues} is updated <em>only</em> when a provider is registered so that
+     * custom-state strings are never stripped from storage during early startup.
      */
-    private Set<Filterable> restoreFiltersFromPersisted() {
-        if (filterValues == null) {
-            return FilterProviderRegistry.getInstance().getDefaultFilters();
+    private Set<Filterable> resolveFiltersFromPersistedValues() {
+        boolean providerAvailable = FilterProviderRegistry.getInstance().hasProvider();
+
+        if (filterValues == null || filterValues.isEmpty()) {
+            // First launch or fully-cleared storage → start with full defaults
+            Set<Filterable> defaults = FilterProviderRegistry.getInstance().getDefaultFilters();
+            filterValues = toFilterValues(defaults);
+            resolvedWithProvider = providerAvailable;
+            logger.info("No persisted filter values found. Initialising with defaults. Count: "
+                    + filterValues.size());
+            return new LinkedHashSet<>(defaults);
         }
-        return filterValues.stream()
-                .map(value -> FilterProviderRegistry.getInstance().resolveFilterByValue(value))
+
+        // Resolve each persisted string to a live Filterable instance
+        Set<Filterable> resolved = filterValues.stream()
+                .map(v -> FilterProviderRegistry.getInstance().resolveFilterByValue(v))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
 
-    private Set<String> currentFilterValues() {
-        return toFilterValues(filters);
-    }
+        Set<Filterable> defaults = FilterProviderRegistry.getInstance().getDefaultFilters();
 
-    private boolean hasUnresolvedPersistedFilters() {
-        if (filterValues == null || filterValues.isEmpty() || isInvalidFilterCollection(filters)) {
-            return false;
-        }
-        return !currentFilterValues().containsAll(filterValues);
-    }
-
-    private boolean shouldRefreshFiltersFromPersisted() {
-        return FilterProviderRegistry.getInstance().hasProvider() && hasUnresolvedPersistedFilters();
-    }
-
-    private void initializeDefaultFiltersIfMissing() {
-        if (filterValues != null) {
-            return;
+        // Requirement 5: at least one severity filter must be present
+        boolean hasSeverity = resolved.stream().anyMatch(f -> f instanceof SeverityFilter);
+        if (!hasSeverity) {
+            defaults.stream()
+                    .filter(f -> f instanceof SeverityFilter)
+                    .forEach(resolved::add);
+            logger.info("No severity filters found in storage. Added default severities.");
         }
 
-        // No filters persisted yet - initialize with defaults from provider
-        filters = FilterProviderRegistry.getInstance().getDefaultFilters();
-        filterValues = toFilterValues(filters);
-        
-        logger.info("Initialized default filters on first launch. Filter count: " + filterValues.size());
+        // Requirement 4: at least one custom-state filter must be present.
+        // Only enforce when a provider is registered; without one we cannot distinguish
+        // "no custom states in storage" from "custom states not yet resolvable".
+        boolean hasCustomState = resolved.stream().anyMatch(f -> !(f instanceof SeverityFilter));
+        if (!hasCustomState && providerAvailable) {
+            defaults.stream()
+                    .filter(f -> !(f instanceof SeverityFilter))
+                    .forEach(resolved::add);
+            logger.info("No custom-state filters found in storage. Added default custom states.");
+        }
+
+        // CRITICAL: Only overwrite filterValues when the provider is registered.
+        // If we update filterValues during a no-provider resolution, the custom-state
+        // strings are permanently dropped and cannot be recovered on the next restart.
+        if (providerAvailable) {
+            filterValues = toFilterValues(resolved);
+            logger.info("Filters fully resolved from storage. Count: " + filterValues.size());
+        } else {
+            logger.info("Partial resolution (no provider yet). Resolved: " + resolved.size()
+                    + ". filterValues preserved intact for full resolution later.");
+        }
+
+        resolvedWithProvider = providerAvailable;
+        return resolved;
+    }
+
+    /**
+     * Ensures that after a user-driven filter change the persisted set always contains
+     * at least one default-severity <em>and</em> at least one default-custom-state entry
+     * (requirement 6). Called by {@link #setFilters(Set)} after accepting the new selection.
+     */
+    private void ensureMinimumFiltersPresent() {
+        Set<Filterable> defaults = FilterProviderRegistry.getInstance().getDefaultFilters();
+
+        boolean hasSeverity = filters.stream().anyMatch(f -> f instanceof SeverityFilter);
+        if (!hasSeverity) {
+            defaults.stream()
+                    .filter(f -> f instanceof SeverityFilter)
+                    .forEach(filters::add);
+            logger.info("Enforced minimum: no severities selected – added defaults.");
+        }
+
+        boolean hasCustomState = filters.stream().anyMatch(f -> !(f instanceof SeverityFilter));
+        if (!hasCustomState) {
+            defaults.stream()
+                    .filter(f -> !(f instanceof SeverityFilter))
+                    .forEach(filters::add);
+            logger.info("Enforced minimum: no custom states selected – added defaults.");
+        }
     }
 
     private Set<String> toFilterValues(Set<Filterable> sourceFilters) {
@@ -375,4 +445,3 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
         }
     }
 }
-   

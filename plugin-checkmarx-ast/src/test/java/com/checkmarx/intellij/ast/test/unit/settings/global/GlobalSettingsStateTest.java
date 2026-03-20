@@ -36,131 +36,223 @@ class GlobalSettingsStateTest {
         globalSettingsState = new GlobalSettingsState();
     }
 
+    // -------------------------------------------------------------------------
+    // getState
+    // -------------------------------------------------------------------------
+
     @Test
     void getState_ReturnsSelf() {
-        // Act
         GlobalSettingsState result = globalSettingsState.getState();
-
-        // Assert
         assertSame(globalSettingsState, result);
     }
 
     @Test
-    void loadState_CopiesStateCorrectly() {
+    void getFilters_WhenFilterValuesMissing_InitializesAndSyncsToFilterValues() {
         // Arrange
-        GlobalSettingsState newState = new GlobalSettingsState();
-        newState.setAdditionalParameters("--test-param");
-        newState.setAsca(true);
-        Set<Filterable> newFilters = new HashSet<>();
-        newFilters.add(SeverityFilter.HIGH);
-        newState.setFilters(newFilters);
+        GlobalSettingsState state = new GlobalSettingsState();
+        state.setFilterValues(null);
 
-        // Act
-        globalSettingsState.loadState(newState);
+        // Act: getFilters() is the initialisation entry point (not getState())
+        Set<Filterable> filters = state.getFilters();
 
-        // Assert
-        assertEquals("--test-param", globalSettingsState.getAdditionalParameters());
-        assertTrue(globalSettingsState.isAsca());
-        assertEquals(newFilters, globalSettingsState.getFilters());
+        // getState() should now sync filterValues from the resolved set
+        state.getState();
+
+        assertNotNull(state.getFilterValues());
+        assertFalse(state.getFilterValues().isEmpty());
+        assertEquals(filterValues(filters), state.getFilterValues());
     }
 
-    @Test
-    void apply_LoadsStateCorrectly() {
-        // Arrange
-        GlobalSettingsState newState = new GlobalSettingsState();
-        newState.setAdditionalParameters("--test-param");
-        newState.setAsca(true);
-
-        // Act
-        globalSettingsState.apply(newState);
-
-        // Assert
-        assertEquals("--test-param", globalSettingsState.getAdditionalParameters());
-        assertTrue(globalSettingsState.isAsca());
-    }
-
+    // -------------------------------------------------------------------------
+    // constructor
+    // -------------------------------------------------------------------------
 
     @Test
     void constructor_InitializesDefaultValues() {
         assertEquals("", globalSettingsState.getAdditionalParameters());
         assertFalse(globalSettingsState.isAsca());
+        // No provider registered: fallback defaults = DEFAULT_SEVERITIES only
         assertEquals(SeverityFilter.DEFAULT_SEVERITIES, globalSettingsState.getFilters());
     }
 
+    // -------------------------------------------------------------------------
+    // loadState — filter persistence
+    // -------------------------------------------------------------------------
+
     @Test
-    void getState_WhenPersistedFiltersMissing_InitializesDefaultFilterValues() {
-        GlobalSettingsState state = new GlobalSettingsState();
-        state.setFilterValues(null);
+    void loadState_CopiesNonFilterFieldsCorrectly() {
+        GlobalSettingsState newState = new GlobalSettingsState();
+        newState.setAdditionalParameters("--test-param");
+        newState.setAsca(true);
 
-        state.getState();
+        globalSettingsState.loadState(newState);
 
-        assertNotNull(state.getFilterValues());
-        assertEquals(filterValues(state.getFilters()), state.getFilterValues());
-        assertFalse(state.getFilterValues().isEmpty());
+        assertEquals("--test-param", globalSettingsState.getAdditionalParameters());
+        assertTrue(globalSettingsState.isAsca());
     }
 
     @Test
-    void loadState_WhenPersistedFiltersEmpty_HonorsUserDeselection() {
+    void loadState_WhenPersistedFiltersEmpty_FallsBackToDefaults() {
+        // Empty filterValues = user cleared everything → treat as first launch
         GlobalSettingsState persisted = new GlobalSettingsState();
         persisted.setFilterValues(new LinkedHashSet<>());
 
         globalSettingsState.loadState(persisted);
 
-        assertTrue(globalSettingsState.getFilters().isEmpty());
+        // No provider: defaults = DEFAULT_SEVERITIES
+        assertEquals(SeverityFilter.DEFAULT_SEVERITIES, globalSettingsState.getFilters());
         globalSettingsState.getState();
-        assertEquals(new LinkedHashSet<>(), globalSettingsState.getFilterValues());
+        assertEquals(filterValues(SeverityFilter.DEFAULT_SEVERITIES), globalSettingsState.getFilterValues());
     }
 
     @Test
-    void loadState_PreservesPersistedCustomFiltersUntilProviderIsRegistered() {
-        // Arrange: persisted state from previous IDE run has severity + custom state.
+    void loadState_WhenProviderRegistered_RestoresExactPersistedFilters() {
+        // Both categories present in storage → restore exactly what was saved
+        FilterProviderRegistry.getInstance().registerProvider(new TestFilterProvider());
+
         GlobalSettingsState persisted = new GlobalSettingsState();
         persisted.setFilterValues(new LinkedHashSet<>(Set.of("HIGH", "TO_VERIFY")));
 
         globalSettingsState.loadState(persisted);
 
-        // Without provider, only severity can be resolved at runtime.
-        assertEquals(Set.of("HIGH"), filterValues(globalSettingsState.getFilters()));
-
-        // Act: save before provider exists; persisted custom value must not be dropped.
-        globalSettingsState.getState();
-
-        // Assert: both values are still persisted for later restoration.
-        assertEquals(new LinkedHashSet<>(Set.of("HIGH", "TO_VERIFY")), globalSettingsState.getFilterValues());
-
-        // Register provider late (typical after plugin services initialize).
-        FilterProviderRegistry.getInstance().registerProvider(new TestFilterProvider());
-
-        // Next access should recover the missing custom selection from persisted values.
         assertEquals(Set.of("HIGH", "TO_VERIFY"), filterValues(globalSettingsState.getFilters()));
     }
 
     @Test
-    void setFilters_WhenCustomStateDeselected_PersistsAndKeepsUserSelection() {
+    void loadState_AddsDefaultSeverities_WhenNoneStoredButCustomStatesPresent() {
+        FilterProviderRegistry.getInstance().registerProvider(new TestFilterProvider());
+
+        GlobalSettingsState persisted = new GlobalSettingsState();
+        // Only a custom state in storage — no severity
+        persisted.setFilterValues(new LinkedHashSet<>(Set.of("TO_VERIFY")));
+
+        globalSettingsState.loadState(persisted);
+
+        Set<String> result = filterValues(globalSettingsState.getFilters());
+        // Default severities should be added alongside the persisted custom state
+        assertTrue(result.containsAll(filterValues(SeverityFilter.DEFAULT_SEVERITIES)));
+        assertTrue(result.contains("TO_VERIFY"));
+    }
+
+    @Test
+    void loadState_AddsDefaultCustomStates_WhenNoneStoredButSeveritiesPresent() {
+        FilterProviderRegistry.getInstance().registerProvider(new TestFilterProvider());
+
+        GlobalSettingsState persisted = new GlobalSettingsState();
+        // Only a severity in storage — no custom state
+        persisted.setFilterValues(new LinkedHashSet<>(Set.of("HIGH")));
+
+        globalSettingsState.loadState(persisted);
+
+        Set<String> result = filterValues(globalSettingsState.getFilters());
+        // Custom state defaults should be added alongside the persisted severity
+        assertTrue(result.contains("HIGH"));
+        assertTrue(result.contains("TO_VERIFY")); // default custom state from TestFilterProvider
+    }
+
+    // -------------------------------------------------------------------------
+    // apply
+    // -------------------------------------------------------------------------
+
+    @Test
+    void apply_LoadsStateCorrectly() {
+        GlobalSettingsState newState = new GlobalSettingsState();
+        newState.setAdditionalParameters("--test-param");
+        newState.setAsca(true);
+
+        globalSettingsState.apply(newState);
+
+        assertEquals("--test-param", globalSettingsState.getAdditionalParameters());
+        assertTrue(globalSettingsState.isAsca());
+    }
+
+    // -------------------------------------------------------------------------
+    // setFilters — minimum-per-category enforcement
+    // -------------------------------------------------------------------------
+
+    @Test
+    void setFilters_PreservesSelection_WhenBothCategoriesPresent() {
+        FilterProviderRegistry.getInstance().registerProvider(new TestFilterProvider());
+
+        // Start: persisted { HIGH, TO_VERIFY }
+        GlobalSettingsState persisted = new GlobalSettingsState();
+        persisted.setFilterValues(new LinkedHashSet<>(Set.of("HIGH", "TO_VERIFY")));
+        globalSettingsState.loadState(persisted);
+
+        // User removes TO_VERIFY but there is still a custom-state: none here, so defaults added.
+        // Let's keep HIGH + TO_VERIFY and remove HIGH instead to keep at least one custom state.
+        Set<Filterable> updatedFilters = globalSettingsState.getFilters().stream()
+                .filter(f -> !"HIGH".equals(f.getFilterValue()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        globalSettingsState.setFilters(updatedFilters);
+
+        Set<String> result = filterValues(globalSettingsState.getFilters());
+        // TO_VERIFY is still there; default severities are added because HIGH was the only severity
+        assertTrue(result.containsAll(filterValues(SeverityFilter.DEFAULT_SEVERITIES)));
+        assertTrue(result.contains("TO_VERIFY"));
+    }
+
+    @Test
+    void setFilters_AddsDefaultCustomStates_WhenAllCustomStatesRemoved() {
         FilterProviderRegistry.getInstance().registerProvider(new TestFilterProvider());
 
         GlobalSettingsState persisted = new GlobalSettingsState();
         persisted.setFilterValues(new LinkedHashSet<>(Set.of("HIGH", "TO_VERIFY")));
         globalSettingsState.loadState(persisted);
 
-        Set<Filterable> updatedFilters = globalSettingsState.getFilters().stream()
-                .filter(filter -> !"TO_VERIFY".equals(filter.getFilterValue()))
+        // User removes the only custom-state filter
+        Set<Filterable> severityOnly = globalSettingsState.getFilters().stream()
+                .filter(f -> f instanceof SeverityFilter)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        globalSettingsState.setFilters(updatedFilters);
+        globalSettingsState.setFilters(severityOnly);
 
-        assertEquals(Set.of("HIGH"), filterValues(globalSettingsState.getFilters()));
-        assertEquals(new LinkedHashSet<>(Set.of("HIGH")), globalSettingsState.getFilterValues());
+        Set<String> result = filterValues(globalSettingsState.getFilters());
+        // Default custom states must be re-added (requirement 4 / 6)
+        assertTrue(result.contains("TO_VERIFY"));
+        // The user's severity selection is preserved
+        assertTrue(result.contains("HIGH"));
 
+        // Persisted values must be consistent
         globalSettingsState.getState();
-        assertEquals(Set.of("HIGH"), filterValues(globalSettingsState.getFilters()));
-        assertEquals(new LinkedHashSet<>(Set.of("HIGH")), globalSettingsState.getFilterValues());
+        assertEquals(result, globalSettingsState.getFilterValues());
     }
+
+    @Test
+    void setFilters_AddsDefaultSeverities_WhenAllSeveritiesRemoved() {
+        FilterProviderRegistry.getInstance().registerProvider(new TestFilterProvider());
+
+        GlobalSettingsState persisted = new GlobalSettingsState();
+        persisted.setFilterValues(new LinkedHashSet<>(Set.of("HIGH", "TO_VERIFY")));
+        globalSettingsState.loadState(persisted);
+
+        // User removes ALL severity filters
+        Set<Filterable> customOnly = globalSettingsState.getFilters().stream()
+                .filter(f -> !(f instanceof SeverityFilter))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        globalSettingsState.setFilters(customOnly);
+
+        Set<String> result = filterValues(globalSettingsState.getFilters());
+        // Default severities must be re-added (requirement 5 / 6)
+        assertTrue(result.containsAll(filterValues(SeverityFilter.DEFAULT_SEVERITIES)));
+        // The custom-state selection is preserved
+        assertTrue(result.contains("TO_VERIFY"));
+    }
+
+    // -------------------------------------------------------------------------
+    // helpers
+    // -------------------------------------------------------------------------
 
     private Set<String> filterValues(Set<Filterable> filters) {
         return filters.stream().map(Filterable::getFilterValue).collect(Collectors.toSet());
     }
 
+    /**
+     * A simple FilterProvider used by tests.
+     * Defaults = all DEFAULT_SEVERITIES + a single custom state "TO_VERIFY".
+     */
     private static class TestFilterProvider implements FilterProvider {
         private static final Filterable TO_VERIFY_FILTER = new Filterable() {
             @Override
@@ -189,4 +281,4 @@ class GlobalSettingsStateTest {
             return Optional.empty();
         }
     }
-} 
+}
