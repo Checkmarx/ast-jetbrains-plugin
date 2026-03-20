@@ -49,11 +49,9 @@ public final class IgnoreEntry {
             this.path = relativePath;
             this.active = b;
             this.line = line;
-            if (!problematicLine.isEmpty()) {
+            if (problematicLine != null && !problematicLine.isEmpty()) {
                 this.problematicLine = problematicLine;
             }
-
         }
     }
 }
-
