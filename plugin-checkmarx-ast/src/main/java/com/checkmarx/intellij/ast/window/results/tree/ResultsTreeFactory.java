@@ -53,7 +53,14 @@ public class ResultsTreeFactory {
         Map<String, NonLeafNode> engineNodes = new HashMap<>();
         // Make sure sca type groupBy is always applied first
         groupByList.remove(SCA_TYPE);
-        groupByList.add(0, SCA_TYPE);
+        long distinctScaTypes = results.getResults().stream()
+                .filter(r -> Constants.SCAN_TYPE_SCA.equalsIgnoreCase(r.getType()))                                                                                                    .map(Result::getScaType)
+                .filter(t -> !Utils.isBlank(t))
+                .distinct()
+                .count();
+        if (distinctScaTypes > 1) {
+            groupByList.add(0, SCA_TYPE);
+        }
 
         // Collect all enabled filter values into a single set
         Set<String> enabledFilterValues = enabledFilters.stream()
