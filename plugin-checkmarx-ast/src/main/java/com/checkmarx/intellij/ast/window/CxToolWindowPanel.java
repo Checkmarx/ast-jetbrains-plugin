@@ -50,6 +50,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 import static com.intellij.util.ui.JBUI.Panels.simplePanel;
+import static java.lang.String.format;
 
 /**
  * Handles drawing the checkmarx tool window.
@@ -110,8 +111,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 boolean hasOneAssist = settingsState.isOneAssistLicenseEnabled();
                 boolean hasDevAssist = settingsState.isDevAssistLicenseEnabled();
 
-                LOGGER.info("CxToolWindowPanel: Authenticated, hasOneAssist=" + hasOneAssist
-                        + ", hasDevAssist=" + hasDevAssist);
+                LOGGER.debug(format("CxToolWindowPanel: User is already authenticated. License Details: hasOneAssist: %s, hasDevAssist: %s", hasOneAssist, hasDevAssist));
 
                 if (hasOneAssist) {
                     // One Assist = TRUE: Show actual Scan Results
@@ -375,7 +375,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         projectResultsService.indexResults(project, currentState.getResultOutput());
         if (currentState.getMessage() != null) {
-            LOGGER.info(String.format("Cannot show results: %s", currentState.getMessage()));
+            LOGGER.info(format("Cannot show results: %s", currentState.getMessage()));
             scanTreeSplitter.setSecondComponent(TreeUtils.labelTreePanel(currentState.getMessage()));
         } else {
             LOGGER.info("Updating state for scan " + currentState.getScanId());

@@ -11,6 +11,7 @@ import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.util.messages.MessageBus;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -97,7 +98,11 @@ class CustomStateFilterTest {
 
             filter.setSelected(mock(AnActionEvent.class), true);
 
-            assertTrue(filters.stream().anyMatch(f -> f instanceof CustomResultState
+            ArgumentCaptor<Set<Filterable>> filtersCaptor = ArgumentCaptor.forClass(Set.class);
+            verify(state).setFilters(filtersCaptor.capture());
+            Set<Filterable> savedFilters = filtersCaptor.getValue();
+
+            assertTrue(savedFilters.stream().anyMatch(f -> f instanceof CustomResultState
                     && ((CustomResultState) f).getLabel().equals("TO_VERIFY")));
             verify(publisher).filterChanged();
         }
@@ -124,11 +129,15 @@ class CustomStateFilterTest {
 
             filter.setSelected(mock(AnActionEvent.class), false);
 
-            assertFalse(filters.stream().anyMatch(f -> f instanceof CustomResultState
+            ArgumentCaptor<Set<Filterable>> filtersCaptor = ArgumentCaptor.forClass(Set.class);
+            verify(state).setFilters(filtersCaptor.capture());
+            Set<Filterable> savedFilters = filtersCaptor.getValue();
+
+            assertFalse(savedFilters.stream().anyMatch(f -> f instanceof CustomResultState
                     && ((CustomResultState) f).getLabel().equals("TO_VERIFY")));
-            assertTrue(filters.stream().anyMatch(f -> f instanceof CustomResultState
+            assertTrue(savedFilters.stream().anyMatch(f -> f instanceof CustomResultState
                     && ((CustomResultState) f).getLabel().equals("CONFIRMED")));
-            assertTrue(filters.contains(SeverityFilter.LOW));
+            assertTrue(savedFilters.contains(SeverityFilter.LOW));
             verify(publisher).filterChanged();
         }
     }

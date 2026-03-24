@@ -2,12 +2,14 @@ package com.checkmarx.intellij.ast.results;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.window.actions.filter.Filterable;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import java.util.Set;
 import java.util.function.Supplier;
 
 @Getter
+@EqualsAndHashCode(of = "label")
 public class CustomResultState implements Filterable, Comparable<CustomResultState> {
     private final String label;
     private final String name;

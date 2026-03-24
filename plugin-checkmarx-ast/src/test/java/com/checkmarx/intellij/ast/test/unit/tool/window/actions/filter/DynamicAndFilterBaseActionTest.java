@@ -15,6 +15,7 @@ import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.util.messages.MessageBus;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -98,10 +99,14 @@ class DynamicAndFilterBaseActionTest {
             FilterBaseAction.HighFilter high = new FilterBaseAction.HighFilter();
 
             high.setSelected(event, true);
-            assertTrue(filters.contains(SeverityFilter.HIGH));
-
             high.setSelected(event, false);
-            assertFalse(filters.contains(SeverityFilter.HIGH));
+
+            ArgumentCaptor<Set<Filterable>> filtersCaptor = ArgumentCaptor.forClass(Set.class);
+            verify(globalState, times(2)).setFilters(filtersCaptor.capture());
+            List<Set<Filterable>> savedSets = filtersCaptor.getAllValues();
+
+            assertTrue(savedSets.get(0).contains(SeverityFilter.HIGH));
+            assertFalse(savedSets.get(1).contains(SeverityFilter.HIGH));
 
             verify(publisher, times(2)).filterChanged();
         }

@@ -131,18 +131,22 @@ class GlobalSettingsStateTest {
 
     @Test
     void testLoadState_WithInvalidFilters() {
-        GlobalSettingsState newState = new GlobalSettingsState();
-        Set<Filterable> invalidFilters = new HashSet<>();
-        invalidFilters.add(null);
-        newState.setFilters(invalidFilters);
         Set<Filterable> defaultFilters = new HashSet<>();
         defaultFilters.add(mockFilterable);
         
         when(mockFilterProviderRegistry.getDefaultFilters()).thenReturn(defaultFilters);
+        when(mockFilterProviderRegistry.hasProvider()).thenReturn(true);
+        
+        GlobalSettingsState newState = new GlobalSettingsState();
+        Set<Filterable> invalidFilters = new HashSet<>();
+        invalidFilters.add(null);
+        newState.setFilters(invalidFilters);
         
         globalSettingsState.loadState(newState);
         
-        assertEquals(defaultFilters, globalSettingsState.getFilters());
+        // After loadState, getFilters() will lazily resolve and replace invalid filters with defaults
+        Set<Filterable> result = globalSettingsState.getFilters();
+        assertEquals(defaultFilters, result);
     }
 
     @Test
