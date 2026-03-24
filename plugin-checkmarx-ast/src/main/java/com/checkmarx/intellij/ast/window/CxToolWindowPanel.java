@@ -75,8 +75,8 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     // field to input a scan id
     private SearchTextField scanIdField = new SearchTextField();
 
-    // Internal state
-    private final List<GroupBy> groupByList = new ArrayList<>(GroupBy.DEFAULT_GROUP_BY);
+    // Internal state — restored from persisted settings if available, otherwise defaults
+    private final List<GroupBy> groupByList = resolvePersistedGroupBy();
     @Getter
     private ResultGetState currentState = new ResultGetState();
     private Tree currentTree = null;
@@ -255,6 +255,26 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     }
 
     /**
+     * Resolves the initial GroupBy list from persisted settings.
+     * Falls back to {@link GroupBy#DEFAULT_GROUP_BY} if nothing is persisted yet.
+     */
+    private static List<GroupBy> resolvePersistedGroupBy() {
+        Set<String> persisted = GlobalSettingsState.getInstance().getGroupByValues();
+        if (persisted == null || persisted.isEmpty()) {
+            return new ArrayList<>(GroupBy.DEFAULT_GROUP_BY);
+        }
+        List<GroupBy> resolved = new ArrayList<>();
+        for (String name : persisted) {
+            try {
+                resolved.add(GroupBy.valueOf(name));
+            } catch (IllegalArgumentException ignored) {
+                // skip unknown/removed enum values safely
+            }
+        }
+        return resolved.isEmpty() ? new ArrayList<>(GroupBy.DEFAULT_GROUP_BY) : resolved;
+    }
+
+    /**
      * Add or remove a groupBy to the list for applying
      *
      * @param groupBy  groupBy
@@ -271,6 +291,12 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         } else {
             groupByList.remove(groupBy);
         }
+        // Persist the updated selection so it survives IDE restarts and logout/login
+        GlobalSettingsState.getInstance().setGroupByValues(
+                groupByList.stream()
+                           .map(Enum::name)
+                           .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new))
+        );
         drawTree();
     }
 

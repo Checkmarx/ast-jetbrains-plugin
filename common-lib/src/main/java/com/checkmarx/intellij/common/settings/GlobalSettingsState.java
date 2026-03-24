@@ -80,6 +80,13 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @Nullable
     private Set<String> filterValues = null;
 
+    /**
+     * Persisted representation of the active GroupBy selections as enum name strings
+     * (e.g. "SEVERITY", "STATE"). {@code null} means first launch — use GroupBy.DEFAULT_GROUP_BY.
+     */
+    @Nullable
+    private Set<String> groupByValues = null;
+
     private String baseUrl = "";
     private String tenant = "";
 

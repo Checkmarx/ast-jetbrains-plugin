@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.ast.settings;
 
+import com.checkmarx.intellij.ast.service.StateService;
 import com.checkmarx.intellij.ast.ui.WelcomeDialog;
 import com.checkmarx.intellij.common.auth.AuthService;
 import com.checkmarx.intellij.common.commands.Authentication;
@@ -258,6 +259,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
             // License flags – must be preserved to control UI elements like Assist link
             state.setDevAssistLicenseEnabled(SETTINGS_STATE.isDevAssistLicenseEnabled());
             state.setOneAssistLicenseEnabled(SETTINGS_STATE.isOneAssistLicenseEnabled());
+            state.setFilterValues(SETTINGS_STATE.getFilterValues());
+
+            // GroupBy state – preserve selected groupBy values across logout/login cycles
+            state.setGroupByValues(SETTINGS_STATE.getGroupByValues());
         }
         return state;
     }
@@ -362,6 +367,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
         SETTINGS_STATE.setMcpEnabled(mcpServerEnabled);
         SETTINGS_STATE.setMcpStatusChecked(true);
         apply();
+
+        CompletableFuture.runAsync(() -> StateService.getInstance().pruneStaleCustomStates());
 
         // Configure realtime scanners based on MCP status - only modify settings when necessary to preserve user preferences during routine re-authentication
         if (!mcpStatusPreviouslyChecked) {

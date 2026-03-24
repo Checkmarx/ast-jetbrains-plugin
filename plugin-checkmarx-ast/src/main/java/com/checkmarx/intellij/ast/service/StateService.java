@@ -85,6 +85,70 @@ public class StateService implements FilterProvider {
     }
 
     /**
+     * Removes any persisted custom-state filter values that no longer exist on the server.
+     *
+     * <p>Called once after a successful login. Fetches the current list of states from the
+     * server via {@code triageGetStates} and compares it against the persisted
+     * {@code filterValues} in {@link GlobalSettingsState}. Any value that is:
+     * <ul>
+     *   <li>not a {@link SeverityFilter} severity, AND</li>
+     *   <li>not one of the 8 hardcoded predefined states, AND</li>
+     *   <li>not present in the server's current state list</li>
+     * </ul>
+     * is silently dropped from the persisted selection.
+     *
+     * <p>If the server call fails the persisted values are left unchanged.
+     */
+    public void pruneStaleCustomStates() {
+        GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
+        Set<String> currentFilterValues = settingsState.getFilterValues();
+
+        if (currentFilterValues == null || currentFilterValues.isEmpty()) {
+            return;
+        }
+
+        Set<String> validServerLabels;
+        try {
+            var cxWrapper = CxWrapperFactory.build(
+                    settingsState,
+                    GlobalSettingsSensitiveState.getInstance()
+            );
+            validServerLabels = cxWrapper.triageGetStates(false).stream()
+                    .map(CustomState::getName)
+                    .collect(Collectors.toSet());
+        } catch (Exception exception) {
+            logger.debug("Failed to retrieve server states for stale-filter pruning. Skipping.", exception);
+            return;
+        }
+
+        // A filter value is valid if it is a severity, a predefined state, or exists on the server
+        Set<String> pruned = currentFilterValues.stream()
+                .filter(value -> isSeverityValue(value) || defaultLabels.contains(value) || validServerLabels.contains(value))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        if (pruned.size() < currentFilterValues.size()) {
+            Set<String> removed = new LinkedHashSet<>(currentFilterValues);
+            removed.removeAll(pruned);
+            logger.info("Pruned stale custom state filters no longer present on server: " + removed);
+            settingsState.setFilterValues(pruned);
+            // Reset runtime filter cache so the pruned values take effect on next access
+            settingsState.setFilters(null);
+        }
+    }
+
+    /**
+     * Returns true if the given filter value corresponds to a {@link SeverityFilter} enum constant.
+     */
+    private boolean isSeverityValue(String value) {
+        try {
+            SeverityFilter.valueOf(value);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /**
      * Builds a list of CustomStateFilter actions, including:
      * - A filter for each default state.
      * - Filters for any "custom" states returned by the triageGetStates call,
