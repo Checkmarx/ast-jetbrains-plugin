@@ -229,6 +229,7 @@ class IgnoreManagerTest {
             when(vuln.getTitle()).thenReturn("asca-title");
             when(vuln.getSeverity()).thenReturn("LOW");
             when(vuln.getDescription()).thenReturn("desc");
+            when(vuln.getProblematicLine()).thenReturn(null);
 
             devAssistUtilsStatic.when(() -> DevAssistUtils.getVulnerabilityDetails(any(), any())).thenReturn(vuln);
             when(ignoreFileManager.normalizePath(anyString())).thenReturn("file");
@@ -240,6 +241,7 @@ class IgnoreManagerTest {
             assertEquals("LOW", entry.getSeverity());
             assertEquals("desc", entry.getDescription());
             assertEquals(1, entry.getFiles().size());
+            assertNull(entry.getFiles().get(0).getProblematicLine());
         }
     }
 
