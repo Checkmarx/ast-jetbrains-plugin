@@ -126,7 +126,7 @@ public final class IgnoreManager {
                 fileRefs.add(new IgnoreEntry.FileReference(
                         ignoreFileManager.normalizePath(issue.getFilePath()),
                         true,
-                        issue.getLocations().get(0).getLine()));
+                        issue.getLocations().get(0).getLine(), ""));
                 scanFileAndUpdateResults(issue.getFilePath(), issue.getScanEngine());
                 return true;
             });
@@ -343,7 +343,7 @@ public final class IgnoreManager {
             ignoreEntry.setSimilarityId(vulnerability.getSimilarityId());
             ignoreEntry.setSeverity(vulnerability.getSeverity());
             ignoreEntry.setDescription(vulnerability.getDescription());
-            ignoreEntry.setFiles(List.of(new IgnoreEntry.FileReference(relativePath, true, line)));
+            ignoreEntry.setFiles(List.of(new IgnoreEntry.FileReference(relativePath, true, line, "")));
             return ignoreEntry;
         });
         ifExistingIssue(detail, entry);
@@ -383,7 +383,7 @@ public final class IgnoreManager {
             ignoreEntry.setRuleId(detail.getRuleId());
             ignoreEntry.setSeverity(vulnerability.getSeverity());
             ignoreEntry.setDescription(vulnerability.getDescription());
-            ignoreEntry.setFiles(List.of(new IgnoreEntry.FileReference(relativePath, true, line)));
+            ignoreEntry.setFiles(List.of(new IgnoreEntry.FileReference(relativePath, true, line, vulnerability.getProblematicLine())));
             return ignoreEntry;
         });
         ifExistingIssue(detail, entry);
@@ -404,7 +404,7 @@ public final class IgnoreManager {
         String vulnerabilityKey = createJsonKeyForIgnoreEntry(detail, clickId);
         int line = detail.getLocations().get(0).getLine();
         IgnoreEntry entry = ignoreFileManager.getIgnoreData().computeIfAbsent(vulnerabilityKey, k -> {
-            IgnoreEntry.FileReference fileRef = new IgnoreEntry.FileReference(relativePath, true, line);
+            IgnoreEntry.FileReference fileRef = new IgnoreEntry.FileReference(relativePath, true, line, "");
             ArrayList<IgnoreEntry.FileReference> fileReference = new ArrayList<>();
             fileReference.add(fileRef);
             IgnoreEntry ignoreEntry = new IgnoreEntry();
@@ -444,6 +444,15 @@ public final class IgnoreManager {
     private void ifExistingIssue(ScanIssue detail, IgnoreEntry entry) {
         String relativePath = ignoreFileManager.normalizePath(detail.getFilePath());
         int line = detail.getLocations().get(0).getLine();
+        String problematicLine = null;
+        if (detail.getScanEngine() == ScanEngine.ASCA && detail.getVulnerabilities() != null && !detail.getVulnerabilities().isEmpty()) {
+            // Find the matching vulnerability for this line
+            for (Vulnerability v : detail.getVulnerabilities()) {
+                // You may want to match by line or other criteria if needed
+                problematicLine = v.getProblematicLine();
+                break; // Use the first for now, or improve as needed
+            }
+        }
         // Ensure files list is mutable
         if (!(entry.getFiles() instanceof ArrayList)) {
             entry.setFiles(new ArrayList<>(entry.getFiles()));
@@ -453,8 +462,13 @@ public final class IgnoreManager {
                 .findFirst();
         if (existing.isPresent()) {
             existing.get().setActive(true);
+            // Update problematicLine if ASCA and not set or different
+            if (detail.getScanEngine() == ScanEngine.ASCA && problematicLine != null &&
+                (existing.get().getProblematicLine() == null || !existing.get().getProblematicLine().equals(problematicLine))) {
+                existing.get().setProblematicLine(problematicLine);
+            }
         } else {
-            entry.getFiles().add(new IgnoreEntry.FileReference(relativePath, true, line));
+            entry.getFiles().add(new IgnoreEntry.FileReference(relativePath, true, line, problematicLine));
         }
     }
 
@@ -721,4 +735,165 @@ public final class IgnoreManager {
         }
         return keys;
     }
+
+    /**
+     * Updates line numbers for ignored ASCA entries based on new scan results, using problematicLine content for matching.
+     * For each ignored file reference, if a scan result with the same problematicLine is found, update the line number in the ignore entry.
+     * Removes file references and ignore entries that are no longer present in the scan result.
+     *
+     * @param fullScanResults The scan results containing updated line numbers and issues
+     * @param filePath        The path of the file that was scanned and needs line number updates
+     */
+    public void updateLineNumbersForIgnoredEntriesByProblematicLine(ScanResult<?> fullScanResults, String filePath) {
+        List<ScanIssue> allIssuesForFile = fullScanResults.getIssues();
+        if (allIssuesForFile == null || allIssuesForFile.isEmpty()) {
+            LOGGER.debug(String.format("ASCA-Ignore: No issues found in scan results for file: %s", filePath));
+            return;
+        }
+        String relativePath = ignoreFileManager.normalizePath(filePath);
+        boolean hasChanges = false;
+        // Build a list of all vulnerabilities with their problematicLine and line number
+        List<VulnerabilityWithLine> vulnerabilitiesWithLine = new ArrayList<>();
+        Set<String> presentProblematicLines = new HashSet<>();
+        for (ScanIssue scanIssue : allIssuesForFile) {
+            if (scanIssue.getVulnerabilities() != null) {
+                for (Vulnerability v : scanIssue.getVulnerabilities()) {
+                    int line = (scanIssue.getLocations() != null && !scanIssue.getLocations().isEmpty())
+                            ? scanIssue.getLocations().get(0).getLine() : 0;
+                    vulnerabilitiesWithLine.add(new VulnerabilityWithLine(v.getProblematicLine(), line));
+                    if (v.getProblematicLine() != null) {
+                        presentProblematicLines.add(v.getProblematicLine());
+                    }
+                }
+            }
+        }
+        // Collect keys to remove
+        List<String> keysToRemove = new ArrayList<>();
+        // Iterate through all ignore entries using normal for-each
+        for (Map.Entry<String, IgnoreEntry> mapEntry : ignoreFileManager.getIgnoreData().entrySet()) {
+            IgnoreEntry ignoreEntry = mapEntry.getValue();
+            if (!ScanEngine.ASCA.toString().equalsIgnoreCase(String.valueOf(ignoreEntry.getType()))) {
+                continue; // Only process ASCA entries
+            }
+            // Remove file references that are not present in the scan result
+            List<IgnoreEntry.FileReference> fileRefs = ignoreEntry.getFiles();
+            List<IgnoreEntry.FileReference> fileRefsToRemove = new ArrayList<>();
+            for (IgnoreEntry.FileReference fileRef : fileRefs) {
+                if (fileRef.getPath().equals(relativePath) && fileRef.isActive()) {
+                    String ignoredProblematicLine = fileRef.getProblematicLine();
+                    // Find a matching vulnerability by problematicLine (null-safe)
+                    VulnerabilityWithLine match = vulnerabilitiesWithLine.stream()
+                        .filter(vwl -> Objects.equals(vwl.problematicLine, ignoredProblematicLine))
+                        .findFirst().orElse(null);
+                    if (match != null && match.line > 0 && fileRef.getLine() != match.line) {
+                        fileRef.setLine(match.line);
+                        hasChanges = true;
+                    }
+                    // If problematicLine is not present in the scan result, mark this file reference for removal
+                    if (ignoredProblematicLine == null || !presentProblematicLines.contains(ignoredProblematicLine)) {
+                        fileRefsToRemove.add(fileRef);
+                        hasChanges = true;
+                    }
+                }
+            }
+            // Remove marked file references
+            if (!fileRefsToRemove.isEmpty()) {
+                fileRefs.removeAll(fileRefsToRemove);
+            }
+            // If no file references left, mark the key for removal
+            if (ignoreEntry.getFiles().isEmpty()) {
+                keysToRemove.add(mapEntry.getKey());
+            }
+        }
+        // Remove keys from ignore data
+        for (String keyToRemove : keysToRemove) {
+            ignoreFileManager.getIgnoreData().remove(keyToRemove);
+            hasChanges = true;
+        }
+        if (hasChanges) {
+            ignoreFileManager.saveIgnoreDataToDisk();
+            LOGGER.info(String.format("ASCA-Ignore: Line numbers and obsolete entries updated by problematicLine and saved for file: %s", relativePath));
+        } else {
+            LOGGER.debug(String.format("ASCA-Ignore: No line number or entry changes detected by problematicLine for file: %s", relativePath));
+        }
+    }
+
+    // Helper class for matching problematicLine and line together
+    private static class VulnerabilityWithLine {
+        String problematicLine;
+        int line;
+        VulnerabilityWithLine(String problematicLine, int line) {
+            this.problematicLine = problematicLine;
+            this.line = line;
+        }
+    }
+
+    /**
+     * Removes all ASCA ignore entries and file references for a file when there are no issues in the scan result.
+     *
+     * @param filePath The path of the file for which ignore entries should be removed
+     * @return true if any ignore entries were removed, false otherwise
+     */
+    public void removeIgnoreEntriesForFileIfEmpty(String filePath) {
+        String relativePath = ignoreFileManager.normalizePath(filePath);
+        List<String> keysToRemove = new ArrayList<>();
+        boolean removed = false;
+        for (Map.Entry<String, IgnoreEntry> mapEntry : ignoreFileManager.getIgnoreData().entrySet()) {
+            IgnoreEntry ignoreEntry = mapEntry.getValue();
+            if (!ScanEngine.ASCA.toString().equalsIgnoreCase(String.valueOf(ignoreEntry.getType()))) {
+                continue;
+            }
+            // Remove file references for this file
+            List<IgnoreEntry.FileReference> fileRefs = ignoreEntry.getFiles();
+            fileRefs.removeIf(fileRef -> fileRef.getPath().equals(relativePath));
+            // If no file references left, mark the key for removal
+            if (ignoreEntry.getFiles().isEmpty()) {
+                keysToRemove.add(mapEntry.getKey());
+            }
+        }
+        // Remove keys from ignore data
+        for (String keyToRemove : keysToRemove) {
+            ignoreFileManager.getIgnoreData().remove(keyToRemove);
+            removed = true;
+        }
+        if (removed) {
+            ignoreFileManager.saveIgnoreDataToDisk();
+            LOGGER.info(String.format("ASCA-Ignore: Removed ignore entries for file with no issues: %s", relativePath));
+        }
+    }
+
+    public boolean isIgnored(ScanIssue issue, List<IgnoreEntry> ignoreEntries, String filePath) {
+        String normalizedPath = ignoreFileManager.normalizePath(filePath);
+        boolean isAsca = issue.getScanEngine() == ScanEngine.ASCA;
+        // For ASCA, check problematicLine for all vulnerabilities
+        if (isAsca && issue.getVulnerabilities() != null && !issue.getVulnerabilities().isEmpty()) {
+            for (Vulnerability vuln : issue.getVulnerabilities()) {
+                String issueProblematicLine = vuln.getProblematicLine();
+                for (IgnoreEntry entry : ignoreEntries) {
+                    for (IgnoreEntry.FileReference ref : entry.getFiles()) {
+                        boolean pathMatch = ref.isActive() && ref.getPath().equals(normalizedPath);
+                        boolean problematicLineMatch = (issueProblematicLine == null && ref.getProblematicLine() == null)
+                                || (issueProblematicLine != null && issueProblematicLine.equals(ref.getProblematicLine()));
+                        if (pathMatch && problematicLineMatch) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        // Default: match by path and line
+        int issueLine = issue.getLocations() != null && !issue.getLocations().isEmpty()
+                ? issue.getLocations().get(0).getLine()
+                : -1;
+        for (IgnoreEntry entry : ignoreEntries) {
+            for (IgnoreEntry.FileReference ref : entry.getFiles()) {
+                if (ref.isActive() && ref.getPath().equals(normalizedPath) && ref.getLine() == issueLine) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 }

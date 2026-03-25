@@ -28,6 +28,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
     private final String filePath;
     private final List<ScanIssue> scanIssues;
 
+
     /**
      * Constructs an instance of {@code AscaScanResultAdaptor} with the specified ASCA scan results.
      * This adapter allows conversion and processing of ASCA scan results into a standardized format.
@@ -80,7 +81,6 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         if (scanDetails.isEmpty()) {
             return Collections.emptyList();
         }
-
         // Group scan details by line number, then sort by severity precedence
         Map<Integer, List<ScanDetail>> groupedIssues = scanDetails.stream()
                 .filter(Objects::nonNull)
@@ -192,6 +192,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         vulnerability.setSeverity(mapSeverity(scanDetail.getSeverity()));
         vulnerability.setRemediationAdvise(scanDetail.getRemediationAdvise());
         vulnerability.setTitle(scanDetail.getRuleName());
+        vulnerability.setProblematicLine(scanDetail.getProblematicLine());
 
         return vulnerability;
     }
@@ -225,4 +226,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         }
         return ScanEngine.ASCA.name();
     }
+
+
+
 }
