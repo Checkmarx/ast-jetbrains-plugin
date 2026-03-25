@@ -133,9 +133,9 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         // Establish message bus connection before subscribing
         ApplicationManager.getApplication().getMessageBus()
                 .connect(this)
-                .subscribe(SettingsListener.SETTINGS_APPLIED, r::run);
+                .subscribe(SettingsListener.SETTINGS_APPLIED, (SettingsListener) r::run);
         ApplicationManager.getApplication().getMessageBus().connect(this)
-                .subscribe(FilterBaseAction.FILTER_CHANGED, this::changeFilter);
+                .subscribe(FilterBaseAction.FILTER_CHANGED, (FilterBaseAction.FilterChanged) this::changeFilter);
 
         r.run();
     }

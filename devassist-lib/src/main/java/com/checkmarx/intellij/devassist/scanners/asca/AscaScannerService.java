@@ -8,6 +8,7 @@ import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.checkmarx.intellij.devassist.basescanner.BaseScannerService;
 import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.ignore.IgnoreEntry;
+import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
@@ -39,6 +40,7 @@ import java.util.List;
 public class AscaScannerService extends BaseScannerService<ScanResult> {
     private static final Logger LOGGER = Utils.getLogger(AscaScannerService.class);
     private static final String ASCA_DIR = "CxASCA";
+    private static final Object SCAN_LOCK = new Object();
 
     /**
      * Creates an ASCA scanner service with the default ASCA realtime configuration.
@@ -147,19 +149,20 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
             int issueCount = ascaResult.getScanDetails() != null ? ascaResult.getScanDetails().size() : 0;
             LOGGER.debug("ASCA scanner: scan completed - " + uri + " (" + issueCount + " issues found)");
 
-            AscaScanResultAdaptor scanResultAdaptor = new AscaScanResultAdaptor(ascaResult, uri, psiFile.getProject());
+            AscaScanResultAdaptor scanResultAdaptor = new AscaScanResultAdaptor(ascaResult, uri);
 
             // Filter out ignored issues based on problematicLine
-            com.checkmarx.intellij.devassist.ignore.IgnoreFileManager ignoreFileManager = com.checkmarx.intellij.devassist.ignore.IgnoreFileManager.getInstance(psiFile.getProject());
+            IgnoreManager ignoreManager = new IgnoreManager(psiFile.getProject());
+            IgnoreFileManager ignoreFileManager = IgnoreFileManager.getInstance(psiFile.getProject());
             List<IgnoreEntry> ignoreEntries = ignoreFileManager.getAllIgnoreEntries();
             List<com.checkmarx.intellij.devassist.model.ScanIssue> filteredIssues = new ArrayList<>();
             for (com.checkmarx.intellij.devassist.model.ScanIssue issue : scanResultAdaptor.getIssues()) {
-                if (!scanResultAdaptor.isIgnored(issue, ignoreEntries, uri)) {
+                if (!ignoreManager.isIgnored(issue, ignoreEntries, uri)) {
                     filteredIssues.add(issue);
                 }
             }
             // Return a new adaptor with only non-ignored issues
-            AscaScanResultAdaptor filteredAdaptor = new AscaScanResultAdaptor(ascaResult, uri, psiFile.getProject()) {
+            AscaScanResultAdaptor filteredAdaptor = new AscaScanResultAdaptor(ascaResult, uri) {
                 @Override
                 public List<com.checkmarx.intellij.devassist.model.ScanIssue> getIssues() {
                     return filteredIssues;
@@ -201,24 +204,25 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
             return null;
         }
 
-        String tempFilePath = saveTempFile(file.getName(), fileContent);
-        if (tempFilePath == null) {
-            LOGGER.warn("Failed to create temporary file for ASCA scan.");
-            return null;
-        }
-
-        try {
-            LOGGER.info(Strings.join("Starting ASCA scan on file: ", virtualFile.getPath()));
-            ScanResult scanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent, DevAssistUtils.getIgnoreFilePath(project));
-            // Update line numbers for ignored ASCA issues if any exist
-            updateIgnoredFileDataOnLatestResult(tempFilePath, project, uri, agent, ascLatestVersion);
-            handleScanResult(file, scanResult);
-            return scanResult;
-        } catch (Exception e) {
-            LOGGER.warn("Error during ASCA scan:", e);
-            return null;
-        } finally {
-            deleteFile(tempFilePath);
+        synchronized (SCAN_LOCK) {
+            String tempFilePath = saveTempFile(file.getName(), fileContent);
+            if (tempFilePath == null) {
+                LOGGER.warn("Failed to create temporary file for ASCA scan.");
+                return null;
+            }
+            try {
+                LOGGER.info(Strings.join("Starting ASCA scan on file: ", virtualFile.getPath()));
+                ScanResult scanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent, DevAssistUtils.getIgnoreFilePath(project));
+                // Update line numbers for ignored ASCA issues if any exist
+                updateIgnoredFileDataOnLatestResult(tempFilePath, project, uri, agent, ascLatestVersion);
+                handleScanResult(file, scanResult);
+                return scanResult;
+            } catch (Exception e) {
+                LOGGER.warn("Error during ASCA scan:", e);
+                return null;
+            } finally {
+                deleteFile(tempFilePath);
+            }
         }
     }
 
@@ -460,7 +464,7 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
                 LOGGER.debug("ASCA: Performing full scan to update line numbers for ignored issues");
                 ScanResult fullScanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent, "");
                 if (fullScanResult.getScanDetails() != null && !fullScanResult.getScanDetails().isEmpty()) {
-                    AscaScanResultAdaptor fullScanResultAdaptor = new AscaScanResultAdaptor(fullScanResult, filePath, project);
+                    AscaScanResultAdaptor fullScanResultAdaptor = new AscaScanResultAdaptor(fullScanResult, filePath);
                     ignoreManager.updateLineNumbersForIgnoredEntriesByProblematicLine(fullScanResultAdaptor, filePath);
                 }else{
                     ignoreManager.removeIgnoreEntriesForFileIfEmpty(filePath);

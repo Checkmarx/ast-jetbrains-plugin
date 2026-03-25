@@ -772,7 +772,7 @@ public final class IgnoreManager {
         // Iterate through all ignore entries using normal for-each
         for (Map.Entry<String, IgnoreEntry> mapEntry : ignoreFileManager.getIgnoreData().entrySet()) {
             IgnoreEntry ignoreEntry = mapEntry.getValue();
-            if (!"ASCA".equalsIgnoreCase(String.valueOf(ignoreEntry.getType()))) {
+            if (!ScanEngine.ASCA.toString().equalsIgnoreCase(String.valueOf(ignoreEntry.getType()))) {
                 continue; // Only process ASCA entries
             }
             // Remove file references that are not present in the scan result
@@ -783,8 +783,8 @@ public final class IgnoreManager {
                     String ignoredProblematicLine = fileRef.getProblematicLine();
                     // Find a matching vulnerability by problematicLine (null-safe)
                     VulnerabilityWithLine match = vulnerabilitiesWithLine.stream()
-                        .filter(vwl -> Objects.equals(vwl.problematicLine, ignoredProblematicLine))
-                        .findFirst().orElse(null);
+                            .filter(vwl -> Objects.equals(vwl.problematicLine, ignoredProblematicLine))
+                            .findFirst().orElse(null);
                     if (match != null && match.line > 0 && fileRef.getLine() != match.line) {
                         fileRef.setLine(match.line);
                         hasChanges = true;
@@ -840,7 +840,7 @@ public final class IgnoreManager {
         boolean removed = false;
         for (Map.Entry<String, IgnoreEntry> mapEntry : ignoreFileManager.getIgnoreData().entrySet()) {
             IgnoreEntry ignoreEntry = mapEntry.getValue();
-            if (!"ASCA".equalsIgnoreCase(String.valueOf(ignoreEntry.getType()))) {
+            if (!ScanEngine.ASCA.toString().equalsIgnoreCase(String.valueOf(ignoreEntry.getType()))) {
                 continue;
             }
             // Remove file references for this file
@@ -860,6 +860,40 @@ public final class IgnoreManager {
             ignoreFileManager.saveIgnoreDataToDisk();
             LOGGER.info(String.format("ASCA-Ignore: Removed ignore entries for file with no issues: %s", relativePath));
         }
+    }
+
+    public boolean isIgnored(ScanIssue issue, List<IgnoreEntry> ignoreEntries, String filePath) {
+        String normalizedPath = ignoreFileManager.normalizePath(filePath);
+        boolean isAsca = issue.getScanEngine() == ScanEngine.ASCA;
+        // For ASCA, check problematicLine for all vulnerabilities
+        if (isAsca && issue.getVulnerabilities() != null && !issue.getVulnerabilities().isEmpty()) {
+            for (Vulnerability vuln : issue.getVulnerabilities()) {
+                String issueProblematicLine = vuln.getProblematicLine();
+                for (IgnoreEntry entry : ignoreEntries) {
+                    for (IgnoreEntry.FileReference ref : entry.getFiles()) {
+                        boolean pathMatch = ref.isActive() && ref.getPath().equals(normalizedPath);
+                        boolean problematicLineMatch = (issueProblematicLine == null && ref.getProblematicLine() == null)
+                                || (issueProblematicLine != null && issueProblematicLine.equals(ref.getProblematicLine()));
+                        if (pathMatch && problematicLineMatch) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        // Default: match by path and line
+        int issueLine = issue.getLocations() != null && !issue.getLocations().isEmpty()
+                ? issue.getLocations().get(0).getLine()
+                : -1;
+        for (IgnoreEntry entry : ignoreEntries) {
+            for (IgnoreEntry.FileReference ref : entry.getFiles()) {
+                if (ref.isActive() && ref.getPath().equals(normalizedPath) && ref.getLine() == issueLine) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 }

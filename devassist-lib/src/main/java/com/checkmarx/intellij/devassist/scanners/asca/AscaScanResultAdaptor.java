@@ -4,8 +4,6 @@ import com.checkmarx.ast.asca.ScanDetail;
 import com.checkmarx.ast.asca.ScanResult;
 import com.checkmarx.intellij.common.utils.SeverityLevel;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.devassist.ignore.IgnoreEntry;
-import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
@@ -14,10 +12,7 @@ import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.diagnostic.Logger;
 import org.jetbrains.annotations.NotNull;
-import com.intellij.openapi.project.Project;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,8 +27,6 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
     private final ScanResult ascaScanResult;
     private final String filePath;
     private final List<ScanIssue> scanIssues;
-    private String workspaceRootPath = "";
-    private final Project project;
 
 
     /**
@@ -43,12 +36,9 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
      * @param ascaScanResult the ASCA scan results to be wrapped by this adapter
      * @param filePath       the path of the file being scanned (needed for UI display)
      */
-    public AscaScanResultAdaptor(ScanResult ascaScanResult, String filePath, Project project) {
+    public AscaScanResultAdaptor(ScanResult ascaScanResult, String filePath) {
         this.ascaScanResult = ascaScanResult;
         this.filePath = filePath;
-        this.project = project;
-        String basePath = project.getBasePath();
-        this.workspaceRootPath = basePath;
         this.scanIssues = buildIssues();
     }
 
@@ -235,53 +225,6 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
                     scanIssue.getRuleID() + scanIssue.getRuleName(), scanIssue.getFileName());
         }
         return ScanEngine.ASCA.name();
-    }
-
-    public boolean isIgnored(ScanIssue issue, List<IgnoreEntry> ignoreEntries, String filePath) {
-        String normalizedPath = normalizePath(filePath);
-        boolean isAsca = issue.getScanEngine() == ScanEngine.ASCA;
-        // For ASCA, check problematicLine for all vulnerabilities
-        if (isAsca && issue.getVulnerabilities() != null && !issue.getVulnerabilities().isEmpty()) {
-            for (Vulnerability vuln : issue.getVulnerabilities()) {
-                String issueProblematicLine = vuln.getProblematicLine();
-                for (IgnoreEntry entry : ignoreEntries) {
-                    for (IgnoreEntry.FileReference ref : entry.getFiles()) {
-                        boolean pathMatch = ref.isActive() && ref.getPath().equals(normalizedPath);
-                        boolean problematicLineMatch = (issueProblematicLine == null && ref.getProblematicLine() == null)
-                            || (issueProblematicLine != null && issueProblematicLine.equals(ref.getProblematicLine()));
-                        if (pathMatch && problematicLineMatch) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-        // Default: match by path and line
-        int issueLine = issue.getLocations() != null && !issue.getLocations().isEmpty()
-                ? issue.getLocations().get(0).getLine()
-                : -1;
-        for (IgnoreEntry entry : ignoreEntries) {
-            for (IgnoreEntry.FileReference ref : entry.getFiles()) {
-                if (ref.isActive() && ref.getPath().equals(normalizedPath) && ref.getLine() == issueLine) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * normalizes the given file path to be relative to the project's workspace root.
-     *
-     * @param filePath
-     * @return
-     */
-    private String normalizePath(String filePath) {
-        return Path.of(workspaceRootPath)
-                .relativize(Paths.get(filePath))
-                .toString()
-                .replace("\\", "/");
     }
 
 }
