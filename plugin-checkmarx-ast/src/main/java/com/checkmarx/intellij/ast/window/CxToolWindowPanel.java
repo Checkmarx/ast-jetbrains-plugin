@@ -50,6 +50,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 import static com.intellij.util.ui.JBUI.Panels.simplePanel;
+import static java.lang.String.format;
 
 /**
  * Handles drawing the checkmarx tool window.
@@ -74,8 +75,8 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     // field to input a scan id
     private SearchTextField scanIdField = new SearchTextField();
 
-    // Internal state
-    private final List<GroupBy> groupByList = new ArrayList<>(GroupBy.DEFAULT_GROUP_BY);
+    // Internal state — restored from persisted settings if available, otherwise defaults
+    private final List<GroupBy> groupByList = resolvePersistedGroupBy();
     @Getter
     private ResultGetState currentState = new ResultGetState();
     private Tree currentTree = null;
@@ -110,8 +111,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
                 boolean hasOneAssist = settingsState.isOneAssistLicenseEnabled();
                 boolean hasDevAssist = settingsState.isDevAssistLicenseEnabled();
 
-                LOGGER.info("CxToolWindowPanel: Authenticated, hasOneAssist=" + hasOneAssist
-                        + ", hasDevAssist=" + hasDevAssist);
+                LOGGER.debug(format("CxToolWindowPanel: User is already authenticated. License Details: hasOneAssist: %s, hasDevAssist: %s", hasOneAssist, hasDevAssist));
 
                 if (hasOneAssist) {
                     // One Assist = TRUE: Show actual Scan Results
@@ -133,9 +133,9 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         // Establish message bus connection before subscribing
         ApplicationManager.getApplication().getMessageBus()
                 .connect(this)
-                .subscribe(SettingsListener.SETTINGS_APPLIED, r::run);
+                .subscribe(SettingsListener.SETTINGS_APPLIED, (SettingsListener) r::run);
         ApplicationManager.getApplication().getMessageBus().connect(this)
-                .subscribe(FilterBaseAction.FILTER_CHANGED, this::changeFilter);
+                .subscribe(FilterBaseAction.FILTER_CHANGED, (FilterBaseAction.FilterChanged) this::changeFilter);
 
         r.run();
     }
@@ -255,6 +255,26 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
     }
 
     /**
+     * Resolves the initial GroupBy list from persisted settings.
+     * Falls back to {@link GroupBy#DEFAULT_GROUP_BY} if nothing is persisted yet.
+     */
+    private static List<GroupBy> resolvePersistedGroupBy() {
+        Set<String> persisted = GlobalSettingsState.getInstance().getGroupByValues();
+        if (persisted == null || persisted.isEmpty()) {
+            return new ArrayList<>(GroupBy.DEFAULT_GROUP_BY);
+        }
+        List<GroupBy> resolved = new ArrayList<>();
+        for (String name : persisted) {
+            try {
+                resolved.add(GroupBy.valueOf(name));
+            } catch (IllegalArgumentException ignored) {
+                // skip unknown/removed enum values safely
+            }
+        }
+        return resolved.isEmpty() ? new ArrayList<>(GroupBy.DEFAULT_GROUP_BY) : resolved;
+    }
+
+    /**
      * Add or remove a groupBy to the list for applying
      *
      * @param groupBy  groupBy
@@ -271,6 +291,12 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
         } else {
             groupByList.remove(groupBy);
         }
+        // Persist the updated selection so it survives IDE restarts and logout/login
+        GlobalSettingsState.getInstance().setGroupByValues(
+                groupByList.stream()
+                           .map(Enum::name)
+                           .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new))
+        );
         drawTree();
     }
 
@@ -375,7 +401,7 @@ public class CxToolWindowPanel extends SimpleToolWindowPanel implements Disposab
 
         projectResultsService.indexResults(project, currentState.getResultOutput());
         if (currentState.getMessage() != null) {
-            LOGGER.info(String.format("Cannot show results: %s", currentState.getMessage()));
+            LOGGER.info(format("Cannot show results: %s", currentState.getMessage()));
             scanTreeSplitter.setSecondComponent(TreeUtils.labelTreePanel(currentState.getMessage()));
         } else {
             LOGGER.info("Updating state for scan " + currentState.getScanId());

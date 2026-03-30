@@ -4,6 +4,7 @@ import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -11,7 +12,7 @@ import java.util.Set;
  * This allows plugin modules to register their filter provider implementation
  * while keeping common-lib independent of plugin-specific code.
  * 
- * Uses a singleton pattern with lazy initialization.
+ * Uses a singleton pattern with thread-safe lazy initialization.
  */
 public class FilterProviderRegistry {
     
@@ -68,6 +69,28 @@ public class FilterProviderRegistry {
         return new HashSet<>(SeverityFilter.DEFAULT_SEVERITIES);
     }
     
+    /**
+     * Resolves a persisted filter value string back to a Filterable instance.
+     * Delegates to the registered provider. Falls back to SeverityFilter lookup.
+     *
+     * @param filterValue the value returned by {@link Filterable#getFilterValue()}
+     * @return Optional containing the matching Filterable, or empty if not recognized
+     */
+    public Optional<Filterable> resolveFilterByValue(String filterValue) {
+        if (provider != null) {
+            Optional<Filterable> result = provider.resolveFilterByValue(filterValue);
+            if (result.isPresent()) {
+                return result;
+            }
+        }
+        // Fallback: try SeverityFilter
+        try {
+            return Optional.of(SeverityFilter.valueOf(filterValue));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
     /**
      * Checks if a provider has been registered.
      * 

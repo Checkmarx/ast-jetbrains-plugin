@@ -1,99 +1,138 @@
 package com.checkmarx.intellij.ast.test.unit.tool.window.actions;
 
+import com.checkmarx.intellij.ast.commands.Scan;
+import com.checkmarx.intellij.ast.window.CxToolWindowPanel;
 import com.checkmarx.intellij.ast.window.actions.StartScanAction;
-import com.checkmarx.intellij.common.commands.TenantSetting;
+import com.checkmarx.intellij.common.utils.Constants;
+import com.intellij.dvcs.repo.VcsRepositoryManager;
+import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
-import com.intellij.openapi.actionSystem.ActionUpdateThread;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.Presentation;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
+import org.mockito.*;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class StartScanActionTest {
+public class StartScanActionTest {
 
     @Mock
     private Project mockProject;
 
     @Mock
-    private AnActionEvent mockEvent;
-
-    @Mock
     private PropertiesComponent mockPropertiesComponent;
 
     @Mock
-    private Presentation mockPresentation;
+    private com.checkmarx.intellij.ast.window.actions.selection.RootGroup mockRootGroup;
 
+
+    @Mock
+    private com.checkmarx.intellij.ast.window.actions.selection.BranchSelectionGroup mockBranchSelectionGroup;
+
+
+    @Mock
+    private CxToolWindowPanel mockCxToolWindowPanel;
+
+    @InjectMocks
     private StartScanAction startScanAction;
 
     @BeforeEach
-    void setUp() {
-        startScanAction = new StartScanAction();
+    public void setUp() throws Exception {
+        MockitoAnnotations.openMocks(this);
+
+        setPrivateField(startScanAction, "workspaceProject", mockProject);
+        setPrivateField(startScanAction, "propertiesComponent", mockPropertiesComponent);
+        setPrivateField(startScanAction, "cxToolWindowPanel", mockCxToolWindowPanel);
+
+        when(mockCxToolWindowPanel.getRootGroup()).thenReturn(mockRootGroup);
+        when(mockRootGroup.getBranchSelectionGroup()).thenReturn(mockBranchSelectionGroup);
+
+    }
+
+    private void setPrivateField(Object target, String fieldName, Object value) throws Exception {
+        Field field = target.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, value);
     }
 
     @Test
-    void getUserHasPermissionsToScan_WhenPermissionsAllowed_ReturnsTrue() {
-        // Arrange
-        try (MockedStatic<TenantSetting> tenantSettingMockedStatic = mockStatic(TenantSetting.class)) {
-            tenantSettingMockedStatic.when(TenantSetting::isScanAllowed).thenReturn(true);
+    public void testCreateScan_whenUseLocalBranch_shouldUseActiveBranchName() throws Exception {
+        try (MockedStatic<ActivityTracker> activityTrackerMockedStatic = mockStatic(ActivityTracker.class);
+             MockedStatic<com.checkmarx.intellij.ast.commands.Scan> scanMockedStatic = mockStatic(com.checkmarx.intellij.ast.commands.Scan.class);
+             MockedStatic<ProgressManager> progressManagerMockedStatic = mockStatic(ProgressManager.class);
+             MockedStatic<VcsRepositoryManager> vcsRepositoryManagerMockedStatic = mockStatic(VcsRepositoryManager.class)) {
 
-            // Act
-            Boolean result = StartScanAction.getUserHasPermissionsToScan();
 
-            // Assert
-            assertTrue(result);
+            ActivityTracker mockActivityTracker = mock(ActivityTracker.class);
+            ProgressManager mockProgressManager = mock(ProgressManager.class);
+            setupStaticMocks(activityTrackerMockedStatic, mockActivityTracker, progressManagerMockedStatic, mockProgressManager, vcsRepositoryManagerMockedStatic);
+
+            mockScanCreateMethod(scanMockedStatic);
+            mockBackgroundTask(mockProgressManager);
+            
+            when(mockPropertiesComponent.getValue(Constants.SELECTED_BRANCH_PROPERTY)).thenReturn(Constants.USE_LOCAL_BRANCH);
+            when(mockPropertiesComponent.getValue(Constants.SELECTED_PROJECT_PROPERTY)).thenReturn("testProject");
+            when(mockProject.getBasePath()).thenReturn(Paths.get("path", "to", "project").toString());
+            
+            StartScanAction spyStartScanAction = Mockito.spy(startScanAction);
+
+            doReturn("main").when(spyStartScanAction).getActiveBranch(mockProject);
+            doNothing().when(spyStartScanAction).pollScan(anyString());
+
+            Method createScanMethod = StartScanAction.class.getDeclaredMethod("createScan");
+            createScanMethod.setAccessible(true);
+            createScanMethod.invoke(spyStartScanAction);
+            
+            ArgumentCaptor<String> pathCaptor = ArgumentCaptor.forClass(String.class);
+            ArgumentCaptor<String> projectCaptor = ArgumentCaptor.forClass(String.class);
+            ArgumentCaptor<String> branchCaptor = ArgumentCaptor.forClass(String.class);
+            scanMockedStatic.verify(() -> com.checkmarx.intellij.ast.commands.Scan.scanCreate(pathCaptor.capture(), projectCaptor.capture(), branchCaptor.capture()));
+            
+            verify(mockPropertiesComponent).setValue(Constants.RUNNING_SCAN_ID_PROPERTY, "scanId");
+            verify(mockActivityTracker).inc();
+            assertNotNull(spyStartScanAction);
+            assertEquals("main", branchCaptor.getValue());
         }
     }
 
-    @Test
-    void update_WhenUserHasPermissions_ShowsAction() {
-        when(mockEvent.getProject()).thenReturn(mockProject);
-        when(mockEvent.getPresentation()).thenReturn(mockPresentation);
-        when(mockProject.getService(PropertiesComponent.class)).thenReturn(mockPropertiesComponent);
-        // Arrange
-        try (MockedStatic<StartScanAction> startScanActionMockedStatic = mockStatic(StartScanAction.class)) {
-            startScanActionMockedStatic.when(StartScanAction::getUserHasPermissionsToScan).thenReturn(true);
-
-            // Act
-            startScanAction.update(mockEvent);
-
-            // Assert
-            verify(mockPresentation).setVisible(true);
-        }
+    private void mockScanCreateMethod(MockedStatic<Scan> scanMockedStatic) {
+        com.checkmarx.ast.scan.Scan mockScan = mock(com.checkmarx.ast.scan.Scan.class);
+        when(mockScan.getId()).thenReturn("scanId");
+        scanMockedStatic.when(() ->   com.checkmarx.intellij.ast.commands.Scan.scanCreate(any(), any(), any())).thenReturn(mockScan);
     }
 
-    @Test
-    void update_WhenUserHasNoPermissions_HidesAction() {
-        when(mockEvent.getProject()).thenReturn(mockProject);
-        when(mockEvent.getPresentation()).thenReturn(mockPresentation);
-        when(mockProject.getService(PropertiesComponent.class)).thenReturn(mockPropertiesComponent);
-        // Arrange
-        try (MockedStatic<StartScanAction> startScanActionMockedStatic = mockStatic(StartScanAction.class)) {
-            startScanActionMockedStatic.when(StartScanAction::getUserHasPermissionsToScan).thenReturn(false);
+    private void setupStaticMocks(MockedStatic<ActivityTracker> activityTrackerMockedStatic, ActivityTracker mockActivityTracker, MockedStatic<ProgressManager> progressManagerMockedStatic, ProgressManager mockProgressManager, MockedStatic<VcsRepositoryManager> vcsRepositoryManagerMockedStatic) {
+        activityTrackerMockedStatic.when(ActivityTracker::getInstance).thenReturn(mockActivityTracker);
 
-            // Act
-            startScanAction.update(mockEvent);
+        progressManagerMockedStatic.when(ProgressManager::getInstance).thenReturn(mockProgressManager);
 
-            // Assert
-            verify(mockPresentation).setVisible(false);
-        }
+        VcsRepositoryManager mockVcsRepositoryManager = mock(VcsRepositoryManager.class);
+        vcsRepositoryManagerMockedStatic.when(() -> VcsRepositoryManager.getInstance(any())).thenReturn(mockVcsRepositoryManager);
     }
 
-    @Test
-    void getActionUpdateThread_ReturnsBGT() {
-        // Act
-        ActionUpdateThread result = startScanAction.getActionUpdateThread();
-
-        // Assert
-        assertEquals(ActionUpdateThread.BGT, result);
+    private void mockBackgroundTask(ProgressManager mockProgressManager) {
+        doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(InvocationOnMock invocation) throws Throwable {
+                Task.Backgroundable task = invocation.getArgument(0);
+                task.run(mock(ProgressIndicator.class));
+                task.onFinished();
+                return null;
+            }
+        }).when(mockProgressManager).run(any(Task.Backgroundable.class));
     }
-} 
+}

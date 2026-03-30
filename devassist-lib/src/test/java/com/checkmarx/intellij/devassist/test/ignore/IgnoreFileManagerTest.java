@@ -130,8 +130,8 @@ class IgnoreFileManagerTest {
         entry.setPackageManager("npm");
         entry.setPackageVersion("1.0.0");
 
-        IgnoreEntry.FileReference file1 = new IgnoreEntry.FileReference("src/file1.js", true, 10);
-        IgnoreEntry.FileReference file2 = new IgnoreEntry.FileReference("src/file2.js", true, 20);
+        IgnoreEntry.FileReference file1 = new IgnoreEntry.FileReference("src/file1.js", true, 10, "");
+        IgnoreEntry.FileReference file2 = new IgnoreEntry.FileReference("src/file2.js", true, 20, "");
         entry.setFiles(new ArrayList<>(Arrays.asList(file1, file2)));
 
         manager.updateIgnoreData("test-key", entry);
@@ -169,7 +169,7 @@ class IgnoreFileManagerTest {
         entry.setPackageManager("npm");
         entry.setPackageVersion("1.0.0");
 
-        IgnoreEntry.FileReference file = new IgnoreEntry.FileReference("src/file.js", true, 10);
+        IgnoreEntry.FileReference file = new IgnoreEntry.FileReference("src/file.js", true, 10, "");
         entry.setFiles(new ArrayList<>(List.of(file)));
 
         manager.updateIgnoreData("test-key", entry);
@@ -194,7 +194,7 @@ class IgnoreFileManagerTest {
         entry1.setType(com.checkmarx.intellij.devassist.utils.ScanEngine.OSS);
         entry1.setPackageManager("npm");
         entry1.setPackageVersion("4.17.21");
-        entry1.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("file.js", true, 1))));
+        entry1.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("file.js", true, 1, ""))));
 
         manager.updateIgnoreData("oss-key", entry1);
 
@@ -221,7 +221,7 @@ class IgnoreFileManagerTest {
         entry.setImageName("nginx");
         entry.setImageTag("1.19");
         entry.setType(com.checkmarx.intellij.devassist.utils.ScanEngine.CONTAINERS);
-        entry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("Dockerfile", true, 1))));
+        entry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("Dockerfile", true, 1, ""))));
 
         manager.updateIgnoreData("container-key", entry);
 
@@ -246,7 +246,7 @@ class IgnoreFileManagerTest {
         entry.setPackageName("AWS_KEY");
         entry.setSecretValue("secret123");
         entry.setType(com.checkmarx.intellij.devassist.utils.ScanEngine.SECRETS);
-        entry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("config.js", true, 5))));
+        entry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("config.js", true, 5, ""))));
 
         manager.updateIgnoreData("secret-key", entry);
 
@@ -271,7 +271,7 @@ class IgnoreFileManagerTest {
         entry.setPackageName("S3 Bucket Public");
         entry.setSimilarityId("sim-123");
         entry.setType(com.checkmarx.intellij.devassist.utils.ScanEngine.IAC);
-        entry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("main.tf", true, 15))));
+        entry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("main.tf", true, 15, ""))));
 
         manager.updateIgnoreData("iac-key", entry);
 
@@ -296,7 +296,7 @@ class IgnoreFileManagerTest {
         entry.setPackageName("SQL Injection");
         entry.setRuleId(1077);
         entry.setType(com.checkmarx.intellij.devassist.utils.ScanEngine.ASCA);
-        entry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("app.java", true, 42))));
+        entry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("app.java", true, 42, ""))));
 
         manager.updateIgnoreData("asca-key", entry);
 
@@ -322,14 +322,14 @@ class IgnoreFileManagerTest {
         activeEntry.setType(com.checkmarx.intellij.devassist.utils.ScanEngine.OSS);
         activeEntry.setPackageManager("npm");
         activeEntry.setPackageVersion("1.0.0");
-        activeEntry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("file1.js", true, 1))));
+        activeEntry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("file1.js", true, 1, ""))));
 
         IgnoreEntry inactiveEntry = new IgnoreEntry();
         inactiveEntry.setPackageName("inactive-package");
         inactiveEntry.setType(com.checkmarx.intellij.devassist.utils.ScanEngine.OSS);
         inactiveEntry.setPackageManager("npm");
         inactiveEntry.setPackageVersion("2.0.0");
-        inactiveEntry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("file2.js", false, 2))));
+        inactiveEntry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("file2.js", false, 2, ""))));
 
         manager.updateIgnoreData("active-key", activeEntry);
         manager.updateIgnoreData("inactive-key", inactiveEntry);
@@ -352,7 +352,7 @@ class IgnoreFileManagerTest {
         entry.setType(com.checkmarx.intellij.devassist.utils.ScanEngine.OSS);
         entry.setPackageManager("npm");
         entry.setPackageVersion("1.0.0");
-        entry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("single.js", true, 10))));
+        entry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("single.js", true, 10, ""))));
 
         manager.updateIgnoreData("single-key", entry);
 
@@ -375,9 +375,9 @@ class IgnoreFileManagerTest {
         entry.setRuleId(123);
 
         List<IgnoreEntry.FileReference> files = new ArrayList<>();
-        files.add(new IgnoreEntry.FileReference("file1.java", true, 10));
-        files.add(new IgnoreEntry.FileReference("file2.java", true, 20));
-        files.add(new IgnoreEntry.FileReference("file3.java", true, 30));
+        files.add(new IgnoreEntry.FileReference("file1.java", true, 10, ""));
+        files.add(new IgnoreEntry.FileReference("file2.java", true, 20, ""));
+        files.add(new IgnoreEntry.FileReference("file3.java", true, 30, ""));
         entry.setFiles(files);
 
         manager.updateIgnoreData("multi-key", entry);
@@ -400,7 +400,7 @@ class IgnoreFileManagerTest {
         ossEntry.setType(com.checkmarx.intellij.devassist.utils.ScanEngine.OSS);
         ossEntry.setPackageManager("npm");
         ossEntry.setPackageVersion("1.0.0");
-        ossEntry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("file.js", true, 1))));
+        ossEntry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("file.js", true, 1, ""))));
 
         manager.updateIgnoreData("oss-key", ossEntry);
 
@@ -419,5 +419,4 @@ class IgnoreFileManagerTest {
     }
 
 }
-
 

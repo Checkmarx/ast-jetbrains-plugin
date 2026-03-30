@@ -91,7 +91,7 @@
         <!-- Register scanners from devassist -->
         <listener class="com.checkmarx.intellij.devassist.listeners.DevAssistProjectListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
-        <listener class="com.checkmarx.intellij.devassist.configuration.mcp.McpUninstallHandler"
+        <listener class="com.checkmarx.intellij.devassist.configuration.mcp.PluginLifecycleHandler"
                   topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     </applicationListeners>
 

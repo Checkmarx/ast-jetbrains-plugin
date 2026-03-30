@@ -13,6 +13,7 @@ import com.intellij.util.messages.MessageBus;
 import com.intellij.util.messages.Topic;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -58,11 +59,13 @@ public abstract class FilterBaseAction extends ToggleAction implements CxToolWin
      */
     @Override
     public void setSelected(@NotNull AnActionEvent e, boolean state) {
+        Set<Filterable> updatedFilters = new LinkedHashSet<>(GlobalSettingsState.getInstance().getFilters());
         if (state) {
-            GlobalSettingsState.getInstance().getFilters().add(filterable);
+            updatedFilters.add(filterable);
         } else {
-            GlobalSettingsState.getInstance().getFilters().remove(filterable);
+            updatedFilters.remove(filterable);
         }
+        GlobalSettingsState.getInstance().setFilters(updatedFilters);
         messageBus.syncPublisher(FILTER_CHANGED).filterChanged();
     }
 

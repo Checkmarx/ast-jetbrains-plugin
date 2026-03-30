@@ -138,5 +138,3 @@ class AscaScanResultAdaptorTest {
         assertEquals("Low", issue.getVulnerabilities().get(0).getSeverity());
     }
 }
-
-
