@@ -193,6 +193,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         vulnerability.setRemediationAdvise(scanDetail.getRemediationAdvise());
         vulnerability.setTitle(scanDetail.getRuleName());
         vulnerability.setProblematicLine(scanDetail.getProblematicLine());
+        vulnerability.setRuleId(scanDetail.getRuleID());
 
         return vulnerability;
     }

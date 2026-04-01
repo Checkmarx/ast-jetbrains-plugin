@@ -151,14 +151,32 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
 
             AscaScanResultAdaptor scanResultAdaptor = new AscaScanResultAdaptor(ascaResult, uri);
 
-            // Filter out ignored issues based on problematicLine
+            // Filter out ignored issues and per-vulnerability ignored entries
             IgnoreManager ignoreManager = new IgnoreManager(psiFile.getProject());
             IgnoreFileManager ignoreFileManager = IgnoreFileManager.getInstance(psiFile.getProject());
             List<IgnoreEntry> ignoreEntries = ignoreFileManager.getAllIgnoreEntries();
+            String normalizedPath = ignoreFileManager.normalizePath(uri);
             List<com.checkmarx.intellij.devassist.model.ScanIssue> filteredIssues = new ArrayList<>();
             for (com.checkmarx.intellij.devassist.model.ScanIssue issue : scanResultAdaptor.getIssues()) {
                 if (!ignoreManager.isIgnored(issue, ignoreEntries, uri)) {
-                    filteredIssues.add(issue);
+                    // Filter out ignored vulnerabilities from the issue
+                    List<com.checkmarx.intellij.devassist.model.Vulnerability> activeVulnerabilities = new ArrayList<>();
+                    for (com.checkmarx.intellij.devassist.model.Vulnerability vuln : issue.getVulnerabilities()) {
+                        if (!ignoreManager.isVulnerabilityIgnored(vuln, ignoreEntries, normalizedPath)) {
+                            activeVulnerabilities.add(vuln);
+                        }
+                    }
+                    // Only add the issue if there are still active vulnerabilities
+                    if (!activeVulnerabilities.isEmpty()) {
+                        issue.setVulnerabilities(activeVulnerabilities);
+                        // Update title to reflect the actual count of active vulnerabilities
+                        if (activeVulnerabilities.size() > 1) {
+                            issue.setTitle(activeVulnerabilities.size() + DevAssistConstants.MULTIPLE_ASCA_ISSUES);
+                        } else if (activeVulnerabilities.size() == 1) {
+                            issue.setTitle(activeVulnerabilities.get(0).getTitle());
+                        }
+                        filteredIssues.add(issue);
+                    }
                 }
             }
             // Return a new adaptor with only non-ignored issues

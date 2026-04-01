@@ -862,25 +862,48 @@ public final class IgnoreManager {
         }
     }
 
+    /**
+     * Checks if a specific vulnerability is ignored based on its ruleId.
+     * This method is ASCA-specific and checks whether the given vulnerability
+     * should be ignored by matching its ruleId against the ignore entries.
+     * This allows multiple vulnerabilities on the same line to be ignored independently.
+     *
+     * @param vulnerability the vulnerability to check
+     * @param ignoreEntries the list of ignore entries
+     * @param normalizedPath the normalized file path
+     * @return true if the vulnerability should be ignored, false otherwise
+     */
+    public boolean isVulnerabilityIgnored(Vulnerability vulnerability, List<IgnoreEntry> ignoreEntries, String normalizedPath) {
+        Integer vulnRuleId = vulnerability.getRuleId();
+        for (IgnoreEntry entry : ignoreEntries) {
+            if (entry.getType() != ScanEngine.ASCA) {
+                continue;
+            }
+            // The ignore entry's ruleId stores the ASCA rule ID — must match to avoid
+            // ignoring a different rule that happens to flag the same line of code
+            if (vulnRuleId == null || !vulnRuleId.equals(entry.getRuleId())) {
+                continue;
+            }
+            for (IgnoreEntry.FileReference ref : entry.getFiles()) {
+                if (ref.isActive() && ref.getPath().equals(normalizedPath)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public boolean isIgnored(ScanIssue issue, List<IgnoreEntry> ignoreEntries, String filePath) {
         String normalizedPath = ignoreFileManager.normalizePath(filePath);
         boolean isAsca = issue.getScanEngine() == ScanEngine.ASCA;
-        // For ASCA, check problematicLine for all vulnerabilities
+        // For ASCA, check if ALL vulnerabilities are ignored independently by ruleId
         if (isAsca && issue.getVulnerabilities() != null && !issue.getVulnerabilities().isEmpty()) {
             for (Vulnerability vuln : issue.getVulnerabilities()) {
-                String issueProblematicLine = vuln.getProblematicLine();
-                for (IgnoreEntry entry : ignoreEntries) {
-                    for (IgnoreEntry.FileReference ref : entry.getFiles()) {
-                        boolean pathMatch = ref.isActive() && ref.getPath().equals(normalizedPath);
-                        boolean problematicLineMatch = (issueProblematicLine == null && ref.getProblematicLine() == null)
-                                || (issueProblematicLine != null && issueProblematicLine.equals(ref.getProblematicLine()));
-                        if (pathMatch && problematicLineMatch) {
-                            return true;
-                        }
-                    }
+                if (!isVulnerabilityIgnored(vuln, ignoreEntries, normalizedPath)) {
+                    return false;
                 }
             }
-            return false;
+            return true;
         }
         // Default: match by path and line
         int issueLine = issue.getLocations() != null && !issue.getLocations().isEmpty()
