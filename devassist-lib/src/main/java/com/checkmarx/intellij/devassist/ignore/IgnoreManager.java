@@ -380,7 +380,7 @@ public final class IgnoreManager {
             IgnoreEntry ignoreEntry = new IgnoreEntry();
             ignoreEntry.setType(detail.getScanEngine());
             ignoreEntry.setPackageName(vulnerability.getTitle());
-            ignoreEntry.setRuleId(detail.getRuleId());
+            ignoreEntry.setRuleId(vulnerability.getRuleId());
             ignoreEntry.setSeverity(vulnerability.getSeverity());
             ignoreEntry.setDescription(vulnerability.getDescription());
             ignoreEntry.setFiles(List.of(new IgnoreEntry.FileReference(relativePath, true, line, vulnerability.getProblematicLine())));
@@ -388,7 +388,6 @@ public final class IgnoreManager {
         });
         ifExistingIssue(detail, entry);
         entry.setDateAdded(Instant.now().toString());
-
         return entry;
     }
 
@@ -499,7 +498,7 @@ public final class IgnoreManager {
                 vulnerability = DevAssistUtils.getVulnerabilityDetails(detail,
                         clickId.equals(QUICK_FIX) ? detail.getScanIssueId() : clickId);
                 return Objects.nonNull(vulnerability) ?
-                        formatJsonKeyForIgnoreEntry(detail.getScanEngine(), vulnerability.getTitle(), detail.getRuleId().toString(), relativePath) : "";
+                        formatJsonKeyForIgnoreEntry(detail.getScanEngine(), vulnerability.getTitle(), vulnerability.getRuleId().toString(), relativePath) : "";
             default:
                 LOGGER.warn("Unknown scan engine: " + detail.getScanEngine() + ", using fallback key");
                 return formatJsonKeyForIgnoreEntry(detail.getScanEngine(), "", "", detail.getTitle());
@@ -741,7 +740,10 @@ public final class IgnoreManager {
      * For each ignored file reference, if a scan result with the same problematicLine is found, update the line number in the ignore entry.
      * Removes file references and ignore entries that are no longer present in the scan result.
      *
-     * @param fullScanResults The scan results containing updated line numbers and issues
+     * This method accepts a ScanResult containing UNFILTERED scan results (all vulnerabilities, including already-ignored ones).
+     * This ensures accurate tracking of all vulnerabilities for proper ignore entry management.
+     *
+     * @param fullScanResults The scan results containing updated line numbers and issues (must be UNFILTERED)
      * @param filePath        The path of the file that was scanned and needs line number updates
      */
     public void updateLineNumbersForIgnoredEntriesByProblematicLine(ScanResult<?> fullScanResults, String filePath) {
@@ -895,17 +897,8 @@ public final class IgnoreManager {
 
     public boolean isIgnored(ScanIssue issue, List<IgnoreEntry> ignoreEntries, String filePath) {
         String normalizedPath = ignoreFileManager.normalizePath(filePath);
-        boolean isAsca = issue.getScanEngine() == ScanEngine.ASCA;
-        // For ASCA, check if ALL vulnerabilities are ignored independently by ruleId
-        if (isAsca && issue.getVulnerabilities() != null && !issue.getVulnerabilities().isEmpty()) {
-            for (Vulnerability vuln : issue.getVulnerabilities()) {
-                if (!isVulnerabilityIgnored(vuln, ignoreEntries, normalizedPath)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        // Default: match by path and line
+        // Match by path and line (for OSS, Secrets, Containers, IAC, and other scanners)
+        // Note: ASCA filtering is handled in AscaScanResultAdaptor during issue creation
         int issueLine = issue.getLocations() != null && !issue.getLocations().isEmpty()
                 ? issue.getLocations().get(0).getLine()
                 : -1;
