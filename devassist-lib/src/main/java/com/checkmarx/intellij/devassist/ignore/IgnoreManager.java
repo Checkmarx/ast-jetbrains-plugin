@@ -865,46 +865,37 @@ public final class IgnoreManager {
     }
 
     /**
-     * Checks if a specific vulnerability is ignored based on its ruleId.
-     * This method is ASCA-specific and checks whether the given vulnerability
-     * should be ignored by matching its ruleId against the ignore entries.
-     * This allows multiple vulnerabilities on the same line to be ignored independently.
+     * Checks if a specific ASCA vulnerability is ignored based on its problematicLine and rule name.
+     * This is used to filter individual vulnerabilities within a ScanIssue that may contain
+     * multiple vulnerabilities on the same line.
+     * <p>
+     * Matching uses both the problematicLine (code content) and the rule name (entry.packageName vs vulnerability.title)
+     * because multiple different rules can flag the same line of code, producing the same problematicLine value.
      *
-     * @param vulnerability the vulnerability to check
-     * @param ignoreEntries the list of ignore entries
-     * @param normalizedPath the normalized file path
-     * @return true if the vulnerability should be ignored, false otherwise
+     * @param vulnerability  The specific vulnerability to check
+     * @param ignoreEntries  The list of ignore entries to check against
+     * @param filePath       The file path of the issue
+     * @return {@code true} if this specific vulnerability is ignored; {@code false} otherwise
      */
-    public boolean isVulnerabilityIgnored(Vulnerability vulnerability, List<IgnoreEntry> ignoreEntries, String normalizedPath) {
-        Integer vulnRuleId = vulnerability.getRuleId();
+    public boolean isAscaVulnerabilityIgnored(Vulnerability vulnerability, List<IgnoreEntry> ignoreEntries, String filePath) {
+        String normalizedPath = ignoreFileManager.normalizePath(filePath);
+        String issueProblematicLine = vulnerability.getProblematicLine();
+        String vulnTitle = vulnerability.getTitle();
         for (IgnoreEntry entry : ignoreEntries) {
             if (entry.getType() != ScanEngine.ASCA) {
                 continue;
             }
-            // The ignore entry's ruleId stores the ASCA rule ID — must match to avoid
-            // ignoring a different rule that happens to flag the same line of code
-            if (vulnRuleId == null || !vulnRuleId.equals(entry.getRuleId())) {
+            // Match by rule name: the ignore entry's packageName must match the vulnerability's title (rule name)
+            boolean ruleNameMatch = (entry.getPackageName() != null && entry.getPackageName().equals(vulnTitle))
+                    || (entry.getPackageName() == null && vulnTitle == null);
+            if (!ruleNameMatch) {
                 continue;
             }
             for (IgnoreEntry.FileReference ref : entry.getFiles()) {
-                if (ref.isActive() && ref.getPath().equals(normalizedPath)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    public boolean isIgnored(ScanIssue issue, List<IgnoreEntry> ignoreEntries, String filePath) {
-        String normalizedPath = ignoreFileManager.normalizePath(filePath);
-        // Match by path and line (for OSS, Secrets, Containers, IAC, and other scanners)
-        // Note: ASCA filtering is handled in AscaScanResultAdaptor during issue creation
-        int issueLine = issue.getLocations() != null && !issue.getLocations().isEmpty()
-                ? issue.getLocations().get(0).getLine()
-                : -1;
-        for (IgnoreEntry entry : ignoreEntries) {
-            for (IgnoreEntry.FileReference ref : entry.getFiles()) {
-                if (ref.isActive() && ref.getPath().equals(normalizedPath) && ref.getLine() == issueLine) {
+                boolean pathMatch = ref.isActive() && ref.getPath().equals(normalizedPath);
+                boolean problematicLineMatch = (issueProblematicLine == null && ref.getProblematicLine() == null)
+                        || (issueProblematicLine != null && issueProblematicLine.equals(ref.getProblematicLine()));
+                if (pathMatch && problematicLineMatch) {
                     return true;
                 }
             }

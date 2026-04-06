@@ -200,18 +200,16 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
             IgnoreManager ignoreManager = null;
             IgnoreFileManager ignoreFileManager = null;
             List<IgnoreEntry> ignoreEntries = null;
-            String normalizedPath = null;
 
             if (applyFilter) {
                 ignoreManager = new IgnoreManager(project);
                 ignoreFileManager = IgnoreFileManager.getInstance(project);
                 ignoreEntries = ignoreFileManager.getAllIgnoreEntries();
-                normalizedPath = ignoreFileManager.normalizePath(filePath);
 
                 // For single vulnerability with filtering: skip entirely if ignored
                 if (ascaScanDetails.size() == 1) {
                     Vulnerability tempVuln = createVulnerability(ascaScanDetails.get(0), null);
-                    if (ignoreManager.isVulnerabilityIgnored(tempVuln, ignoreEntries, normalizedPath)) {
+                    if (ignoreManager.isAscaVulnerabilityIgnored(tempVuln, ignoreEntries, filePath)) {
                         LOGGER.debug("ASCA adaptor: Skipping single ignored vulnerability on line " +
                                    ascaScanDetails.get(0).getLine());
                         return null;
@@ -228,7 +226,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
                 String vulnerabilityId = (i == 0) ? scanIssue.getScanIssueId() : null;
                 Vulnerability vuln = createVulnerability(detail, vulnerabilityId);
 
-                if (!applyFilter || !ignoreManager.isVulnerabilityIgnored(vuln, ignoreEntries, normalizedPath)) {
+                if (!applyFilter || !ignoreManager.isAscaVulnerabilityIgnored(vuln, ignoreEntries, filePath)) {
                     scanIssue.getVulnerabilities().add(vuln);
                 }
             }
