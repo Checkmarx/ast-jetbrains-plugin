@@ -380,7 +380,7 @@ public final class IgnoreManager {
             IgnoreEntry ignoreEntry = new IgnoreEntry();
             ignoreEntry.setType(detail.getScanEngine());
             ignoreEntry.setPackageName(vulnerability.getTitle());
-            ignoreEntry.setRuleId(detail.getRuleId());
+            ignoreEntry.setRuleId(vulnerability.getRuleId());
             ignoreEntry.setSeverity(vulnerability.getSeverity());
             ignoreEntry.setDescription(vulnerability.getDescription());
             ignoreEntry.setFiles(List.of(new IgnoreEntry.FileReference(relativePath, true, line, vulnerability.getProblematicLine())));
@@ -388,7 +388,6 @@ public final class IgnoreManager {
         });
         ifExistingIssue(detail, entry);
         entry.setDateAdded(Instant.now().toString());
-
         return entry;
     }
 
@@ -499,7 +498,7 @@ public final class IgnoreManager {
                 vulnerability = DevAssistUtils.getVulnerabilityDetails(detail,
                         clickId.equals(QUICK_FIX) ? detail.getScanIssueId() : clickId);
                 return Objects.nonNull(vulnerability) ?
-                        formatJsonKeyForIgnoreEntry(detail.getScanEngine(), vulnerability.getTitle(), detail.getRuleId().toString(), relativePath) : "";
+                        formatJsonKeyForIgnoreEntry(detail.getScanEngine(), vulnerability.getTitle(), vulnerability.getRuleId().toString(), relativePath) : "";
             default:
                 LOGGER.warn("Unknown scan engine: " + detail.getScanEngine() + ", using fallback key");
                 return formatJsonKeyForIgnoreEntry(detail.getScanEngine(), "", "", detail.getTitle());
@@ -741,7 +740,10 @@ public final class IgnoreManager {
      * For each ignored file reference, if a scan result with the same problematicLine is found, update the line number in the ignore entry.
      * Removes file references and ignore entries that are no longer present in the scan result.
      *
-     * @param fullScanResults The scan results containing updated line numbers and issues
+     * This method accepts a ScanResult containing UNFILTERED scan results (all vulnerabilities, including already-ignored ones).
+     * This ensures accurate tracking of all vulnerabilities for proper ignore entry management.
+     *
+     * @param fullScanResults The scan results containing updated line numbers and issues (must be UNFILTERED)
      * @param filePath        The path of the file that was scanned and needs line number updates
      */
     public void updateLineNumbersForIgnoredEntriesByProblematicLine(ScanResult<?> fullScanResults, String filePath) {
@@ -862,33 +864,38 @@ public final class IgnoreManager {
         }
     }
 
-    public boolean isIgnored(ScanIssue issue, List<IgnoreEntry> ignoreEntries, String filePath) {
+    /**
+     * Checks if a specific ASCA vulnerability is ignored based on its problematicLine and rule name.
+     * This is used to filter individual vulnerabilities within a ScanIssue that may contain
+     * multiple vulnerabilities on the same line.
+     * <p>
+     * Matching uses both the problematicLine (code content) and the rule name (entry.packageName vs vulnerability.title)
+     * because multiple different rules can flag the same line of code, producing the same problematicLine value.
+     *
+     * @param vulnerability  The specific vulnerability to check
+     * @param ignoreEntries  The list of ignore entries to check against
+     * @param filePath       The file path of the issue
+     * @return {@code true} if this specific vulnerability is ignored; {@code false} otherwise
+     */
+    public boolean isAscaVulnerabilityIgnored(Vulnerability vulnerability, List<IgnoreEntry> ignoreEntries, String filePath) {
         String normalizedPath = ignoreFileManager.normalizePath(filePath);
-        boolean isAsca = issue.getScanEngine() == ScanEngine.ASCA;
-        // For ASCA, check problematicLine for all vulnerabilities
-        if (isAsca && issue.getVulnerabilities() != null && !issue.getVulnerabilities().isEmpty()) {
-            for (Vulnerability vuln : issue.getVulnerabilities()) {
-                String issueProblematicLine = vuln.getProblematicLine();
-                for (IgnoreEntry entry : ignoreEntries) {
-                    for (IgnoreEntry.FileReference ref : entry.getFiles()) {
-                        boolean pathMatch = ref.isActive() && ref.getPath().equals(normalizedPath);
-                        boolean problematicLineMatch = (issueProblematicLine == null && ref.getProblematicLine() == null)
-                                || (issueProblematicLine != null && issueProblematicLine.equals(ref.getProblematicLine()));
-                        if (pathMatch && problematicLineMatch) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-        // Default: match by path and line
-        int issueLine = issue.getLocations() != null && !issue.getLocations().isEmpty()
-                ? issue.getLocations().get(0).getLine()
-                : -1;
+        String issueProblematicLine = vulnerability.getProblematicLine();
+        String vulnTitle = vulnerability.getTitle();
         for (IgnoreEntry entry : ignoreEntries) {
+            if (entry.getType() != ScanEngine.ASCA) {
+                continue;
+            }
+            // Match by rule name: the ignore entry's packageName must match the vulnerability's title (rule name)
+            boolean ruleNameMatch = (entry.getPackageName() != null && entry.getPackageName().equals(vulnTitle))
+                    || (entry.getPackageName() == null && vulnTitle == null);
+            if (!ruleNameMatch) {
+                continue;
+            }
             for (IgnoreEntry.FileReference ref : entry.getFiles()) {
-                if (ref.isActive() && ref.getPath().equals(normalizedPath) && ref.getLine() == issueLine) {
+                boolean pathMatch = ref.isActive() && ref.getPath().equals(normalizedPath);
+                boolean problematicLineMatch = (issueProblematicLine == null && ref.getProblematicLine() == null)
+                        || (issueProblematicLine != null && issueProblematicLine.equals(ref.getProblematicLine()));
+                if (pathMatch && problematicLineMatch) {
                     return true;
                 }
             }

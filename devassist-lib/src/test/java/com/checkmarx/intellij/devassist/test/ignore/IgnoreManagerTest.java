@@ -227,6 +227,7 @@ class IgnoreManagerTest {
 
             Vulnerability vuln = mock(Vulnerability.class);
             when(vuln.getTitle()).thenReturn("asca-title");
+            when(vuln.getRuleId()).thenReturn(1077);
             when(vuln.getSeverity()).thenReturn("LOW");
             when(vuln.getDescription()).thenReturn("desc");
             when(vuln.getProblematicLine()).thenReturn(null);
