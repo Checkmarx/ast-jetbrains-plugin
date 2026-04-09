@@ -51,7 +51,12 @@ public final class DevAssistFixPrompts {
                 .append("}\n")
                 .append("```\n\n");
 
-        prompt.append("Parse the response and extract the `fix_instructions` field. This field contains the authoritative remediation steps tailored to the ecosystem and risk.\n\n");
+        prompt.append("Parse the response and extract the `fix_instructions` field. This field contains the authoritative remediation steps tailored to the ecosystem and risk.\n")
+                .append("- Mark internally that tool was **AVAILABLE** for output formatting\n\n")
+                .append("- If the tool is **not available**:\n")
+                .append("  - Display the following disclosure notice:\n")
+                .append("  `⚠️ Automated Remediation Unavailable: ").append(MCP_DISPLAY_NAME).append(" packageRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.`\n")
+                .append("  - Mark internally that tool was **NOT AVAILABLE** for output formatting\n\n");
 
         prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
                 .append("- Read and execute each line in `fix_instructions`, in order.\n")
@@ -80,12 +85,15 @@ public final class DevAssistFixPrompts {
                 .append("- Attempt to fix the issue if it's obvious\n")
                 .append("- Otherwise log the error and annotate the code with a TODO\n\n");
 
-        prompt.append("Step 4. OUTPUT:\n\n").append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n");
+        prompt.append("Step 4. OUTPUT:\n\n")
+                .append("**Output Prefix Based on Tool Availability:**\n")
+                .append("- **If packageRemediation tool WAS available:** Use `").append(AGENT_NAME).append(" -` to indicate automated remediation was used\n")
+                .append("- **If packageRemediation tool was NOT available:** Use `Security Assistant -` to clearly indicate manual guidance was provided (do NOT mention product name)\n\n");
 
         prompt.append(CHECK + " **Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
-                .append("Security Assistant - Remediation Summary\n\n")
+                .append("[Prefix] - Remediation Summary\n\n")
                 .append("Package:     ").append(packageName).append("\n")
                 .append("Version:     ").append(packageVersion).append("\n")
                 .append("Manager:     ").append(packageManager).append("\n")
@@ -165,9 +173,15 @@ public final class DevAssistFixPrompts {
                 .append("- If the tool is **available**, parse the response:\n")
                 .append("  - `remediation_steps` - exact steps to follow\n")
                 .append("  - `best_practices` - explain secure alternatives\n")
-                .append("  - `description` - contextual background\n\n")
-                .append("- If the tool is **not available**, display:\n")
-                .append("`[MCP ERROR] codeRemediation tool is not available. Please check the ").append(MCP_DISPLAY_NAME).append(" MCP server.`\n\n");
+                .append("  - `description` - contextual background\n")
+                .append("  - Mark internally that tool was **AVAILABLE** for output formatting\n\n")
+                .append("- If the tool is **not available**:\n")
+                .append("  - Display the following disclosure notice:\n")
+                .append("  `⚠️ Automated Remediation Unavailable: ").append(MCP_DISPLAY_NAME).append(" codeRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.`\n")
+                .append("  - Mark internally that tool was **NOT AVAILABLE** for output formatting\n")
+                .append("  - Proceed to provide remediation guidance using the secret details provided\n")
+                .append("  - Offer practical steps and secure alternatives for secret removal\n")
+                .append("  - Ensure the guidance is concrete and actionable\n\n");
 
         prompt.append("Step 3. ANALYSIS & RISK\n\n")
                 .append("Identify the type of secret (API key, token, credential). Explain:\n")
@@ -187,9 +201,12 @@ public final class DevAssistFixPrompts {
                 .append("- Fix issues if introduced by secret removal\n\n");
 
         prompt.append("Step 6. OUTPUT FORMAT\n\n")
+                .append("**Output Prefix Based on Tool Availability:**\n")
+                .append("- **If codeRemediation tool WAS available:** Use `").append(AGENT_NAME).append(" -` to indicate automated remediation was used\n")
+                .append("- **If codeRemediation tool was NOT available:** Use `Security Assistant -` to clearly indicate manual guidance was provided (do NOT mention product name)\n\n")
                 .append("Generate a structured remediation summary:\n\n")
                 .append("```markdown\n")
-                .append("### ").append(AGENT_NAME).append(" - Secret Remediation Summary\n\n")
+                .append("### [Prefix] - Secret Remediation Summary\n\n")
                 .append("**Secret:** ").append(title).append("  \n")
                 .append("**Severity:** ").append(severity != null ? severity : "").append("  \n")
                 .append("**Assessment:** ").append(getAssessmentText(severity)).append("\n\n")
@@ -270,7 +287,15 @@ public final class DevAssistFixPrompts {
                 .append("  \"severity\": \"").append(severity).append("\"\n")
                 .append("}\n")
                 .append("```\n\n")
-                .append("Parse the response and extract the `fix_instructions` field. This field contains the authoritative remediation steps tailored to the container ecosystem and risk level.\n\n");
+                .append("Parse the response and extract the `fix_instructions` field. This field contains the authoritative remediation steps tailored to the container ecosystem and risk level.\n")
+                .append("- Mark internally that tool was **AVAILABLE** for output formatting\n\n")
+                .append("- If the tool is **not available**:\n")
+                .append("  - Display the following disclosure notice:\n")
+                .append("  `⚠️ Automated Remediation Unavailable: ").append(MCP_DISPLAY_NAME).append(" imageRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.`\n")
+                .append("  - Mark internally that tool was **NOT AVAILABLE** for output formatting\n")
+                .append("  - Proceed to provide remediation guidance using the container details provided (file type, image name, image tag, severity)\n")
+                .append("  - Offer practical base image recommendations and step-by-step instructions for container remediation\n")
+                .append("  - Ensure the guidance is concrete and actionable\n\n");
 
         prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
                 .append("- Read and execute each line in `fix_instructions`, in order.\n")
@@ -297,11 +322,13 @@ public final class DevAssistFixPrompts {
                 .append("- Otherwise log the error and annotate the code with a TODO\n\n");
 
         prompt.append("Step 4. OUTPUT:\n\n")
-                .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
+                .append("**Output Prefix Based on Tool Availability:**\n")
+                .append("- **If imageRemediation tool WAS available:** Use `").append(AGENT_NAME).append(" -` to indicate automated remediation was used\n")
+                .append("- **If imageRemediation tool was NOT available:** Use `Security Assistant -` to clearly indicate manual guidance was provided (do NOT mention product name)\n\n")
                 .append(CHECK + " **Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
-                .append("Security Assistant - Remediation Summary\n\n")
+                .append("[Prefix] - Remediation Summary\n\n")
                 .append("File Type:    ").append(fileType).append("\n")
                 .append("Image:        ").append(imageName).append(":").append(imageTag).append("\n")
                 .append("Severity:     ").append(severity).append("\n\n")
@@ -404,9 +431,15 @@ public final class DevAssistFixPrompts {
                 .append("```\n\n");
 
         prompt.append("- If the tool is **available**, parse the response:\n")
-                .append("  - `remediation_steps` - exact steps to follow for remediation\n\n")
-                .append("- If the tool is **not available**, display:\n")
-                .append("`[MCP ERROR] codeRemediation tool is not available. Please check the ").append(MCP_DISPLAY_NAME).append(" MCP server.`\n\n");
+                .append("  - `remediation_steps` - exact steps to follow for remediation\n")
+                .append("  - Mark internally that tool was **AVAILABLE** for output formatting\n\n")
+                .append("- If the tool is **not available**:\n")
+                .append("  - Display the following disclosure notice:\n")
+                .append("  `⚠️ Automated Remediation Unavailable: ").append(MCP_DISPLAY_NAME).append(" codeRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.`\n")
+                .append("  - Mark internally that tool was **NOT AVAILABLE** for output formatting\n")
+                .append("  - Proceed to provide remediation guidance using the IaC details provided (title, description, expected vs. actual values)\n")
+                .append("  - Offer practical configuration examples and step-by-step instructions for remediation\n")
+                .append("  - Ensure the guidance is concrete and actionable\n\n");
 
         prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
                 .append("- Read and execute each line in `remediation_steps`, in order.\n")
@@ -430,10 +463,12 @@ public final class DevAssistFixPrompts {
                 .append("- Otherwise log the error and annotate the code with a TODO\n\n");
 
         prompt.append("Step 4. OUTPUT:\n\n")
-                .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
+                .append("**Output Prefix Based on Tool Availability:**\n")
+                .append("- **If codeRemediation tool WAS available:** Use `").append(AGENT_NAME).append(" -` to indicate automated remediation was used\n")
+                .append("- **If codeRemediation tool was NOT available:** Use `Security Assistant -` to clearly indicate manual guidance was provided (do NOT mention product name)\n\n")
                 .append(CHECK + " **Remediation Summary**\n\n")
                 .append("```\n")
-                .append("Security Assistant - Remediation Summary\n\n")
+                .append("[Prefix] - Remediation Summary\n\n")
                 .append("Issue:       ").append(title).append("\n")
                 .append("Severity:    ").append(severity).append("\n")
                 .append("File Type:   ").append(fileType).append("\n")
@@ -527,9 +562,15 @@ public final class DevAssistFixPrompts {
                 .append("}\n")
                 .append("```\n\n")
                 .append("- If the tool is **available**, parse the response:\n")
-                .append("  - `remediation_steps` - exact steps to follow for remediation\n\n")
-                .append("- If the tool is **not available**, display:\n")
-                .append("  `[MCP ERROR] codeRemediation tool is not available. Please check the ").append(MCP_DISPLAY_NAME).append(" MCP server.`\n\n");
+                .append("  - `remediation_steps` - exact steps to follow for remediation\n")
+                .append("  - Mark internally that tool was **AVAILABLE** for output formatting\n\n")
+                .append("- If the tool is **not available**:\n")
+                .append("  - Display the following disclosure notice:\n")
+                .append("  `⚠️ Automated Remediation Unavailable: ").append(MCP_DISPLAY_NAME).append(" codeRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.`\n")
+                .append("  - Mark internally that tool was **NOT AVAILABLE** for output formatting\n")
+                .append("  - Proceed to provide remediation guidance using the issue details provided (rule name, description, severity, and recommended fix)\n")
+                .append("  - Offer practical code examples and step-by-step instructions for manual remediation\n")
+                .append("  - Ensure the guidance is concrete and actionable\n\n");
 
         prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
                 .append("- Read and execute each line in `remediation_steps`, in order.\n")
@@ -544,11 +585,13 @@ public final class DevAssistFixPrompts {
                 .append("  - Capture line numbers if known.\n\n");
 
         prompt.append("Step 3. OUTPUT:\n\n")
-                .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
-                .append(CHECK + " ** Remediation Summary**\n\n")
+                .append("**Output Prefix Based on Tool Availability:**\n")
+                .append("- **If codeRemediation tool WAS available:** Use `").append(AGENT_NAME).append(" -` to indicate automated remediation was used\n")
+                .append("- **If codeRemediation tool was NOT available:** Use `Security Assistant -` to clearly indicate manual guidance was provided (do NOT mention product name)\n\n")
+                .append(CHECK + " **Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
-                .append("`").append(AGENT_NAME).append(" -` - Remediation Summary\n\n")
+                .append("[Prefix] - Remediation Summary\n\n")
                 .append("Rule:        ").append(ruleName).append("\n")
                 .append("Severity:    ").append(severity).append("\n")
                 .append("Issue Type:  SAST Security Vulnerability\n")
