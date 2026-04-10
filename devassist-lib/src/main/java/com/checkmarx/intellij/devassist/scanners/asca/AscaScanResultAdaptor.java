@@ -92,34 +92,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
      * @return a list of ScanIssue objects
      */
     private List<ScanIssue> buildIssues() {
-        if (ascaScanResult == null || ascaScanResult.getScanDetails() == null) {
-            LOGGER.debug("ASCA adaptor: No scan results or scan details available");
-            return Collections.emptyList();
-        }
-
-        List<ScanDetail> scanDetails = ascaScanResult.getScanDetails();
-        if (scanDetails.isEmpty()) {
-            return Collections.emptyList();
-        }
-        // Group scan details by line number, then sort by severity precedence
-        Map<Integer, List<ScanDetail>> groupedIssues = scanDetails.stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.groupingBy(
-                        ScanDetail::getLine,
-                        Collectors.collectingAndThen(Collectors.toList(), detailsList -> {
-                            detailsList.sort(Comparator.comparingInt(detail ->
-                                    SeverityLevel.fromValue(mapSeverity(detail.getSeverity())).getPrecedence()));
-                            return detailsList;
-                        })
-                ));
-
-        List<ScanIssue> issues = groupedIssues.values().stream()
-                .map(this::createScanIssueForGroup)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        LOGGER.debug("ASCA adaptor: Converted " + issues.size() + " grouped scan issues for file: " + filePath);
-        return issues;
+        return buildIssuesInternal(true);
     }
 
     /**
@@ -130,8 +103,20 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
      * @return a list of ScanIssue objects with all vulnerabilities unfiltered
      */
     private List<ScanIssue> buildIssuesUnfiltered() {
+        return buildIssuesInternal(false);
+    }
+
+    /**
+     * Internal method that builds a list of ScanIssue objects from the ASCA scan results.
+     * Groups multiple vulnerabilities on the same line and sorts them by severity.
+     *
+     * @param applyFilter true to filter ignored vulnerabilities, false to include all
+     * @return a list of ScanIssue objects
+     */
+    private List<ScanIssue> buildIssuesInternal(boolean applyFilter) {
         if (ascaScanResult == null || ascaScanResult.getScanDetails() == null) {
-            LOGGER.debug("ASCA adaptor (unfiltered): No scan results or scan details available");
+            String logMsg = applyFilter ? "filtered" : "unfiltered";
+            LOGGER.debug("ASCA adaptor (" + logMsg + "): No scan results or scan details available");
             return Collections.emptyList();
         }
 
@@ -139,6 +124,7 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         if (scanDetails.isEmpty()) {
             return Collections.emptyList();
         }
+
         // Group scan details by line number, then sort by severity precedence
         Map<Integer, List<ScanDetail>> groupedIssues = scanDetails.stream()
                 .filter(Objects::nonNull)
@@ -152,44 +138,25 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
                 ));
 
         List<ScanIssue> issues = groupedIssues.values().stream()
-                .map(this::createScanIssueForGroupUnfiltered)
+                .map(detailList -> createScanIssueForGroupInternal(detailList, applyFilter))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        LOGGER.debug("ASCA adaptor (unfiltered): Converted " + issues.size() + " grouped scan issues for file: " + filePath);
+        String logMsg = applyFilter ? "" : "(unfiltered) ";
+        LOGGER.debug("ASCA adaptor " + logMsg + ": Converted " + issues.size() + " grouped scan issues for file: " + filePath);
         return issues;
     }
 
+
     /**
      * Creates a ScanIssue from a group of ASCA scan details that are on the same line.
-     * Filters out ignored vulnerabilities during creation when filterIgnored=true:
+     * Filters out ignored vulnerabilities during creation:
      * - For single vulnerability: skip entirely if ignored
      * - For multiple vulnerabilities: add only non-ignored ones
      *
      * @param ascaScanDetails the list of ASCA scan details for the same line (already sorted by severity)
-     * @return a {@link ScanIssue} representing the ASCA finding(s), or {@code null} if all ignored or conversion fails
-     */
-    private ScanIssue createScanIssueForGroup(List<ScanDetail> ascaScanDetails) {
-        return createScanIssueForGroupInternal(ascaScanDetails, true);
-    }
-
-    /**
-     * Creates a ScanIssue from a group of ASCA scan details without filtering.
-     * All vulnerabilities are included, regardless of ignore status.
-     *
-     * @param ascaScanDetails the list of ASCA scan details for the same line (already sorted by severity)
-     * @return a {@link ScanIssue} representing the ASCA finding(s)
-     */
-    private ScanIssue createScanIssueForGroupUnfiltered(List<ScanDetail> ascaScanDetails) {
-        return createScanIssueForGroupInternal(ascaScanDetails, false);
-    }
-
-    /**
-     * Internal method that creates a ScanIssue from a group of scan details.
-     *
-     * @param ascaScanDetails the list of ASCA scan details for the same line (already sorted by severity)
      * @param applyFilter     true to filter out ignored vulnerabilities, false to include all
-     * @return a {@link ScanIssue} or null if all ignored (when filter=true) or conversion fails
+     * @return a {@link ScanIssue} representing the ASCA finding(s), or {@code null} if all ignored or conversion fails
      */
     private ScanIssue createScanIssueForGroupInternal(List<ScanDetail> ascaScanDetails, boolean applyFilter) {
         if (ascaScanDetails == null || ascaScanDetails.isEmpty()) {
@@ -324,6 +291,10 @@ public class AscaScanResultAdaptor implements com.checkmarx.intellij.devassist.c
         vulnerability.setTitle(scanDetail.getRuleName());
         vulnerability.setProblematicLine(scanDetail.getProblematicLine());
         vulnerability.setRuleId(scanDetail.getRuleID());
+
+        LOGGER.debug("ASCA adaptor: Created vulnerability '" + scanDetail.getRuleName() +
+                    "' with problematicLine '" + scanDetail.getProblematicLine() +
+                    "' and vulnerabilityId '" + vulnerabilityId + "'");
 
         return vulnerability;
     }

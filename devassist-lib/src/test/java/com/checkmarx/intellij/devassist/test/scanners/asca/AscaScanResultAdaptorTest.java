@@ -209,18 +209,20 @@ class AscaScanResultAdaptorTest {
     }
 
     @Test
-    @DisplayName("RuleId is correctly set on vulnerabilities for per-vulnerability filtering")
-    void ruleIdIsSetOnVulnerabilities() {
+    @DisplayName("ProblematicLine is correctly set on vulnerabilities for per-vulnerability filtering")
+    void problematicLineIsSetOnVulnerabilities() {
         ScanDetail detail = mockDetail(25, "High", "TestRule", "test-desc", "test-fix");
         when(detail.getRuleID()).thenReturn(777);
+        String problematicCode = "eval(userInput)";
+        when(detail.getProblematicLine()).thenReturn(problematicCode);
 
         AscaScanResultAdaptor adaptor =
                 new AscaScanResultAdaptor(mockResult(List.of(detail)), "/repo/Main.java", mockProject());
 
         List<ScanIssue> issues = adaptor.getIssues();
         assertEquals(1, issues.size());
-        assertEquals(777, issues.get(0).getVulnerabilities().get(0).getRuleId(),
-                "RuleId should be set for per-vulnerability ignore tracking");
+        assertEquals(problematicCode, issues.get(0).getVulnerabilities().get(0).getProblematicLine(),
+                "ProblematicLine should be set for per-vulnerability ignore tracking");
     }
 
     @Test
@@ -240,5 +242,33 @@ class AscaScanResultAdaptorTest {
         ScanIssue issue = issues.get(0);
         // With 2 vulnerabilities, title should show "2 multiple issues"
         assertEquals("2" + DevAssistConstants.MULTIPLE_ASCA_ISSUES, issue.getTitle());
+    }
+
+    @Test
+    @DisplayName("Same ruleId with different problematicLines are tracked independently")
+    void sameRuleIdDifferentProblematicLinesTrackedIndependently() {
+        // Scenario: Same rule (e.g., SQL Injection) triggered by two different code patterns on same line
+        ScanDetail detail1 = mockDetail(40, "High", "SQLInjection", "sql-desc1", "sql-fix");
+        when(detail1.getRuleID()).thenReturn(100);  // Same ruleId
+        when(detail1.getProblematicLine()).thenReturn("eval(userInput)");
+
+        ScanDetail detail2 = mockDetail(40, "High", "SQLInjection", "sql-desc2", "sql-fix");
+        when(detail2.getRuleID()).thenReturn(100);  // Same ruleId as detail1
+        when(detail2.getProblematicLine()).thenReturn("execute(query)");
+
+        AscaScanResultAdaptor adaptor =
+                new AscaScanResultAdaptor(mockResult(Arrays.asList(detail1, detail2)), "/repo/Main.java", mockProject());
+
+        List<ScanIssue> issues = adaptor.getIssues();
+        assertEquals(1, issues.size(), "Should group by line number");
+        assertEquals(2, issues.get(0).getVulnerabilities().size(), "Should have both vulnerabilities");
+
+        // Verify each vulnerability has its own problematicLine
+        assertEquals("eval(userInput)", issues.get(0).getVulnerabilities().get(0).getProblematicLine());
+        assertEquals("execute(query)", issues.get(0).getVulnerabilities().get(1).getProblematicLine());
+
+        // Both have the same ruleId but different problematicLines
+        assertEquals(100, issues.get(0).getVulnerabilities().get(0).getRuleId());
+        assertEquals(100, issues.get(0).getVulnerabilities().get(1).getRuleId());
     }
 }
