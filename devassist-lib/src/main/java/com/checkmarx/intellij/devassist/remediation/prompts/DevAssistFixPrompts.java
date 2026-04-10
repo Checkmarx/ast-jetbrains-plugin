@@ -86,14 +86,14 @@ public final class DevAssistFixPrompts {
                 .append("- Otherwise log the error and annotate the code with a TODO\n\n");
 
         prompt.append("Step 4. OUTPUT:\n\n")
-                .append("**Output Prefix Based on Tool Availability:**\n")
-                .append("- **If packageRemediation tool WAS available:** Use `").append(AGENT_NAME).append(" -` to indicate automated remediation was used\n")
-                .append("- **If packageRemediation tool was NOT available:** Use `AI-Generated Guidance -` to clearly indicate manual guidance was provided (do NOT mention product name)\n\n");
+                .append("**Output Format Based on Tool Availability:**\n")
+                .append("- **If packageRemediation tool WAS available:** `").append(AGENT_NAME).append(" - Remediation Summary`\n")
+                .append("- **If packageRemediation tool was NOT available:** `AI-Generated Remediation Guidance`\n\n");
 
         prompt.append(CHECK + " **Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
-                .append("[Prefix] - Remediation Summary\n\n")
+                .append("[As per above format]\n\n")
                 .append("Package:     ").append(packageName).append("\n")
                 .append("Version:     ").append(packageVersion).append("\n")
                 .append("Manager:     ").append(packageManager).append("\n")
@@ -201,12 +201,12 @@ public final class DevAssistFixPrompts {
                 .append("- Fix issues if introduced by secret removal\n\n");
 
         prompt.append("Step 6. OUTPUT FORMAT\n\n")
-                .append("**Output Prefix Based on Tool Availability:**\n")
-                .append("- **If codeRemediation tool WAS available:** Use `").append(AGENT_NAME).append(" -` to indicate automated remediation was used\n")
-                .append("- **If codeRemediation tool was NOT available:** Use `AI-Generated Guidance -` to clearly indicate manual guidance was provided (do NOT mention product name)\n\n")
+                .append("**Output Format Based on Tool Availability:**\n")
+                .append("- **If codeRemediation tool WAS available:** `").append(AGENT_NAME).append(" - Remediation Summary`\n")
+                .append("- **If codeRemediation tool was NOT available:** `AI-Generated Remediation Guidance`\n\n")
                 .append("Generate a structured remediation summary:\n\n")
                 .append("```markdown\n")
-                .append("### [Prefix] - Secret Remediation Summary\n\n")
+                .append("### [Prefix]\n\n")
                 .append("**Secret:** ").append(title).append("  \n")
                 .append("**Severity:** ").append(severity != null ? severity : "").append("  \n")
                 .append("**Assessment:** ").append(getAssessmentText(severity)).append("\n\n")
@@ -322,13 +322,12 @@ public final class DevAssistFixPrompts {
                 .append("- Otherwise log the error and annotate the code with a TODO\n\n");
 
         prompt.append("Step 4. OUTPUT:\n\n")
-                .append("**Output Prefix Based on Tool Availability:**\n")
-                .append("- **If imageRemediation tool WAS available:** Use `").append(AGENT_NAME).append(" -` to indicate automated remediation was used\n")
-                .append("- **If imageRemediation tool was NOT available:** Use `AI-Generated Guidance -` to clearly indicate manual guidance was provided (do NOT mention product name)\n\n")
+                .append("**Output Format Based on Tool Availability:**\n")
+                .append("- **If imageRemediation tool WAS available:** `").append(AGENT_NAME).append(" - Remediation Summary`\n")
+                .append("- **If imageRemediation tool was NOT available:** `AI-Generated Remediation Guidance`\n\n")
                 .append(CHECK + " **Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
-                .append("[Prefix] - Remediation Summary\n\n")
                 .append("File Type:    ").append(fileType).append("\n")
                 .append("Image:        ").append(imageName).append(":").append(imageTag).append("\n")
                 .append("Severity:     ").append(severity).append("\n\n")
@@ -463,12 +462,11 @@ public final class DevAssistFixPrompts {
                 .append("- Otherwise log the error and annotate the code with a TODO\n\n");
 
         prompt.append("Step 4. OUTPUT:\n\n")
-                .append("**Output Prefix Based on Tool Availability:**\n")
-                .append("- **If codeRemediation tool WAS available:** Use `").append(AGENT_NAME).append(" -` to indicate automated remediation was used\n")
-                .append("- **If codeRemediation tool was NOT available:** Use `AI-Generated Guidance -` to clearly indicate manual guidance was provided (do NOT mention product name)\n\n")
+                .append("**Output Format Based on Tool Availability:**\n")
+                .append("- **If codeRemediation tool WAS available:** `").append(AGENT_NAME).append(" - Remediation Summary`\n")
+                .append("- **If codeRemediation tool was NOT available:** `AI-Generated Remediation Guidance`\n\n")
                 .append(CHECK + " **Remediation Summary**\n\n")
                 .append("```\n")
-                .append("[Prefix] - Remediation Summary\n\n")
                 .append("Issue:       ").append(title).append("\n")
                 .append("Severity:    ").append(severity).append("\n")
                 .append("File Type:   ").append(fileType).append("\n")
@@ -585,9 +583,9 @@ public final class DevAssistFixPrompts {
                 .append("  - Capture line numbers if known.\n\n");
 
         prompt.append("Step 3. OUTPUT:\n\n")
-                .append("**Output Prefix Based on Tool Availability:**\n")
-                .append("- **If codeRemediation tool WAS available:** Use `").append(AGENT_NAME).append(" -` to indicate automated remediation was used\n")
-                .append("- **If codeRemediation tool was NOT available:** Use `AI-Generated Guidance -` to clearly indicate manual guidance was provided (do NOT mention product name)\n\n")
+                .append("**Output Format Based on Tool Availability:**\n")
+                .append("- **If codeRemediation tool WAS available:** `").append(AGENT_NAME).append(" - Remediation Summary`\n")
+                .append("- **If codeRemediation tool was NOT available:** `AI-Generated Remediation Guidance`\n\n")
                 .append(CHECK + " **Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
