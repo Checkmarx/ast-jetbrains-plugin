@@ -1,7 +1,8 @@
 package com.checkmarx.intellij.devassist.remediation.prompts;
 
+import com.checkmarx.intellij.common.context.PluginContext;
 import com.checkmarx.intellij.common.utils.SeverityLevel;
-import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 
 import static com.checkmarx.intellij.devassist.utils.EmojiUnicodes.*;
@@ -11,11 +12,28 @@ import static com.checkmarx.intellij.devassist.utils.EmojiUnicodes.*;
  */
 public final class DevAssistFixPrompts {
 
-    private static final String AGENT_NAME = DevAssistUtils.getAgentName();
-    private static final String MCP_DISPLAY_NAME = Utils.getPluginDisplayName();
-
     private DevAssistFixPrompts() {
         throw new IllegalStateException("Cannot instantiate CxOneAssistFixPrompts class");
+    }
+
+    private static String getAgentName() {
+        return DevAssistUtils.getAgentName();
+    }
+
+    private static String getMcpDisplayName() {
+        try {
+            PluginContext pluginContext = PluginContext.getInstance();
+            if (pluginContext == null) {
+                return "Checkmarx";
+            }
+            if (pluginContext.isDevAssistPlugin()) {
+                String name = pluginContext.getPluginDisplayName();
+                return name != null && !name.isEmpty() ? name : DevAssistConstants.CX_DEVASSIST_AGENT_NAME;
+            }
+            return DevAssistConstants.CX_AGENT_NAME;
+        } catch (Exception e) {
+            return "Checkmarx";
+        }
     }
 
     /**
@@ -30,14 +48,14 @@ public final class DevAssistFixPrompts {
     public static String buildSCARemediationPrompt(String packageName, String packageVersion,
                                                    String packageManager, String severity) {
         StringBuilder prompt = new StringBuilder();
-        System.out.println("AGENT_NAME=>" + AGENT_NAME);
-        prompt.append("You are the ").append(AGENT_NAME).append(".\n\n")
+        prompt.append("You are the ").append(getAgentName()).append(".\n\n")
                 .append("A security issue has been detected in `").append(packageName).append("@").append(packageVersion).append("` (package manager: `").append(packageManager).append("`).\n")
                 .append("**Severity:** `").append(severity).append("`\n")
                 .append("Your task is to remediate the issue **completely and autonomously** using the internal PackageRemediation tool in ")
-                .append(MCP_DISPLAY_NAME).append(" MCP. Follow the exact instructions in `fix_instructions` - no assumptions or manual interaction allowed.\n\n");
+                .append(getMcpDisplayName()).append(" MCP. Follow the exact instructions in `fix_instructions` - no assumptions or manual interaction allowed.\n\n");
 
-        prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
+        prompt.append("---\n\n")
+                .append("1. ANALYSIS (AUTOMATED):\n\n")
                 .append("Determine the issue type:\n")
                 .append("- If `status` is one of: `Critical`, `High`, `Medium`, `Low`, `Info`, set: `issueType = \"CVE\"`\n")
                 .append("- If `status = \"Malicious\"`, set: `issueType = \"malicious\"`\n\n")
@@ -49,25 +67,31 @@ public final class DevAssistFixPrompts {
                 .append("  \"packageManager\": \"").append(packageManager).append("\",\n")
                 .append("  \"issueType\": \"{determined issueType}\"\n")
                 .append("}\n")
-                .append("```\n\n");
+                .append("```\n\n")
+                .append("Parse the response and extract the `fix_instructions` field. This field contains the authoritative remediation steps tailored to the ecosystem and risk.\n")
+                .append("- Mark internally that the tool is **available** for output formatting\n\n")
+                .append("- If the tool is **not available**:\n")
+                .append("  - Display the following disclosure notice:\n")
+                .append("  `").append(WARNING).append(" Automated Remediation Unavailable: ").append(getMcpDisplayName()).append(" packageRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.`\n")
+                .append("  - Mark internally that the tool is **not available** for output formatting\n\n");
 
-        prompt.append("Parse the response and extract the `fix_instructions` field. This field contains the authoritative remediation steps tailored to the ecosystem and risk.\n\n");
-
-        prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
+        prompt.append("---\n\n")
+                .append("2. EXECUTION (AUTOMATED):\n\n")
                 .append("- Read and execute each line in `fix_instructions`, in order.\n")
                 .append("- For each change:\n")
                 .append("  - Apply the instruction exactly.\n")
                 .append("  - Track all modified files.\n")
                 .append("  - Note the type of change (e.g., dependency update, import rewrite, API refactor, test fix, TODO insertion).\n")
                 .append("  - Record before → after values where applicable.\n")
-                .append("  - Capture line numbers if known.\n")
+                .append("  - Capture line numbers if known.\n\n")
                 .append("Examples:\n")
                 .append("- `package.json`: lodash version changed from 3.10.1 -> 4.17.21\n")
                 .append("- `src/utils/date.ts`: import updated from `lodash` to `date-fns`\n")
                 .append("- `src/main.ts:42`: `_.pluck(users, 'id')` -> `users.map(u => u.id)`\n")
                 .append("- `src/index.ts:78`: // TODO: Verify API migration from old-package to new-package\n\n");
 
-        prompt.append("Step 3. VERIFICATION:\n\n")
+        prompt.append("---\n\n")
+                .append("3. VERIFICATION:\n\n")
                 .append("- If the instructions include build, test, or audit steps - run them exactly as written\n")
                 .append("- If instructions do not explicitly cover validation, perform basic checks based on `").append(packageManager).append("`:\n")
                 .append("  - `npm`: `npx tsc --noEmit`, `npm run build`, `npm test`\n")
@@ -75,17 +99,18 @@ public final class DevAssistFixPrompts {
                 .append("  - `maven`: `mvn compile`, `mvn test`\n")
                 .append("  - `pypi`: `python -c \"import ").append(packageName).append("\"`, `pytest`\n")
                 .append("  - `nuget`: `dotnet build`, `dotnet test`\n\n")
-
-                .append("If any of these validations fail:\n\n")
+                .append("If any of these validations fail:\n")
                 .append("- Attempt to fix the issue if it's obvious\n")
                 .append("- Otherwise log the error and annotate the code with a TODO\n\n");
 
-        prompt.append("Step 4. OUTPUT:\n\n").append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n");
-
-        prompt.append(CHECK + " **Remediation Summary**\n\n")
+        prompt.append("---\n\n")
+                .append("4. OUTPUT:\n\n")
+                .append("**Output Format Based on Tool Availability:**\n")
+                .append("- **If packageRemediation tool is available:** Output title `").append(getAgentName()).append(" - Remediation Summary`\n")
+                .append("- **If packageRemediation tool is not available:** First output the disclosure notice: `").append(WARNING).append(" Automated Remediation Unavailable: ").append(getMcpDisplayName()).append(" packageRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.` Then output title `AI-Generated Remediation Guidance`\n\n")
+                .append(CHECK + " **Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
-                .append("Security Assistant - Remediation Summary\n\n")
                 .append("Package:     ").append(packageName).append("\n")
                 .append("Version:     ").append(packageVersion).append("\n")
                 .append("Manager:     ").append(packageManager).append("\n")
@@ -100,32 +125,30 @@ public final class DevAssistFixPrompts {
                 .append("   - Fixed test: adjusted mock expectations to match updated API\n\n")
                 .append("4. src/index.ts\n")
                 .append("   - Line 78: Inserted TODO: Verify API migration from old-package to new-package\n")
-                .append("```\n\n");
-
-        prompt.append(CHECK + " **Final Status**\n\n")
-                .append("If all tasks succeeded:\n\n")
+                .append("```\n\n")
+                .append(CHECK + " **Final Status**\n\n")
+                .append("If all tasks succeeded:\n")
                 .append("- \"Remediation completed for ").append(packageName).append("@").append(packageVersion).append("\"\n")
                 .append("- \"All fix instructions and failing tests resolved\"\n")
                 .append("- \"Build status: PASS\"\n")
-                .append("- \"Test results: PASS\"\n\n");
-
-        prompt.append("If partially resolved:\n\n")
+                .append("- \"Test results: PASS\"\n\n")
+                .append("If partially resolved:\n")
                 .append("- \"Remediation partially completed - manual review required\"\n")
                 .append("- \"Some test failures or instructions could not be automatically fixed\"\n")
-                .append("- \"TODOs inserted where applicable\"\n\n");
-
-        prompt.append("If failed:\n\n")
+                .append("- \"TODOs inserted where applicable\"\n\n")
+                .append("If failed:\n")
                 .append("- \"Remediation failed for ").append(packageName).append("@").append(packageVersion).append("\"\n")
                 .append("- \"Reason: {summary of failure}\"\n")
                 .append("- \"Unresolved instructions or failing tests listed above\"\n\n");
 
-        prompt.append("Step 5. CONSTRAINTS:\n\n")
-                .append("- Do not  the user\n")
+        prompt.append("---\n\n")
+                .append("5. CONSTRAINTS:\n\n")
+                .append("- Do not prompt the user\n")
                 .append("- Do not skip or reorder fix steps\n")
                 .append("- Only execute what's explicitly listed in `fix_instructions`\n")
                 .append("- Attempt to fix test failures automatically\n")
                 .append("- Insert clear TODO comments for unresolved issues\n")
-                .append("- Ensure remediation is deterministic, auditable, and fully automated");
+                .append("- Ensure remediation is deterministic, auditable, and fully automated\n");
         return prompt.toString();
     }
 
@@ -141,20 +164,23 @@ public final class DevAssistFixPrompts {
     public static String buildSecretRemediationPrompt(String title, String description, String severity) {
         StringBuilder prompt = new StringBuilder()
                 .append("A secret has been detected: \"").append(title).append("\"  \n")
-                .append(description != null ? description : "").append("\n\n");
-        prompt.append("You are the `").append(AGENT_NAME).append("`.\n\n")
+                .append(description != null ? description : "").append("\n\n")
+                .append("---\n\n")
+                .append("You are the `").append(getAgentName()).append("`.\n\n")
                 .append("Your mission is to identify and remediate this secret using secure coding standards. Follow industry best practices, automate safely, and clearly document all actions taken.\n\n");
 
-        prompt.append("Step 1. SEVERITY INTERPRETATION  \n")
+        prompt.append("---\n\n")
+                .append("1. SEVERITY INTERPRETATION\n\n")
                 .append("Severity level: `").append(severity != null ? severity : "").append("`\n\n")
-                .append("- `Critical`: Secret is confirmed **valid**. Immediate remediation required.  \n")
-                .append("- `High`: Secret may be valid. Treat as sensitive and externalize it securely.  \n")
+                .append("- `Critical`: Secret is confirmed **valid**. Immediate remediation required.\n")
+                .append("- `High`: Secret may be valid. Treat as sensitive and externalize it securely.\n")
                 .append("- `Medium`: Likely **invalid** (e.g., test or placeholder). Still remove from code and annotate accordingly.\n\n");
 
-        prompt.append("Step 2. TOOL CALL - Remediation Plan\n\n")
-                .append("Determine the programming language of the file where the secret was detected.  \n")
+        prompt.append("---\n\n")
+                .append("2. TOOL CALL - Remediation Plan\n\n")
+                .append("Determine the programming language of the file where the secret was detected.\n")
                 .append("If unknown, leave the `language` field empty.\n\n")
-                .append("Call the internal `codeRemediation` ").append(MCP_DISPLAY_NAME).append(" MCP tool with:\n\n")
+                .append("Call the internal `codeRemediation` ").append(getMcpDisplayName()).append(" MCP tool with:\n\n")
                 .append("```json\n")
                 .append("{\n")
                 .append("  \"type\": \"secret\",\n")
@@ -165,31 +191,44 @@ public final class DevAssistFixPrompts {
                 .append("- If the tool is **available**, parse the response:\n")
                 .append("  - `remediation_steps` - exact steps to follow\n")
                 .append("  - `best_practices` - explain secure alternatives\n")
-                .append("  - `description` - contextual background\n\n")
-                .append("- If the tool is **not available**, display:\n")
-                .append("`[MCP ERROR] codeRemediation tool is not available. Please check the ").append(MCP_DISPLAY_NAME).append(" MCP server.`\n\n");
+                .append("  - `description` - contextual background\n")
+                .append("  - Mark internally that the tool is **available** for output formatting\n\n")
+                .append("- If the tool is **not available**:\n")
+                .append("  - Display the following disclosure notice:\n")
+                .append("  `").append(WARNING).append(" Automated Remediation Unavailable: ").append(getMcpDisplayName()).append(" codeRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.`\n")
+                .append("  - Mark internally that the tool is **not available** for output formatting\n")
+                .append("  - Proceed to provide remediation guidance using the secret details provided\n")
+                .append("  - Offer practical steps and secure alternatives for secret removal\n")
+                .append("  - Ensure the guidance is concrete and actionable\n\n");
 
-        prompt.append("Step 3. ANALYSIS & RISK\n\n")
+        prompt.append("---\n\n")
+                .append("3. ANALYSIS & RISK\n\n")
                 .append("Identify the type of secret (API key, token, credential). Explain:\n")
                 .append("- Why it's a risk (leakage, unauthorized access, compliance violations)\n")
                 .append("- What could happen if misused or left in source\n\n");
 
-        prompt.append("Step 4. REMEDIATION STRATEGY\n\n")
+        prompt.append("---\n\n")
+                .append("4. REMEDIATION STRATEGY\n\n")
                 .append("- Parse and apply every item in `remediation_steps` sequentially\n")
                 .append("- Automatically update code/config files if safe\n")
                 .append("- If a step cannot be applied automatically, insert a clear TODO\n")
                 .append("- Replace secret with environment variable or vault reference\n\n");
 
-        prompt.append("Step 5. VERIFICATION\n\n")
+        prompt.append("---\n\n")
+                .append("5. VERIFICATION\n\n")
                 .append("If applicable for the language:\n")
                 .append("- Run type checks or compile the code\n")
                 .append("- Ensure changes build and tests pass\n")
                 .append("- Fix issues if introduced by secret removal\n\n");
 
-        prompt.append("Step 6. OUTPUT FORMAT\n\n")
+        prompt.append("---\n\n")
+                .append("6. OUTPUT FORMAT\n\n")
+                .append("**Output Format Based on Tool Availability:**\n")
+                .append("- **If codeRemediation tool is available:** Output title `").append(getAgentName()).append(" - Remediation Summary`\n")
+                .append("- **If codeRemediation tool is not available:** First output the disclosure notice: `").append(WARNING).append(" Automated Remediation Unavailable: ").append(getMcpDisplayName()).append(" codeRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.` Then output title `AI-Generated Remediation Guidance`\n\n")
                 .append("Generate a structured remediation summary:\n\n")
                 .append("```markdown\n")
-                .append("### ").append(AGENT_NAME).append(" - Secret Remediation Summary\n\n")
+                .append("### [Prefix]\n\n")
                 .append("**Secret:** ").append(title).append("  \n")
                 .append("**Severity:** ").append(severity != null ? severity : "").append("  \n")
                 .append("**Assessment:** ").append(getAssessmentText(severity)).append("\n\n")
@@ -197,10 +236,10 @@ public final class DevAssistFixPrompts {
                 .append("- `.env`: Added/updated with `SECRET_NAME`\n")
                 .append("- `src/config.ts`: Replaced hardcoded secret with `process.env.SECRET_NAME`\n\n")
                 .append("**Remediation Actions Taken:**\n")
-                .append("- " + CHECK + " Removed hardcoded secret\n")
-                .append("- " + CHECK + " Inserted environment reference\n")
-                .append("- " + CHECK + " Updated or created .env\n")
-                .append("- " + CHECK + " Added TODOs for secret rotation or vault storage\n\n")
+                .append("- ").append(CHECK).append(" Removed hardcoded secret\n")
+                .append("- ").append(CHECK).append(" Inserted environment reference\n")
+                .append("- ").append(CHECK).append(" Updated or created .env\n")
+                .append("- ").append(CHECK).append(" Added TODOs for secret rotation or vault storage\n\n")
                 .append("**Next Steps:**\n")
                 .append("- [ ] Revoke exposed secret (if applicable)\n")
                 .append("- [ ] Store securely in vault (AWS Secrets Manager, GitHub Actions, etc.)\n")
@@ -211,12 +250,13 @@ public final class DevAssistFixPrompts {
                 .append("- (From `description` field or fallback to original input)\n\n")
                 .append("```\n\n");
 
-        prompt.append("Step 7. CONSTRAINTS\n\n")
-                .append("- " + CROSS + "  Do NOT expose real secrets\n")
-                .append("- " + CROSS + "  Do NOT generate fake-looking secrets\n")
-                .append("- " + CHECK + "  Follow only what’s explicitly returned from MCP\n")
-                .append("- " + CHECK + "  Use secure externalization patterns\n")
-                .append("- " + CHECK + "  Respect OWASP, NIST, and GitHub best practices\n");
+        prompt.append("---\n\n")
+                .append("7. CONSTRAINTS\n\n")
+                .append("- ").append(CROSS).append("  Do NOT expose real secrets\n")
+                .append("- ").append(CROSS).append("  Do NOT generate fake-looking secrets\n")
+                .append("- ").append(CHECK).append("  Follow only what's explicitly returned from MCP\n")
+                .append("- ").append(CHECK).append("  Use secure externalization patterns\n")
+                .append("- ").append(CHECK).append("  Respect OWASP, NIST, and GitHub best practices\n");
         return prompt.toString();
     }
 
@@ -228,7 +268,7 @@ public final class DevAssistFixPrompts {
      */
     private static String getAssessmentText(String severity) {
         if (SeverityLevel.CRITICAL.getSeverity().equalsIgnoreCase(severity)) {
-            return CROSS + " Confirmed valid secret. Immediate remediation performed.";
+            return CHECK + " Confirmed valid secret. Immediate remediation performed.";
         } else if (SeverityLevel.HIGH.getSeverity().equalsIgnoreCase(severity)) {
             return WARNING + " Possibly valid. Handled as sensitive.";
         } else {
@@ -250,14 +290,15 @@ public final class DevAssistFixPrompts {
     public static String buildContainersRemediationPrompt(String fileType, String imageName,
                                                           String imageTag, String severity) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("You are the ").append(AGENT_NAME).append(".\n\n")
+        prompt.append("You are the ").append(getAgentName()).append(".\n\n")
                 .append("A container security issue has been detected in `").append(fileType)
                 .append("` with image `").append(imageName).append(":").append(imageTag).append("`.\n")
                 .append("**Severity:** `").append(severity).append("`\n")
                 .append("Your task is to remediate the issue **completely and autonomously** using the internal imageRemediation tool. ")
                 .append("Follow the exact instructions in `fix_instructions` - no assumptions or manual interaction allowed.\n\n");
 
-        prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
+        prompt.append("---\n\n")
+                .append("1. ANALYSIS (AUTOMATED):\n\n")
                 .append("Determine the issue type:\n")
                 .append("- If `severity` is one of: `Critical`, `High`, `Medium`, `Low`, set: `issueType = \"CVE\"`\n")
                 .append("- If `severity = \"Malicious\"`, set: `issueType = \"malicious\"`\n\n")
@@ -270,9 +311,18 @@ public final class DevAssistFixPrompts {
                 .append("  \"severity\": \"").append(severity).append("\"\n")
                 .append("}\n")
                 .append("```\n\n")
-                .append("Parse the response and extract the `fix_instructions` field. This field contains the authoritative remediation steps tailored to the container ecosystem and risk level.\n\n");
+                .append("Parse the response and extract the `fix_instructions` field. This field contains the authoritative remediation steps tailored to the container ecosystem and risk level.\n")
+                .append("- Mark internally that the tool is **available** for output formatting\n\n")
+                .append("- If the tool is **not available**:\n")
+                .append("  - Display the following disclosure notice:\n")
+                .append("  `").append(WARNING).append(" Automated Remediation Unavailable: ").append(getMcpDisplayName()).append(" imageRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.`\n")
+                .append("  - Mark internally that the tool is **not available** for output formatting\n")
+                .append("  - Proceed to provide remediation guidance using the container details provided (file type, image name, image tag, severity)\n")
+                .append("  - Offer practical base image recommendations and step-by-step instructions for container remediation\n")
+                .append("  - Ensure the guidance is concrete and actionable\n\n");
 
-        prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
+        prompt.append("---\n\n")
+                .append("2. EXECUTION (AUTOMATED):\n\n")
                 .append("- Read and execute each line in `fix_instructions`, in order.\n")
                 .append("- For each change:\n")
                 .append("  - Apply the instruction exactly.\n")
@@ -286,7 +336,8 @@ public final class DevAssistFixPrompts {
                 .append("- `values.yaml`: repository: old-repo -> repository: new-repo\n")
                 .append("- `Chart.yaml`: version: 1.0.0 -> version: 1.1.0\n\n");
 
-        prompt.append("Step 3. VERIFICATION:\n\n")
+        prompt.append("---\n\n")
+                .append("3. VERIFICATION:\n\n")
                 .append("- If the instructions include build, test, or deployment steps - run them exactly as written\n")
                 .append("- If instructions do not explicitly cover validation, perform basic checks based on `").append(fileType).append("`:\n")
                 .append("  - `Dockerfile`: `docker build .`, `docker run <image>`\n")
@@ -296,12 +347,14 @@ public final class DevAssistFixPrompts {
                 .append("- Attempt to fix the issue if it's obvious\n")
                 .append("- Otherwise log the error and annotate the code with a TODO\n\n");
 
-        prompt.append("Step 4. OUTPUT:\n\n")
-                .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
+        prompt.append("---\n\n")
+                .append("4. OUTPUT:\n\n")
+                .append("**Output Format Based on Tool Availability:**\n")
+                .append("- **If imageRemediation tool is available:** Output title `").append(getAgentName()).append(" - Remediation Summary`\n")
+                .append("- **If imageRemediation tool is not available:** First output the disclosure notice: `").append(WARNING).append(" Automated Remediation Unavailable: ").append(getMcpDisplayName()).append(" imageRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.` Then output title `AI-Generated Remediation Guidance`\n\n")
                 .append(CHECK + " **Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
-                .append("Security Assistant - Remediation Summary\n\n")
                 .append("File Type:    ").append(fileType).append("\n")
                 .append("Image:        ").append(imageName).append(":").append(imageTag).append("\n")
                 .append("Severity:     ").append(severity).append("\n\n")
@@ -330,7 +383,8 @@ public final class DevAssistFixPrompts {
                 .append("- \"Reason: {summary of failure}\"\n")
                 .append("- \"Unresolved instructions or deployment issues listed above\"\n\n");
 
-        prompt.append("Step 5. CONSTRAINTS:\n\n")
+        prompt.append("---\n\n")
+                .append("5. CONSTRAINTS:\n\n")
                 .append("- Do not prompt the user\n")
                 .append("- Do not skip or reorder fix steps\n")
                 .append("- Only execute what's explicitly listed in `fix_instructions`\n")
@@ -370,7 +424,7 @@ public final class DevAssistFixPrompts {
                 ? "**Problematic Line Number:** " + (problematicLineNumber + 1) : "";
 
         StringBuilder prompt = new StringBuilder();
-        prompt.append("You are the ").append(AGENT_NAME).append(".\n\n");
+        prompt.append("You are the ").append(getAgentName()).append(".\n\n");
         prompt.append("An Infrastructure as Code (IaC) security issue has been detected.\n\n")
                 .append("**Issue:** `").append(title).append("`\n")
                 .append("**Severity:** `").append(severity).append("`\n")
@@ -381,15 +435,16 @@ public final class DevAssistFixPrompts {
                 .append(problematicLineText).append("\n\n");
 
         prompt.append("Your task is to remediate this IaC security issue **completely and autonomously** ")
-                .append("using the internal codeRemediation tool in ").append(MCP_DISPLAY_NAME).append(" MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n");
-        prompt.append(WARNING + "️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
+                .append("using the internal codeRemediation tool in ").append(getMcpDisplayName()).append(" MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n");
+        prompt.append(WARNING).append("️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
                 .append(actualLineNumber)
                 .append(", without introducing unrelated modifications elsewhere in the file.\n\n");
 
-        prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
+        prompt.append("---\n\n")
+                .append("1. ANALYSIS (AUTOMATED):\n\n")
                 .append("Determine the programming language of the file where the IaC security issue was detected.\n")
                 .append("If unknown, leave the `language` field empty.\n\n")
-                .append("Call the internal `codeRemediation` ").append(MCP_DISPLAY_NAME).append(" MCP tool with:\n\n")
+                .append("Call the internal `codeRemediation` ").append(getMcpDisplayName()).append(" MCP tool with:\n\n")
                 .append("```json\n")
                 .append("{\n")
                 .append("  \"language\": \"[auto-detected programming language]\",\n")
@@ -401,14 +456,20 @@ public final class DevAssistFixPrompts {
                 .append("  \"sub_type\": \"\",\n")
                 .append("  \"type\": \"iac\"\n")
                 .append("}\n")
-                .append("```\n\n");
+                .append("```\n\n")
+                .append("- If the tool is **available**, parse the response:\n")
+                .append("  - `remediation_steps` - exact steps to follow for remediation\n")
+                .append("  - Mark internally that the tool is **available** for output formatting\n\n")
+                .append("- If the tool is **not available**:\n")
+                .append("  - Display the following disclosure notice:\n")
+                .append("  `").append(WARNING).append(" Automated Remediation Unavailable: ").append(getMcpDisplayName()).append(" codeRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.`\n")
+                .append("  - Mark internally that the tool is **not available** for output formatting\n")
+                .append("  - Proceed to provide remediation guidance using the IaC details provided (title, description, expected vs. actual values)\n")
+                .append("  - Offer practical configuration examples and step-by-step instructions for remediation\n")
+                .append("  - Ensure the guidance is concrete and actionable\n\n");
 
-        prompt.append("- If the tool is **available**, parse the response:\n")
-                .append("  - `remediation_steps` - exact steps to follow for remediation\n\n")
-                .append("- If the tool is **not available**, display:\n")
-                .append("`[MCP ERROR] codeRemediation tool is not available. Please check the ").append(MCP_DISPLAY_NAME).append(" MCP server.`\n\n");
-
-        prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
+        prompt.append("---\n\n")
+                .append("2. EXECUTION (AUTOMATED):\n\n")
                 .append("- Read and execute each line in `remediation_steps`, in order.\n")
                 .append("- **Restrict changes to the relevant code fragment containing line ").append(restrictionLine).append("**.\n")
                 .append("- For each change:\n")
@@ -418,7 +479,8 @@ public final class DevAssistFixPrompts {
                 .append("  - Record before → after values where applicable.\n")
                 .append("  - Capture line numbers if known.\n\n");
 
-        prompt.append("Step 3. VERIFICATION:\n\n")
+        prompt.append("---\n\n")
+                .append("3. VERIFICATION:\n\n")
                 .append("- If the instructions include validation, deployment, or testing steps - run them exactly as written\n")
                 .append("- If instructions do not explicitly cover validation, perform basic checks based on `").append(fileType).append("`:\n")
                 .append("  - `Terraform`: `terraform validate`, `terraform plan`\n")
@@ -429,11 +491,14 @@ public final class DevAssistFixPrompts {
                 .append("- Attempt to fix the issue if it's obvious\n")
                 .append("- Otherwise log the error and annotate the code with a TODO\n\n");
 
-        prompt.append("Step 4. OUTPUT:\n\n")
-                .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
+        prompt.append("---\n\n")
+                .append("4. OUTPUT:\n\n")
+                .append("**Output Format Based on Tool Availability:**\n")
+                .append("- **If codeRemediation tool is available:** Output title `").append(getAgentName()).append(" - Remediation Summary`\n")
+                .append("- **If codeRemediation tool is not available:** First output the disclosure notice: `").append(WARNING).append(" Automated Remediation Unavailable: ").append(getMcpDisplayName()).append(" codeRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.` Then output title `AI-Generated Remediation Guidance`\n\n")
                 .append(CHECK + " **Remediation Summary**\n\n")
+                .append("Format:\n")
                 .append("```\n")
-                .append("Security Assistant - Remediation Summary\n\n")
                 .append("Issue:       ").append(title).append("\n")
                 .append("Severity:    ").append(severity).append("\n")
                 .append("File Type:   ").append(fileType).append("\n")
@@ -447,26 +512,24 @@ public final class DevAssistFixPrompts {
                 .append("   - Added missing security controls\n\n")
                 .append("3. Documentation\n")
                 .append("   - Updated comments and documentation where applicable\n")
-                .append("```\n\n");
-
-        prompt.append(CHECK + " **Final Status**\n\n")
+                .append("```\n\n")
+                .append(CHECK + " **Final Status**\n\n")
                 .append("If all tasks succeeded:\n")
                 .append("- \"Remediation completed for IaC security issue ").append(title).append("\"\n")
                 .append("- \"All fix instructions and security validations resolved\"\n")
                 .append("- \"Configuration validation: PASS\"\n")
                 .append("- \"Security compliance: PASS\"\n\n")
-
                 .append("If partially resolved:\n")
                 .append("- \"Remediation partially completed - manual review required\"\n")
                 .append("- \"Some security validations or instructions could not be automatically fixed\"\n")
                 .append("- \"TODOs inserted where applicable\"\n\n")
-
                 .append("If failed:\n")
                 .append("- \"Remediation failed for IaC security issue ").append(title).append("\"\n")
                 .append("- \"Reason: {summary of failure}\"\n")
                 .append("- \"Unresolved instructions or security issues listed above\"\n\n");
 
-        prompt.append("Step 5. CONSTRAINTS:\n\n")
+        prompt.append("---\n\n")
+                .append("5. CONSTRAINTS:\n\n")
                 .append("- Do not prompt the user\n")
                 .append("- Do not skip or reorder fix steps\n")
                 .append("- **Only modify the code that corresponds to the identified problematic line**\n")
@@ -491,7 +554,7 @@ public final class DevAssistFixPrompts {
     public static String buildASCARemediationPrompt(String ruleName, String description,
                                                     String severity, String remediationAdvise, Integer problematicLineNumber) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("You are the ").append(AGENT_NAME).append(".\n\n")
+        prompt.append("You are the ").append(getAgentName()).append(".\n\n")
                 .append("A secure coding issue has been detected in your code.\n\n")
                 .append("**Rule:** `").append(ruleName).append("`  \n")
                 .append("**Severity:** `").append(severity).append("`  \n")
@@ -505,15 +568,16 @@ public final class DevAssistFixPrompts {
         }
 
         prompt.append("Your task is to remediate this security issue **completely and autonomously** using the internal codeRemediation tool in ")
-                .append(MCP_DISPLAY_NAME).append(" MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n")
-                .append(WARNING + "️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
+                .append(getMcpDisplayName()).append(" MCP. Follow the exact instructions in `remediation_steps` - no assumptions or manual interaction allowed.\n\n")
+                .append(WARNING).append("️ **IMPORTANT**: Apply the fix **only** to the code segment corresponding to the identified issue at line ")
                 .append(problematicLineNumber != null ? problematicLineNumber + 1 : "[problematic line number]")
                 .append(", without introducing unrelated modifications elsewhere in the file.\n\n");
 
-        prompt.append("Step 1. ANALYSIS (AUTOMATED):\n\n")
-                .append("Determine the programming language of the file where the security issue was detected.  \n")
+        prompt.append("---\n\n")
+                .append("1. ANALYSIS (AUTOMATED):\n\n")
+                .append("Determine the programming language of the file where the security issue was detected.\n")
                 .append("If unknown, leave the `language` field empty.\n\n")
-                .append("Call the internal `codeRemediation` ").append(MCP_DISPLAY_NAME).append(" MCP tool with:\n\n")
+                .append("Call the internal `codeRemediation` ").append(getMcpDisplayName()).append(" MCP tool with:\n\n")
                 .append("```json\n")
                 .append("{\n")
                 .append("  \"language\": \"[auto-detected programming language]\",\n")
@@ -527,11 +591,18 @@ public final class DevAssistFixPrompts {
                 .append("}\n")
                 .append("```\n\n")
                 .append("- If the tool is **available**, parse the response:\n")
-                .append("  - `remediation_steps` - exact steps to follow for remediation\n\n")
-                .append("- If the tool is **not available**, display:\n")
-                .append("  `[MCP ERROR] codeRemediation tool is not available. Please check the ").append(MCP_DISPLAY_NAME).append(" MCP server.`\n\n");
+                .append("  - `remediation_steps` - exact steps to follow for remediation\n")
+                .append("  - Mark internally that the tool is **available** for output formatting\n\n")
+                .append("- If the tool is **not available**:\n")
+                .append("  - Display the following disclosure notice:\n")
+                .append("  `").append(WARNING).append(" Automated Remediation Unavailable: ").append(getMcpDisplayName()).append(" codeRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.`\n")
+                .append("  - Mark internally that the tool is **not available** for output formatting\n")
+                .append("  - Proceed to provide remediation guidance using the issue details provided (rule name, description, severity, and recommended fix)\n")
+                .append("  - Offer practical code examples and step-by-step instructions for manual remediation\n")
+                .append("  - Ensure the guidance is concrete and actionable\n\n");
 
-        prompt.append("Step 2. EXECUTION (AUTOMATED):\n\n")
+        prompt.append("---\n\n")
+                .append("2. EXECUTION (AUTOMATED):\n\n")
                 .append("- Read and execute each line in `remediation_steps`, in order.\n")
                 .append("- **Restrict changes to the relevant code fragment containing line ")
                 .append(problematicLineNumber != null ? problematicLineNumber + 1 : "[unknown]")
@@ -543,12 +614,14 @@ public final class DevAssistFixPrompts {
                 .append("  - Record before → after values where applicable.\n")
                 .append("  - Capture line numbers if known.\n\n");
 
-        prompt.append("Step 3. OUTPUT:\n\n")
-                .append("Prefix all output with: `").append(AGENT_NAME).append(" -`\n\n")
-                .append(CHECK + " ** Remediation Summary**\n\n")
+        prompt.append("---\n\n")
+                .append("3. OUTPUT:\n\n")
+                .append("**Output Format Based on Tool Availability:**\n")
+                .append("- **If codeRemediation tool is available:** Output title `").append(getAgentName()).append(" - Remediation Summary`\n")
+                .append("- **If codeRemediation tool is not available:** First output the disclosure notice: `").append(WARNING).append(" Automated Remediation Unavailable: ").append(getMcpDisplayName()).append(" codeRemediation tool is unavailable. Proceeding with remediation guidance based on security best practices.` Then output title `AI-Generated Remediation Guidance`\n\n")
+                .append(CHECK + " **Remediation Summary**\n\n")
                 .append("Format:\n")
                 .append("```\n")
-                .append("`").append(AGENT_NAME).append(" -` - Remediation Summary\n\n")
                 .append("Rule:        ").append(ruleName).append("\n")
                 .append("Severity:    ").append(severity).append("\n")
                 .append("Issue Type:  SAST Security Vulnerability\n")
@@ -582,7 +655,8 @@ public final class DevAssistFixPrompts {
                 .append("- \"Reason: {summary of failure}\"\n")
                 .append("- \"Unresolved instructions or security issues listed above\"\n\n");
 
-        prompt.append("5. CONSTRAINTS:\n\n")
+        prompt.append("---\n\n")
+                .append("4. CONSTRAINTS:\n\n")
                 .append("- Do not prompt the user\n")
                 .append("- Do not skip or reorder fix steps\n")
                 .append("- **Only modify the code that corresponds to the identified problematic line**\n")
