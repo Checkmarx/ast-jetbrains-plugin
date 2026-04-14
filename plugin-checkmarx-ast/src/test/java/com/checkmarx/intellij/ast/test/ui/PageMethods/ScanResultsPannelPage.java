@@ -193,7 +193,12 @@ public class ScanResultsPannelPage {
             }
 
             JTextFieldFixture field = fields.get(0);
-            field.click();
+            // Use programmatic focus to avoid triggering SearchTextField history popup
+            field.runJs("component.requestFocusInWindow()");
+
+            if (!field.getHasFocus()) {
+                return false;
+            }
 
             Keyboard keyboard = new Keyboard(remoteRobot);
             keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A);

@@ -72,9 +72,11 @@ public class TestGeneral extends com.checkmarx.intellij.ast.test.ui.BaseUITest {
     @DisplayName("Invalid Scan ID Handling")
     public void testInvalidScanId() {
         waitFor(() -> {
-            find(JTextFieldFixture.class, SCAN_FIELD).click();
+            JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
+            // Use programmatic focus to avoid triggering SearchTextField history popup
+            scanField.runJs("component.requestFocusInWindow()");
 
-            if (!find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus()) {
+            if (!scanField.getHasFocus()) {
                 return false;
             }
 
