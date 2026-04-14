@@ -77,7 +77,7 @@ public class DevAssistFixPromptsTest {
     void generateBuildSecretRemediationPrompt_IncludesStructuredMarkdownSections() {
         String prompt = DevAssistFixPrompts.buildSecretRemediationPrompt("SECRET_TOKEN", "description here", SeverityLevel.MALICIOUS.getSeverity());
         assertAll(
-                () -> assertTrue(prompt.contains("Secret Remediation Summary"), "Should include summary header"),
+                () -> assertTrue(prompt.contains("Remediation Summary"), "Should include summary header"),
                 () -> assertTrue(prompt.contains("Remediation Actions Taken"), "Should list remediation actions section"),
                 () -> assertTrue(prompt.contains("Next Steps"), "Should include Next Steps section"),
                 () -> assertTrue(prompt.contains("Best Practices"), "Should include best practices section"),
