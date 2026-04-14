@@ -253,6 +253,10 @@ public class AuthService {
      * @return true if the port is available
      */
     public boolean isPortAvailable(int port) {
+        if (port < 0 || port > 65535) {
+            LOGGER.warn(String.format("OAuth: Invalid port number:%d. Port must be between 0 and 65535.", port));
+            return false;
+        }
         try (ServerSocket socket = new ServerSocket(port)) {
             socket.setReuseAddress(true);
             return true;
@@ -364,14 +368,20 @@ public class AuthService {
      */
     public Map<String, Object> extractRefreshTokenDetails(String jsonString) {
         Map<String, Object> tokenDetails = new HashMap<>();
+        if (jsonString == null || jsonString.trim().isEmpty()) {
+            return tokenDetails;
+        }
         try {
             JsonNode rootNode = new ObjectMapper().readTree(jsonString);
             if (rootNode.has(Constants.AuthConstants.REFRESH_TOKEN)) {
                 tokenDetails.put(Constants.AuthConstants.REFRESH_TOKEN, rootNode.get(Constants.AuthConstants.REFRESH_TOKEN).asText());
-                String expirySeconds = rootNode.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY).asText();
-                tokenDetails.put(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY, getRefreshTokenExpiry(Long.parseLong(expirySeconds)));
+                JsonNode expiryNode = rootNode.get(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY);
+                if (expiryNode != null) {
+                    String expirySeconds = expiryNode.asText();
+                    tokenDetails.put(Constants.AuthConstants.REFRESH_TOKEN_EXPIRY, getRefreshTokenExpiry(Long.parseLong(expirySeconds)));
+                }
             }
-        } catch (JsonProcessingException exception) {
+        } catch (JsonProcessingException | NumberFormatException exception) {
             LOGGER.warn(String.format("OAuth: Unable to extract refresh token using from the response using JsonNode. Error:%s",
                     exception.getMessage()));
         }

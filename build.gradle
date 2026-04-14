@@ -58,9 +58,13 @@ subprojects {
 
         implementation("com.checkmarx.ast:ast-cli-java-wrapper:${javaWrapperVersion}"){
             exclude group: 'junit', module: 'junit'
+            // Exclude wrapper's Jackson to prevent version conflicts. The enforcedPlatform above will provide aligned versions.
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
+            exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
         }
-        implementation(platform("com.fasterxml.jackson:jackson-bom:${jacksonBomVersion}"))
-        // Temporary workaround https://github.com/FasterXML/jackson-databind/issues/3428
+        implementation(enforcedPlatform("com.fasterxml.jackson:jackson-bom:${jacksonBomVersion}"))
+        // enforcedPlatform forces ALL Jackson jars (databind, annotations, core) to use the SAME version.
 
         testImplementation "org.mockito:mockito-core:${mockitoVersion}"
         testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"

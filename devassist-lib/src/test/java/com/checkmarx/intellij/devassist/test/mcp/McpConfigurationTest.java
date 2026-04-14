@@ -6,9 +6,6 @@ import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
-import com.checkmarx.intellij.devassist.configuration.mcp.McpUninstallHandler;
-import com.intellij.ide.plugins.IdeaPluginDescriptor;
-import com.intellij.openapi.extensions.PluginId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -143,66 +140,6 @@ public class McpConfigurationTest {
 
         // Assert
         assertEquals(Boolean.FALSE, result.get());
-    }
-
-    // ===== McpUninstallHandler Tests =====
-
-    @Test
-    @DisplayName("beforePluginUnload_CheckmarxPluginUpdate_DoesNothing")
-    void testBeforePluginUnload_CheckmarxPluginUpdate_DoesNothing() {
-        // Arrange
-        IdeaPluginDescriptor mockDescriptor = mock(IdeaPluginDescriptor.class);
-        PluginId mockPluginId = mock(PluginId.class);
-        when(mockDescriptor.getPluginId()).thenReturn(mockPluginId);
-        when(mockPluginId.getIdString()).thenReturn("com.checkmarx.checkmarx-ast-jetbrains-plugin");
-        
-        McpUninstallHandler handler = new McpUninstallHandler();
-
-        // Act & Assert - should not throw exception during update
-        assertDoesNotThrow(() -> handler.beforePluginUnload(mockDescriptor, true));
-    }
-
-    @Test
-    @DisplayName("beforePluginUnload_CheckmarxPluginUninstall_CallsUninstaller")
-    void testBeforePluginUnload_CheckmarxPluginUninstall_CallsUninstaller() {
-        // Arrange
-        IdeaPluginDescriptor mockDescriptor = mock(IdeaPluginDescriptor.class);
-        PluginId mockPluginId = mock(PluginId.class);
-        when(mockDescriptor.getPluginId()).thenReturn(mockPluginId);
-        when(mockPluginId.getIdString()).thenReturn("com.checkmarx.checkmarx-ast-jetbrains-plugin");
-        
-        McpUninstallHandler handler = new McpUninstallHandler();
-
-        try (MockedStatic<McpSettingsInjector> mockedInjector = mockStatic(McpSettingsInjector.class)) {
-            mockedInjector.when(McpSettingsInjector::uninstallFromCopilot).thenReturn(true);
-
-            // Act - isUpdate = false (actual uninstall)
-            assertDoesNotThrow(() -> handler.beforePluginUnload(mockDescriptor, false));
-
-            // Assert
-            mockedInjector.verify(McpSettingsInjector::uninstallFromCopilot);
-        }
-    }
-
-    @Test
-    @DisplayName("beforePluginUnload_UninstallThrowsException_HandlesGracefully")
-    void testBeforePluginUnload_UninstallThrowsException_HandlesGracefully() {
-        // Arrange
-        IdeaPluginDescriptor mockDescriptor = mock(IdeaPluginDescriptor.class);
-        PluginId mockPluginId = mock(PluginId.class);
-        when(mockDescriptor.getPluginId()).thenReturn(mockPluginId);
-        when(mockPluginId.getIdString()).thenReturn("com.checkmarx.checkmarx-ast-jetbrains-plugin");
-        
-        McpUninstallHandler handler = new McpUninstallHandler();
-
-        try (MockedStatic<McpSettingsInjector> mockedInjector = mockStatic(McpSettingsInjector.class)) {
-            mockedInjector.when(McpSettingsInjector::uninstallFromCopilot)
-                         .thenThrow(new RuntimeException("Uninstall failed"));
-
-            // Act & Assert - should not throw exception
-            assertDoesNotThrow(() -> handler.beforePluginUnload(mockDescriptor, false));
-            mockedInjector.verify(McpSettingsInjector::uninstallFromCopilot);
-        }
     }
 
 

@@ -91,7 +91,7 @@ public final class PluginContext {
      * @return true if the specified plugin is active
      */
     public boolean isPlugin(String pluginId) {
-        return pluginId == null || !pluginId.equals(pluginName);
+        return pluginId != null && (pluginId.equals(PLUGIN_CHECKMARX_DEVASSIST) || pluginId.equals(PLUGIN_CHECKMARX_AST)) ;
     }
 
     /**

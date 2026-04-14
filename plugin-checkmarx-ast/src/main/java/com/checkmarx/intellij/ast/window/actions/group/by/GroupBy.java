@@ -23,7 +23,7 @@ public enum GroupBy {
     DIRECT_DEPENDENCY,
     SCA_TYPE;
 
-    public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, VULNERABILITY_TYPE_NAME,PACKAGE);
+    public static final List<GroupBy> DEFAULT_GROUP_BY = Arrays.asList(SEVERITY, VULNERABILITY_TYPE_NAME);
     public static final List<GroupBy> HIDDEN_GROUPS = List.of(SCA_TYPE,PACKAGE);
 
     /**
@@ -39,7 +39,11 @@ public enum GroupBy {
                 if (Constants.SCAN_TYPE_SCS.equals(result.getType())) {
                     return result.getId();
                 }
-                // For all other engines, keep the existing behavior (queryName)
+                // For SCA, group by package identifier
+                if (Constants.SCAN_TYPE_SCA.equals(result.getType())) {
+                    return result.getData().getPackageIdentifier();
+                }
+                // For SAST, IaC, etc. - group by query name
                 return result.getData().getQueryName();
             };
         }

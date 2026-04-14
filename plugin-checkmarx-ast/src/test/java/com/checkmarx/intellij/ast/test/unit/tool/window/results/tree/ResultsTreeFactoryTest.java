@@ -57,11 +57,11 @@ class ResultsTreeFactoryTest {
         enabledFilters.add(new CustomResultState("TO_VERIFY", "To Verify"));
 
         // Set up default mock result
-        when(mockResult.getSeverity()).thenReturn("HIGH");
-        when(mockResult.getState()).thenReturn("TO_VERIFY");
-        when(mockResult.getType()).thenReturn("SAST");
-        when(mockResult.getData()).thenReturn(mockData);
-        when(mockResults.getResults()).thenReturn(Collections.singletonList(mockResult));
+        lenient().when(mockResult.getSeverity()).thenReturn("HIGH");
+        lenient().when(mockResult.getState()).thenReturn("TO_VERIFY");
+        lenient().when(mockResult.getType()).thenReturn("SAST");
+        lenient().when(mockResult.getData()).thenReturn(mockData);
+        lenient().when(mockResults.getResults()).thenReturn(Collections.singletonList(mockResult));
     }
 
     @Test
@@ -121,4 +121,127 @@ class ResultsTreeFactoryTest {
                     "Engine node should indicate a single result");
         }
     }
+
+    @Test
+    void buildResultsTree_WithEmptyResults_ReturnsTreeWithEmptyRoot() {
+        when(mockResults.getResults()).thenReturn(Collections.emptyList());
+
+        Tree resultTree = ResultsTreeFactory.buildResultsTree(
+                SCAN_ID, mockResults, mockProject, groupByList, enabledFilters, true
+        );
+
+        TreeModel model = resultTree.getModel();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+        assertNotNull(root);
+        assertEquals(0, root.getChildCount(), "Root should have no children when results are empty");
+    }
+
+    @Test
+    void buildResultsTree_WithFilteredOutResult_DoesNotAddToTree() {
+        // Result severity is LOW, but only HIGH is in enabledFilters
+        when(mockResult.getSeverity()).thenReturn("LOW");
+
+        Tree resultTree = ResultsTreeFactory.buildResultsTree(
+                SCAN_ID, mockResults, mockProject, groupByList, enabledFilters, true
+        );
+
+        TreeModel model = resultTree.getModel();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+        assertEquals(0, root.getChildCount(), "Filtered-out results should not appear in tree");
+    }
+
+    @Test
+    void buildResultsTree_WithKicsType_EngineLabelIsIacSecurity() {
+        when(mockResult.getType()).thenReturn("kics");
+
+        try (MockedStatic<Bundle> mockedBundle = mockStatic(Bundle.class)) {
+            mockedBundle.when(() -> Bundle.message(eq(Resource.IAC_SECURITY))).thenReturn("IaC Security");
+            mockedBundle.when(() -> Bundle.message(eq(Resource.RESULTS_TREE_HEADER), any()))
+                    .thenReturn("Scan " + SCAN_ID);
+
+            Tree resultTree = ResultsTreeFactory.buildResultsTree(
+                    SCAN_ID, mockResults, mockProject, groupByList, enabledFilters, true
+            );
+
+            TreeModel model = resultTree.getModel();
+            DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+            assertEquals(1, root.getChildCount());
+            DefaultMutableTreeNode engineNode = (DefaultMutableTreeNode) root.getChildAt(0);
+            assertEquals("IaC Security", engineNode.getUserObject());
+        }
+    }
+
+    @Test
+    void buildResultsTree_WithLatestFalse_StillBuildsTree() {
+        Tree resultTree = ResultsTreeFactory.buildResultsTree(
+                SCAN_ID, mockResults, mockProject, groupByList, enabledFilters, false
+        );
+
+        assertNotNull(resultTree);
+        TreeModel model = resultTree.getModel();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+        assertNotNull(root);
+        assertEquals(1, root.getChildCount(), "Root should still contain the SAST engine node");
+    }
+
+    @Test
+    void buildResultsTree_WithAllFiltersDisabled_ReturnsEmptyTree() {
+        // No filters enabled at all
+        Set<Filterable> noFilters = new HashSet<>();
+
+        Tree resultTree = ResultsTreeFactory.buildResultsTree(
+                SCAN_ID, mockResults, mockProject, groupByList, noFilters, true
+        );
+
+        TreeModel model = resultTree.getModel();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+        assertNotNull(root);
+        assertEquals(0, root.getChildCount(), "Empty filter set should yield no results in tree");
+    }
+
+    @Test
+    void buildResultsTree_WithGroupByFile_CreatesFileGroupedNodes() {
+        // Use groupBy FILE to test file-based grouping
+        List<GroupBy> fileGroupBy = new ArrayList<>();
+        fileGroupBy.add(GroupBy.FILE);
+
+        when(mockData.getFileName()).thenReturn("src/Main.java");
+
+        Tree resultTree = ResultsTreeFactory.buildResultsTree(
+                SCAN_ID, mockResults, mockProject, fileGroupBy, enabledFilters, true
+        );
+
+        TreeModel model = resultTree.getModel();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+        assertNotNull(root);
+        // Result should be grouped under engine node, then file node
+        assertEquals(1, root.getChildCount(), "Should have 1 engine (SAST) node");
+    }
+
+    @Test
+    void buildResultsTree_WithMultipleResults_CountsAggregatedInParentNode() {
+        Result mockResult2 = mock(Result.class);
+        lenient().when(mockResult2.getSeverity()).thenReturn("HIGH");
+        lenient().when(mockResult2.getState()).thenReturn("TO_VERIFY");
+        lenient().when(mockResult2.getType()).thenReturn("SAST");
+        lenient().when(mockResult2.getData()).thenReturn(mockData);
+        lenient().when(mockData.getFileName()).thenReturn(null);
+        lenient().when(mockData.getNodes()).thenReturn(null);
+        lenient().when(mockData.getPackageIdentifier()).thenReturn(null);
+        lenient().when(mockData.getQueryName()).thenReturn("XSS");
+        lenient().when(mockResult2.getId()).thenReturn("id-2");
+        lenient().when(mockResult.getId()).thenReturn("id-1");
+        when(mockResults.getResults()).thenReturn(java.util.Arrays.asList(mockResult, mockResult2));
+
+        Tree resultTree = ResultsTreeFactory.buildResultsTree(
+                SCAN_ID, mockResults, mockProject, groupByList, enabledFilters, true
+        );
+
+        TreeModel model = resultTree.getModel();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+        DefaultMutableTreeNode engineNode = (DefaultMutableTreeNode) root.getChildAt(0);
+        assertTrue(engineNode.toString().contains("(2)"),
+                "Engine node should report 2 results: " + engineNode);
+    }
 }
+

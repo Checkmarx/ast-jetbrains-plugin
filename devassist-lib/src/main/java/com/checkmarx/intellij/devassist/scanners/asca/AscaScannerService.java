@@ -36,6 +36,7 @@ import java.nio.file.Paths;
 public class AscaScannerService extends BaseScannerService<ScanResult> {
     private static final Logger LOGGER = Utils.getLogger(AscaScannerService.class);
     private static final String ASCA_DIR = "CxASCA";
+    private static final Object SCAN_LOCK = new Object();
 
     /**
      * Creates an ASCA scanner service with the default ASCA realtime configuration.
@@ -144,7 +145,9 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
             int issueCount = ascaResult.getScanDetails() != null ? ascaResult.getScanDetails().size() : 0;
             LOGGER.debug("ASCA scanner: scan completed - " + uri + " (" + issueCount + " issues found)");
 
-            AscaScanResultAdaptor scanResultAdaptor = new AscaScanResultAdaptor(ascaResult, uri);
+            // Create adaptor with filtering applied during issue creation
+            AscaScanResultAdaptor scanResultAdaptor = new AscaScanResultAdaptor(ascaResult, uri, psiFile.getProject());
+
             TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.ASCA);
             return scanResultAdaptor;
 
@@ -181,24 +184,25 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
             return null;
         }
 
-        String tempFilePath = saveTempFile(file.getName(), fileContent);
-        if (tempFilePath == null) {
-            LOGGER.warn("Failed to create temporary file for ASCA scan.");
-            return null;
-        }
-
-        try {
-            LOGGER.info(Strings.join("Starting ASCA scan on file: ", virtualFile.getPath()));
-            ScanResult scanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent, DevAssistUtils.getIgnoreFilePath(project));
-            // Update line numbers for ignored ASCA issues if any exist
-            updateIgnoredFileDataOnLatestResult(tempFilePath, project, uri, agent, ascLatestVersion);
-            handleScanResult(file, scanResult);
-            return scanResult;
-        } catch (Exception e) {
-            LOGGER.warn("Error during ASCA scan:", e);
-            return null;
-        } finally {
-            deleteFile(tempFilePath);
+        synchronized (SCAN_LOCK) {
+            String tempFilePath = saveTempFile(file.getName(), fileContent);
+            if (tempFilePath == null) {
+                LOGGER.warn("Failed to create temporary file for ASCA scan.");
+                return null;
+            }
+            try {
+                LOGGER.info(Strings.join("Starting ASCA scan on file: ", virtualFile.getPath()));
+                ScanResult scanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent, DevAssistUtils.getIgnoreFilePath(project));
+                // Update line numbers for ignored ASCA issues if any exist
+                updateIgnoredFileDataOnLatestResult(tempFilePath, project, uri, agent, ascLatestVersion);
+                handleScanResult(file, scanResult);
+                return scanResult;
+            } catch (Exception e) {
+                LOGGER.warn("Error during ASCA scan:", e);
+                return null;
+            } finally {
+                deleteFile(tempFilePath);
+            }
         }
     }
 
@@ -440,8 +444,10 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
                 LOGGER.debug("ASCA: Performing full scan to update line numbers for ignored issues");
                 ScanResult fullScanResult = scanAscaFile(tempFilePath, ascLatestVersion, agent, "");
                 if (fullScanResult.getScanDetails() != null && !fullScanResult.getScanDetails().isEmpty()) {
-                    AscaScanResultAdaptor fullScanResultAdaptor = new AscaScanResultAdaptor(fullScanResult, filePath);
-                    ignoreManager.updateLineNumbersForIgnoredEntries(fullScanResultAdaptor, filePath);
+                    AscaScanResultAdaptor fullScanResultAdaptor = new AscaScanResultAdaptor(fullScanResult, filePath, project, false);
+                    ignoreManager.updateLineNumbersForIgnoredEntriesByProblematicLine(fullScanResultAdaptor, filePath);
+                }else{
+                    ignoreManager.removeIgnoreEntriesForFileIfEmpty(filePath);
                 }
             }
         } catch (Exception e) {

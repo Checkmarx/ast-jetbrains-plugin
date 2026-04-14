@@ -6,6 +6,7 @@ import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class CustomStateFilter extends FilterBaseAction {
@@ -29,13 +30,17 @@ public class CustomStateFilter extends FilterBaseAction {
 
     @Override
     public void setSelected(@NotNull AnActionEvent e, boolean state) {
-        Set<Filterable> filters = GlobalSettingsState.getInstance().getFilters();
+        Set<Filterable> updatedFilters = new LinkedHashSet<>(GlobalSettingsState.getInstance().getFilters());
 
-        if (state && filters.stream().noneMatch(this::isMatchingLabel)) {
-            filters.add(filterable);
+        if (state) {
+            if (updatedFilters.stream().noneMatch(this::isMatchingLabel)) {
+                updatedFilters.add(filterable);
+            }
         } else {
-            filters.removeIf(this::isMatchingLabel);
+            updatedFilters.removeIf(this::isMatchingLabel);
         }
+
+        GlobalSettingsState.getInstance().setFilters(updatedFilters);
 
         // Notify listeners
         messageBus.syncPublisher(FILTER_CHANGED).filterChanged();
