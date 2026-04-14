@@ -1,7 +1,8 @@
 package com.checkmarx.intellij.devassist.remediation.prompts;
 
+import com.checkmarx.intellij.common.context.PluginContext;
 import com.checkmarx.intellij.common.utils.SeverityLevel;
-import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 
 import static com.checkmarx.intellij.devassist.utils.EmojiUnicodes.*;
@@ -20,8 +21,19 @@ public final class DevAssistFixPrompts {
     }
 
     private static String getMcpDisplayName() {
-        String name = Utils.getPluginDisplayName();
-        return name != null ? name : "Checkmarx";
+        try {
+            PluginContext pluginContext = PluginContext.getInstance();
+            if (pluginContext == null) {
+                return "Checkmarx";
+            }
+            if (pluginContext.isDevAssistPlugin()) {
+                String name = pluginContext.getPluginDisplayName();
+                return name != null && !name.isEmpty() ? name : DevAssistConstants.CX_DEVASSIST_AGENT_NAME;
+            }
+            return DevAssistConstants.CX_AGENT_NAME;
+        } catch (Exception e) {
+            return "Checkmarx";
+        }
     }
 
     /**
