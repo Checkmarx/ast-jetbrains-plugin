@@ -1,0 +1,82 @@
+name: Manually Notify On Teams Channel
+
+on:
+  push:
+    branches:
+      - "feature/fix_ui_test_cases"
+
+  workflow_dispatch:
+    inputs:
+      rchannels:
+        description: "Channels override"
+        required: false
+        type: string
+      releaseType:
+        description: "Release type (checkmarx/devAssist)"
+        required: false
+        type: string
+      release_version:
+        description: "Release version"
+        required: true
+        type: string
+      cli_release_version:
+        description: "CLI version"
+        required: true
+        type: string
+      release_url:
+        description: "Release URL"
+        required: true
+        type: string
+      jira_product_name:
+        description: "Jira product name"
+        required: true
+        type: string
+      product_name:
+        description: "Override product name"
+        required: false
+        type: string
+
+  workflow_call:
+    inputs:
+      rchannels:
+        required: false
+        type: string
+      releaseType:
+        required: false
+        type: string
+      release_version:
+        required: true
+        type: string
+      cli_release_version:
+        required: true
+        type: string
+      release_url:
+        required: true
+        type: string
+      jira_product_name:
+        required: true
+        type: string
+      product_name:
+        required: false
+        type: string
+
+jobs:
+  notify:
+    if: ${{ inputs.rchannels == '' || inputs.rchannels == null }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Call reusable notify workflow
+        uses: Checkmarx/plugins-release-workflow/.github/workflows/release-notify.yml@main
+        with:
+          product_name: >-
+            ${{ inputs.product_name != '' && inputs.product_name ||
+                (inputs.releaseType == 'checkmarx' && 'JetBrains Plugin - Checkmarx (AST)') ||
+                (inputs.releaseType == 'devAssist' && 'JetBrains Plugin - DevAssist') ||
+                'JetBrains Plugin - Checkmarx (AST) & DevAssist' }}
+          release_version: ${{ inputs.release_version }}
+          cli_release_version: ${{ inputs.cli_release_version }}
+          release_author: "Sypher Team"
+          release_url: ${{ inputs.release_url }}
+          jira_product_name: ${{ inputs.jira_product_name }}
+        secrets: inherit
