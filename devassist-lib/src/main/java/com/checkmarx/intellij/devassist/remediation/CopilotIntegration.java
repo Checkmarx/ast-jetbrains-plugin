@@ -2,6 +2,7 @@ package com.checkmarx.intellij.devassist.remediation;
 
 import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataContext;
@@ -442,19 +443,21 @@ public final class CopilotIntegration {
         AtomicBoolean modeSwitchSuccess = new AtomicBoolean(false);
 
         // Phase 0: Always start a new conversation so previous context is not reused
-        LOGGER.debug("CxFix: Starting a new chat session...");
-        boolean newSessionStarted = tryStartNewChatSession(project);
-        if (newSessionStarted) {
-            LOGGER.debug("CxFix: New chat session started successfully");
-            // Wait for new session UI to initialize
-            try {
+        try {
+            LOGGER.debug("CxFix: Starting a new chat session...");
+            boolean newSessionStarted = tryStartNewChatSession(project);
+            if (newSessionStarted) {
+                LOGGER.debug("CxFix: New chat session started successfully");
+                // Wait for new session UI to initialize
                 TimeUnit.MILLISECONDS.sleep(Timing.COPILOT_OPEN_DELAY_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return false;
+            } else {
+                LOGGER.debug("CxFix: Could not start new chat session, continuing with existing session");
             }
-        } else {
-            LOGGER.debug("CxFix: Could not start new chat session, continuing with existing session");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.warn("CxFix: Phase 0 interrupted while waiting for new chat session to initialize", e);
+        } catch (Exception e) {
+            LOGGER.warn("CxFix: Phase 0 failed to start new chat session", e);
         }
 
         // Phase 1: Switch to Agent mode (must run on EDT)
@@ -592,18 +595,23 @@ public final class CopilotIntegration {
      * @return true if an action was found and invoked, false otherwise
      */
     private static boolean tryInvokeNewChatAction(@NotNull Project project) {
-        ActionManager actionManager = ActionManager.getInstance();
+        try {
+            ActionManager actionManager = ActionManager.getInstance();
 
-        for (String actionId : COPILOT_NEW_CHAT_ACTION_IDS) {
-            AnAction action = actionManager.getAction(actionId);
-            if (action != null) {
-                LOGGER.debug("CxFix: Found new chat action by known ID: " + actionId);
-                invokeAction(action, project, "CxOneAssist.NewChat");
-                return true;
+            for (String actionId : COPILOT_NEW_CHAT_ACTION_IDS) {
+                AnAction action = actionManager.getAction(actionId);
+                if (action != null) {
+                    LOGGER.debug("CxFix: Found new chat action by known ID: " + actionId);
+                    invokeAction(action, project, ActionPlaces.UNKNOWN);
+                    return true;
+                }
             }
+            LOGGER.debug("CxFix: No new chat action found by known IDs");
+            return false;
+        } catch (Exception e) {
+            LOGGER.warn("CxFix: Failed to invoke new chat action by known ID", e);
+            return false;
         }
-        LOGGER.debug("CxFix: No new chat action found by known IDs");
-        return false;
     }
 
     /**
@@ -631,7 +639,7 @@ public final class CopilotIntegration {
                 AnAction action = actionManager.getAction(actionId);
                 if (action != null) {
                     LOGGER.debug("CxFix: Discovered new chat action by scanning: " + actionId);
-                    invokeAction(action, project, "CxOneAssist.NewChat");
+                    invokeAction(action, project, ActionPlaces.UNKNOWN);
                     return true;
                 }
             }
