@@ -9,6 +9,7 @@ import com.intellij.remoterobot.fixtures.JTreeFixture;
 import com.intellij.remoterobot.utils.Keyboard;
 import org.junit.jupiter.api.Assertions;
 
+import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -192,7 +193,17 @@ public class ScanResultsPannelPage {
             }
 
             JTextFieldFixture field = fields.get(0);
-            field.setText(scanId);
+            // Use programmatic focus to avoid triggering SearchTextField history popup
+            field.runJs("component.requestFocusInWindow()");
+
+            if (!field.getHasFocus()) {
+                return false;
+            }
+
+            Keyboard keyboard = new Keyboard(remoteRobot);
+            keyboard.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A);
+            keyboard.enterText(scanId);
+
             return scanId.equals(field.getText());
         });
 
