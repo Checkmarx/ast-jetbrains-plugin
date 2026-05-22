@@ -8,7 +8,7 @@ on:
 
 jobs:
   set_tag:
-    runs-on: ubuntu-latest
+    runs-on: cx-public-ubuntu-x64
     outputs:
       tag_version: ${{ steps.tagname.outputs.tag_version }}
       ast_version: ${{ steps.tagname.outputs.ast_version }}
