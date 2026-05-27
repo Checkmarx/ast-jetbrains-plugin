@@ -85,9 +85,13 @@ public final class DevAssistConstants {
             "**/packages.config",
             "**/pom.xml",
             "**/package.json",
-            "**/requirements.txt",
+            "**/requirements*.txt",
             "**/go.mod",
-            "**/*.csproj"
+            "**/*.csproj",
+            "**/*.gradle",
+            "**/*.gradle.kts",
+            "**/*.sbt",
+            "**/libs.versions.toml"
     );
 
     public static final List<String> CONTAINERS_FILE_PATTERNS = List.of(
