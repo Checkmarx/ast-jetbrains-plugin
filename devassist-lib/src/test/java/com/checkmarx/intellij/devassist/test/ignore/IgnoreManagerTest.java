@@ -656,6 +656,156 @@ class IgnoreManagerTest {
         }
     }
 
+    // ========== updateLineNumbersForIgnoredEntries TESTS ==========
+
+    @Test
+    void testUpdateLineNumbers_iacSimilarityIdChangedOnLineShift_rekeysEntry() {
+        // Arrange: an ignored IaC entry stored with OLD similarity ID at line 10
+        String oldSimId = "old-sim-id";
+        String newSimId = "new-sim-id";
+        String title = "Insecure Port";
+        String filePath = "/project/infra/main.tf";
+        String relativePath = "infra/main.tf";
+
+        IgnoreEntry ignoredEntry = new IgnoreEntry();
+        ignoredEntry.setType(ScanEngine.IAC);
+        ignoredEntry.setPackageName(title);
+        ignoredEntry.setSimilarityId(oldSimId);
+        ignoredEntry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference(relativePath, true, 10, ""))));
+
+        String oldKey = title + ":" + oldSimId + ":" + relativePath;
+        Map<String, IgnoreEntry> ignoreData = new HashMap<>();
+        ignoreData.put(oldKey, ignoredEntry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(ignoreData);
+        when(ignoreFileManager.normalizePath(filePath)).thenReturn(relativePath);
+
+        // New scan result: same vulnerability now at line 11 with a NEW similarity ID (line shift)
+        Vulnerability newVuln = new Vulnerability();
+        newVuln.setTitle(title);
+        newVuln.setSimilarityId(newSimId);
+        newVuln.setVulnerabilityId("vuln-id-new");
+
+        ScanIssue newScanIssue = new ScanIssue();
+        newScanIssue.setScanEngine(ScanEngine.IAC);
+        newScanIssue.setFilePath(filePath);
+        newScanIssue.setTitle(title);
+        newScanIssue.setVulnerabilities(new ArrayList<>(List.of(newVuln)));
+        newScanIssue.setLocations(new ArrayList<>(List.of(new Location(11, 0, 20))));
+
+        @SuppressWarnings("unchecked")
+        com.checkmarx.intellij.devassist.common.ScanResult<?> scanResult = mock(com.checkmarx.intellij.devassist.common.ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(newScanIssue));
+
+        // Act
+        ignoreManager.updateLineNumbersForIgnoredEntries(scanResult, filePath);
+
+        // Assert: old key removed, new key with updated similarity ID added
+        String newKey = title + ":" + newSimId + ":" + relativePath;
+        assertFalse(ignoreData.containsKey(oldKey), "Old key should be removed after similarity ID change");
+        assertTrue(ignoreData.containsKey(newKey), "New key with updated similarity ID should exist");
+        IgnoreEntry updatedEntry = ignoreData.get(newKey);
+        assertEquals(newSimId, updatedEntry.getSimilarityId(), "Similarity ID should be updated to new value");
+        assertEquals(11, updatedEntry.getFiles().get(0).getLine(), "Line number should be updated to new position");
+        verify(ignoreFileManager).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void testUpdateLineNumbers_iacVulnerabilityFixed_removesEntry() {
+        // Arrange: an ignored IaC entry that no longer appears in new scan results (was fixed)
+        String simId = "sim-id-fixed";
+        String title = "Exposed Secret";
+        String filePath = "/project/main.tf";
+        String relativePath = "main.tf";
+
+        IgnoreEntry ignoredEntry = new IgnoreEntry();
+        ignoredEntry.setType(ScanEngine.IAC);
+        ignoredEntry.setPackageName(title);
+        ignoredEntry.setSimilarityId(simId);
+        ignoredEntry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference(relativePath, true, 5, ""))));
+
+        String key = title + ":" + simId + ":" + relativePath;
+        Map<String, IgnoreEntry> ignoreData = new HashMap<>();
+        ignoreData.put(key, ignoredEntry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(ignoreData);
+        when(ignoreFileManager.normalizePath(filePath)).thenReturn(relativePath);
+
+        // New scan result: different vulnerability in the file, the original one is gone (fixed)
+        Vulnerability otherVuln = new Vulnerability();
+        otherVuln.setTitle("Different Rule");
+        otherVuln.setSimilarityId("other-sim-id");
+        otherVuln.setVulnerabilityId("other-vuln-id");
+
+        ScanIssue otherScanIssue = new ScanIssue();
+        otherScanIssue.setScanEngine(ScanEngine.IAC);
+        otherScanIssue.setFilePath(filePath);
+        otherScanIssue.setTitle("Different Rule");
+        otherScanIssue.setVulnerabilities(new ArrayList<>(List.of(otherVuln)));
+        otherScanIssue.setLocations(new ArrayList<>(List.of(new Location(3, 0, 15))));
+
+        @SuppressWarnings("unchecked")
+        com.checkmarx.intellij.devassist.common.ScanResult<?> scanResult = mock(com.checkmarx.intellij.devassist.common.ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(otherScanIssue));
+
+        // Act
+        ignoreManager.updateLineNumbersForIgnoredEntries(scanResult, filePath);
+
+        // Assert: entry removed because vulnerability no longer exists in file
+        assertFalse(ignoreData.containsKey(key), "Entry should be removed when vulnerability is no longer present");
+        verify(ignoreFileManager).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void testUpdateLineNumbers_iacSimilarityIdStable_updatesLineOnly() {
+        // Arrange: an ignored IaC entry where the similarity ID stays stable (some engines are stable)
+        // but the line number changes – should update line number in-place without re-keying
+        String simId = "stable-sim-id";
+        String title = "Hardcoded Password";
+        String filePath = "/project/k8s.yaml";
+        String relativePath = "k8s.yaml";
+
+        IgnoreEntry ignoredEntry = new IgnoreEntry();
+        ignoredEntry.setType(ScanEngine.IAC);
+        ignoredEntry.setPackageName(title);
+        ignoredEntry.setSimilarityId(simId);
+        ignoredEntry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference(relativePath, true, 20, ""))));
+
+        Vulnerability vuln = new Vulnerability();
+        vuln.setTitle(title);
+        vuln.setSimilarityId(simId);
+        vuln.setVulnerabilityId("vuln-id-stable");
+
+        ScanIssue scanIssue = new ScanIssue();
+        scanIssue.setScanEngine(ScanEngine.IAC);
+        scanIssue.setFilePath(filePath);
+        scanIssue.setTitle(title);
+        scanIssue.setVulnerabilities(new ArrayList<>(List.of(vuln)));
+        scanIssue.setLocations(new ArrayList<>(List.of(new Location(21, 0, 30))));
+
+        // The exact key for this entry matches the new scan result
+        String key = title + ":" + simId + ":" + relativePath;
+        Map<String, IgnoreEntry> ignoreData = new HashMap<>();
+        ignoreData.put(key, ignoredEntry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(ignoreData);
+        when(ignoreFileManager.normalizePath(filePath)).thenReturn(relativePath);
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn(relativePath);
+
+        // Make key lookup return this scan issue (mock createIgnoreKeysForScanIssue side-effect via getVulnerabilityDetails)
+        devAssistUtilsStatic.when(() -> DevAssistUtils.getVulnerabilityDetails(eq(scanIssue), anyString())).thenReturn(vuln);
+
+        @SuppressWarnings("unchecked")
+        com.checkmarx.intellij.devassist.common.ScanResult<?> scanResult = mock(com.checkmarx.intellij.devassist.common.ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(scanIssue));
+
+        // Act
+        ignoreManager.updateLineNumbersForIgnoredEntries(scanResult, filePath);
+
+        // Assert: key unchanged, similarity ID unchanged, line updated
+        assertTrue(ignoreData.containsKey(key), "Key should remain unchanged when similarity ID is stable");
+        assertEquals(simId, ignoreData.get(key).getSimilarityId(), "Similarity ID should remain the same");
+        assertEquals(21, (int) ignoreData.get(key).getFiles().get(0).getLine(), "Line number should be updated to new position");
+        verify(ignoreFileManager).saveIgnoreDataToDisk();
+    }
+
     @Test
     void testReviveMultipleEntries_largeList() {
         try (MockedStatic<LocalFileSystem> localFileSystemMock = mockStatic(LocalFileSystem.class)) {
