@@ -85,61 +85,21 @@ plugin-checkmarx-devassist  (depends on common-lib + devassist-lib)
 
 ```
 ast-jetbrains-plugin/
-├── common-lib/                                # Shared library (auth, settings, icons, wrapper)
-│   └── src/main/java/com/checkmarx/intellij/common/
-│       ├── auth/                              # AuthService, OAuthCallbackServer
-│       ├── commands/                          # Authentication, TenantSetting CLI wrappers
-│       ├── components/                        # CxLinkLabel, PaneUtils, TreeUtils
-│       ├── context/                           # PluginContext
-│       ├── resources/                         # CxIcons, Bundle (i18n messages), Resource
-│       ├── settings/                          # GlobalSettingsState, GlobalSettingsSensitiveState
-│       ├── startup/                           # LicenseFlagSyncStartupActivity
-│       ├── ui/                                # CommonPanels, DevAssistPromotionalPanel
-│       ├── utils/                             # Utility classes
-│       ├── window/                            # Shared window actions (ExpandAll, CollapseAll)
-│       └── wrapper/                           # AST CLI wrapper integration
-├── devassist-lib/                             # DevAssist shared library (scanners, remediation)
-│   └── src/main/java/com/checkmarx/intellij/devassist/
-│       ├── basescanner/                       # BaseScannerCommand, ScannerService base
-│       ├── common/                            # ScanManager, ScannerFactory, ScanResult
-│       ├── configuration/                     # GlobalScannerController, ScannerConfig, MCP
-│       ├── ignore/                            # IgnoreManager, IgnoreFileManager
-│       ├── inspection/                        # DevAssistInspection, DevAssistInspectionMgr
-│       ├── listeners/                         # DevAssistProjectListener
-│       ├── model/                             # Data models
-│       ├── problems/                          # Problem representation
-│       ├── registry/                          # Scanner registry
-│       ├── remediation/                       # RemediationLinkHandler (MCP-based)
-│       ├── scanners/                          # ASCA, OSS, Secrets, IaC, Container scanners
-│       ├── telemetry/                         # TelemetryService (analytics events)
-│       └── ui/                                # DevAssist UI components and filter actions
-├── plugin-checkmarx-ast/                      # Main Checkmarx plugin
-│   ├── src/main/java/com/checkmarx/intellij/ast/
-│   │   ├── commands/                          # Scan, Project, Results, Triage commands
-│   │   ├── inspections/                       # CxInspection
-│   │   ├── project/                           # ProjectResultsService, ProjectListener
-│   │   ├── results/                           # Result data models
-│   │   ├── service/                           # Services
-│   │   ├── settings/                          # GlobalSettingsConfigurable
-│   │   ├── ui/                                # UI components
-│   │   └── window/                            # CxToolWindowFactory, toolbar actions
-│   │       └── actions/                       # Filter, GroupBy, Scan, Selection actions
-│   ├── src/main/resources/META-INF/plugin.xml # Plugin descriptor (Checkmarx)
-│   └── src/test/java/                         # Unit, integration, UI tests
-├── plugin-checkmarx-devassist/                # Standalone DevAssist plugin
-│   ├── src/main/java/com/checkmarx/intellij/cxdevassist/
-│   │   ├── settings/                          # CxDevAssistSettingsConfigurable
-│   │   ├── ui/                                # UI components
-│   │   ├── utils/                             # Utilities
-│   │   └── window/                            # CxDevAssistToolWindowFactory
-│   └── src/main/resources/META-INF/plugin.xml # Plugin descriptor (Developer Assist)
-├── unit-coverage-report/                      # Aggregated JaCoCo coverage
-├── docs/                                      # Contributing guidelines, code of conduct
-├── .github/workflows/                         # CI/CD pipelines
-├── gradle.properties                          # Centralized version management
-├── settings.gradle                            # Module definitions
-└── build.gradle                               # Root build configuration
+├── common-lib/              # Auth, settings, icons, CLI wrapper integration (CxWrapperFactory)
+├── devassist-lib/           # Real-time scanners, inspections, remediation, telemetry, MCP
+├── plugin-checkmarx-ast/    # Full Checkmarx plugin; src/test/java/ holds all test types
+├── plugin-checkmarx-devassist/  # Standalone DevAssist plugin
+├── unit-coverage-report/    # Aggregated JaCoCo coverage
+├── .github/workflows/       # CI/CD pipelines
+├── gradle.properties        # Centralized version management (defaultJavaWrapperVersion)
+└── settings.gradle          # Module definitions
 ```
+
+Key package roots under `src/main/java/`:
+- `com.checkmarx.intellij.common` — shared auth, settings, wrapper, UI utilities
+- `com.checkmarx.intellij.devassist` — scanners, inspection, ignore, remediation, telemetry
+- `com.checkmarx.intellij.ast` — scan/project/results/triage commands, tool window, UI
+- `com.checkmarx.intellij.cxdevassist` — DevAssist settings, tool window, utilities
 
 ---
 
@@ -246,11 +206,64 @@ Import into IntelliJ:
 
 - **Java 11** language level — lambdas and streams are fine, but no records or newer constructs
 - **Lombok:** Used for boilerplate reduction (`@Getter`, `@Setter`, `@Builder`, etc.). All modules apply the Lombok Gradle plugin.
-- **Logging:** Use `Log4j` (2.23.1). Logger instances are typically created with `LogManager.getLogger()`.
 - **UI thread safety:** All IntelliJ UI updates must happen on the EDT (Event Dispatch Thread). Use `ApplicationManager.getApplication().invokeLater()` for background-to-UI transitions.
 - **Constants:** Add string literals used in UI or logic to appropriate constants classes. Never hardcode strings inline.
 - **Null safety:** Check nullable returns from IntelliJ APIs before accessing. Use `@Nullable` / `@NotNull` annotations.
 - **UTF-8 encoding:** Enforced for all JavaCompile tasks via Gradle configuration.
+
+---
+
+## Logging
+
+Plugin source code uses the IntelliJ Platform's native logger (`com.intellij.openapi.diagnostic.Logger`), accessed through the shared utility method:
+
+```java
+private static final Logger LOGGER = Utils.getLogger(MyClass.class);
+```
+
+This routes all output to the IDE log file (`idea.log`), viewable at `Help -> Show Log in Explorer/Finder` (or `Help -> Show Log in Files` on Linux).
+
+`ast-cli-java-wrapper` uses SLF4J (`org.slf4j.Logger` via `LoggerFactory.getLogger(...)`). When the wrapper runs inside the IDE process, its SLF4J output is bridged to `idea.log` by the IDE's logging framework.
+
+**Log levels:**
+
+| Level | When to use |
+|-------|-------------|
+| `LOGGER.info(...)` | Normal operation milestones — scan start/end, authentication events, settings changes |
+| `LOGGER.warn(...)` | Recoverable issues — unsupported file type, missing PSI element, skipped scan |
+| `LOGGER.error(...)` | Unrecoverable errors — unexpected exceptions that affect plugin functionality |
+| `LOGGER.debug(...)` | Verbose diagnostics — use sparingly; off by default in production IDE builds |
+
+**Conventions:**
+- Real-time scanner log messages are prefixed with `"RTS: "` for easy filtering in log output.
+- Never log sensitive values (API keys, refresh tokens, tenant credentials).
+- Always pass the exception as the second argument to `warn`/`error` so the full stack trace is captured.
+- Use parameterized SLF4J-style formatting (`{}`) in wrapper code; use `String.format()` in plugin code via IntelliJ's `Logger`.
+
+---
+
+## Performance Considerations
+
+Plugin code runs inside the shared IDE process. Blocking the Event Dispatch Thread (EDT) or launching unthrottled background work degrades IDE responsiveness for all open projects.
+
+**Event Dispatch Thread (EDT)**
+- **Never block the EDT.** CLI wrapper calls (`CxWrapper.*`) are synchronous and can take several seconds. Always execute them on a background thread.
+- Use `ApplicationManager.getApplication().executeOnPooledThread(...)` or `ProgressManager.getInstance().run(new Task.Backgroundable(...))` for any CLI invocation or I/O.
+- Marshal UI updates back to the EDT with `ApplicationManager.getApplication().invokeLater(...)`.
+
+**Real-time inspections (DevAssist)**
+- `DevAssistInspection.checkFile()` is invoked by the IntelliJ inspection framework on every file edit. Keep this method fast — do not make synchronous CLI calls on the calling thread.
+- Actual scanning is delegated to `DevAssistScanScheduler`, which debounces requests so that rapid successive edits result in a single scan rather than many.
+- Use composite timestamp caching (PSI stamp ⊕ document stamp ⊕ VFS timestamp) to skip re-scanning unchanged files — this pattern is already established in `DevAssistInspection`.
+- If adding a new scanner, plug into the existing `DevAssistScanScheduler` rather than creating a parallel scheduling path.
+
+**CLI wrapper calls**
+- Each `CxWrapper` method call spawns a subprocess (the Checkmarx CLI binary). Subprocess startup has non-trivial overhead — avoid calling the CLI in tight loops or on every keypress.
+- Realtime scans write intermediate results to the system temp directory. Clean up temp files after use (see `BaseScannerService.deleteTempFolder()`).
+- Wrapper calls may involve network I/O to Checkmarx One. Handle `InterruptedException` and `IOException` gracefully and always provide timeout protection.
+
+**Telemetry**
+- All `TelemetryService` calls are already executed asynchronously via `CompletableFuture`. Preserve this pattern — do not convert telemetry calls to synchronous invocations.
 
 ---
 
@@ -283,13 +296,6 @@ Import into IntelliJ:
 | Integration | `plugin-checkmarx-ast/src/test/.../test/integration/standard/` | JUnit 5 | Test AST commands and server interactions against real tenant |
 | UI | `plugin-checkmarx-ast/src/test/.../test/ui/` | Remote Robot + JUnit 5 | Test full plugin behavior inside a running IDE instance |
 
-### CI Triggers
-
-- **Unit tests:** Run on every PR via GitHub Actions (`ci.yml`)
-- **Integration tests:** Run on PRs with Checkmarx One secrets (`CX_BASE_URI`, `CX_TENANT`, `CX_APIKEY`)
-- **UI tests:** Run on PRs using Remote Robot with Xvfb (Linux), also runnable on macOS and Windows via manual dispatch
-- **Plugin verifier:** Runs during release to check compatibility with IC-2023.1, IC-2023.2, IC-2023.3, IC-2024.1
-
 ### Coverage
 
 - JaCoCo coverage reports generated per module (HTML, CSV, XML)
@@ -309,6 +315,40 @@ Import into IntelliJ:
 
 ---
 
+## API / Endpoints / Interfaces
+
+The plugin has **no direct REST communication** with the Checkmarx One platform. All platform interactions — authentication, project listing, scan management, results retrieval, triage, real-time scanning, and telemetry — are routed exclusively through `ast-cli-java-wrapper`.
+
+**Communication boundary:**
+```
+Plugin code  →  CxWrapperFactory.build()  →  CxWrapper  →  Checkmarx CLI binary  →  Checkmarx One Platform
+```
+
+**Entry point:** `CxWrapperFactory.build()` in `common-lib/wrapper/CxWrapperFactory.java` constructs a fully configured `CxWrapper` instance from `GlobalSettingsState` and `GlobalSettingsSensitiveState`. This is the only sanctioned way to obtain a wrapper instance from plugin code.
+
+**Primary interface — `CxWrapper` methods (grouped by domain):**
+
+| Domain | Methods |
+|--------|---------|
+| Authentication | `authValidate()` |
+| Scans | `scanCreate()`, `scanList()`, `scanShow()`, `scanCancel()` |
+| Results | `results()`, `resultsSummary()` |
+| Projects | `projectList()`, `projectShow()`, `projectBranches()` |
+| Triage | `triageShow()`, `triageUpdate()`, `triageScaShow()`, `triageScaUpdate()` |
+| Real-time scanning | `ScanAsca()`, `ossRealtimeScan()`, `iacRealtimeScan()`, `secretsRealtimeScan()`, `containersRealtimeScan()`, `kicsRealtimeScan()` |
+| Tenant / Feature flags | `tenantSettings()`, `ideScansEnabled()`, `devAssistEnabled()`, `oneAssistEnabled()` |
+| Utilities | `codeBashingList()`, `learnMore()`, `telemetryAIEvent()` |
+
+**Configuration — `CxConfig`:**
+- Built by `CxWrapperFactory` from IDE-stored settings (`GlobalSettingsState` / `GlobalSettingsSensitiveState`).
+- Key fields: `apiKey`, `clientId`, `clientSecret`, `baseUri`, `tenant`, `baseAuthUri`, `agentName`, `pathToExecutable`.
+- Credentials are passed as CLI arguments at runtime — never embedded in source code.
+
+**`CxThinWrapper`:**
+A lower-level wrapper that executes raw CLI commands. Used by MCP-related services for operations that do not map to typed `CxWrapper` methods.
+
+---
+
 ## Deployment
 
 ### Release Process
@@ -324,20 +364,9 @@ Releases are triggered via `.github/workflows/release.yml` (manual dispatch or c
 7. **Publish:** Publish to JetBrains Marketplace (configurable: `checkmarx`, `devAssist`, or `both`)
 8. **Notify:** Send release notification (production releases only)
 
-### Versioning
+**Versioning:** AST `2.x.x`, DevAssist `1.x.x` (semantic). Nightly builds use `2.0.{timestamp}` on the "nightly" channel.
 
-- AST plugin: `2.x.x` (semantic versioning)
-- DevAssist plugin: `1.x.x` (semantic versioning)
-- Nightly builds: `2.0.{timestamp}` published to "nightly" channel
-
-### Distribution
-
-- **JetBrains Marketplace:** Published automatically on release
-- **GitHub Releases:** ZIP artifacts attached to each release
-
-### Install (End Users)
-
-`Settings -> Plugins -> Marketplace -> Search "Checkmarx"`
+**Distribution:** Published to JetBrains Marketplace automatically on release; ZIP artifacts attached to each GitHub Release. End users install via `Settings -> Plugins -> Marketplace -> Search "Checkmarx"`.
 
 ---
 
@@ -432,4 +461,31 @@ All telemetry calls are asynchronous via `CompletableFuture` and use `CxWrapperF
 
 ---
 
-*Generated for AST-146800 - Checkmarx Integrations Team*
+## Do Not (AI Assistant Rules)
+
+The following rules apply specifically when an AI assistant is making changes to this codebase. They protect plugin integrity, marketplace compatibility, and user security.
+
+**Architecture & platform communication**
+- **Do not bypass `ast-cli-java-wrapper`.** Never introduce direct HTTP/REST calls to Checkmarx One API endpoints. All platform communication must go through `CxWrapper` methods or `CxThinWrapper.run()`.
+- **Do not add new HTTP client usages** (e.g., `OkHttp`, `HttpURLConnection`, `java.net.http.HttpClient`) for communicating with Checkmarx One or any external Checkmarx service.
+- **Do not call Checkmarx One REST endpoints directly**, even if the endpoint URL and schema can be inferred from CLI wrapper source code or network traffic.
+- **Do not instantiate `CxWrapper` directly** from plugin code — always go through `CxWrapperFactory.build()` so settings and credentials are resolved correctly.
+
+**Plugin identity**
+- **Do not modify plugin IDs.** The IDs `com.checkmarx.checkmarx-ast-jetbrains-plugin` and `com.checkmarx.devassist-jetbrains-plugin` are registered on the JetBrains Marketplace and in customer installations. Changing them is a breaking, irreversible change.
+- **Do not modify `<id>`, `<version>`, or `<vendor>` tags in `plugin.xml`** unless explicitly instructed with a Jira ticket reference.
+
+**Credentials & secrets**
+- **Do not hardcode API keys, tokens, or tenant URLs** anywhere in source or test code. Use environment variables or IDE settings injection.
+- **Do not log sensitive values.** API keys, refresh tokens, and user credentials must never appear in log output, even at `DEBUG` level.
+
+**Thread safety & IDE conventions**
+- **Do not perform synchronous CLI calls on the EDT.** All `CxWrapper` invocations must run on background threads (see Performance Considerations).
+- **Do not update Swing/IntelliJ UI components from background threads** without marshalling to the EDT via `invokeLater`.
+- **Do not disable or remove the debounce/throttle logic** in `DevAssistScanScheduler` — it protects IDE performance during real-time scanning.
+
+**Build & CI**
+- **Do not modify CI workflow files** (`.github/workflows/`) without explicit instruction — changes there can break automated releases and JetBrains Marketplace publishing.
+- **Do not change `defaultJavaWrapperVersion` in `gradle.properties`** without confirming the target wrapper version is published and compatible.
+- **Do not use `--no-verify`** or skip pre-commit hooks to work around build failures — investigate and fix the root cause instead.
+
