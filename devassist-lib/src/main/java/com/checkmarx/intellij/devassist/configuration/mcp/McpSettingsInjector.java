@@ -86,6 +86,8 @@ public final class McpSettingsInjector {
             if (host != null && host.contains("iam.checkmarx")) {
                 host = host.replace("iam", "ast");
                 return "https://" + host;
+            } else if (host != null && !host.isBlank()) {
+                return "https://" + host;
             }
         } catch (Exception e) {
             LOG.warn("Could not derive AST base URL from issuer: " + issuer, e);

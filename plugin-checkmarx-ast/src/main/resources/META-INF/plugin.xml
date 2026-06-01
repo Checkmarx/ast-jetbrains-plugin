@@ -112,6 +112,8 @@
                     class="com.checkmarx.intellij.ast.window.actions.filter.FilterBaseAction$MediumFilter"/>
             <action id="Checkmarx.Low"
                     class="com.checkmarx.intellij.ast.window.actions.filter.FilterBaseAction$LowFilter"/>
+            <action id="Checkmarx.Info"
+                    class="com.checkmarx.intellij.ast.window.actions.filter.FilterBaseAction$InfoFilter"/>
             <group id="Checkmarx.DynamicFilters"
                    class="com.checkmarx.intellij.ast.window.actions.filter.DynamicFilterActionGroup"
                    icon="AllIcons.General.Filter"
