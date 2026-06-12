@@ -18,7 +18,7 @@ env:
 
 jobs:
   testUI:
-    runs-on: windows-latest
+    runs-on: cx-public-windows-x64
     steps:
       # Check out current repository
       - name: Fetch Sources
