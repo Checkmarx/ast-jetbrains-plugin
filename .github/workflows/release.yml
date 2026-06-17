@@ -38,6 +38,29 @@ on:
         required: false
         type: boolean
         default: false
+    secrets:
+      CX_APIKEY:
+        required: true
+      CX_BASE_URI:
+        required: true
+      CX_NOT_MATCH_TEST_BRANCH:
+        required: true
+      CX_NOT_MATCH_TEST_PROJECT:
+        required: true
+      CX_NOT_MATCH_TEST_SCAN_ID:
+        required: true
+      CX_TENANT:
+        required: true
+      CX_TEST_BRANCH:
+        required: true
+      CX_TEST_PROJECT:
+        required: true
+      CX_TEST_REPO:
+        required: true
+      CX_TEST_SCAN:
+        required: true
+      PUBLISH_TOKEN:
+        required: true
   workflow_dispatch:
     inputs:
       tag:
