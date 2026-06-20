@@ -72,14 +72,18 @@ public class TestGeneral extends com.checkmarx.intellij.ast.test.ui.BaseUITest {
     @DisplayName("Invalid Scan ID Handling")
     public void testInvalidScanId() {
         waitFor(() -> {
-            find(JTextFieldFixture.class, SCAN_FIELD).click();
+            JTextFieldFixture scanField = find(JTextFieldFixture.class, SCAN_FIELD);
+            // Use programmatic focus to avoid triggering SearchTextField history popup
+            scanField.runJs("component.requestFocusInWindow()");
 
-            if (!find(JTextFieldFixture.class, SCAN_FIELD).getHasFocus()) {
+            if (!scanField.getHasFocus()) {
                 return false;
             }
 
-            find(JTextFieldFixture.class, SCAN_FIELD).setText("inva-lid");
-            new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);
+            Keyboard kb = new Keyboard(remoteRobot);
+            kb.hotKey(KeyEvent.VK_CONTROL, KeyEvent.VK_A);
+            kb.enterText("inva-lid");
+            kb.key(KeyEvent.VK_ENTER);
 
             JTreeFixture tree = find(JTreeFixture.class, TREE);
             boolean invalidMsgDisplayed = tree.getData().getAll().get(0).getText().contains(Bundle.message(Resource.INVALID_SCAN_ID));
