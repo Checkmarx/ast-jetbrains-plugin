@@ -23,9 +23,10 @@ jobs:
       - name: Tag
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
         run: |
-          echo ${{ github.event.inputs.tag }}
-          tag=${{ github.event.inputs.tag }}
+          echo "${INPUT_TAG}"
+          tag="${INPUT_TAG}"
           message='New release'
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"

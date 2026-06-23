@@ -2,19 +2,22 @@ name: Post-Check Actions
 on: [pull_request]
 
 permissions:
-  contents: write
+  contents: read
 
-jobs:
-  dependabot-merge:
-    runs-on: cx-public-ubuntu-x64
-    if: contains(github.head_ref, 'other/update_java_wrapper')
-    steps:
-      - name: Enable auto-merge for Dependabot PRs
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{secrets.PERSONAL_ACCESS_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
-      - name: Auto approve dependabot PRs
-        uses: hmarr/auto-approve-action@f0939ea97e9205ef24d872e76833fa908a770363 #v4
-        with:
-          github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+# jobs:
+#   dependabot-merge:
+#     permissions:
+#       contents: read
+#       pull-requests: write
+#     runs-on: cx-public-ubuntu-x64
+#     if: contains(github.head_ref, 'other/update_java_wrapper')
+#     steps:
+#       - name: Enable auto-merge for Dependabot PRs
+#         env:
+#           PR_URL: ${{github.event.pull_request.html_url}}
+#           GITHUB_TOKEN: ${{secrets.PERSONAL_ACCESS_TOKEN }}
+#         run: gh pr merge --auto --squash "$PR_URL"
+#       - name: Auto approve dependabot PRs
+#         uses: hmarr/auto-approve-action@f0939ea97e9205ef24d872e76833fa908a770363 #v4
+#         with:
+#           github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}

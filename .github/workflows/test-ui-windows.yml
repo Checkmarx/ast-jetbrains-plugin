@@ -3,6 +3,9 @@ name: Test UI Windows
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
   CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
   CX_APIKEY: ${{ secrets.CX_APIKEY }}
@@ -18,11 +21,15 @@ env:
 
 jobs:
   testUI:
+    permissions:
+      contents: read
     runs-on: windows-latest
     steps:
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
