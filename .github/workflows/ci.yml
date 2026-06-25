@@ -21,7 +21,7 @@ concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 jobs:
-  testUI:
+  ui-tests:
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64
@@ -83,7 +83,7 @@ jobs:
           path: |
             idea.log
 
-  testUnit:
+  unit-tests:
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64
@@ -136,7 +136,7 @@ jobs:
             devassist-lib/build/reports/tests
             plugin-checkmarx-devassist/build/reports/tests
 
-  testIntegration:
+  integration-tests:
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64
