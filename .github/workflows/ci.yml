@@ -1,5 +1,10 @@
 name: Checkmarx One Jetbrains Plugin CI
-on: [ pull_request, workflow_dispatch ]
+
+on: [pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
 env:
   CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
   CX_APIKEY: ${{ secrets.CX_APIKEY }}
@@ -16,12 +21,16 @@ concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 jobs:
-  testUI:
+  ui-tests:
+    permissions:
+      contents: read
     runs-on: cx-public-ubuntu-x64
     steps:
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
@@ -74,12 +83,16 @@ jobs:
           path: |
             idea.log
 
-  testUnit:
+  unit-tests:
+    permissions:
+      contents: read
     runs-on: cx-public-ubuntu-x64
     steps:
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
@@ -123,12 +136,16 @@ jobs:
             devassist-lib/build/reports/tests
             plugin-checkmarx-devassist/build/reports/tests
 
-  testIntegration:
+  integration-tests:
+    permissions:
+      contents: read
     runs-on: cx-public-ubuntu-x64
     steps:
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0

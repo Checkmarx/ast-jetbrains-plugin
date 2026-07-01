@@ -2,24 +2,24 @@ name: Dependabot auto-merge
 on: pull_request
 
 permissions:
-  contents: write
+  contents: read
 
-jobs:
-  dependabot-merge:
-    runs-on: cx-public-ubuntu-x64
-    if: ${{ github.actor == 'dependabot[bot]' }}
-    steps:
-      - name: Dependabot metadata
-        id: metadata
-        uses: step-security/dependabot-fetch-metadata@bf8fb6e0be0a711c669dc236de6e7f7374ba626e # v3.1.0
-        with:
-          github-token: "${{ secrets.PERSONAL_ACCESS_TOKEN  }}"
-      - name: Enable auto-merge for Dependabot PRs
-        env:
-          PR_URL: ${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: ${{secrets.PERSONAL_ACCESS_TOKEN }}
-        run: gh pr merge --auto --merge "$PR_URL"
-      - name: Auto approve dependabot PRs
-        uses: step-security/auto-approve-action@0c28339628c8e79ab2f6813291e7e6cd584b4d30 # v4.0.0
-        with:
-          github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+# jobs:
+#   dependabot-merge:
+#     runs-on: cx-public-ubuntu-x64
+#     if: ${{ github.actor == 'dependabot[bot]' }}
+#     steps:
+#       - name: Dependabot metadata
+#         id: metadata
+#         uses: dependabot/fetch-metadata@c9c4182bf1b97f5224aee3906fd373f6b61b4526 # v1.6.0
+#         with:
+#           github-token: "${{ secrets.PERSONAL_ACCESS_TOKEN  }}"
+#       - name: Enable auto-merge for Dependabot PRs
+#         env:
+#           PR_URL: ${{github.event.pull_request.html_url}}
+#           GITHUB_TOKEN: ${{secrets.PERSONAL_ACCESS_TOKEN }}
+#         run: gh pr merge --auto --merge "$PR_URL"
+#       - name: Auto approve dependabot PRs
+#         uses: hmarr/auto-approve-action@7d0ab8fdbb906da8a6297d373561d5ccb137d98f # v3
+#         with:
+#           github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}

@@ -32,12 +32,35 @@ on:
         description: 'Publish to JetBrains Marketplace'
         required: false
         type: boolean
-        default: true
+        default: false
       skip_tests:
         description: 'Skip integration tests'
         required: false
         type: boolean
         default: false
+    secrets:
+      CX_APIKEY:
+        required: true
+      CX_BASE_URI:
+        required: true
+      CX_NOT_MATCH_TEST_BRANCH:
+        required: true
+      CX_NOT_MATCH_TEST_PROJECT:
+        required: true
+      CX_NOT_MATCH_TEST_SCAN_ID:
+        required: true
+      CX_TENANT:
+        required: true
+      CX_TEST_BRANCH:
+        required: true
+      CX_TEST_PROJECT:
+        required: true
+      CX_TEST_REPO:
+        required: true
+      CX_TEST_SCAN:
+        required: true
+      PUBLISH_TOKEN:
+        required: true
   workflow_dispatch:
     inputs:
       tag:
@@ -73,7 +96,7 @@ on:
         description: 'Publish to JetBrains Marketplace'
         required: false
         type: boolean
-        default: true
+        default: false
       skip_tests:
         description: 'Skip integration tests'
         required: false
@@ -81,9 +104,7 @@ on:
         default: false
 
 permissions:
-  contents: write
-  packages: write
-  id-token: write
+  contents: read
 
 env:
   CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
@@ -100,6 +121,8 @@ env:
 
 jobs:
   resolve:
+    permissions:
+      contents: read
     runs-on: cx-public-ubuntu-x64
     outputs:
       releaseType: ${{ steps.vars.outputs.releaseType }}
@@ -109,12 +132,18 @@ jobs:
     steps:
       - name: Resolve versions and tag
         id: vars
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_RELEASE_TYPE: ${{ inputs.releaseType }}
+          INPUT_AST_VERSION: ${{ inputs.ast_version }}
+          INPUT_DA_VERSION: ${{ inputs.devassist_version }}
+          INPUT_CHANNEL: ${{ inputs.rchannels }}
         run: |
-          TAG="${{ inputs.tag }}"
-          RELEASE_TYPE="${{ inputs.releaseType }}"
-          AST_VERSION="${{ inputs.ast_version }}"
-          DA_VERSION="${{ inputs.devassist_version }}"
-          CHANNEL="${{ inputs.rchannels }}"
+          TAG="${INPUT_TAG}"
+          RELEASE_TYPE="${INPUT_RELEASE_TYPE}"
+          AST_VERSION="${INPUT_AST_VERSION}"
+          DA_VERSION="${INPUT_DA_VERSION}"
+          CHANNEL="${INPUT_CHANNEL}"
 
           if [[ -z "${RELEASE_TYPE}" ]]; then
             RELEASE_TYPE="both"
@@ -139,10 +168,14 @@ jobs:
 
   verify:
     needs: [resolve]
+    permissions:
+      contents: read
     runs-on: cx-public-ubuntu-x64
     steps:
       - name: Checkout Code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
       - name: Free up disk space
         run: |
           sudo rm -rf /usr/share/dotnet
@@ -171,10 +204,14 @@ jobs:
   testIntegration:
     needs: [verify]
     if: ${{ !inputs.skip_tests }}
+    permissions:
+      contents: read
     runs-on: cx-public-ubuntu-x64
     steps:
       - name: Fetch Sources
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
       - name: Setup Java
         uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
         with:
@@ -203,6 +240,8 @@ jobs:
   release:
     needs: [resolve, verify, testIntegration, deleteDevReleases]
     if: ${{ always() && needs.resolve.result == 'success' && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') && (needs.deleteDevReleases.result == 'success' || needs.deleteDevReleases.result == 'skipped') }}
+    permissions:
+      contents: write
     runs-on: cx-public-ubuntu-x64
     outputs:
       TAG_NAME: ${{ steps.set_outputs.outputs.TAG_NAME }}
@@ -219,22 +258,26 @@ jobs:
           java-version: 11
 
       - name: Set versions
+        env:
+          INPUT_JAVAWRAPPERVERSION: ${{ inputs.javawrapperversion }}
         run: |
-          echo "JAVA_WRAPPER_VERSION=${{ inputs.javawrapperversion }}" >> $GITHUB_ENV
+          echo "JAVA_WRAPPER_VERSION=${INPUT_JAVAWRAPPERVERSION}" >> $GITHUB_ENV
 
       # Always build BOTH plugins (both zips always present in release)
       - name: Build plugin-checkmarx-ast
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AST_VERSION: ${{ needs.resolve.outputs.ast_version }}
         run: |
-          RELEASE_VERSION="${{ needs.resolve.outputs.ast_version }}" \
+          RELEASE_VERSION="${AST_VERSION}" \
             ./gradlew :plugin-checkmarx-ast:buildPlugin --info
 
       - name: Build plugin-checkmarx-devassist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DA_VERSION: ${{ needs.resolve.outputs.devassist_version }}
         run: |
-          RELEASE_VERSION="${{ needs.resolve.outputs.devassist_version }}" \
+          RELEASE_VERSION="${DA_VERSION}" \
             ./gradlew :plugin-checkmarx-devassist:buildPlugin --info
 
       - name: Extract CLI version
@@ -243,11 +286,13 @@ jobs:
           ./.github/scripts/extract_cli_version.sh cx-linux
 
       - name: Generate Changelog
+        env:
+          RELEASE_TYPE: ${{ needs.resolve.outputs.releaseType }}
+          AST_VER: ${{ needs.resolve.outputs.ast_version }}
+          DA_VER: ${{ needs.resolve.outputs.devassist_version }}
+          REPO: ${{ github.repository }}
         run: |
           chmod +x ./.github/scripts/generateChangelog.sh
-          RELEASE_TYPE="${{ needs.resolve.outputs.releaseType }}"
-          AST_VER="${{ needs.resolve.outputs.ast_version }}"
-          DA_VER="${{ needs.resolve.outputs.devassist_version }}"
           BODY_FILE="${RUNNER_TEMP}/release_body.md"
 
           # --- "Plugins in this release" header ---
@@ -274,7 +319,7 @@ jobs:
             bash ./.github/scripts/generateChangelog.sh \
               --plugin checkmarx \
               --version "${AST_VER}" \
-              --repo "${{ github.repository }}" \
+              --repo "${REPO}" \
               | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/{/RELEASE_BODY_START/d;/RELEASE_BODY_END/d;p}' \
               >> "$BODY_FILE"
             FIRST_SECTION=false
@@ -289,7 +334,7 @@ jobs:
             bash ./.github/scripts/generateChangelog.sh \
               --plugin devassist \
               --version "${DA_VER}" \
-              --repo "${{ github.repository }}" \
+              --repo "${REPO}" \
               | sed -n '/RELEASE_BODY_START/,/RELEASE_BODY_END/{/RELEASE_BODY_START/d;/RELEASE_BODY_END/d;p}' \
               >> "$BODY_FILE"
           fi
@@ -307,9 +352,12 @@ jobs:
           cp plugin-checkmarx-devassist/build/distributions/*.zip release-assets/
 
       - name: Build release name
+        env:
+          GH_TAG: ${{ needs.resolve.outputs.gh_tag }}
+          INPUT_RCHANNELS: ${{ inputs.rchannels }}
         run: |
-          TAG="${{ needs.resolve.outputs.gh_tag }}"
-          if [[ -n "${{ inputs.rchannels }}" ]]; then
+          TAG="${GH_TAG}"
+          if [[ -n "${INPUT_RCHANNELS}" ]]; then
             TIMESTAMP=$(date +%s)
             echo "RELEASE_NAME=${TAG} (${TIMESTAMP})" >> "$GITHUB_ENV"
           else
@@ -327,45 +375,51 @@ jobs:
 
       - name: Echo CLI version and tag name to outputs
         id: set_outputs
+        env:
+          GH_TAG: ${{ needs.resolve.outputs.gh_tag }}
+          OUT_CLI_VERSION: ${{ env.CLI_VERSION }}
         run: |
-          echo "TAG_NAME=${{ needs.resolve.outputs.gh_tag }}" >> "$GITHUB_OUTPUT"
-          echo "CLI_VERSION=${{ env.CLI_VERSION }}" >> "$GITHUB_OUTPUT"
+          echo "TAG_NAME=${GH_TAG}" >> "$GITHUB_OUTPUT"
+          echo "CLI_VERSION=${OUT_CLI_VERSION}" >> "$GITHUB_OUTPUT"
 
       # Publish only the plugin(s) selected by releaseType
       - name: Publish Plugin
-        if: ${{ inputs.publish != false }}
+        if: ${{ inputs.publish == true }}
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          INPUT_RCHANNELS: ${{ inputs.rchannels }}
+          RELEASE_TYPE: ${{ needs.resolve.outputs.releaseType }}
+          AST_VERSION: ${{ needs.resolve.outputs.ast_version }}
+          DA_VERSION: ${{ needs.resolve.outputs.devassist_version }}
         run: |
           CHANNEL_ARG=""
-          if [[ -n "${{ inputs.rchannels }}" ]]; then
-            CHANNEL_ARG="-Prchannels=${{ inputs.rchannels }}"
+          if [[ -n "${INPUT_RCHANNELS}" ]]; then
+            CHANNEL_ARG="-Prchannels=${INPUT_RCHANNELS}"
           fi
 
-          RELEASE_TYPE="${{ needs.resolve.outputs.releaseType }}"
           if [[ "${RELEASE_TYPE}" == "both" || "${RELEASE_TYPE}" == "checkmarx" ]]; then
             echo "Publishing plugin-checkmarx-ast..."
-            RELEASE_VERSION="${{ needs.resolve.outputs.ast_version }}" \
+            RELEASE_VERSION="${AST_VERSION}" \
               ./gradlew :plugin-checkmarx-ast:publishPlugin ${CHANNEL_ARG}
           fi
           if [[ "${RELEASE_TYPE}" == "both" || "${RELEASE_TYPE}" == "devAssist" ]]; then
             echo "Publishing plugin-checkmarx-devassist..."
-            RELEASE_VERSION="${{ needs.resolve.outputs.devassist_version }}" \
+            RELEASE_VERSION="${DA_VERSION}" \
               ./gradlew :plugin-checkmarx-devassist:publishPlugin ${CHANNEL_ARG}
           fi
 
-  notify:
-    if: ${{ (inputs.rchannels == '' || inputs.rchannels == null) && needs.release.result == 'success' }}
-    needs: release
-    uses: Checkmarx/plugins-release-workflow/.github/workflows/release-notify.yml@main
-    with:
-      product_name: >-
-        ${{ inputs.releaseType == 'checkmarx' && 'JetBrains Plugin - Checkmarx (AST)' ||
-            inputs.releaseType == 'devAssist' && 'JetBrains Plugin - DevAssist' ||
-            'JetBrains Plugin - Checkmarx (AST) & DevAssist' }}
-      release_version: ${{ needs.release.outputs.TAG_NAME }}
-      cli_release_version: ${{ needs.release.outputs.CLI_VERSION }}
-      release_author: "Sypher Team"
-      release_url: https://github.com/Checkmarx/ast-jetbrains-plugin/releases/tag/${{ needs.release.outputs.TAG_NAME }}
-      jira_product_name: JetBrains
-    secrets: inherit
+  # notify:
+  #   if: ${{ (inputs.rchannels == '' || inputs.rchannels == null) && needs.release.result == 'success' }}
+  #   needs: release
+  #   uses: Checkmarx/plugins-release-workflow/.github/workflows/release-notify.yml@main
+  #   with:
+  #     product_name: >-
+  #       ${{ inputs.releaseType == 'checkmarx' && 'JetBrains Plugin - Checkmarx (AST)' ||
+  #           inputs.releaseType == 'devAssist' && 'JetBrains Plugin - DevAssist' ||
+  #           'JetBrains Plugin - Checkmarx (AST) & DevAssist' }}
+  #     release_version: ${{ needs.release.outputs.TAG_NAME }}
+  #     cli_release_version: ${{ needs.release.outputs.CLI_VERSION }}
+  #     release_author: "Sypher Team"
+  #     release_url: https://github.com/Checkmarx/ast-jetbrains-plugin/releases/tag/${{ needs.release.outputs.TAG_NAME }}
+  #     jira_product_name: JetBrains
+  #   secrets: inherit

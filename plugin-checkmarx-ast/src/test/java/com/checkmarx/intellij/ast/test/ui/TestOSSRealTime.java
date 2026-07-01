@@ -6,11 +6,21 @@ import org.junit.jupiter.api.*;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.*;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CxOneAssistPage.*;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.OSSRealTimeScanPage.verifyOssFindingsTreeNotEmpty;
-import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.hasAnyComponent;
+import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
 
 public class TestOSSRealTime extends com.checkmarx.intellij.ast.test.ui.BaseUITest {
+
+    @AfterEach
+    public void cleanupDialogs() {
+        if (hasAnyComponent(WELCOME_CLOSE_BUTTON)) {
+            click(WELCOME_CLOSE_BUTTON);
+        }
+        if (hasAnyComponent(OK_BTN)) {
+            click(OK_BTN);
+        }
+    }
 
     @Test
     @Video

@@ -192,11 +192,12 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
             if (Objects.nonNull(saveResult)) {
                 tempFilePath = saveResult.getLeft().toString();
                 LOGGER.info("Start IAC Realtime Scan On File: " + uri);
+                // Re-key ignore entries first (IaC simIds include line info and change when lines shift),
+                // so the subsequent scan with the ignore file uses up-to-date simIds and properly suppresses ignored findings.
+                updateIgnoredFileDataOnLatestResult(tempFilePath, psiFile.getProject(), uri);
                 IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(), DevAssistUtils.getIgnoreFilePath(psiFile.getProject()));
                 IacScanResultAdaptor scanResultAdaptor = new IacScanResultAdaptor(scanResults, fileType, uri);
                 TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.IAC);
-                // Update line numbers for ignored IaC issues if any exist
-                updateIgnoredFileDataOnLatestResult(tempFilePath, psiFile.getProject(), uri);
                 return scanResultAdaptor;
             }
         } catch (IOException | CxException | InterruptedException e) {

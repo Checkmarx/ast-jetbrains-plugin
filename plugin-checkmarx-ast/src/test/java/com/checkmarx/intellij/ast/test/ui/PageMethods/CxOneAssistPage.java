@@ -17,14 +17,13 @@ public class CxOneAssistPage {
     };
 
     public static void navigateToCxOneAssistPage() {
-        // Implementation for navigating to CxOne Assist page
         locateAndClickOnButton(GO_TO_CXONE_ASSIST_LINK);
     }
 
     public static void validateCxOneAssistPageLoadedSuccessfully() {
-        // Implementation for validating CxOne Assist page
+        // Wait for all engine checkboxes to be present before validating
         for (String xpath : engineXpaths) {
-            hasAnyComponent(xpath);
+            waitFor(() -> hasAnyComponent(xpath));
         }
         validateAllEnginesAreSelected();
     }
@@ -57,11 +56,10 @@ public class CxOneAssistPage {
     }
 
     public static void validateAllEnginesAreSelected() {
-        // Implementation for validating a specific engine is selected
         for (String xpath : engineXpaths) {
             boolean value = isComponentSelected(xpath);
             Assertions.assertTrue(value, "Expected engine checkbox to be selected: " + xpath);
         }
-
     }
+
 }

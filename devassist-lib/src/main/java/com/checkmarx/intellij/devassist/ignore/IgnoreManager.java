@@ -656,9 +656,95 @@ public final class IgnoreManager {
                 }
             }
         }
+        // IaC similarity IDs include line info and change when lines shift; rescue marked entries via secondary title match
+        if (scanEngineType == ScanEngine.IAC) {
+            hasChanges |= applyIacReKeying(allIssuesForFile, relativePath, keysToRemove);
+        }
         updateInIgnoredEntries(keysToRemove, hasChanges, relativePath);
     }
 
+    /**
+     * Re-keys IaC ignore entries whose similarity IDs changed due to line number shifts.
+     * IaC similarity IDs include line information and change when code lines move, causing a direct
+     * key lookup to miss the entry. This method attempts a secondary match by vulnerability title
+     * for each candidate entry and, when found, updates the map key, similarity ID, and line number
+     * in-place. Entries that cannot be matched by title remain in {@code keysToRemove} for deletion.
+     *
+     * @param allIssuesForFile latest scan issues for the file (unfiltered, so ignored findings are present)
+     * @param relativePath     normalized relative path of the file being processed
+     * @param keysToRemove     keys already marked for removal; successfully re-keyed entries are removed from this list
+     * @return {@code true} if at least one entry was re-keyed (i.e., ignore data was modified)
+     */
+    private boolean applyIacReKeying(List<ScanIssue> allIssuesForFile, String relativePath, List<String> keysToRemove) {
+        boolean hasChanges = false;
+        Map<String, IgnoreEntry> ignoreData = ignoreFileManager.getIgnoreData();
+        List<String> rekeyedKeys = new ArrayList<>();
+        for (String key : new ArrayList<>(keysToRemove)) {
+            IgnoreEntry entry = ignoreData.get(key);
+            if (entry == null || entry.getType() != ScanEngine.IAC) continue;
+            int storedLine = entry.getFiles().stream()
+                    .filter(f -> f.getPath().equals(relativePath) && f.isActive())
+                    .mapToInt(IgnoreEntry.FileReference::getLine)
+                    .findFirst().orElse(0);
+            Vulnerability secondaryMatch = findIacVulnerabilityByTitle(allIssuesForFile, entry.getPackageName(), storedLine);
+            if (secondaryMatch != null) {
+                String newSimilarityId = secondaryMatch.getSimilarityId();
+                String newKey = formatJsonKeyForIgnoreEntry(ScanEngine.IAC, entry.getPackageName(), newSimilarityId, relativePath);
+                int newLine = findLineForIacVulnerability(allIssuesForFile, newSimilarityId);
+                LOGGER.debug(String.format("RTS-Ignore: IaC entry similarity ID changed, re-keying: %s -> %s", key, newKey));
+                ignoreData.remove(key);
+                entry.setSimilarityId(newSimilarityId);
+                for (IgnoreEntry.FileReference fileRef : entry.getFiles()) {
+                    if (fileRef.getPath().equals(relativePath) && fileRef.isActive()) {
+                        fileRef.setLine(newLine > 0 ? newLine : storedLine);
+                    }
+                }
+                ignoreData.put(newKey, entry);
+                rekeyedKeys.add(key);
+                hasChanges = true;
+            } else {
+                LOGGER.debug(String.format("RTS-Ignore: IaC entry %s not found in scan results for file %s, marking for removal", key, relativePath));
+            }
+        }
+        keysToRemove.removeAll(rekeyedKeys);
+        return hasChanges;
+    }
+
+    /**
+     * Finds an IaC vulnerability with the given title in the scan results,
+     * preferring the one whose containing scan issue is at the closest line to {@code storedLine}.
+     */
+    private Vulnerability findIacVulnerabilityByTitle(List<ScanIssue> scanIssues, String title, int storedLine) {
+        Vulnerability closest = null;
+        int minDistance = Integer.MAX_VALUE;
+        for (ScanIssue si : scanIssues) {
+            if (si.getScanEngine() != ScanEngine.IAC || si.getVulnerabilities() == null) continue;
+            int issueLine = (si.getLocations() == null || si.getLocations().isEmpty()) ? 0 : si.getLocations().get(0).getLine();
+            int distance = Math.abs(issueLine - storedLine);
+            for (Vulnerability v : si.getVulnerabilities()) {
+                if (title.equals(v.getTitle()) && distance < minDistance) {
+                    closest = v;
+                    minDistance = distance;
+                }
+            }
+        }
+        return closest;
+    }
+
+    /**
+     * Returns the line number of the scan issue that contains an IaC vulnerability with the given similarity ID.
+     */
+    private int findLineForIacVulnerability(List<ScanIssue> scanIssues, String similarityId) {
+        for (ScanIssue si : scanIssues) {
+            if (si.getScanEngine() != ScanEngine.IAC || si.getVulnerabilities() == null) continue;
+            boolean hasMatch = si.getVulnerabilities().stream()
+                    .anyMatch(v -> similarityId.equals(v.getSimilarityId()));
+            if (hasMatch) {
+                return (si.getLocations() == null || si.getLocations().isEmpty()) ? 0 : si.getLocations().get(0).getLine();
+            }
+        }
+        return 0;
+    }
 
     /**
      * Updates the ignored entries based on scan results and line number changes.

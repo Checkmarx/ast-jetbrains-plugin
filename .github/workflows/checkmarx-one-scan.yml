@@ -9,12 +9,19 @@ on:
   schedule:
     - cron: '00 7 * * *' # Every day at 07:00
 
+permissions:
+  contents: read
+
 jobs:
   cx-scan:
+    permissions:
+      contents: read
     runs-on: cx-public-ubuntu-x64
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
+        with:
+          persist-credentials: false
 
       - name: Setup Java
         uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0  # v3.13.0
