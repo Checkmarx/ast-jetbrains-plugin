@@ -23,6 +23,8 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.junit.jupiter.api.Assertions;
+
 import static com.checkmarx.intellij.ast.test.ui.BaseUITest.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
@@ -301,6 +303,13 @@ public class UIHelper {
         });
     }
 
+    public static void clickSafe(String locator, Duration timeout) {
+        repeatUntilSuccess(3, () -> {
+            waitFor(() -> hasAnyComponent(locator), timeout);
+            find(locator).click();
+        });
+    }
+
     private static void repeatUntilSuccess(int attempts, Runnable action) {
         for (int i = 1; i <= attempts; i++) {
             try {
@@ -506,5 +515,13 @@ public class UIHelper {
             return jListFixtures.size() == 1 && jListFixtures.get(0).findAllText().size() > 0;
         });
         enter(value);
+    }
+
+    public static void assertElementAvailableAfterLogin(String xpath, String elementName) {
+        boolean available = pollingWaitForElement(xpath, true);
+        if (!available) {
+            log("FAILED: " + elementName + " button is not available even after successful login");
+            Assertions.fail(elementName + " button is not available even after successful login");
+        }
     }
 }

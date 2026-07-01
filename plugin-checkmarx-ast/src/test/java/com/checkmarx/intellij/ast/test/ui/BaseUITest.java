@@ -153,8 +153,6 @@ public abstract class BaseUITest {
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         focusCxWindow();
         clearSelection();
-       /* find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
-        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);*/
         enterScanIdAndSelect(true);
         waitFor(() -> {
             focusCxWindow();
@@ -167,9 +165,13 @@ public abstract class BaseUITest {
 
     protected void waitForScanIdSelection() {
         focusCxWindow();
-        // check scan selection for the scan id
+        // check that the scan id is visible in the tree or the search field
         log("inside waitForScanIdSelection");
-        waitFor(() -> hasAnyComponent(String.format(SCAN_ID_SELECTION, Environment.SCAN_ID, Environment.SCAN_ID)));
+        @Language("XPath") String scanInTree = String.format(
+                "//div[@class='Tree' and contains(@visible_text,'%s')]", Environment.SCAN_ID);
+        @Language("XPath") String scanInField = String.format(
+                "//div[@class='TextFieldWithProcessing' and contains(@visible_text,'%s')]", Environment.SCAN_ID);
+        waitFor(() -> hasAnyComponent(scanInTree) || hasAnyComponent(scanInField));
     }
 
 
