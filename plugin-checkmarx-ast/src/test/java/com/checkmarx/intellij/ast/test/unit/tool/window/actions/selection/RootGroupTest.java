@@ -14,7 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
-
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -179,6 +181,111 @@ class RootGroupTest {
     void getActionUpdateThread_ReturnsEDT() throws Exception {
         RootGroup root = newInstanceWithoutConstructor();
         assertEquals(ActionUpdateThread.EDT, root.getActionUpdateThread());
+    }
+
+    // ===== override — synchronous execution of thenAccept lambda =====
+
+    @Test
+    @SuppressWarnings({"rawtypes","unchecked"})
+    void override_WhenScanFound_CallsProjectGroupOverride() throws Exception {
+        RootGroup root = newInstanceWithoutConstructor();
+
+        Project project = mock(Project.class);
+        ProjectSelectionGroup projectGroup = mock(ProjectSelectionGroup.class);
+        BranchSelectionGroup branchGroup = mock(BranchSelectionGroup.class);
+        ScanSelectionGroup scanGroup = mock(ScanSelectionGroup.class);
+        com.checkmarx.ast.scan.Scan mockScan = mock(com.checkmarx.ast.scan.Scan.class);
+
+        ToolWindowManager toolWindowManager = mock(ToolWindowManager.class);
+
+        try (MockedStatic<ToolWindowManager> twmMock = mockStatic(ToolWindowManager.class);
+             MockedStatic<ApplicationManager> appMock = mockStatic(ApplicationManager.class);
+             MockedStatic<CompletableFuture> cfMock = mockStatic(CompletableFuture.class);
+             MockedStatic<com.checkmarx.intellij.ast.commands.Scan> scanCmdMock =
+                     mockStatic(com.checkmarx.intellij.ast.commands.Scan.class)) {
+
+            twmMock.when(() -> ToolWindowManager.getInstance(project)).thenReturn(toolWindowManager);
+            Application app = mock(Application.class);
+            appMock.when(ApplicationManager::getApplication).thenReturn(app);
+            doAnswer(inv -> { ((Runnable) inv.getArgument(0)).run(); return null; }).when(app).invokeLater(any());
+
+            CompletableFuture mockFuture = mock(CompletableFuture.class);
+            when(mockFuture.thenAccept(any())).thenAnswer(inv -> {
+                Consumer consumer = inv.getArgument(0);
+                consumer.accept(mockScan);
+                return null;
+            });
+            cfMock.when(() -> CompletableFuture.supplyAsync(any())).thenAnswer(inv -> {
+                Supplier supplier = inv.getArgument(0);
+                try { supplier.get(); } catch (Exception ignored) {}
+                return mockFuture;
+            });
+            scanCmdMock.when(() -> com.checkmarx.intellij.ast.commands.Scan.scanShow(anyString()))
+                       .thenReturn(mockScan);
+
+            setField(root, "project", project);
+            setField(root, "projectSelectionGroup", projectGroup);
+            setField(root, "branchSelectionGroup", branchGroup);
+            setField(root, "scanSelectionGroup", scanGroup);
+            setField(root, "resetSelectionAction", null);
+
+            root.override("scan-found-id");
+
+            boolean overrideCalled = mockingDetails(projectGroup).getInvocations().stream()
+                    .anyMatch(inv -> inv.getMethod().getName().equals("override"));
+            assertTrue(overrideCalled, "projectSelectionGroup.override(scan) should be called when scan is found");
+        }
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes","unchecked"})
+    void override_WhenScanNull_JustReEnablesWithoutCallingProjectOverride() throws Exception {
+        RootGroup root = newInstanceWithoutConstructor();
+
+        Project project = mock(Project.class);
+        ProjectSelectionGroup projectGroup = mock(ProjectSelectionGroup.class);
+        BranchSelectionGroup branchGroup = mock(BranchSelectionGroup.class);
+        ScanSelectionGroup scanGroup = mock(ScanSelectionGroup.class);
+
+        ToolWindowManager toolWindowManager = mock(ToolWindowManager.class);
+
+        try (MockedStatic<ToolWindowManager> twmMock = mockStatic(ToolWindowManager.class);
+             MockedStatic<ApplicationManager> appMock = mockStatic(ApplicationManager.class);
+             MockedStatic<CompletableFuture> cfMock = mockStatic(CompletableFuture.class);
+             MockedStatic<com.checkmarx.intellij.ast.commands.Scan> scanCmdMock =
+                     mockStatic(com.checkmarx.intellij.ast.commands.Scan.class)) {
+
+            twmMock.when(() -> ToolWindowManager.getInstance(project)).thenReturn(toolWindowManager);
+            Application app = mock(Application.class);
+            appMock.when(ApplicationManager::getApplication).thenReturn(app);
+            doAnswer(inv -> { ((Runnable) inv.getArgument(0)).run(); return null; }).when(app).invokeLater(any());
+
+            CompletableFuture mockFuture = mock(CompletableFuture.class);
+            when(mockFuture.thenAccept(any())).thenAnswer(inv -> {
+                Consumer consumer = inv.getArgument(0);
+                consumer.accept(null); // null scan
+                return null;
+            });
+            cfMock.when(() -> CompletableFuture.supplyAsync(any())).thenAnswer(inv -> {
+                Supplier supplier = inv.getArgument(0);
+                try { supplier.get(); } catch (Exception ignored) {}
+                return mockFuture;
+            });
+            scanCmdMock.when(() -> com.checkmarx.intellij.ast.commands.Scan.scanShow(anyString()))
+                       .thenReturn(null);
+
+            setField(root, "project", project);
+            setField(root, "projectSelectionGroup", projectGroup);
+            setField(root, "branchSelectionGroup", branchGroup);
+            setField(root, "scanSelectionGroup", scanGroup);
+            setField(root, "resetSelectionAction", null);
+
+            root.override("bad-scan");
+
+            boolean overrideCalled = mockingDetails(projectGroup).getInvocations().stream()
+                    .anyMatch(inv -> inv.getMethod().getName().equals("override"));
+            assertFalse(overrideCalled, "projectSelectionGroup.override should NOT be called when scan is null");
+        }
     }
 
     @Test

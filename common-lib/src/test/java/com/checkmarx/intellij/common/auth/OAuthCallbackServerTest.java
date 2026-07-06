@@ -4,6 +4,8 @@ import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.openapi.diagnostic.Logger;
+import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,8 +17,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -333,9 +338,84 @@ class OAuthCallbackServerTest {
         java.lang.reflect.Constructor<?> constructor = innerClass.getDeclaredConstructor(OAuthCallbackServer.class);
         constructor.setAccessible(true);
         Object handler = constructor.newInstance(server);
-        
+
         Method method = innerClass.getDeclaredMethod("validateStateAndGetCode", String.class);
         method.setAccessible(true);
         return (String) method.invoke(handler, query);
+    }
+
+    private Object createHandler(OAuthCallbackServer server) throws Exception {
+        Class<?> innerClass = Class.forName("com.checkmarx.intellij.common.auth.OAuthCallbackServer$OAuthCallbackHandler");
+        Constructor<?> constructor = innerClass.getDeclaredConstructor(OAuthCallbackServer.class);
+        constructor.setAccessible(true);
+        return constructor.newInstance(server);
+    }
+
+    @Test
+    void testHandle_withStateAndCode_completesSuccessfully() throws Exception {
+        // Arrange: query has state=<testState>&code=auth-code-123
+        String query = "state=" + testState + "&code=auth-code-123";
+        URI uri = new URI("/callback?" + query);
+
+        HttpExchange exchange = mock(HttpExchange.class);
+        Headers headers = mock(Headers.class);
+        when(exchange.getRequestURI()).thenReturn(uri);
+        when(exchange.getResponseHeaders()).thenReturn(headers);
+        when(exchange.getResponseBody()).thenReturn(new ByteArrayOutputStream());
+        doNothing().when(exchange).sendResponseHeaders(anyInt(), anyLong());
+
+        mockedUtils.when(() -> Utils.getFileContentFromResource(anyString())).thenReturn("success html");
+
+        Object handler = createHandler(oauthCallbackServer);
+        Method handleMethod = handler.getClass().getMethod("handle", HttpExchange.class);
+
+        handleMethod.invoke(handler, exchange);
+
+        CompletableFuture<String> future = oauthCallbackServer.waitForAuthCode();
+        assertTrue(future.isDone());
+        assertEquals("auth-code-123", future.get());
+    }
+
+    @Test
+    void testHandle_withStateAndError_completesExceptionally() throws Exception {
+        String query = "state=" + testState + "&error=access_denied";
+        URI uri = new URI("/callback?" + query);
+
+        HttpExchange exchange = mock(HttpExchange.class);
+        Headers headers = mock(Headers.class);
+        when(exchange.getRequestURI()).thenReturn(uri);
+        when(exchange.getResponseHeaders()).thenReturn(headers);
+        when(exchange.getResponseBody()).thenReturn(new ByteArrayOutputStream());
+        doNothing().when(exchange).sendResponseHeaders(anyInt(), anyLong());
+
+        mockedUtils.when(() -> Utils.getFileContentFromResource(anyString())).thenReturn("error html");
+
+        Object handler = createHandler(oauthCallbackServer);
+        Method handleMethod = handler.getClass().getMethod("handle", HttpExchange.class);
+
+        handleMethod.invoke(handler, exchange);
+
+        CompletableFuture<String> future = oauthCallbackServer.waitForAuthCode();
+        assertTrue(future.isCompletedExceptionally());
+    }
+
+    @Test
+    void testSendResponse_writesBodyAndClosesStream() throws Exception {
+        Object handler = createHandler(oauthCallbackServer);
+        Class<?> handlerClass = handler.getClass();
+
+        HttpExchange exchange = mock(HttpExchange.class);
+        Headers headers = mock(Headers.class);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        when(exchange.getResponseHeaders()).thenReturn(headers);
+        when(exchange.getResponseBody()).thenReturn(baos);
+        doNothing().when(exchange).sendResponseHeaders(anyInt(), anyLong());
+
+        Method sendResponse = handlerClass.getDeclaredMethod("sendResponse", HttpExchange.class, String.class, int.class);
+        sendResponse.setAccessible(true);
+        sendResponse.invoke(handler, exchange, "<html>test</html>", 200);
+
+        verify(exchange).sendResponseHeaders(eq(200), anyLong());
+        assertTrue(baos.toString().contains("test"));
     }
 }

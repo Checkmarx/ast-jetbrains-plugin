@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.test.problems;
 
+import com.checkmarx.intellij.common.context.PluginContext;
 import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.problems.ProblemDecorator;
@@ -11,6 +12,8 @@ import com.intellij.codeInspection.InspectionManager;
 import com.intellij.codeInspection.LocalQuickFix;
 import com.intellij.codeInspection.ProblemDescriptor;
 import com.intellij.codeInspection.ProblemHighlightType;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
@@ -26,8 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class ScanIssueProcessorTest {
@@ -259,5 +261,63 @@ public class ScanIssueProcessorTest {
                 any(LocalQuickFix.class),
                 any(LocalQuickFix.class)
         )).thenReturn(returnValue);
+    }
+
+    @Test
+    @DisplayName("isDecoratorEnabled=false skips highlightIssueIfNeeded entirely")
+    void processScanIssue_decoratorDisabled_skipsHighlight() {
+        ScanIssue issue = buildIssue(1, "LOW", "decoratorDisabled");
+        try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
+            utils.when(() -> DevAssistUtils.isLineOutOfRange(1, document)).thenReturn(false);
+            utils.when(() -> DevAssistUtils.isProblem("low")).thenReturn(false);
+            ProblemDescriptor result = processorViaHelper.processScanIssue(issue, false);
+            assertNull(result);
+            utils.verify(() -> DevAssistUtils.getPsiElement(any(), any(), anyInt()), never());
+        }
+    }
+
+    @Test
+    @DisplayName("isProblem=true with decorator disabled returns descriptor")
+    void processScanIssue_isProblemTrue_decoratorDisabled_returnsDescriptor() {
+        ScanIssue issue = buildIssue(3, "HIGH", "returnDescriptor");
+        ProblemDescriptor mockDesc = mock(ProblemDescriptor.class);
+        Application mockApp = mock(Application.class, RETURNS_DEEP_STUBS);
+        PluginContext mockPluginContext = mock(PluginContext.class);
+        when(mockPluginContext.isDevAssistPlugin()).thenReturn(false);
+        when(mockApp.getService(PluginContext.class)).thenReturn(mockPluginContext);
+
+        // OSS engine → 4 fixes (DevAssistFix, ViewDetailsFix, IgnoreVulnerabilityFix, IgnoreAllThisTypeFix)
+        when(inspectionManager.createProblemDescriptor(
+                eq(psiFile), any(TextRange.class), anyString(), any(ProblemHighlightType.class), anyBoolean(),
+                any(LocalQuickFix.class), any(LocalQuickFix.class), any(LocalQuickFix.class), any(LocalQuickFix.class)
+        )).thenReturn(mockDesc);
+        when(psiFile.getName()).thenReturn("file.java");
+
+        try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
+             MockedStatic<ApplicationManager> appMgr = mockStatic(ApplicationManager.class, CALLS_REAL_METHODS)) {
+            appMgr.when(ApplicationManager::getApplication).thenReturn(mockApp);
+            utils.when(() -> DevAssistUtils.isLineOutOfRange(3, document)).thenReturn(false);
+            utils.when(() -> DevAssistUtils.isProblem("high")).thenReturn(true);
+            utils.when(() -> DevAssistUtils.getTextRangeForLine(document, 3)).thenReturn(TextRange.create(0, 10));
+
+            ProblemDescriptor result = processorViaHelper.processScanIssue(issue, false);
+            assertNotNull(result);
+            assertSame(mockDesc, result);
+        }
+    }
+
+    @Test
+    @DisplayName("element found and non-null decorator: highlightLineAddGutterIconForProblem called")
+    void processScanIssue_elementFound_decoratorCalled() {
+        ScanIssue issue = buildIssue(3, "LOW", "elementFound");
+        PsiElement element = mock(PsiElement.class);
+        when(problemHelper.getProblemDecorator()).thenReturn(problemDecorator);
+        try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class)) {
+            utils.when(() -> DevAssistUtils.isLineOutOfRange(3, document)).thenReturn(false);
+            utils.when(() -> DevAssistUtils.isProblem("low")).thenReturn(false);
+            utils.when(() -> DevAssistUtils.getPsiElement(psiFile, document, 3)).thenReturn(element);
+            processorViaHelper.processScanIssue(issue, true);
+            verify(problemDecorator).highlightLineAddGutterIconForProblem(problemHelper, issue, false, 3);
+        }
     }
 }

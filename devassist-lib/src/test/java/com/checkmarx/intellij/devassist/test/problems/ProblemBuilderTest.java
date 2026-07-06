@@ -27,8 +27,7 @@ import org.mockito.MockedStatic;
 import java.lang.reflect.Method;
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -102,6 +101,50 @@ class ProblemBuilderTest {
             assertNotNull(descriptor);
             assertSame(expectedDescriptor, descriptor);
         }
+    }
+
+    @Test
+    @DisplayName("ProblemHelper.builder throws when file is null")
+    void problemHelper_builder_nullFile_throwsIllegalArgument() {
+        Project project = mock(Project.class);
+        assertThrows(IllegalArgumentException.class, () -> ProblemHelper.builder(null, project));
+    }
+
+    @Test
+    @DisplayName("ProblemHelper.builder throws when project is null")
+    void problemHelper_builder_nullProject_throwsIllegalArgument() {
+        PsiFile psiFile = mock(PsiFile.class);
+        assertThrows(IllegalArgumentException.class, () -> ProblemHelper.builder(psiFile, null));
+    }
+
+    @Test
+    @DisplayName("ProblemHelper.toBuilder copies all fields from existing instance")
+    void problemHelper_toBuilder_copiesAllFields() {
+        PsiFile psiFile = mock(PsiFile.class);
+        Project project = mock(Project.class);
+        Document document = mock(Document.class);
+        InspectionManager manager = mock(InspectionManager.class);
+        ProblemHolderService holderService = mock(ProblemHolderService.class);
+        ProblemDecorator decorator = mock(ProblemDecorator.class);
+
+        ProblemHelper original = ProblemHelper.builder(psiFile, project)
+                .document(document)
+                .manager(manager)
+                .filePath("/test/file.java")
+                .isOnTheFly(true)
+                .problemHolderService(holderService)
+                .problemDecorator(decorator)
+                .scanIssueList(Collections.emptyList())
+                .supportedScanners(Collections.emptyList())
+                .build();
+
+        ProblemHelper copy = original.toBuilder(original).build();
+
+        assertSame(psiFile, copy.getFile());
+        assertSame(project, copy.getProject());
+        assertSame(document, copy.getDocument());
+        assertEquals("/test/file.java", copy.getFilePath());
+        assertTrue(copy.isOnTheFly());
     }
 
     @Test

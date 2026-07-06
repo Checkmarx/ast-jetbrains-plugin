@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.cxdevassist.test.settings;
+package com.checkmarx.intellij.cxdevassist.test.unit.settings;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.cxdevassist.settings.RealtimeScannersSettingsConfigurable;
@@ -107,6 +107,28 @@ class RealtimeScannersSettingsConfigurableProviderTest {
         GlobalSettingsState state1 = GlobalSettingsState.getInstance();
         GlobalSettingsState state2 = GlobalSettingsState.getInstance();
         assertSame(state1, state2);
+    }
+
+    @Test
+    @DisplayName("Cannot create configurable when authenticated but no license")
+    void canCreateConfigurable_authenticatedButNoLicense_returnsFalse() {
+        when(mockGlobalState.isAuthenticated()).thenReturn(true);
+        when(mockGlobalState.isOneAssistLicenseEnabled()).thenReturn(false);
+        when(mockGlobalState.isDevAssistLicenseEnabled()).thenReturn(false);
+
+        RealtimeScannersSettingsConfigurableProvider provider = new RealtimeScannersSettingsConfigurableProvider();
+        assertFalse(provider.canCreateConfigurable());
+    }
+
+    @Test
+    @DisplayName("Cannot create configurable when not authenticated and no license")
+    void canCreateConfigurable_notAuthenticatedAndNoLicense_returnsFalse() {
+        when(mockGlobalState.isAuthenticated()).thenReturn(false);
+        when(mockGlobalState.isOneAssistLicenseEnabled()).thenReturn(false);
+        when(mockGlobalState.isDevAssistLicenseEnabled()).thenReturn(false);
+
+        RealtimeScannersSettingsConfigurableProvider provider = new RealtimeScannersSettingsConfigurableProvider();
+        assertFalse(provider.canCreateConfigurable());
     }
 }
 

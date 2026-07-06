@@ -13,11 +13,14 @@ import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.project.Project;
+import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import org.junit.jupiter.api.*;
 import org.mockito.MockedStatic;
 
+import java.nio.file.Path;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -831,5 +834,800 @@ class IgnoreManagerTest {
             // Assert
             verify(ignoreFileManager, times(50)).reviveEntry(any());
         }
+    }
+
+    // ========== ADDIGNOREDENTRY TESTS ==========
+
+    @Test
+    void testAddIgnoredEntry_emptyKey_returnsEarly() {
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getTitle()).thenReturn("test-vuln");
+        when(issue.getScanEngine()).thenReturn(ScanEngine.ASCA);
+        when(issue.getFilePath()).thenReturn("/project/Main.java");
+        when(issue.getScanIssueId()).thenReturn("issue-id");
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("Main.java");
+        devAssistUtilsStatic.when(() -> DevAssistUtils.getVulnerabilityDetails(any(), any())).thenReturn(null);
+
+        ignoreManager.addIgnoredEntry(issue, "click-id");
+
+        verify(ignoreFileManager, never()).updateIgnoreData(anyString(), any());
+    }
+
+    @Test
+    void testAddIgnoredEntry_buildIgnoreEntryReturnsNull_doesNotCallUpdateIgnoreData() {
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getTitle()).thenReturn("iac-vuln");
+        when(issue.getScanEngine()).thenReturn(ScanEngine.IAC);
+        when(issue.getFilePath()).thenReturn("/project/main.tf");
+        when(issue.getScanIssueId()).thenReturn("issue-id");
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("main.tf");
+
+        Vulnerability mockVuln = mock(Vulnerability.class);
+        when(mockVuln.getTitle()).thenReturn("iac-rule");
+        when(mockVuln.getSimilarityId()).thenReturn("sim-id");
+
+        // First call (createJsonKeyForIgnoreEntry) returns vuln → key non-empty
+        // Second call (convertToIgnoredEntryIac) returns null → entry is null
+        devAssistUtilsStatic.when(() -> DevAssistUtils.getVulnerabilityDetails(any(), any()))
+                .thenReturn(mockVuln).thenReturn(null);
+
+        ignoreManager.addIgnoredEntry(issue, "click-id");
+
+        verify(ignoreFileManager, never()).updateIgnoreData(anyString(), any());
+    }
+
+    @Test
+    void testAddIgnoredEntry_success_callsUpdateIgnoreData() {
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getTitle()).thenReturn("lodash");
+        when(issue.getScanEngine()).thenReturn(ScanEngine.OSS);
+        when(issue.getFilePath()).thenReturn("/project/package.json");
+        when(issue.getPackageManager()).thenReturn("npm");
+        when(issue.getPackageVersion()).thenReturn("4.17.21");
+        when(issue.getRuleId()).thenReturn(1077);
+        when(issue.getSecretValue()).thenReturn(null);
+        when(issue.getLocations()).thenReturn(List.of(new Location(5, 0, 10)));
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("package.json");
+        when(ignoreFileManager.getIgnoreData()).thenReturn(new HashMap<>());
+
+        ignoreManager.addIgnoredEntry(issue, "click-id");
+
+        verify(ignoreFileManager).updateIgnoreData(anyString(), any());
+    }
+
+    // ========== HASIGNOREDENTRIES TESTS ==========
+
+    @Test
+    void testHasIgnoredEntries_returnsTrue_whenMatchingEntryExists() {
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.ASCA);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("key1", entry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        assertTrue(ignoreManager.hasIgnoredEntries(ScanEngine.ASCA));
+    }
+
+    @Test
+    void testHasIgnoredEntries_returnsFalse_whenNoMatchingEntry() {
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.OSS);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("key1", entry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        assertFalse(ignoreManager.hasIgnoredEntries(ScanEngine.ASCA));
+    }
+
+    @Test
+    void testHasIgnoredEntries_returnsFalse_whenMapIsEmpty() {
+        when(ignoreFileManager.getIgnoreData()).thenReturn(new HashMap<>());
+
+        assertFalse(ignoreManager.hasIgnoredEntries(ScanEngine.ASCA));
+    }
+
+    // ========== ISASCAVULNERABILITYIGNORED TESTS ==========
+
+    @Test
+    void testIsAscaVulnerabilityIgnored_returnsTrue_whenMatchFound() {
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("Main.java");
+
+        Vulnerability vuln = mock(Vulnerability.class);
+        when(vuln.getTitle()).thenReturn("SQL Injection");
+        when(vuln.getProblematicLine()).thenReturn("String q = input;");
+
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.ASCA);
+        entry.setPackageName("SQL Injection");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("Main.java", true, 10, "String q = input;"));
+        entry.setFiles(refs);
+
+        assertTrue(ignoreManager.isAscaVulnerabilityIgnored(vuln, List.of(entry), "/project/Main.java"));
+    }
+
+    @Test
+    void testIsAscaVulnerabilityIgnored_returnsFalse_whenRuleNameMismatch() {
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("Main.java");
+
+        Vulnerability vuln = mock(Vulnerability.class);
+        when(vuln.getTitle()).thenReturn("SQL Injection");
+        when(vuln.getProblematicLine()).thenReturn("code line");
+
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.ASCA);
+        entry.setPackageName("Different Rule");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("Main.java", true, 10, "code line"));
+        entry.setFiles(refs);
+
+        assertFalse(ignoreManager.isAscaVulnerabilityIgnored(vuln, List.of(entry), "/project/Main.java"));
+    }
+
+    @Test
+    void testIsAscaVulnerabilityIgnored_returnsFalse_whenFileRefIsInactive() {
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("Main.java");
+
+        Vulnerability vuln = mock(Vulnerability.class);
+        when(vuln.getTitle()).thenReturn("SQL Injection");
+        when(vuln.getProblematicLine()).thenReturn("code line");
+
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.ASCA);
+        entry.setPackageName("SQL Injection");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("Main.java", false, 10, "code line"));
+        entry.setFiles(refs);
+
+        assertFalse(ignoreManager.isAscaVulnerabilityIgnored(vuln, List.of(entry), "/project/Main.java"));
+    }
+
+    @Test
+    void testIsAscaVulnerabilityIgnored_returnsFalse_whenIgnoreListIsEmpty() {
+        Vulnerability vuln = mock(Vulnerability.class);
+        when(vuln.getTitle()).thenReturn("SQL Injection");
+        when(vuln.getProblematicLine()).thenReturn("code line");
+
+        assertFalse(ignoreManager.isAscaVulnerabilityIgnored(vuln, Collections.emptyList(), "/project/Main.java"));
+    }
+
+    // ========== GETIGNORETEMPFILEPATH TEST ==========
+
+    @Test
+    void testGetIgnoreTempFilePath_returnsPathFromIgnoreFileManager() {
+        Path mockPath = mock(Path.class);
+        when(mockPath.toString()).thenReturn("/tmp/ignore.json");
+        when(ignoreFileManager.getTempListPath()).thenReturn(mockPath);
+
+        assertEquals("/tmp/ignore.json", ignoreManager.getIgnoreTempFilePath());
+    }
+
+    // ========== REMOVEIGNOREENTRIESFORFILEIFEMPTY TESTS ==========
+
+    @Test
+    void testRemoveIgnoreEntriesForFileIfEmpty_removesAscaEntriesAndSavesDisk() {
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("Main.java");
+
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.ASCA);
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("Main.java", true, 10, "code"));
+        entry.setFiles(refs);
+
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("asca-key", entry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.removeIgnoreEntriesForFileIfEmpty("/project/Main.java");
+
+        verify(ignoreFileManager).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void testRemoveIgnoreEntriesForFileIfEmpty_doesNotSave_whenNoAscaEntriesForFile() {
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("Main.java");
+
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.OSS);
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("Main.java", true, 10, null));
+        entry.setFiles(refs);
+
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("oss-key", entry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.removeIgnoreEntriesForFileIfEmpty("/project/Main.java");
+
+        verify(ignoreFileManager, never()).saveIgnoreDataToDisk();
+    }
+
+    // ========== UPDATELINENUMBERSFORIGNOREDENTRIES TESTS ==========
+
+    @Test
+    void testUpdateLineNumbersForIgnoredEntries_returnsEarly_whenIssuesNull() {
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(null);
+
+        ignoreManager.updateLineNumbersForIgnoredEntries(scanResult, "/project/Main.java");
+
+        verify(ignoreFileManager, never()).normalizePath(anyString());
+    }
+
+    @Test
+    void testUpdateLineNumbersForIgnoredEntries_returnsEarly_whenIssuesEmpty() {
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(Collections.emptyList());
+
+        ignoreManager.updateLineNumbersForIgnoredEntries(scanResult, "/project/Main.java");
+
+        verify(ignoreFileManager, never()).normalizePath(anyString());
+    }
+
+    // ========== SCANFILEANDUPDATERESULTS ERROR PATH TESTS ==========
+
+    @Test
+    void scanFileAndUpdateResults_invokeLaterLambdaExecuted_psiFileNull_returnsEarlyWithoutException() {
+        doAnswer(inv -> {
+            inv.getArgument(0, Runnable.class).run();
+            return null;
+        }).when(mockApp).invokeLater(any(Runnable.class), any(ModalityState.class));
+        devAssistUtilsStatic.when(() -> DevAssistUtils.getPsiFileByFilePath(any(), anyString())).thenReturn(null);
+
+        assertDoesNotThrow(() -> ignoreManager.scanFileAndUpdateResults("/test/file.java", ScanEngine.ASCA));
+    }
+
+    @Test
+    void scanFileAndUpdateResults_applicationThrowsException_caughtGracefully() {
+        doThrow(new RuntimeException("invokeLater failed"))
+                .when(mockApp).invokeLater(any(Runnable.class), any(ModalityState.class));
+
+        assertDoesNotThrow(() -> ignoreManager.scanFileAndUpdateResults("/test/file.java", ScanEngine.OSS));
+    }
+
+    // ========== ADDIGNORED ENTRY TESTS - Additional scan engine notification paths ==========
+
+    @Test
+    void addIgnoredEntry_secretsIssue_callsUpdateIgnoreDataAndTriggersSecretNotification() {
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getTitle()).thenReturn("AWS_KEY");
+        when(issue.getScanEngine()).thenReturn(ScanEngine.SECRETS);
+        when(issue.getFilePath()).thenReturn("/project/secrets.js");
+        when(issue.getPackageManager()).thenReturn("npm");
+        when(issue.getPackageVersion()).thenReturn("1.0.0");
+        when(issue.getRuleId()).thenReturn(2001);
+        when(issue.getSecretValue()).thenReturn("AKIAIOSFODNN7EXAMPLE");
+        when(issue.getLocations()).thenReturn(List.of(new Location(3, 0, 10)));
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("secrets.js");
+        when(ignoreFileManager.getIgnoreData()).thenReturn(new HashMap<>());
+
+        ignoreManager.addIgnoredEntry(issue, "click-id");
+
+        verify(ignoreFileManager).updateIgnoreData(anyString(), any());
+    }
+
+    @Test
+    void addIgnoredEntry_containersIssue_callsUpdateIgnoreDataAndTriggersContainerNotification() {
+        try (MockedStatic<LocalFileSystem> localFileSystemMock = mockStatic(LocalFileSystem.class)) {
+            LocalFileSystem mockFs = mock(LocalFileSystem.class);
+            localFileSystemMock.when(LocalFileSystem::getInstance).thenReturn(mockFs);
+
+            ScanIssue issue = mock(ScanIssue.class);
+            when(issue.getTitle()).thenReturn("nginx");
+            when(issue.getScanEngine()).thenReturn(ScanEngine.CONTAINERS);
+            when(issue.getFilePath()).thenReturn("/project/Dockerfile");
+            when(issue.getPackageManager()).thenReturn("docker");
+            when(issue.getPackageVersion()).thenReturn("1.19");
+            when(issue.getImageTag()).thenReturn("1.19");
+            when(issue.getRuleId()).thenReturn(4011);
+            when(issue.getSecretValue()).thenReturn(null);
+            when(issue.getLocations()).thenReturn(List.of(new Location(1, 0, 10)));
+            when(ignoreFileManager.normalizePath(anyString())).thenReturn("Dockerfile");
+            when(ignoreFileManager.getIgnoreData()).thenReturn(new HashMap<>());
+
+            ignoreManager.addIgnoredEntry(issue, "click-id");
+
+            verify(ignoreFileManager).updateIgnoreData(anyString(), any());
+        }
+    }
+
+    // ========== UPDATELINENUMBERSFORIGNOREDENTRIES - ACTIVE PATHS ==========
+
+    @Test
+    void updateLineNumbersForIgnoredEntries_nullScanEngineOnFirstIssue_returnsEarly() {
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getScanEngine()).thenReturn(null);
+
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(issue));
+
+        assertDoesNotThrow(() ->
+                ignoreManager.updateLineNumbersForIgnoredEntries(scanResult, "/project/Main.java"));
+    }
+
+    @Test
+    void updateLineNumbersForIgnoredEntries_matchingIssue_sameLineNumber_noSaveToDisk() {
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getScanEngine()).thenReturn(ScanEngine.OSS);
+        when(issue.getFilePath()).thenReturn("/project/package.json");
+        when(issue.getPackageManager()).thenReturn("npm");
+        when(issue.getTitle()).thenReturn("lodash");
+        when(issue.getPackageVersion()).thenReturn("4.17.21");
+        when(issue.getSecretValue()).thenReturn(null);
+        when(issue.getLocations()).thenReturn(List.of(new Location(5, 0, 10)));
+        when(issue.getVulnerabilities()).thenReturn(Collections.emptyList());
+
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(issue));
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("package.json");
+
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.OSS);
+        entry.setPackageName("lodash");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("package.json", true, 5, ""));
+        entry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("npm:lodash:4.17.21", entry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.updateLineNumbersForIgnoredEntries(scanResult, "/project/package.json");
+
+        verify(ignoreFileManager, never()).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void updateLineNumbersForIgnoredEntries_matchingIssue_lineNumberChanged_savesToDisk() {
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getScanEngine()).thenReturn(ScanEngine.OSS);
+        when(issue.getFilePath()).thenReturn("/project/package.json");
+        when(issue.getPackageManager()).thenReturn("npm");
+        when(issue.getTitle()).thenReturn("lodash");
+        when(issue.getPackageVersion()).thenReturn("4.17.21");
+        when(issue.getSecretValue()).thenReturn(null);
+        when(issue.getLocations()).thenReturn(List.of(new Location(10, 0, 10)));
+        when(issue.getVulnerabilities()).thenReturn(Collections.emptyList());
+
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(issue));
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("package.json");
+
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.OSS);
+        entry.setPackageName("lodash");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("package.json", true, 5, ""));
+        entry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("npm:lodash:4.17.21", entry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.updateLineNumbersForIgnoredEntries(scanResult, "/project/package.json");
+
+        verify(ignoreFileManager).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void updateLineNumbersForIgnoredEntries_entryNotInScanResults_hasFileRef_removedAndSaved() {
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getScanEngine()).thenReturn(ScanEngine.OSS);
+        when(issue.getFilePath()).thenReturn("/project/package.json");
+        when(issue.getPackageManager()).thenReturn("npm");
+        when(issue.getTitle()).thenReturn("different-package");
+        when(issue.getPackageVersion()).thenReturn("1.0.0");
+        when(issue.getSecretValue()).thenReturn(null);
+        when(issue.getLocations()).thenReturn(List.of(new Location(5, 0, 10)));
+        when(issue.getVulnerabilities()).thenReturn(Collections.emptyList());
+
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(issue));
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("package.json");
+
+        // Entry key does NOT match the scan issue key
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.OSS);
+        entry.setPackageName("lodash");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("package.json", true, 5, ""));
+        entry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("npm:lodash:4.17.21", entry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.updateLineNumbersForIgnoredEntries(scanResult, "/project/package.json");
+
+        verify(ignoreFileManager).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void updateLineNumbersForIgnoredEntries_differentScanEngine_entrySkipped() {
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getScanEngine()).thenReturn(ScanEngine.OSS);
+        when(issue.getFilePath()).thenReturn("/project/package.json");
+        when(issue.getPackageManager()).thenReturn("npm");
+        when(issue.getTitle()).thenReturn("lodash");
+        when(issue.getPackageVersion()).thenReturn("4.17.21");
+        when(issue.getSecretValue()).thenReturn(null);
+        when(issue.getLocations()).thenReturn(List.of(new Location(5, 0, 10)));
+        when(issue.getVulnerabilities()).thenReturn(Collections.emptyList());
+
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(issue));
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("package.json");
+
+        // Entry is ASCA, but scan is OSS – entry should be skipped
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.ASCA);
+        entry.setPackageName("sql-injection");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("package.json", true, 5, "code"));
+        entry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("asca-key", entry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.updateLineNumbersForIgnoredEntries(scanResult, "/project/package.json");
+
+        verify(ignoreFileManager, never()).saveIgnoreDataToDisk();
+    }
+
+    // ===== getIgnoreTempFilePath =====
+
+    @Test
+    void getIgnoreTempFilePath_returnsTempListPathAsString() {
+        java.nio.file.Path mockPath = mock(java.nio.file.Path.class);
+        when(mockPath.toString()).thenReturn("/tmp/cx-ignore-list.json");
+        when(ignoreFileManager.getTempListPath()).thenReturn(mockPath);
+
+        String result = ignoreManager.getIgnoreTempFilePath();
+
+        assertEquals("/tmp/cx-ignore-list.json", result);
+    }
+
+    // ===== removeIgnoreEntriesForFileIfEmpty =====
+
+    @Test
+    void removeIgnoreEntriesForFileIfEmpty_noAscaEntries_doesNotSave() {
+        IgnoreEntry ossEntry = new IgnoreEntry();
+        ossEntry.setType(ScanEngine.OSS);
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("package.json", true, 5, "code"));
+        ossEntry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("oss:lodash:4.17.21", ossEntry);
+        when(ignoreFileManager.normalizePath("/project/package.json")).thenReturn("package.json");
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.removeIgnoreEntriesForFileIfEmpty("/project/package.json");
+
+        verify(ignoreFileManager, never()).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void removeIgnoreEntriesForFileIfEmpty_ascaEntryMatchingFile_removesRefAndSaves() {
+        IgnoreEntry ascaEntry = new IgnoreEntry();
+        ascaEntry.setType(ScanEngine.ASCA);
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("src/File.java", true, 10, "code"));
+        ascaEntry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("asca:sql-injection", ascaEntry);
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.removeIgnoreEntriesForFileIfEmpty("/project/src/File.java");
+
+        assertTrue(ascaEntry.getFiles().isEmpty());
+        verify(ignoreFileManager).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void removeIgnoreEntriesForFileIfEmpty_ascaEntryDifferentFile_doesNotSave() {
+        IgnoreEntry ascaEntry = new IgnoreEntry();
+        ascaEntry.setType(ScanEngine.ASCA);
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("src/Other.java", true, 10, "code"));
+        ascaEntry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("asca:sql-injection", ascaEntry);
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.removeIgnoreEntriesForFileIfEmpty("/project/src/File.java");
+
+        assertFalse(ascaEntry.getFiles().isEmpty());
+        verify(ignoreFileManager, never()).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void removeIgnoreEntriesForFileIfEmpty_emptyData_doesNotThrow() {
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("src/File.java");
+        when(ignoreFileManager.getIgnoreData()).thenReturn(new HashMap<>());
+
+        assertDoesNotThrow(() -> ignoreManager.removeIgnoreEntriesForFileIfEmpty("/project/src/File.java"));
+        verify(ignoreFileManager, never()).saveIgnoreDataToDisk();
+    }
+
+    // ===== updateLineNumbersForIgnoredEntriesByProblematicLine =====
+
+    @Test
+    void updateLineNumbersByProblematicLine_nullIssues_doesNotSave() {
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(null);
+
+        ignoreManager.updateLineNumbersForIgnoredEntriesByProblematicLine(scanResult, "/project/src/File.java");
+
+        verify(ignoreFileManager, never()).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void updateLineNumbersByProblematicLine_emptyIssues_doesNotSave() {
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(Collections.emptyList());
+
+        ignoreManager.updateLineNumbersForIgnoredEntriesByProblematicLine(scanResult, "/project/src/File.java");
+
+        verify(ignoreFileManager, never()).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void updateLineNumbersByProblematicLine_nonAscaEntry_skipped_doesNotSave() {
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getVulnerabilities()).thenReturn(Collections.emptyList());
+        when(issue.getLocations()).thenReturn(Collections.emptyList());
+
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(issue));
+        when(ignoreFileManager.normalizePath(anyString())).thenReturn("src/File.java");
+
+        IgnoreEntry ossEntry = new IgnoreEntry();
+        ossEntry.setType(ScanEngine.OSS);
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("src/File.java", true, 5, "some-line"));
+        ossEntry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("oss:lodash:4.17.21", ossEntry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.updateLineNumbersForIgnoredEntriesByProblematicLine(scanResult, "/project/src/File.java");
+
+        verify(ignoreFileManager, never()).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void updateLineNumbersByProblematicLine_matchingProblematicLine_lineUpdated_saves() {
+        Vulnerability vuln = new Vulnerability();
+        vuln.setProblematicLine("SELECT * FROM users");
+
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getVulnerabilities()).thenReturn(List.of(vuln));
+        when(issue.getLocations()).thenReturn(List.of(new Location(20, 0, 10)));
+
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(issue));
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+
+        IgnoreEntry ascaEntry = new IgnoreEntry();
+        ascaEntry.setType(ScanEngine.ASCA);
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        IgnoreEntry.FileReference ref = new IgnoreEntry.FileReference("src/File.java", true, 5, "SELECT * FROM users");
+        refs.add(ref);
+        ascaEntry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("asca:sql-injection", ascaEntry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.updateLineNumbersForIgnoredEntriesByProblematicLine(scanResult, "/project/src/File.java");
+
+        assertEquals(20, ref.getLine());
+        verify(ignoreFileManager).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void updateLineNumbersByProblematicLine_problematicLineAbsentInScan_fileRefRemoved_saves() {
+        ScanIssue issue = mock(ScanIssue.class);
+        Vulnerability vuln = new Vulnerability();
+        vuln.setProblematicLine("other-line");
+        when(issue.getVulnerabilities()).thenReturn(List.of(vuln));
+        when(issue.getLocations()).thenReturn(List.of(new Location(10, 0, 0)));
+
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(issue));
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+
+        IgnoreEntry ascaEntry = new IgnoreEntry();
+        ascaEntry.setType(ScanEngine.ASCA);
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("src/File.java", true, 5, "missing-line"));
+        ascaEntry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("asca:sql-injection", ascaEntry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.updateLineNumbersForIgnoredEntriesByProblematicLine(scanResult, "/project/src/File.java");
+
+        assertTrue(ascaEntry.getFiles().isEmpty());
+        verify(ignoreFileManager).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void updateLineNumbersByProblematicLine_allFileRefsRemoved_keyRemovedFromData_saves() {
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getVulnerabilities()).thenReturn(Collections.emptyList());
+        when(issue.getLocations()).thenReturn(Collections.emptyList());
+
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(issue));
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+
+        IgnoreEntry ascaEntry = new IgnoreEntry();
+        ascaEntry.setType(ScanEngine.ASCA);
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("src/File.java", true, 5, null));
+        ascaEntry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("asca:sql-injection", ascaEntry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.updateLineNumbersForIgnoredEntriesByProblematicLine(scanResult, "/project/src/File.java");
+
+        assertTrue(data.isEmpty());
+        verify(ignoreFileManager).saveIgnoreDataToDisk();
+    }
+
+    @Test
+    void updateLineNumbersByProblematicLine_noChanges_doesNotSave() {
+        Vulnerability vuln = new Vulnerability();
+        vuln.setProblematicLine("SELECT * FROM users");
+
+        ScanIssue issue = mock(ScanIssue.class);
+        when(issue.getVulnerabilities()).thenReturn(List.of(vuln));
+        when(issue.getLocations()).thenReturn(List.of(new Location(5, 0, 10)));
+
+        ScanResult<?> scanResult = mock(ScanResult.class);
+        when(scanResult.getIssues()).thenReturn(List.of(issue));
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+
+        IgnoreEntry ascaEntry = new IgnoreEntry();
+        ascaEntry.setType(ScanEngine.ASCA);
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        // same line number (5) and problematicLine present in scan → no changes
+        refs.add(new IgnoreEntry.FileReference("src/File.java", true, 5, "SELECT * FROM users"));
+        ascaEntry.setFiles(refs);
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("asca:sql-injection", ascaEntry);
+        when(ignoreFileManager.getIgnoreData()).thenReturn(data);
+
+        ignoreManager.updateLineNumbersForIgnoredEntriesByProblematicLine(scanResult, "/project/src/File.java");
+
+        verify(ignoreFileManager, never()).saveIgnoreDataToDisk();
+    }
+
+    // ===== isAscaVulnerabilityIgnored =====
+
+    @Test
+    void isAscaVulnerabilityIgnored_nonAscaEntry_returnsFalse() {
+        Vulnerability vuln = new Vulnerability();
+        vuln.setTitle("sql-injection");
+        vuln.setProblematicLine("SELECT * FROM users");
+
+        IgnoreEntry ossEntry = new IgnoreEntry();
+        ossEntry.setType(ScanEngine.OSS);
+        ossEntry.setPackageName("sql-injection");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("src/File.java", true, 10, "SELECT * FROM users"));
+        ossEntry.setFiles(refs);
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+
+        boolean result = ignoreManager.isAscaVulnerabilityIgnored(vuln, List.of(ossEntry), "/project/src/File.java");
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isAscaVulnerabilityIgnored_ruleNameMismatch_returnsFalse() {
+        Vulnerability vuln = new Vulnerability();
+        vuln.setTitle("xss");
+        vuln.setProblematicLine("document.write(x)");
+
+        IgnoreEntry ascaEntry = new IgnoreEntry();
+        ascaEntry.setType(ScanEngine.ASCA);
+        ascaEntry.setPackageName("sql-injection");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("src/File.java", true, 10, "document.write(x)"));
+        ascaEntry.setFiles(refs);
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+
+        boolean result = ignoreManager.isAscaVulnerabilityIgnored(vuln, List.of(ascaEntry), "/project/src/File.java");
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isAscaVulnerabilityIgnored_pathInactive_returnsFalse() {
+        Vulnerability vuln = new Vulnerability();
+        vuln.setTitle("sql-injection");
+        vuln.setProblematicLine("SELECT * FROM users");
+
+        IgnoreEntry ascaEntry = new IgnoreEntry();
+        ascaEntry.setType(ScanEngine.ASCA);
+        ascaEntry.setPackageName("sql-injection");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("src/File.java", false, 10, "SELECT * FROM users"));
+        ascaEntry.setFiles(refs);
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+
+        boolean result = ignoreManager.isAscaVulnerabilityIgnored(vuln, List.of(ascaEntry), "/project/src/File.java");
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isAscaVulnerabilityIgnored_problematicLineMismatch_returnsFalse() {
+        Vulnerability vuln = new Vulnerability();
+        vuln.setTitle("sql-injection");
+        vuln.setProblematicLine("SELECT * FROM users");
+
+        IgnoreEntry ascaEntry = new IgnoreEntry();
+        ascaEntry.setType(ScanEngine.ASCA);
+        ascaEntry.setPackageName("sql-injection");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("src/File.java", true, 10, "SELECT id FROM admins"));
+        ascaEntry.setFiles(refs);
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+
+        boolean result = ignoreManager.isAscaVulnerabilityIgnored(vuln, List.of(ascaEntry), "/project/src/File.java");
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isAscaVulnerabilityIgnored_allMatch_returnsTrue() {
+        Vulnerability vuln = new Vulnerability();
+        vuln.setTitle("sql-injection");
+        vuln.setProblematicLine("SELECT * FROM users");
+
+        IgnoreEntry ascaEntry = new IgnoreEntry();
+        ascaEntry.setType(ScanEngine.ASCA);
+        ascaEntry.setPackageName("sql-injection");
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("src/File.java", true, 10, "SELECT * FROM users"));
+        ascaEntry.setFiles(refs);
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+
+        boolean result = ignoreManager.isAscaVulnerabilityIgnored(vuln, List.of(ascaEntry), "/project/src/File.java");
+
+        assertTrue(result);
+    }
+
+    @Test
+    void isAscaVulnerabilityIgnored_bothRuleNamesNull_bothProblematicLinesNull_returnsTrue() {
+        Vulnerability vuln = new Vulnerability();
+        vuln.setTitle(null);
+        vuln.setProblematicLine(null);
+
+        IgnoreEntry ascaEntry = new IgnoreEntry();
+        ascaEntry.setType(ScanEngine.ASCA);
+        ascaEntry.setPackageName(null);
+        List<IgnoreEntry.FileReference> refs = new ArrayList<>();
+        refs.add(new IgnoreEntry.FileReference("src/File.java", true, 10, null));
+        ascaEntry.setFiles(refs);
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+
+        boolean result = ignoreManager.isAscaVulnerabilityIgnored(vuln, List.of(ascaEntry), "/project/src/File.java");
+
+        assertTrue(result);
+    }
+
+    @Test
+    void isAscaVulnerabilityIgnored_emptyEntryList_returnsFalse() {
+        Vulnerability vuln = new Vulnerability();
+        vuln.setTitle("sql-injection");
+        vuln.setProblematicLine("SELECT * FROM users");
+        when(ignoreFileManager.normalizePath("/project/src/File.java")).thenReturn("src/File.java");
+
+        boolean result = ignoreManager.isAscaVulnerabilityIgnored(vuln, Collections.emptyList(), "/project/src/File.java");
+
+        assertFalse(result);
     }
 }

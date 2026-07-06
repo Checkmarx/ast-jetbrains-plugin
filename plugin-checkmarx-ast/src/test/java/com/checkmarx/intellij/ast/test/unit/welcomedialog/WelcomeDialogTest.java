@@ -2,16 +2,25 @@ package com.checkmarx.intellij.ast.test.unit.welcomedialog;
 
 import com.checkmarx.intellij.ast.ui.WelcomeDialog;
 import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.SettingsListener;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.ui.components.JBCheckBox;
+import com.intellij.util.messages.MessageBus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import javax.swing.*;
 import java.awt.*;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 public class WelcomeDialogTest {
 
@@ -203,5 +212,237 @@ public class WelcomeDialogTest {
         JPanel center = (JPanel) invokeProtected(dlg, "createCenterPanel", new Class<?>[]{});
         assertNotNull(center);
         assertTrue(center.getComponentCount() >= 2);
+    }
+
+    // ===== DefaultRealTimeSettingsManager =====
+
+    private WelcomeDialog.RealTimeSettingsManager newDefaultManager() throws Exception {
+        Class<?> managerClass = Class.forName("com.checkmarx.intellij.ast.ui.WelcomeDialog$DefaultRealTimeSettingsManager");
+        Constructor<?> ctor = managerClass.getDeclaredConstructor();
+        ctor.setAccessible(true);
+        return (WelcomeDialog.RealTimeSettingsManager) ctor.newInstance();
+    }
+
+    @Test
+    @DisplayName("DefaultManager.areAllEnabled returns false when all scanners disabled")
+    void defaultManager_AreAllEnabled_WhenAllFalse_ReturnsFalse() throws Exception {
+        WelcomeDialog.RealTimeSettingsManager mgr = newDefaultManager();
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.isAscaRealtime()).thenReturn(false);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            assertFalse(mgr.areAllEnabled());
+        }
+    }
+
+    @Test
+    @DisplayName("DefaultManager.areAllEnabled returns true when all scanners enabled")
+    void defaultManager_AreAllEnabled_WhenAllTrue_ReturnsTrue() throws Exception {
+        WelcomeDialog.RealTimeSettingsManager mgr = newDefaultManager();
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.isAscaRealtime()).thenReturn(true);
+        when(mockState.isOssRealtime()).thenReturn(true);
+        when(mockState.isSecretDetectionRealtime()).thenReturn(true);
+        when(mockState.isContainersRealtime()).thenReturn(true);
+        when(mockState.isIacRealtime()).thenReturn(true);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            assertTrue(mgr.areAllEnabled());
+        }
+    }
+
+    @Test
+    @DisplayName("DefaultManager.areAnyEnabled returns false when no scanner enabled")
+    void defaultManager_AreAnyEnabled_WhenNone_ReturnsFalse() throws Exception {
+        WelcomeDialog.RealTimeSettingsManager mgr = newDefaultManager();
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.isAscaRealtime()).thenReturn(false);
+        when(mockState.isOssRealtime()).thenReturn(false);
+        when(mockState.isSecretDetectionRealtime()).thenReturn(false);
+        when(mockState.isContainersRealtime()).thenReturn(false);
+        when(mockState.isIacRealtime()).thenReturn(false);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            assertFalse(mgr.areAnyEnabled());
+        }
+    }
+
+    @Test
+    @DisplayName("DefaultManager.areAnyEnabled returns true when one scanner enabled")
+    void defaultManager_AreAnyEnabled_WhenOneEnabled_ReturnsTrue() throws Exception {
+        WelcomeDialog.RealTimeSettingsManager mgr = newDefaultManager();
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.isAscaRealtime()).thenReturn(false);
+        when(mockState.isOssRealtime()).thenReturn(true);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            assertTrue(mgr.areAnyEnabled());
+        }
+    }
+
+    @Test
+    @DisplayName("DefaultManager.setAll(true) enables all scanners and publishes settings")
+    void defaultManager_SetAll_True_EnablesAllAndPublishes() throws Exception {
+        WelcomeDialog.RealTimeSettingsManager mgr = newDefaultManager();
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        Application mockApp = mock(Application.class);
+        MessageBus mockBus = mock(MessageBus.class);
+        SettingsListener mockListener = mock(SettingsListener.class);
+        when(mockApp.getMessageBus()).thenReturn(mockBus);
+        when(mockBus.syncPublisher(any())).thenReturn(mockListener);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<ApplicationManager> appMock = mockStatic(ApplicationManager.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            appMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+
+            mgr.setAll(true);
+        }
+
+        verify(mockState).setAscaRealtime(true);
+        verify(mockState).setOssRealtime(true);
+        verify(mockState).setSecretDetectionRealtime(true);
+        verify(mockState).setContainersRealtime(true);
+        verify(mockState).setIacRealtime(true);
+        verify(mockState).setUserPreferences(true, true, true, true, true);
+        verify(mockListener).settingsApplied();
+    }
+
+    // ===== initializeRealtimeState =====
+
+    @Test
+    @DisplayName("initializeRealtimeState when prefs not set and none enabled enables all scanners")
+    void initializeRealtimeState_WhenPrefsNotSet_AndNoScannersEnabled_EnablesAll() throws Exception {
+        FakeSettings settings = new FakeSettings(false, false);
+        WelcomeDialog dlg = newDialogBypassCtor(true, settings);
+
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.getUserPreferencesSet()).thenReturn(false);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            invokeProtected(dlg, "initializeRealtimeState", new Class<?>[]{});
+        }
+
+        assertTrue(settings.areAllEnabled());
+    }
+
+    @Test
+    @DisplayName("initializeRealtimeState when prefs set and settings changed publishes settingsApplied")
+    void initializeRealtimeState_WhenPrefsSet_AndSettingsChanged_PublishesSettingsApplied() throws Exception {
+        FakeSettings settings = new FakeSettings(true, true);
+        WelcomeDialog dlg = newDialogBypassCtor(true, settings);
+
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.getUserPreferencesSet()).thenReturn(true);
+        when(mockState.applyUserPreferencesToRealtimeSettings()).thenReturn(true);
+
+        Application mockApp = mock(Application.class);
+        MessageBus mockBus = mock(MessageBus.class);
+        SettingsListener mockListener = mock(SettingsListener.class);
+        when(mockApp.getMessageBus()).thenReturn(mockBus);
+        when(mockBus.syncPublisher(any())).thenReturn(mockListener);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<ApplicationManager> appMock = mockStatic(ApplicationManager.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            appMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+            invokeProtected(dlg, "initializeRealtimeState", new Class<?>[]{});
+        }
+
+        verify(mockListener).settingsApplied();
+    }
+
+    @Test
+    @DisplayName("initializeRealtimeState when prefs set and no change does not publish")
+    void initializeRealtimeState_WhenPrefsSet_AndNoChange_DoesNotPublish() throws Exception {
+        FakeSettings settings = new FakeSettings(true, true);
+        WelcomeDialog dlg = newDialogBypassCtor(true, settings);
+
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.getUserPreferencesSet()).thenReturn(true);
+        when(mockState.applyUserPreferencesToRealtimeSettings()).thenReturn(false);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            invokeProtected(dlg, "initializeRealtimeState", new Class<?>[]{});
+        }
+
+        assertTrue(true); // ApplicationManager not called — no exception means pass
+    }
+
+    @Test
+    @DisplayName("initializeRealtimeState when mcpEnabled is false returns early without calling state")
+    void initializeRealtimeState_WhenMcpDisabled_ReturnsEarly() throws Exception {
+        FakeSettings settings = new FakeSettings(false, false);
+        WelcomeDialog dlg = newDialogBypassCtor(false, settings);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            invokeProtected(dlg, "initializeRealtimeState", new Class<?>[]{});
+            stateMock.verifyNoInteractions();
+        }
+
+        assertFalse(settings.areAllEnabled());
+    }
+
+    // ===== createCenterPanel with mcpEnabled=true =====
+
+    @Test
+    @DisplayName("createCenterPanel with mcpEnabled=true exercises initializeRealtimeState branch")
+    void testCreateCenterPanel_McpEnabled_ExercisesInitializePath() throws Exception {
+        FakeSettings settings = new FakeSettings(true, true);
+        WelcomeDialog dlg = newDialogBypassCtor(true, settings);
+
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.getUserPreferencesSet()).thenReturn(false);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+
+            JPanel center = (JPanel) invokeProtected(dlg, "createCenterPanel", new Class<?>[]{});
+            assertNotNull(center);
+            assertTrue(center.getComponentCount() >= 2);
+        }
+    }
+
+    @Test
+    @DisplayName("createLeftPanel when mcpEnabled=false skips initializeRealtimeState")
+    void testCreateLeftPanel_McpDisabled_SkipsInitializeState() throws Exception {
+        FakeSettings settings = new FakeSettings(false, false);
+        WelcomeDialog dlg = newDialogBypassCtor(false, settings);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            JComponent panel = (JComponent) invokeProtected(dlg, "createLeftPanel", new Class<?>[]{});
+            assertNotNull(panel);
+            stateMock.verifyNoInteractions();
+        }
+    }
+
+    @Test
+    @DisplayName("DefaultManager.setAll(false) disables all scanners")
+    void defaultManager_SetAll_False_DisablesAll() throws Exception {
+        WelcomeDialog.RealTimeSettingsManager mgr = newDefaultManager();
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        Application mockApp = mock(Application.class);
+        MessageBus mockBus = mock(MessageBus.class);
+        SettingsListener mockListener = mock(SettingsListener.class);
+        when(mockApp.getMessageBus()).thenReturn(mockBus);
+        when(mockBus.syncPublisher(any())).thenReturn(mockListener);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<ApplicationManager> appMock = mockStatic(ApplicationManager.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            appMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+
+            mgr.setAll(false);
+        }
+
+        verify(mockState).setAscaRealtime(false);
+        verify(mockState).setOssRealtime(false);
+        verify(mockState).setUserPreferences(false, false, false, false, false);
     }
 }

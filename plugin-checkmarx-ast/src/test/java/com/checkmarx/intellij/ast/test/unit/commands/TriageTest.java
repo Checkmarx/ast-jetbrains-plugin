@@ -278,6 +278,154 @@ class TriageTest {
         }
     }
 
+    // ===== buildScaVulnerabilityIdentifiers — blank ID fallback paths =====
+
+    @Test
+    void buildScaVulnerabilityIdentifiers_WhenIdBlank_AndCveNamePresent_UsesCveName() {
+        Result result = mock(Result.class);
+        Data data = mock(Data.class);
+        VulnerabilityDetails vulnDetails = mock(VulnerabilityDetails.class);
+
+        when(result.getData()).thenReturn(data);
+        when(data.getPackageIdentifier()).thenReturn("Npm-express-4.18.0");
+        // ID is blank → fallback to cveName
+        when(result.getId()).thenReturn("");
+        when(result.getVulnerabilityDetails()).thenReturn(vulnDetails);
+        when(vulnDetails.getCveName()).thenReturn("CVE-2024-9999");
+
+        String identifiers = Triage.buildScaVulnerabilityIdentifiers(result);
+
+        assertNotNull(identifiers, "Should build identifiers using cveName when ID is blank");
+        assertTrue(identifiers.contains("CVE-2024-9999"),
+                "Identifiers should contain the cveName as vulnerabilityId");
+    }
+
+    @Test
+    void buildScaVulnerabilityIdentifiers_WhenIdBlank_AndVulnDetailsNull_ReturnsNull() {
+        Result result = mock(Result.class);
+        Data data = mock(Data.class);
+
+        when(result.getData()).thenReturn(data);
+        when(data.getPackageIdentifier()).thenReturn("Npm-express-4.18.0");
+        when(result.getId()).thenReturn(""); // blank
+        when(result.getVulnerabilityDetails()).thenReturn(null); // no fallback
+
+        String identifiers = Triage.buildScaVulnerabilityIdentifiers(result);
+
+        assertNull(identifiers, "Should return null when ID is blank and vulnerabilityDetails is null");
+    }
+
+    @Test
+    void buildScaVulnerabilityIdentifiers_WhenIdBlank_AndCveNameBlank_ReturnsNull() {
+        Result result = mock(Result.class);
+        Data data = mock(Data.class);
+        VulnerabilityDetails vulnDetails = mock(VulnerabilityDetails.class);
+
+        when(result.getData()).thenReturn(data);
+        when(data.getPackageIdentifier()).thenReturn("Npm-express-4.18.0");
+        when(result.getId()).thenReturn("");
+        when(result.getVulnerabilityDetails()).thenReturn(vulnDetails);
+        when(vulnDetails.getCveName()).thenReturn(""); // blank cveName
+
+        String identifiers = Triage.buildScaVulnerabilityIdentifiers(result);
+
+        assertNull(identifiers, "Should return null when both ID and cveName are blank");
+    }
+
+    // ===== Direct calls to triageScaShow and triageScaUpdate =====
+
+    @Test
+    void triageScaShow_DelegatesToWrapper() throws Exception {
+        UUID projectId = UUID.randomUUID();
+
+        try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+            mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            when(mockWrapper.triageScaShow(eq(projectId), anyString(), anyString()))
+                    .thenReturn(Arrays.asList(mockPredicate));
+
+            List<com.checkmarx.ast.predicate.Predicate> result =
+                    Triage.triageScaShow(projectId, "vuln-ids", "sca");
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+            verify(mockWrapper).triageScaShow(projectId, "vuln-ids", "sca");
+        }
+    }
+
+    @Test
+    void triageScaUpdate_DelegatesToWrapper() throws Exception {
+        UUID projectId = UUID.randomUUID();
+
+        try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+            mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            doNothing().when(mockWrapper).triageScaUpdate(any(UUID.class), anyString(), anyString(), anyString(), anyString());
+
+            assertDoesNotThrow(() ->
+                    Triage.triageScaUpdate(projectId, "confirmed", "note", "vuln-ids", "sca"));
+
+            verify(mockWrapper).triageScaUpdate(projectId, "confirmed", "note", "vuln-ids", "sca");
+        }
+    }
+
+    @Test
+    void triageScaShow_ThrowsException() throws Exception {
+        UUID projectId = UUID.randomUUID();
+
+        try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+            mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            when(mockWrapper.triageScaShow(any(UUID.class), anyString(), anyString()))
+                    .thenThrow(mock(CxException.class));
+
+            assertThrows(CxException.class,
+                    () -> Triage.triageScaShow(projectId, "vuln-ids", "sca"));
+        }
+    }
+
+    @Test
+    void triageScaUpdate_ThrowsException() throws Exception {
+        UUID projectId = UUID.randomUUID();
+
+        try (MockedStatic<CxWrapperFactory> mockedFactory = mockStatic(CxWrapperFactory.class)) {
+            mockedFactory.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            doThrow(mock(CxException.class)).when(mockWrapper)
+                    .triageScaUpdate(any(UUID.class), anyString(), anyString(), anyString(), anyString());
+
+            assertThrows(CxException.class,
+                    () -> Triage.triageScaUpdate(projectId, "confirmed", "note", "vuln-ids", "sca"));
+        }
+    }
+
+    @Test
+    void constructor_CanBeInstantiated() {
+        assertDoesNotThrow(() -> new Triage());
+    }
+
+    @Test
+    void triageScaShow_NullProjectId_ThrowsNullPointerException() {
+        assertThrows(NullPointerException.class,
+                () -> Triage.triageScaShow(null, "vuln-ids", "sca"));
+    }
+
+    @Test
+    void triageScaUpdate_NullProjectId_ThrowsNullPointerException() {
+        assertThrows(NullPointerException.class,
+                () -> Triage.triageScaUpdate(null, "confirmed", "note", "vuln-ids", "sca"));
+    }
+
+    @Test
+    void triageShowForResult_NullProjectId_ThrowsNullPointerException() {
+        Result result = mock(Result.class);
+        assertThrows(NullPointerException.class,
+                () -> Triage.triageShowForResult(null, result));
+    }
+
+    @Test
+    void triageUpdateForResult_NullProjectId_ThrowsNullPointerException() {
+        Result result = mock(Result.class);
+        assertThrows(NullPointerException.class,
+                () -> Triage.triageUpdateForResult(null, result, "confirmed", "note", "high"));
+    }
+
     private Result mockScaResult(String resultId, String packageIdentifier, String cveName) {
         Result result = mock(Result.class);
         Data data = mock(Data.class);

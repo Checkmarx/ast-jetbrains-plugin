@@ -1,11 +1,17 @@
 package com.checkmarx.intellij.ast.test.unit.results;
 
 import com.checkmarx.intellij.ast.results.CustomResultState;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.window.actions.filter.Filterable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for CustomResultState class.
@@ -86,6 +92,47 @@ class CustomResultStateTest {
         CustomResultState withUnderscore = new CustomResultState("TEST_STATE");
         CustomResultState withoutUnderscore = new CustomResultState("TESTSTATE");
         assertNotEquals(0, withUnderscore.compareTo(withoutUnderscore), "Different strings should not be equal");
+    }
+
+    @Test
+    void valueOf_WhenLabelFoundInFilters_ReturnsExistingInstance() {
+        CustomResultState existing = new CustomResultState("CONFIRMED", "Confirmed");
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.getFilters()).thenReturn(Set.of(existing));
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            CustomResultState result = CustomResultState.valueOf("CONFIRMED");
+            assertSame(existing, result);
+            assertEquals("Confirmed", result.getName());
+        }
+    }
+
+    @Test
+    void valueOf_WhenLabelNotFoundInFilters_ReturnsNewInstance() {
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.getFilters()).thenReturn(Set.of());
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            CustomResultState result = CustomResultState.valueOf("URGENT");
+            assertNotNull(result);
+            assertEquals("URGENT", result.getLabel());
+        }
+    }
+
+    @Test
+    void valueOf_WhenFiltersContainNonCustomResultState_SkipsAndReturnsFallback() {
+        Filterable nonCustom = mock(Filterable.class);
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.getFilters()).thenReturn(Set.of(nonCustom));
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            CustomResultState result = CustomResultState.valueOf("ANY_LABEL");
+            assertNotNull(result);
+            assertEquals("ANY_LABEL", result.getLabel());
+        }
     }
 }
 
