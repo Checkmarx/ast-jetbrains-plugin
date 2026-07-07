@@ -10,8 +10,12 @@ import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.util.messages.MessageBus;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.util.*;
 
@@ -38,9 +42,16 @@ class StateServiceTest {
 
     @Test
     void getCustomStateFilters_ReturnsNonEmptyList() {
-        List<CustomStateFilter> filters = StateService.getInstance().getCustomStateFilters();
-        assertNotNull(filters);
-        assertFalse(filters.isEmpty());
+        Application app = mock(Application.class);
+        MessageBus messageBus = mock(MessageBus.class);
+        when(app.getMessageBus()).thenReturn(messageBus);
+
+        try (MockedStatic<ApplicationManager> appManager = Mockito.mockStatic(ApplicationManager.class)) {
+            appManager.when(ApplicationManager::getApplication).thenReturn(app);
+            List<CustomStateFilter> filters = StateService.getInstance().getCustomStateFilters();
+            assertNotNull(filters);
+            assertFalse(filters.isEmpty());
+        }
     }
 
     @Test

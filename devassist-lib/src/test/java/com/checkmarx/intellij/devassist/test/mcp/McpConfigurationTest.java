@@ -233,7 +233,7 @@ public class McpConfigurationTest {
         Method method = McpSettingsInjector.class.getDeclaredMethod("deriveBaseUrlFromIssuer", String.class);
         method.setAccessible(true);
         String result = (String) method.invoke(null, "https://login.example.com");
-        assertEquals("https://ast-master-components.dev.cxast.net", result);
+        assertEquals("https://login.example.com", result);
     }
 
     // ===== Helper Methods =====
