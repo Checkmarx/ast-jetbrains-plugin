@@ -17,11 +17,13 @@ env:
   CX_NOT_MATCH_TEST_PROJECT: ${{ secrets.CX_NOT_MATCH_TEST_PROJECT }}
   CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
   CX_NOT_MATCH_TEST_SCAN_ID: ${{ secrets.CX_NOT_MATCH_TEST_SCAN_ID }}
+  ECHO_LIBRARIES_ACCESS_KEY: ${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 jobs:
   ui-tests:
+    name: UI Tests
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64
@@ -80,6 +82,7 @@ jobs:
             idea.log
 
   unit-tests:
+    name: Unit Tests
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64
@@ -133,6 +136,7 @@ jobs:
             plugin-checkmarx-devassist/build/reports/tests
 
   integration-tests:
+    name: Integration Tests
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64

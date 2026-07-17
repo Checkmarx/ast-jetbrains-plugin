@@ -9,11 +9,16 @@ on:
   schedule:
     - cron: '00 7 * * *' # Every day at 07:00
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   cx-scan:
+    name: Checkmarx One Scan
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64

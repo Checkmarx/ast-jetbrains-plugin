@@ -103,6 +103,10 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -118,9 +122,11 @@ env:
   CX_NOT_MATCH_TEST_PROJECT: ${{ secrets.CX_NOT_MATCH_TEST_PROJECT }}
   CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
   CX_NOT_MATCH_TEST_SCAN_ID: ${{ secrets.CX_NOT_MATCH_TEST_SCAN_ID }}
+  ECHO_LIBRARIES_ACCESS_KEY: ${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}
 
 jobs:
   resolve:
+    name: Resolve Versions
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64
@@ -167,6 +173,7 @@ jobs:
           echo "GitHub tag: ${GH_TAG}"
 
   verify:
+    name: Verify Plugin
     needs: [resolve]
     permissions:
       contents: read
@@ -202,6 +209,7 @@ jobs:
             plugin-checkmarx-devassist/build/reports/pluginVerifier
 
   testIntegration:
+    name: Integration Tests
     needs: [verify]
     if: ${{ !inputs.skip_tests }}
     permissions:
@@ -231,17 +239,18 @@ jobs:
 
   deleteDevReleases:
     needs: [resolve, verify, testIntegration]
-    uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/delete-dev-releases.yml@main
+    uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/delete-dev-releases.yml@main # zizmor: ignore[unpinned-uses]
     with:
       tag: ${{ inputs.rchannels }}
-    secrets: inherit
+    secrets: inherit # zizmor: ignore[secrets-inherit]
     if: ${{ always() && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') && inputs.rchannels != '' && inputs.rchannels != null }}
 
   release:
+    name: Release
     needs: [resolve, verify, testIntegration, deleteDevReleases]
     if: ${{ always() && needs.resolve.result == 'success' && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') && (needs.deleteDevReleases.result == 'success' || needs.deleteDevReleases.result == 'skipped') }}
     permissions:
-      contents: write
+      contents: write  # for creating GitHub release and uploading assets
     runs-on: cx-public-ubuntu-x64
     outputs:
       TAG_NAME: ${{ steps.set_outputs.outputs.TAG_NAME }}
@@ -251,6 +260,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Setup Java
         uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
         with:

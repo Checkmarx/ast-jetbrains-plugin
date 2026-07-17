@@ -13,13 +13,18 @@ on:
         description: 'Tag to delete'
         required: true
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
 jobs:
   delete:
+    name: Delete Releases
     permissions:
-      contents: write
+      contents: write  # for gh release delete to remove tags and releases
     runs-on: cx-public-ubuntu-x64
     steps:
       - name: Delete releases and tags

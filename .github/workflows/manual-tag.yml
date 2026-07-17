@@ -7,11 +7,16 @@ on:
         description: 'Next release tag'
         required: true
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
 jobs:
   tag-creation:
+    name: Tag Creation
     permissions:
       contents: write  # for Git to git push
     runs-on: cx-public-ubuntu-x64
@@ -19,16 +24,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          persist-credentials: false
       - name: Tag
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAT: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           INPUT_TAG: ${{ github.event.inputs.tag }}
+          REPO: ${{ github.repository }}
         run: |
           echo "${INPUT_TAG}"
           tag="${INPUT_TAG}"
           message='New release'
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${PAT}@github.com/${REPO}"
           git tag -a "${tag}" -m "${message}"
           git push origin "${tag}"
