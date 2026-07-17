@@ -208,8 +208,7 @@ jobs:
             plugin-checkmarx-ast/build/reports/pluginVerifier
             plugin-checkmarx-devassist/build/reports/pluginVerifier
 
-  testIntegration:
-    name: Integration Tests
+  testIntegration: # zizmor: ignore[anonymous-definition]
     needs: [verify]
     if: ${{ !inputs.skip_tests }}
     permissions:

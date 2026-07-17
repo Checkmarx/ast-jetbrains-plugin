@@ -26,8 +26,7 @@ env:
 
 
 jobs:
-  testUI:
-    name: Test UI MacOS
+  testUI: # zizmor: ignore[anonymous-definition]
     permissions:
       contents: read
     runs-on: macos-latest

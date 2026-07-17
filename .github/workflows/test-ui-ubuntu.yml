@@ -25,8 +25,7 @@ env:
   ECHO_LIBRARIES_ACCESS_KEY: ${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}
 
 jobs:
-  testUI:
-    name: Test UI Ubuntu
+  testUI: # zizmor: ignore[anonymous-definition]
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64
