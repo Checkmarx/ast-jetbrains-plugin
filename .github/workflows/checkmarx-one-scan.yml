@@ -17,8 +17,7 @@ permissions:
   contents: read
 
 jobs:
-  cx-scan:
-    name: Checkmarx One Scan
+  cx-scan: # zizmor: ignore[anonymous-definition]
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64

@@ -22,8 +22,7 @@ concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 jobs:
-  ui-tests:
-    name: UI Tests
+  ui-tests: # zizmor: ignore[anonymous-definition]
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64
@@ -135,8 +134,7 @@ jobs:
             devassist-lib/build/reports/tests
             plugin-checkmarx-devassist/build/reports/tests
 
-  integration-tests:
-    name: Integration Tests
+  integration-tests: # zizmor: ignore[anonymous-definition]
     permissions:
       contents: read
     runs-on: cx-public-ubuntu-x64
