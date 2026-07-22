@@ -11,6 +11,7 @@ import com.intellij.dvcs.repo.Repository;
 import com.intellij.dvcs.repo.VcsRepositoryManager;
 import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.notification.Notification;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.Presentation;
@@ -100,9 +101,9 @@ public class StartScanActionTest {
             doReturn("main").when(spyStartScanAction).getActiveBranch(mockProject);
             doNothing().when(spyStartScanAction).pollScan(anyString());
 
-            Method createScanMethod = StartScanAction.class.getDeclaredMethod("createScan");
+            Method createScanMethod = StartScanAction.class.getDeclaredMethod("createScan", Notification.class);
             createScanMethod.setAccessible(true);
-            createScanMethod.invoke(spyStartScanAction);
+            createScanMethod.invoke(spyStartScanAction, (Notification) null);
             
             ArgumentCaptor<String> pathCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<String> projectCaptor = ArgumentCaptor.forClass(String.class);
@@ -163,9 +164,9 @@ public class StartScanActionTest {
             StartScanAction spyStartScanAction = Mockito.spy(startScanAction);
             doNothing().when(spyStartScanAction).pollScan(anyString());
 
-            Method createScanMethod = StartScanAction.class.getDeclaredMethod("createScan");
+            Method createScanMethod = StartScanAction.class.getDeclaredMethod("createScan", Notification.class);
             createScanMethod.setAccessible(true);
-            createScanMethod.invoke(spyStartScanAction);
+            createScanMethod.invoke(spyStartScanAction, (Notification) null);
 
             ArgumentCaptor<String> branchCaptor = ArgumentCaptor.forClass(String.class);
             scanMockedStatic.verify(() -> com.checkmarx.intellij.ast.commands.Scan.scanCreate(any(), any(), branchCaptor.capture()));
