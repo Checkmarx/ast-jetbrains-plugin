@@ -180,8 +180,13 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         if (!result.getType().equals(Constants.SCAN_TYPE_SCA)) {
             OnePixelSplitter splitter = new OnePixelSplitter();
-            splitter.setFirstComponent(PaneUtils.inVerticalScrollPane(details));
-            splitter.setSecondComponent(PaneUtils.inVerticalScrollPane(secondPanel));
+            JBScrollPane detailsScrollPane = new JBScrollPane(details);
+            detailsScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+            splitter.setFirstComponent(detailsScrollPane);
+
+            JBScrollPane secondPanelScrollPane = new JBScrollPane(secondPanel);
+            secondPanelScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+            splitter.setSecondComponent(secondPanelScrollPane);
 
             return JBUI.Panels.simplePanel(splitter);
         } else {
@@ -574,19 +579,21 @@ public class ResultNode extends DefaultMutableTreeNode {
 
         boolean triageEnabled = !result.getType().equals(Constants.SCAN_TYPE_SCA) && !result.getType().equals(Constants.SCAN_TYPE_SCS);
         //Panel with triage form, not available to sca type
-        JPanel triageForm = new JPanel(new MigLayout("fillx"));
+        JPanel triageForm = new JPanel(new MigLayout("fillx, insets 0", "[150:150:150][220:220:220][grow]"));
         JButton updateButton = new JButton();
         updateButton.setText("Update");
         StateService stateService = StateService.getInstance();
         final ComboBox<String> stateComboBox = (result.getType().equals(CxConstants.SAST)) ? new ComboBox<>(stateService.getStatesNameListForSastTriage().toArray(new String[0]))
                 : new ComboBox<>(Arrays.stream(StateEnum.values()).map(Enum::name).toArray(String[]::new));
 
+        stateComboBox.setMaximumSize(new Dimension(220, stateComboBox.getPreferredSize().height));
         stateComboBox.setEditable(true);
         stateComboBox.setSelectedItem(result.getState());
         stateComboBox.setEnabled(triageEnabled);
 
         //Constructing selection of Severity combobox
         final ComboBox<SeverityFilter> severityComboBox = new ComboBox<>(SeverityFilter.values());
+        severityComboBox.setMaximumSize(new Dimension(150, severityComboBox.getPreferredSize().height));
         severityComboBox.setEditable(true);
         severityComboBox.setSelectedItem(result.getSeverity());
         severityComboBox.setEnabled(triageEnabled);
@@ -660,7 +667,7 @@ public class ResultNode extends DefaultMutableTreeNode {
             triageForm.add(severityComboBox, "growx");
             triageForm.add(stateComboBox, "growx");
             if (triageEnabled) {
-                triageForm.add(updateButton, "growx, wrap");
+                triageForm.add(updateButton, "wrap");
                 triageForm.add(commentText, "span, growx");
             }
             details.add(triageForm, "span, growx, wrap");
@@ -761,13 +768,23 @@ public class ResultNode extends DefaultMutableTreeNode {
         severityLabel.setIcon(SeverityFilter.valueOf(predicate.getSeverity()).getIcon());
         triageChanges.add(severityLabel, "span, wrap");
 
-        JLabel stateLabel = new JLabel(String.format("<html>%s</html>", predicate.getState()));
+        String stateText = predicate.getState();
+        if (stateText.length() > 100) {
+            stateText = stateText.substring(0, 100) + "...";
+        }
+        JLabel stateLabel = new JLabel(String.format("<html>%s</html>", stateText));
         stateLabel.setIcon(CxIcons.STATE);
+        stateLabel.setToolTipText(predicate.getState());
         triageChanges.add(stateLabel, "span, wrap");
 
         if (!predicate.getComment().equals("")) {
-            JLabel commentLabel = new JLabel(String.format("<html>%s</html>", predicate.getComment()));
+            String commentText = predicate.getComment();
+            if (commentText.length() > 100) {
+                commentText = commentText.substring(0, 100) + "...";
+            }
+            JLabel commentLabel = new JLabel(String.format("<html>%s</html>", commentText));
             commentLabel.setIcon(CxIcons.COMMENT);
+            commentLabel.setToolTipText(predicate.getComment());
             triageChanges.add(commentLabel, "span, wrap");
         }
         triageChanges.add(new JSeparator(), "span, wrap ,growx");
