@@ -13,6 +13,7 @@ import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.dvcs.repo.Repository;
 import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -86,21 +87,24 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
             }
             boolean matchBranch = storedBranch.equals(Objects.requireNonNull(repository).getCurrentBranchName());
             if(matchBranch && matchProject) {
-                createScan();
+                createScan(null);
             } else {
                 if (!matchProject) {
-                    Utils.notifyScan(msg(Resource.PROJECT_DOES_NOT_MATCH_TITLE), msg(Resource.PROJECT_DOES_NOT_MATCH_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
+                    final Notification[] notificationHolder = new Notification[1];
+                    notificationHolder[0] = Utils.notifyScan(msg(Resource.PROJECT_DOES_NOT_MATCH_TITLE), msg(Resource.PROJECT_DOES_NOT_MATCH_QUESTION), workspaceProject, () -> createScan(notificationHolder[0]), NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
                 } else {
-                    Utils.notifyScan(msg(Resource.BRANCH_DOES_NOT_MATCH_TITLE), msg(Resource.BRANCH_DOES_NOT_MATCH_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
+                    final Notification[] notificationHolder = new Notification[1];
+                    notificationHolder[0] = Utils.notifyScan(msg(Resource.BRANCH_DOES_NOT_MATCH_TITLE), msg(Resource.BRANCH_DOES_NOT_MATCH_QUESTION), workspaceProject, () -> createScan(notificationHolder[0]), NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
                 }
             }
         }
         // Case it is not a git repo, only check for project match
         else{
             if (matchProject) {
-                createScan();
+                createScan(null);
             } else{
-                Utils.notifyScan(msg(Resource.PROJECT_DOES_NOT_MATCH_TITLE), msg(Resource.PROJECT_DOES_NOT_MATCH_QUESTION), workspaceProject, this::createScan, NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
+                final Notification[] notificationHolder = new Notification[1];
+                notificationHolder[0] = Utils.notifyScan(msg(Resource.PROJECT_DOES_NOT_MATCH_TITLE), msg(Resource.PROJECT_DOES_NOT_MATCH_QUESTION), workspaceProject, () -> createScan(notificationHolder[0]), NotificationType.WARNING, msg(Resource.ACTION_SCAN_ANYWAY));
             }
         }
     }
@@ -147,8 +151,9 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
     /**
      * Create a backgroundable task which creates a new scan
+     * @param notificationToDismiss optional notification to dismiss after scan is created
      */
-    private void createScan() {
+    private void createScan(Notification notificationToDismiss) {
         scanTriggered = true;
 
         Task.Backgroundable creatingScanTask = new Task.Backgroundable(workspaceProject, msg(Resource.CREATING_SCAN_TITLE)) {
@@ -165,8 +170,12 @@ public class StartScanAction extends AnAction implements CxToolWindowAction {
 
                 com.checkmarx.ast.scan.Scan scan = Scan.scanCreate(Paths.get(Objects.requireNonNull(workspaceProject.getBasePath())).toString(), storedProject, storedBranch);
 
-
                 LOGGER.info(msg(Resource.SCAN_CREATED_IDE, scan.getId(), scan.getStatus()));
+
+                // Dismiss the notification after scan is successfully created
+                if (notificationToDismiss != null) {
+                    notificationToDismiss.expire();
+                }
 
                 propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, scan.getId());
                 ActivityTracker.getInstance().inc();

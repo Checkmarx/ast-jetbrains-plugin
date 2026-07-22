@@ -112,8 +112,8 @@ Key package roots under `src/main/java/`:
 | Build System | Gradle (with wrapper) | 8.x |
 | Annotation Processing | Lombok (io.freefair.lombok) | 8.6 |
 | Plugin Development | org.jetbrains.intellij | 1.17.4 |
-| Platform API | ast-cli-java-wrapper | 2.4.23 (configurable) |
-| Serialization | Jackson BOM | 2.21.1 |
+| Platform API | ast-cli-java-wrapper | 2.4.25 (configurable) |
+| Serialization | Jackson BOM | 2.22.0 |
 | HTTP | OkHttp3 / Okio | 4.12.0 / 3.8.0 |
 | Logging | Log4j | 2.23.1 |
 | UI Layout | MigLayout | 11.3 |
@@ -143,6 +143,16 @@ cd ast-jetbrains-plugin
 Import into IntelliJ:
 - `File -> Open` and select the repo root
 - Gradle will auto-import all four modules
+
+### Build Configuration
+
+The project uses a centralized Gradle configuration with the following repositories:
+
+- **Local Maven Cache** (`mavenLocal()`) — For locally published artifacts
+- **Echo HQ Maven Repository** — Custom repository for internal/external dependencies (requires `ECHO_LIBRARIES_ACCESS_KEY` environment variable)
+- **JetBrains IntelliJ Dependencies** — Official IntelliJ Platform SDK dependencies
+
+**Note:** The `ECHO_LIBRARIES_ACCESS_KEY` environment variable is automatically set in CI/CD pipelines. For local development, you may need to configure this if building dependencies that require it.
 
 ### Build from CLI
 
@@ -451,13 +461,23 @@ All telemetry calls are asynchronous via `CompletableFuture` and use `CxWrapperF
 |----------|---------|---------|
 | `ci.yml` | PR, manual | Unit, integration, UI tests with coverage reports |
 | `release.yml` | Manual, workflow_call | Build, verify, release, publish both plugins |
-| `nightly.yml` | Push to main, manual | Nightly builds with timestamp versions |
 | `test-ui-ubuntu.yml` | Manual | Platform-specific UI tests (Ubuntu) |
 | `test-ui-mac.yml` | Manual | Platform-specific UI tests (macOS) |
 | `test-ui-windows.yml` | Manual | Platform-specific UI tests (Windows) |
-| `checkmarx-one-scan.yml` | Daily schedule | Security scanning of the plugin codebase |
-| `update-wrapper-version.yml` | Manual | Auto-update CLI wrapper version |
-| `dependabot-auto-merge.yml` | Dependabot PR | Auto-merge dependency updates |
+| `checkmarx-one-scan.yml` | Daily schedule | Security scanning of the plugin codebase via Checkmarx One |
+| `scan-github-action.yml` | PR, manual | Zizmor linter for GitHub Actions security scanning |
+| `manual-tag.yml` | Manual | Manual tagging and release triggering |
+| `delete-dev-releases.yml` | Manual | Cleanup of old development releases |
+
+**Disabled Workflows (Jobs Commented Out - Security Issues):**
+- `auto-merge.yml` — Dependabot PR auto-merge (temporarily disabled)
+- `dependabot-auto-merge.yml` — Dependabot auto-merge workflow (temporarily disabled)
+- `nightly.yml` — Nightly builds and tagging (temporarily disabled)
+- `issue-automation.yml` — Jira issue automation (temporarily disabled)
+- `update-wrapper-version.yml` — Auto-update CLI wrapper version (temporarily disabled)
+
+**Removed Workflows:**
+- `pr-label.yml` — Removed during security hardening to resolve GitHub Actions security findings
 
 ---
 
