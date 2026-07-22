@@ -19,7 +19,7 @@ env:
 
 jobs:
   testUI:
-    runs-on: macos-latest
+    runs-on: cx-public-macos-arm64
     steps:
       # Check out current repository
       - name: Fetch Sources
