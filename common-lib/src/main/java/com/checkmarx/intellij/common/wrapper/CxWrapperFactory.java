@@ -7,6 +7,8 @@ import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
+import com.intellij.ide.plugins.PluginManagerCore;
+import com.intellij.openapi.extensions.PluginId;
 
 import java.io.IOException;
 
@@ -23,7 +25,13 @@ public class CxWrapperFactory {
             throws CxException, IOException {
         final CxConfig.CxConfigBuilder builder = CxConfig.builder();
 
-        builder.agentName(Constants.JET_BRAINS_AGENT_NAME);
+        String agentName = Constants.JET_BRAINS_AGENT_NAME;
+        String pluginVersion = getPluginVersion();
+
+        if (pluginVersion != null && !pluginVersion.isEmpty()) {
+            agentName = agentName + "_" + pluginVersion;
+        }
+        builder.agentName(agentName);
         if(isCredentialExpired(state, sensitiveState)){
             Utils.notifySessionExpired();
             return new CxWrapper(builder.build());
@@ -36,6 +44,36 @@ public class CxWrapperFactory {
         }
         builder.additionalParameters(state.getAdditionalParameters());
         return new CxWrapper(builder.build());
+    }
+
+    /**
+     * Retrieves the plugin version from the plugin descriptor.
+     * Tries both the Checkmarx AST plugin and DevAssist plugin IDs.
+     *
+     * @return plugin version string, or empty string if version cannot be determined
+     */
+    private static String getPluginVersion() {
+        final String[] pluginIds = {
+            "com.checkmarx.checkmarx-ast-jetbrains-plugin",
+            "com.checkmarx.devassist-jetbrains-plugin"
+        };
+
+        for (String pluginIdStr : pluginIds) {
+            try {
+                final PluginId pluginId = PluginId.getId(pluginIdStr);
+                final var plugin = PluginManagerCore.getPlugin(pluginId);
+                if (plugin != null) {
+                    final String version = plugin.getVersion();
+                    if (version != null && !version.isEmpty()) {
+                        Utils.getLogger(CxWrapperFactory.class).info("Plugin version: " + version);
+                        return version;
+                    }
+                }
+            } catch (Exception e) {
+                Utils.getLogger(CxWrapperFactory.class).debug("Failed to read plugin version for " + pluginIdStr + ": " + e.getMessage());
+            }
+        }
+        return "";
     }
 
     /**

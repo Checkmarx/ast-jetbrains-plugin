@@ -469,16 +469,13 @@ All telemetry calls are asynchronous via `CompletableFuture` and use `CxWrapperF
 | `manual-tag.yml` | Manual | Manual tagging and release triggering |
 | `delete-dev-releases.yml` | Manual | Cleanup of old development releases |
 
-**Disabled Workflows (Jobs Commented Out - Security Issues):**
-- `auto-merge.yml` — Dependabot PR auto-merge (temporarily disabled)
-- `dependabot-auto-merge.yml` — Dependabot auto-merge workflow (temporarily disabled)
-- `nightly.yml` — Nightly builds and tagging (temporarily disabled)
-- `issue-automation.yml` — Jira issue automation (temporarily disabled)
-- `update-wrapper-version.yml` — Auto-update CLI wrapper version (temporarily disabled)
-
 **Removed Workflows:**
 - `pr-label.yml` — Removed during security hardening to resolve GitHub Actions security findings
-
+- `auto-merge.yml` — Dependabot PR auto-merge 
+- `dependabot-auto-merge.yml` — Dependabot auto-merge workflow 
+- `nightly.yml` — Nightly builds and tagging 
+- `issue-automation.yml` — Jira issue automation 
+- `update-wrapper-version.yml` — Auto-update CLI wrapper version 
 ---
 
 ## Do Not (AI Assistant Rules)
