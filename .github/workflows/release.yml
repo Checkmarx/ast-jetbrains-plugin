@@ -237,6 +237,8 @@ jobs:
             build/reports
 
   deleteDevReleases:
+    permissions:
+      contents: write  # for gh release delete to remove tags and releases
     needs: [resolve, verify, testIntegration]
     uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/delete-dev-releases.yml@main # zizmor: ignore[unpinned-uses]
     with:
