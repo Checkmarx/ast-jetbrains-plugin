@@ -136,7 +136,7 @@ public final class Utils {
                 .notify(project);
     }
 
-    public static void notifyScan(String title, String message, Project project, Runnable func, NotificationType notificationType, String actionText) {
+    public static Notification notifyScan(String title, String message, Project project, Runnable func, NotificationType notificationType, String actionText) {
         Notification notification = NotificationGroupManager.getInstance()
                 .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
                 .createNotification(title, message, notificationType);
@@ -146,6 +146,7 @@ public final class Utils {
         }
 
         notification.notify(project);
+        return notification;
     }
 
     @Nullable

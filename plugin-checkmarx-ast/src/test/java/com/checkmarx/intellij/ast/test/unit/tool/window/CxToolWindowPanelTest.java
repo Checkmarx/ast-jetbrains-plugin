@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.ast.test.unit.tool.window;
 
 import com.checkmarx.intellij.ast.commands.Results;
+import com.checkmarx.intellij.ast.service.StateService;
 import com.checkmarx.intellij.ast.commands.helper.ResultGetState;
 import com.checkmarx.intellij.ast.project.ProjectResultsService;
 import com.checkmarx.intellij.ast.window.CxToolWindowPanel;
@@ -22,6 +23,8 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.swing.*;
+import java.awt.event.KeyEvent;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -443,6 +446,327 @@ class CxToolWindowPanelTest {
     }
 
     // -------------------------------------------------------------------------
+    // OnEnterGetResults inner class
+    // -------------------------------------------------------------------------
+
+    @Test
+    void onEnterGetResults_KeyReleased_WhenEnterAndEmptyField_ResetsResultWindow() throws Exception {
+        SearchTextField field = new SearchTextField();
+        field.setText("");
+        setField("scanIdField", field);
+        setField("currentState", new ResultGetState());
+        OnePixelSplitter scanSplitter = new OnePixelSplitter(true, 0.1f);
+        setField("scanTreeSplitter", scanSplitter);
+
+        Class<?> listenerClass = Class.forName("com.checkmarx.intellij.ast.window.CxToolWindowPanel$OnEnterGetResults");
+        Constructor<?> ctor = listenerClass.getDeclaredConstructors()[0];
+        ctor.setAccessible(true);
+        Object listener = ctor.newInstance(panel);
+
+        KeyEvent e = mock(KeyEvent.class);
+        when(e.getExtendedKeyCode()).thenReturn(KeyEvent.VK_ENTER);
+
+        Method keyReleased = listenerClass.getDeclaredMethod("keyReleased", KeyEvent.class);
+        keyReleased.setAccessible(true);
+        keyReleased.invoke(listener, e);
+
+        ResultGetState state = (ResultGetState) getField("currentState");
+        assertNull(state.getMessage());
+    }
+
+    @Test
+    void onEnterGetResults_KeyReleased_WhenEnterAndInvalidUuid_SetsInvalidMessage() throws Exception {
+        SearchTextField field = new SearchTextField();
+        field.setText("not-a-uuid");
+        setField("scanIdField", field);
+        setField("currentState", new ResultGetState());
+        OnePixelSplitter scanSplitter = new OnePixelSplitter(true, 0.1f);
+        setField("scanTreeSplitter", scanSplitter);
+
+        Class<?> listenerClass = Class.forName("com.checkmarx.intellij.ast.window.CxToolWindowPanel$OnEnterGetResults");
+        Constructor<?> ctor = listenerClass.getDeclaredConstructors()[0];
+        ctor.setAccessible(true);
+        Object listener = ctor.newInstance(panel);
+
+        KeyEvent e = mock(KeyEvent.class);
+        when(e.getExtendedKeyCode()).thenReturn(KeyEvent.VK_ENTER);
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class);
+             MockedStatic<Bundle> mockedBundle = mockStatic(Bundle.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+            mockedBundle.when(() -> Bundle.message(Resource.INVALID_SCAN_ID)).thenReturn("INVALID");
+
+            Method keyReleased = listenerClass.getDeclaredMethod("keyReleased", KeyEvent.class);
+            keyReleased.setAccessible(true);
+            keyReleased.invoke(listener, e);
+
+            ResultGetState state = (ResultGetState) getField("currentState");
+            assertEquals("INVALID", state.getMessage());
+        }
+    }
+
+    @Test
+    void onEnterGetResults_KeyReleased_WhenNonEnterKey_DoesNothing() throws Exception {
+        SearchTextField field = new SearchTextField();
+        field.setText("some-text");
+        setField("scanIdField", field);
+        ResultGetState originalState = new ResultGetState();
+        setField("currentState", originalState);
+
+        Class<?> listenerClass = Class.forName("com.checkmarx.intellij.ast.window.CxToolWindowPanel$OnEnterGetResults");
+        Constructor<?> ctor = listenerClass.getDeclaredConstructors()[0];
+        ctor.setAccessible(true);
+        Object listener = ctor.newInstance(panel);
+
+        KeyEvent e = mock(KeyEvent.class);
+        when(e.getExtendedKeyCode()).thenReturn(KeyEvent.VK_A);
+
+        Method keyReleased = listenerClass.getDeclaredMethod("keyReleased", KeyEvent.class);
+        keyReleased.setAccessible(true);
+        keyReleased.invoke(listener, e);
+
+        assertEquals(originalState, getField("currentState"));
+    }
+
+    @Test
+    void onEnterGetResults_KeyTyped_DoesNothing() throws Exception {
+        Class<?> listenerClass = Class.forName("com.checkmarx.intellij.ast.window.CxToolWindowPanel$OnEnterGetResults");
+        Constructor<?> ctor = listenerClass.getDeclaredConstructors()[0];
+        ctor.setAccessible(true);
+        Object listener = ctor.newInstance(panel);
+
+        KeyEvent e = mock(KeyEvent.class);
+        Method keyTyped = listenerClass.getDeclaredMethod("keyTyped", KeyEvent.class);
+        keyTyped.setAccessible(true);
+        assertDoesNotThrow(() -> keyTyped.invoke(listener, e));
+    }
+
+    @Test
+    void onEnterGetResults_KeyPressed_DoesNothing() throws Exception {
+        Class<?> listenerClass = Class.forName("com.checkmarx.intellij.ast.window.CxToolWindowPanel$OnEnterGetResults");
+        Constructor<?> ctor = listenerClass.getDeclaredConstructors()[0];
+        ctor.setAccessible(true);
+        Object listener = ctor.newInstance(panel);
+
+        KeyEvent e = mock(KeyEvent.class);
+        Method keyPressed = listenerClass.getDeclaredMethod("keyPressed", KeyEvent.class);
+        keyPressed.setAccessible(true);
+        assertDoesNotThrow(() -> keyPressed.invoke(listener, e));
+    }
+
+    // -------------------------------------------------------------------------
+    // triggerDrawResultsTree — additional branches
+    // -------------------------------------------------------------------------
+
+    @Test
+    void triggerDrawResultsTree_WhenInProgress_ReturnsEarlyWithoutChangingState() throws Exception {
+        setField("getResultsInProgress", true);
+        ResultGetState originalState = new ResultGetState();
+        originalState.setScanId("original-id");
+        setField("currentState", originalState);
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+
+            Method m = CxToolWindowPanel.class.getDeclaredMethod("triggerDrawResultsTree", String.class, boolean.class);
+            m.setAccessible(true);
+            m.invoke(panel, "3f6a5b2c-1d4e-4f8a-9c0b-7e2d1a3f5c8e", false);
+
+            ResultGetState state = (ResultGetState) getField("currentState");
+            assertEquals("original-id", state.getScanId(), "State must not change when in progress");
+        }
+    }
+
+    @Test
+    void triggerDrawResultsTree_WhenSameScanId_ReturnsEarlyWithoutChangingState() throws Exception {
+        setField("getResultsInProgress", false);
+        String scanId = "3f6a5b2c-1d4e-4f8a-9c0b-7e2d1a3f5c8e";
+        ResultGetState state = new ResultGetState();
+        state.setScanIdFieldValue(scanId);
+        setField("currentState", state);
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+
+            Method m = CxToolWindowPanel.class.getDeclaredMethod("triggerDrawResultsTree", String.class, boolean.class);
+            m.setAccessible(true);
+            m.invoke(panel, scanId, false);
+
+            ResultGetState after = (ResultGetState) getField("currentState");
+            assertEquals(scanId, after.getScanIdFieldValue(), "State must not change when same scanId");
+        }
+    }
+
+    @Test
+    void triggerDrawResultsTree_WithValidUUID_SetsInProgressAndCallsRootGroup() throws Exception {
+        setField("getResultsInProgress", false);
+        setField("rootGroup", mockRootGroup);
+        OnePixelSplitter scanSplitter = new OnePixelSplitter(true, 0.1f);
+        setField("scanTreeSplitter", scanSplitter);
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class);
+             MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class);
+             MockedStatic<com.checkmarx.intellij.ast.service.StateService> ssMock =
+                     mockStatic(com.checkmarx.intellij.ast.service.StateService.class);
+             MockedStatic<Results> resultsMock = mockStatic(Results.class)) {
+
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+            bundleMock.when(() -> Bundle.message(Resource.GETTING_RESULTS)).thenReturn("Getting results...");
+
+            com.checkmarx.intellij.ast.service.StateService mockSs =
+                    mock(com.checkmarx.intellij.ast.service.StateService.class);
+            ssMock.when(com.checkmarx.intellij.ast.service.StateService::getInstance).thenReturn(mockSs);
+
+            @SuppressWarnings("unchecked")
+            java.util.concurrent.CompletableFuture<ResultGetState> mockFuture =
+                    mock(java.util.concurrent.CompletableFuture.class);
+            when(mockFuture.thenAcceptAsync(any())).thenReturn(mock(java.util.concurrent.CompletableFuture.class));
+            resultsMock.when(() -> Results.getResults(anyString())).thenReturn(mockFuture);
+
+            Method m = CxToolWindowPanel.class.getDeclaredMethod("triggerDrawResultsTree", String.class, boolean.class);
+            m.setAccessible(true);
+            m.invoke(panel, "3f6a5b2c-1d4e-4f8a-9c0b-7e2d1a3f5c8e", false);
+
+            verify(mockRootGroup).setEnabled(false);
+            assertTrue((boolean) getField("getResultsInProgress"));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // selectScan — valid thread path
+    // -------------------------------------------------------------------------
+
+    @Test
+    void selectScan_WhenValidThread_CallsTriggerDrawResultsTree() throws Exception {
+        setField("getResultsInProgress", false);
+        setField("rootGroup", mockRootGroup);
+        String scanId = "3f6a5b2c-1d4e-4f8a-9c0b-7e2d1a3f5c8e";
+        OnePixelSplitter scanSplitter = new OnePixelSplitter(true, 0.1f);
+        setField("scanTreeSplitter", scanSplitter);
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class);
+             MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class);
+             MockedStatic<com.checkmarx.intellij.ast.service.StateService> ssMock =
+                     mockStatic(com.checkmarx.intellij.ast.service.StateService.class);
+             MockedStatic<Results> resultsMock = mockStatic(Results.class)) {
+
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+            bundleMock.when(() -> Bundle.message(Resource.GETTING_RESULTS)).thenReturn("Getting...");
+
+            com.checkmarx.intellij.ast.service.StateService mockSs =
+                    mock(com.checkmarx.intellij.ast.service.StateService.class);
+            ssMock.when(com.checkmarx.intellij.ast.service.StateService::getInstance).thenReturn(mockSs);
+
+            @SuppressWarnings("unchecked")
+            java.util.concurrent.CompletableFuture<ResultGetState> mockFuture =
+                    mock(java.util.concurrent.CompletableFuture.class);
+            when(mockFuture.thenAcceptAsync(any())).thenReturn(mock(java.util.concurrent.CompletableFuture.class));
+            resultsMock.when(() -> Results.getResults(anyString())).thenReturn(mockFuture);
+
+            panel.selectScan(scanId);
+
+            verify(mockRootGroup).setEnabled(false);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // changeFilter — valid thread calls drawTree
+    // -------------------------------------------------------------------------
+
+    @Test
+    void changeFilter_WhenValidThread_CallsDrawTree() throws Exception {
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+            // currentState.getScanId() is null → drawTree returns early — no NPE
+            panel.changeFilter();
+            assertTrue(true, "changeFilter with valid thread should not throw");
+        }
+    }
+
+    @Test
+    void changeFilter_WhenValidThread_WithScanId_BuildsTree() throws Exception {
+        ResultGetState state = new ResultGetState();
+        state.setScanId("3f6a5b2c-1d4e-4f8a-9c0b-7e2d1a3f5c8e");
+        state.setResultOutput(Results.emptyResults);
+        setField("currentState", state);
+
+        GlobalSettingsState mockSettings = mock(GlobalSettingsState.class);
+        when(mockSettings.getFilters()).thenReturn(new java.util.HashSet<>());
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class);
+             MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockSettings);
+
+            panel.changeFilter();
+
+            assertNotNull(getField("currentTree"), "drawTree should set currentTree when scanId is present");
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // updateDisplay — message null → drawTree
+    // -------------------------------------------------------------------------
+
+    @Test
+    void updateDisplay_WhenMessageNull_CallsDrawTree() throws Exception {
+        ResultGetState state = new ResultGetState();
+        state.setScanId("3f6a5b2c-1d4e-4f8a-9c0b-7e2d1a3f5c8e");
+        state.setResultOutput(Results.emptyResults);
+        state.setMessage(null);
+        setField("currentState", state);
+
+        GlobalSettingsState mockSettings = mock(GlobalSettingsState.class);
+        when(mockSettings.getFilters()).thenReturn(new java.util.HashSet<>());
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class);
+             MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockSettings);
+
+            Method m = CxToolWindowPanel.class.getDeclaredMethod("updateDisplay");
+            m.setAccessible(true);
+            m.invoke(panel);
+
+            verify(mockProjectResultsService).indexResults(eq(mockProject), any());
+            assertNotNull(getField("currentTree"), "drawTree should be called and set currentTree");
+        }
+    }
+
+    @Test
+    void updateDisplay_WhenMessageNotNull_ShowsLabel() throws Exception {
+        ResultGetState state = new ResultGetState();
+        state.setScanId("scan-123");
+        state.setMessage("Error message");
+        setField("currentState", state);
+
+        OnePixelSplitter scanSplitter = new OnePixelSplitter(true, 0.1f);
+        setField("scanTreeSplitter", scanSplitter);
+
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+
+            Method m = CxToolWindowPanel.class.getDeclaredMethod("updateDisplay");
+            m.setAccessible(true);
+            m.invoke(panel);
+
+            verify(mockProjectResultsService).indexResults(eq(mockProject), any());
+            assertNotNull(scanSplitter.getSecondComponent());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // dispose
+    // -------------------------------------------------------------------------
+
+    @Test
+    void dispose_DoesNotThrow() {
+        assertDoesNotThrow(() -> panel.dispose());
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
@@ -469,5 +793,212 @@ class CxToolWindowPanelTest {
         Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
         f.setAccessible(true);
         return (sun.misc.Unsafe) f.get(null);
+    }
+
+    // -------------------------------------------------------------------------
+    // OnSelectShowDetail inner class
+    // -------------------------------------------------------------------------
+
+    private Object createOnSelectShowDetail() throws Exception {
+        Class<?> innerClass = Class.forName(
+                "com.checkmarx.intellij.ast.window.CxToolWindowPanel$OnSelectShowDetail");
+        Constructor<?> ctor = innerClass.getDeclaredConstructors()[0];
+        ctor.setAccessible(true);
+        return ctor.newInstance(panel);
+    }
+
+    @Test
+    void onSelectShowDetail_WhenNullPath_DoesNotThrow() throws Exception {
+        Object listener = createOnSelectShowDetail();
+
+        javax.swing.event.TreeSelectionEvent e = mock(javax.swing.event.TreeSelectionEvent.class);
+        when(e.getNewLeadSelectionPath()).thenReturn(null);
+
+        Method valueChanged = listener.getClass().getDeclaredMethod(
+                "valueChanged", javax.swing.event.TreeSelectionEvent.class);
+        valueChanged.setAccessible(true);
+        assertDoesNotThrow(() -> valueChanged.invoke(listener, e));
+    }
+
+    @Test
+    void onSelectShowDetail_WhenSelectedIsNonLeafNode_DoesNotUpdateDetails() throws Exception {
+        Object listener = createOnSelectShowDetail();
+        OnePixelSplitter detailsSplitter = new OnePixelSplitter(false, 0.5f);
+        JLabel original = new JLabel("original");
+        detailsSplitter.setSecondComponent(original);
+        setField("treeDetailsSplitter", detailsSplitter);
+
+        javax.swing.tree.TreePath mockPath = mock(javax.swing.tree.TreePath.class);
+        javax.swing.tree.DefaultMutableTreeNode nonLeafNode =
+                new javax.swing.tree.DefaultMutableTreeNode("group");
+        nonLeafNode.add(new javax.swing.tree.DefaultMutableTreeNode("child")); // makes it non-leaf
+        when(mockPath.getLastPathComponent()).thenReturn(nonLeafNode);
+
+        Tree mockTree = mock(Tree.class);
+        javax.swing.tree.TreeModel mockModel = mock(javax.swing.tree.TreeModel.class);
+        when(mockTree.getModel()).thenReturn(mockModel);
+        when(mockModel.isLeaf(nonLeafNode)).thenReturn(false);
+
+        javax.swing.event.TreeSelectionEvent e = mock(javax.swing.event.TreeSelectionEvent.class);
+        when(e.getNewLeadSelectionPath()).thenReturn(mockPath);
+        when(e.getSource()).thenReturn(mockTree);
+
+        Method valueChanged = listener.getClass().getDeclaredMethod(
+                "valueChanged", javax.swing.event.TreeSelectionEvent.class);
+        valueChanged.setAccessible(true);
+        assertDoesNotThrow(() -> valueChanged.invoke(listener, e));
+
+        assertSame(original, detailsSplitter.getSecondComponent(),
+                "Detail panel must not change when non-leaf is selected");
+    }
+
+    @Test
+    void onSelectShowDetail_WhenLeafIsNotResultNode_DoesNotUpdateDetails() throws Exception {
+        Object listener = createOnSelectShowDetail();
+        OnePixelSplitter detailsSplitter = new OnePixelSplitter(false, 0.5f);
+        JLabel original = new JLabel("original");
+        detailsSplitter.setSecondComponent(original);
+        setField("treeDetailsSplitter", detailsSplitter);
+
+        javax.swing.tree.DefaultMutableTreeNode leafNode =
+                new javax.swing.tree.DefaultMutableTreeNode("just-a-string-node");
+
+        javax.swing.tree.TreePath mockPath = mock(javax.swing.tree.TreePath.class);
+        when(mockPath.getLastPathComponent()).thenReturn(leafNode);
+
+        Tree mockTree = mock(Tree.class);
+        javax.swing.tree.TreeModel mockModel = mock(javax.swing.tree.TreeModel.class);
+        when(mockTree.getModel()).thenReturn(mockModel);
+        when(mockModel.isLeaf(leafNode)).thenReturn(true);
+
+        javax.swing.event.TreeSelectionEvent e = mock(javax.swing.event.TreeSelectionEvent.class);
+        when(e.getNewLeadSelectionPath()).thenReturn(mockPath);
+        when(e.getSource()).thenReturn(mockTree);
+
+        Method valueChanged = listener.getClass().getDeclaredMethod(
+                "valueChanged", javax.swing.event.TreeSelectionEvent.class);
+        valueChanged.setAccessible(true);
+        assertDoesNotThrow(() -> valueChanged.invoke(listener, e));
+
+        assertSame(original, detailsSplitter.getSecondComponent(),
+                "Detail panel must not change when leaf is not a ResultNode");
+    }
+
+    // -------------------------------------------------------------------------
+    // dispose — no-op check
+    // -------------------------------------------------------------------------
+
+    @Test
+    void dispose_CalledMultipleTimes_DoesNotThrow() {
+        assertDoesNotThrow(() -> {
+            panel.dispose();
+            panel.dispose();
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // expandAll / collapseAll — null tree branches
+    // -------------------------------------------------------------------------
+
+    @Test
+    void expandAll_WhenNullTree_DoesNotThrow() throws Exception {
+        setField("currentTree", null);
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+            assertDoesNotThrow(() -> panel.expandAll());
+        }
+    }
+
+    @Test
+    void collapseAll_WhenNullTree_DoesNotThrow() throws Exception {
+        setField("currentTree", null);
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(true);
+            assertDoesNotThrow(() -> panel.collapseAll());
+        }
+    }
+
+    @Test
+    void expandAll_WhenInvalidThread_DoesNotExpand() throws Exception {
+        Tree mockTree = mock(Tree.class);
+        setField("currentTree", mockTree);
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(false);
+            panel.expandAll();
+            verify(mockTree, never()).expandRow(anyInt());
+        }
+    }
+
+    @Test
+    void collapseAll_WhenInvalidThread_DoesNotCollapse() throws Exception {
+        Tree mockTree = mock(Tree.class);
+        setField("currentTree", mockTree);
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(false);
+            panel.collapseAll();
+            verify(mockTree, never()).collapseRow(anyInt());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // resetPanel — invalid thread early return
+    // -------------------------------------------------------------------------
+
+    @Test
+    void resetPanel_WhenInvalidThread_DoesNothing() throws Exception {
+        try (MockedStatic<Utils> mockedUtils = mockStatic(Utils.class)) {
+            mockedUtils.when(Utils::validThread).thenReturn(false);
+            panel.resetPanel();
+            verify(mockRootGroup, never()).reset();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // OnSelectShowDetail — ResultNode leaf updates detail panel
+    // -------------------------------------------------------------------------
+
+    @Test
+    void onSelectShowDetail_WhenLeafIsResultNode_UpdatesDetailPanel() throws Exception {
+        com.checkmarx.ast.results.result.Result mockResult =
+                mock(com.checkmarx.ast.results.result.Result.class);
+        com.checkmarx.ast.results.result.Data mockData =
+                mock(com.checkmarx.ast.results.result.Data.class);
+        lenient().when(mockResult.getData()).thenReturn(mockData);
+        lenient().when(mockData.getNodes()).thenReturn(java.util.Collections.emptyList());
+        lenient().when(mockData.getPackageData()).thenReturn(java.util.Collections.emptyList());
+
+        com.checkmarx.intellij.ast.window.results.tree.nodes.ResultNode testNode =
+                new com.checkmarx.intellij.ast.window.results.tree.nodes.ResultNode(
+                        mockResult, mockProject, "3f6a5b2c-1d4e-4f8a-9c0b-7e2d1a3f5c8e") {
+                    @Override
+                    public JPanel buildResultPanel(Runnable runnableDraw, Runnable runnableUpdater) {
+                        return new JPanel();
+                    }
+                };
+
+        Object listener = createOnSelectShowDetail();
+
+        OnePixelSplitter detailsSplitter = new OnePixelSplitter(false, 0.5f);
+        setField("treeDetailsSplitter", detailsSplitter);
+
+        javax.swing.tree.TreePath mockPath = mock(javax.swing.tree.TreePath.class);
+        when(mockPath.getLastPathComponent()).thenReturn(testNode);
+
+        Tree mockTree = mock(Tree.class);
+        javax.swing.tree.TreeModel mockModel = mock(javax.swing.tree.TreeModel.class);
+        when(mockTree.getModel()).thenReturn(mockModel);
+        when(mockModel.isLeaf(testNode)).thenReturn(true);
+
+        javax.swing.event.TreeSelectionEvent e = mock(javax.swing.event.TreeSelectionEvent.class);
+        when(e.getNewLeadSelectionPath()).thenReturn(mockPath);
+        when(e.getSource()).thenReturn(mockTree);
+
+        Method valueChanged = listener.getClass().getDeclaredMethod(
+                "valueChanged", javax.swing.event.TreeSelectionEvent.class);
+        valueChanged.setAccessible(true);
+        assertDoesNotThrow(() -> valueChanged.invoke(listener, e));
+
+        assertNotNull(detailsSplitter.getSecondComponent(),
+                "Detail panel must be updated when a ResultNode leaf is selected");
     }
 }

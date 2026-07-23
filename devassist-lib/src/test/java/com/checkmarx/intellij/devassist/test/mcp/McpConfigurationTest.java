@@ -12,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
@@ -142,6 +143,98 @@ public class McpConfigurationTest {
         assertEquals(Boolean.FALSE, result.get());
     }
 
+
+    // ===== tryExtractIssuer Tests =====
+
+    @Test
+    @DisplayName("tryExtractIssuer_NullToken_ReturnsNull")
+    void tryExtractIssuer_NullToken_ReturnsNull() throws Exception {
+        Method method = McpSettingsInjector.class.getDeclaredMethod("tryExtractIssuer", String.class);
+        method.setAccessible(true);
+        assertNull(method.invoke(null, (Object) null));
+    }
+
+    @Test
+    @DisplayName("tryExtractIssuer_NoDot_ReturnsNull")
+    void tryExtractIssuer_NoDot_ReturnsNull() throws Exception {
+        Method method = McpSettingsInjector.class.getDeclaredMethod("tryExtractIssuer", String.class);
+        method.setAccessible(true);
+        assertNull(method.invoke(null, "nodottoken"));
+    }
+
+    @Test
+    @DisplayName("tryExtractIssuer_ValidJwtWithIss_ReturnsIssuer")
+    void tryExtractIssuer_ValidJwtWithIss_ReturnsIssuer() throws Exception {
+        Method method = McpSettingsInjector.class.getDeclaredMethod("tryExtractIssuer", String.class);
+        method.setAccessible(true);
+        String token = createValidJwtToken("https://iam.checkmarx.com");
+        String result = (String) method.invoke(null, token);
+        assertEquals("https://iam.checkmarx.com", result);
+    }
+
+    @Test
+    @DisplayName("tryExtractIssuer_ValidJwtWithoutIss_ReturnsNull")
+    void tryExtractIssuer_ValidJwtWithoutIss_ReturnsNull() throws Exception {
+        Method method = McpSettingsInjector.class.getDeclaredMethod("tryExtractIssuer", String.class);
+        method.setAccessible(true);
+        String token = createValidJwtToken(null);
+        assertNull(method.invoke(null, token));
+    }
+
+    @Test
+    @DisplayName("tryExtractIssuer_MalformedBase64_ReturnsNull")
+    void tryExtractIssuer_MalformedBase64_ReturnsNull() throws Exception {
+        Method method = McpSettingsInjector.class.getDeclaredMethod("tryExtractIssuer", String.class);
+        method.setAccessible(true);
+        assertNull(method.invoke(null, "header.!!!notbase64!!!.sig"));
+    }
+
+    // ===== deriveBaseUrlFromIssuer Tests =====
+
+    @Test
+    @DisplayName("deriveBaseUrlFromIssuer_NullIssuer_ReturnsFallback")
+    void deriveBaseUrlFromIssuer_NullIssuer_ReturnsFallback() throws Exception {
+        Method method = McpSettingsInjector.class.getDeclaredMethod("deriveBaseUrlFromIssuer", String.class);
+        method.setAccessible(true);
+        String result = (String) method.invoke(null, (Object) null);
+        assertEquals("https://ast-master-components.dev.cxast.net", result);
+    }
+
+    @Test
+    @DisplayName("deriveBaseUrlFromIssuer_BlankIssuer_ReturnsFallback")
+    void deriveBaseUrlFromIssuer_BlankIssuer_ReturnsFallback() throws Exception {
+        Method method = McpSettingsInjector.class.getDeclaredMethod("deriveBaseUrlFromIssuer", String.class);
+        method.setAccessible(true);
+        String result = (String) method.invoke(null, "   ");
+        assertEquals("https://ast-master-components.dev.cxast.net", result);
+    }
+
+    @Test
+    @DisplayName("deriveBaseUrlFromIssuer_CheckmarxComIssuer_ReplacesIamWithAst")
+    void deriveBaseUrlFromIssuer_CheckmarxComIssuer_ReplacesIamWithAst() throws Exception {
+        Method method = McpSettingsInjector.class.getDeclaredMethod("deriveBaseUrlFromIssuer", String.class);
+        method.setAccessible(true);
+        String result = (String) method.invoke(null, "https://iam.checkmarx.com");
+        assertEquals("https://ast.checkmarx.com", result);
+    }
+
+    @Test
+    @DisplayName("deriveBaseUrlFromIssuer_CheckmarxNetIssuer_ReplacesIamWithAst")
+    void deriveBaseUrlFromIssuer_CheckmarxNetIssuer_ReplacesIamWithAst() throws Exception {
+        Method method = McpSettingsInjector.class.getDeclaredMethod("deriveBaseUrlFromIssuer", String.class);
+        method.setAccessible(true);
+        String result = (String) method.invoke(null, "https://iam.checkmarx.net");
+        assertEquals("https://ast.checkmarx.net", result);
+    }
+
+    @Test
+    @DisplayName("deriveBaseUrlFromIssuer_NonCheckmarxIssuer_ReturnsFallback")
+    void deriveBaseUrlFromIssuer_NonCheckmarxIssuer_ReturnsFallback() throws Exception {
+        Method method = McpSettingsInjector.class.getDeclaredMethod("deriveBaseUrlFromIssuer", String.class);
+        method.setAccessible(true);
+        String result = (String) method.invoke(null, "https://login.example.com");
+        assertEquals("https://login.example.com", result);
+    }
 
     // ===== Helper Methods =====
 

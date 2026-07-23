@@ -1,7 +1,8 @@
-package com.checkmarx.intellij.cxdevassist.test.window.actions;
+package com.checkmarx.intellij.cxdevassist.test.unit.window.actions;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.cxdevassist.window.actions.OpenCxDevAssistSettingsAction;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
@@ -122,6 +123,21 @@ class OpenCxDevAssistSettingsActionTest {
             action.actionPerformed(mockEvent);
             action.actionPerformed(mockEvent);
         });
+    }
+
+    @Test
+    @DisplayName("getActionUpdateThread returns EDT")
+    void getActionUpdateThread_returnsEDT() {
+        OpenCxDevAssistSettingsAction action = new OpenCxDevAssistSettingsAction();
+        assertEquals(ActionUpdateThread.EDT, action.getActionUpdateThread());
+    }
+
+    @Test
+    @DisplayName("actionPerformed calls showSettingsDialog")
+    void actionPerformed_callsShowSettingsDialogWithProject() {
+        OpenCxDevAssistSettingsAction action = new OpenCxDevAssistSettingsAction();
+        action.actionPerformed(mockEvent);
+        verify(mockShowSettingsUtil).showSettingsDialog(eq(mockProject), any(Class.class));
     }
 }
 

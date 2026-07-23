@@ -42,13 +42,26 @@ public class CancelScanAction extends AnAction implements CxToolWindowAction {
                     StartScanAction.cancelRunningScan();
                     String scanId = propertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY);
                     LOGGER.info(Bundle.message(Resource.SCAN_CANCELING_INFO, scanId));
-                    Scan.scanCancel(scanId);
-                    LOGGER.info(Bundle.message(Resource.SCAN_CANCELED, scanId));
+
+                    // Attempt to cancel the scan on CxOne platform
+                    try {
+                        Scan.scanCancel(scanId);
+                        LOGGER.info(Bundle.message(Resource.SCAN_CANCELED, scanId));
+                    } catch (Exception ex) {
+                        // Log error at ERROR level if cancellation fails on platform
+                        LOGGER.error(Bundle.message(Resource.SCAN_CANCELING_INFO, scanId) + " failed: " + ex.getMessage(), ex);
+                        Utils.notify(e.getProject(),
+                                "Failed to cancel scan on CxOne platform. Scan may continue running in the backend.",
+                                NotificationType.ERROR);
+                        return;  // Don't clear local state if platform cancellation failed
+                    }
+
+                    // Only clear local state if platform cancellation succeeded
                     propertiesComponent.setValue(Constants.RUNNING_SCAN_ID_PROPERTY, Utils.EMPTY);
                     ActivityTracker.getInstance().inc();
                     Utils.notifyScan(null, Bundle.message(Resource.SCAN_CANCELED_SUCCESSFULLY), e.getProject(), null, NotificationType.INFORMATION, null);
                 } catch (Exception ex) {
-                    LOGGER.debug("Exception:", ex);
+                    LOGGER.error("Exception during scan cancellation", ex);
                 }
             }
         });

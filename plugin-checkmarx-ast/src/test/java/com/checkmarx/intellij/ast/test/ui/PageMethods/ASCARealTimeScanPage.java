@@ -4,8 +4,8 @@ import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.junit.jupiter.api.Assertions;
 
 import java.time.Duration;
+import java.time.Instant;
 
-import static com.checkmarx.intellij.ast.test.ui.BaseUITest.focusCxWindow;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CxOneAssistFindingsTabPage.checkIfVulnerableFileExists;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CxOneAssistFindingsTabPage.isVulnerableFilePresentInCxAssistTree;
 import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.hasAnyComponent;
@@ -14,91 +14,110 @@ import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
 
 public class ASCARealTimeScanPage {
 
-    private static final Duration ASCA_SCAN_TIMEOUT = Duration.ofSeconds(400);
+    private static final Duration SCAN_START_TIMEOUT = Duration.ofSeconds(60);
+    private static final Duration SCAN_COMPLETE_TIMEOUT = Duration.ofSeconds(120);
+    private static final long EXPECTED_SCAN_START_DELAY_MS = 5000; // 5 seconds tolerance for the ~2 second trigger
     private static final String ASSIGNMENT_FILE = "Assignment5.java";
+    private static long lastScanStartDelayMs = -1;
 
     public static void openAndEditFileTriggerRealtimeScan() {
-        // Implementation for opening and editing a file to trigger ASCA Real-Time Scan
-        //Wait for existing scans to complete
+        // Wait for existing scans to complete
         waitFor(() -> !hasAnyComponent(SCAN_PROGRESS_BAR));
         hideToolWindows();
-        //Open a test file with ASCA vulnerabilities
+        // Open a test file with ASCA vulnerabilities
         openFileByPath("src/main/java/org/owasp/webgoat/challenges/challenge5/Assignment5.java");
-        editFile();
 
-        // Wait for scan to start with custom 400 second timeout
-        // If it times out, check if vulnerability is already in tree before retrying
-        boolean scanStarted = waitForScanToStartWithFallback();
+        // Try to trigger scan and wait for results, retrying the edit if needed
+        boolean scanCompleted = waitForScanWithRetry();
 
-        if (scanStarted) {
-            // Wait for scan to complete with custom 400 second timeout
-            waitFor(() -> !hasAnyComponent(FILE_SCAN_PROGRESS_BAR), ASCA_SCAN_TIMEOUT);
+        if (scanCompleted) {
+            log("ASCA real-time scan completed successfully");
         } else {
-            log("Scan progress bar never appeared, but vulnerability was found in Issues Tree");
+            log("ASCA scan did not complete, but vulnerability may already exist in Issues Tree");
         }
 
-        //Reopen the checkmarx tool window as we are closing all the tool windows earlier
+        // Reopen the checkmarx tool window as we closed all tool windows earlier
         openCxToolWindow();
     }
 
     /**
-     * Waits for the ASCA scan to start (progress bar appears) with retry logic.
-     * After first timeout, checks if vulnerability already exists in tree before retrying.
+     * Edits the file to trigger a scan, then waits for the scan progress bar to appear and disappear,
+     * or for the vulnerability to appear in the findings tree.
+     * Retries the edit up to 3 times if the scan doesn't start.
      *
-     * @return true if scan started, false if vulnerability was found without scan progress
+     * @return true if scan completed, false if vulnerability was found without observing the scan
      */
-    private static boolean waitForScanToStartWithFallback() {
+    private static boolean waitForScanWithRetry() {
         int maxRetries = 3;
-        int currentTry = 0;
 
-        while (currentTry < maxRetries) {
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            log("Triggering file edit to start ASCA scan (attempt " + attempt + "/" + maxRetries + ")...");
+            Instant editTime = Instant.now();
+            editFile();
+
+            // Wait for either the scan progress bar OR the vulnerability in the findings tree
             try {
-                log("Waiting for ASCA scan to start (attempt " + (currentTry + 1) + "/" + maxRetries + ")...");
-                waitFor(() -> hasAnyComponent(FILE_SCAN_PROGRESS_BAR), ASCA_SCAN_TIMEOUT);
-                log("ASCA scan progress bar detected");
-                return true;
+                waitFor(() -> hasAnyComponent(FILE_SCAN_PROGRESS_BAR) || isVulnerabilityAlreadyInTree(),
+                        SCAN_START_TIMEOUT);
             } catch (WaitForConditionTimeoutException e) {
-                currentTry++;
-                log("Scan progress bar not detected within " + ASCA_SCAN_TIMEOUT.getSeconds() + " seconds");
-
-                // Before retrying, check if the vulnerability is already in the Issues Tree
-                log("Checking if ASCA vulnerability already exists in Issues Tree...");
-                openCxToolWindow();
-                clickSafe(CX_ASSIST_FINDING_TAB);
-
-                boolean fileExists = checkIfVulnerableFileExists(ASSIGNMENT_FILE);
-
-                if (fileExists) {
-                    log("ASCA vulnerability file '" + ASSIGNMENT_FILE + "' found in Issues Tree. Scan may have completed without progress bar.");
-                    // Switch back to Scan Results tab
-                    clickSafe(SCAN_RESULTS_TAB);
-                    return false; // Scan completed, no need to wait for progress bar
-                } else {
-                    log("Vulnerability not found in Issues Tree yet.");
-                    // Switch back to Scan Results tab
-                    clickSafe(SCAN_RESULTS_TAB);
+                log("Neither scan progress bar nor vulnerability detected within " + SCAN_START_TIMEOUT.getSeconds() + "s");
+                if (attempt == maxRetries) {
+                    throw e;
                 }
-
-                if (currentTry < maxRetries) {
-                    log("Retrying wait for scan progress bar...");
-                    focusCxWindow();
-                } else {
-                    log("Maximum retries reached. Scan progress bar never appeared and vulnerability not found.");
-                    throw e; // Re-throw the exception after all retries exhausted
-                }
+                continue;
             }
+
+            // Track how long it took for the scan to start after the file edit
+            lastScanStartDelayMs = Duration.between(editTime, Instant.now()).toMillis();
+            log("ASCA scan started " + lastScanStartDelayMs + "ms after file edit");
+
+            // Check what we found
+            if (isVulnerabilityAlreadyInTree()) {
+                log("Vulnerability already present in findings tree — scan may have completed quickly");
+                return false;
+            }
+
+            // Progress bar appeared — wait for scan to complete
+            log("ASCA scan progress bar detected, waiting for scan to complete...");
+            waitFor(() -> !hasAnyComponent(FILE_SCAN_PROGRESS_BAR), SCAN_COMPLETE_TIMEOUT);
+            return true;
         }
 
         return false;
     }
 
+    /**
+     * Verifies that the ASCA scan started within the expected delay after a file edit.
+     * TC75: ASCA should trigger a scan approximately 2 seconds after a file edit.
+     */
+    public static void verifyScanStartedWithinExpectedDelay() {
+        Assertions.assertTrue(lastScanStartDelayMs >= 0,
+                "Scan start delay was not recorded — scan may not have been triggered");
+        log("Verifying scan start delay: " + lastScanStartDelayMs + "ms (threshold: " + EXPECTED_SCAN_START_DELAY_MS + "ms)");
+        Assertions.assertTrue(lastScanStartDelayMs <= EXPECTED_SCAN_START_DELAY_MS,
+                "ASCA scan should start within " + EXPECTED_SCAN_START_DELAY_MS + "ms of file edit, but took " + lastScanStartDelayMs + "ms");
+    }
+
+    /**
+     * Quick non-blocking check if the vulnerability file is already in the CxAssist findings tree.
+     */
+    private static boolean isVulnerabilityAlreadyInTree() {
+        try {
+            openCxToolWindow();
+            if (!hasAnyComponent(CX_ASSIST_FINDING_TAB)) return false;
+            return checkIfVulnerableFileExists(ASSIGNMENT_FILE);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public static void verifyAscaVulnerabilityFileInIssuesTree() {
-        // Implementation for verifying ASCA vulnerability file in Cx Findings Issues Tree
-        //Open checkmarx one assist findings tab
+        // Open checkmarx one assist findings tab
+        openCxToolWindow();
         clickSafe(CX_ASSIST_FINDING_TAB);
-        //Verify ASCA vulnerability is displayed in the Issues Tree
-        isVulnerableFilePresentInCxAssistTree("Assignment5.java");
-        //Move back to Scan Results tab to avoid interference with other tests
+        // Verify ASCA vulnerability is displayed in the Issues Tree (60s timeout — results should be there already)
+        isVulnerableFilePresentInCxAssistTree(ASSIGNMENT_FILE, Duration.ofSeconds(60));
+        // Move back to Scan Results tab to avoid interference with other tests
         clickSafe(SCAN_RESULTS_TAB);
     }
 

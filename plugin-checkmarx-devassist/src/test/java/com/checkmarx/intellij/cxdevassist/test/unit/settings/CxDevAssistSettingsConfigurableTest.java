@@ -1,12 +1,18 @@
-package com.checkmarx.intellij.cxdevassist.test.settings;
+package com.checkmarx.intellij.cxdevassist.test.unit.settings;
 
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.settings.SettingsComponent;
+import com.checkmarx.intellij.cxdevassist.settings.CxDevAssistSettingsComponent;
 import com.checkmarx.intellij.cxdevassist.settings.CxDevAssistSettingsConfigurable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
+
+import javax.swing.*;
+import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -167,6 +173,90 @@ class CxDevAssistSettingsConfigurableTest {
     void testWelcomeShown() {
         when(mockGlobalState.isWelcomeShown()).thenReturn(true);
         assertTrue(GlobalSettingsState.getInstance().isWelcomeShown());
+    }
+
+    private static void setField(Object target, String name, Object value) throws Exception {
+        Field f = target.getClass().getDeclaredField(name);
+        f.setAccessible(true);
+        f.set(target, value);
+    }
+
+    // ===== createComponent() =====
+
+    @Test
+    @DisplayName("createComponent returns the component's mainPanel")
+    void createComponent_ReturnsMainPanel() {
+        try (MockedConstruction<CxDevAssistSettingsComponent> mc =
+                mockConstruction(CxDevAssistSettingsComponent.class,
+                        (mock, ctx) -> when(mock.getMainPanel()).thenReturn(new JPanel()))) {
+            CxDevAssistSettingsConfigurable configurable = new CxDevAssistSettingsConfigurable();
+            JComponent panel = configurable.createComponent();
+            assertNotNull(panel);
+        }
+    }
+
+    // ===== isModified / apply / reset with non-null settingsComponent =====
+
+    @Test
+    @DisplayName("isModified delegates to settingsComponent when non-null")
+    void isModified_SettingsComponentNonNull_ReturnsComponentValue() throws Exception {
+        SettingsComponent mockComp = mock(SettingsComponent.class);
+        when(mockComp.isModified()).thenReturn(true);
+
+        CxDevAssistSettingsConfigurable configurable = new CxDevAssistSettingsConfigurable();
+        setField(configurable, "settingsComponent", mockComp);
+
+        assertTrue(configurable.isModified());
+        verify(mockComp).isModified();
+    }
+
+    @Test
+    @DisplayName("apply delegates to settingsComponent when non-null")
+    void apply_SettingsComponentNonNull_CallsApply() throws Exception {
+        SettingsComponent mockComp = mock(SettingsComponent.class);
+        doNothing().when(mockComp).apply();
+
+        CxDevAssistSettingsConfigurable configurable = new CxDevAssistSettingsConfigurable();
+        setField(configurable, "settingsComponent", mockComp);
+
+        assertDoesNotThrow(configurable::apply);
+        verify(mockComp).apply();
+    }
+
+    @Test
+    @DisplayName("reset delegates to settingsComponent when non-null")
+    void reset_SettingsComponentNonNull_CallsReset() throws Exception {
+        SettingsComponent mockComp = mock(SettingsComponent.class);
+        doNothing().when(mockComp).reset();
+
+        CxDevAssistSettingsConfigurable configurable = new CxDevAssistSettingsConfigurable();
+        setField(configurable, "settingsComponent", mockComp);
+
+        assertDoesNotThrow(configurable::reset);
+        verify(mockComp).reset();
+    }
+
+    @Test
+    @DisplayName("isModified returns false when component not yet created")
+    void isModified_SettingsComponentNotCreated_ThrowsNullPointer() {
+        // createComponent() is never called in tests — settingsComponent is null
+        // Calling isModified() on the configurable should propagate the NPE
+        CxDevAssistSettingsConfigurable configurable = new CxDevAssistSettingsConfigurable();
+        assertThrows(NullPointerException.class, configurable::isModified);
+    }
+
+    @Test
+    @DisplayName("apply throws NullPointerException when component not yet created")
+    void apply_SettingsComponentNotCreated_ThrowsNullPointer() {
+        CxDevAssistSettingsConfigurable configurable = new CxDevAssistSettingsConfigurable();
+        assertThrows(Exception.class, configurable::apply);
+    }
+
+    @Test
+    @DisplayName("reset throws NullPointerException when component not yet created")
+    void reset_SettingsComponentNotCreated_ThrowsNullPointer() {
+        CxDevAssistSettingsConfigurable configurable = new CxDevAssistSettingsConfigurable();
+        assertThrows(NullPointerException.class, configurable::reset);
     }
 }
 

@@ -10,6 +10,8 @@ import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -24,7 +26,9 @@ import org.mockito.quality.Strictness;
 
 import java.awt.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -279,9 +283,9 @@ class UtilsTest {
 
     @Test
     void testGetFileContentFromResource_Success() {
-        // Skip this test as it's complex to mock properly with static methods
-        // The actual functionality is tested in integration tests
-        assertTrue(true);
+        String result = Utils.getFileContentFromResource("auth/auth-success.html");
+        assertNotNull(result);
+        assertFalse(result.isBlank());
     }
 
     @Test
@@ -690,6 +694,215 @@ class UtilsTest {
 
             mockContext.reset();
             verify(mockContext).reset();
+        }
+    }
+
+    @Test
+    void testGenerateCodeVerifier_ReturnsNonNullNonEmptyString() {
+        String result = Utils.generateCodeVerifier();
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+    }
+
+    @Test
+    void testIsNotBlank_NullInput_ReturnsFalse() {
+        assertFalse(Utils.isNotBlank(null));
+    }
+
+    @Test
+    void testIsNotBlank_WhitespaceOnly_ReturnsFalse() {
+        assertFalse(Utils.isNotBlank("   "));
+    }
+
+    @Test
+    void testLength_EmptyString_ReturnsZero() {
+        assertEquals(0, Utils.length(""));
+    }
+
+    @Test
+    void testEscapeHtml_WhitespaceOnly_ReturnsEmpty() {
+        assertEquals("", Utils.escapeHtml("   "));
+    }
+
+    @Test
+    void testConvertToLocalDateTime_NegativeDuration_ReturnsDateInPast() {
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDateTime result = Utils.convertToLocalDateTime(-3600L, zone);
+        assertNotNull(result);
+        assertTrue(result.isBefore(LocalDateTime.now()));
+    }
+
+    @Test
+    void testNotifyScan_withNullFunction_doesNotAddAction() {
+        try (MockedStatic<NotificationGroupManager> notifMock = mockStatic(NotificationGroupManager.class)) {
+            NotificationGroupManager mockManager = mock(NotificationGroupManager.class);
+            NotificationGroup mockGroup = mock(NotificationGroup.class);
+            Notification mockNotification = mock(Notification.class);
+
+            notifMock.when(NotificationGroupManager::getInstance).thenReturn(mockManager);
+            when(mockManager.getNotificationGroup(anyString())).thenReturn(mockGroup);
+            when(mockGroup.createNotification(anyString(), anyString(), any(NotificationType.class))).thenReturn(mockNotification);
+
+            Utils.notifyScan("Title", "Message", mockProject, null, NotificationType.INFORMATION, "Action");
+
+            verify(mockNotification, never()).addAction(any());
+            verify(mockNotification).notify(mockProject);
+        }
+    }
+
+    @Test
+    void testShowAppLevelNotification_withoutDockLink_notifiesWithoutAction() {
+        try (MockedStatic<NotificationGroupManager> notifMock = mockStatic(NotificationGroupManager.class);
+             MockedStatic<ApplicationManager> appMock = mockStatic(ApplicationManager.class)) {
+
+            NotificationGroupManager mockManager = mock(NotificationGroupManager.class);
+            NotificationGroup mockGroup = mock(NotificationGroup.class);
+            Notification mockNotification = mock(Notification.class);
+            Application mockApp = mock(Application.class);
+
+            notifMock.when(NotificationGroupManager::getInstance).thenReturn(mockManager);
+            when(mockManager.getNotificationGroup(anyString())).thenReturn(mockGroup);
+            when(mockGroup.createNotification(anyString(), anyString(), any(NotificationType.class))).thenReturn(mockNotification);
+            appMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+            doAnswer(inv -> { inv.getArgument(0, Runnable.class).run(); return null; })
+                    .when(mockApp).invokeLater(any(Runnable.class));
+
+            Utils.showAppLevelNotification("Title", "Content", NotificationType.INFORMATION, false, "");
+
+            verify(mockNotification, never()).addAction(any());
+            verify(mockNotification).notify(null);
+        }
+    }
+
+    @Test
+    void testShowAppLevelNotification_withDockLink_addsAction() {
+        try (MockedStatic<NotificationGroupManager> notifMock = mockStatic(NotificationGroupManager.class);
+             MockedStatic<ApplicationManager> appMock = mockStatic(ApplicationManager.class)) {
+
+            NotificationGroupManager mockManager = mock(NotificationGroupManager.class);
+            NotificationGroup mockGroup = mock(NotificationGroup.class);
+            Notification mockNotification = mock(Notification.class);
+            Application mockApp = mock(Application.class);
+
+            notifMock.when(NotificationGroupManager::getInstance).thenReturn(mockManager);
+            when(mockManager.getNotificationGroup(anyString())).thenReturn(mockGroup);
+            when(mockGroup.createNotification(anyString(), anyString(), any(NotificationType.class))).thenReturn(mockNotification);
+            when(mockNotification.addAction(any())).thenReturn(mockNotification);
+            appMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+            doAnswer(inv -> { inv.getArgument(0, Runnable.class).run(); return null; })
+                    .when(mockApp).invokeLater(any(Runnable.class));
+
+            Utils.showAppLevelNotification("Title", "Content", NotificationType.INFORMATION, true, "http://example.com");
+
+            verify(mockNotification).addAction(any());
+            verify(mockNotification).notify(null);
+        }
+    }
+
+    @Test
+    void testShowUndoCloseNotification_returnsResultArrayWithEmptyDefault() {
+        try (MockedStatic<NotificationGroupManager> notifMock = mockStatic(NotificationGroupManager.class)) {
+            NotificationGroupManager mockManager = mock(NotificationGroupManager.class);
+            NotificationGroup mockGroup = mock(NotificationGroup.class);
+            Notification mockNotification = mock(Notification.class);
+
+            notifMock.when(NotificationGroupManager::getInstance).thenReturn(mockManager);
+            when(mockManager.getNotificationGroup(anyString())).thenReturn(mockGroup);
+            when(mockGroup.createNotification(anyString(), anyString(), any(NotificationType.class))).thenReturn(mockNotification);
+            when(mockNotification.addAction(any())).thenReturn(mockNotification);
+
+            String[] result = Utils.showUndoCloseNotification("Title", "Content", NotificationType.INFORMATION, mockProject);
+
+            assertNotNull(result);
+            assertEquals("", result[0]);
+            verify(mockNotification, times(2)).addAction(any());
+            verify(mockNotification).notify(mockProject);
+        }
+    }
+
+    @Test
+    void testNotifySessionExpired_firstCall_callsApplicationInvokeLater() {
+        Utils.resetSessionExpiredNotificationFlag();
+        try (MockedStatic<ApplicationManager> appMock = mockStatic(ApplicationManager.class)) {
+            Application mockApp = mock(Application.class, RETURNS_DEEP_STUBS);
+            appMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+
+            Utils.notifySessionExpired();
+
+            verify(mockApp, times(2)).invokeLater(any(Runnable.class));
+        }
+        Utils.resetSessionExpiredNotificationFlag();
+    }
+
+    @Test
+    void testNotifySessionExpired_secondCall_isNoOp() {
+        Utils.resetSessionExpiredNotificationFlag();
+        try (MockedStatic<ApplicationManager> appMock = mockStatic(ApplicationManager.class)) {
+            Application mockApp = mock(Application.class, RETURNS_DEEP_STUBS);
+            appMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+
+            Utils.notifySessionExpired();
+            Utils.notifySessionExpired();
+
+            verify(mockApp, times(2)).invokeLater(any(Runnable.class));
+        }
+        Utils.resetSessionExpiredNotificationFlag();
+    }
+
+    @Test
+    void testGetRootRepository_TwoNestedRepos_ReturnsParent() {
+        try (MockedStatic<VcsRepositoryManager> vcsStatic = mockStatic(VcsRepositoryManager.class)) {
+            Repository repo1 = mock(Repository.class);
+            Repository repo2 = mock(Repository.class);
+            com.intellij.openapi.vfs.VirtualFile vf1 = mock(com.intellij.openapi.vfs.VirtualFile.class);
+            com.intellij.openapi.vfs.VirtualFile vf2 = mock(com.intellij.openapi.vfs.VirtualFile.class);
+
+            when(repo1.getRoot()).thenReturn(vf1);
+            when(repo2.getRoot()).thenReturn(vf2);
+            when(vf1.toNioPath()).thenReturn(Paths.get("/workspace/project"));
+            when(vf2.toNioPath()).thenReturn(Paths.get("/workspace/project/submodule"));
+
+            vcsStatic.when(() -> VcsRepositoryManager.getInstance(any())).thenReturn(mockVcsRepositoryManager);
+            when(mockVcsRepositoryManager.getRepositories()).thenReturn(Arrays.asList(repo1, repo2));
+
+            Repository result = Utils.getRootRepository(mockProject);
+
+            assertNotNull(result);
+        }
+    }
+
+    @Test
+    void testGetRootRepository_TwoNonNestedRepos_ReturnsNull() {
+        try (MockedStatic<VcsRepositoryManager> vcsStatic = mockStatic(VcsRepositoryManager.class)) {
+            Repository repo1 = mock(Repository.class);
+            Repository repo2 = mock(Repository.class);
+            com.intellij.openapi.vfs.VirtualFile vf1 = mock(com.intellij.openapi.vfs.VirtualFile.class);
+            com.intellij.openapi.vfs.VirtualFile vf2 = mock(com.intellij.openapi.vfs.VirtualFile.class);
+
+            when(repo1.getRoot()).thenReturn(vf1);
+            when(repo2.getRoot()).thenReturn(vf2);
+            when(vf1.toNioPath()).thenReturn(Paths.get("/workspace/projectA"));
+            when(vf2.toNioPath()).thenReturn(Paths.get("/workspace/projectB"));
+
+            vcsStatic.when(() -> VcsRepositoryManager.getInstance(any())).thenReturn(mockVcsRepositoryManager);
+            when(mockVcsRepositoryManager.getRepositories()).thenReturn(Arrays.asList(repo1, repo2));
+
+            Repository result = Utils.getRootRepository(mockProject);
+
+            assertNull(result);
+        }
+    }
+
+    @Test
+    void testGenerateCodeVerifier_DRBGUnavailable_UsesDefaultSecureRandom() {
+        try (MockedStatic<SecureRandom> srStatic = mockStatic(SecureRandom.class)) {
+            srStatic.when(() -> SecureRandom.getInstance("DRBG"))
+                    .thenThrow(new NoSuchAlgorithmException("DRBG not available"));
+
+            String result = Utils.generateCodeVerifier();
+
+            assertNotNull(result);
+            assertFalse(result.isEmpty());
         }
     }
 }

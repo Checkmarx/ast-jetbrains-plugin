@@ -79,7 +79,8 @@ public class CheckmarxSettingsPage {
             Assertions.assertTrue(hasAnyComponent(SUCCESS_CONNECTION));
             locateAndClickOnButton(WELCOME_CLOSE_BUTTON);
             click(OK_BTN);
-            waitFor(() -> hasAnyComponent(START_SCAN_BTN) && hasAnyComponent(CANCEL_SCAN_BTN));
+            assertElementAvailableAfterLogin(START_SCAN_BTN, "Start Scan");
+            assertElementAvailableAfterLogin(CANCEL_SCAN_BTN, "Cancel Scan");
         } else {
             Assertions.assertFalse(hasAnyComponent(SUCCESS_CONNECTION));
             click(OK_BTN);
@@ -88,12 +89,14 @@ public class CheckmarxSettingsPage {
     }
 
     public static void validateWelcomePageLoadedSuccessfully(boolean isCodeSmartSelectedByDefault) {
-        waitFor(() -> hasAnyComponent(WELCOME_TITLE));
-        hasAnyComponent(WELCOME_ASSIST_TITLE);
-        hasAnyComponent(CODE_SMART_CHECKBOX);
-        hasAnyComponent(WELCOME_PAGE_IMAGE);
+        waitFor(() -> hasAnyComponent(WELCOME_TITLE)
+                && hasAnyComponent(WELCOME_ASSIST_TITLE)
+                && hasAnyComponent(CODE_SMART_CHECKBOX)
+                && hasAnyComponent(WELCOME_PAGE_IMAGE));
         String welcomeTitle = getText(WELCOME_TITLE);
         Assertions.assertEquals("Welcome to Checkmarx", welcomeTitle);
+        // Wait for the checkbox selection state to match the expected default
+        waitFor(() -> isComponentSelected(CODE_SMART_CHECKBOX) == isCodeSmartSelectedByDefault);
         boolean checkBoxSelected = isComponentSelected(CODE_SMART_CHECKBOX);
         if (isCodeSmartSelectedByDefault) {
             Assertions.assertTrue(checkBoxSelected);
@@ -103,16 +106,16 @@ public class CheckmarxSettingsPage {
     }
 
 
-    public static void testASTSettingsPageTittlePresent() {
+    public static void testASTSettingsPageTitlePresent() {
         openSettings();
 
         waitFor(() -> hasAnyComponent(HELP_PLUGIN_LINK));
-        String tittleText = getText(HELP_PLUGIN_LINK);
+        String titleText = getText(HELP_PLUGIN_LINK);
         Assertions.assertTrue(find(HELP_PLUGIN_LINK).isShowing(),
                 "Help link is not visible on screen");
         Assertions.assertEquals(
                 "Checkmarx One Jetbrains Plugin help page",
-                tittleText,
+                titleText,
                 "Settings page title text did not match"
         );
         Assertions.assertTrue(hasAnyComponent(HELP_PLUGIN_LINK),
