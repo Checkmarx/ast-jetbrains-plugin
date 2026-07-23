@@ -236,19 +236,9 @@ jobs:
           path: |
             build/reports
 
-  deleteDevReleases:
-    permissions:
-      contents: write  # for gh release delete to remove tags and releases
-    needs: [resolve, verify, testIntegration]
-    uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/delete-dev-releases.yml@main # zizmor: ignore[unpinned-uses]
-    with:
-      tag: ${{ inputs.rchannels }}
-    secrets: inherit # zizmor: ignore[secrets-inherit]
-    if: ${{ always() && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') && inputs.rchannels != '' && inputs.rchannels != null }}
-
   release:
     name: Release
-    needs: [resolve, verify, testIntegration, deleteDevReleases]
+    needs: [resolve, verify, testIntegration]
     if: ${{ always() && needs.resolve.result == 'success' && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') && (needs.deleteDevReleases.result == 'success' || needs.deleteDevReleases.result == 'skipped') }}
     permissions:
       contents: write  # for creating GitHub release and uploading assets
