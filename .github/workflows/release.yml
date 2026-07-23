@@ -239,7 +239,7 @@ jobs:
   release:
     name: Release
     needs: [resolve, verify, testIntegration]
-    if: ${{ always() && needs.resolve.result == 'success' && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') && (needs.deleteDevReleases.result == 'success' || needs.deleteDevReleases.result == 'skipped') }}
+    if: ${{ always() && needs.resolve.result == 'success' && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') }}
     permissions:
       contents: write  # for creating GitHub release and uploading assets
     runs-on: cx-public-ubuntu-x64
