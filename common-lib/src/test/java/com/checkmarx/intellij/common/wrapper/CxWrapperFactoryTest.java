@@ -5,12 +5,10 @@ import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.utils.PluginVersionProvider;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.intellij.ide.plugins.IdeaPluginDescriptor;
-import com.intellij.ide.plugins.PluginManagerCore;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.extensions.PluginId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,11 +52,7 @@ class CxWrapperFactoryTest {
     private MockedStatic<GlobalSettingsSensitiveState> mockedGlobalSettingsSensitiveState;
     private MockedStatic<CxConfig> mockedCxConfig;
     private MockedStatic<Utils> mockedUtils;
-    private MockedStatic<PluginManagerCore> mockedPluginManagerCore;
-    private MockedStatic<PluginId> mockedPluginId;
-
-    private PluginId mockAstPluginId;
-    private PluginId mockDevAssistPluginId;
+    private MockedStatic<PluginVersionProvider> mockedPluginVersionProvider;
 
     @BeforeEach
     void setUp() {
@@ -67,8 +61,7 @@ class CxWrapperFactoryTest {
         mockedGlobalSettingsSensitiveState = mockStatic(GlobalSettingsSensitiveState.class);
         mockedCxConfig = mockStatic(CxConfig.class);
         mockedUtils = mockStatic(Utils.class);
-        mockedPluginManagerCore = mockStatic(PluginManagerCore.class);
-        mockedPluginId = mockStatic(PluginId.class);
+        mockedPluginVersionProvider = mockStatic(PluginVersionProvider.class);
 
         mockedApplicationManager.when(ApplicationManager::getApplication).thenReturn(mockApplication);
         mockedGlobalSettingsState.when(GlobalSettingsState::getInstance).thenReturn(mockGlobalSettingsState);
@@ -79,19 +72,8 @@ class CxWrapperFactoryTest {
         com.intellij.openapi.diagnostic.Logger mockLogger = mock(com.intellij.openapi.diagnostic.Logger.class);
         mockedUtils.when(() -> Utils.getLogger(any())).thenReturn(mockLogger);
 
-        // Create reusable plugin ID mocks
-        mockAstPluginId = mock(PluginId.class);
-        mockDevAssistPluginId = mock(PluginId.class);
-
-        // Default: no plugins found (so agent name is just "Jetbrains")
-        mockedPluginId.when(() -> PluginId.getId("com.checkmarx.checkmarx-ast-jetbrains-plugin"))
-                .thenReturn(mockAstPluginId);
-        mockedPluginId.when(() -> PluginId.getId("com.checkmarx.devassist-jetbrains-plugin"))
-                .thenReturn(mockDevAssistPluginId);
-        mockedPluginManagerCore.when(() -> PluginManagerCore.getPlugin(mockAstPluginId))
-                .thenReturn(null);
-        mockedPluginManagerCore.when(() -> PluginManagerCore.getPlugin(mockDevAssistPluginId))
-                .thenReturn(null);
+        // Default: no version found (so agent name is just "Jetbrains")
+        mockedPluginVersionProvider.when(PluginVersionProvider::getPluginVersion).thenReturn("");
 
         when(mockCxConfigBuilder.agentName(anyString())).thenReturn(mockCxConfigBuilder);
         when(mockCxConfigBuilder.apiKey(anyString())).thenReturn(mockCxConfigBuilder);
@@ -117,11 +99,8 @@ class CxWrapperFactoryTest {
         if (mockedUtils != null) {
             mockedUtils.close();
         }
-        if (mockedPluginManagerCore != null) {
-            mockedPluginManagerCore.close();
-        }
-        if (mockedPluginId != null) {
-            mockedPluginId.close();
+        if (mockedPluginVersionProvider != null) {
+            mockedPluginVersionProvider.close();
         }
     }
 
@@ -470,98 +449,41 @@ class CxWrapperFactoryTest {
 
     @Test
     void testBuild_WithAstPluginVersion_AppendsVersionToAgentName() throws CxException, IOException {
-        // Close the global mocks temporarily
-        mockedPluginManagerCore.close();
-        mockedPluginId.close();
+        // Mock PluginVersionProvider to return AST version
+        mockedPluginVersionProvider.when(PluginVersionProvider::getPluginVersion).thenReturn("2.3.6");
 
-        try (MockedStatic<PluginManagerCore> localMockedPluginManagerCore = mockStatic(PluginManagerCore.class);
-             MockedStatic<PluginId> localMockedPluginId = mockStatic(PluginId.class)) {
+        when(mockGlobalSettingsState.isApiKeyEnabled()).thenReturn(true);
+        when(mockGlobalSettingsSensitiveState.getApiKey()).thenReturn("test-api-key");
+        when(mockGlobalSettingsState.getAdditionalParameters()).thenReturn("");
 
-            PluginId astPluginId = mock(PluginId.class);
-            localMockedPluginId.when(() -> PluginId.getId("com.checkmarx.checkmarx-ast-jetbrains-plugin"))
-                    .thenReturn(astPluginId);
+        CxWrapper result = CxWrapperFactory.build();
 
-            IdeaPluginDescriptor astPlugin = mock(IdeaPluginDescriptor.class);
-            when(astPlugin.getVersion()).thenReturn("2.3.6");
-            localMockedPluginManagerCore.when(() -> PluginManagerCore.getPlugin(astPluginId))
-                    .thenReturn(astPlugin);
-
-            when(mockGlobalSettingsState.isApiKeyEnabled()).thenReturn(true);
-            when(mockGlobalSettingsSensitiveState.getApiKey()).thenReturn("test-api-key");
-            when(mockGlobalSettingsState.getAdditionalParameters()).thenReturn("");
-
-            CxWrapper result = CxWrapperFactory.build();
-
-            assertNotNull(result);
-            verify(mockCxConfigBuilder).agentName("Jetbrains_2.3.6");
-            verify(mockCxConfigBuilder).apiKey("test-api-key");
-        } finally {
-            // Re-setup the global mocks
-            mockedPluginManagerCore = mockStatic(PluginManagerCore.class);
-            mockedPluginId = mockStatic(PluginId.class);
-            mockedPluginId.when(() -> PluginId.getId("com.checkmarx.checkmarx-ast-jetbrains-plugin"))
-                    .thenReturn(mockAstPluginId);
-            mockedPluginId.when(() -> PluginId.getId("com.checkmarx.devassist-jetbrains-plugin"))
-                    .thenReturn(mockDevAssistPluginId);
-            mockedPluginManagerCore.when(() -> PluginManagerCore.getPlugin(mockAstPluginId))
-                    .thenReturn(null);
-            mockedPluginManagerCore.when(() -> PluginManagerCore.getPlugin(mockDevAssistPluginId))
-                    .thenReturn(null);
-        }
+        assertNotNull(result);
+        verify(mockCxConfigBuilder).agentName("Jetbrains_2.3.6");
+        verify(mockCxConfigBuilder).apiKey("test-api-key");
     }
 
     @Test
     void testBuild_WithDevAssistPluginVersion_AppendsVersionToAgentName() throws CxException, IOException {
-        // Close the global mocks temporarily
-        mockedPluginManagerCore.close();
-        mockedPluginId.close();
+        // Mock PluginVersionProvider to return DevAssist version
+        mockedPluginVersionProvider.when(PluginVersionProvider::getPluginVersion).thenReturn("1.0.2");
 
-        try (MockedStatic<PluginManagerCore> localMockedPluginManagerCore = mockStatic(PluginManagerCore.class);
-             MockedStatic<PluginId> localMockedPluginId = mockStatic(PluginId.class)) {
+        when(mockGlobalSettingsState.isApiKeyEnabled()).thenReturn(true);
+        when(mockGlobalSettingsSensitiveState.getApiKey()).thenReturn("test-api-key");
+        when(mockGlobalSettingsState.getAdditionalParameters()).thenReturn("");
 
-            PluginId astPluginId = mock(PluginId.class);
-            PluginId devAssistPluginId = mock(PluginId.class);
-            localMockedPluginId.when(() -> PluginId.getId("com.checkmarx.checkmarx-ast-jetbrains-plugin"))
-                    .thenReturn(astPluginId);
-            localMockedPluginId.when(() -> PluginId.getId("com.checkmarx.devassist-jetbrains-plugin"))
-                    .thenReturn(devAssistPluginId);
+        CxWrapper result = CxWrapperFactory.build();
 
-            // AST plugin not found, DevAssist plugin found with version
-            localMockedPluginManagerCore.when(() -> PluginManagerCore.getPlugin(astPluginId))
-                    .thenReturn(null);
-            IdeaPluginDescriptor devAssistPlugin = mock(IdeaPluginDescriptor.class);
-            when(devAssistPlugin.getVersion()).thenReturn("1.0.2");
-            localMockedPluginManagerCore.when(() -> PluginManagerCore.getPlugin(devAssistPluginId))
-                    .thenReturn(devAssistPlugin);
-
-            when(mockGlobalSettingsState.isApiKeyEnabled()).thenReturn(true);
-            when(mockGlobalSettingsSensitiveState.getApiKey()).thenReturn("test-api-key");
-            when(mockGlobalSettingsState.getAdditionalParameters()).thenReturn("");
-
-            CxWrapper result = CxWrapperFactory.build();
-
-            assertNotNull(result);
-            verify(mockCxConfigBuilder).agentName("Jetbrains_1.0.2");
-            verify(mockCxConfigBuilder).apiKey("test-api-key");
-        } finally {
-            // Re-setup the global mocks
-            mockedPluginManagerCore = mockStatic(PluginManagerCore.class);
-            mockedPluginId = mockStatic(PluginId.class);
-            mockedPluginId.when(() -> PluginId.getId("com.checkmarx.checkmarx-ast-jetbrains-plugin"))
-                    .thenReturn(mockAstPluginId);
-            mockedPluginId.when(() -> PluginId.getId("com.checkmarx.devassist-jetbrains-plugin"))
-                    .thenReturn(mockDevAssistPluginId);
-            mockedPluginManagerCore.when(() -> PluginManagerCore.getPlugin(mockAstPluginId))
-                    .thenReturn(null);
-            mockedPluginManagerCore.when(() -> PluginManagerCore.getPlugin(mockDevAssistPluginId))
-                    .thenReturn(null);
-        }
+        assertNotNull(result);
+        verify(mockCxConfigBuilder).agentName("Jetbrains_1.0.2");
+        verify(mockCxConfigBuilder).apiKey("test-api-key");
     }
 
     @Test
     void testBuild_WithNoPluginFound_AgentNameWithoutVersion() throws CxException, IOException {
-        // This test uses the default setUp() behavior where no plugins are found
+        // This test uses the default setUp() behavior where no version is found
         // Agent name should be just "Jetbrains" without version
+        // mockedPluginVersionProvider returns "" by default from setUp()
 
         when(mockGlobalSettingsState.isApiKeyEnabled()).thenReturn(true);
         when(mockGlobalSettingsSensitiveState.getApiKey()).thenReturn("test-api-key");
