@@ -6,9 +6,21 @@ on:
     branches:
       - main
 
+# Limit concurrent nightly releases to prevent race conditions
+concurrency:
+  group: nightly-release
+  cancel-in-progress: true
+
+# Explicitly set minimal permissions at workflow level
+permissions:
+  contents: read
+
 jobs:
   set_tag:
+    name: Set Nightly Tag
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       tag_name: ${{ steps.tagname.outputs.tag_name }}
     steps:
@@ -16,11 +28,28 @@ jobs:
         run: echo "tag_name=2.0.$(date +%s)" >> "$GITHUB_OUTPUT"
         id: tagname
       - name: Print tagname
-        run: echo "created tag ${{ steps.tagname.outputs.tag_name }}"
+        env:
+          TAG_NAME: ${{ steps.tagname.outputs.tag_name }}
+        run: echo "created tag ${TAG_NAME}"
   nightly:
+    name: Release Nightly Build
     needs: set_tag
-    uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/release.yml@main
+    uses: Checkmarx/ast-jetbrains-plugin/.github/workflows/release.yml@79a577c54f58803e80d383a3427670f771daa0a3
+    permissions:
+      contents: write  # Required to create GitHub releases and tags for nightly builds
+      packages: write  # Required to publish to GitHub Packages registry
     with:
       tag: ${{ needs.set_tag.outputs.tag_name }}
       rchannels: "nightly"
-    secrets: inherit
+    secrets:
+      CX_APIKEY: ${{ secrets.CX_APIKEY }}
+      CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
+      CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
+      CX_NOT_MATCH_TEST_PROJECT: ${{ secrets.CX_NOT_MATCH_TEST_PROJECT }}
+      CX_NOT_MATCH_TEST_SCAN_ID: ${{ secrets.CX_NOT_MATCH_TEST_SCAN_ID }}
+      CX_TENANT: ${{ secrets.CX_TENANT }}
+      CX_TEST_BRANCH: ${{ secrets.CX_TEST_BRANCH }}
+      CX_TEST_PROJECT: ${{ secrets.CX_TEST_PROJECT }}
+      CX_TEST_REPO: ${{ secrets.CX_TEST_REPO }}
+      CX_TEST_SCAN: ${{ secrets.CX_TEST_SCAN }}
+      PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
