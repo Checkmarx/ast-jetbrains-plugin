@@ -81,22 +81,51 @@ public final class DevAssistConstants {
 
     // Manifest file patterns constant
     public static final List<String> MANIFEST_FILE_PATTERNS = List.of(
+            // .NET
             "**/Directory.Packages.props",
             "**/packages.config",
+            "**/*.csproj",
+            // Maven
             "**/pom.xml",
+            // npm
             "**/package.json",
+            // Bower
+            "**/bower.json",
+            // Python
             "**/requirement*.txt",
+            "**/constraints.txt",
+            "**/constraints-*.txt",
             "**/pyproject.toml",
             "**/setup.cfg",
             "**/setup.py",
+            // Go
             "**/go.mod",
-            "**/*.csproj",
+            // Gradle
             "**/*.gradle",
             "**/*.gradle.kts",
-            "**/*.sbt",
             "**/libs.versions.toml",
-            "**/constraints.txt",
-            "**/constraints-*.txt"
+            // SBT
+            "**/*.sbt",
+            // iOS CocoaPods
+            "**/Podfile",
+            "**/Podfile.lock",
+            "**/*.podspec",
+            "**/*.podspec.json",
+            // iOS Carthage
+            "**/Cartfile",
+            "**/Cartfile.private",
+            "**/Cartfile.resolved",
+            // Swift Package Manager
+            "**/Package.swift",
+            "**/Package.resolved",
+            "**/Package@swift-*.swift",
+            // Dart/Flutter
+            "**/pubspec.yaml",
+            "**/pubspec.lock",
+            // Ruby
+            "**/Gemfile",
+            // PHP Composer
+            "**/composer.json"
     );
 
     public static final List<String> CONTAINERS_FILE_PATTERNS = List.of(
