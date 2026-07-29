@@ -42,4 +42,13 @@ public class TestProject extends BaseTest {
         Assertions.assertTrue(branches.get(0).equals(Constants.USE_LOCAL_BRANCH),
                 String.format("Branch: %s Branch List: %s", Constants.USE_LOCAL_BRANCH, branches));
     }
+
+    @Test
+    public void testGetBranches_WithNonExistentProjectId_ThrowsException() {
+        UUID nonExistentProjectId = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        List<String> branches = Assertions.assertDoesNotThrow(() ->
+                com.checkmarx.intellij.ast.commands.Project.getBranches(nonExistentProjectId, false));
+        Assertions.assertTrue(branches.isEmpty(),
+                "Expected empty branches list for non-existent project ID");
+    }
 }
