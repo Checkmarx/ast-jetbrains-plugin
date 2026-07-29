@@ -108,20 +108,16 @@ public final class DevAssistConstants {
             "**/*.sbt",
             // iOS CocoaPods
             "**/Podfile",
-            "**/Podfile.lock",
             "**/*.podspec",
             "**/*.podspec.json",
             // iOS Carthage
             "**/Cartfile",
             "**/Cartfile.private",
-            "**/Cartfile.resolved",
             // Swift Package Manager
             "**/Package.swift",
-            "**/Package.resolved",
             "**/Package@swift-*.swift",
             // Dart/Flutter
             "**/pubspec.yaml",
-            "**/pubspec.lock",
             // Ruby
             "**/Gemfile",
             // PHP Composer
