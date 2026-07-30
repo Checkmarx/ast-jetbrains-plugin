@@ -3,6 +3,8 @@ package com.checkmarx.intellij.devassist.test.remediation;
 import com.checkmarx.intellij.devassist.remediation.CopilotIntegration;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.impl.ActionButton;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.ide.CopyPasteManager;
@@ -10,13 +12,17 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -463,5 +469,204 @@ class CopilotIntegrationTest {
             assertFalse(result.getMessage().isEmpty());
             assertNull(result.getException());
         }
+    }
+
+    // ==================== isSendAction ====================
+
+    /**
+     * Stand-in for Copilot's real {@code com.github.copilot.chat.input.SendMessageAction} -
+     * same simple class name, used to verify the action-class-name matching rule
+     * without depending on Copilot's actual (unavailable at compile time) class.
+     */
+    private static class SendMessageAction extends AnAction {
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            // no-op test double
+        }
+    }
+
+    private static class UnrelatedAction extends AnAction {
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            // no-op test double
+        }
+    }
+
+    private static Method isSendActionMethod() throws NoSuchMethodException {
+        Method m = CopilotIntegration.class.getDeclaredMethod("isSendAction", ActionButton.class);
+        m.setAccessible(true);
+        return m;
+    }
+
+    @Test
+    void isSendAction_actionClassNameContainsSend_returnsTrue() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(new SendMessageAction());
+
+        boolean result = (boolean) isSendActionMethod().invoke(null, mockButton);
+
+        assertTrue(result);
+    }
+
+    @Test
+    void isSendAction_unrelatedActionButSendTooltip_returnsTrue() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(new UnrelatedAction());
+        when(mockButton.getToolTipText()).thenReturn("Send message (Enter)");
+
+        boolean result = (boolean) isSendActionMethod().invoke(null, mockButton);
+
+        assertTrue(result);
+    }
+
+    @Test
+    void isSendAction_unrelatedActionAndTooltip_returnsFalse() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(new UnrelatedAction());
+        when(mockButton.getToolTipText()).thenReturn("Configure agents...");
+
+        boolean result = (boolean) isSendActionMethod().invoke(null, mockButton);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isSendAction_nullTooltip_returnsFalse() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(new UnrelatedAction());
+        when(mockButton.getToolTipText()).thenReturn(null);
+
+        boolean result = (boolean) isSendActionMethod().invoke(null, mockButton);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isSendAction_nullAction_returnsFalse() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(null);
+
+        boolean result = (boolean) isSendActionMethod().invoke(null, mockButton);
+
+        assertFalse(result);
+    }
+
+    // ==================== pollUntilTrue / pollForResult ====================
+
+    private static Method pollUntilTrueMethod() throws NoSuchMethodException {
+        Method m = CopilotIntegration.class.getDeclaredMethod("pollUntilTrue", int.class, BooleanSupplier.class);
+        m.setAccessible(true);
+        return m;
+    }
+
+    private static Method pollForResultMethod() throws NoSuchMethodException {
+        Method m = CopilotIntegration.class.getDeclaredMethod("pollForResult", int.class, Supplier.class);
+        m.setAccessible(true);
+        return m;
+    }
+
+    /** Makes the shared {@code mockApp.invokeAndWait(Runnable)} actually run the runnable. */
+    private static void runInvokeAndWaitSynchronously() {
+        doAnswer(inv -> {
+            inv.getArgument(0, Runnable.class).run();
+            return null;
+        }).when(mockApp).invokeAndWait(any(Runnable.class));
+    }
+
+    private static void restoreInvokeAndWait() {
+        doNothing().when(mockApp).invokeAndWait(any(Runnable.class));
+    }
+
+    @Test
+    void pollUntilTrue_succeedsOnFirstAttempt_returnsTrueWithoutRetrying() throws Exception {
+        runInvokeAndWaitSynchronously();
+        AtomicInteger calls = new AtomicInteger(0);
+        BooleanSupplier attempt = () -> {
+            calls.incrementAndGet();
+            return true;
+        };
+
+        boolean result = (boolean) pollUntilTrueMethod().invoke(null, 1000, attempt);
+
+        assertTrue(result);
+        assertEquals(1, calls.get());
+        restoreInvokeAndWait();
+    }
+
+    @Test
+    void pollUntilTrue_succeedsAfterRetries_withinBudget_returnsTrue() throws Exception {
+        runInvokeAndWaitSynchronously();
+        AtomicInteger calls = new AtomicInteger(0);
+        // Fails the first 2 attempts, succeeds on the 3rd
+        BooleanSupplier attempt = () -> calls.incrementAndGet() >= 3;
+
+        boolean result = (boolean) pollUntilTrueMethod().invoke(null, 2000, attempt);
+
+        assertTrue(result);
+        assertEquals(3, calls.get());
+        restoreInvokeAndWait();
+    }
+
+    @Test
+    void pollUntilTrue_neverSucceeds_exhaustsBudget_returnsFalse() throws Exception {
+        runInvokeAndWaitSynchronously();
+        AtomicInteger calls = new AtomicInteger(0);
+        BooleanSupplier attempt = () -> {
+            calls.incrementAndGet();
+            return false;
+        };
+
+        // A tiny budget means only the unconditional first attempt fits before the
+        // poll interval sleep pushes past the deadline.
+        boolean result = (boolean) pollUntilTrueMethod().invoke(null, 1, attempt);
+
+        assertFalse(result);
+        assertEquals(1, calls.get());
+        restoreInvokeAndWait();
+    }
+
+    @Test
+    void pollForResult_returnsNonNullImmediately_withoutRetrying() throws Exception {
+        runInvokeAndWaitSynchronously();
+        AtomicInteger calls = new AtomicInteger(0);
+        Supplier<String> attempt = () -> {
+            calls.incrementAndGet();
+            return "found";
+        };
+
+        Object result = pollForResultMethod().invoke(null, 1000, attempt);
+
+        assertEquals("found", result);
+        assertEquals(1, calls.get());
+        restoreInvokeAndWait();
+    }
+
+    @Test
+    void pollForResult_eventuallyFindsResult_afterRetries() throws Exception {
+        runInvokeAndWaitSynchronously();
+        AtomicInteger calls = new AtomicInteger(0);
+        Supplier<String> attempt = () -> calls.incrementAndGet() >= 3 ? "ready" : null;
+
+        Object result = pollForResultMethod().invoke(null, 2000, attempt);
+
+        assertEquals("ready", result);
+        assertEquals(3, calls.get());
+        restoreInvokeAndWait();
+    }
+
+    @Test
+    void pollForResult_neverFound_exhaustsBudget_returnsNull() throws Exception {
+        runInvokeAndWaitSynchronously();
+        AtomicInteger calls = new AtomicInteger(0);
+        Supplier<String> attempt = () -> {
+            calls.incrementAndGet();
+            return null;
+        };
+
+        Object result = pollForResultMethod().invoke(null, 1, attempt);
+
+        assertNull(result);
+        assertEquals(1, calls.get());
+        restoreInvokeAndWait();
     }
 }
