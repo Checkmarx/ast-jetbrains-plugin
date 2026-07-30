@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.ex.ActionUtil;
+import com.intellij.openapi.actionSystem.impl.ActionButton;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ide.CopyPasteManager;
@@ -27,7 +28,10 @@ import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Utility class for integrating with GitHub Copilot Chat in IntelliJ IDEA.
@@ -90,7 +94,11 @@ public final class CopilotIntegration {
         static final int COPILOT_OPEN_DELAY_MS = Integer.getInteger("cx.copilot.delay.open", 1200);
 
         /**
-         * Delay for Agent mode UI panel to fully load after mode switch (default: 800ms)
+         * Maximum time to poll for the Agent mode UI (combo box items / recreated
+         * panel) to become available after a mode switch (default: 800ms).
+         * Copilot populates the mode list and chat panel asynchronously (backed by
+         * coroutines talking to a separate agent process), so this is a poll
+         * budget rather than a blind sleep.
          */
         static final int AGENT_MODE_DELAY_MS = Integer.getInteger("cx.copilot.delay.mode", 800);
 
@@ -108,6 +116,28 @@ public final class CopilotIntegration {
          * Delay after closing dropdown popup (default: 200ms)
          */
         static final int POPUP_CLOSE_DELAY_MS = Integer.getInteger("cx.copilot.delay.popup.close", 200);
+
+        /**
+         * Interval between polling attempts while waiting for asynchronous
+         * Copilot UI state (mode list population, panel recreation, input field
+         * creation, send control enablement) to settle (default: 150ms).
+         */
+        static final int POLL_INTERVAL_MS = Integer.getInteger("cx.copilot.delay.poll.interval", 150);
+
+        /**
+         * Maximum time to poll for the chat input field to appear after a mode
+         * switch (default: 3000ms).
+         */
+        static final int INPUT_FIELD_MAX_WAIT_MS = Integer.getInteger("cx.copilot.delay.poll.input", 3000);
+
+        /**
+         * Maximum time to poll for the real send control (send button/action) to
+         * appear and become enabled after the prompt text is set (default: 2000ms).
+         * Copilot enables/creates its send control reactively in response to the
+         * text change, on its own async dispatch, so it can legitimately not
+         * exist yet in the same EDT frame as the {@code setText()} call.
+         */
+        static final int SEND_CONTROL_MAX_WAIT_MS = Integer.getInteger("cx.copilot.delay.poll.send", 2000);
     }
 
     /**
@@ -418,15 +448,17 @@ public final class CopilotIntegration {
      * @return true if automation completed successfully, false otherwise
      */
     private static boolean tryComponentBasedAutomation(@NotNull Project project, @NotNull String prompt) {
-        AtomicBoolean modeSwitchSuccess = new AtomicBoolean(false);
-
-        // Phase 1: Switch to Agent mode (must run on EDT)
-        ApplicationManager.getApplication().invokeAndWait(() -> {
-            try {
+        // Phase 1: Switch to Agent mode (must run on EDT).
+        // Copilot populates the ChatModeComboBox asynchronously (coroutines backed
+        // by a separate agent process), so a single fixed-delay attempt can race
+        // an empty combo box. Poll instead of sleeping-then-trying-once.
+        boolean modeSwitchSuccess;
+        try {
+            modeSwitchSuccess = pollUntilTrue(Timing.AGENT_MODE_DELAY_MS, () -> {
                 ToolWindow copilotWindow = findCopilotToolWindow(project);
                 if (copilotWindow == null) {
                     LOGGER.warn("CxFix: Copilot tool window not found");
-                    return;
+                    return false;
                 }
 
                 // Debug: Log component hierarchy for troubleshooting
@@ -437,63 +469,101 @@ public final class CopilotIntegration {
                 boolean agentModeSet = trySetAgentModeFromDropdown(copilotWindow);
                 if (agentModeSet) {
                     LOGGER.debug("CxFix: Agent mode activated successfully");
-                    modeSwitchSuccess.set(true);
                 } else {
-                    LOGGER.warn("CxFix: Failed to switch to Agent mode");
+                    LOGGER.warn("CxFix: Agent mode not ready yet, will retry");
                 }
-            } catch (Exception e) {
-                LOGGER.warn("CxFix: Error during mode switch: " + e.getMessage());
-            }
-        });
-
-        if (!modeSwitchSuccess.get()) {
-            return false;
-        }
-
-        // Phase 2: Wait for Agent mode UI to fully initialize
-        // When switching modes, Copilot recreates the chat panel asynchronously
-        LOGGER.debug("CxFix: Waiting for Agent mode UI to initialize...");
-        try {
-            TimeUnit.MILLISECONDS.sleep(Timing.AGENT_MODE_DELAY_MS);
+                return agentModeSet;
+            });
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return false;
         }
 
-        // Phase 3: Find input field and send prompt (must run on EDT)
+        if (!modeSwitchSuccess) {
+            LOGGER.warn("CxFix: Failed to switch to Agent mode");
+            return false;
+        }
+
+        // Phase 2: Find the input field (must run on EDT).
+        // Switching modes recreates the chat panel asynchronously, so poll for the
+        // newly created input field rather than assuming a fixed delay is enough.
+        LOGGER.debug("CxFix: Waiting for Agent mode UI to initialize...");
+        JTextComponent inputField;
+        try {
+            inputField = pollForResult(Timing.INPUT_FIELD_MAX_WAIT_MS, () -> {
+                ToolWindow copilotWindow = findCopilotToolWindow(project);
+                if (copilotWindow == null) {
+                    return null;
+                }
+                LOGGER.debug("CxFix: Finding input field...");
+                return findCopilotInputField(copilotWindow);
+            });
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+
+        if (inputField == null) {
+            LOGGER.warn("CxFix: Could not find input field after mode switch");
+            return false;
+        }
+
+        // Phase 3: Set the prompt text and focus the field (must run on EDT)
+        JTextComponent finalInputField = inputField;
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            try {
+                LOGGER.debug("CxFix: Setting prompt text...");
+                finalInputField.setText(prompt);
+                finalInputField.requestFocusInWindow();
+            } catch (Exception e) {
+                LOGGER.warn("CxFix: Error setting prompt text: " + e.getMessage());
+            }
+        });
+
+        // Phase 4: Poll for the real send control (button or action) to appear and
+        // become enabled. Copilot creates/enables its send control reactively in
+        // response to the text change on its own async dispatch, so searching for
+        // it in the same EDT frame as setText() can race it — this is what was
+        // causing the fallback below to fire and false-positive on an unrelated
+        // control (e.g. an "ActionLink" that merely has "action" in its class name).
+        LOGGER.debug("CxFix: Sending message...");
+        boolean sentViaRealControl;
+        try {
+            sentViaRealControl = pollUntilTrue(Timing.SEND_CONTROL_MAX_WAIT_MS, () -> {
+                ToolWindow copilotWindow = findCopilotToolWindow(project);
+                return copilotWindow != null && tryClickRealSendControl(copilotWindow);
+            });
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+
+        if (sentViaRealControl) {
+            LOGGER.debug("CxFix: Message sent successfully via send control");
+            return true;
+        }
+
+        // Phase 5: Last-resort fallback (must run on EDT) - only reached if the
+        // real send control genuinely never appeared/enabled within the poll
+        // budget above.
+        LOGGER.warn("CxFix: Real send control not found or never enabled, trying fallback");
         AtomicBoolean sendSuccess = new AtomicBoolean(false);
         ApplicationManager.getApplication().invokeAndWait(() -> {
             try {
                 ToolWindow copilotWindow = findCopilotToolWindow(project);
                 if (copilotWindow == null) {
-                    LOGGER.warn("CxFix: Copilot tool window not found after mode switch");
+                    LOGGER.warn("CxFix: Copilot tool window not found before fallback send");
                     return;
                 }
-
-                // Find the input field in the newly created Agent mode panel
-                LOGGER.debug("CxFix: Finding input field...");
-                JTextComponent inputField = findCopilotInputField(copilotWindow);
-                if (inputField == null) {
-                    LOGGER.warn("CxFix: Could not find input field");
-                    return;
-                }
-
-                // Set the prompt text and focus the field
-                LOGGER.debug("CxFix: Setting prompt text...");
-                inputField.setText(prompt);
-                inputField.requestFocusInWindow();
-
-                // Send the message
-                LOGGER.debug("CxFix: Sending message...");
-                boolean sent = trySendMessage(copilotWindow, inputField);
+                boolean sent = trySendMessageFallback(copilotWindow, finalInputField);
                 if (sent) {
-                    LOGGER.debug("CxFix: Message sent successfully");
+                    LOGGER.debug("CxFix: Message sent via fallback");
                     sendSuccess.set(true);
                 } else {
                     LOGGER.warn("CxFix: Failed to send message");
                 }
             } catch (Exception e) {
-                LOGGER.warn("CxFix: Error during text entry: " + e.getMessage());
+                LOGGER.warn("CxFix: Error during fallback send: " + e.getMessage());
             }
         });
 
@@ -501,33 +571,113 @@ public final class CopilotIntegration {
     }
 
     /**
-     * Sends the message using available methods in order of preference.
+     * Repeatedly runs {@code attempt} on the EDT until it returns {@code true} or
+     * {@code maxWaitMs} elapses. Sleeps between attempts happen on the calling
+     * (background) thread, never on the EDT.
+     */
+    private static boolean pollUntilTrue(int maxWaitMs, @NotNull BooleanSupplier attempt) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + maxWaitMs;
+        AtomicBoolean result = new AtomicBoolean(false);
+        do {
+            ApplicationManager.getApplication().invokeAndWait(() -> result.set(attempt.getAsBoolean()));
+            if (result.get()) {
+                return true;
+            }
+            TimeUnit.MILLISECONDS.sleep(Timing.POLL_INTERVAL_MS);
+        } while (System.currentTimeMillis() < deadline);
+        return false;
+    }
+
+    /**
+     * Repeatedly runs {@code attempt} on the EDT until it returns a non-null
+     * result or {@code maxWaitMs} elapses. Sleeps between attempts happen on the
+     * calling (background) thread, never on the EDT.
+     */
+    private static <T> @Nullable T pollForResult(int maxWaitMs, @NotNull Supplier<T> attempt) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + maxWaitMs;
+        AtomicReference<T> result = new AtomicReference<>();
+        do {
+            ApplicationManager.getApplication().invokeAndWait(() -> result.set(attempt.get()));
+            if (result.get() != null) {
+                return result.get();
+            }
+            TimeUnit.MILLISECONDS.sleep(Timing.POLL_INTERVAL_MS);
+        } while (System.currentTimeMillis() < deadline);
+        return result.get();
+    }
+
+    /**
+     * Tries to find and click Copilot's real, identity-verified send control -
+     * either a legacy Swing send {@code AbstractButton}, or the platform
+     * {@code ActionButton} (e.g. Copilot's {@code IconActionButton}) bound to its
+     * send {@code AnAction}. Unlike the position/class-name-guessing fallback,
+     * both of these are matched by actual send semantics (text/tooltip/action
+     * identity containing "send"/"submit"), so a match here is trustworthy.
      *
      * <p>
-     * Attempts:
-     * <ol>
-     * <li>Find and click a "Send" button</li>
-     * <li>Find and click an action button near the input field</li>
-     * <li>Simulate Enter key press on the input field</li>
-     * </ol>
+     * This is expected to come up empty on the first few calls right after the
+     * prompt text is set, because Copilot creates/enables its send control
+     * reactively (on its own async dispatch) in response to the text change
+     * rather than synchronously within the same call. Callers should poll this
+     * method rather than treating one {@code false} as final.
      *
      * @param toolWindow The Copilot tool window
-     * @param inputField The chat input field
-     * @return true if message was sent, false otherwise
+     * @return true if the real send control was found, enabled, and clicked
      */
-    private static boolean trySendMessage(@NotNull ToolWindow toolWindow, @NotNull JTextComponent inputField) {
-        // Try to find and click a send button
+    private static boolean tryClickRealSendControl(@NotNull ToolWindow toolWindow) {
         AbstractButton sendButton = findSendButton(toolWindow);
         if (sendButton != null && sendButton.isEnabled()) {
+            if (!sendButton.isShowing()) {
+                // Found and enabled, but not yet attached/laid out on screen - the
+                // click would be a silent no-op. Report "not ready" so the caller's
+                // poll loop retries instead of a false "success".
+                LOGGER.debug("CxFix: Send button found but not showing yet, will retry");
+                return false;
+            }
             LOGGER.debug("CxFix: Clicking send button");
             sendButton.doClick();
             return true;
         }
 
+        ActionButton sendActionButton = findSendActionButton(toolWindow);
+        if (sendActionButton != null && sendActionButton.isEnabled()) {
+            if (!sendActionButton.isShowing()) {
+                // IntelliJ's ActionButton.click() silently no-ops (with only a
+                // platform-level WARN log: "Action is not performed because target
+                // component is not showing") when the component isn't showing yet -
+                // it does not throw or return a failure signal. Gate on isShowing()
+                // ourselves so we don't mistake that no-op for a successful send.
+                LOGGER.debug("CxFix: Send action button found but not showing yet, will retry");
+                return false;
+            }
+            LOGGER.debug("CxFix: Clicking send action button: " + sendActionButton.getAction().getClass().getSimpleName());
+            sendActionButton.click();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Last-resort fallback used only when {@link #tryClickRealSendControl} never
+     * finds/enables a real send control within its poll budget: click the
+     * closest matching icon button near the input field, or simulate Enter.
+     *
+     * <p>
+     * This is deliberately less precise than {@link #tryClickRealSendControl}
+     * and can click the wrong control (it previously matched an unrelated
+     * {@code ActionLink} purely because its class name contains "action") - it
+     * only exists as a last resort, not a primary path.
+     *
+     * @param toolWindow The Copilot tool window
+     * @param inputField The chat input field
+     * @return true if a fallback action was taken, false otherwise
+     */
+    private static boolean trySendMessageFallback(@NotNull ToolWindow toolWindow, @NotNull JTextComponent inputField) {
         // Try to find an action button (icon button without text) near the input
         AbstractButton actionButton = findActionButton(toolWindow, inputField);
         if (actionButton != null && actionButton.isEnabled()) {
-            LOGGER.debug("CxFix: Clicking action button");
+            LOGGER.debug("CxFix: Clicking action button (fallback)");
             actionButton.doClick();
             return true;
         }
@@ -535,6 +685,73 @@ public final class CopilotIntegration {
         // Fall back to Enter key simulation
         LOGGER.debug("CxFix: Simulating Enter key");
         return simulateEnterKey(inputField);
+    }
+
+    /**
+     * Finds Copilot's action-system-based send button ({@code ActionButton},
+     * e.g. {@code IconActionButton}) in the tool window.
+     *
+     * <p>
+     * Unlike a legacy Swing {@code AbstractButton}, an {@code ActionButton} is a
+     * plain {@code JComponent} bound to an {@code AnAction} and must be invoked
+     * via its {@link ActionButton#click()} method rather than {@code doClick()}.
+     */
+    private static @Nullable ActionButton findSendActionButton(@NotNull ToolWindow toolWindow) {
+        Content[] contents = toolWindow.getContentManager().getContents();
+        for (Content content : contents) {
+            JComponent component = content.getComponent();
+            if (component != null) {
+                ActionButton button = findSendActionButtonRecursively(component);
+                if (button != null) {
+                    return button;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Recursively searches for an {@code ActionButton} whose bound action or
+     * tooltip identifies it as the send control.
+     */
+    private static @Nullable ActionButton findSendActionButtonRecursively(@NotNull Component component) {
+        if (component instanceof ActionButton) {
+            ActionButton button = (ActionButton) component;
+            if (isSendAction(button)) {
+                LOGGER.debug("CxFix: Found send ActionButton bound to: " + button.getAction().getClass().getName());
+                return button;
+            }
+        }
+
+        if (component instanceof Container) {
+            Container container = (Container) component;
+            for (Component child : container.getComponents()) {
+                ActionButton found = findSendActionButtonRecursively(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Determines whether an {@code ActionButton} represents a "send" action,
+     * checking the bound action's class name and tooltip.
+     */
+    private static boolean isSendAction(@NotNull ActionButton button) {
+        AnAction action = button.getAction();
+        if (action == null) {
+            return false;
+        }
+
+        String actionClassName = action.getClass().getSimpleName().toLowerCase();
+        if (actionClassName.contains("send") || actionClassName.contains("submit")) {
+            return true;
+        }
+
+        String tooltip = button.getToolTipText();
+        return tooltip != null && (tooltip.toLowerCase().contains("send") || tooltip.toLowerCase().contains("submit"));
     }
 
     /**
@@ -663,15 +880,20 @@ public final class CopilotIntegration {
 
     /**
      * Finds the first enabled icon-only button (potential send button).
+     *
+     * <p>
+     * Deliberately narrow: only matches class names containing "send" or
+     * "submit". Broader substrings like "action" or "run" previously matched
+     * unrelated controls (e.g. an {@code ActionLink} such as Copilot's
+     * "Configure agents..." link) purely because "ActionLink" contains
+     * "action" - clicking the wrong control while still reporting success.
      */
     private static @Nullable AbstractButton findFirstEnabledIconButton(@NotNull Container container) {
         for (Component comp : container.getComponents()) {
             if (comp instanceof AbstractButton) {
                 AbstractButton button = (AbstractButton) comp;
                 String className = button.getClass().getSimpleName().toLowerCase();
-                // Look for buttons that might be send buttons
-                if (className.contains("send") || className.contains("submit") ||
-                        className.contains("action") || className.contains("run")) {
+                if (className.contains("send") || className.contains("submit")) {
                     if (button.isEnabled() && button.isVisible()) {
                         LOGGER.debug(
                                 "CxFix: Found potential send button by class: " + button.getClass().getSimpleName());
@@ -784,6 +1006,13 @@ public final class CopilotIntegration {
             componentInfo += " Editable: " + text.isEditable() + ", Text length: " +
                     (text.getText() != null ? text.getText().length() : 0);
             LOGGER.debug("CxFix: TextComponent: " + componentInfo);
+        } else if (component instanceof ActionButton) {
+            ActionButton actionButton = (ActionButton) component;
+            AnAction action = actionButton.getAction();
+            componentInfo += " Action: " + (action != null ? action.getClass().getName() : "null");
+            componentInfo += ", tooltip: '" + actionButton.getToolTipText() + "'";
+            componentInfo += ", enabled: " + actionButton.isEnabled();
+            LOGGER.debug("CxFix: ActionButton: " + componentInfo);
         }
 
         // Log components that might be mode selectors (useful for troubleshooting)
@@ -988,6 +1217,7 @@ public final class CopilotIntegration {
                             Object result = m.invoke(item);
                             LOGGER.debug("CxFix:   Method " + mName + "() = " + result);
                         } catch (Exception ignored) {
+                            LOGGER.warn("CxFix:   Method " + mName + "() threw an exception", ignored);
                         }
                     }
                 }
@@ -999,6 +1229,7 @@ public final class CopilotIntegration {
                     Object result = f.get(item);
                     LOGGER.debug("CxFix:   Field " + f.getName() + " = " + result);
                 } catch (Exception ignored) {
+                    LOGGER.warn("CxFix:   Field " + f.getName() + " threw an exception", ignored);
                 }
             }
         } catch (Exception e) {
@@ -1261,8 +1492,15 @@ public final class CopilotIntegration {
         // Check if this component is a text input
         if (component instanceof JTextComponent) {
             JTextComponent textComponent = (JTextComponent) component;
-            // Filter out read-only components and very small ones (likely labels)
-            if (textComponent.isEditable() && textComponent.isEnabled() && textComponent.isVisible()) {
+            // Filter out read-only components and very small ones (likely labels).
+            // isShowing() (visible AND fully attached to a realized, on-screen
+            // window) is required in addition to isVisible(): Copilot recreates
+            // this panel asynchronously after a mode switch, so a component can be
+            // structurally reachable in the tree - and report isVisible()==true -
+            // before it is actually attached/laid out on screen. Setting text into
+            // such a component is a no-op the user never sees.
+            if (textComponent.isEditable() && textComponent.isEnabled() && textComponent.isVisible()
+                    && textComponent.isShowing()) {
                 // Prefer larger text areas (more likely to be the main input)
                 if (textComponent.getWidth() > 100) {
                     return textComponent;
