@@ -50,7 +50,7 @@ public class TestResults extends BaseTest {
 
     @Test
     public void testGetResults_NotExistingScanID_throwException() {
-        CompletableFuture<ResultGetState> getFuture = Results.getResults("11111111-1111-1111-1111-111111111111");
+        CompletableFuture<ResultGetState> getFuture = Results.getResults(NON_EXISTENT_UUID);
         ResultGetState results = Assertions.assertDoesNotThrow((ThrowingSupplier<ResultGetState>) getFuture::get);
         assertTrue(results.getMessage().toLowerCase().contains("scan not found"));
         Assertions.assertNull(results.getScanId());
@@ -61,7 +61,7 @@ public class TestResults extends BaseTest {
         GlobalSettingsSensitiveState.getInstance().setApiKey("invalid-api-key");
 
         // Use a fixed valid-format UUID to avoid IllegalArgumentException from UUID.fromString
-        CompletableFuture<ResultGetState> getFuture = Results.getResults("11111111-1111-1111-1111-111111111111");
+        CompletableFuture<ResultGetState> getFuture = Results.getResults(NON_EXISTENT_UUID);
         ResultGetState results = Assertions.assertDoesNotThrow((ThrowingSupplier<ResultGetState>) getFuture::get);
 
         Assertions.assertNull(results.getScanId());

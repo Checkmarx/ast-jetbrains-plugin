@@ -45,7 +45,7 @@ public class TestProject extends BaseTest {
 
     @Test
     public void testGetBranches_WithNonExistentProjectId_ThrowsException() {
-        UUID nonExistentProjectId = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        UUID nonExistentProjectId = UUID.fromString(NON_EXISTENT_UUID);
         List<String> branches = Assertions.assertDoesNotThrow(() ->
                 com.checkmarx.intellij.ast.commands.Project.getBranches(nonExistentProjectId, false));
         Assertions.assertTrue(branches.isEmpty(),
