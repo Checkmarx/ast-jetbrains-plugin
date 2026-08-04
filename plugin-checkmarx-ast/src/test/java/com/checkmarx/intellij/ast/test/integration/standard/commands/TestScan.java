@@ -55,4 +55,20 @@ public class TestScan extends BaseTest {
         Assertions.assertEquals(scan.getProjectId(), project.getId());
         Assertions.assertDoesNotThrow(() -> Scan.scanCancel(scan.getId()));
     }
+
+    @Test
+    public void testGetList_WithNonMatchingBranch_ReturnsEmptyList() {
+        Project project = getEnvProject();
+        List<com.checkmarx.ast.scan.Scan> scans = Assertions.assertDoesNotThrow(
+                () -> Scan.getList(project.getId(), Environment.NOT_MATCH_BRANCH_NAME));
+        String msg = String.format("project: %s branch: %s scans: %d",
+                project.getId(), Environment.NOT_MATCH_BRANCH_NAME, scans.size());
+        Assertions.assertTrue(scans.isEmpty(), msg);
+    }
+
+    @Test
+    public void testScanShow_WithNonExistentScanId_ThrowsException() {
+        String nonExistentScanId = "401e35bb-9856-4ec2-bd92-8e56d0501234";
+        Assertions.assertThrows(Exception.class, () -> Scan.scanShow(nonExistentScanId));
+    }
 }

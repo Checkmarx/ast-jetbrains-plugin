@@ -21,6 +21,9 @@ import static org.mockito.Mockito.when;
 
 public abstract class BaseTest extends BasePlatformTestCase {
 
+    protected static final String NON_EXISTENT_UUID = "11111111-1111-1111-1111-111111111111";
+
+
     @BeforeEach
     public final void setUp() throws Exception {
         super.setUp();
