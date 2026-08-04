@@ -8,6 +8,7 @@ import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.remediation.prompts.DevAssistFixPrompts;
 import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.PackageManagerMapper;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -202,8 +203,9 @@ public final class RemediationManager {
      * Builds remediation prompt for an OSS issue.
      */
     private String buildOSSRemediationPrompt(ScanIssue scanIssue) {
+        String mappedPackageManager = PackageManagerMapper.mapToRemediationFormat(scanIssue.getPackageManager());
         return DevAssistFixPrompts.buildSCARemediationPrompt(scanIssue.getTitle(), scanIssue.getPackageVersion(),
-                scanIssue.getPackageManager(), scanIssue.getSeverity());
+                mappedPackageManager, scanIssue.getSeverity());
     }
 
     /**

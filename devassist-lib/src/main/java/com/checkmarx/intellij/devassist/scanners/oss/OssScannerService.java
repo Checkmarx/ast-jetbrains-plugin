@@ -214,12 +214,54 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
      * @return companion file name or an empty string when no companion is defined
      */
     private String getCompanionFileName(String fileName) {
+        // npm/Yarn
         if (fileName.equals("package.json")) {
             return "package-lock.json";
         }
+
+        // .NET
         if (fileName.contains(".csproj")) {
-            return "package.lock.json";
+            return "packages.lock.json";
         }
+
+        // Swift Package Manager (AST-165765)
+        if (fileName.equals("Package.swift")) {
+            return "Package.resolved";
+        }
+        if (fileName.startsWith("Package@swift-") && fileName.endsWith(".swift")) {
+            return fileName.replace(".swift", ".resolved");
+        }
+
+        // CocoaPods (AST-165761)
+        if (fileName.equals("Podfile")) {
+            return "Podfile.lock";
+        }
+
+        // Carthage
+        if (fileName.equals("Cartfile") || fileName.equals("Cartfile.private")) {
+            return "Cartfile.resolved";
+        }
+
+        // Ruby Bundler
+        if (fileName.equals("Gemfile")) {
+            return "Gemfile.lock";
+        }
+
+        // PHP Composer
+        if (fileName.equals("composer.json")) {
+            return "composer.lock";
+        }
+
+        // Python Poetry
+        if (fileName.equals("pyproject.toml")) {
+            return "poetry.lock";
+        }
+
+        // Dart/Flutter Pub
+        if (fileName.equals("pubspec.yaml")) {
+            return "pubspec.lock";
+        }
+
         return "";
     }
 
