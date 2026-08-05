@@ -167,31 +167,33 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
 
 
     /**
-     * Copies a companion lock file (e.g., package-lock.json) into the temporary directory
-     * when it exists alongside the scanned manifest.
+     * Copies companion lock files (e.g., package-lock.json, yarn.lock) into the temporary directory
+     * when they exist alongside the scanned manifest.
      *
-     * @param tempFolderPath   temp directory where the companion file should be written
-     * @param originalFilePath original manifest path used to locate the companion file
+     * @param tempFolderPath   temp directory where companion files should be written
+     * @param originalFilePath original manifest path used to locate companion files
      */
     private void saveCompanionFile(Path tempFolderPath, String originalFilePath) {
         if (originalFilePath.isEmpty() || Objects.isNull(tempFolderPath)) {
             return;
         }
         String parentFileName = getPath(originalFilePath).getFileName().toString();
-        String companionFileName = getCompanionFileName(parentFileName);
-        if (companionFileName.isEmpty()) {
+        List<String> companionFileNames = getCompanionFileNames(parentFileName);
+        if (companionFileNames.isEmpty()) {
             return;
         }
         Path parentPath = getPath(originalFilePath).getParent();
-        Path companionOriginalPath = Paths.get(parentPath.toString(), companionFileName);
-        if (!Files.exists(companionOriginalPath)) {
-            return;
-        }
-        Path companionTempPath = Paths.get(tempFolderPath.toString(), companionFileName);
-        try {
-            Files.copy(companionOriginalPath, companionTempPath, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            LOGGER.warn("Error occurred while saving companion file: " + e);
+        for (String companionFileName : companionFileNames) {
+            Path companionOriginalPath = Paths.get(parentPath.toString(), companionFileName);
+            if (!Files.exists(companionOriginalPath)) {
+                continue;
+            }
+            Path companionTempPath = Paths.get(tempFolderPath.toString(), companionFileName);
+            try {
+                Files.copy(companionOriginalPath, companionTempPath, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                LOGGER.warn("Error occurred while saving companion file: " + e);
+            }
         }
     }
 
@@ -208,61 +210,62 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
 
 
     /**
-     * Infers a companion lock file name based on the manifest file name.
+     * Infers companion lock file names based on the manifest file name.
+     * Some manifests may have multiple companion files (e.g., package.json has both package-lock.json and yarn.lock).
      *
      * @param fileName name of the manifest file
-     * @return companion file name or an empty string when no companion is defined
+     * @return list of companion file names; empty list if no companions are defined
      */
-    private String getCompanionFileName(String fileName) {
-        // npm/Yarn
+    private List<String> getCompanionFileNames(String fileName) {
+        // npm/Yarn - support both package-lock.json (npm) and yarn.lock (yarn)
         if (fileName.equals("package.json")) {
-            return "package-lock.json";
+            return List.of("package-lock.json", "yarn.lock");
         }
 
         // .NET
         if (fileName.contains(".csproj")) {
-            return "packages.lock.json";
+            return List.of("packages.lock.json");
         }
 
         // Swift Package Manager (AST-165765)
         if (fileName.equals("Package.swift")) {
-            return "Package.resolved";
+            return List.of("Package.resolved");
         }
         if (fileName.startsWith("Package@swift-") && fileName.endsWith(".swift")) {
-            return fileName.replace(".swift", ".resolved");
+            return List.of(fileName.replace(".swift", ".resolved"));
         }
 
         // CocoaPods (AST-165761)
         if (fileName.equals("Podfile")) {
-            return "Podfile.lock";
+            return List.of("Podfile.lock");
         }
 
         // Carthage
         if (fileName.equals("Cartfile") || fileName.equals("Cartfile.private")) {
-            return "Cartfile.resolved";
+            return List.of("Cartfile.resolved");
         }
 
         // Ruby Bundler
         if (fileName.equals("Gemfile")) {
-            return "Gemfile.lock";
+            return List.of("Gemfile.lock");
         }
 
         // PHP Composer
         if (fileName.equals("composer.json")) {
-            return "composer.lock";
+            return List.of("composer.lock");
         }
 
         // Python Poetry
         if (fileName.equals("pyproject.toml")) {
-            return "poetry.lock";
+            return List.of("poetry.lock");
         }
 
         // Dart/Flutter Pub
         if (fileName.equals("pubspec.yaml")) {
-            return "pubspec.lock";
+            return List.of("pubspec.lock");
         }
 
-        return "";
+        return List.of();
     }
 
     /**
