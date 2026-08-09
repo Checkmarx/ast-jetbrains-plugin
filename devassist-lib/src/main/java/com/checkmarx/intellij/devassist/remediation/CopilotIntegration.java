@@ -2,6 +2,7 @@ package com.checkmarx.intellij.devassist.remediation;
 
 import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataContext;
@@ -22,6 +23,7 @@ import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
@@ -119,6 +121,25 @@ public final class CopilotIntegration {
             "copilot.openChat",
             "copilot.chat.openChat"
     };
+
+    /**
+     * Known Copilot action IDs for starting a new chat conversation.
+     * Mirrors VS Code behavior where each "Fix with" click opens a fresh session.
+     */
+    private static final String[] COPILOT_NEW_CHAT_ACTION_IDS = {
+            "copilot.chat.newConversation",
+            "GitHub.Copilot.Chat.NewConversation",
+            "copilot.newChat",
+            "copilot.chat.new",
+            "copilot.chat.newThread",
+            "GitHub.Copilot.NewChat"
+    };
+
+    /**
+     * Keywords used to identify "new chat" actions when searching all registered actions.
+     */
+    private static final String COPILOT_ACTION_PREFIX = "copilot";
+    private static final String GITHUB_COPILOT_ACTION_PREFIX = "github.copilot";
 
     /**
      * Known Copilot tool window IDs
@@ -407,6 +428,7 @@ public final class CopilotIntegration {
      * <p>
      * This approach uses Swing component traversal and reflection to:
      * <ol>
+     * <li>Start a new chat session so previous context is not reused</li>
      * <li>Find and interact with the ChatModeComboBox to switch to Agent mode</li>
      * <li>Wait for the Agent mode UI panel to load</li>
      * <li>Find the chat input field and set the prompt text</li>
@@ -419,6 +441,24 @@ public final class CopilotIntegration {
      */
     private static boolean tryComponentBasedAutomation(@NotNull Project project, @NotNull String prompt) {
         AtomicBoolean modeSwitchSuccess = new AtomicBoolean(false);
+
+        // Phase 0: Always start a new conversation so previous context is not reused
+        try {
+            LOGGER.debug("CxFix: Starting a new chat session...");
+            boolean newSessionStarted = tryStartNewChatSession(project);
+            if (newSessionStarted) {
+                LOGGER.debug("CxFix: New chat session started successfully");
+                // Wait for new session UI to initialize
+                TimeUnit.MILLISECONDS.sleep(Timing.COPILOT_OPEN_DELAY_MS);
+            } else {
+                LOGGER.debug("CxFix: Could not start new chat session, continuing with existing session");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOGGER.warn("CxFix: Phase 0 interrupted while waiting for new chat session to initialize", e);
+        } catch (Exception e) {
+            LOGGER.warn("CxFix: Phase 0 failed to start new chat session", e);
+        }
 
         // Phase 1: Switch to Agent mode (must run on EDT)
         ApplicationManager.getApplication().invokeAndWait(() -> {
@@ -498,6 +538,354 @@ public final class CopilotIntegration {
         });
 
         return sendSuccess.get();
+    }
+
+    // ==================== New Chat Session ====================
+
+    /**
+     * Attempts to start a new chat session in Copilot so that each fix gets its own
+     * conversation context. This mirrors the VS Code extension behavior where each
+     * "Fix with" click opens a fresh chat session.
+     *
+     * <p>
+     * Tries the following approaches in order:
+     * <ol>
+     * <li>Invoke a known "new chat" action ID via ActionManager</li>
+     * <li>Discover a Copilot "new chat" action by scanning all registered actions</li>
+     * <li>Find and click a "new chat" ActionButton in the tool window toolbar</li>
+     * <li>Find and click a "new chat" AbstractButton in the tool window content</li>
+     * </ol>
+     *
+     * @param project The current project context
+     * @return true if a new session was started, false otherwise
+     */
+    private static boolean tryStartNewChatSession(@NotNull Project project) {
+        // Strategy 1: Try known action IDs
+        if (tryInvokeNewChatAction(project)) {
+            return true;
+        }
+
+        // Strategy 2: Discover new chat action by scanning all registered actions
+        if (tryDiscoverAndInvokeNewChatAction(project)) {
+            return true;
+        }
+
+        // Strategy 3: Find and click a "new chat" button in the tool window UI
+        // This searches the ENTIRE tool window component tree (including toolbars),
+        // and handles both ActionButton (IntelliJ toolbar buttons) and AbstractButton.
+        AtomicBoolean buttonClicked = new AtomicBoolean(false);
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            ToolWindow copilotWindow = findCopilotToolWindow(project);
+            if (copilotWindow != null) {
+                if (tryClickNewChatInToolWindow(copilotWindow)) {
+                    buttonClicked.set(true);
+                } else {
+                    LOGGER.debug("CxFix: No new chat button found in Copilot UI");
+                }
+            }
+        });
+
+        return buttonClicked.get();
+    }
+
+    /**
+     * Attempts to invoke a Copilot "new chat" action using known action IDs.
+     *
+     * @param project The current project context
+     * @return true if an action was found and invoked, false otherwise
+     */
+    private static boolean tryInvokeNewChatAction(@NotNull Project project) {
+        try {
+            ActionManager actionManager = ActionManager.getInstance();
+
+            for (String actionId : COPILOT_NEW_CHAT_ACTION_IDS) {
+                AnAction action = actionManager.getAction(actionId);
+                if (action != null) {
+                    LOGGER.debug("CxFix: Found new chat action by known ID: " + actionId);
+                    invokeAction(action, project, ActionPlaces.UNKNOWN);
+                    return true;
+                }
+            }
+            LOGGER.debug("CxFix: No new chat action found by known IDs");
+            return false;
+        } catch (Exception e) {
+            LOGGER.warn("CxFix: Failed to invoke new chat action by known ID", e);
+            return false;
+        }
+    }
+
+    /**
+     * Discovers a Copilot "new chat" action by scanning all registered action IDs
+     * in the ActionManager. This is a fallback when the known action IDs don't match
+     * (e.g., due to a Copilot plugin update changing action IDs).
+     *
+     * @param project The current project context
+     * @return true if a matching action was found and invoked, false otherwise
+     */
+    private static boolean tryDiscoverAndInvokeNewChatAction(@NotNull Project project) {
+        ActionManager actionManager = ActionManager.getInstance();
+        String[] allActionIds = actionManager.getActionIds("");
+
+        for (String actionId : allActionIds) {
+            String lowerActionId = actionId.toLowerCase();
+            // Must be a copilot-related action
+            boolean isCopilotAction = lowerActionId.contains(COPILOT_ACTION_PREFIX)
+                    || lowerActionId.contains(GITHUB_COPILOT_ACTION_PREFIX);
+            if (!isCopilotAction) {
+                continue;
+            }
+            // Must indicate "new chat/conversation/thread"
+            if (isNewChatText(lowerActionId)) {
+                AnAction action = actionManager.getAction(actionId);
+                if (action != null) {
+                    LOGGER.debug("CxFix: Discovered new chat action by scanning: " + actionId);
+                    invokeAction(action, project, ActionPlaces.UNKNOWN);
+                    return true;
+                }
+            }
+        }
+        LOGGER.debug("CxFix: No new chat action discovered by scanning ActionManager");
+        // Log all copilot actions for troubleshooting
+        if (LOGGER.isDebugEnabled()) {
+            for (String actionId : allActionIds) {
+                String lowerActionId = actionId.toLowerCase();
+                if (lowerActionId.contains(COPILOT_ACTION_PREFIX)
+                        || lowerActionId.contains(GITHUB_COPILOT_ACTION_PREFIX)) {
+                    LOGGER.debug("CxFix: Available Copilot action: " + actionId);
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Invokes an action on the EDT with the given project context.
+     */
+    private static void invokeAction(@NotNull AnAction action, @NotNull Project project, @NotNull String place) {
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            DataContext dataContext = dataId -> {
+                if (com.intellij.openapi.actionSystem.CommonDataKeys.PROJECT.is(dataId)) {
+                    return project;
+                }
+                return null;
+            };
+            AnActionEvent event = AnActionEvent.createFromDataContext(place, null, dataContext);
+            ActionUtil.performActionDumbAwareWithCallbacks(action, event);
+        });
+    }
+
+    /**
+     * Searches the entire Copilot tool window component hierarchy for a "new chat"
+     * button and clicks it. This searches the full tool window component
+     * (via {@code getComponent()}) which includes toolbar areas, not just content panels.
+     *
+     * <p>
+     * Handles two types of clickable components:
+     * <ul>
+     * <li>IntelliJ {@code ActionButton} — toolbar buttons that wrap an {@code AnAction}.
+     *     These are NOT {@code AbstractButton} subclasses; they extend {@code JComponent}
+     *     and are identified by class name + reflection to read the action's presentation text.</li>
+     * <li>Standard Swing {@code AbstractButton} — regular buttons with text/tooltip.</li>
+     * </ul>
+     *
+     * @param toolWindow The Copilot tool window
+     * @return true if a new chat button was found and clicked, false otherwise
+     */
+    private static boolean tryClickNewChatInToolWindow(@NotNull ToolWindow toolWindow) {
+        // Search the entire tool window component hierarchy (includes toolbars)
+        JComponent rootComponent = toolWindow.getComponent();
+        if (rootComponent != null) {
+            Component found = findNewChatComponentRecursively(rootComponent);
+            if (found != null) {
+                return clickComponent(found);
+            }
+        }
+
+        // Fallback: also search inside content panels
+        Content[] contents = toolWindow.getContentManager().getContents();
+        for (Content content : contents) {
+            JComponent component = content.getComponent();
+            if (component != null) {
+                Component found = findNewChatComponentRecursively(component);
+                if (found != null) {
+                    return clickComponent(found);
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Recursively searches for a "new chat" component in the hierarchy.
+     * Checks both IntelliJ ActionButton (toolbar) and AbstractButton (Swing) components.
+     */
+    private static @Nullable Component findNewChatComponentRecursively(@NotNull Component component) {
+        // Check if this is an IntelliJ ActionButton (toolbar button)
+        // ActionButton is in com.intellij.openapi.actionSystem.impl package
+        // It extends JComponent, NOT AbstractButton
+        String className = component.getClass().getName();
+        if (className.contains("ActionButton") && component.isVisible() && component.isEnabled()) {
+            String actionText = getActionButtonText(component);
+            if (actionText != null && isNewChatText(actionText.toLowerCase())) {
+                LOGGER.debug("CxFix: Found new chat ActionButton: " + className +
+                        " actionText='" + actionText + "'");
+                return component;
+            }
+            // Also check tooltip of ActionButton
+            if (component instanceof JComponent) {
+                String tooltip = ((JComponent) component).getToolTipText();
+                if (tooltip != null && isNewChatText(tooltip.toLowerCase())) {
+                    LOGGER.debug("CxFix: Found new chat ActionButton by tooltip: '" + tooltip + "'");
+                    return component;
+                }
+            }
+        }
+
+        // Check standard Swing AbstractButton
+        if (component instanceof AbstractButton) {
+            AbstractButton button = (AbstractButton) component;
+            if (button.isEnabled() && button.isVisible()) {
+                String text = button.getText();
+                if (text != null && isNewChatText(text.toLowerCase())) {
+                    LOGGER.debug("CxFix: Found new chat button by text: '" + text + "'");
+                    return button;
+                }
+                String tooltip = button.getToolTipText();
+                if (tooltip != null && isNewChatText(tooltip.toLowerCase())) {
+                    LOGGER.debug("CxFix: Found new chat button by tooltip: '" + tooltip + "'");
+                    return button;
+                }
+                String actionCommand = button.getActionCommand();
+                if (actionCommand != null && isNewChatText(actionCommand.toLowerCase())) {
+                    LOGGER.debug("CxFix: Found new chat button by action command: '" + actionCommand + "'");
+                    return button;
+                }
+            }
+        }
+
+        // Recurse into children
+        if (component instanceof Container) {
+            Container container = (Container) component;
+            for (Component child : container.getComponents()) {
+                Component found = findNewChatComponentRecursively(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Extracts the presentation text from an IntelliJ ActionButton via reflection.
+     * ActionButton stores an AnAction whose presentation has the button text.
+     *
+     * @param component The ActionButton component
+     * @return The action's text/description, or null if extraction failed
+     */
+    private static @Nullable String getActionButtonText(@NotNull Component component) {
+        try {
+            // Try getAction() -> getTemplatePresentation() -> getText()
+            Method getAction = findMethod(component.getClass(), "getAction");
+            if (getAction != null) {
+                Object action = getAction.invoke(component);
+                if (action != null) {
+                    // Try getTemplatePresentation().getText()
+                    Method getPresentation = findMethod(action.getClass(), "getTemplatePresentation");
+                    if (getPresentation != null) {
+                        Object presentation = getPresentation.invoke(action);
+                        if (presentation != null) {
+                            Method getText = findMethod(presentation.getClass(), "getText");
+                            if (getText != null) {
+                                Object text = getText.invoke(presentation);
+                                if (text != null) {
+                                    return text.toString();
+                                }
+                            }
+                            // Also try getDescription()
+                            Method getDesc = findMethod(presentation.getClass(), "getDescription");
+                            if (getDesc != null) {
+                                Object desc = getDesc.invoke(presentation);
+                                if (desc != null) {
+                                    return desc.toString();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.debug("CxFix: Failed to extract ActionButton text: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Finds a public method by name on the given class (no parameters).
+     */
+    private static @Nullable Method findMethod(@NotNull Class<?> clazz, @NotNull String name) {
+        try {
+            return clazz.getMethod(name);
+        } catch (NoSuchMethodException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Clicks a component — handles both ActionButton (via reflection) and AbstractButton.
+     *
+     * @param component The component to click
+     * @return true if the click was performed, false otherwise
+     */
+    private static boolean clickComponent(@NotNull Component component) {
+        try {
+            if (component instanceof AbstractButton) {
+                ((AbstractButton) component).doClick();
+                LOGGER.debug("CxFix: Clicked AbstractButton for new chat");
+                return true;
+            }
+
+            // For ActionButton, try click() method first
+            Method clickMethod = findMethod(component.getClass(), "click");
+            if (clickMethod != null) {
+                clickMethod.invoke(component);
+                LOGGER.debug("CxFix: Clicked ActionButton via click() for new chat");
+                return true;
+            }
+
+            // Fallback: simulate mouse click via doClick if available
+            Method doClickMethod = findMethod(component.getClass(), "doClick");
+            if (doClickMethod != null) {
+                doClickMethod.invoke(component);
+                LOGGER.debug("CxFix: Clicked ActionButton via doClick() for new chat");
+                return true;
+            }
+
+            // Last resort: dispatch a mouse event
+            component.dispatchEvent(new MouseEvent(
+                    component,
+                    java.awt.event.MouseEvent.MOUSE_CLICKED,
+                    System.currentTimeMillis(),
+                    0,
+                    component.getWidth() / 2,
+                    component.getHeight() / 2,
+                    1,
+                    false));
+            LOGGER.debug("CxFix: Dispatched mouse click event for new chat");
+            return true;
+
+        } catch (Exception e) {
+            LOGGER.warn("CxFix: Failed to click new chat component: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Checks if the given text indicates a "new chat" or "new conversation" action.
+     */
+    private static boolean isNewChatText(@NotNull String lowerText) {
+        return (lowerText.contains("new") && (lowerText.contains("chat") || lowerText.contains("conversation")
+                || lowerText.contains("session") || lowerText.contains("thread")));
     }
 
     /**
