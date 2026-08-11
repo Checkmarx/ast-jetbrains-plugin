@@ -11,6 +11,7 @@ import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.intellij.lang.annotations.Language;
+import org.junit.jupiter.api.Assertions;
 
 import java.awt.event.KeyEvent;
 import java.time.Duration;
@@ -309,9 +310,12 @@ public class UIHelper {
         });
     }
 
-    public static void assertElementAvailableAfterLogin(String locator, String elementName) {
-        waitFor(() -> hasAnyComponent(locator));
-        log("Element '" + elementName + "' is available after login");
+    public static void assertElementAvailableAfterLogin(String xpath, String elementName) {
+        boolean available = pollingWaitForElement(xpath, true);
+        if (!available) {
+            log("FAILED: " + elementName + " button is not available even after successful login");
+            Assertions.fail(elementName + " button is not available even after successful login");
+        }
     }
 
     private static void repeatUntilSuccess(int attempts, Runnable action) {
