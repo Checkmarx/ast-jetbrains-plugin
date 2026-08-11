@@ -302,6 +302,18 @@ public class UIHelper {
         });
     }
 
+    public static void clickSafe(String locator, Duration timeout) {
+        repeatUntilSuccess(3, () -> {
+            waitFor(() -> hasAnyComponent(locator), timeout);
+            find(locator).click();
+        });
+    }
+
+    public static void assertElementAvailableAfterLogin(String locator, String elementName) {
+        waitFor(() -> hasAnyComponent(locator));
+        log("Element '" + elementName + "' is available after login");
+    }
+
     private static void repeatUntilSuccess(int attempts, Runnable action) {
         for (int i = 1; i <= attempts; i++) {
             try {
