@@ -23,6 +23,23 @@ public class Project {
         return CxWrapperFactory.build().projectList("limit=10000");
     }
 
+    /**
+     * Fetch a single project by id.
+     * Used as a fallback when the full project list is unavailable (e.g. the list
+     * request times out on large tenants), so a selection can still be resolved.
+     *
+     * @param projectId project id
+     * @return the project
+     */
+    public static com.checkmarx.ast.project.Project getById(@NonNull UUID projectId)
+            throws
+            IOException,
+            InterruptedException,
+            CxException {
+
+        return CxWrapperFactory.build().projectShow(projectId);
+    }
+
     public static List<String> getBranches(@NonNull UUID projectId, boolean isSCMProject)
             throws
             IOException,
