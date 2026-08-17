@@ -74,11 +74,11 @@ public class ResultsTreeFactory {
                 .filter(result -> enabledFilterValues.contains(result.getSeverity())
                         && enabledFilterValues.contains(result.getState()))
                 .forEach(result -> {
-                            if (!isDevTestDependency(result, isSCAHideDevTestDependencyEnabled)) {
-                                String engineType = mapEngineTypeForDisplay(result.getType());
-                                addResultToEngine(project, groupByList,
-                                        engineNodes.computeIfAbsent(engineType, NonLeafNode::new),
-                                        result, scanId);
+                    if (!isDevTestDependency(result, isSCAHideDevTestDependencyEnabled)) {
+                        String engineType = mapEngineTypeForDisplay(result.getType());
+                        addResultToEngine(project, groupByList,
+                                engineNodes.computeIfAbsent(engineType, NonLeafNode::new),
+                                result, scanId);
                             }
                         }
                 );
