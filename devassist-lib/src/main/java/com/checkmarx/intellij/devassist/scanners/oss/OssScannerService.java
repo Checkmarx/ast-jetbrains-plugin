@@ -11,6 +11,7 @@ import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.PackageManagerMapper;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -178,7 +179,7 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
             return;
         }
         String parentFileName = getPath(originalFilePath).getFileName().toString();
-        List<String> companionFileNames = getCompanionFileNames(parentFileName);
+        List<String> companionFileNames = PackageManagerMapper.getCompanionFileNames(parentFileName);
         if (companionFileNames.isEmpty()) {
             return;
         }
@@ -208,65 +209,6 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
         return Paths.get(file);
     }
 
-
-    /**
-     * Infers companion lock file names based on the manifest file name.
-     * Some manifests may have multiple companion files (e.g., package.json has both package-lock.json and yarn.lock).
-     *
-     * @param fileName name of the manifest file
-     * @return list of companion file names; empty list if no companions are defined
-     */
-    private List<String> getCompanionFileNames(String fileName) {
-        // npm/Yarn - support both package-lock.json (npm) and yarn.lock (yarn)
-        if (fileName.equals("package.json")) {
-            return List.of("package-lock.json", "yarn.lock");
-        }
-
-        // .NET
-        if (fileName.contains(".csproj")) {
-            return List.of("packages.lock.json");
-        }
-
-        // Swift Package Manager (AST-165765)
-        if (fileName.equals("Package.swift")) {
-            return List.of("Package.resolved");
-        }
-        if (fileName.startsWith("Package@swift-") && fileName.endsWith(".swift")) {
-            return List.of(fileName.replace(".swift", ".resolved"));
-        }
-
-        // CocoaPods (AST-165761)
-        if (fileName.equals("Podfile")) {
-            return List.of("Podfile.lock");
-        }
-
-        // Carthage
-        if (fileName.equals("Cartfile") || fileName.equals("Cartfile.private")) {
-            return List.of("Cartfile.resolved");
-        }
-
-        // Ruby Bundler
-        if (fileName.equals("Gemfile")) {
-            return List.of("Gemfile.lock");
-        }
-
-        // PHP Composer
-        if (fileName.equals("composer.json")) {
-            return List.of("composer.lock");
-        }
-
-        // Python Poetry
-        if (fileName.equals("pyproject.toml")) {
-            return List.of("poetry.lock");
-        }
-
-        // Dart/Flutter Pub
-        if (fileName.equals("pubspec.yaml")) {
-            return List.of("pubspec.lock");
-        }
-
-        return List.of();
-    }
 
     /**
      * Scans the given Psi file using OssScanner wrapper method.
