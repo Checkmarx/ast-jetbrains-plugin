@@ -49,8 +49,33 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
 
     @Override
     protected void override(Scan scan) {
-        select(byId.get(scan.getProjectId()));
-        branchSelectionGroup.override(scan);
+        com.checkmarx.ast.project.Project cached = byId.get(scan.getProjectId());
+        if (cached != null) {
+            select(cached);
+            branchSelectionGroup.override(scan);
+            return;
+        }
+        // The project list may be unavailable (e.g. it timed out on a large tenant).
+        // Fall back to resolving just this project so the scan can still be selected.
+        LOGGER.warn("Project " + scan.getProjectId()
+                    + " is not in the loaded project list, resolving it individually");
+        CompletableFuture.supplyAsync((Supplier<com.checkmarx.ast.project.Project>) () -> {
+            try {
+                return com.checkmarx.intellij.ast.commands.Project.getById(
+                        UUID.fromString(scan.getProjectId()));
+            } catch (Exception e) {
+                LOGGER.warn("Failed to resolve project " + scan.getProjectId(), e);
+                return null;
+            }
+        }).thenAccept(resolved -> ApplicationManager.getApplication().invokeLater(() -> {
+            if (resolved == null) {
+                return;
+            }
+            byId.put(scan.getProjectId(), resolved);
+            add(new Action(resolved));
+            select(resolved);
+            branchSelectionGroup.override(scan);
+        }));
     }
 
     /**
