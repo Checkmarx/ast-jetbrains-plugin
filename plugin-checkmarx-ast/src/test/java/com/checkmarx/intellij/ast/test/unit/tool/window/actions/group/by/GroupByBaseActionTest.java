@@ -3,6 +3,14 @@ package com.checkmarx.intellij.ast.test.unit.tool.window.actions.group.by;
 import com.checkmarx.intellij.ast.window.CxToolWindowPanel;
 import com.checkmarx.intellij.ast.window.actions.group.by.GroupBy;
 import com.checkmarx.intellij.ast.window.actions.group.by.GroupByBaseAction;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupByDirectDependency;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupByFileAction;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupByPackageAction;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupBySeverityAction;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupByStateAction;
+import com.checkmarx.intellij.ast.window.actions.group.by.GroupByVulnerabilityTypeAction;
+import com.checkmarx.intellij.common.resources.Bundle;
+import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -303,6 +311,91 @@ class GroupByBaseActionTest {
             method.setAccessible(true);
             assertEquals(groupBy, method.invoke(action),
                     "getGroupBy() should return " + groupBy);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Concrete GroupBy action classes — constructor + getGroupBy()
+    // Each concrete class has 9 missed instructions at 0% — tested here.
+    // -------------------------------------------------------------------------
+
+    @Test
+    void concreteActions_GroupBySeverityAction_ConstructsAndActionUpdateThreadIsEDT() throws Exception {
+        try (MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class)) {
+            bundleMock.when(() -> Bundle.messagePointer(any(Resource.class)))
+                      .thenReturn((java.util.function.Supplier<String>) () -> "label");
+
+            GroupBySeverityAction action = new GroupBySeverityAction();
+            assertEquals(ActionUpdateThread.EDT, action.getActionUpdateThread());
+            // getGroupBy() is protected — verify via reflection
+            java.lang.reflect.Method m = GroupBySeverityAction.class.getDeclaredMethod("getGroupBy");
+            m.setAccessible(true);
+            assertEquals(GroupBy.SEVERITY, m.invoke(action));
+        }
+    }
+
+    @Test
+    void concreteActions_GroupByFileAction_ConstructsAndReturnsFileGroupBy() throws Exception {
+        try (MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class)) {
+            bundleMock.when(() -> Bundle.messagePointer(any(Resource.class)))
+                      .thenReturn((java.util.function.Supplier<String>) () -> "label");
+
+            GroupByFileAction action = new GroupByFileAction();
+            java.lang.reflect.Method m = GroupByFileAction.class.getDeclaredMethod("getGroupBy");
+            m.setAccessible(true);
+            assertEquals(GroupBy.FILE, m.invoke(action));
+        }
+    }
+
+    @Test
+    void concreteActions_GroupByStateAction_ConstructsAndReturnsStateGroupBy() throws Exception {
+        try (MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class)) {
+            bundleMock.when(() -> Bundle.messagePointer(any(Resource.class)))
+                      .thenReturn((java.util.function.Supplier<String>) () -> "label");
+
+            GroupByStateAction action = new GroupByStateAction();
+            java.lang.reflect.Method m = GroupByStateAction.class.getDeclaredMethod("getGroupBy");
+            m.setAccessible(true);
+            assertEquals(GroupBy.STATE, m.invoke(action));
+        }
+    }
+
+    @Test
+    void concreteActions_GroupByPackageAction_ConstructsAndReturnsPackageGroupBy() throws Exception {
+        try (MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class)) {
+            bundleMock.when(() -> Bundle.messagePointer(any(Resource.class)))
+                      .thenReturn((java.util.function.Supplier<String>) () -> "label");
+
+            GroupByPackageAction action = new GroupByPackageAction();
+            java.lang.reflect.Method m = GroupByPackageAction.class.getDeclaredMethod("getGroupBy");
+            m.setAccessible(true);
+            assertEquals(GroupBy.PACKAGE, m.invoke(action));
+        }
+    }
+
+    @Test
+    void concreteActions_GroupByVulnerabilityTypeAction_ConstructsAndReturnsVulnerabilityTypeName() throws Exception {
+        try (MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class)) {
+            bundleMock.when(() -> Bundle.messagePointer(any(Resource.class)))
+                      .thenReturn((java.util.function.Supplier<String>) () -> "label");
+
+            GroupByVulnerabilityTypeAction action = new GroupByVulnerabilityTypeAction();
+            java.lang.reflect.Method m = GroupByVulnerabilityTypeAction.class.getDeclaredMethod("getGroupBy");
+            m.setAccessible(true);
+            assertEquals(GroupBy.VULNERABILITY_TYPE_NAME, m.invoke(action));
+        }
+    }
+
+    @Test
+    void concreteActions_GroupByDirectDependency_ConstructsAndReturnsDirectDependencyGroupBy() throws Exception {
+        try (MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class)) {
+            bundleMock.when(() -> Bundle.messagePointer(any(Resource.class)))
+                      .thenReturn((java.util.function.Supplier<String>) () -> "label");
+
+            GroupByDirectDependency action = new GroupByDirectDependency();
+            java.lang.reflect.Method m = GroupByDirectDependency.class.getDeclaredMethod("getGroupBy");
+            m.setAccessible(true);
+            assertEquals(GroupBy.DIRECT_DEPENDENCY, m.invoke(action));
         }
     }
 

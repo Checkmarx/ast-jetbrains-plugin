@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -130,5 +131,105 @@ public class SecretsScannerServiceTest {
                 assertNull(result, "scan should return null when file content is empty");
             });
         }
+    }
+
+    @Test
+    @DisplayName("shouldScanFile: manifest file path excluded from scanning")
+    void testShouldScanFile_manifestFileExcluded() {
+        PsiFile psiFile = mock(PsiFile.class);
+        // pom.xml with directory prefix matches glob **/pom.xml
+        assertFalse(secretsScannerService.shouldScanFile("project/pom.xml", psiFile),
+                "pom.xml should be excluded from secrets scanning");
+    }
+
+    @Test
+    @DisplayName("shouldScanFile: checkmarxIgnoredTempList file excluded")
+    void testShouldScanFile_checkmarxIgnoredTempListExcluded() {
+        PsiFile psiFile = mock(PsiFile.class);
+        assertFalse(secretsScannerService.shouldScanFile(
+                "/project/.vscode/.checkmarxIgnoredTempList", psiFile));
+    }
+
+    @Test
+    @DisplayName("scan: CxException returns null gracefully")
+    void testScan_CxExceptionReturnsNull() {
+        Project mockProject = mock(Project.class);
+        when(mockPsiFile.getName()).thenReturn("secret.js");
+        when(mockPsiFile.getProject()).thenReturn(mockProject);
+
+        try (MockedStatic<DevAssistUtils> devAssistUtilsStatic = mockStatic(DevAssistUtils.class);
+             MockedStatic<CxWrapperFactory> wrapperFactoryStatic = mockStatic(CxWrapperFactory.class)) {
+
+            devAssistUtilsStatic.when(() -> DevAssistUtils.getFileContent(mockPsiFile)).thenReturn("content");
+            devAssistUtilsStatic.when(() -> DevAssistUtils.getIgnoreFilePath(any(Project.class))).thenReturn("");
+
+            wrapperFactoryStatic.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            try {
+                when(mockWrapper.secretsRealtimeScan(anyString(), anyString()))
+                        .thenThrow(new com.checkmarx.ast.wrapper.CxException(1, "scan failed"));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+            ScanResult<?> result = secretsScannerService.scan(mockPsiFile, "secret.js");
+            assertNull(result);
+        }
+    }
+
+    @Test
+    @DisplayName("scan: IOException returns null gracefully")
+    void testScan_IOExceptionReturnsNull() {
+        Project mockProject = mock(Project.class);
+        when(mockPsiFile.getName()).thenReturn("secret.js");
+        when(mockPsiFile.getProject()).thenReturn(mockProject);
+
+        try (MockedStatic<DevAssistUtils> devAssistUtilsStatic = mockStatic(DevAssistUtils.class);
+             MockedStatic<CxWrapperFactory> wrapperFactoryStatic = mockStatic(CxWrapperFactory.class)) {
+
+            devAssistUtilsStatic.when(() -> DevAssistUtils.getFileContent(mockPsiFile)).thenReturn("content");
+            devAssistUtilsStatic.when(() -> DevAssistUtils.getIgnoreFilePath(any(Project.class))).thenReturn("");
+
+            wrapperFactoryStatic.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            try {
+                when(mockWrapper.secretsRealtimeScan(anyString(), anyString()))
+                        .thenThrow(new IOException("io error"));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+            ScanResult<?> result = secretsScannerService.scan(mockPsiFile, "secret.js");
+            assertNull(result);
+        }
+    }
+
+    @Test
+    @DisplayName("createConfig: all fields are populated")
+    void testCreateConfig_allFieldsPopulated() {
+        var config = SecretsScannerService.createConfig();
+        assertNotNull(config.getDisabledMessage());
+        assertNotNull(config.getEnabledMessage());
+        assertNotNull(config.getConfigSection());
+        assertEquals("SECRETS", config.getEngineName());
+    }
+
+    @Test
+    @DisplayName("generateFileHash: returns non-null hex string")
+    void testGenerateFileHash_returnsHex() throws Exception {
+        var method = SecretsScannerService.class.getDeclaredMethod("generateFileHash", String.class);
+        method.setAccessible(true);
+        String hash = (String) method.invoke(secretsScannerService, "src/app.js");
+        assertNotNull(hash);
+        assertFalse(hash.isEmpty());
+    }
+
+    @Test
+    @DisplayName("toSafeTempFileName: returns baseName + hash + .tmp")
+    void testToSafeTempFileName_format() throws Exception {
+        var method = SecretsScannerService.class.getDeclaredMethod("toSafeTempFileName", String.class);
+        method.setAccessible(true);
+        String result = (String) method.invoke(secretsScannerService, "src/app.js");
+        assertNotNull(result);
+        assertTrue(result.startsWith("app.js-"));
+        assertTrue(result.endsWith(".tmp"));
     }
 }

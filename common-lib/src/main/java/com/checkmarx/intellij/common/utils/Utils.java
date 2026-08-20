@@ -22,7 +22,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.util.messages.MessageBus;
-import org.apache.commons.collections.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -136,7 +135,7 @@ public final class Utils {
                 .notify(project);
     }
 
-    public static void notifyScan(String title, String message, Project project, Runnable func, NotificationType notificationType, String actionText) {
+    public static Notification notifyScan(String title, String message, Project project, Runnable func, NotificationType notificationType, String actionText) {
         Notification notification = NotificationGroupManager.getInstance()
                 .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
                 .createNotification(title, message, notificationType);
@@ -146,6 +145,7 @@ public final class Utils {
         }
 
         notification.notify(project);
+        return notification;
     }
 
     @Nullable
@@ -157,7 +157,7 @@ public final class Utils {
                         .toNioPath()))
                 .collect(Collectors.toUnmodifiableList());
         Repository repository = null;
-        if (CollectionUtils.isNotEmpty(repositories)) {
+        if (!repositories.isEmpty()) {
             repository = repositories.get(0);
             for (int i = 1; i < repositories.size(); i++) {
                 if (!repositories.get(i).getRoot().toNioPath().startsWith(repository.getRoot().toNioPath())) {

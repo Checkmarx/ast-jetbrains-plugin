@@ -13,12 +13,16 @@ allprojects {
     version System.getenv('RELEASE_VERSION') ?: "dev"
 
     repositories {
-        mavenCentral()
+
         maven {
-            url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
+            url = "https://maven.echohq.com"
+            credentials {
+                username = ""
+                password = System.getenv('ECHO_LIBRARIES_ACCESS_KEY') ?: ""
+            }
         }
         maven {
-            url = 'https://oss.sonatype.org/content/repositories/snapshots'
+            url = 'https://packages.jetbrains.team/maven/p/ij/intellij-dependencies'
         }
     }
 }

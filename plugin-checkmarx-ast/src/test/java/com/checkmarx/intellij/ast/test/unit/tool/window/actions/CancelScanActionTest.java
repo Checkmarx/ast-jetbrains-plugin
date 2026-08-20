@@ -1,12 +1,18 @@
 package com.checkmarx.intellij.ast.test.unit.tool.window.actions;
 
+import com.checkmarx.intellij.ast.commands.Scan;
 import com.checkmarx.intellij.ast.window.actions.CancelScanAction;
 import com.checkmarx.intellij.ast.window.actions.StartScanAction;
 import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.utils.Utils;
+import com.intellij.ide.ActivityTracker;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.Presentation;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -142,6 +148,57 @@ class CancelScanActionTest {
             cancelScanAction.update(mockEvent);
 
             verify(mockPresentation).setEnabled(true);
+        }
+    }
+
+    @Test
+    void actionPerformed_SubmitsBackgroundTask() {
+        when(mockEvent.getProject()).thenReturn(mockProject);
+        ProgressManager mockProgressManager = mock(ProgressManager.class);
+
+        try (MockedStatic<PropertiesComponent> pcMock = mockStatic(PropertiesComponent.class);
+             MockedStatic<ProgressManager> pmMock = mockStatic(ProgressManager.class)) {
+
+            pcMock.when(() -> PropertiesComponent.getInstance(mockProject)).thenReturn(mockPropertiesComponent);
+            pmMock.when(ProgressManager::getInstance).thenReturn(mockProgressManager);
+
+            cancelScanAction.actionPerformed(mockEvent);
+
+            verify(mockProgressManager).run(any(Task.Backgroundable.class));
+        }
+    }
+
+    @Test
+    void actionPerformed_TaskRun_CancelsScanAndClearsProperty() {
+        when(mockEvent.getProject()).thenReturn(mockProject);
+        when(mockPropertiesComponent.getValue(Constants.RUNNING_SCAN_ID_PROPERTY)).thenReturn("scan-123");
+
+        ProgressManager mockProgressManager = mock(ProgressManager.class);
+        doAnswer(invocation -> {
+            Task.Backgroundable task = invocation.getArgument(0);
+            task.run(mock(ProgressIndicator.class));
+            return null;
+        }).when(mockProgressManager).run(any(Task.Backgroundable.class));
+
+        ActivityTracker mockActivityTracker = mock(ActivityTracker.class);
+
+        try (MockedStatic<PropertiesComponent> pcMock = mockStatic(PropertiesComponent.class);
+             MockedStatic<ProgressManager> pmMock = mockStatic(ProgressManager.class);
+             MockedStatic<Scan> scanMock = mockStatic(Scan.class);
+             MockedStatic<ActivityTracker> actMock = mockStatic(ActivityTracker.class);
+             MockedStatic<StartScanAction> saMock = mockStatic(StartScanAction.class);
+             MockedStatic<Utils> utilsMock = mockStatic(Utils.class)) {
+
+            pcMock.when(() -> PropertiesComponent.getInstance(mockProject)).thenReturn(mockPropertiesComponent);
+            pmMock.when(ProgressManager::getInstance).thenReturn(mockProgressManager);
+            scanMock.when(() -> Scan.scanCancel(any())).thenAnswer(i -> null);
+            actMock.when(ActivityTracker::getInstance).thenReturn(mockActivityTracker);
+            saMock.when(StartScanAction::cancelRunningScan).thenAnswer(i -> null);
+
+            cancelScanAction.actionPerformed(mockEvent);
+
+            verify(mockPropertiesComponent).setValue(eq(Constants.RUNNING_SCAN_ID_PROPERTY), any());
+            verify(mockActivityTracker).inc();
         }
     }
 }

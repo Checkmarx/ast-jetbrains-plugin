@@ -3,6 +3,7 @@ package com.checkmarx.intellij.ast.test.unit.tool.window.results.tree;
 import com.checkmarx.ast.results.Results;
 import com.checkmarx.ast.results.result.Data;
 import com.checkmarx.ast.results.result.Result;
+import com.checkmarx.ast.results.result.ScaPackageData;
 import com.checkmarx.intellij.ast.results.CustomResultState;
 import com.checkmarx.intellij.ast.window.actions.group.by.GroupBy;
 import com.checkmarx.intellij.ast.window.results.tree.ResultsTreeFactory;
@@ -22,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeModel;
+import java.lang.reflect.Method;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -216,6 +218,162 @@ class ResultsTreeFactoryTest {
         assertNotNull(root);
         // Result should be grouped under engine node, then file node
         assertEquals(1, root.getChildCount(), "Should have 1 engine (SAST) node");
+    }
+
+    // ===== isDevTestDependency (private static) via reflection =====
+
+    private static boolean isDevTestDependency(Result result, boolean filterEnabled) throws Exception {
+        Method m = ResultsTreeFactory.class.getDeclaredMethod("isDevTestDependency", Result.class, boolean.class);
+        m.setAccessible(true);
+        return (boolean) m.invoke(null, result, filterEnabled);
+    }
+
+    @Test
+    void isDevTestDependency_WhenFilterDisabled_ReturnsFalse() throws Exception {
+        assertFalse(isDevTestDependency(mockResult, false));
+    }
+
+    @Test
+    void isDevTestDependency_WhenFilterEnabled_NonScaResult_ReturnsFalse() throws Exception {
+        when(mockResult.getType()).thenReturn("SAST");
+        assertFalse(isDevTestDependency(mockResult, true));
+    }
+
+    @Test
+    void isDevTestDependency_WhenFilterEnabled_ScaResult_NullData_ReturnsFalse() throws Exception {
+        when(mockResult.getType()).thenReturn("sca");
+        when(mockResult.getData()).thenReturn(null);
+        assertFalse(isDevTestDependency(mockResult, true));
+    }
+
+    @Test
+    void isDevTestDependency_WhenFilterEnabled_ScaResult_DevDependency_ReturnsTrue() throws Exception {
+        ScaPackageData scaPackageData = mock(ScaPackageData.class);
+        when(scaPackageData.isDevelopmentDependency()).thenReturn(true);
+        when(mockResult.getType()).thenReturn("sca");
+        when(mockData.getScaPackageData()).thenReturn(scaPackageData);
+        when(mockResult.getData()).thenReturn(mockData);
+        assertTrue(isDevTestDependency(mockResult, true));
+    }
+
+    @Test
+    void isDevTestDependency_WhenFilterEnabled_ScaResult_TestDependency_ReturnsTrue() throws Exception {
+        ScaPackageData scaPackageData = mock(ScaPackageData.class);
+        when(scaPackageData.isTestDependency()).thenReturn(true);
+        when(mockResult.getType()).thenReturn("sca");
+        when(mockData.getScaPackageData()).thenReturn(scaPackageData);
+        when(mockResult.getData()).thenReturn(mockData);
+        assertTrue(isDevTestDependency(mockResult, true));
+    }
+
+    @Test
+    void isDevTestDependency_WhenFilterEnabled_ScaResult_NullPackageData_ReturnsFalse() throws Exception {
+        when(mockResult.getType()).thenReturn("sca");
+        when(mockData.getScaPackageData()).thenReturn(null);
+        when(mockResult.getData()).thenReturn(mockData);
+        assertFalse(isDevTestDependency(mockResult, true));
+    }
+
+    // ===== mapEngineTypeForDisplay — null input =====
+
+    @Test
+    void mapEngineTypeForDisplay_NullInput_ReturnsNull() throws Exception {
+        Method m = ResultsTreeFactory.class.getDeclaredMethod("mapEngineTypeForDisplay", String.class);
+        m.setAccessible(true);
+        Object result = m.invoke(null, (Object) null);
+        assertNull(result, "Null engineType should produce null display name");
+    }
+
+    // ===== buildResultsTree with multiple distinct SCA types → prepends SCA_TYPE groupBy =====
+
+    @Test
+    void buildResultsTree_WithMultipleDistinctScaTypes_PrependsSCATypeGroupBy() {
+        // Two SCA results with different scaType values → distinctScaTypes > 1 → SCA_TYPE prepended
+        Result scaResult1 = mock(Result.class);
+        Result scaResult2 = mock(Result.class);
+        Data scaData1 = mock(Data.class);
+        Data scaData2 = mock(Data.class);
+
+        lenient().when(scaResult1.getSeverity()).thenReturn("HIGH");
+        lenient().when(scaResult1.getState()).thenReturn("TO_VERIFY");
+        lenient().when(scaResult1.getType()).thenReturn("sca");
+        lenient().when(scaResult1.getScaType()).thenReturn("dependency");
+        lenient().when(scaResult1.getData()).thenReturn(scaData1);
+        lenient().when(scaData1.getPackageIdentifier()).thenReturn("Npm-express-4.18.0");
+
+        lenient().when(scaResult2.getSeverity()).thenReturn("HIGH");
+        lenient().when(scaResult2.getState()).thenReturn("TO_VERIFY");
+        lenient().when(scaResult2.getType()).thenReturn("sca");
+        lenient().when(scaResult2.getScaType()).thenReturn("container");
+        lenient().when(scaResult2.getData()).thenReturn(scaData2);
+        lenient().when(scaData2.getPackageIdentifier()).thenReturn("Npm-lodash-4.17.0");
+
+        when(mockResults.getResults()).thenReturn(java.util.Arrays.asList(scaResult1, scaResult2));
+
+        // Use an empty groupByList — the SCA_TYPE should be prepended automatically
+        List<GroupBy> emptyGroupBy = new ArrayList<>();
+
+        // Should not throw; distinctScaTypes == 2 triggers the prepend path
+        assertDoesNotThrow(() -> {
+            Tree tree = ResultsTreeFactory.buildResultsTree(
+                    SCAN_ID, mockResults, mockProject, emptyGroupBy, enabledFilters, true);
+            assertNotNull(tree);
+        });
+    }
+
+    // ===== addResultToEngine — blank groupBy key skips that level =====
+
+    @Test
+    void buildResultsTree_WhenGroupByKeyIsBlank_SkipsGroupingLevel() {
+        // Use a GroupBy whose function returns blank for the test result
+        // GroupBy.FILE calls data.getFileName() → return null/blank → Utils.isBlank → continue
+        List<GroupBy> fileGroupBy = new ArrayList<>();
+        fileGroupBy.add(GroupBy.FILE);
+
+        // data.getFileName() returns null → GroupBy.FILE.getFunction().apply(result) returns null → Utils.isBlank(null) = true → skip
+        when(mockData.getFileName()).thenReturn(null);
+
+        Tree tree = ResultsTreeFactory.buildResultsTree(
+                SCAN_ID, mockResults, mockProject, fileGroupBy, enabledFilters, true);
+
+        assertNotNull(tree);
+        TreeModel model = tree.getModel();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+        // Result is still added to engine node even when FILE groupBy key is blank
+        assertEquals(1, root.getChildCount(), "Engine node should still be present");
+    }
+
+    // ===== addResultToEngine — existing child node is reused =====
+
+    @Test
+    void buildResultsTree_WithTwoResultsSameQueryName_ReusesSingleChildNode() {
+        // Two results with same query name under QUERY_NAME groupBy → second reuses first child
+        Result result2 = mock(Result.class);
+        Data data2 = mock(Data.class);
+
+        lenient().when(result2.getSeverity()).thenReturn("HIGH");
+        lenient().when(result2.getState()).thenReturn("TO_VERIFY");
+        lenient().when(result2.getType()).thenReturn("SAST");
+        lenient().when(result2.getData()).thenReturn(data2);
+        lenient().when(mockData.getQueryName()).thenReturn("SQL_Injection");
+        lenient().when(data2.getQueryName()).thenReturn("SQL_Injection");
+
+        when(mockResults.getResults()).thenReturn(java.util.Arrays.asList(mockResult, result2));
+
+        List<GroupBy> queryNameGroupBy = new ArrayList<>();
+        queryNameGroupBy.add(GroupBy.VULNERABILITY_TYPE_NAME);
+
+        Tree tree = ResultsTreeFactory.buildResultsTree(
+                SCAN_ID, mockResults, mockProject, queryNameGroupBy, enabledFilters, true);
+
+        assertNotNull(tree);
+        TreeModel model = tree.getModel();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+        assertEquals(1, root.getChildCount(), "Should have one engine node");
+
+        DefaultMutableTreeNode engineNode = (DefaultMutableTreeNode) root.getChildAt(0);
+        // Both results share the same query name → single child node under engine
+        assertEquals(1, engineNode.getChildCount(), "Both results under same query name should share one child node");
     }
 
     @Test

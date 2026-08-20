@@ -195,6 +195,142 @@ class DevAssistInspectionTest {
         }
     }
 
+    @Test
+    @DisplayName("Returns empty when file path matches AI agent event")
+    void checkFileReturnsEmptyForAgentEvent() {
+        when(virtualFile.getPath()).thenReturn("/repo/Dummy.txt");
+
+        try (MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
+             MockedStatic<Utils> auth = mockStatic(Utils.class);
+             MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class)) {
+            devUtils.when(() -> DevAssistUtils.isAIAgentEvent("/repo/Dummy.txt")).thenReturn(true);
+
+            ProblemDescriptor[] result = inspection.checkFile(psiFile, inspectionManager, true);
+            assertEquals(0, result.length);
+        }
+    }
+
+    @Test
+    @DisplayName("Returns empty when user is not authenticated")
+    void checkFileReturnsEmptyWhenNotAuthenticated() {
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+             MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
+             MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class)) {
+            auth.when(Utils::isUserAuthenticated).thenReturn(false);
+            devUtils.when(() -> DevAssistUtils.isAIAgentEvent(anyString())).thenReturn(false);
+
+            ProblemDescriptor[] result = inspection.checkFile(psiFile, inspectionManager, true);
+            assertEquals(0, result.length);
+            verify(inspectionMgr).resetEditorAndResults(project, "/repo/file.tf");
+        }
+    }
+
+    @Test
+    @DisplayName("Returns empty when no scanner is enabled")
+    void checkFileReturnsEmptyWhenNoScannerEnabled() {
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+             MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
+             MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class)) {
+            auth.when(Utils::isUserAuthenticated).thenReturn(true);
+            devUtils.when(DevAssistUtils::isAnyScannerEnabled).thenReturn(false);
+            devUtils.when(() -> DevAssistUtils.isAIAgentEvent(anyString())).thenReturn(false);
+
+            ProblemDescriptor[] result = inspection.checkFile(psiFile, inspectionManager, true);
+            assertEquals(0, result.length);
+            verify(inspectionMgr).resetEditorAndResults(project, "/repo/file.tf");
+        }
+    }
+
+    @Test
+    @DisplayName("Returns empty when document is null")
+    void checkFileReturnsEmptyWhenDocumentIsNull() {
+        when(inspectionMgr.getSupportedScanner(anyString(), eq(psiFile))).thenReturn(List.of(scannerService));
+
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+             MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
+             MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
+             MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class)) {
+            auth.when(Utils::isUserAuthenticated).thenReturn(true);
+            devUtils.when(DevAssistUtils::isAnyScannerEnabled).thenReturn(true);
+            devUtils.when(() -> DevAssistUtils.isAIAgentEvent(anyString())).thenReturn(false);
+            psiMgr.when(() -> PsiDocumentManager.getInstance(project)).thenReturn(psiDocumentManager);
+            when(psiDocumentManager.getDocument(psiFile)).thenReturn(null);
+
+            ProblemDescriptor[] result = inspection.checkFile(psiFile, inspectionManager, true);
+            assertEquals(0, result.length);
+            verify(inspectionMgr).resetEditorAndResults(project, "/repo/file.tf");
+        }
+    }
+
+    @Test
+    @DisplayName("Returns empty when no supported scanners for the file")
+    void checkFileReturnsEmptyWhenNoSupportedScanner() {
+        when(inspectionMgr.getSupportedScanner(anyString(), eq(psiFile))).thenReturn(List.of());
+
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+             MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
+             MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
+             MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class)) {
+            auth.when(Utils::isUserAuthenticated).thenReturn(true);
+            devUtils.when(DevAssistUtils::isAnyScannerEnabled).thenReturn(true);
+            devUtils.when(() -> DevAssistUtils.isAIAgentEvent(anyString())).thenReturn(false);
+            psiMgr.when(() -> PsiDocumentManager.getInstance(project)).thenReturn(psiDocumentManager);
+            when(psiDocumentManager.getDocument(psiFile)).thenReturn(document);
+
+            ProblemDescriptor[] result = inspection.checkFile(psiFile, inspectionManager, true);
+            assertEquals(0, result.length);
+            verify(inspectionMgr).resetEditorAndResults(project, "/repo/file.tf");
+        }
+    }
+
+    @Test
+    @DisplayName("Returns empty when ProblemHolderService is null")
+    void checkFileReturnsEmptyWhenProblemHolderServiceNull() {
+        when(inspectionMgr.getSupportedScanner(anyString(), eq(psiFile))).thenReturn(List.of(scannerService));
+
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+             MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
+             MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
+             MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class);
+             MockedStatic<DevAssistScanStateHolder> state = mockStatic(DevAssistScanStateHolder.class)) {
+            auth.when(Utils::isUserAuthenticated).thenReturn(true);
+            devUtils.when(DevAssistUtils::isAnyScannerEnabled).thenReturn(true);
+            devUtils.when(() -> DevAssistUtils.isAIAgentEvent(anyString())).thenReturn(false);
+            psiMgr.when(() -> PsiDocumentManager.getInstance(project)).thenReturn(psiDocumentManager);
+            when(psiDocumentManager.getDocument(psiFile)).thenReturn(document);
+            holder.when(() -> ProblemHolderService.getInstance(project)).thenReturn(null);
+            state.when(() -> DevAssistScanStateHolder.getInstance(project)).thenReturn(stateHolder);
+            when(project.getName()).thenReturn("test-project");
+
+            ProblemDescriptor[] result = inspection.checkFile(psiFile, inspectionManager, true);
+            assertEquals(0, result.length);
+        }
+    }
+
+    @Test
+    @DisplayName("Returns empty when ScanStateHolder is null")
+    void checkFileReturnsEmptyWhenScanStateHolderNull() {
+        when(inspectionMgr.getSupportedScanner(anyString(), eq(psiFile))).thenReturn(List.of(scannerService));
+
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+             MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
+             MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
+             MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class);
+             MockedStatic<DevAssistScanStateHolder> state = mockStatic(DevAssistScanStateHolder.class)) {
+            auth.when(Utils::isUserAuthenticated).thenReturn(true);
+            devUtils.when(DevAssistUtils::isAnyScannerEnabled).thenReturn(true);
+            devUtils.when(() -> DevAssistUtils.isAIAgentEvent(anyString())).thenReturn(false);
+            psiMgr.when(() -> PsiDocumentManager.getInstance(project)).thenReturn(psiDocumentManager);
+            when(psiDocumentManager.getDocument(psiFile)).thenReturn(document);
+            holder.when(() -> ProblemHolderService.getInstance(project)).thenReturn(holderService);
+            state.when(() -> DevAssistScanStateHolder.getInstance(project)).thenReturn(null);
+            when(project.getName()).thenReturn("test-project");
+
+            ProblemDescriptor[] result = inspection.checkFile(psiFile, inspectionManager, true);
+            assertEquals(0, result.length);
+        }
+    }
+
     private void injectField(Object target, String fieldName, Object value) throws Exception {
         Field field = target.getClass().getDeclaredField(fieldName);
             field.setAccessible(true);

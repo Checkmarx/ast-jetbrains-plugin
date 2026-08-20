@@ -6,6 +6,7 @@ import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.utils.PluginVersionProvider;
 import com.checkmarx.intellij.common.utils.Utils;
 
 import java.io.IOException;
@@ -23,7 +24,13 @@ public class CxWrapperFactory {
             throws CxException, IOException {
         final CxConfig.CxConfigBuilder builder = CxConfig.builder();
 
-        builder.agentName(Constants.JET_BRAINS_AGENT_NAME);
+        String agentName = Constants.JET_BRAINS_AGENT_NAME;
+        String pluginVersion = getPluginVersion();
+
+        if (pluginVersion != null && !pluginVersion.isEmpty()) {
+            agentName = agentName + "_" + pluginVersion;
+        }
+        builder.agentName(agentName);
         if(isCredentialExpired(state, sensitiveState)){
             Utils.notifySessionExpired();
             return new CxWrapper(builder.build());
@@ -36,6 +43,16 @@ public class CxWrapperFactory {
         }
         builder.additionalParameters(state.getAdditionalParameters());
         return new CxWrapper(builder.build());
+    }
+
+    /**
+     * Retrieves the plugin version from the generated build-time constant.
+     * Version is embedded during build time and does not rely on runtime plugin introspection.
+     *
+     * @return plugin version string, or empty string if version cannot be determined
+     */
+    private static String getPluginVersion() {
+        return PluginVersionProvider.getPluginVersion();
     }
 
     /**

@@ -24,7 +24,7 @@ public class Xpath {
     static final String STATE_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='TO_VERIFY']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='URGENT']]//div[@class='BasicArrowButton']";
     @Language("XPath")
     public
-    static final String SEVERITY_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='MEDIUM']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='HIGH']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='LOW']]//div[@class='BasicArrowButton']";
+    static final String SEVERITY_COMBOBOX_ARROW = "//div[@class='ComboBox'][.//div[@visible_text='MEDIUM']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='HIGH']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='LOW']]//div[@class='BasicArrowButton']|//div[@class='ComboBox'][.//div[@visible_text='CRITICAL']]//div[@class='BasicArrowButton']";
     @Language("XPath")
     public
     static final String SCAN_FIELD = "//div[@class='TextFieldWithProcessing']";
@@ -259,6 +259,8 @@ public class Xpath {
     public static final String SEVERITY_MEDIUM_ICON = "//div[@myicon='medium.svg']";
     @Language("XPath")
     public static final String SEVERITY_LOW_ICON = "//div[@myicon='low.svg']";
+    @Language("XPath")
+    public static final String SEVERITY_INFO_ICON = "//div[@myicon='info.svg']";
     @Language("XPath")
     public static final String EXPAND_ACTION = "//div[@tooltiptext='Expand all']";
     @Language("XPath")

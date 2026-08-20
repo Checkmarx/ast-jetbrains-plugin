@@ -4,17 +4,28 @@ import com.automation.remarks.junit5.Video;
 import org.junit.jupiter.api.*;
 
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.*;
-import static com.checkmarx.intellij.ast.test.ui.PageMethods.CxOneAssistPage.validateCxOneAssistPageLoadedSuccessfully;
-import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.locateAndClickOnButton;
-import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.*;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CxOneAssistPage.*;
-import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.locateAndClickOnButton;
+import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
 
 public class TestCxOneAssist extends com.checkmarx.intellij.ast.test.ui.BaseUITest {
+
+    @AfterEach
+    public void cleanupDialogs() {
+        // Close welcome popup if still open
+        if (hasAnyComponent(WELCOME_CLOSE_BUTTON)) {
+            click(WELCOME_CLOSE_BUTTON);
+        }
+        // Close settings dialog if still open
+        if (hasAnyComponent(OK_BTN)) {
+            click(OK_BTN);
+        }
+    }
+
     @Test
     @Video
-    @DisplayName("Validate all the engines are selected by default once welcome page devassit check box is marked")
+    @DisplayName("Validate all engines are selected by default once welcome page DevAssist checkbox is marked")
     public void testDevAssistCheckBoxIsSelected(){
         // Given: User is logged in and welcome page is loaded
         openSettings();

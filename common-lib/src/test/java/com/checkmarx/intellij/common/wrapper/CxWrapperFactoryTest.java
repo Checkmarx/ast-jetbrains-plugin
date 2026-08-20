@@ -5,6 +5,7 @@ import com.checkmarx.ast.wrapper.CxException;
 import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.utils.PluginVersionProvider;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
@@ -45,12 +46,13 @@ class CxWrapperFactoryTest {
     
     @Mock
     private CxWrapper mockCxWrapper;
-    
+
     private MockedStatic<ApplicationManager> mockedApplicationManager;
     private MockedStatic<GlobalSettingsState> mockedGlobalSettingsState;
     private MockedStatic<GlobalSettingsSensitiveState> mockedGlobalSettingsSensitiveState;
     private MockedStatic<CxConfig> mockedCxConfig;
     private MockedStatic<Utils> mockedUtils;
+    private MockedStatic<PluginVersionProvider> mockedPluginVersionProvider;
 
     @BeforeEach
     void setUp() {
@@ -59,12 +61,20 @@ class CxWrapperFactoryTest {
         mockedGlobalSettingsSensitiveState = mockStatic(GlobalSettingsSensitiveState.class);
         mockedCxConfig = mockStatic(CxConfig.class);
         mockedUtils = mockStatic(Utils.class);
+        mockedPluginVersionProvider = mockStatic(PluginVersionProvider.class);
 
         mockedApplicationManager.when(ApplicationManager::getApplication).thenReturn(mockApplication);
         mockedGlobalSettingsState.when(GlobalSettingsState::getInstance).thenReturn(mockGlobalSettingsState);
         mockedGlobalSettingsSensitiveState.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockGlobalSettingsSensitiveState);
         mockedCxConfig.when(CxConfig::builder).thenReturn(mockCxConfigBuilder);
-        
+
+        // Mock Utils.getLogger to return a valid logger
+        com.intellij.openapi.diagnostic.Logger mockLogger = mock(com.intellij.openapi.diagnostic.Logger.class);
+        mockedUtils.when(() -> Utils.getLogger(any())).thenReturn(mockLogger);
+
+        // Default: no version found (so agent name is just "Jetbrains")
+        mockedPluginVersionProvider.when(PluginVersionProvider::getPluginVersion).thenReturn("");
+
         when(mockCxConfigBuilder.agentName(anyString())).thenReturn(mockCxConfigBuilder);
         when(mockCxConfigBuilder.apiKey(anyString())).thenReturn(mockCxConfigBuilder);
         when(mockCxConfigBuilder.clientId(anyString())).thenReturn(mockCxConfigBuilder);
@@ -88,6 +98,9 @@ class CxWrapperFactoryTest {
         }
         if (mockedUtils != null) {
             mockedUtils.close();
+        }
+        if (mockedPluginVersionProvider != null) {
+            mockedPluginVersionProvider.close();
         }
     }
 
@@ -422,13 +435,65 @@ class CxWrapperFactoryTest {
         CxWrapper result = CxWrapperFactory.build();
 
         assertNotNull(result);
-        
+
         verify(mockCxConfigBuilder).agentName("Jetbrains");
         verify(mockCxConfigBuilder).apiKey("api-key");
         verify(mockCxConfigBuilder).additionalParameters("");
         // Utils.notifySessionExpired() is called when credentials are expired
-        
+
         verify(mockGlobalSettingsState, never()).getRefreshTokenExpiry();
         verify(mockGlobalSettingsSensitiveState, never()).isTokenExpired(anyString());
     }
+
+    // ============= Tests for plugin version appending =============
+
+    @Test
+    void testBuild_WithAstPluginVersion_AppendsVersionToAgentName() throws CxException, IOException {
+        // Mock PluginVersionProvider to return AST version
+        mockedPluginVersionProvider.when(PluginVersionProvider::getPluginVersion).thenReturn("2.3.6");
+
+        when(mockGlobalSettingsState.isApiKeyEnabled()).thenReturn(true);
+        when(mockGlobalSettingsSensitiveState.getApiKey()).thenReturn("test-api-key");
+        when(mockGlobalSettingsState.getAdditionalParameters()).thenReturn("");
+
+        CxWrapper result = CxWrapperFactory.build();
+
+        assertNotNull(result);
+        verify(mockCxConfigBuilder).agentName("Jetbrains_2.3.6");
+        verify(mockCxConfigBuilder).apiKey("test-api-key");
+    }
+
+    @Test
+    void testBuild_WithDevAssistPluginVersion_AppendsVersionToAgentName() throws CxException, IOException {
+        // Mock PluginVersionProvider to return DevAssist version
+        mockedPluginVersionProvider.when(PluginVersionProvider::getPluginVersion).thenReturn("1.0.2");
+
+        when(mockGlobalSettingsState.isApiKeyEnabled()).thenReturn(true);
+        when(mockGlobalSettingsSensitiveState.getApiKey()).thenReturn("test-api-key");
+        when(mockGlobalSettingsState.getAdditionalParameters()).thenReturn("");
+
+        CxWrapper result = CxWrapperFactory.build();
+
+        assertNotNull(result);
+        verify(mockCxConfigBuilder).agentName("Jetbrains_1.0.2");
+        verify(mockCxConfigBuilder).apiKey("test-api-key");
+    }
+
+    @Test
+    void testBuild_WithNoPluginFound_AgentNameWithoutVersion() throws CxException, IOException {
+        // This test uses the default setUp() behavior where no version is found
+        // Agent name should be just "Jetbrains" without version
+        // mockedPluginVersionProvider returns "" by default from setUp()
+
+        when(mockGlobalSettingsState.isApiKeyEnabled()).thenReturn(true);
+        when(mockGlobalSettingsSensitiveState.getApiKey()).thenReturn("test-api-key");
+        when(mockGlobalSettingsState.getAdditionalParameters()).thenReturn("");
+
+        CxWrapper result = CxWrapperFactory.build();
+
+        assertNotNull(result);
+        verify(mockCxConfigBuilder).agentName("Jetbrains");
+        verify(mockCxConfigBuilder).apiKey("test-api-key");
+    }
+
 }

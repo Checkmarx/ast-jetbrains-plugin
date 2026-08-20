@@ -122,7 +122,7 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
      * @return scan engine name
      */
     private String extractEngineName(String[] linkData) {
-        return Objects.nonNull(linkData) && linkData.length > 1 ? linkData[2] : "";
+        return Objects.nonNull(linkData) && linkData.length > 2 ? linkData[2] : "";
     }
 
     /**
@@ -132,7 +132,7 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
      * @return scan issue id
      */
     private String extractIssueId(String[] linkData) {
-        return Objects.nonNull(linkData) && linkData.length > 0 ? linkData[1] : "";
+        return Objects.nonNull(linkData) && linkData.length > 1 ? linkData[1] : "";
     }
 
     /**

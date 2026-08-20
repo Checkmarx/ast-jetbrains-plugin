@@ -3,6 +3,13 @@ name: Test UI Windows
 on:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 env:
   CX_BASE_URI: ${{ secrets.CX_BASE_URI }}
   CX_APIKEY: ${{ secrets.CX_APIKEY }}
@@ -15,14 +22,19 @@ env:
   CX_NOT_MATCH_TEST_PROJECT: ${{ secrets.CX_NOT_MATCH_TEST_PROJECT }}
   CX_NOT_MATCH_TEST_BRANCH: ${{ secrets.CX_NOT_MATCH_TEST_BRANCH }}
   CX_NOT_MATCH_TEST_SCAN_ID: ${{ secrets.CX_NOT_MATCH_TEST_SCAN_ID }}
+  ECHO_LIBRARIES_ACCESS_KEY: ${{ secrets.ECHO_LIBRARIES_ACCESS_KEY }}
 
 jobs:
-  testUI:
-    runs-on: cx-public-windows-x64
+  testUI: # zizmor: ignore[anonymous-definition]
+    permissions:
+      contents: read
+    runs-on: windows-latest
     steps:
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
       # Setup Java 11 environment for the next steps
       - name: Setup Java
         uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
@@ -30,11 +42,7 @@ jobs:
           distribution: zulu
           java-version: 11
       - name: Setup FFmpeg
-        uses: FedericoCarboni/setup-ffmpeg@583042d32dd1cabb8bd09df03bde06080da5c87c # v2
-        with:
-          # Not strictly necessary, but it may prevent rate limit
-          # errors especially on GitHub-hosted macos machines.
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: choco install ffmpeg -y
       # Perform clean before testing
       - name: Clean
         run: ./gradlew clean

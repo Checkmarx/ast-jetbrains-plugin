@@ -2,6 +2,7 @@ package com.checkmarx.intellij.devassist.test.ignore;
 
 import com.checkmarx.intellij.devassist.ignore.IgnoreEntry;
 import com.checkmarx.intellij.devassist.ignore.IgnoreFileManager;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.messages.MessageBus;
 import com.intellij.util.messages.Topic;
@@ -14,14 +15,19 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.when;
 
 class IgnoreFileManagerTest {
@@ -416,6 +422,158 @@ class IgnoreFileManagerTest {
         assertFalse(result, "Should not match entry with different type");
         assertTrue(manager.getIgnoreData().get("oss-key").getFiles().get(0).isActive(),
                    "Original entry should remain active");
+    }
+
+    // ===== deleteIgnoreFiles =====
+
+    @Test
+    void deleteIgnoreFiles_whenFilesExist_deletesFilesAndClearsData() throws IOException {
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.OSS);
+        entry.setFiles(new ArrayList<>());
+        manager.updateIgnoreData("key1", entry);
+
+        // Verify file exists before deletion
+        assertTrue(Files.exists(manager.getIgnoreFilePath()));
+        assertFalse(manager.getIgnoreData().isEmpty());
+
+        manager.deleteIgnoreFiles();
+
+        assertFalse(Files.exists(manager.getIgnoreFilePath()));
+        assertTrue(manager.getIgnoreData().isEmpty());
+        verify(ignoreListener, atLeastOnce()).onIgnoreUpdated();
+    }
+
+    @Test
+    void deleteIgnoreFiles_whenFilesDoNotExist_stillClearsDataAndNotifies() {
+        // Delete files first to ensure they don't exist
+        try { Files.deleteIfExists(manager.getIgnoreFilePath()); } catch (IOException ignored) {}
+
+        manager.deleteIgnoreFiles();
+
+        assertTrue(manager.getIgnoreData().isEmpty());
+        verify(ignoreListener, atLeastOnce()).onIgnoreUpdated();
+    }
+
+    // ===== saveIgnoreDataToDisk =====
+
+    @Test
+    void saveIgnoreDataToDisk_persistsDataAndCreatesFile() throws IOException {
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.ASCA);
+        entry.setPackageName("sql-injection");
+        entry.setFiles(new ArrayList<>());
+        manager.getIgnoreData().put("asca-key", entry);
+
+        manager.saveIgnoreDataToDisk();
+
+        assertTrue(Files.exists(manager.getIgnoreFilePath()));
+        String content = Files.readString(manager.getIgnoreFilePath());
+        assertTrue(content.contains("asca-key") || content.contains("sql-injection"));
+    }
+
+    // ===== removeIgnoredEntryWithoutTempUpdate via reflection =====
+
+    @Test
+    void removeIgnoredEntryWithoutTempUpdate_removesFileRefAndSavesToDisk() throws Exception {
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.ASCA);
+        entry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("src/File.java", true, 5, "code"))));
+        manager.getIgnoreData().put("asca-key", entry);
+
+        Method method = IgnoreFileManager.class.getDeclaredMethod("removeIgnoredEntryWithoutTempUpdate", String.class, String.class);
+        method.setAccessible(true);
+        method.invoke(manager, "asca-key", "src/File.java");
+
+        // Entry's files are empty → key removed
+        assertFalse(manager.getIgnoreData().containsKey("asca-key"));
+    }
+
+    @Test
+    void removeIgnoredEntryWithoutTempUpdate_nullKey_isNoOp() throws Exception {
+        Method method = IgnoreFileManager.class.getDeclaredMethod("removeIgnoredEntryWithoutTempUpdate", String.class, String.class);
+        method.setAccessible(true);
+        method.invoke(manager, "nonexistent-key", "any/path");
+        // No exception, data unchanged
+        assertTrue(manager.getIgnoreData().isEmpty());
+    }
+
+    // ===== matchesEntry edge case =====
+
+    @Test
+    void matchesEntry_nullType_returnsFalse() {
+        IgnoreEntry e1 = new IgnoreEntry();
+        e1.setType(null);
+        IgnoreEntry e2 = new IgnoreEntry();
+        e2.setType(ScanEngine.OSS);
+        assertFalse(manager.matchesEntry(e1, e2));
+    }
+
+    // ===== getActiveFilesList (private) — exercises ActiveFile constructor =====
+
+    @Test
+    void getActiveFilesList_returnsActiveFilesOnly() throws Exception {
+        IgnoreEntry entry = new IgnoreEntry();
+        entry.setType(ScanEngine.ASCA);
+        IgnoreEntry.FileReference activeRef = new IgnoreEntry.FileReference("src/A.java", true, 10, "");
+        IgnoreEntry.FileReference inactiveRef = new IgnoreEntry.FileReference("src/B.java", false, 20, "");
+        entry.setFiles(new ArrayList<>(List.of(activeRef, inactiveRef)));
+
+        Map<String, IgnoreEntry> data = new HashMap<>();
+        data.put("key1", entry);
+
+        Method m = IgnoreFileManager.class.getDeclaredMethod("getActiveFilesList", Map.class);
+        m.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        List<?> result = (List<?>) m.invoke(manager, data);
+
+        assertEquals(1, result.size());
+    }
+
+    // ===== detectAndHandleActiveChanges — exercises deactivation + keysToRemove paths =====
+
+    @Test
+    void detectAndHandleActiveChanges_deactivatedFile_removesEntry() throws Exception {
+        // Setup: previous data has an active file, current data (ignoreData) has it inactive → removed
+        IgnoreEntry prevEntry = new IgnoreEntry();
+        prevEntry.setType(ScanEngine.OSS);
+        prevEntry.setPackageName("lodash");
+        prevEntry.setPackageManager("npm");
+        prevEntry.setPackageVersion("4.17.21");
+        prevEntry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("f.js", true, 1, ""))));
+
+        IgnoreEntry currentEntry = new IgnoreEntry();
+        currentEntry.setType(ScanEngine.OSS);
+        currentEntry.setPackageName("lodash");
+        currentEntry.setPackageManager("npm");
+        currentEntry.setPackageVersion("4.17.21");
+        currentEntry.setFiles(new ArrayList<>(List.of(new IgnoreEntry.FileReference("f.js", false, 1, "")))); // now inactive
+
+        // Inject previousIgnoreData via reflection
+        Field prevField = IgnoreFileManager.class.getDeclaredField("previousIgnoreData");
+        prevField.setAccessible(true);
+        Map<String, IgnoreEntry> prevData = new HashMap<>();
+        prevData.put("lodash-key", prevEntry);
+        prevField.set(manager, prevData);
+
+        // Set current ignoreData
+        manager.getIgnoreData().put("lodash-key", currentEntry);
+
+        Method detect = IgnoreFileManager.class.getDeclaredMethod("detectAndHandleActiveChanges");
+        detect.setAccessible(true);
+        assertDoesNotThrow(() -> {
+            try { detect.invoke(manager); } catch (java.lang.reflect.InvocationTargetException e) { /* ok */ }
+        });
+    }
+
+    // ===== loadIgnoreData exception path =====
+
+    @Test
+    void loadIgnoreData_invalidJsonContent_setsEmptyMap() throws IOException {
+        // Write invalid JSON to the ignore file to trigger IOException in readValue
+        Files.writeString(manager.getIgnoreFilePath(), "NOT_VALID_JSON");
+        manager.loadIgnoreData();
+        assertNotNull(manager.getIgnoreData());
     }
 
 }

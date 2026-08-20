@@ -83,8 +83,10 @@ public final class McpSettingsInjector {
         if (issuer == null || issuer.isBlank()) return FALLBACK_BASE;
         try {
             String host = URI.create(issuer).getHost();
-            if (host != null && host.contains("iam.checkmarx")) {
+            if (host != null && host.contains("iam.")) {
                 host = host.replace("iam", "ast");
+                return "https://" + host;
+            } else if (host != null && !host.isBlank()) {
                 return "https://" + host;
             }
         } catch (Exception e) {

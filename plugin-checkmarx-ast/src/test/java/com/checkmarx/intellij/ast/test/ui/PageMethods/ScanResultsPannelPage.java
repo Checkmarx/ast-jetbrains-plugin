@@ -27,7 +27,8 @@ public class ScanResultsPannelPage {
             SEVERITY_LOW_ICON,
             SEVERITY_MEDIUM_ICON,
             SEVERITY_HIGH_ICON,
-            SEVERITY_CRITICAL_ICON
+            SEVERITY_CRITICAL_ICON,
+            SEVERITY_INFO_ICON
     };
 
     /**
@@ -94,13 +95,11 @@ public class ScanResultsPannelPage {
 
     /**
      * Starts a new scan if the scan button is clickable.
-     * <p>
-     * Checks if the start scan button is clickable and logs the result. Does not actually start the scan (commented out).
      */
     public static void startNewScan() {
         boolean value = isElementClickable(START_SCAN_BTN);
         if (value) {
-            //locateAndClickOnButton(START_SCAN_BTN);
+            locateAndClickOnButton(START_SCAN_BTN);
             log("Scan started successfully.");
         } else {
             log("Start scan button is not clickable.");
@@ -182,6 +181,7 @@ public class ScanResultsPannelPage {
      */
     public static void enterScanIdAndSelect(boolean validScanId) {
         String scanId = validScanId ? Environment.SCAN_ID : "invalid-scan-id";
+        Assertions.assertNotNull(scanId, "CX_TEST_SCAN environment variable is not set");
 
         waitFor(() -> {
             List<JTextFieldFixture> fields =
@@ -242,15 +242,11 @@ public class ScanResultsPannelPage {
     /**
      * Checks all components in the Scan Results panel, including severity icons and filter options.
      * Expands/collapses tree nodes, checks severity icons, and verifies filter/group by menu options.
-     *
-     * @throws InterruptedException if thread sleep is interrupted
      */
-    public static void checkAllTheComponentsInScanResultsPannel() throws InterruptedException {
-        //Expand and collapse all nodes to ensure tree is loaded
+    public static void checkAllTheComponentsInScanResultsPanel() {
         expandAllNodesInTree();
         collapseAllNodesInTree();
 
-        //Check for severity icons
         for (String severityIcon : SEVERITY_ICONS) {
             boolean isIconPresent = isElementClickable(severityIcon);
             if (isIconPresent) {
@@ -260,21 +256,20 @@ public class ScanResultsPannelPage {
             }
         }
 
-        //Check for filter, group by
         locateAndClickOnButton(FILTER_BY_ACTION);
-        Thread.sleep(2000);
+        waitFor(() -> hasAnyComponent(MY_LIST));
         getMenuOptionsWithState();
         log("Confirmed filter selected status: " + getMenuSelectedStatus(CONFIRMED_TEXT));
         Assertions.assertTrue(getMenuSelectedStatus(CONFIRMED_TEXT), "Confirmed filter should be selected by default.");
 
         selectPopupMenuOption(CONFIRMED_TEXT);
         locateAndClickOnButton(FILTER_BY_ACTION);
-        Thread.sleep(2000);
+        waitFor(() -> hasAnyComponent(MY_LIST));
         Assertions.assertFalse(getMenuSelectedStatus(CONFIRMED_TEXT), "Confirmed filter should be unselected after toggling.");
         selectPopupMenuOption(CONFIRMED_TEXT);
 
         locateAndClickOnButton(GROUP_BY_ACTION);
-        Thread.sleep(2000);
+        waitFor(() -> hasAnyComponent(MY_LIST));
         getMenuOptionsWithState();
     }
 
@@ -292,7 +287,7 @@ public class ScanResultsPannelPage {
     /**
      * Validates the result panel by selecting all severities, navigating, expanding nodes, adding a triage comment, and verifying changes.
      */
-    public static void validateResultPannel() {
+    public static void validateResultPanel() {
 
         selectAllSeverities(true);
         navigate("Scan", 2);
