@@ -6,9 +6,8 @@ import com.checkmarx.ast.wrapper.CxWrapper;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Constants;
+import com.checkmarx.intellij.common.utils.PluginVersionProvider;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.intellij.ide.plugins.PluginManagerCore;
-import com.intellij.openapi.extensions.PluginId;
 
 import java.io.IOException;
 
@@ -47,33 +46,13 @@ public class CxWrapperFactory {
     }
 
     /**
-     * Retrieves the plugin version from the plugin descriptor.
-     * Tries both the Checkmarx AST plugin and DevAssist plugin IDs.
+     * Retrieves the plugin version from the generated build-time constant.
+     * Version is embedded during build time and does not rely on runtime plugin introspection.
      *
      * @return plugin version string, or empty string if version cannot be determined
      */
     private static String getPluginVersion() {
-        final String[] pluginIds = {
-            "com.checkmarx.checkmarx-ast-jetbrains-plugin",
-            "com.checkmarx.devassist-jetbrains-plugin"
-        };
-
-        for (String pluginIdStr : pluginIds) {
-            try {
-                final PluginId pluginId = PluginId.getId(pluginIdStr);
-                final var plugin = PluginManagerCore.getPlugin(pluginId);
-                if (plugin != null) {
-                    final String version = plugin.getVersion();
-                    if (version != null && !version.isEmpty()) {
-                        Utils.getLogger(CxWrapperFactory.class).info("Plugin version: " + version);
-                        return version;
-                    }
-                }
-            } catch (Exception e) {
-                Utils.getLogger(CxWrapperFactory.class).debug("Failed to read plugin version for " + pluginIdStr + ": " + e.getMessage());
-            }
-        }
-        return "";
+        return PluginVersionProvider.getPluginVersion();
     }
 
     /**

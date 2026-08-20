@@ -200,6 +200,62 @@ public class OssScannerServiceTest {
         }
     }
 
+    @Test @DisplayName("scan_validContent_withYarnLock_copiesYarnLockFile")
+    void testScan_validContent_withYarnLock_copiesYarnLockFile() throws Exception {
+        Path parent = Files.createTempDirectory("oss-yarn");
+        Files.writeString(parent.resolve("yarn.lock"), "yarn lock content");
+        Path forcedTemp = Files.createTempDirectory("oss-yarn-target");
+        OssScannerService service = spy(new NoDeleteOssScannerService(forcedTemp));
+        PsiFile psi = mockPsiFile("package.json");
+        doReturn(true).when(service).shouldScanFile("package.json",psi);
+        try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
+             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetry = mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class);
+             MockedConstruction<com.checkmarx.intellij.devassist.ignore.IgnoreManager> ignoreMgrConstruction = mockConstruction(com.checkmarx.intellij.devassist.ignore.IgnoreManager.class, (mock, context) -> {
+                 when(mock.hasIgnoredEntries(any())).thenReturn(false);
+             })) {
+            utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
+            utils.when(() -> DevAssistUtils.getIgnoreFilePath(any(com.intellij.openapi.project.Project.class))).thenReturn("");
+            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
+            CxWrapper wrapper = mock(CxWrapper.class);
+            OssRealtimeResults realtimeResults = mock(OssRealtimeResults.class);
+            when(realtimeResults.getPackages()).thenReturn(List.of());
+            when(wrapper.ossRealtimeScan(anyString(), anyString())).thenReturn(realtimeResults);
+            factory.when(CxWrapperFactory::build).thenReturn(wrapper);
+            service.scan(psi, parent.resolve("package.json").toString());
+            assertTrue(Files.exists(forcedTemp.resolve("yarn.lock")), "Yarn lock file should be copied to temp folder");
+        }
+    }
+
+    @Test @DisplayName("scan_validContent_withBothNpmAndYarnLocks_copiesBoth")
+    void testScan_validContent_withBothNpmAndYarnLocks_copiesBoth() throws Exception {
+        Path parent = Files.createTempDirectory("oss-both");
+        Files.writeString(parent.resolve("package-lock.json"), "npm lock");
+        Files.writeString(parent.resolve("yarn.lock"), "yarn lock");
+        Path forcedTemp = Files.createTempDirectory("oss-both-target");
+        OssScannerService service = spy(new NoDeleteOssScannerService(forcedTemp));
+        PsiFile psi = mockPsiFile("package.json");
+        doReturn(true).when(service).shouldScanFile("package.json",psi);
+        try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
+             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetry = mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class);
+             MockedConstruction<com.checkmarx.intellij.devassist.ignore.IgnoreManager> ignoreMgrConstruction = mockConstruction(com.checkmarx.intellij.devassist.ignore.IgnoreManager.class, (mock, context) -> {
+                 when(mock.hasIgnoredEntries(any())).thenReturn(false);
+             })) {
+            utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
+            utils.when(() -> DevAssistUtils.getIgnoreFilePath(any(com.intellij.openapi.project.Project.class))).thenReturn("");
+            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
+            CxWrapper wrapper = mock(CxWrapper.class);
+            OssRealtimeResults realtimeResults = mock(OssRealtimeResults.class);
+            when(realtimeResults.getPackages()).thenReturn(List.of());
+            when(wrapper.ossRealtimeScan(anyString(), anyString())).thenReturn(realtimeResults);
+            factory.when(CxWrapperFactory::build).thenReturn(wrapper);
+            service.scan(psi, parent.resolve("package.json").toString());
+            assertTrue(Files.exists(forcedTemp.resolve("package-lock.json")), "Package-lock.json should be copied to temp folder");
+            assertTrue(Files.exists(forcedTemp.resolve("yarn.lock")), "Yarn.lock should be copied to temp folder");
+        }
+    }
+
     @Test @DisplayName("scan_wrapperThrowsIOException_returnsNull")
     void testScan_wrapperThrowsIOException_returnsNull() throws Exception {
         Path temp = Files.createTempDirectory("oss-ioe");
