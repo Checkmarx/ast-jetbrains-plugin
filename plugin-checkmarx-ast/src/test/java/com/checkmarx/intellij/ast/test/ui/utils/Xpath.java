@@ -90,7 +90,7 @@ public class Xpath {
     static final String TRIAGE_LOW = "//div[@class='ComboBox'][.//div[@visible_text='LOW']]";
     @Language("XPath")
     public
-    static final String TRIAGE_CONFIRMED = "//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]";
+    static final String TRIAGE_STATE_COMBOBOX = "//div[@class='ComboBox'][.//div[@visible_text='%s']]";
     @Language("XPath")
     public
     static final String TRIAGE_COMMENT = "//div[@class='JTextField']";
@@ -185,6 +185,9 @@ public class Xpath {
     @Language("XPath")
     public
     static final String OAUTH_POPUP_CANCEL_BUTTON = "//div[@class='JPanel'][.//div[@class='InplaceButton']]//div[@text='Cancel']";
+    @Language("XPath")
+    public
+    static final String OAUTH_CONFIRMATION_POPUP = "//div[@class='JDialog'][.//div[@class='InplaceButton']]";
     @Language("XPath")
     public static final String INVALID_BASE_URL_ERROR =
             "//div[@accessiblename='Please check the server address of your Checkmarx One environment.' and @class='JBLabel' and @text='<html>Please check the server address of your Checkmarx One environment.</html>']";
