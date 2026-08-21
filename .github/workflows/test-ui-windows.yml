@@ -28,7 +28,7 @@ jobs:
   testUI: # zizmor: ignore[anonymous-definition]
     permissions:
       contents: read
-    runs-on: windows-latest
+    runs-on: cx-public-windows-x64
     steps:
       # Check out current repository
       - name: Fetch Sources
