@@ -92,3 +92,8 @@ runPluginVerifier {
 [verifyPlugin, runPluginVerifier, buildSearchableOptions, patchPluginXml].each {
     tasks.named(it.name) { enabled = false }
 }
+
+runIdeForUiTests {
+    enabled = false
+    dependsOn ':plugin-checkmarx-ast:runIdeForUiTests'
+}
