@@ -8,8 +8,10 @@ import com.checkmarx.intellij.ast.window.actions.selection.ScanSelectionGroup;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindowManager;
+import org.mockito.MockedStatic;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -51,8 +53,16 @@ class RootGroupTest {
         ToolWindowManager toolWindowManager = mock(ToolWindowManager.class);
         when(project.getService(ToolWindowManager.class)).thenReturn(toolWindowManager);
 
-        try (MockedStatic<ToolWindowManager> twmMock = mockStatic(ToolWindowManager.class)) {
+        try (MockedStatic<ToolWindowManager> twmMock = mockStatic(ToolWindowManager.class);
+             MockedStatic<ActionManager> amMock = mockStatic(ActionManager.class)) {
             twmMock.when(() -> ToolWindowManager.getInstance(project)).thenReturn(toolWindowManager);
+
+            ActionManager mockActionManager = mock(ActionManager.class);
+            com.intellij.openapi.actionSystem.AnAction registered = mock(com.intellij.openapi.actionSystem.AnAction.class);
+            com.intellij.openapi.actionSystem.Presentation regPres = mock(com.intellij.openapi.actionSystem.Presentation.class);
+            when(registered.getTemplatePresentation()).thenReturn(regPres);
+            when(mockActionManager.getAction("Checkmarx.ResetSelection")).thenReturn(registered);
+            amMock.when(ActionManager::getInstance).thenReturn(mockActionManager);
 
             setField(root, "project", project);
             setField(root, "projectSelectionGroup", projectGroup);
@@ -65,7 +75,8 @@ class RootGroupTest {
             verify(projectGroup).setEnabled(false);
             verify(branchGroup).setEnabled(false);
             verify(scanGroup).setEnabled(false);
-            verify(resetAction).setEnabled(false);
+            // Verify the registered presentation was disabled
+            verify(regPres).setEnabled(false);
             assertEquals(ActionUpdateThread.EDT, root.getActionUpdateThread());
         }
     }

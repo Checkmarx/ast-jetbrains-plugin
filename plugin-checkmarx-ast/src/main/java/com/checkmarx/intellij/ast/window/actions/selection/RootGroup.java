@@ -2,7 +2,10 @@ package com.checkmarx.intellij.ast.window.actions.selection;
 
 import com.checkmarx.intellij.ast.commands.Scan;
 import com.checkmarx.intellij.ast.window.actions.CxToolWindowAction;
+import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.DumbAware;
@@ -67,7 +70,12 @@ public class RootGroup extends DefaultActionGroup implements DumbAware, CxToolWi
         branchSelectionGroup.setEnabled(enabled);
         scanSelectionGroup.setEnabled(enabled);
         if (resetSelectionAction != null) {
-            resetSelectionAction.setEnabled(enabled);
+            AnAction registered = Utils.getResetSelectionAction();
+            if (registered != null) {
+                registered.getTemplatePresentation().setEnabled(enabled);
+            } else {
+                resetSelectionAction.setEnabled(enabled);
+            }
         }
         refreshPanel(project);
     }
