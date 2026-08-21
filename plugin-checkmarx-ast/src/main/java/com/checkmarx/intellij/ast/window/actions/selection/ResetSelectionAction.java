@@ -3,8 +3,10 @@ package com.checkmarx.intellij.ast.window.actions.selection;
 import com.checkmarx.intellij.ast.window.actions.CxToolWindowAction;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
+import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import lombok.Getter;
@@ -31,7 +33,10 @@ public class ResetSelectionAction extends AnAction implements CxToolWindowAction
     @Override
     public void update(@NotNull AnActionEvent e) {
         super.update(e);
-        e.getPresentation().setEnabled(isEnabled());
+        // Use the registered action presentation as the single source of truth for toolbar enablement
+        AnAction registered = Utils.getResetSelectionAction();
+        boolean enabledState = registered != null ? registered.getTemplatePresentation().isEnabled() : isEnabled();
+        e.getPresentation().setEnabled(enabledState);
     }
 
     /**
@@ -41,7 +46,13 @@ public class ResetSelectionAction extends AnAction implements CxToolWindowAction
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Optional.ofNullable(getCxToolWindowPanel(e)).ifPresent(cxToolWindowPanel -> {
-            setEnabled(false);
+            // Disable the canonical (registered) action presentation so toolbar visuals update regardless of instance identity
+            AnAction registered = Utils.getResetSelectionAction();
+            if (registered != null) {
+                registered.getTemplatePresentation().setEnabled(false);
+            } else {
+                setEnabled(false);
+            }
             cxToolWindowPanel.refreshPanel();
             cxToolWindowPanel.resetPanel();
         });

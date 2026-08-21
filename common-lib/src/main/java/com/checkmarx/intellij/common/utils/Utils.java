@@ -14,6 +14,7 @@ import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationAction;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -495,6 +496,19 @@ public final class Utils {
         } catch (Exception e) {
             LOGGER.warn("Failed to get plugin display name, exception: {}", e);
             return Constants.TOOL_WINDOW_ID;
+        }
+    }
+
+    /**
+     * Getting the reset selection action
+     * @return reset selection action
+     */
+    public static AnAction getResetSelectionAction(){
+        try {
+            return ActionManager.getInstance().getAction(Constants.RESET_SELECTION_ACTION);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to get reset selection action, exception: {}", e);
+            return null;
         }
     }
 }
