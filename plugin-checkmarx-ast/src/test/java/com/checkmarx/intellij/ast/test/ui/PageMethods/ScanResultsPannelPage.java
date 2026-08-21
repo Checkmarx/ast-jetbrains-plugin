@@ -159,16 +159,6 @@ public class ScanResultsPannelPage {
         }
     }
 
-    /**
-     * Applies filters by clicking the filter action button and selecting the given filter option from the popup menu.
-     *
-     * @param filterOption The filter option to select from the popup menu.
-     */
-    public static void applyFilters(String filterOption) {
-        locateAndClickOnButton(FILTER_BY_ACTION);
-        selectPopupMenuOption(filterOption);
-
-    }
 
     /**
      * Selects the group by option by clicking the group by action button and selecting the given option from the popup menu.
@@ -340,8 +330,11 @@ public class ScanResultsPannelPage {
         List<String> rows = tree.collectRows();
 
         log("Sent Vulnerability Name "+name);
+        // Match the leaf row exactly. A "contains" match would also hit the group
+        // header row (e.g. "Missing User Instruction (1)"), which sits above the
+        // severity sub-node (e.g. "LOW (1)") and the actual leaf row in the tree.
         Optional<Integer> indexOpt = IntStream.range(0, rows.size())
-                .filter(i -> rows.get(i).contains(name))
+                .filter(i -> rows.get(i).trim().equals(name))
                 .boxed()
                 .findFirst();
 
@@ -350,7 +343,7 @@ public class ScanResultsPannelPage {
         int index = indexOpt.get();
 
         waitFor(() -> {
-            tree.clickRow(index+1);   // THIS is the key
+            tree.clickRow(index);
             return findAll(LINK_LABEL).size() > 0;
         });
     }
@@ -431,6 +424,9 @@ public class ScanResultsPannelPage {
                 "Medium severity should be selected by default");
         Assertions.assertTrue(isComponentSelected(SEVERITY_LOW_ICON),
                 "Low severity should be selected by default");
+        Assertions.assertFalse(isComponentSelected(SEVERITY_INFO_ICON),
+                "Info severity should NOT be selected by default");
+        log("All default severity filters are correctly selected/deselected");
     }
 
     public static void verifyLocalBranchOptionPresent() {
@@ -635,6 +631,55 @@ public class ScanResultsPannelPage {
             }
         }
         return order;
+    }
+
+    /**
+     * Verifies that toggling a specific severity filter icon hides/shows the corresponding nodes in the tree.
+     * Steps: enable all severities, expand tree, count nodes of target severity,
+     * disable target severity, verify those nodes disappear, re-enable, verify they reappear.
+     */
+    public static void verifySeverityFilterToggles(String severityIcon, String severityName) {
+        selectAllSeverities(true);
+        expandAllNodesInTree();
+
+        // Count tree nodes containing the severity name before disabling
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
+        long countBefore = tree.collectRows().stream()
+                .filter(row -> row.toLowerCase().contains(severityName))
+                .count();
+        log(severityName + " nodes before disabling filter: " + countBefore);
+
+        // Disable the target severity
+        changeSeveritySelection(severityIcon, false);
+
+        // Wait for tree to collapse/reload after filter change, then expand
+        sleep(2000);
+        expandAllNodesInTree();
+
+        // Verify nodes of that severity are no longer visible
+        waitFor(() -> {
+            JTreeFixture updatedTree = find(JTreeFixture.class, TREE);
+            return updatedTree.collectRows().stream()
+                    .noneMatch(row -> row.toLowerCase().contains(severityName));
+        });
+        log(severityName + " nodes hidden after disabling filter");
+
+        // Re-enable the severity
+        changeSeveritySelection(severityIcon, true);
+
+        // Wait for tree to collapse/reload after filter change, then expand
+        sleep(2000);
+        expandAllNodesInTree();
+
+        // Verify nodes reappear
+        if (countBefore > 0) {
+            waitFor(() -> {
+                JTreeFixture restoredTree = find(JTreeFixture.class, TREE);
+                return restoredTree.collectRows().stream()
+                        .anyMatch(row -> row.toLowerCase().contains(severityName));
+            });
+            log(severityName + " nodes visible again after re-enabling filter");
+        }
     }
 
 }
