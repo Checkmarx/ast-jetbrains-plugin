@@ -5,7 +5,6 @@ import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -114,7 +113,7 @@ public class ProjectSelectionGroup extends BaseSelectionGroup {
             }
             setEnabled(true);
             // Ensure the toolbar's canonical action presentation is enabled so the UI button becomes clickable again
-            AnAction registered = Utils.getResetSelectionAction();
+            AnAction registered = ResetSelectionAction.getResetSelectionAction();
             if (registered != null) {
                 registered.getTemplatePresentation().setEnabled(true);
             } else if (resetSelectionAction != null) {

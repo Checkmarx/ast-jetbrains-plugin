@@ -498,17 +498,4 @@ public final class Utils {
             return Constants.TOOL_WINDOW_ID;
         }
     }
-
-    /**
-     * Getting the reset selection action
-     * @return reset selection action
-     */
-    public static AnAction getResetSelectionAction(){
-        try {
-            return ActionManager.getInstance().getAction(Constants.RESET_SELECTION_ACTION);
-        } catch (Exception e) {
-            LOGGER.warn("Failed to get reset selection action, exception: {}", e);
-            return null;
-        }
-    }
 }

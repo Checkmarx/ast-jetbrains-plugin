@@ -70,7 +70,7 @@ public class RootGroup extends DefaultActionGroup implements DumbAware, CxToolWi
         branchSelectionGroup.setEnabled(enabled);
         scanSelectionGroup.setEnabled(enabled);
         if (resetSelectionAction != null) {
-            AnAction registered = Utils.getResetSelectionAction();
+            AnAction registered = ResetSelectionAction.getResetSelectionAction();
             if (registered != null) {
                 registered.getTemplatePresentation().setEnabled(enabled);
             } else {
