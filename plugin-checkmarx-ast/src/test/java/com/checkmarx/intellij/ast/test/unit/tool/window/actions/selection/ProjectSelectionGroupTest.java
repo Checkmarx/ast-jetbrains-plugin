@@ -58,12 +58,21 @@ class ProjectSelectionGroupTest {
     private ProjectSelectionGroup projectSelectionGroup;
 
     private MockedStatic<ActionManager> actionManagerMock;
+    private ActionManager mockActionManager;
+    private com.intellij.openapi.actionSystem.AnAction mockRegisteredAction;
+    private com.intellij.openapi.actionSystem.Presentation mockRegisteredPresentation;
 
     @BeforeEach
     void setUp() {
         lenient().when(mockIdeProject.getService(PropertiesComponent.class)).thenReturn(mockPropertiesComponent);
+        mockActionManager = mock(ActionManager.class);
+        mockRegisteredAction = mock(com.intellij.openapi.actionSystem.AnAction.class);
+        mockRegisteredPresentation = mock(com.intellij.openapi.actionSystem.Presentation.class);
+        when(mockRegisteredAction.getTemplatePresentation()).thenReturn(mockRegisteredPresentation);
+        when(mockActionManager.getAction("Checkmarx.ResetSelection")).thenReturn(mockRegisteredAction);
+
         actionManagerMock = mockStatic(ActionManager.class);
-        actionManagerMock.when(ActionManager::getInstance).thenReturn(mock(ActionManager.class));
+        actionManagerMock.when(ActionManager::getInstance).thenReturn(mockActionManager);
     }
 
     @org.junit.jupiter.api.AfterEach
@@ -415,8 +424,8 @@ class ProjectSelectionGroupTest {
             projectSelectionGroup = buildProjectSelectionGroup(
                     List.of(p), propsMock, appMock, cfMock, projectCmd, twmMock, app);
 
-            // resetSelectionAction.setEnabled(true) must be called
-            verify(mockResetSelectionAction).setEnabled(true);
+            // registered action presentation should be enabled
+            verify(mockRegisteredPresentation).setEnabled(true);
         }
     }
 
