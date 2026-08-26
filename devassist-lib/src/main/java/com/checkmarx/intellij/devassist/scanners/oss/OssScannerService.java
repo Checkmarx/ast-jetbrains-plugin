@@ -11,6 +11,7 @@ import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.utils.PackageManagerMapper;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -167,31 +168,33 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
 
 
     /**
-     * Copies a companion lock file (e.g., package-lock.json) into the temporary directory
-     * when it exists alongside the scanned manifest.
+     * Copies companion lock files (e.g., package-lock.json, yarn.lock) into the temporary directory
+     * when they exist alongside the scanned manifest.
      *
-     * @param tempFolderPath   temp directory where the companion file should be written
-     * @param originalFilePath original manifest path used to locate the companion file
+     * @param tempFolderPath   temp directory where companion files should be written
+     * @param originalFilePath original manifest path used to locate companion files
      */
     private void saveCompanionFile(Path tempFolderPath, String originalFilePath) {
         if (originalFilePath.isEmpty() || Objects.isNull(tempFolderPath)) {
             return;
         }
         String parentFileName = getPath(originalFilePath).getFileName().toString();
-        String companionFileName = getCompanionFileName(parentFileName);
-        if (companionFileName.isEmpty()) {
+        List<String> companionFileNames = PackageManagerMapper.getCompanionFileNames(parentFileName);
+        if (companionFileNames.isEmpty()) {
             return;
         }
         Path parentPath = getPath(originalFilePath).getParent();
-        Path companionOriginalPath = Paths.get(parentPath.toString(), companionFileName);
-        if (!Files.exists(companionOriginalPath)) {
-            return;
-        }
-        Path companionTempPath = Paths.get(tempFolderPath.toString(), companionFileName);
-        try {
-            Files.copy(companionOriginalPath, companionTempPath, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            LOGGER.warn("Error occurred while saving companion file: " + e);
+        for (String companionFileName : companionFileNames) {
+            Path companionOriginalPath = Paths.get(parentPath.toString(), companionFileName);
+            if (!Files.exists(companionOriginalPath)) {
+                continue;
+            }
+            Path companionTempPath = Paths.get(tempFolderPath.toString(), companionFileName);
+            try {
+                Files.copy(companionOriginalPath, companionTempPath, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                LOGGER.warn("Error occurred while saving companion file: " + e);
+            }
         }
     }
 
@@ -206,22 +209,6 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
         return Paths.get(file);
     }
 
-
-    /**
-     * Infers a companion lock file name based on the manifest file name.
-     *
-     * @param fileName name of the manifest file
-     * @return companion file name or an empty string when no companion is defined
-     */
-    private String getCompanionFileName(String fileName) {
-        if (fileName.equals("package.json")) {
-            return "package-lock.json";
-        }
-        if (fileName.contains(".csproj")) {
-            return "package.lock.json";
-        }
-        return "";
-    }
 
     /**
      * Scans the given Psi file using OssScanner wrapper method.

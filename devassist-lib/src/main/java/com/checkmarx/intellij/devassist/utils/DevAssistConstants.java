@@ -81,22 +81,45 @@ public final class DevAssistConstants {
 
     // Manifest file patterns constant
     public static final List<String> MANIFEST_FILE_PATTERNS = List.of(
+            // .NET
             "**/Directory.Packages.props",
             "**/packages.config",
+            "**/*.csproj",
+            // Maven
             "**/pom.xml",
+            // npm
             "**/package.json",
+            // Bower
+            "**/bower.json",
+            // Python
             "**/requirement*.txt",
+            "**/constraints.txt",
+            "**/constraints-*.txt",
             "**/pyproject.toml",
             "**/setup.cfg",
             "**/setup.py",
+            // Go
             "**/go.mod",
-            "**/*.csproj",
+            // Gradle
             "**/*.gradle",
             "**/*.gradle.kts",
-            "**/*.sbt",
             "**/libs.versions.toml",
-            "**/constraints.txt",
-            "**/constraints-*.txt"
+            // SBT
+            "**/*.sbt",
+            // Ruby
+            "**/Gemfile",
+            // PHP Composer
+            "**/composer.json"
+            // TODO: iOS packages (CocoaPods, Carthage, Swift Package Manager) OSS realtime scanning will be enabled in future releases
+            // "**/Podfile",
+            // "**/*.podspec",
+            // "**/*.podspec.json",
+            // "**/Cartfile",
+            // "**/Cartfile.private",
+            // "**/Package.swift",
+            // "**/Package@swift-*.swift",
+            // TODO: Dart/Flutter pub OSS realtime scanning will be enabled in future releases
+            // "**/pubspec.yaml"
     );
 
     public static final List<String> CONTAINERS_FILE_PATTERNS = List.of(
