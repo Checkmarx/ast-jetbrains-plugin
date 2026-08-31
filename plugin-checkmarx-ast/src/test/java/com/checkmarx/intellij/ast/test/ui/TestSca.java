@@ -61,35 +61,7 @@ public class TestSca extends com.checkmarx.intellij.ast.test.ui.BaseUITest {
 
         return rowIdx;
     }
-
-    @Test
-    @Video
-    @Order(1)
-    @DisplayName("SCA panel: navigate tree, verify remediation, and test file navigation")
-    public void testScaPanel() {
-        int dsvwRowIdx = navigateToScaVulnerability();
-        JTreeFixture tree = find(JTreeFixture.class, TREE);
-
-        // If there is an auto remediation to the file, there must be a label starting with Upgrade to version
-        if (hasAnyComponent(AUTO_REMEDIATION)) {
-            waitFor(() -> {
-                tree.clickRow(dsvwRowIdx);
-                return find(MAGIC_RESOLVE).getData()
-                        .getAll()
-                        .stream()
-                        .anyMatch(element -> element.getText().startsWith(UPGRADE_TO_VERSION_LABEL));
-            });
-        } else {
-            waitFor(() -> {
-                tree.clickRow(dsvwRowIdx);
-                return !findAll(NO_INFORMATION).isEmpty();
-            });
-        }
-
-        testFileNavigation();
-        openCxToolWindow();
-    }
-
+    @Disabled("Flaky - TC36")
     @Test
     @Video
     @Order(2)

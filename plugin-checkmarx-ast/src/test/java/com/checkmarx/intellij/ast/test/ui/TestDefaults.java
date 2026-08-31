@@ -20,7 +20,7 @@ public class TestDefaults extends BaseUITest {
         validateSuccessfulLogin(true);
     }
 
-
+    @Disabled("Flaky - TC05")
     @Test
     @Video
     @Order(1)

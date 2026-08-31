@@ -95,6 +95,13 @@ public class CheckmarxSettingsPage {
                 && hasAnyComponent(WELCOME_PAGE_IMAGE));
         String welcomeTitle = getText(WELCOME_TITLE);
         Assertions.assertEquals("Welcome to Checkmarx", welcomeTitle);
+
+        // Ensure the Code Smart with Checkmarx One Assist checkbox reflects the expected default,
+        // selecting it if it should be on by default but isn't.
+        if (isCodeSmartSelectedByDefault && !isComponentSelected(CODE_SMART_CHECKBOX)) {
+            click(CODE_SMART_CHECKBOX);
+        }
+
         // Wait for the checkbox selection state to match the expected default
         waitFor(() -> isComponentSelected(CODE_SMART_CHECKBOX) == isCodeSmartSelectedByDefault);
         boolean checkBoxSelected = isComponentSelected(CODE_SMART_CHECKBOX);

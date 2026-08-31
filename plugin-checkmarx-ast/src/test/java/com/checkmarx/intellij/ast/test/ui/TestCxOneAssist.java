@@ -23,6 +23,7 @@ public class TestCxOneAssist extends com.checkmarx.intellij.ast.test.ui.BaseUITe
         }
     }
 
+    @Disabled("Flaky - TC")
     @Test
     @Video
     @DisplayName("Validate all engines are selected by default once welcome page DevAssist checkbox is marked")

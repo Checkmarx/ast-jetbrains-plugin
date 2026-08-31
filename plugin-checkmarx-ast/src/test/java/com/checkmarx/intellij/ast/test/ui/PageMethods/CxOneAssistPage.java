@@ -57,6 +57,7 @@ public class CxOneAssistPage {
 
     public static void validateAllEnginesAreSelected() {
         for (String xpath : engineXpaths) {
+            waitFor(() -> isComponentSelected(xpath));
             boolean value = isComponentSelected(xpath);
             Assertions.assertTrue(value, "Expected engine checkbox to be selected: " + xpath);
         }

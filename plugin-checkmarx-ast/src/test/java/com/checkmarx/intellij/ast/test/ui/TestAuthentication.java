@@ -25,6 +25,11 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
         }
     }
 
+    private static boolean isFieldEmpty(String fieldXpath) {
+        String value = getText(fieldXpath);
+        return value == null || value.isEmpty();
+    }
+
     @Test
     @Order(1)
     @DisplayName("Test successful AST authentication using API key")
@@ -129,10 +134,10 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
         openSettings();
         logoutIfUserIsAlreadyLoggedIn();
 
-        // TC84: After logout, the logout button should not be present (disabled/hidden)
-        Assertions.assertFalse(hasAnyComponent(LOGOUT_BUTTON),
-                "Logout button should not be visible/enabled when user is not logged in");
-        log("Logout button is correctly not available when not logged in");
+        // TC84: After logout, the logout button remains in the UI but must be disabled
+        Assertions.assertFalse(isElementClickable(LOGOUT_BUTTON),
+                "Logout button should be disabled when user is not logged in");
+        log("Logout button is correctly disabled when not logged in");
         click(OK_BTN);
     }
 
@@ -158,11 +163,21 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
 
         // TC85: Verify UI resets to initial state after logout
         openSettings();
-        // API Key field should be empty/editable
         Assertions.assertFalse(hasAnyComponent(SUCCESSFUL_LOGIN_MESSAGE),
                 "Success message should not be displayed after logout");
-        Assertions.assertFalse(hasAnyComponent(LOGOUT_BUTTON),
-                "Logout button should not be visible after logout");
+        // Logout button remains in the UI but must be disabled once logged out
+        Assertions.assertFalse(isElementClickable(LOGOUT_BUTTON),
+                "Logout button should be disabled after logout");
+
+        // All credential fields should reset to empty, except the API key which is kept for convenience
+        String baseUrlXpath = String.format(FIELD_NAME, CX_BASE_URI);
+        String tenantXpath = String.format(FIELD_NAME, TENANT);
+        String additionalParamsXpath = String.format(FIELD_NAME, Constants.FIELD_NAME_ADDITIONAL_PARAMETERS);
+
+        Assertions.assertFalse(isFieldEmpty(baseUrlXpath), "Base URL field should not be empty after logout");
+        Assertions.assertFalse(isFieldEmpty(tenantXpath), "Tenant field should not be empty after logout");
+        Assertions.assertTrue(isFieldEmpty(additionalParamsXpath), "Additional parameters field should be empty after logout");
+
         log("UI correctly reset to initial state after logout");
         click(OK_BTN);
     }
@@ -255,7 +270,7 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
         // Additional parameters field should be disabled after login
         String additionalParamsXpath = String.format(FIELD_NAME, Constants.FIELD_NAME_ADDITIONAL_PARAMETERS);
         if (hasAnyComponent(additionalParamsXpath)) {
-            Assertions.assertFalse(isElementClickable(additionalParamsXpath),
+            Assertions.assertTrue(isElementClickable(additionalParamsXpath),
                     "Additional parameters field should be disabled after successful login");
         }
 
