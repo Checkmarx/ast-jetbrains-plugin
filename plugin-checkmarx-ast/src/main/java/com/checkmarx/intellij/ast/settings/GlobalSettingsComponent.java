@@ -808,6 +808,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
         if (!SETTINGS_STATE.isApiKeyEnabled()) { // if oauth login is enabled
             SENSITIVE_SETTINGS_STATE.deleteRefreshToken();
         }
+        // Reset additional parameters on logout; API key, base URL and tenant are kept for convenience on next login
+        additionalParametersField.setText("");
         apply();
         updateConnectButtonState(); // Ensure the Connect button state is updated
 

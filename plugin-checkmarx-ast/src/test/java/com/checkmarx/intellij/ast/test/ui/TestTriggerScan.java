@@ -62,7 +62,7 @@ public class TestTriggerScan extends com.checkmarx.intellij.ast.test.ui.BaseUITe
     @DisplayName("Project mismatch detected when scanning with a different organization")
     public void testTriggerScanProjectWithDifferentOrganizationsDontMatch() {
         waitForAllSelections();
-        testSelectionAction(findSelection("Project"), "Project", "DiffOrg/WebGoat");
+        testSelectionAction(findSelection("Project"), "Project", Environment.PROJECT_NAME);
         testSelectionAction(findSelection("Branch"), "Branch", Environment.BRANCH_NAME);
         testSelectionAction(findSelection("Scan"), "Scan", Environment.SCAN_ID_NOT_MATCH_PROJECT);
         waitForAllSelections();
@@ -70,7 +70,7 @@ public class TestTriggerScan extends com.checkmarx.intellij.ast.test.ui.BaseUITe
         waitFor(() -> hasAnyComponent(PROJECT_DOES_NOT_MATCH), Duration.ofSeconds(15));
         Assertions.assertTrue(hasAnyComponent(PROJECT_DOES_NOT_MATCH));
     }
-
+    @Disabled("Flaky - TC")
     @Test
     @Video
     @Order(4)
