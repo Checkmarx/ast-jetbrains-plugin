@@ -403,7 +403,6 @@ jobs:
       - name: Publish Plugin
         if: ${{ inputs.publish == true }}
         env:
-          PUBLISH_TOKEN: ${{ env.JETBRAINS_TOKEN }}
           INPUT_RCHANNELS: ${{ inputs.rchannels }}
           RELEASE_TYPE: ${{ needs.resolve.outputs.releaseType }}
           AST_VERSION: ${{ needs.resolve.outputs.ast_version }}
