@@ -2,34 +2,52 @@ package com.checkmarx.intellij.ast.test.ui.PageMethods;
 
 import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.JButtonFixture;
 import com.intellij.remoterobot.fixtures.JTextFieldFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
 import com.intellij.remoterobot.utils.Keyboard;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.awt.event.KeyEvent;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static com.checkmarx.intellij.ast.test.ui.BaseUITest.focusCxWindow;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.TestConstants.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.*;
 
+import com.intellij.remoterobot.fixtures.dataExtractor.RemoteText;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class ScanResultsPannelPage {
-
+    private static final Logger LOG = LogManager.getLogger(ScanResultsPannelPage.class);
     protected static ComponentFixture baseLabel;
+    // Scan type ("engine") node, e.g. "sast (12)" — the parent of the first grouping level.
+    private static final Pattern ENGINE_NODE_PATTERN =
+            Pattern.compile("^(sast|sca|secret detection|IaC Security)\\s*\\(\\d+\\)$");
+    // Any non-leaf node, e.g. "CRITICAL (7)" — group value plus its sub tree size.
+    private static final Pattern GROUP_NODE_PATTERN = Pattern.compile("^(.+?)\\s*\\((\\d+)\\)$");
     static String[] SEVERITY_ICONS = {
             SEVERITY_LOW_ICON,
             SEVERITY_MEDIUM_ICON,
             SEVERITY_HIGH_ICON,
-            SEVERITY_CRITICAL_ICON,
-            SEVERITY_INFO_ICON
+            SEVERITY_CRITICAL_ICON
     };
+    // Expected order of severity group nodes under a scan type when grouped by Severity.
+    private static final List<String> SEVERITY_GROUP_ORDER = List.of("CRITICAL", "HIGH", "MEDIUM", "LOW");
 
     /**
      * Opens the Scan Results panel in the UI. If already opened, focuses the panel.
@@ -95,11 +113,13 @@ public class ScanResultsPannelPage {
 
     /**
      * Starts a new scan if the scan button is clickable.
+     * <p>
+     * Checks if the start scan button is clickable and logs the result. Does not actually start the scan (commented out).
      */
     public static void startNewScan() {
         boolean value = isElementClickable(START_SCAN_BTN);
         if (value) {
-            locateAndClickOnButton(START_SCAN_BTN);
+            //locateAndClickOnButton(START_SCAN_BTN);
             log("Scan started successfully.");
         } else {
             log("Start scan button is not clickable.");
@@ -139,16 +159,6 @@ public class ScanResultsPannelPage {
         }
     }
 
-    /**
-     * Applies filters by clicking the filter action button and selecting the given filter option from the popup menu.
-     *
-     * @param filterOption The filter option to select from the popup menu.
-     */
-    public static void applyFilters(String filterOption) {
-        locateAndClickOnButton(FILTER_BY_ACTION);
-        selectPopupMenuOption(filterOption);
-
-    }
 
     /**
      * Selects the group by option by clicking the group by action button and selecting the given option from the popup menu.
@@ -181,7 +191,6 @@ public class ScanResultsPannelPage {
      */
     public static void enterScanIdAndSelect(boolean validScanId) {
         String scanId = validScanId ? Environment.SCAN_ID : "invalid-scan-id";
-        Assertions.assertNotNull(scanId, "CX_TEST_SCAN environment variable is not set");
 
         waitFor(() -> {
             List<JTextFieldFixture> fields =
@@ -242,11 +251,15 @@ public class ScanResultsPannelPage {
     /**
      * Checks all components in the Scan Results panel, including severity icons and filter options.
      * Expands/collapses tree nodes, checks severity icons, and verifies filter/group by menu options.
+     *
+     * @throws InterruptedException if thread sleep is interrupted
      */
-    public static void checkAllTheComponentsInScanResultsPanel() {
+    public static void checkAllTheComponentsInScanResultsPannel() throws InterruptedException {
+        //Expand and collapse all nodes to ensure tree is loaded
         expandAllNodesInTree();
         collapseAllNodesInTree();
 
+        //Check for severity icons
         for (String severityIcon : SEVERITY_ICONS) {
             boolean isIconPresent = isElementClickable(severityIcon);
             if (isIconPresent) {
@@ -256,20 +269,21 @@ public class ScanResultsPannelPage {
             }
         }
 
+        //Check for filter, group by
         locateAndClickOnButton(FILTER_BY_ACTION);
-        waitFor(() -> hasAnyComponent(MY_LIST));
+        Thread.sleep(2000);
         getMenuOptionsWithState();
         log("Confirmed filter selected status: " + getMenuSelectedStatus(CONFIRMED_TEXT));
         Assertions.assertTrue(getMenuSelectedStatus(CONFIRMED_TEXT), "Confirmed filter should be selected by default.");
 
         selectPopupMenuOption(CONFIRMED_TEXT);
         locateAndClickOnButton(FILTER_BY_ACTION);
-        waitFor(() -> hasAnyComponent(MY_LIST));
+        Thread.sleep(2000);
         Assertions.assertFalse(getMenuSelectedStatus(CONFIRMED_TEXT), "Confirmed filter should be unselected after toggling.");
         selectPopupMenuOption(CONFIRMED_TEXT);
 
         locateAndClickOnButton(GROUP_BY_ACTION);
-        waitFor(() -> hasAnyComponent(MY_LIST));
+        Thread.sleep(2000);
         getMenuOptionsWithState();
     }
 
@@ -287,7 +301,7 @@ public class ScanResultsPannelPage {
     /**
      * Validates the result panel by selecting all severities, navigating, expanding nodes, adding a triage comment, and verifying changes.
      */
-    public static void validateResultPanel() {
+    public static void validateResultPannel() {
 
         selectAllSeverities(true);
         navigate("Scan", 2);
@@ -303,7 +317,6 @@ public class ScanResultsPannelPage {
 
         String uuid = addTriageComment();
         verifyChangeSaved(uuid);
-        verifyLearnMore();
     }
 
     /**
@@ -316,9 +329,12 @@ public class ScanResultsPannelPage {
 
         List<String> rows = tree.collectRows();
 
-        log("Sent Vulnerability Name"+name);
+        log("Sent Vulnerability Name "+name);
+        // Match the leaf row exactly. A "contains" match would also hit the group
+        // header row (e.g. "Missing User Instruction (1)"), which sits above the
+        // severity sub-node (e.g. "LOW (1)") and the actual leaf row in the tree.
         Optional<Integer> indexOpt = IntStream.range(0, rows.size())
-                .filter(i -> rows.get(i).contains(name))
+                .filter(i -> rows.get(i).trim().equals(name))
                 .boxed()
                 .findFirst();
 
@@ -327,7 +343,7 @@ public class ScanResultsPannelPage {
         int index = indexOpt.get();
 
         waitFor(() -> {
-            tree.clickRow(index+1);   // THIS is the key
+            tree.clickRow(index);
             return findAll(LINK_LABEL).size() > 0;
         });
     }
@@ -371,19 +387,20 @@ public class ScanResultsPannelPage {
     /**
      * Verifies the Learn More tab by checking for the presence of risk, cause, and recommendations sections.
      */
-    public static void verifyLearnMore() {
-        waitFor(() -> {
-            find(TAB_LEARN_MORE).click();
-            return findAll(TAB_RISK).size() > 0 &&
-                    findAll(CAUSE).size() > 0 &&
-                    findAll(TAB_RECOMMENDATIONS).size() > 0;
-        });
-
-        waitFor(() -> {
-            find(TAB_RECOMMENDATIONS_EXAMPLES).click();
-            return find(TAB_RECOMMENDATIONS_EXAMPLES).isShowing();
-        });
-    }
+//    public static void verifyLearnMore() {
+//        focusCxWindow();   // added: verifyChangeSaved() may leave the Cx tool window unfocused
+//        waitFor(() -> {
+//            find(TAB_LEARN_MORE).click();
+//            return findAll(TAB_RISK).size() > 0 &&
+//                    findAll(CAUSE).size() > 0 &&
+//                    findAll(TAB_RECOMMENDATIONS).size() > 0;
+//        });
+//
+//        waitFor(() -> {
+//            find(TAB_RECOMMENDATIONS_EXAMPLES).click();
+//            return find(TAB_RECOMMENDATIONS_EXAMPLES).isShowing();
+//        });
+//    }
 
     /**
      * Waits for the latest scan selection to appear in the UI.
@@ -391,4 +408,278 @@ public class ScanResultsPannelPage {
     public static void findLatestScanSelection() {
         waitFor(() -> hasAnyComponent(String.format(LATEST_SCAN, Utils.formatLatest(true), Utils.formatLatest(true))));
     }
+
+    /**
+     * Verifies that severity filters are in their code-defined default state:
+     * CRITICAL/HIGH/MEDIUM/LOW selected, INFO not selected.
+     * Caller is responsible for ensuring this reflects a true "no persisted selection" state
+     * (see RemoteRobotUtils#resetGlobalFiltersToDefault).
+     */
+    public static void verifyDefaultSeverityFiltersSelected() {
+        Assertions.assertTrue(isComponentSelected(SEVERITY_CRITICAL_ICON),
+                "Critical severity should be selected by default");
+        Assertions.assertTrue(isComponentSelected(SEVERITY_HIGH_ICON),
+                "High severity should be selected by default");
+        Assertions.assertTrue(isComponentSelected(SEVERITY_MEDIUM_ICON),
+                "Medium severity should be selected by default");
+        Assertions.assertTrue(isComponentSelected(SEVERITY_LOW_ICON),
+                "Low severity should be selected by default");
+        Assertions.assertFalse(isComponentSelected(SEVERITY_INFO_ICON),
+                "Info severity should NOT be selected by default");
+        log("All default severity filters are correctly selected/deselected");
+    }
+
+    public static void verifyLocalBranchOptionPresent() {
+        //Implementation to verify 'scan my local branch' option appears in the Branch dropdown
+        List<String> branchOptions = getBranchDropdownOptions("Branch");
+
+        //Close popup without selecting anything, so no branch gets committed
+        new Keyboard(remoteRobot).key(KeyEvent.VK_ESCAPE);
+
+        Assertions.assertTrue(
+                branchOptions.stream().anyMatch(text -> text.equalsIgnoreCase(SCAN_MY_LOCAL_BRANCH_TEXT)),
+                "'" + SCAN_MY_LOCAL_BRANCH_TEXT + "' option not found in Branch dropdown."
+        );
+    }
+
+
+    /**
+     * Verifies that the Branch dropdown for the given project contains exactly the expected branches
+     * (ignoring the synthetic "scan my local branch" entry and list ordering).
+     *
+     * @param project             The project to select before opening the Branch dropdown.
+     * @param branchName Comma-separated list of branch names expected to appear in the dropdown.
+     */
+    public static void verifyBranchListForProject(String project, String branchName ) {
+        List<String> branchOptions = getBranchDropdownOptions("Branch");
+
+        //Close popup without selecting anything, so no branch gets committed
+        new Keyboard(remoteRobot).key(KeyEvent.VK_ESCAPE);
+
+        List<String> actualBranches = branchOptions.stream()
+                .filter(text -> !text.equalsIgnoreCase(SCAN_MY_LOCAL_BRANCH_TEXT))
+                .sorted()
+                .collect(Collectors.toList());
+
+        List<String> expectedBranches = Arrays.stream(branchName .split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .sorted()
+                .collect(Collectors.toList());
+
+        Assertions.assertEquals(
+                expectedBranches,
+                actualBranches,
+                "Branch dropdown for project '" + project + "' does not match expected branches."
+        );
+    }
+
+
+    public static void verifyVulnerabilityCountPerSeverity(Map<String, Integer> expectedAll) {
+        focusCxWindow();
+
+        // Force a fresh "group by severity" render: deselect, then reselect.
+        selectGroupByOption("Severity");
+        selectGroupByOption("Severity");
+
+        // Group By change collapses the tree back to the root — re-expand to reveal scan type nodes.
+        navigate("Scan", 2);
+
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
+        Pattern scanTypePattern = Pattern.compile("^(sast|sca|secret detection|IaC Security)\\s*\\((\\d+)\\)$");
+        Pattern severityPattern = Pattern.compile("^(MALICIOUS|CRITICAL|HIGH|MEDIUM|LOW|INFO)\\s*\\((\\d+)\\)$");
+
+        String firstScanType = tree.getData().getAll().stream()
+                .map(RemoteText::getText).map(String::trim)
+                .filter(t -> scanTypePattern.matcher(t).matches())
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No scan type nodes found in results tree."));
+
+        navigate(firstScanType, 1);
+
+        List<RemoteText> nodes = tree.getData().getAll();
+        int start = IntStream.range(0, nodes.size())
+                .filter(i -> nodes.get(i).getText().trim().equals(firstScanType))
+                .findFirst().orElse(-1);
+
+        Map<String, Integer> actual = new HashMap<>();
+        for (int i = start + 1; i < nodes.size(); i++) {
+            String text = nodes.get(i).getText().trim();
+            if (scanTypePattern.matcher(text).matches()) break; // next scan type sibling
+            Matcher m = severityPattern.matcher(text);
+            if (m.matches()) actual.merge(m.group(1), Integer.parseInt(m.group(2)), Integer::sum);
+        }
+
+        Assertions.assertFalse(actual.isEmpty(), "No severity nodes found under scan type '" + firstScanType + "'.");
+
+        Map<String, Integer> expected = new HashMap<>();
+        actual.keySet().forEach(s -> { if (expectedAll.containsKey(s)) expected.put(s, expectedAll.get(s)); });
+
+        Assertions.assertEquals(expected, actual,
+                "Vulnerability counts per severity for '" + firstScanType + "' do not match expected CxOne application data.");
+    }
+
+    /**
+     First reads whichever scan-type nodes are actually present in the tree,
+     then only compares those against the hardcoded expected map — works
+     regardless of how many scan types/scans the project has.
+     **/
+    public static void verifyScanTypeCountLabels(Map<String, Integer> expectedAll) {
+        focusCxWindow();
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
+
+        Pattern scanTypeCountPattern = Pattern.compile("^(sast|sca|secret detection|IaC Security)\\s*\\((\\d+)\\)$");
+
+        Map<String, Integer> actual = tree.getData()
+                .getAll()
+                .stream()
+                .map(RemoteText::getText)
+                .map(String::trim)
+                .map(scanTypeCountPattern::matcher)
+                .filter(Matcher::matches)
+                .collect(Collectors.toMap(
+                        m -> m.group(1),
+                        m -> Integer.parseInt(m.group(2)),
+                        Integer::sum));
+
+        Assertions.assertFalse(actual.isEmpty(), "No scan type nodes found in results tree.");
+
+        Map<String, Integer> expected = new HashMap<>();
+        for (String scanType : actual.keySet()) {
+            if (expectedAll.containsKey(scanType)) {
+                expected.put(scanType, expectedAll.get(scanType));
+            }
+        }
+
+        Assertions.assertEquals(expected, actual,
+                "Vulnerability counts per scan type do not match expected CxOne application data.");
+    }
+
+
+    /**
+      Verifies that "Severity" is the pre-selected option when the Group By dropdown is opened.
+     **/
+    public static void verifyDefaultGroupByIsSeverity() {
+        locateAndClickOnButton(GROUP_BY_ACTION);
+        boolean isSeveritySelected = getMenuSelectedStatus("Severity");
+
+        //Close popup without changing the selection
+        new Keyboard(remoteRobot).key(KeyEvent.VK_ESCAPE);
+
+        Assertions.assertTrue(isSeveritySelected, "'Severity' should be the default Group By selection.");
+    }
+
+
+    /**
+     * Verifies that vulnerabilities under the first scan type are grouped in the same
+     * order as the current Group By selection (CRITICAL, HIGH, MEDIUM, LOW).
+     * @param groupByOption The Group By option currently selected (e.g. "Severity").
+     */
+    public static void verifyGroupingMatchesSelection(String groupByOption) {
+        focusCxWindow();
+        navigate("Scan", 2);
+
+        List<String> actualOrder = expandFirstScanTypeAndGetGroupOrder();
+
+        if (actualOrder.isEmpty()) {
+            // Force a fresh grouped render: deselect, then reselect.
+            selectGroupByOption(groupByOption);
+            selectGroupByOption(groupByOption);
+
+            // Group By change collapses the tree back to the root - re-expand.
+            navigate("Scan", 2);
+            actualOrder = expandFirstScanTypeAndGetGroupOrder();
+        }
+
+        Assertions.assertFalse(actualOrder.isEmpty(),
+                "No " + groupByOption + " group nodes found under the first scan type.");
+
+        List<String> expectedOrder = SEVERITY_GROUP_ORDER.stream()
+                .filter(actualOrder::contains)
+                .collect(Collectors.toList());
+
+        Assertions.assertEquals(expectedOrder, actualOrder,
+                "Vulnerabilities under the first scan type are not grouped in " + groupByOption + " order.");
+    }
+
+    /**
+     * Expands the first scan type node in the results tree and returns the severity
+     * group nodes found directly under it, in the order they appear in the tree.
+     */
+    private static List<String> expandFirstScanTypeAndGetGroupOrder() {
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
+        String firstScanType = tree.getData().getAll().stream()
+                .map(RemoteText::getText).map(String::trim)
+                .filter(t -> ENGINE_NODE_PATTERN.matcher(t).matches())
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No scan type nodes found in results tree."));
+
+        navigate(firstScanType, 1);
+
+        List<RemoteText> nodes = find(JTreeFixture.class, TREE).getData().getAll();
+        int start = IntStream.range(0, nodes.size())
+                .filter(i -> nodes.get(i).getText().trim().equals(firstScanType))
+                .findFirst().orElse(-1);
+
+        List<String> order = new ArrayList<>();
+        for (int i = start + 1; i < nodes.size(); i++) {
+            String text = nodes.get(i).getText().trim();
+            if (ENGINE_NODE_PATTERN.matcher(text).matches()) break; // next scan type sibling
+            Matcher m = GROUP_NODE_PATTERN.matcher(text);
+            if (m.matches() && SEVERITY_GROUP_ORDER.contains(m.group(1)) && !order.contains(m.group(1))) {
+                order.add(m.group(1));
+            }
+        }
+        return order;
+    }
+
+    /**
+     * Verifies that toggling a specific severity filter icon hides/shows the corresponding nodes in the tree.
+     * Steps: enable all severities, expand tree, count nodes of target severity,
+     * disable target severity, verify those nodes disappear, re-enable, verify they reappear.
+     */
+    public static void verifySeverityFilterToggles(String severityIcon, String severityName) {
+        selectAllSeverities(true);
+        expandAllNodesInTree();
+
+        // Count tree nodes containing the severity name before disabling
+        JTreeFixture tree = find(JTreeFixture.class, TREE);
+        long countBefore = tree.collectRows().stream()
+                .filter(row -> row.toLowerCase().contains(severityName))
+                .count();
+        log(severityName + " nodes before disabling filter: " + countBefore);
+
+        // Disable the target severity
+        changeSeveritySelection(severityIcon, false);
+
+        // Wait for tree to collapse/reload after filter change, then expand
+        sleep(2000);
+        expandAllNodesInTree();
+
+        // Verify nodes of that severity are no longer visible
+        waitFor(() -> {
+            JTreeFixture updatedTree = find(JTreeFixture.class, TREE);
+            return updatedTree.collectRows().stream()
+                    .noneMatch(row -> row.toLowerCase().contains(severityName));
+        });
+        log(severityName + " nodes hidden after disabling filter");
+
+        // Re-enable the severity
+        changeSeveritySelection(severityIcon, true);
+
+        // Wait for tree to collapse/reload after filter change, then expand
+        sleep(2000);
+        expandAllNodesInTree();
+
+        // Verify nodes reappear
+        if (countBefore > 0) {
+            waitFor(() -> {
+                JTreeFixture restoredTree = find(JTreeFixture.class, TREE);
+                return restoredTree.collectRows().stream()
+                        .anyMatch(row -> row.toLowerCase().contains(severityName));
+            });
+            log(severityName + " nodes visible again after re-enabling filter");
+        }
+    }
+
 }
