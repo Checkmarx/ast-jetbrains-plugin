@@ -27,7 +27,7 @@ runPluginVerifier {
 }
 
 publishPlugin {
-    token.set System.getenv("PUBLISH_TOKEN")
+    token.set System.getenv("JETBRAINS_TOKEN")
     if (project.hasProperty("rchannels")) {
         channels = [rchannels.toString()]
     }
