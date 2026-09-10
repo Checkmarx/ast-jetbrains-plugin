@@ -18,7 +18,6 @@ import com.intellij.ui.treeStructure.Tree;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeNode;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -131,22 +130,12 @@ public class ResultsTreeFactory {
                                           Result result,
                                           String scanId) {
         for (GroupBy groupBy : groupByList) {
-            NonLeafNode child = null;
             String childKey = groupBy.getFunction().apply(result);
             if (Utils.isBlank(childKey)) {
                 continue;
             }
-            // search for the child node
-            Iterator<TreeNode> it = parent.children().asIterator();
-            while (it.hasNext()) {
-                TreeNode node = it.next();
-                if (!(node instanceof NonLeafNode)) continue;
-                NonLeafNode newChild = (NonLeafNode) node;
-                if (childKey.equals(newChild.getUserObject())) {
-                    child = newChild;
-                    break;
-                }
-            }
+            // look up the child node by key (O(1)) instead of scanning all children
+            NonLeafNode child = parent.getNonLeafChild(childKey);
             if (child == null) {
                 // if the parent was not found, create a new one
                 child = new NonLeafNode(childKey);
