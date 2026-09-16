@@ -124,6 +124,7 @@ class CxOneAssistComponentTest {
         setField(component, "containersCheckbox", new JBCheckBox());
         setField(component, "iacCheckbox", new JBCheckBox());
         setField(component, "containersToolCombo", mockCombo("docker"));
+        setField(component, "aiAgentCombo", mockCombo("Copilot"));
         setField(component, "mcpStatusLabel", new JBLabel());
         setField(component, "assistMessageLabel", new JBLabel());
         setField(component, "state", mockState);
@@ -146,6 +147,7 @@ class CxOneAssistComponentTest {
         when(mockState.isContainersRealtime()).thenReturn(false);
         when(mockState.isIacRealtime()).thenReturn(false);
         when(mockState.getContainersTool()).thenReturn("docker");
+        when(mockState.getAiAgent()).thenReturn("COPILOT");
 
         try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
@@ -1114,7 +1116,7 @@ class CxOneAssistComponentTest {
             sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitive);
 
             java.util.concurrent.CompletableFuture<Boolean> future = new java.util.concurrent.CompletableFuture<>();
-            mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService.installSilentlyAsync(any()))
+            mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService.installSilentlyAsync(any(), any()))
                    .thenReturn(future);
 
             invokePrivate(component, "installMcp", new Class[]{});
@@ -1312,7 +1314,7 @@ class CxOneAssistComponentTest {
             sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitive);
 
             java.util.concurrent.CompletableFuture<Boolean> future = new java.util.concurrent.CompletableFuture<>();
-            mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService.installSilentlyAsync(any()))
+            mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService.installSilentlyAsync(any(), any()))
                    .thenReturn(future);
 
             invokePrivate(component, "installMcp", new Class[]{});
@@ -1375,7 +1377,7 @@ class CxOneAssistComponentTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
             sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitive);
             mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService
-                           .installSilentlyAsync(any()))
+                           .installSilentlyAsync(any(), any()))
                    .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(true));
             bundleMock.when(() -> Bundle.message(Resource.MCP_CONFIG_SAVED)).thenReturn("Config saved");
             swingMock.when(() -> javax.swing.SwingUtilities.invokeLater(any(Runnable.class)))
@@ -1412,7 +1414,7 @@ class CxOneAssistComponentTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
             sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitive);
             mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService
-                           .installSilentlyAsync(any()))
+                           .installSilentlyAsync(any(), any()))
                    .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(false));
             bundleMock.when(() -> Bundle.message(Resource.MCP_CONFIG_UP_TO_DATE)).thenReturn("Up to date");
             swingMock.when(() -> javax.swing.SwingUtilities.invokeLater(any(Runnable.class)))
@@ -1451,7 +1453,7 @@ class CxOneAssistComponentTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
             sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitive);
             mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService
-                           .installSilentlyAsync(any()))
+                           .installSilentlyAsync(any(), any()))
                    .thenReturn(failedFuture);
             bundleMock.when(() -> Bundle.message(Resource.MCP_INSTALL_ERROR)).thenReturn("Install failed");
             swingMock.when(() -> javax.swing.SwingUtilities.invokeLater(any(Runnable.class)))

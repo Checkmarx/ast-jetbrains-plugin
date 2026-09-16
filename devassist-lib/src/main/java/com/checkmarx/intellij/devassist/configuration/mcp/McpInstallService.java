@@ -3,6 +3,7 @@ package com.checkmarx.intellij.devassist.configuration.mcp;
 import com.checkmarx.intellij.common.commands.TenantSetting;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.devassist.remediation.AiAgent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
@@ -71,12 +72,29 @@ public final class McpInstallService implements StartupActivity.DumbAware {
     }
 
     /**
-     * Installs MCP configuration asynchronously, without user notifications.
+     * Installs MCP configuration asynchronously, without user notifications, against the
+     * currently persisted {@link GlobalSettingsState#getAiAgent()} (used by IDE-startup
+     * auto-install, where there is no live UI selection to read from).
      *
      * @param credential token / API key for Authorization header
      * @return future resolving to Boolean (true = changed, false = unchanged, null = error)
      */
     public static CompletableFuture<Boolean> installSilentlyAsync(String credential) {
+        return installSilentlyAsync(credential, resolveConfiguredAgent());
+    }
+
+    /**
+     * Installs MCP configuration asynchronously against an explicitly-chosen agent, without
+     * user notifications. Used by manual "Install MCP" clicks so that the target reflects
+     * whatever the user currently has selected in the AI Agent dropdown, even if they haven't
+     * clicked Apply/OK yet - installing against the last-persisted agent in that case would
+     * silently register the wrong MCP client.
+     *
+     * @param credential token / API key for Authorization header
+     * @param agent      the AI agent whose MCP client config should receive the Checkmarx server entry
+     * @return future resolving to Boolean (true = changed, false = unchanged, null = error)
+     */
+    public static CompletableFuture<Boolean> installSilentlyAsync(String credential, @NotNull AiAgent agent) {
         if (credential == null || credential.isBlank()) {
             LOG.debug("MCP install skipped: empty credential.");
             return CompletableFuture.completedFuture(Boolean.FALSE);
@@ -84,11 +102,24 @@ public final class McpInstallService implements StartupActivity.DumbAware {
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return McpSettingsInjector.installForCopilot(credential); // true if modified
+                // true if modified
+                return agent.mcpTarget().install(credential);
             } catch (Exception ex) {
                 LOG.warn("MCP install failed", ex);
                 return null; // null signals failure
             }
         }, AppExecutorUtil.getAppExecutorService());
+    }
+
+    /**
+     * Resolves the user's configured AI agent, defaulting to {@link AiAgent#COPILOT} if the
+     * settings service is unavailable (e.g. application not fully initialized).
+     */
+    private static AiAgent resolveConfiguredAgent() {
+        try {
+            return AiAgent.fromSettingsValue(GlobalSettingsState.getInstance().getAiAgent());
+        } catch (Exception e) {
+            return AiAgent.COPILOT;
+        }
     }
 }

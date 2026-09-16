@@ -2,6 +2,7 @@ package com.checkmarx.intellij.devassist.remediation;
 
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
@@ -102,34 +103,29 @@ public final class RemediationManager {
     }
 
     /**
-     * Sends a fix prompt to GitHub Copilot for automated remediation.
-     * <p>
-     * This method attempts to:
-     * <ol>
-     *   <li>Open GitHub Copilot Chat</li>
-     *   <li>Switch to Agent mode</li>
-     *   <li>Paste and send the prompt automatically</li>
-     * </ol>
+     * Sends a fix prompt to the user's configured AI agent (GitHub Copilot, JetBrains AI
+     * Assistant etc per {@link GlobalSettingsState#getAiAgent()}) for automated remediation.
      * <p>
      * This method does NOT show any notifications - the caller is responsible for
      * handling success/failure notifications.
      *
-     * @param prompt  the fix prompt to send to Copilot
+     * @param prompt  the fix prompt to send
      * @param project the project context
-     * @return true if Copilot was successfully opened and prompt initiated, false otherwise
+     * @return true if the target agent's chat was successfully opened and prompt initiated, false otherwise
      */
     private boolean fixWithAI(@NotNull String prompt, @NotNull Project project) {
+        GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
+        AiAgent agent = settingsState != null
+                ? AiAgent.fromSettingsValue(settingsState.getAiAgent())
+                : AiAgent.COPILOT;
         try {
-            CopilotIntegration.IntegrationResult result =
-                    CopilotIntegration.openCopilotWithPromptDetailed(prompt, project, null);
-
+            ChatIntegrationResult result = agent.chatIntegration().openWithPrompt(prompt, project);
             if (result.isSuccess()) {
-                LOGGER.debug("Fix with AI: Copilot integration initiated successfully");
+                LOGGER.debug("Fix with AI: " + agent.getAgentName() + " integration initiated successfully");
                 return true;
-            } else {
-                LOGGER.debug("Fix with AI: Copilot not available - " + result.getMessage());
-                return false;
             }
+            LOGGER.debug("Fix with AI: " + agent.getAgentName() + " not available - " + result.getMessage());
+            return false;
         } catch (Exception exception) {
             LOGGER.debug("Failed to fix with AI: ", exception);
             return false;

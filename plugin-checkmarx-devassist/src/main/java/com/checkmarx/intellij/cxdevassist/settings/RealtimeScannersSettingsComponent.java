@@ -11,14 +11,19 @@ import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
+import com.checkmarx.intellij.devassist.configuration.mcp.McpAgentTarget;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService;
-import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
+import com.checkmarx.intellij.devassist.remediation.AiAgent;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
+import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.options.Configurable;
+import com.intellij.openapi.options.ex.Settings;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.ComboBox;
@@ -34,7 +39,9 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ItemEvent;
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -67,11 +74,15 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
 
     private final ComboBox<String> containersToolCombo = new ComboBox<>(new String[]{"docker", "podman"});
 
+    private final ComboBox<String> aiAgentCombo = new ComboBox<>(
+            Arrays.stream(AiAgent.values()).map(AiAgent::getAgentName).toArray(String[]::new));
+
     private GlobalSettingsState state;
     private final MessageBusConnection connection;
 
     private final JBLabel mcpStatusLabel = new JBLabel();
     private CxLinkLabel installMcpLink;
+    private CxLinkLabel editMcpConfigLink;
     private boolean mcpInstallInProgress;
     private Timer mcpClearTimer;
     private String lastNotificationEngine;
@@ -143,6 +154,16 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         ));
         mainPanel.add(containersToolCombo, "wrap, gapleft 15");
 
+        // AI Agent Section
+        mainPanel.add(new JBLabel(formatTitle(Bundle.message(Resource.AI_AGENT_SECTION_TITLE))), "split 2, span, gaptop 10");
+        mainPanel.add(new JSeparator(), "growx, wrap");
+        mainPanel.add(new JBLabel(Bundle.message(Resource.AI_AGENT_DESCRIPTION)), "wrap, gapleft 15");
+        aiAgentCombo.setPreferredSize(new Dimension(
+                containersToolCombo.getPreferredSize().width,
+                aiAgentCombo.getPreferredSize().height
+        ));
+        mainPanel.add(aiAgentCombo, "wrap, gapleft 15");
+
         // MCP Section
         mainPanel.add(new JBLabel(formatTitle(Bundle.message(Resource.MCP_SECTION_TITLE))), "split 2, span, gaptop 10");
         mainPanel.add(new JSeparator(), "growx, wrap");
@@ -155,8 +176,8 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         mainPanel.add(installMcpLink, "split 2, gapleft 15");
         mainPanel.add(mcpStatusLabel, "wrap, gapleft 15");
 
-        CxLinkLabel editJsonLink = new CxLinkLabel(Bundle.message(Resource.MCP_EDIT_JSON_LINK), e -> openMcpJson());
-        mainPanel.add(editJsonLink, "wrap, gapleft 15");
+        editMcpConfigLink = new CxLinkLabel(Bundle.message(Resource.MCP_EDIT_JSON_LINK), e -> openMcpJson());
+        mainPanel.add(editMcpConfigLink, "wrap, gapleft 15");
     }
 
     /**
@@ -185,7 +206,11 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         LOGGER.debug("[CxOneAssist] Manual MCP install started.");
         mcpInstallInProgress = true;
 
-        McpInstallService.installSilentlyAsync(credential)
+        // Use whatever is currently selected in the AI Agent dropdown, not the last-persisted
+        // value - the user may not have clicked Apply/OK yet.
+        AiAgent selectedAgent = AiAgent.fromAgentName((String) aiAgentCombo.getSelectedItem());
+
+        McpInstallService.installSilentlyAsync(credential, selectedAgent)
                 .whenComplete((changed, throwable) ->
                         SwingUtilities.invokeLater(() -> handleMcpResult(changed, throwable)));
     }
@@ -235,17 +260,60 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
     }
 
     /**
-     * Opens (and creates if necessary) the Copilot MCP configuration file then closes the settings dialog.
+     * Handles the "Edit in mcp.json" link. Delegates entirely to the currently-selected agent's
+     * {@link McpAgentTarget}: if it exposes a dedicated settings page
+     * ({@link McpAgentTarget#getSettingsConfigurableId()}), navigates the (still-open) Settings
+     * dialog there instead of hand-editing its config file, since that file's location/schema is
+     * typically undocumented internals and the settings UI is the officially supported way to
+     * manage it. Otherwise opens (and creates if necessary) the raw config file, the same way
+     * this always worked for Copilot. Adding a new agent needs no changes here - only its
+     * {@code McpAgentTarget} implementation decides which path applies.
      */
     private void openMcpJson() {
-        // Apply settings if modified, then close dialog window
+        // Capture the currently-selected agent before apply() touches persisted state.
+        AiAgent selectedAgent = AiAgent.fromAgentName((String) aiAgentCombo.getSelectedItem());
+
         try {
             if (isModified()) {
                 apply();
             }
         } catch (Exception ex) {
-            LOGGER.warn("[CxOneAssist] Failed applying settings before closing dialog", ex);
+            LOGGER.warn("[CxOneAssist] Failed applying settings before opening MCP configuration", ex);
         }
+
+        McpAgentTarget target = selectedAgent.mcpTarget();
+        Optional<String> configurableId = target.getSettingsConfigurableId();
+        if (configurableId.isPresent()) {
+            openAgentMcpSettingsPage(configurableId.get());
+        } else {
+            openMcpConfigFile(target);
+        }
+    }
+
+    /**
+     * Navigates the currently-open Settings dialog to the given agent-owned MCP settings page.
+     * Falls back to an inline error status if that page can't be located (e.g. the agent plugin
+     * isn't installed/enabled, or a future release renames its configurable ID).
+     */
+    private void openAgentMcpSettingsPage(String configurableId) {
+        DataContext context = DataManager.getInstance().getDataContext(mainPanel);
+        Settings settings = context.getData(Settings.KEY);
+        if (settings != null) {
+            Configurable configurable = settings.find(configurableId);
+            if (configurable != null) {
+                settings.select(configurable);
+                return;
+            }
+        }
+        LOGGER.warn("[CxOneAssist] Could not locate agent MCP settings page (id: " + configurableId + ").");
+        showMcpStatus(Bundle.message(Resource.MCP_AI_ASSISTANT_SETTINGS_NOT_FOUND), JBColor.RED);
+    }
+
+    /**
+     * Opens (and creates if necessary) the given agent's raw MCP configuration file, closing the
+     * settings dialog first since such agents have no dedicated settings UI for it.
+     */
+    private void openMcpConfigFile(McpAgentTarget target) {
         Window w = SwingUtilities.getWindowAncestor(mainPanel);
         if (w != null) {
             w.dispose();
@@ -260,7 +328,7 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
 
         java.nio.file.Path path;
         try {
-            path = McpSettingsInjector.getMcpJsonPath();
+            path = target.getConfigPath();
         } catch (Exception ex) {
             LOGGER.warn("[CxOneAssist] Failed resolving MCP config path", ex);
             return;
@@ -292,7 +360,8 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
                 || secretsCheckbox.isSelected() != state.isSecretDetectionRealtime()
                 || containersCheckbox.isSelected() != state.isContainersRealtime()
                 || iacCheckbox.isSelected() != state.isIacRealtime()
-                || !Objects.equals(containersToolCombo.getSelectedItem(), state.getContainersTool());
+                || !Objects.equals(containersToolCombo.getSelectedItem(), state.getContainersTool())
+                || !Objects.equals(aiAgentToSettingsValue((String) aiAgentCombo.getSelectedItem()), state.getAiAgent());
     }
 
     @Override
@@ -314,6 +383,7 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         state.setIacRealtime(iacSelected);
         String selectedValue = (String) containersToolCombo.getSelectedItem();
         state.setContainersTool(selectedValue);
+        state.setAiAgent(aiAgentToSettingsValue((String) aiAgentCombo.getSelectedItem()));
 
         state.setUserPreferences(ascaSelected, ossSelected, secretsSelected, containersSelected, iacSelected);
 
@@ -337,8 +407,17 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         containersCheckbox.setSelected(state.isContainersRealtime());
         iacCheckbox.setSelected(state.isIacRealtime());
         containersToolCombo.setSelectedItem(state.getContainersTool());
+        aiAgentCombo.setSelectedItem(aiAgentToLabel(state.getAiAgent()));
 
         updateAssistState();
+    }
+
+    private static String aiAgentToSettingsValue(String label) {
+        return AiAgent.fromAgentName(label).name();
+    }
+
+    private static String aiAgentToLabel(String settingsValue) {
+        return AiAgent.fromSettingsValue(settingsValue).getAgentName();
     }
 
     private void updateAssistState() {
@@ -385,6 +464,7 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         containersCheckbox.setEnabled(false);
         iacCheckbox.setEnabled(false);
         containersToolCombo.setEnabled(false);
+        aiAgentCombo.setEnabled(false);
         if (installMcpLink != null) {
             installMcpLink.setEnabled(false);
         }

@@ -67,6 +67,7 @@ class RealtimeScannersSettingsComponentTest {
         setField(component, "containersCheckbox", new JBCheckBox());
         setField(component, "iacCheckbox", new JBCheckBox());
         setField(component, "containersToolCombo", new ComboBox<>(new String[]{"docker", "podman"}));
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"Copilot", "AI Assistant"}));
         setField(component, "assistMessageLabel", new com.intellij.ui.components.JBLabel());
         setField(component, "mainPanel", new JPanel());
 
@@ -102,6 +103,7 @@ class RealtimeScannersSettingsComponentTest {
         when(mockState.isContainersRealtime()).thenReturn(false);
         when(mockState.isIacRealtime()).thenReturn(false);
         when(mockState.getContainersTool()).thenReturn("docker");
+        when(mockState.getAiAgent()).thenReturn("COPILOT");
 
         assertFalse(component.isModified());
     }

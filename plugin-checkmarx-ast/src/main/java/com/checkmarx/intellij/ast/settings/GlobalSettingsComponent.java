@@ -15,7 +15,7 @@ import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.InputValidator;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
+import com.checkmarx.intellij.devassist.remediation.AiAgent;
 import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.DataContext;
@@ -242,6 +242,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             state.setContainersRealtime(SETTINGS_STATE.isContainersRealtime());
             state.setIacRealtime(SETTINGS_STATE.isIacRealtime());
             state.setContainersTool(SETTINGS_STATE.getContainersTool());
+            state.setAiAgent(SETTINGS_STATE.getAiAgent());
 
             // MCP and dialog state
             state.setWelcomeShown(SETTINGS_STATE.isWelcomeShown());
@@ -404,10 +405,11 @@ public class GlobalSettingsComponent implements SettingsComponent {
     }
 
     private void installMcpAsync(String credential) {
+        AiAgent agent = AiAgent.fromSettingsValue(SETTINGS_STATE.getAiAgent());
         CompletableFuture.supplyAsync(() -> {
             try {
                 // Returns Boolean.TRUE if MCP modified, Boolean.FALSE if already up-to-date
-                return McpSettingsInjector.installForCopilot(credential);
+                return agent.mcpTarget().install(credential);
             } catch (Exception ex) {
                 return ex;
             }
@@ -769,9 +771,10 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 notifyLogout();
 
                 // Ensure only the Checkmarx MCP entry is removed and log any issues.
+                AiAgent agentToUninstall = AiAgent.fromSettingsValue(SETTINGS_STATE.getAiAgent());
                 CompletableFuture.runAsync(() -> {
                     try {
-                        boolean removed = McpSettingsInjector.uninstallFromCopilot();
+                        boolean removed = agentToUninstall.mcpTarget().uninstall();
                         if (!removed) {
                             LOGGER.debug("Logout completed, but no MCP entry was present to remove.");
                         }

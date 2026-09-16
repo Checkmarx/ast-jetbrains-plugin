@@ -4,6 +4,7 @@ import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.devassist.remediation.AiAgent;
 import com.intellij.ide.plugins.DynamicPluginListener;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
@@ -72,11 +73,14 @@ public final class PluginLifecycleHandler implements DynamicPluginListener {
     }
 
     /**
-     * Removes the Checkmarx MCP server entry from the Copilot configuration.
+     * Removes the Checkmarx MCP server entry from whichever AI agent's MCP client config is
+     * currently selected ({@link GlobalSettingsState#getAiAgent()}), via
+     * {@link AiAgent#mcpTarget()}.
      */
     private void removeMcpConfiguration() {
         try {
-            boolean removed = McpSettingsInjector.uninstallFromCopilot();
+            AiAgent agent = AiAgent.fromSettingsValue(GlobalSettingsState.getInstance().getAiAgent());
+            boolean removed = agent.mcpTarget().uninstall();
             if (removed) {
                 LOG.debug("Checkmarx MCP configuration removed during plugin uninstallation");
             } else {
