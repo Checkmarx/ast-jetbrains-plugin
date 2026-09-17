@@ -289,30 +289,40 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
         McpAgentTarget target = selectedAgent.mcpTarget();
         Optional<String> configurableId = target.getSettingsConfigurableId();
-        if (configurableId.isPresent()) {
-            openAgentMcpSettingsPage(configurableId.get());
-        } else {
+        boolean openedSettingsPage = configurableId.isPresent() && openAgentMcpSettingsPage(configurableId.get());
+        if (!openedSettingsPage) {
+            // No settings page for this agent, or opening it failed for any reason (plugin not
+            // installed/enabled, configurable id renamed, unexpected exception, etc.) - fall back
+            // to the raw config file so the user still has a way to inspect/edit the MCP entry.
             openMcpConfigFile(target);
         }
     }
 
     /**
      * Navigates the currently-open Settings dialog to the given agent-owned MCP settings page.
-     * Falls back to an inline error status if that page can't be located (e.g. the agent plugin
-     * isn't installed/enabled, or a future release renames its configurable ID).
+     *
+     * @return true if the page was found and selected; false if it couldn't be located or an
+     * error occurred, in which case the caller falls back to opening the raw config file instead.
      */
-    private void openAgentMcpSettingsPage(String configurableId) {
-        DataContext context = DataManager.getInstance().getDataContext(mainPanel);
-        Settings settings = context.getData(Settings.KEY);
-        if (settings != null) {
-            Configurable configurable = settings.find(configurableId);
-            if (configurable != null) {
-                settings.select(configurable);
-                return;
+    private boolean openAgentMcpSettingsPage(String configurableId) {
+        try {
+            DataContext context = DataManager.getInstance().getDataContext(mainPanel);
+            Settings settings = context.getData(Settings.KEY);
+            if (settings != null) {
+                Configurable configurable = settings.find(configurableId);
+                if (configurable != null) {
+                    settings.select(configurable);
+                    return true;
+                }
             }
+            LOGGER.warn("[CxOneAssist] Could not locate agent MCP settings page (id: " + configurableId
+                    + "). Falling back to opening its MCP config file.");
+            return false;
+        } catch (Exception ex) {
+            LOGGER.warn("[CxOneAssist] Failed opening agent MCP settings page (id: " + configurableId
+                    + "). Falling back to opening its MCP config file.", ex);
+            return false;
         }
-        LOGGER.warn("[CxOneAssist] Could not locate agent MCP settings page (id: " + configurableId + ").");
-        showMcpStatus(Bundle.message(Resource.MCP_AI_ASSISTANT_SETTINGS_NOT_FOUND), JBColor.RED);
     }
 
     /**
@@ -389,7 +399,18 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         state.setIacRealtime(iacSelected);
         String selectedValue = (String) containersToolCombo.getSelectedItem();
         state.setContainersTool(selectedValue);
-        state.setAiAgent(aiAgentToSettingsValue((String) aiAgentCombo.getSelectedItem()));
+
+        AiAgent previousAgent = AiAgent.fromSettingsValue(state.getAiAgent());
+        AiAgent newAgent = AiAgent.fromAgentName((String) aiAgentCombo.getSelectedItem());
+        state.setAiAgent(newAgent.name());
+        if (previousAgent != newAgent) {
+            // The previously-selected agent's MCP entry (and its credential) is no longer
+            // tracked by anything once the user switches away from it - clean it up now rather
+            // than leaving it orphaned until the next logout/plugin-uninstall. Surface a status
+            // if it fails, since that would otherwise vanish into idea.log unnoticed.
+            previousAgent.uninstallMcpInBackground(LOGGER, "after switching to " + newAgent.getAgentName(),
+                    () -> showMcpStatus(Bundle.message(Resource.MCP_PREVIOUS_AGENT_CLEANUP_FAILED, previousAgent.getAgentName()), JBColor.RED));
+        }
 
         state.setUserPreferences(ascaSelected, ossSelected, secretsSelected, containersSelected, iacSelected);
 

@@ -1,9 +1,12 @@
 package com.checkmarx.intellij.devassist.remediation;
 
+import lombok.Getter;
+
 /**
- * Outcome of {@link ChatIntegration#openWithPrompt(String, com.intellij.openapi.project.Project)},
+ * Outcome of {@link ChatIntegration(String, com.intellij.openapi.project.Project)},
  * common across all agent implementations.
  */
+@Getter
 public final class ChatIntegrationResult {
 
     private final boolean success;
@@ -12,14 +15,6 @@ public final class ChatIntegrationResult {
     private ChatIntegrationResult(boolean success, String message) {
         this.success = success;
         this.message = message;
-    }
-
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public String getMessage() {
-        return message;
     }
 
     public static ChatIntegrationResult success(String message) {

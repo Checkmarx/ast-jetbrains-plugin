@@ -4,6 +4,8 @@ import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.Consumer;
+
 /**
  * A single AI chat target (Copilot, JetBrains AI Assistant, ...) that {@link RemediationManager}
  * can send a generated fix/explanation prompt to.
@@ -21,9 +23,15 @@ public interface ChatIntegration {
     boolean isAvailable(@Nullable Project project);
 
     /**
-     * Opens this agent's chat and attempts to deliver {@code prompt} to it (best-effort - some
-     * agents can auto-submit, others may only manage to paste it for the user to send).
+     * Opens this agent's chat and attempts to deliver {@code prompt} to it.
+     * Callers rely on this to decide whether to show a fallback notification,
+     *
+     * @param prompt        the prompt to deliver
+     * @param project       the project context
+     * @param onFinalResult callback invoked exactly once with the final outcome; may be
+     *                      {@code null} if the caller does not need the final outcome
      */
     @NotNull
-    ChatIntegrationResult openWithPrompt(@NotNull String prompt, @NotNull Project project);
+    ChatIntegrationResult openWithPrompt(@NotNull String prompt, @NotNull Project project,
+                                          @Nullable Consumer<ChatIntegrationResult> onFinalResult);
 }

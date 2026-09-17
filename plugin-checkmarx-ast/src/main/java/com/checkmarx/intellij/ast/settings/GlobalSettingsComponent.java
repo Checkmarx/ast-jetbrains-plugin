@@ -770,18 +770,8 @@ public class GlobalSettingsComponent implements SettingsComponent {
                 setLogoutState();
                 notifyLogout();
 
-                // Ensure only the Checkmarx MCP entry is removed and log any issues.
-                AiAgent agentToUninstall = AiAgent.fromSettingsValue(SETTINGS_STATE.getAiAgent());
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        boolean removed = agentToUninstall.mcpTarget().uninstall();
-                        if (!removed) {
-                            LOGGER.debug("Logout completed, but no MCP entry was present to remove.");
-                        }
-                    } catch (Exception ex) {
-                        LOGGER.warn("Failed to remove Checkmarx MCP entry on logout.", ex);
-                    }
-                });
+                // Remove the Checkmarx MCP entry from every known agent
+                CompletableFuture.runAsync(() -> AiAgent.uninstallFromAllAgents(LOGGER, "on logout"));
             }
             // else: Do nothing (user clicked Cancel)
         });

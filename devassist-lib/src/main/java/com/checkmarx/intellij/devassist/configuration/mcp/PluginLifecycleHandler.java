@@ -18,7 +18,7 @@ import org.jetbrains.annotations.NotNull;
  * <ol>
  *   <li>Clears the persisted authentication session so that OAuth credentials
  *       do not carry over when the user later installs the other Checkmarx plugin.</li>
- *   <li>Removes the Checkmarx MCP server entry from the Copilot configuration.</li>
+ *   <li>Removes the Checkmarx MCP server entry from every known agent's MCP configuration.</li>
  * </ol>
  */
 public final class PluginLifecycleHandler implements DynamicPluginListener {
@@ -73,21 +73,14 @@ public final class PluginLifecycleHandler implements DynamicPluginListener {
     }
 
     /**
-     * Removes the Checkmarx MCP server entry from whichever AI agent's MCP client config is
-     * currently selected ({@link GlobalSettingsState#getAiAgent()}), via
-     * {@link AiAgent#mcpTarget()}.
+     * Removes the Checkmarx MCP server entry from every known agent's MCP client config
+     * <p>
+     * The user may have installed MCP for one agent, then switched the AI Agent selection to
+     * another without logging out in between - the previously-installed entry (including the
+     * API key / refresh token in its Authorization header) would otherwise be orphaned in that
+     * agent's config file forever, since a full plugin uninstall is the last chance to clean it up.
      */
     private void removeMcpConfiguration() {
-        try {
-            AiAgent agent = AiAgent.fromSettingsValue(GlobalSettingsState.getInstance().getAiAgent());
-            boolean removed = agent.mcpTarget().uninstall();
-            if (removed) {
-                LOG.debug("Checkmarx MCP configuration removed during plugin uninstallation");
-            } else {
-                LOG.debug("No Checkmarx MCP configuration found during plugin uninstallation");
-            }
-        } catch (Exception ex) {
-            LOG.warn("Failed to remove Checkmarx MCP configuration during plugin uninstallation", ex);
-        }
+        AiAgent.uninstallFromAllAgents(LOG, "during plugin uninstallation");
     }
 }

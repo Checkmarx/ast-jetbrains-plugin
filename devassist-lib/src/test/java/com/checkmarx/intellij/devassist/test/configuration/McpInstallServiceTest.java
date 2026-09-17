@@ -5,6 +5,7 @@ import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
+import com.checkmarx.intellij.devassist.remediation.AiAgent;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import org.junit.jupiter.api.Test;
@@ -76,6 +77,42 @@ class McpInstallServiceTest {
 
             assertEquals(Boolean.TRUE, result);
             injStatic.verify(() -> McpSettingsInjector.installForCopilot("my-token"));
+        }
+    }
+
+    @Test
+    void installSilentlyAsync_explicitAiAssistantAgent_callsInstallForAiAssistant() throws Exception {
+        ExecutorService exec = directExecutor();
+        try (MockedStatic<McpSettingsInjector> injStatic = mockStatic(McpSettingsInjector.class);
+             MockedStatic<AppExecutorUtil> execStatic = mockStatic(AppExecutorUtil.class)) {
+
+            injStatic.when(() -> McpSettingsInjector.installForAiAssistant("my-token")).thenReturn(true);
+            execStatic.when(AppExecutorUtil::getAppExecutorService).thenReturn(exec);
+
+            CompletableFuture<Boolean> future = McpInstallService.installSilentlyAsync("my-token", AiAgent.AI_ASSISTANT);
+            Boolean result = future.get(5, TimeUnit.SECONDS);
+
+            assertEquals(Boolean.TRUE, result);
+            injStatic.verify(() -> McpSettingsInjector.installForAiAssistant("my-token"));
+            injStatic.verify(() -> McpSettingsInjector.installForCopilot(anyString()), never());
+        }
+    }
+
+    @Test
+    void installSilentlyAsync_explicitCopilotAgent_callsInstallForCopilot() throws Exception {
+        ExecutorService exec = directExecutor();
+        try (MockedStatic<McpSettingsInjector> injStatic = mockStatic(McpSettingsInjector.class);
+             MockedStatic<AppExecutorUtil> execStatic = mockStatic(AppExecutorUtil.class)) {
+
+            injStatic.when(() -> McpSettingsInjector.installForCopilot("my-token")).thenReturn(true);
+            execStatic.when(AppExecutorUtil::getAppExecutorService).thenReturn(exec);
+
+            CompletableFuture<Boolean> future = McpInstallService.installSilentlyAsync("my-token", AiAgent.COPILOT);
+            Boolean result = future.get(5, TimeUnit.SECONDS);
+
+            assertEquals(Boolean.TRUE, result);
+            injStatic.verify(() -> McpSettingsInjector.installForCopilot("my-token"));
+            injStatic.verify(() -> McpSettingsInjector.installForAiAssistant(anyString()), never());
         }
     }
 

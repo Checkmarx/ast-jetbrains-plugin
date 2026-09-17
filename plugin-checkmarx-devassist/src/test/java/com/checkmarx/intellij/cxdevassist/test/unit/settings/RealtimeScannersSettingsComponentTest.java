@@ -9,9 +9,15 @@ import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.checkmarx.intellij.cxdevassist.settings.RealtimeScannersSettingsComponent;
+import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
@@ -58,6 +64,13 @@ class RealtimeScannersSettingsComponentTest {
         Field f = target.getClass().getDeclaredField(name);
         f.setAccessible(true);
         return (T) f.get(target);
+    }
+
+    private static Object invokePrivate(Object target, String methodName, Class<?>[] paramTypes,
+                                         Object... args) throws Exception {
+        Method m = target.getClass().getDeclaredMethod(methodName, paramTypes);
+        m.setAccessible(true);
+        return m.invoke(target, args);
     }
 
     private void injectCheckboxes() throws Exception {
@@ -135,7 +148,182 @@ class RealtimeScannersSettingsComponentTest {
         assertTrue(component.isModified());
     }
 
+    @Test
+    void isModified_WhenAiAgentDiffersFromState_ReturnsTrue() throws Exception {
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"AI Assistant"}));
+
+        when(mockState.isAscaRealtime()).thenReturn(false);
+        when(mockState.isOssRealtime()).thenReturn(false);
+        when(mockState.isSecretDetectionRealtime()).thenReturn(false);
+        when(mockState.isContainersRealtime()).thenReturn(false);
+        when(mockState.isIacRealtime()).thenReturn(false);
+        when(mockState.getContainersTool()).thenReturn("docker");
+        when(mockState.getAiAgent()).thenReturn("COPILOT");
+
+        assertTrue(component.isModified());
+    }
+
     // ===== apply() =====
+
+    /**
+     * Common apply() fixture for the AI-agent-switch tests below: stubs executeOnPooledThread to
+     * run its Runnable synchronously (both the agent-cleanup task and the unrelated
+     * validateIACEngine task submitted later in apply() will run inline).
+     */
+    private Application mockApplicationRunningPooledThreadInline() {
+        Application mockApp = mock(Application.class);
+        MessageBus mockBus = mock(MessageBus.class);
+        SettingsListener mockListener = mock(SettingsListener.class);
+        when(mockBus.syncPublisher(any())).thenReturn(mockListener);
+        when(mockApp.getMessageBus()).thenReturn(mockBus);
+        doAnswer(inv -> {
+            ((Runnable) inv.getArgument(0)).run();
+            return null;
+        }).when(mockApp).executeOnPooledThread(any(Runnable.class));
+        return mockApp;
+    }
+
+    @Test
+    void apply_WhenAiAgentChanges_PersistsNewValueAndUninstallsPreviousAgentMcpEntry() throws Exception {
+        // End-to-end: verifies apply() itself derives previousAgent/newAgent correctly and wires
+        // them through to the right McpSettingsInjector call - not just that some private helper
+        // does the right thing in isolation.
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"AI Assistant"}));
+        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getContainersTool()).thenReturn("docker");
+
+        Application mockApp = mockApplicationRunningPooledThreadInline();
+
+        try (MockedStatic<ApplicationManager> appMgrMock = mockStatic(ApplicationManager.class);
+             MockedStatic<McpSettingsInjector> mcpMock = mockStatic(McpSettingsInjector.class)) {
+
+            appMgrMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+
+            component.apply();
+
+            // Uninstalled from COPILOT (the previous agent), not AI_ASSISTANT (the new one).
+            mcpMock.verify(McpSettingsInjector::uninstallFromCopilot);
+            mcpMock.verify(McpSettingsInjector::uninstallFromAiAssistant, never());
+        }
+
+        verify(mockState).setAiAgent("AI_ASSISTANT");
+    }
+
+    @Test
+    void apply_WhenAiAgentUnchanged_DoesNotUninstallAnyMcpEntry() throws Exception {
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"Copilot"}));
+        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getContainersTool()).thenReturn("docker");
+
+        Application mockApp = mockApplicationRunningPooledThreadInline();
+
+        try (MockedStatic<ApplicationManager> appMgrMock = mockStatic(ApplicationManager.class);
+             MockedStatic<McpSettingsInjector> mcpMock = mockStatic(McpSettingsInjector.class)) {
+
+            appMgrMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+
+            component.apply();
+
+            mcpMock.verifyNoInteractions();
+        }
+
+        verify(mockState).setAiAgent("COPILOT");
+    }
+
+    @Test
+    void apply_WhenPreviousAgentUninstallThrows_ShowsMcpStatusAndDoesNotPropagate() throws Exception {
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"AI Assistant"}));
+        setField(component, "mcpStatusLabel", new JBLabel());
+        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getContainersTool()).thenReturn("docker");
+
+        Application mockApp = mockApplicationRunningPooledThreadInline();
+        doAnswer(inv -> {
+            ((Runnable) inv.getArgument(0)).run();
+            return null;
+        }).when(mockApp).invokeLater(any(Runnable.class));
+
+        // Keep the unrelated validateIACEngine background task on its happy path since
+        // invokeLater now actually runs inline in this test.
+        CxWrapper mockWrapper = mock(CxWrapper.class);
+
+        try (MockedStatic<ApplicationManager> appMgrMock = mockStatic(ApplicationManager.class);
+             MockedStatic<McpSettingsInjector> mcpMock = mockStatic(McpSettingsInjector.class);
+             MockedStatic<CxWrapperFactory> wfMock = mockStatic(CxWrapperFactory.class);
+             MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class)) {
+
+            appMgrMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+            mcpMock.when(McpSettingsInjector::uninstallFromCopilot).thenThrow(new RuntimeException("io error"));
+            wfMock.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            bundleMock.when(() -> Bundle.message(eq(Resource.MCP_PREVIOUS_AGENT_CLEANUP_FAILED), any()))
+                    .thenReturn("Cleanup failed");
+
+            assertDoesNotThrow(() -> component.apply());
+        }
+
+        JBLabel label = getField(component, "mcpStatusLabel");
+        assertEquals("Cleanup failed", label.getText());
+    }
+
+    // ===== openMcpJson() fallback =====
+
+    @Test
+    void openMcpJson_WhenAiAssistantSelected_FallsBackToConfigFileWhenSettingsPageUnavailable() throws Exception {
+        // In this bare unit-test environment there is no live IntelliJ Application, so
+        // DataManager.getInstance() inside openAgentMcpSettingsPage() throws and is caught,
+        // returning false - openMcpJson() must then fall back to opening the raw config file
+        // rather than leaving the user with nothing.
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"AI Assistant"}));
+        when(mockState.isAscaRealtime()).thenReturn(false);
+        when(mockState.isOssRealtime()).thenReturn(false);
+        when(mockState.isSecretDetectionRealtime()).thenReturn(false);
+        when(mockState.isContainersRealtime()).thenReturn(false);
+        when(mockState.isIacRealtime()).thenReturn(false);
+        when(mockState.getContainersTool()).thenReturn("docker");
+        when(mockState.getAiAgent()).thenReturn("AI_ASSISTANT");
+
+        ProjectManager mockPm = mock(ProjectManager.class);
+        Project mockProject = mock(Project.class);
+        when(mockPm.getOpenProjects()).thenReturn(new Project[]{mockProject});
+
+        java.nio.file.Path mockPath = java.nio.file.Paths.get("ai-assistant-mcp.json");
+
+        LocalFileSystem mockLfs = mock(LocalFileSystem.class);
+        VirtualFile mockVf = mock(VirtualFile.class);
+        when(mockVf.exists()).thenReturn(true);
+        when(mockLfs.refreshAndFindFileByNioFile(any())).thenReturn(mockVf);
+
+        FileEditorManager mockFem = mock(FileEditorManager.class);
+
+        try (MockedStatic<ProjectManager> pmMock = mockStatic(ProjectManager.class);
+             MockedStatic<McpSettingsInjector> mcpMock = mockStatic(McpSettingsInjector.class);
+             MockedStatic<LocalFileSystem> lfsMock = mockStatic(LocalFileSystem.class);
+             MockedStatic<FileEditorManager> femMock = mockStatic(FileEditorManager.class);
+             MockedStatic<javax.swing.SwingUtilities> swingMock = mockStatic(javax.swing.SwingUtilities.class)) {
+
+            pmMock.when(ProjectManager::getInstance).thenReturn(mockPm);
+            swingMock.when(() -> javax.swing.SwingUtilities.getWindowAncestor(any())).thenReturn(null);
+            mcpMock.when(McpSettingsInjector::getAiAssistantMcpJsonPath).thenReturn(mockPath);
+            lfsMock.when(LocalFileSystem::getInstance).thenReturn(mockLfs);
+            femMock.when(() -> FileEditorManager.getInstance(mockProject)).thenReturn(mockFem);
+
+            assertDoesNotThrow(() -> invokePrivate(component, "openMcpJson", new Class[]{}));
+        }
+
+        // Fell all the way through to opening the AI Assistant's own raw config file.
+        verify(mockFem).openFile(mockVf, true);
+    }
+
+    @Test
+    void openAgentMcpSettingsPage_WhenNoLiveApplicationAvailable_ReturnsFalse() throws Exception {
+        // DataManager.getInstance() requires a live ApplicationManager, which this bare unit-test
+        // environment does not provide - the method must catch that and report failure rather
+        // than letting the exception propagate out of the "Edit MCP" click handler.
+        Object result = invokePrivate(component, "openAgentMcpSettingsPage",
+                new Class[]{String.class}, "some.configurable.id");
+
+        assertEquals(Boolean.FALSE, result);
+    }
 
     @Test
     void apply_SetsStateFlagsAndPublishesSettingsEvent() throws Exception {

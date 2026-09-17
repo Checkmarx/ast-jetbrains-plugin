@@ -102,8 +102,8 @@ public final class McpInstallService implements StartupActivity.DumbAware {
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                // true if modified
-                return agent.mcpTarget().install(credential);
+                // true if modified; serialized against any concurrent uninstall for this agent
+                return agent.installMcp(credential);
             } catch (Exception ex) {
                 LOG.warn("MCP install failed", ex);
                 return null; // null signals failure
@@ -119,6 +119,7 @@ public final class McpInstallService implements StartupActivity.DumbAware {
         try {
             return AiAgent.fromSettingsValue(GlobalSettingsState.getInstance().getAiAgent());
         } catch (Exception e) {
+            LOG.warn("Failed to resolve configured AI agent; defaulting to COPILOT.", e);
             return AiAgent.COPILOT;
         }
     }
