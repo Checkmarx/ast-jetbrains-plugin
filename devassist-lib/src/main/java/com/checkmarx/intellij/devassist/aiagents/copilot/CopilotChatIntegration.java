@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 /**
  * {@link ChatIntegration} adapter over the existing static {@link CopilotIntegration} utility.
  */
-final class CopilotChatIntegration implements ChatIntegration {
+public final class CopilotChatIntegration implements ChatIntegration {
 
     @Override
     public boolean isAvailable(@Nullable Project project) {

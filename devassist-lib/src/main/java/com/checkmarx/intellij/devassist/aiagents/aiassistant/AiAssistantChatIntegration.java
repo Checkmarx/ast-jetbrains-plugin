@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 /**
  * {@link ChatIntegration} adapter over the existing static {@link AiAssistantIntegration} utility.
  */
-final class AiAssistantChatIntegration implements ChatIntegration {
+public final class AiAssistantChatIntegration implements ChatIntegration {
 
     @Override
     public boolean isAvailable(@Nullable Project project) {
