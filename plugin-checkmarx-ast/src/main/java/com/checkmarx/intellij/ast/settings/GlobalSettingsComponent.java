@@ -15,7 +15,7 @@ import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.InputValidator;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.devassist.remediation.AiAgent;
+import com.checkmarx.intellij.devassist.aiagents.AiAgent;
 import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.DataContext;

@@ -1,5 +1,6 @@
-package com.checkmarx.intellij.devassist.remediation;
+package com.checkmarx.intellij.devassist.aiagents;
 
+import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -33,5 +34,5 @@ public interface ChatIntegration {
      */
     @NotNull
     ChatIntegrationResult openWithPrompt(@NotNull String prompt, @NotNull Project project,
-                                          @Nullable Consumer<ChatIntegrationResult> onFinalResult);
+                                         @Nullable Consumer<ChatIntegrationResult> onFinalResult);
 }

@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.devassist.remediation;
+package com.checkmarx.intellij.devassist.aiagents.copilot;
 
 import com.checkmarx.intellij.common.utils.Utils;
 import com.intellij.openapi.actionSystem.ActionManager;

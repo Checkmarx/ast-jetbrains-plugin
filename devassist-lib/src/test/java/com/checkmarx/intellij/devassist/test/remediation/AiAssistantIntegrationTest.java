@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.devassist.test.remediation;
 
-import com.checkmarx.intellij.devassist.remediation.AiAssistantIntegration;
+import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration;
 import com.intellij.ide.DataManager;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.ide.plugins.PluginManagerCore;

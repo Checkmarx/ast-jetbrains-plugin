@@ -1,6 +1,8 @@
-package com.checkmarx.intellij.devassist.remediation;
+package com.checkmarx.intellij.devassist.aiagents.aiassistant;
 
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration;
+import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.intellij.ide.DataManager;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.ide.plugins.PluginManagerCore;

@@ -1,5 +1,7 @@
 package com.checkmarx.intellij.devassist.configuration.mcp;
 
+import com.checkmarx.intellij.devassist.aiagents.AiAgent;
+
 import java.nio.file.Path;
 import java.util.Optional;
 
@@ -7,7 +9,7 @@ import java.util.Optional;
  * A single AI agent's MCP client (Copilot, JetBrains AI Assistant, ...) that the Checkmarx MCP
  * server entry can be installed into.
  * <p>
- * Implementations are looked up via {@link com.checkmarx.intellij.devassist.remediation.AiAgent#mcpTarget()}
+ * Implementations are looked up via {@link AiAgent#mcpTarget()}
  * - adding a new agent means writing one implementation of this interface and wiring it into a
  * new {@code AiAgent} constant, with no changes required in {@link McpInstallService} or the
  * settings UI's "Install MCP" / "Edit in mcp.json" handlers.

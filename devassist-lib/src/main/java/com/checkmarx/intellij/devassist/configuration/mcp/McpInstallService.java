@@ -3,7 +3,7 @@ package com.checkmarx.intellij.devassist.configuration.mcp;
 import com.checkmarx.intellij.common.commands.TenantSetting;
 import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
-import com.checkmarx.intellij.devassist.remediation.AiAgent;
+import com.checkmarx.intellij.devassist.aiagents.AiAgent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;

@@ -1,6 +1,6 @@
 package com.checkmarx.intellij.devassist.configuration.mcp;
 
-import com.checkmarx.intellij.devassist.remediation.AiAssistantIntegration;
+import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration;
 
 import java.nio.file.Path;
 import java.util.Optional;

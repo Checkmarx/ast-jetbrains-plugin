@@ -1,5 +1,7 @@
-package com.checkmarx.intellij.devassist.remediation;
+package com.checkmarx.intellij.devassist.aiagents.copilot;
 
+import com.checkmarx.intellij.devassist.aiagents.ChatIntegration;
+import com.checkmarx.intellij.devassist.aiagents.ChatIntegrationResult;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -25,7 +27,7 @@ final class CopilotChatIntegration implements ChatIntegration {
      */
     @Override
     public @NotNull ChatIntegrationResult openWithPrompt(@NotNull String prompt, @NotNull Project project,
-                                                          @Nullable Consumer<ChatIntegrationResult> onFinalResult) {
+                                                         @Nullable Consumer<ChatIntegrationResult> onFinalResult) {
         CopilotIntegration.IntegrationResult result = CopilotIntegration.openCopilotWithPromptDetailed(
                 prompt, project, finalResult -> {
                     if (onFinalResult != null) {

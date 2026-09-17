@@ -1,9 +1,9 @@
-package com.checkmarx.intellij.devassist.remediation;
+package com.checkmarx.intellij.devassist.aiagents;
 
 import lombok.Getter;
 
 /**
- * Outcome of {@link ChatIntegration(String, com.intellij.openapi.project.Project)},
+ * Outcome of {@link ChatIntegration (String, com.intellij.openapi.project.Project)},
  * common across all agent implementations.
  */
 @Getter

@@ -11,7 +11,7 @@ import com.checkmarx.intellij.common.settings.SettingsComponent;
 import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.devassist.remediation.AiAgent;
+import com.checkmarx.intellij.devassist.aiagents.AiAgent;
 import com.checkmarx.intellij.cxdevassist.ui.CxDevAssistWelcomeDialog;
 import com.checkmarx.intellij.cxdevassist.utils.CxDevAssistConstants;
 import com.intellij.ide.DataManager;

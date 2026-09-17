@@ -1,8 +1,8 @@
 package com.checkmarx.intellij.devassist.test.remediation;
 
 import com.checkmarx.intellij.devassist.configuration.mcp.McpAgentTarget;
-import com.checkmarx.intellij.devassist.remediation.AiAgent;
-import com.checkmarx.intellij.devassist.remediation.ChatIntegration;
+import com.checkmarx.intellij.devassist.aiagents.AiAgent;
+import com.checkmarx.intellij.devassist.aiagents.ChatIntegration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

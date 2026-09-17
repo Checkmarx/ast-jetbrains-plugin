@@ -13,7 +13,7 @@ import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpAgentTarget;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService;
-import com.checkmarx.intellij.devassist.remediation.AiAgent;
+import com.checkmarx.intellij.devassist.aiagents.AiAgent;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;

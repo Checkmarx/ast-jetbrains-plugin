@@ -1,8 +1,11 @@
-package com.checkmarx.intellij.devassist.remediation;
+package com.checkmarx.intellij.devassist.aiagents;
 
 import com.checkmarx.intellij.devassist.configuration.mcp.AiAssistantMcpTarget;
 import com.checkmarx.intellij.devassist.configuration.mcp.CopilotMcpTarget;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpAgentTarget;
+import com.checkmarx.intellij.devassist.remediation.AiAssistantChatIntegration;
+import com.checkmarx.intellij.devassist.remediation.CopilotChatIntegration;
+import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import lombok.Getter;
