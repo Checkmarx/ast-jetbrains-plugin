@@ -397,6 +397,10 @@ public class RemediationManagerTest {
                     .thenReturn("prompt");
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(true);
+            // Chat already opened successfully, so the plugin is unquestionably installed -
+            // RemediationManager checks this after the automation failure to decide whether to
+            // fall back to the clipboard (installed) or show the "not installed" balloon instead.
+            copilotMock.when(() -> CopilotIntegration.isCopilotAvailable(any())).thenReturn(true);
 
             copilotMock.when(() -> CopilotIntegration.openCopilotWithPromptDetailed(anyString(), any(), any()))
                     .thenAnswer(invocation -> {
@@ -429,7 +433,7 @@ public class RemediationManagerTest {
         RemediationManager manager = new RemediationManager();
 
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
-        when(mockState.getAiAgent()).thenReturn("AI_ASSISTANT");
+        when(mockState.getAiAgent()).thenReturn("JETBRAINS_AI_CHAT");
 
         AiAssistantIntegration.IntegrationResult successResult = mock(AiAssistantIntegration.IntegrationResult.class);
         when(successResult.isSuccess()).thenReturn(true);

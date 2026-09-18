@@ -1,11 +1,16 @@
 package com.checkmarx.intellij.ast.ui;
 
+import com.checkmarx.intellij.ast.settings.CxOneAssistConfigurable;
+import com.checkmarx.intellij.common.components.CxLinkLabel;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.settings.SettingsListener;
+import com.checkmarx.intellij.devassist.aiagents.AiAgent;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.ColorUtil;
@@ -33,6 +38,8 @@ public class WelcomeDialog extends DialogWrapper {
 
     private final boolean mcpEnabled;
     private final RealTimeSettingsManager settingsManager;
+    @Nullable
+    private final Project project;
 
     @Getter
     private JBCheckBox realTimeScannersCheckbox;
@@ -50,6 +57,7 @@ public class WelcomeDialog extends DialogWrapper {
      */
     public WelcomeDialog(@Nullable Project project, boolean mcpEnabled, RealTimeSettingsManager settingsManager) {
         super(project, false);
+        this.project = project;
         this.mcpEnabled = mcpEnabled;
         this.settingsManager = settingsManager;
         setOKButtonText(Bundle.message(Resource.WELCOME_CLOSE_BUTTON));
@@ -83,8 +91,19 @@ public class WelcomeDialog extends DialogWrapper {
         subtitle.setForeground(UIUtil.getLabelForeground());
         leftPanel.add(subtitle);
 
+        // Warn if the agent configured in Checkmarx One Assist settings isn't actually available
+        // in this IDE (e.g. more than one AI assistant plugin is installed and a stale/default
+        // choice no longer applies). Gated on mcpEnabled since Checkmarx One Assist's AI features
+        // - and therefore the choice of agent - only apply then.
+        if (mcpEnabled) {
+            AiAgent selectedAgent = AiAgent.fromSettingsValue(GlobalSettingsState.getInstance().getAiAgent());
+            if (!selectedAgent.isInstalled(project)) {
+                leftPanel.add(createAgentNotConnectedWarning(selectedAgent.getAgentName()), "growx, gapbottom 8");
+            }
+        }
+
         // Assist feature card
-        leftPanel.add(createFeatureCard(), "gapbottom 8");
+        leftPanel.add(createFeatureCard(), "growx, gapbottom 8");
 
         // Main bullets
         leftPanel.add(createBullet(Resource.WELCOME_MAIN_FEATURE_1));
@@ -149,6 +168,51 @@ public class WelcomeDialog extends DialogWrapper {
             bulletsPanel.add(mcpDisabledIcon, "growx, wrap");
         }
         return bulletsPanel;
+    }
+
+    /**
+     * Warning card shown when the AI agent configured in Checkmarx One Assist settings isn't
+     * actually available in this IDE. Clicking the link closes this dialog and opens the
+     * Checkmarx One Assist settings page so the user can pick an agent that's actually installed.
+     */
+    private JComponent createAgentNotConnectedWarning(String agentName) {
+        JPanel panel = new JPanel(new MigLayout("insets 10, gapx 8, gapy 4", "[][grow]"));
+        panel.setBorder(BorderFactory.createLineBorder(JBColor.border()));
+
+        Color base = UIUtil.getPanelBackground();
+        Color subtleBg = JBColor.isBright() ? ColorUtil.darker(base, 1) : ColorUtil.brighter(base, 1);
+        panel.setOpaque(true);
+        panel.setBackground(subtleBg);
+
+        JBLabel warningIcon = new JBLabel(AllIcons.General.Warning);
+        panel.add(warningIcon, "top, spany 3");
+
+        JBLabel title = new JBLabel(Bundle.message(Resource.WELCOME_AGENT_NOT_CONNECTED_TITLE));
+        title.setFont(title.getFont().deriveFont(Font.BOLD));
+        panel.add(title, "wrap, growx");
+
+        JBLabel message = new JBLabel("<html><div style='width:" + WRAP_WIDTH + "px;'>" +
+                Bundle.message(Resource.WELCOME_AGENT_NOT_CONNECTED_MESSAGE, agentName) + "</div></html>");
+        panel.add(message, "wrap, growx");
+
+        CxLinkLabel goToSettingsLink = new CxLinkLabel(
+                Bundle.message(Resource.WELCOME_AGENT_NOT_CONNECTED_LINK),
+                e -> openCxOneAssistSettings());
+        panel.add(goToSettingsLink, "growx");
+
+        return panel;
+    }
+
+    /**
+     * Closes this dialog and opens the Settings dialog directly to the Checkmarx One Assist page.
+     * Unlike the equivalent link in {@code GlobalSettingsComponent}, this dialog is never hosted
+     * inside an already-open Settings dialog, so there's no {@code Settings.KEY} tree to navigate
+     * within - it always needs to open a fresh Settings dialog.
+     */
+    private void openCxOneAssistSettings() {
+        close(CANCEL_EXIT_CODE);
+        ApplicationManager.getApplication().invokeLater(() ->
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, CxOneAssistConfigurable.class));
     }
 
     // Builds the right-side panel that hosts an image

@@ -290,16 +290,53 @@ public final class Utils {
             boolean displayDockLink,
             String dockLink
     ) {
+        showAppLevelNotification(title, content, type, displayDockLink, dockLink, "Go To Documentation");
+    }
+
+    /**
+     * Same as {@link #showAppLevelNotification(String, String, NotificationType, boolean, String)}
+     * but with a caller-supplied action label, for links that aren't documentation (e.g. "Install Plugin").
+     */
+    public static void showAppLevelNotification(
+            String title,
+            String content,
+            NotificationType type,
+            boolean displayDockLink,
+            String dockLink,
+            String actionLabel
+    ) {
         Notification notification = NotificationGroupManager.getInstance()
                 .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
                 .createNotification(title, content, type);
 
-
         if (displayDockLink) {
             notification.addAction(NotificationAction.createSimple(
-                    "Go To Documentation",
+                    actionLabel,
                     () -> BrowserUtil.browse(dockLink)
             ));
+        }
+        ApplicationManager.getApplication().invokeLater(() -> notification.notify(null));
+    }
+
+    /**
+     * Same as {@link #showAppLevelNotification(String, String, NotificationType, boolean, String, String)}
+     * but runs an arbitrary action on click instead of opening a URL - e.g. opening the IDE's own
+     * Plugins Marketplace page rather than a browser link.
+     */
+    public static void showAppLevelNotification(
+            String title,
+            String content,
+            NotificationType type,
+            boolean displayAction,
+            String actionLabel,
+            Runnable action
+    ) {
+        Notification notification = NotificationGroupManager.getInstance()
+                .getNotificationGroup(Constants.NOTIFICATION_GROUP_ID)
+                .createNotification(title, content, type);
+
+        if (displayAction) {
+            notification.addAction(NotificationAction.createSimple(actionLabel, action));
         }
         ApplicationManager.getApplication().invokeLater(() -> notification.notify(null));
     }

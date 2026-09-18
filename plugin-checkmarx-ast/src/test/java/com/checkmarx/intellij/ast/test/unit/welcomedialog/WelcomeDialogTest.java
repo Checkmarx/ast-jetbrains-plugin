@@ -4,6 +4,7 @@ import com.checkmarx.intellij.ast.ui.WelcomeDialog;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.settings.SettingsListener;
+import com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.ui.components.JBCheckBox;
@@ -399,9 +400,14 @@ public class WelcomeDialogTest {
 
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
         when(mockState.getUserPreferencesSet()).thenReturn(false);
+        when(mockState.getAiAgent()).thenReturn("COPILOT");
 
-        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<CopilotIntegration> copilotMock = mockStatic(CopilotIntegration.class)) {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            // Default-selected agent (COPILOT) is available, so the "not connected" warning
+            // shouldn't affect this test's component-count assertion.
+            copilotMock.when(() -> CopilotIntegration.isCopilotAvailable(any())).thenReturn(true);
 
             JPanel center = (JPanel) invokeProtected(dlg, "createCenterPanel", new Class<?>[]{});
             assertNotNull(center);

@@ -27,6 +27,7 @@ import com.intellij.openapi.options.ex.Settings;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
@@ -34,6 +35,7 @@ import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.messages.MessageBusConnection;
 import net.miginfocom.swing.MigLayout;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -221,6 +223,64 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
                         SwingUtilities.invokeLater(() -> handleMcpResult(changed, throwable)));
     }
 
+    /**
+     * Installs the Checkmarx MCP entry for a newly-selected agent, invoked from {@link #apply()}
+     * once its plugin is confirmed installed. Mirrors {@link #installMcp()}'s credential handling,
+     * but silently no-ops (rather than surfacing an error) when MCP isn't enabled or the user
+     * isn't authenticated, since {@code apply()} shouldn't fail the rest of the settings save over
+     * a best-effort MCP install.
+     */
+    private void configureMcpForAgentInBackground(AiAgent agent) {
+        ensureState();
+        if (!state.isMcpEnabled() || !state.isAuthenticated()) {
+            return;
+        }
+        GlobalSettingsSensitiveState sensitive = GlobalSettingsSensitiveState.getInstance();
+        String credential = state.isApiKeyEnabled() ? sensitive.getApiKey() : sensitive.getRefreshToken();
+        if (credential == null || credential.isBlank()) {
+            return;
+        }
+
+        McpInstallService.installSilentlyAsync(credential, agent)
+                .whenComplete((changed, throwable) ->
+                        SwingUtilities.invokeLater(() -> handleMcpResult(changed, throwable)));
+    }
+
+    /**
+     * The first open project, or {@code null} if none is open (e.g. the Welcome screen). Used for
+     * project-scoped "is this agent's plugin available" checks that also accept a global check.
+     */
+    @Nullable
+    private Project currentProjectOrNull() {
+        Project[] open = ProjectManager.getInstance().getOpenProjects();
+        return open.length > 0 ? open[0] : null;
+    }
+
+    /**
+     * Package-private seam around {@link AiAgent#isInstalled(Project)} so tests can stub it
+     * without needing a real IDE plugin registry/tool-window manager, matching this class's other
+     * unit tests, which run without a real IntelliJ Application/Project.
+     */
+    boolean isAgentInstalled(AiAgent agent) {
+        return agent.isInstalled(currentProjectOrNull());
+    }
+
+    /**
+     * Modal popup shown from {@link #apply()} when the user picks an agent whose plugin isn't
+     * installed. Blocking (rather than a balloon notification) so the choice is acknowledged
+     * before the Settings dialog closes; offers a direct jump to the plugin's Marketplace page.
+     */
+    private void showAgentNotInstalledPopup(AiAgent agent) {
+        String message = Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_MESSAGE, agent.getAgentName());
+        String title = Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_TITLE);
+        String installLabel = Bundle.message(Resource.AI_AGENT_INSTALL_ACTION_LABEL);
+        int result = Messages.showDialog(mainPanel, message, title,
+                new String[]{installLabel, Messages.getOkButton()}, 0, Messages.getWarningIcon());
+        if (result == 0) {
+            agent.openMarketplacePage(currentProjectOrNull());
+        }
+    }
+
     private void handleMcpResult(Boolean changed, Throwable throwable) {
         mcpInstallInProgress = false;
 
@@ -402,14 +462,26 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
         AiAgent previousAgent = AiAgent.fromSettingsValue(state.getAiAgent());
         AiAgent newAgent = AiAgent.fromAgentName((String) aiAgentCombo.getSelectedItem());
+        boolean agentChanged = previousAgent != newAgent;
+
+        // Whatever the user picked is saved, whether or not its plugin is installed - the combo
+        // is never reverted. If it's not installed, still save the choice and warn via a popup,
+        // but MCP is configured for it either way (as soon as the dropdown actually changes) so
+        // it's already in place once the user installs the plugin, rather than requiring them to
+        // revisit this page afterward.
         state.setAiAgent(newAgent.name());
-        if (previousAgent != newAgent) {
+        if (agentChanged) {
+            if (!isAgentInstalled(newAgent)) {
+                LOGGER.warn("[CxOneAssist] Selected AI agent plugin is not installed: " + newAgent.getAgentName());
+                showAgentNotInstalledPopup(newAgent);
+            }
             // The previously-selected agent's MCP entry (and its credential) is no longer
             // tracked by anything once the user switches away from it - clean it up now rather
             // than leaving it orphaned until the next logout/plugin-uninstall. Surface a status
             // if it fails, since that would otherwise vanish into idea.log unnoticed.
             previousAgent.uninstallMcpInBackground(LOGGER, "after switching to " + newAgent.getAgentName(),
                     () -> showMcpStatus(Bundle.message(Resource.MCP_PREVIOUS_AGENT_CLEANUP_FAILED, previousAgent.getAgentName()), JBColor.RED));
+            configureMcpForAgentInBackground(newAgent);
         }
 
         state.setUserPreferences(ascaSelected, ossSelected, secretsSelected, containersSelected, iacSelected);

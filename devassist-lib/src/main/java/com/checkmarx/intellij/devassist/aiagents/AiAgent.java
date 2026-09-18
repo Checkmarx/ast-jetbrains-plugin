@@ -6,8 +6,11 @@ import com.checkmarx.intellij.devassist.configuration.mcp.McpAgentTarget;
 import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantChatIntegration;
 import com.checkmarx.intellij.devassist.aiagents.copilot.CopilotChatIntegration;
 import com.checkmarx.intellij.devassist.remediation.RemediationManager;
+import com.intellij.ide.plugins.PluginManagerConfigurable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.options.ShowSettingsUtil;
+import com.intellij.openapi.project.Project;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,13 +34,21 @@ import java.util.function.Supplier;
  */
 public enum AiAgent {
 
-    COPILOT("Copilot", CopilotChatIntegration::new, CopilotMcpTarget::new),
-    AI_ASSISTANT("AI Assistant", AiAssistantChatIntegration::new, AiAssistantMcpTarget::new);
+    COPILOT("Copilot", CopilotChatIntegration::new, CopilotMcpTarget::new, "GitHub Copilot"),
+    JETBRAINS_AI_CHAT("JetBrains AI Chat", AiAssistantChatIntegration::new, AiAssistantMcpTarget::new, "JetBrains AI Assistant");
 
     @Getter
     private final String agentName;
     private final Supplier<ChatIntegration> chatIntegrationFactory;
     private final Supplier<McpAgentTarget> mcpTargetFactory;
+
+    /**
+     * Query used to pre-search the IDE's Marketplace tab for this agent's plugin (see
+     * {@link #openMarketplacePage(Project)}) - the plugin's actual Marketplace listing name,
+     * which may differ from {@link #agentName} (e.g. "JetBrains AI Assistant" vs the "JetBrains
+     * AI Chat" label used in our own settings UI).
+     */
+    private final String marketplaceSearchQuery;
 
     /**
      * Serializes {@link #installMcp(String)}/{@link #uninstallMcp()} calls for this specific
@@ -47,10 +58,12 @@ public enum AiAgent {
      */
     private final Object mcpLock = new Object();
 
-    AiAgent(String agentName, Supplier<ChatIntegration> chatIntegrationFactory, Supplier<McpAgentTarget> mcpTargetFactory) {
+    AiAgent(String agentName, Supplier<ChatIntegration> chatIntegrationFactory, Supplier<McpAgentTarget> mcpTargetFactory,
+            String marketplaceSearchQuery) {
         this.agentName = agentName;
         this.chatIntegrationFactory = chatIntegrationFactory;
         this.mcpTargetFactory = mcpTargetFactory;
+        this.marketplaceSearchQuery = marketplaceSearchQuery;
     }
 
     /**
@@ -58,6 +71,31 @@ public enum AiAgent {
      */
     public ChatIntegration chatIntegration() {
         return chatIntegrationFactory.get();
+    }
+
+    /**
+     * Whether this agent's plugin is installed (and enabled) in the current IDE, delegating to
+     * its {@link ChatIntegration#isAvailable(Project)}. Used before switching the active AI agent
+     * in settings, so the user isn't left with an agent that can't actually be used.
+     *
+     * @param project the project context; may be {@code null} for a global (non-project-scoped) check
+     */
+    public boolean isInstalled(@Nullable Project project) {
+        return chatIntegration().isAvailable(project);
+    }
+
+    /**
+     * Opens the IDE's own Plugins settings page directly on the Marketplace tab (not the
+     * Installed tab {@link PluginManagerConfigurable#showPluginConfigurable} lands on), pre-
+     * searched for this agent's plugin, so the user can install it without leaving the IDE. Used
+     * wherever the user is told this agent's plugin isn't installed (settings popup, remediation
+     * notification).
+     *
+     * @param project the project context; may be {@code null} to use the default project
+     */
+    public void openMarketplacePage(@Nullable Project project) {
+        ShowSettingsUtil.getInstance().showSettingsDialog(project, PluginManagerConfigurable.class,
+                configurable -> configurable.openMarketplaceTab(marketplaceSearchQuery));
     }
 
     /**

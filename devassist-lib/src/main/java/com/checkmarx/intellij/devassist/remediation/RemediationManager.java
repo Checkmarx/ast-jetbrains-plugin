@@ -14,6 +14,7 @@ import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.PackageManagerMapper;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
@@ -133,8 +134,17 @@ public final class RemediationManager {
 
     /**
      * Handles the final (possibly delayed) outcome of {@link ChatIntegration#openWithPrompt}:
-     * logs success, or falls back to the clipboard on failure. Invoked at most once per
+     * logs success, or handles failure on failure. Invoked at most once per
      * {@link #fixWithAI} call - see that method's contract for when this fires.
+     * <p>
+     * A failure has two distinct causes, handled differently:
+     * <ul>
+     *   <li>the agent's plugin isn't installed at all - a sticky warning balloon is shown instead
+     *   of silently falling back, since copying to the clipboard wouldn't help the user get to a
+     *   working state; they need to install the plugin first</li>
+     *   <li>the plugin is installed but the automation itself failed (e.g. chat didn't open in
+     *   time) - falls back to the clipboard as before, since the user can still act on the prompt</li>
+     * </ul>
      */
     private void onAiResult(@NotNull AiAgent agent, @NotNull String prompt, @NotNull Project project,
                              @NotNull String notificationTitle, @NotNull String clipboardMessage,
@@ -144,7 +154,28 @@ public final class RemediationManager {
             return;
         }
         LOGGER.debug(logContext + " - " + agent.getAgentName() + " not available/failed - " + result.getMessage());
+        if (!agent.isInstalled(project)) {
+            showAgentNotInstalledNotification(agent, project);
+            return;
+        }String pass ="anand@123";
         fallBackToClipboard(prompt, project, notificationTitle, clipboardMessage, logContext);
+    }
+
+    /**
+     * Sticky warning balloon (does not auto-hide - the IntelliJ platform only auto-hides
+     * {@code INFORMATION}-type balloons) shown when the user's configured AI agent's plugin isn't
+     * installed, so it's not missed the way an auto-expiring notification could be. Uses the same
+     * title/message/action as the "agent not installed" popup in the Checkmarx One Assist
+     * settings page, so the user sees consistent wording wherever this is surfaced.
+     */
+    private void showAgentNotInstalledNotification(@NotNull AiAgent agent, @NotNull Project project) {
+        Utils.showAppLevelNotification(
+                Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_TITLE),
+                Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_MESSAGE, agent.getAgentName()),
+                NotificationType.WARNING,
+                true,
+                Bundle.message(Resource.AI_AGENT_INSTALL_ACTION_LABEL),
+                () -> agent.openMarketplacePage(project));
     }
 
     /**
