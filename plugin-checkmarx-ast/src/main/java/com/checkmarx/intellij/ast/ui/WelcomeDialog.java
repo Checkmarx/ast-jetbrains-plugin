@@ -7,7 +7,6 @@ import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.settings.SettingsListener;
-import com.checkmarx.intellij.devassist.aiagents.AiAgent;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.options.ShowSettingsUtil;
@@ -40,12 +39,25 @@ public class WelcomeDialog extends DialogWrapper {
     private final RealTimeSettingsManager settingsManager;
     @Nullable
     private final Project project;
+    @Nullable
+    private final String aiAgentNotice;
 
     @Getter
     private JBCheckBox realTimeScannersCheckbox;
 
     public WelcomeDialog(@Nullable Project project, boolean mcpEnabled) {
-        this(project, mcpEnabled, new DefaultRealTimeSettingsManager());
+        this(project, mcpEnabled, (String) null);
+    }
+
+    public WelcomeDialog(@Nullable Project project, boolean mcpEnabled, @Nullable String aiAgentNotice) {
+        this(project, mcpEnabled, aiAgentNotice, new DefaultRealTimeSettingsManager());
+    }
+
+    /**
+     * Constructor with dependency injection for testability (no {@code aiAgentNotice}).
+     */
+    public WelcomeDialog(@Nullable Project project, boolean mcpEnabled, RealTimeSettingsManager settingsManager) {
+        this(project, mcpEnabled, null, settingsManager);
     }
 
     /**
@@ -53,12 +65,16 @@ public class WelcomeDialog extends DialogWrapper {
      *
      * @param project         current project (nullable)
      * @param mcpEnabled      whether MCP is enabled for this tenant
+     * @param aiAgentNotice   notice about the resolved AI agent to show in the welcome dialog
+     *                        (from {@code AiAgentLoginResolver}), or {@code null} if none applies
      * @param settingsManager wrapper around settings reads/writes
      */
-    public WelcomeDialog(@Nullable Project project, boolean mcpEnabled, RealTimeSettingsManager settingsManager) {
+    public WelcomeDialog(@Nullable Project project, boolean mcpEnabled, @Nullable String aiAgentNotice,
+                          RealTimeSettingsManager settingsManager) {
         super(project, false);
         this.project = project;
         this.mcpEnabled = mcpEnabled;
+        this.aiAgentNotice = aiAgentNotice;
         this.settingsManager = settingsManager;
         setOKButtonText(Bundle.message(Resource.WELCOME_CLOSE_BUTTON));
         init();
@@ -91,15 +107,10 @@ public class WelcomeDialog extends DialogWrapper {
         subtitle.setForeground(UIUtil.getLabelForeground());
         leftPanel.add(subtitle);
 
-        // Warn if the agent configured in Checkmarx One Assist settings isn't actually available
-        // in this IDE (e.g. more than one AI assistant plugin is installed and a stale/default
-        // choice no longer applies). Gated on mcpEnabled since Checkmarx One Assist's AI features
-        // - and therefore the choice of agent - only apply then.
-        if (mcpEnabled) {
-            AiAgent selectedAgent = AiAgent.fromSettingsValue(GlobalSettingsState.getInstance().getAiAgent());
-            if (!selectedAgent.isInstalled(project)) {
-                leftPanel.add(createAgentNotConnectedWarning(selectedAgent.getAgentName()), "growx, gapbottom 8");
-            }
+        // Gated on mcpEnabled since Checkmarx One Assist's AI features - and therefore the choice
+        // of agent - only apply then.
+        if (mcpEnabled && aiAgentNotice != null) {
+            leftPanel.add(createAgentNoticeCard(aiAgentNotice), "growx, gapbottom 8");
         }
 
         // Assist feature card
@@ -171,11 +182,11 @@ public class WelcomeDialog extends DialogWrapper {
     }
 
     /**
-     * Warning card shown when the AI agent configured in Checkmarx One Assist settings isn't
-     * actually available in this IDE. Clicking the link closes this dialog and opens the
-     * Checkmarx One Assist settings page so the user can pick an agent that's actually installed.
+     * Notice card shown when {@code AiAgentLoginResolver} found the configured AI agent missing
+     * on login - either because no supported agent is installed at all, or because a different,
+     * detected agent was automatically selected in its place.
      */
-    private JComponent createAgentNotConnectedWarning(String agentName) {
+    private JComponent createAgentNoticeCard(String noticeMessage) {
         JPanel panel = new JPanel(new MigLayout("insets 10, gapx 8, gapy 4", "[][grow]"));
         panel.setBorder(BorderFactory.createLineBorder(JBColor.border()));
 
@@ -192,7 +203,7 @@ public class WelcomeDialog extends DialogWrapper {
         panel.add(title, "wrap, growx");
 
         JBLabel message = new JBLabel("<html><div style='width:" + WRAP_WIDTH + "px;'>" +
-                Bundle.message(Resource.WELCOME_AGENT_NOT_CONNECTED_MESSAGE, agentName) + "</div></html>");
+                noticeMessage + "</div></html>");
         panel.add(message, "wrap, growx");
 
         CxLinkLabel goToSettingsLink = new CxLinkLabel(

@@ -20,6 +20,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ex.ApplicationManagerEx;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.options.Configurable;
@@ -275,6 +276,22 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         }
     }
 
+    /**
+     * Modal popup shown from {@link #apply()} when the user switches to JetBrains AI Chat,
+     * so a mid-session install/switch needs an explicit restart
+     * for Checkmarx MCP remediation to work through it.
+     */
+    private void showRestartIdePopup(AiAgent agent) {
+        String message = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_MESSAGE, agent.getAgentName());
+        String title = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_TITLE);
+        String restartLabel = Bundle.message(Resource.AI_AGENT_RESTART_ACTION_LABEL);
+        int result = Messages.showDialog(mainPanel, message, title,
+                new String[]{restartLabel, Messages.getOkButton()}, 0, Messages.getInformationIcon());
+        if (result == 0) {
+            ApplicationManagerEx.getApplicationEx().restart(true);
+        }
+    }
+
     private void handleMcpResult(Boolean changed, Throwable throwable) {
         mcpInstallInProgress = false;
 
@@ -431,7 +448,8 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
                 || containersCheckbox.isSelected() != state.isContainersRealtime()
                 || iacCheckbox.isSelected() != state.isIacRealtime()
                 || !Objects.equals(containersToolCombo.getSelectedItem(), state.getContainersTool())
-                || !Objects.equals(aiAgentToSettingsValue((String) aiAgentCombo.getSelectedItem()), state.getAiAgent());
+                || !Objects.equals(aiAgentToSettingsValue((String) aiAgentCombo.getSelectedItem()),
+                        AiAgent.fromSettingsValue(state.getAiAgent()).name());
     }
 
     @Override
@@ -468,11 +486,10 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
             if (!isAgentInstalled(newAgent)) {
                 LOGGER.warn("[CxOneAssist] Selected AI agent plugin is not installed: " + newAgent.getAgentName());
                 showAgentNotInstalledPopup(newAgent);
+            } else if (newAgent == AiAgent.JETBRAINS_AI_CHAT) {
+                showRestartIdePopup(AiAgent.JETBRAINS_AI_CHAT);
             }
-            // The previously-selected agent's MCP entry (and its credential) is no longer
-            // tracked by anything once the user switches away from it - clean it up now rather
-            // than leaving it orphaned until the next logout/plugin-uninstall. Surface a status
-            // if it fails, since that would otherwise vanish into idea.log unnoticed.
+            // After agent switch. the previously-selected agent's MCP entry (and its credential) is cleared
             previousAgent.uninstallMcpInBackground(LOGGER, "after switching to " + newAgent.getAgentName(),
                     () -> showMcpStatus(Bundle.message(Resource.MCP_PREVIOUS_AGENT_CLEANUP_FAILED, previousAgent.getAgentName()), JBColor.RED));
             configureMcpForAgentInBackground(newAgent);

@@ -107,7 +107,7 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     private boolean welcomeShown = false;
 
     @Attribute("aiAgent")
-    private String aiAgent = "COPILOT";
+    private String aiAgent = "";
 
     // Getters for license value
     // Setters for license value

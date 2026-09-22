@@ -17,6 +17,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
@@ -31,6 +32,7 @@ import org.mockito.MockedStatic;
 
 import javax.swing.*;
 import java.awt.Color;
+import java.awt.Component;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
@@ -200,13 +202,19 @@ class RealtimeScannersSettingsComponentTest {
         try (MockedStatic<ApplicationManager> appMgrMock = mockStatic(ApplicationManager.class);
              MockedStatic<ProjectManager> pmMock = mockStatic(ProjectManager.class);
              MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class);
-             MockedStatic<McpSettingsInjector> mcpMock = mockStatic(McpSettingsInjector.class)) {
+             MockedStatic<McpSettingsInjector> mcpMock = mockStatic(McpSettingsInjector.class);
+             MockedStatic<Messages> messagesMock = mockStatic(Messages.class)) {
 
             appMgrMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
             pmMock.when(ProjectManager::getInstance).thenReturn(mockProjectManager);
             // The new agent (JetBrains AI Chat) is available, so apply() takes the
-            // "installed" path rather than showing the not-installed popup.
+            // "installed" path rather than showing the not-installed popup - it shows the
+            // restart-IDE popup instead, since switching to it doesn't take effect until restart.
             aiAssistantMock.when(() -> AiAssistantIntegration.isAiAssistantAvailable(any())).thenReturn(true);
+            // Mocked static int methods default to 0 ("Restart" button index) - stub it to the
+            // "OK" index instead so this test doesn't trigger an actual IDE restart.
+            messagesMock.when(() -> Messages.showDialog(nullable(Component.class), any(), any(), any(), anyInt(), any()))
+                    .thenReturn(1);
 
             component.apply();
 
@@ -263,17 +271,23 @@ class RealtimeScannersSettingsComponentTest {
              MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class);
              MockedStatic<McpSettingsInjector> mcpMock = mockStatic(McpSettingsInjector.class);
              MockedStatic<CxWrapperFactory> wfMock = mockStatic(CxWrapperFactory.class);
-             MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class)) {
+             MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class);
+             MockedStatic<Messages> messagesMock = mockStatic(Messages.class)) {
 
             appMgrMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
             pmMock.when(ProjectManager::getInstance).thenReturn(mockProjectManager);
             // The new agent (JetBrains AI Chat) is available, so apply() takes the "installed"
-            // path rather than showing the not-installed popup (which would need a real UI).
+            // path rather than showing the not-installed popup (which would need a real UI) -
+            // it shows the restart-IDE popup instead, which Messages is mocked to swallow here.
             aiAssistantMock.when(() -> AiAssistantIntegration.isAiAssistantAvailable(any())).thenReturn(true);
             mcpMock.when(McpSettingsInjector::uninstallFromCopilot).thenThrow(new RuntimeException("io error"));
             wfMock.when(CxWrapperFactory::build).thenReturn(mockWrapper);
             bundleMock.when(() -> Bundle.message(eq(Resource.MCP_PREVIOUS_AGENT_CLEANUP_FAILED), any()))
                     .thenReturn("Cleanup failed");
+            // Mocked static int methods default to 0 ("Restart" button index) - stub it to the
+            // "OK" index instead so this test doesn't trigger an actual IDE restart.
+            messagesMock.when(() -> Messages.showDialog(nullable(Component.class), any(), any(), any(), anyInt(), any()))
+                    .thenReturn(1);
 
             assertDoesNotThrow(() -> component.apply());
         }

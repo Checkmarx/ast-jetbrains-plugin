@@ -16,6 +16,7 @@ import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.InputValidator;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.aiagents.AiAgent;
+import com.checkmarx.intellij.devassist.aiagents.AiAgentLoginResolver;
 import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.DataContext;
@@ -37,6 +38,7 @@ import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -371,11 +373,14 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
         CompletableFuture.runAsync(() -> StateService.getInstance().pruneStaleCustomStates());
 
+        String aiAgentNotice = null;
+
         // Configure realtime scanners based on MCP status - only modify settings when necessary to preserve user preferences during routine re-authentication
         if (!mcpStatusPreviouslyChecked) {
             // First time checking MCP status (new user or plugin upgrade scenario)
             if (mcpServerEnabled) {
                 autoEnableAllRealtimeScanners(); // Enable scanners with preference detection
+                aiAgentNotice = AiAgentLoginResolver.resolve(project, SETTINGS_STATE).getNoticeMessage();
                 installMcpAsync(credential);
             } else {
                 disableAllRealtimeScanners(); // Disable scanners while preserving preferences
@@ -386,6 +391,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             if (mcpServerEnabled) {
                 LOGGER.debug("[Auth] MCP re-enabled - restoring user preferences");
                 autoEnableAllRealtimeScanners(); // Restore user preferences
+                aiAgentNotice = AiAgentLoginResolver.resolve(project, SETTINGS_STATE).getNoticeMessage();
                 installMcpAsync(credential);
             } else {
                 LOGGER.debug("[Auth] MCP disabled - preserving user preferences and disabling scanners");
@@ -394,14 +400,14 @@ public class GlobalSettingsComponent implements SettingsComponent {
         } else {
             // MCP status unchanged - preserve existing scanner settings and user preferences
             if (mcpServerEnabled) {
+                aiAgentNotice = AiAgentLoginResolver.resolve(project, SETTINGS_STATE).getNoticeMessage();
                 installMcpAsync(credential); // Ensure MCP config is up to date
                 LOGGER.debug("[Auth] MCP unchanged (enabled) - user preferences preserved");
             } else {
                 LOGGER.debug("[Auth] MCP unchanged (disabled) - user preferences preserved");
             }
         }
-
-        showWelcomeDialog(mcpServerEnabled);
+        showWelcomeDialog(mcpServerEnabled, aiAgentNotice);
     }
 
     private void installMcpAsync(String credential) {
@@ -547,9 +553,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
         });
     }
 
-    private void showWelcomeDialog(boolean mcpEnabled) {
+    private void showWelcomeDialog(boolean mcpEnabled, @Nullable String aiAgentNotice) {
         try {
-            WelcomeDialog dlg = new WelcomeDialog(project, mcpEnabled);
+            WelcomeDialog dlg = new WelcomeDialog(project, mcpEnabled, aiAgentNotice);
             dlg.show();
         } catch (Exception ex) {
             LOGGER.warn("Failed to show welcome dialog", ex);

@@ -4,6 +4,7 @@ import com.checkmarx.intellij.devassist.configuration.mcp.AiAssistantMcpTarget;
 import com.checkmarx.intellij.devassist.configuration.mcp.CopilotMcpTarget;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpAgentTarget;
 import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantChatIntegration;
+import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration;
 import com.checkmarx.intellij.devassist.aiagents.copilot.CopilotChatIntegration;
 import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.intellij.ide.plugins.PluginManagerConfigurable;
@@ -14,7 +15,12 @@ import com.intellij.openapi.project.Project;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * The AI chat agent that receives generated fix/explanation prompts from CxOne Assist, and the
@@ -34,13 +40,27 @@ import java.util.function.Supplier;
  */
 public enum AiAgent {
 
-    COPILOT("Copilot", CopilotChatIntegration::new, CopilotMcpTarget::new, "GitHub Copilot"),
-    JETBRAINS_AI_CHAT("JetBrains AI Chat", AiAssistantChatIntegration::new, AiAssistantMcpTarget::new, "JetBrains AI Assistant");
+    COPILOT("Copilot", CopilotChatIntegration::new, CopilotMcpTarget::new, "GitHub Copilot", () -> true),
+    JETBRAINS_AI_CHAT("JetBrains AI Chat", AiAssistantChatIntegration::new, AiAssistantMcpTarget::new,
+            "JetBrains AI Assistant", AiAssistantIntegration::supportsAcp);
+
+    /**
+     * Static ranking used to pick a default agent - see {@link #preferenceOrder()}. Declared
+     * highest-preference first; any new {@link AiAgent} constant just needs adding here in its
+     * intended rank.
+     */
+    private static final List<AiAgent> PREFERENCE_ORDER = List.of(JETBRAINS_AI_CHAT, COPILOT);
 
     @Getter
     private final String agentName;
     private final Supplier<ChatIntegration> chatIntegrationFactory;
     private final Supplier<McpAgentTarget> mcpTargetFactory;
+
+    /**
+     * Whether this agent is currently eligible to occupy its declared slot in
+     * {@link #PREFERENCE_ORDER} (e.g. JetBrains AI Chat only while the IDE version supports ACP -
+     */
+    private final Supplier<Boolean> defaultEligible;
 
     /**
      * Query used to pre-search the IDE's Marketplace tab for this agent's plugin (see
@@ -59,11 +79,12 @@ public enum AiAgent {
     private final Object mcpLock = new Object();
 
     AiAgent(String agentName, Supplier<ChatIntegration> chatIntegrationFactory, Supplier<McpAgentTarget> mcpTargetFactory,
-            String marketplaceSearchQuery) {
+            String marketplaceSearchQuery, Supplier<Boolean> defaultEligible) {
         this.agentName = agentName;
         this.chatIntegrationFactory = chatIntegrationFactory;
         this.mcpTargetFactory = mcpTargetFactory;
         this.marketplaceSearchQuery = marketplaceSearchQuery;
+        this.defaultEligible = defaultEligible;
     }
 
     /**
@@ -197,6 +218,67 @@ public enum AiAgent {
         } catch (IllegalArgumentException e) {
             return COPILOT;
         }
+    }
+
+    /**
+     * Resolves a persisted settings value to an {@link AiAgent} without defaulting - returns
+     * {@link Optional#empty()} for a blank/null/unrecognized value instead of silently falling
+     * back to {@link #COPILOT}. Used by the login-time default-agent resolution
+     * ({@code AiAgentLoginResolver}) to distinguish "nothing configured yet" from "explicitly
+     * configured to COPILOT", which {@link #fromSettingsValue(String)} cannot do.
+     */
+    public static Optional<AiAgent> tryResolveConfigured(@Nullable String value) {
+        if (value == null || value.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(AiAgent.valueOf(value));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * All agents whose plugin is currently installed and enabled, in declaration order.
+     */
+    public static List<AiAgent> installedAgents(@Nullable Project project) {
+        return Arrays.stream(values())
+                .filter(agent -> agent.isInstalled(project))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * {@link #PREFERENCE_ORDER}, with any currently-ineligible agent (see
+     * {@link #defaultEligible}) demoted behind the next one - e.g. JetBrains AI Chat drops behind
+     * Copilot when the current IDE version doesn't support ACP - rather than removed, so the
+     * ranking always contains every known agent.
+     */
+    public static List<AiAgent> preferenceOrder() {
+        return PREFERENCE_ORDER.stream()
+                .sorted(Comparator.comparing(agent -> Boolean.TRUE.equals(agent.defaultEligible.get()) ? 0 : 1))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * The agent to default to when nothing is configured yet (or the configured agent is no
+     * longer installed and nothing else is either) - the top of {@link #preferenceOrder()},
+     * regardless of whether it's actually installed.
+     */
+    public static AiAgent computeVersionBasedDefault() {
+        return preferenceOrder().get(0);
+    }
+
+    /**
+     * Picks the best installed agent to use as a default: the highest-{@link #preferenceOrder()}
+     * agent that's also actually installed, or empty if none are installed.
+     * <p>
+     * Adding a new {@link AiAgent} constant needs no change here - it participates automatically
+     * through {@link #isInstalled(Project)} and its slot in {@link #PREFERENCE_ORDER}.
+     */
+    public static Optional<AiAgent> resolveBestInstalledAgent(List<AiAgent> installedAgents) {
+        return preferenceOrder().stream()
+                .filter(installedAgents::contains)
+                .findFirst();
     }
 
     /**

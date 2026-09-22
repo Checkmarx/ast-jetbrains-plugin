@@ -90,8 +90,8 @@ class AiAssistantIntegrationTest {
     }
 
     @Test
-    @DisplayName("isAiAssistantAvailable_PluginNotInstalled_ToolWindowPresent_ReturnsTrue")
-    void isAiAssistantAvailable_PluginNotInstalled_ToolWindowPresent_ReturnsTrue() {
+    @DisplayName("isAiAssistantAvailable_PluginNotInstalled_ToolWindowPresent_StillReturnsFalse")
+    void isAiAssistantAvailable_PluginNotInstalled_ToolWindowPresent_StillReturnsFalse() {
         Project project = mock(Project.class);
         ToolWindowManager mockManager = mock(ToolWindowManager.class);
         ToolWindow tw = mock(ToolWindow.class);
@@ -102,7 +102,7 @@ class AiAssistantIntegrationTest {
             twMock.when(() -> ToolWindowManager.getInstance(project)).thenReturn(mockManager);
             when(mockManager.getToolWindow("AI Assistant")).thenReturn(tw);
 
-            assertTrue(AiAssistantIntegration.isAiAssistantAvailable(project));
+            assertFalse(AiAssistantIntegration.isAiAssistantAvailable(project));
         }
     }
 

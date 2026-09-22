@@ -12,6 +12,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.actionSystem.ex.ActionUtil;
+import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.extensions.PluginId;
@@ -19,6 +20,7 @@ import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
+import com.intellij.util.text.VersionComparatorUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -106,6 +108,13 @@ public final class AiAssistantIntegration {
      */
     private static final AtomicInteger CURRENT_GENERATION = new AtomicInteger(0);
 
+    /**
+     * Minimum IDE marketing version (e.g. {@code "2025.3.2"}, as returned by
+     * {@link ApplicationInfo#getFullVersion()}) known to ship an AI Assistant compatible with the
+     * Agent Client Protocol (ACP), compared via {@link VersionComparatorUtil}.
+     */
+    private static final String MIN_ACP_IDE_VERSION = "2025.3.2";
+
     private AiAssistantIntegration() {
         // Utility class
     }
@@ -140,24 +149,21 @@ public final class AiAssistantIntegration {
     }
 
     /**
-     * Checks whether JetBrains AI Assistant is installed/enabled, or its chat tool window is
-     * already registered for the given project.
+     * Checks whether JetBrains AI Assistant is installed and enabled, based solely on its plugin
+     * descriptor.
      */
     public static boolean isAiAssistantAvailable(@Nullable Project project) {
         IdeaPluginDescriptor plugin = PluginManagerCore.getPlugin(AI_ASSISTANT_PLUGIN_ID);
-        if (plugin != null && plugin.isEnabled()) {
-            return true;
-        }
+        return plugin != null && plugin.isEnabled();
+    }
 
-        if (project != null) {
-            ToolWindowManager manager = ToolWindowManager.getInstance(project);
-            for (String id : AI_ASSISTANT_TOOL_WINDOW_IDS) {
-                if (manager.getToolWindow(id) != null) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    /**
+     * Whether the current IDE version is recent enough to support the Agent Client Protocol
+     * (ACP).
+     */
+    public static boolean supportsAcp() {
+        String currentVersion = ApplicationInfo.getInstance().getFullVersion();
+        return VersionComparatorUtil.compare(currentVersion, MIN_ACP_IDE_VERSION) >= 0;
     }
 
     /**
