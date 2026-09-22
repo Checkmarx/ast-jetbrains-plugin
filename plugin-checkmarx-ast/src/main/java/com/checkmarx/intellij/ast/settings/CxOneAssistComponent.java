@@ -273,9 +273,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
      */
     private void showAgentNotInstalledPopup(AiAgent agent) {
         String message = Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_MESSAGE, agent.getAgentName());
-        String title = Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_TITLE);
         String installLabel = Bundle.message(Resource.AI_AGENT_INSTALL_ACTION_LABEL);
-        int result = Messages.showDialog(mainPanel, message, title,
+        int result = Messages.showDialog(mainPanel, message, Constants.TOOL_WINDOW_ID,
                 new String[]{installLabel, Messages.getOkButton()}, 0, Messages.getWarningIcon());
         if (result == 0) {
             agent.openMarketplacePage(currentProjectOrNull());
@@ -286,15 +285,11 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
      * Modal popup shown from {@link #apply()} when the user switches to JetBrains AI Chat.
      * Offers to restart immediately rather than just informing the user.
      */
-    private void showRestartIdePopup(AiAgent agent) {
+    private int showRestartIdePopup(AiAgent agent) {
         String message = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_MESSAGE, agent.getAgentName());
-        String title = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_TITLE);
         String restartLabel = Bundle.message(Resource.AI_AGENT_RESTART_ACTION_LABEL);
-        int result = Messages.showDialog(mainPanel, message, title,
+        return Messages.showDialog(mainPanel, message, Constants.TOOL_WINDOW_ID,
                 new String[]{restartLabel, Messages.getOkButton()}, 0, Messages.getInformationIcon());
-        if (result == 0) {
-            ApplicationManagerEx.getApplicationEx().restart(true);
-        }
     }
 
     private void handleMcpResult(Boolean changed, Throwable throwable) {
@@ -488,16 +483,20 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         // revisit this page afterward.
         state.setAiAgent(newAgent.name());
         if (agentChanged) {
+            int restartResult = 1;
             if (!isAgentInstalled(newAgent)) {
                 LOGGER.warn("[CxOneAssist] Selected AI agent plugin is not installed: " + newAgent.getAgentName());
                 showAgentNotInstalledPopup(newAgent);
             } else if (newAgent == AiAgent.JETBRAINS_AI_CHAT) {
-                showRestartIdePopup(AiAgent.JETBRAINS_AI_CHAT);
+                restartResult = showRestartIdePopup(AiAgent.JETBRAINS_AI_CHAT);
             }
             // After agent switch. the previously-selected agent's MCP entry (and its credential) is cleared
             previousAgent.uninstallMcpInBackground(LOGGER, "after switching to " + newAgent.getAgentName(),
                     () -> showMcpStatus(Bundle.message(Resource.MCP_PREVIOUS_AGENT_CLEANUP_FAILED, previousAgent.getAgentName()), JBColor.RED));
             configureMcpForAgentInBackground(newAgent);
+            if (restartResult == 0) {
+                ApplicationManagerEx.getApplicationEx().restart(true);
+            }
         }
 
         state.setUserPreferences(ascaSelected, ossSelected, secretsSelected, containersSelected, iacSelected);

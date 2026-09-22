@@ -11,6 +11,7 @@ import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
+import com.checkmarx.intellij.cxdevassist.utils.CxDevAssistConstants;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpAgentTarget;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService;
 import com.checkmarx.intellij.devassist.aiagents.AiAgent;
@@ -267,9 +268,8 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
      */
     private void showAgentNotInstalledPopup(AiAgent agent) {
         String message = Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_MESSAGE, agent.getAgentName());
-        String title = Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_TITLE);
         String installLabel = Bundle.message(Resource.AI_AGENT_INSTALL_ACTION_LABEL);
-        int result = Messages.showDialog(mainPanel, message, title,
+        int result = Messages.showDialog(mainPanel, message, CxDevAssistConstants.PLUGIN_NAME,
                 new String[]{installLabel, Messages.getOkButton()}, 0, Messages.getWarningIcon());
         if (result == 0) {
             agent.openMarketplacePage(currentProjectOrNull());
@@ -281,15 +281,11 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
      * so a mid-session install/switch needs an explicit restart
      * for Checkmarx MCP remediation to work through it.
      */
-    private void showRestartIdePopup(AiAgent agent) {
+    private int showRestartIdePopup(AiAgent agent) {
         String message = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_MESSAGE, agent.getAgentName());
-        String title = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_TITLE);
         String restartLabel = Bundle.message(Resource.AI_AGENT_RESTART_ACTION_LABEL);
-        int result = Messages.showDialog(mainPanel, message, title,
+        return Messages.showDialog(mainPanel, message, CxDevAssistConstants.PLUGIN_NAME,
                 new String[]{restartLabel, Messages.getOkButton()}, 0, Messages.getInformationIcon());
-        if (result == 0) {
-            ApplicationManagerEx.getApplicationEx().restart(true);
-        }
     }
 
     private void handleMcpResult(Boolean changed, Throwable throwable) {
@@ -483,16 +479,20 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         // revisit this page afterward.
         state.setAiAgent(newAgent.name());
         if (agentChanged) {
+            int result = 1;
             if (!isAgentInstalled(newAgent)) {
                 LOGGER.warn("[CxOneAssist] Selected AI agent plugin is not installed: " + newAgent.getAgentName());
                 showAgentNotInstalledPopup(newAgent);
             } else if (newAgent == AiAgent.JETBRAINS_AI_CHAT) {
-                showRestartIdePopup(AiAgent.JETBRAINS_AI_CHAT);
+                result = showRestartIdePopup(AiAgent.JETBRAINS_AI_CHAT);
             }
             // After agent switch. the previously-selected agent's MCP entry (and its credential) is cleared
             previousAgent.uninstallMcpInBackground(LOGGER, "after switching to " + newAgent.getAgentName(),
                     () -> showMcpStatus(Bundle.message(Resource.MCP_PREVIOUS_AGENT_CLEANUP_FAILED, previousAgent.getAgentName()), JBColor.RED));
             configureMcpForAgentInBackground(newAgent);
+            if (result == 0) {
+                ApplicationManagerEx.getApplicationEx().restart(true);
+            }
         }
 
         state.setUserPreferences(ascaSelected, ossSelected, secretsSelected, containersSelected, iacSelected);

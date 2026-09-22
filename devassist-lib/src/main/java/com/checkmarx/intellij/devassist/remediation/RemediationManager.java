@@ -170,7 +170,7 @@ public final class RemediationManager {
      */
     private void showAgentNotInstalledNotification(@NotNull AiAgent agent, @NotNull Project project) {
         Utils.showAppLevelNotification(
-                Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_TITLE),
+                Utils.getPluginDisplayName(),
                 Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_MESSAGE, agent.getAgentName()),
                 NotificationType.WARNING,
                 true,

@@ -210,7 +210,7 @@ public enum AiAgent {
      * value to an {@link AiAgent}, defaulting to {@link #COPILOT} for null/unknown/legacy values.
      */
     public static AiAgent fromSettingsValue(String value) {
-        if (value == null) {
+        if (value == null || value.isBlank()) {
             return COPILOT;
         }
         try {

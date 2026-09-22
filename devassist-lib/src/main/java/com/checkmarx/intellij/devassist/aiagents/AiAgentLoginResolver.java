@@ -39,20 +39,13 @@ public final class AiAgentLoginResolver {
             AiAgent chosenDefault = AiAgent.computeVersionBasedDefault();
             state.setAiAgent(chosenDefault.name());
             LOGGER.warn("AI-Agents: No AI agents are installed; defaulting to " + chosenDefault.name());
-            return new AiAgentResolution(chosenDefault, Bundle.message(Resource.AI_AGENT_NO_AGENT_INSTALLED));
+            return new AiAgentResolution(chosenDefault, Bundle.message(Resource.AI_AGENT_NO_AGENT_INSTALLED, Utils.getPluginDisplayName()));
         }
 
-        AiAgent defaultAgent = state.getAiAgent() == null
-                ? AiAgent.computeVersionBasedDefault()
-                :
+        AiAgent defaultAgent = AiAgent.tryResolveConfigured(state.getAiAgent()).orElse(AiAgent.computeVersionBasedDefault());
 
-                AiAgent.tryResolveConfigured(state.getAiAgent())
-                .orElseGet(AiAgent::computeVersionBasedDefault);
-
-        if (state.getAiAgent() != null && installedAgents.contains(defaultAgent)) {
-            if (!defaultAgent.name().equals(state.getAiAgent())) {
-                state.setAiAgent(defaultAgent.name());
-            }
+        if (installedAgents.contains(defaultAgent)) {
+            LOGGER.info("AI-Agents: Configured agent " + defaultAgent.name() + " is installed; using it");
             return new AiAgentResolution(defaultAgent, null);
         }
 
@@ -62,6 +55,7 @@ public final class AiAgentLoginResolver {
                 .orElseThrow(() -> new IllegalStateException(
                         "installedAgents() was non-empty but resolveBestInstalledAgent() found nothing"));
         state.setAiAgent(fallback.name());
-        return new AiAgentResolution(fallback, Bundle.message(Resource.AI_AGENT_AUTO_SWITCHED, defaultAgent.getAgentName()));
+        LOGGER.warn("AI-Agents: Configured agent " + defaultAgent + " is not installed; auto-switching to " + fallback.name());
+        return new AiAgentResolution(fallback, Bundle.message(Resource.AI_AGENT_AUTO_SWITCHED, defaultAgent.getAgentName(), Utils.getPluginDisplayName()));
     }
 }
