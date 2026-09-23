@@ -42,12 +42,7 @@ public final class AiAssistantIntegration {
     private static final PluginId AI_ASSISTANT_PLUGIN_ID = PluginId.getId("com.intellij.ml.llm");
 
     /**
-     * ID of AI Assistant's own "Model Context Protocol (MCP)" project settings page (registered
-     * as a {@code projectConfigurable} in its plugin.xml under the {@code ml.llm.LLMConfigurable}
-     * group). Used to navigate the Settings dialog there directly - via
-     * {@link com.intellij.openapi.options.ex.Settings#find(String)} - instead of hand-editing
-     * its {@code mcp.json}, since that file's location/schema is not documented public API and
-     * the settings UI is the officially supported way for users to inspect/manage it.
+     * ID of AI Assistant's own "Model Context Protocol (MCP)" project settings page
      */
     public static final String AI_ASSISTANT_MCP_CONFIGURABLE_ID = "ml.llm.mcp";
 
