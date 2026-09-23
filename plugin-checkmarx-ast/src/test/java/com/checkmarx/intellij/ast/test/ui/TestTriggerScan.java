@@ -70,7 +70,7 @@ public class TestTriggerScan extends com.checkmarx.intellij.ast.test.ui.BaseUITe
         waitFor(() -> hasAnyComponent(PROJECT_DOES_NOT_MATCH), Duration.ofSeconds(15));
         Assertions.assertTrue(hasAnyComponent(PROJECT_DOES_NOT_MATCH));
     }
-    @Disabled("Flaky - TC")
+    //@Disabled("Flaky - TC")
     @Test
     @Video
     @Order(4)

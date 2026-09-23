@@ -95,6 +95,14 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
 
     @Test
     @Order(7)
+    @DisplayName("TC87: Verify OAuth 'Connect' Click Shows Confirmation Popup")
+    @Video
+    public void testOAuthConnectShowsConfirmationPopup() {
+        verifyOAuthConfirmationPopupVisible();
+    }
+
+    @Test
+    @Order(8)
     @DisplayName("Validate dev assist welcome page launched after successful login")
     @Video
     public void validateWelcomePage(){
@@ -106,7 +114,7 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     @DisplayName("TC88: Verify success notification shown in IDE after OAuth login")
     @Video
     public void testSuccessNotificationAfterLogin() {
@@ -127,7 +135,7 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     @DisplayName("TC84: Verify logout button is disabled when user is not logged in")
     @Video
     public void testLogoutButtonDisabledWhenNotLoggedIn() {
@@ -142,7 +150,7 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
     }
 
     @Test
-    @Order(10)
+    @Order(11)
     @DisplayName("TC85: Verify clicking logout resets UI to initial state")
     @Video
     public void testLogoutResetsUIToInitialState() {
@@ -183,7 +191,7 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
     }
 
     @Test
-    @Order(11)
+    @Order(12)
     @DisplayName("TC91: Verify 'Connect' button disabled when no method selected and fields empty")
     @Video
     public void testConnectButtonDisabledWhenFieldsEmpty() {
@@ -204,7 +212,7 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
     }
 
     @Test
-    @Order(12)
+    @Order(13)
     @DisplayName("TC92: Verify credentials are mandatory depending on selected method")
     @Video
     public void testCredentialsMandatoryForSelectedMethod() {
@@ -229,7 +237,7 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
     }
 
     @Test
-    @Order(13)
+    @Order(14)
     @DisplayName("TC93: Verify success message is 'You are connected to Checkmarx One'")
     @Video
     public void testSuccessMessageText() {
@@ -248,7 +256,7 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
     }
 
     @Test
-    @Order(14)
+    @Order(15)
     @DisplayName("TC99: Verify all fields are disabled upon successful login")
     @Video
     public void testAllFieldsDisabledAfterLogin() {
@@ -279,5 +287,67 @@ public class TestAuthentication extends com.checkmarx.intellij.ast.test.ui.BaseU
                 "Connect button should be disabled after successful login");
         log("All auth fields are correctly disabled after successful login");
         click(OK_BTN);
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("TC95: Verify OAuth Connect Shows Popup with Continue/Cancel Options")
+    @Video
+    public void testOAuthConnectShowsPopupWithContinueCancelOptions() {
+        verifyOAuthPopupHasContinueCancelButtons();
+    }
+
+    @Test
+    @Order(17)
+    @DisplayName("TC86: Verify stored credentials are retained on UI after logout")
+    @Video
+    public void testCredentialsRetainedAfterLogout() {
+        // First login
+        openSettings();
+        logoutIfUserIsAlreadyLoggedIn();
+        performLoginUsingApiKey(true);
+        validateSuccessfulLogin(true);
+
+        // Now logout
+        openSettings();
+        logoutIfUserIsAlreadyLoggedIn();
+
+        // TC86: Base URI/API Key fields should still show the previously-entered values
+        verifyCredentialsRetainedAfterLogout();
+        log("Base URI and API Key fields correctly retained after logout");
+        click(OK_BTN);
+    }
+
+    @Test
+    @Order(18)
+    @DisplayName("TC89: Verify users can switch login methods via radio buttons")
+    @Video
+    public void testSwitchLoginMethodsViaRadioButtons() {
+        openSettings();
+        logoutIfUserIsAlreadyLoggedIn();
+
+        String apiKeyFieldXpath = String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY);
+        String baseUrlFieldXpath = String.format(FIELD_NAME, CX_BASE_URI);
+        String tenantFieldXpath = String.format(FIELD_NAME, TENANT);
+
+        // Click OAuth radio button: OAuth fields should be enabled, API Key field disabled
+        switchToOAuth();
+        Assertions.assertTrue(isElementClickable(baseUrlFieldXpath), "Base URI field should be enabled when OAuth is selected");
+        Assertions.assertTrue(isElementClickable(tenantFieldXpath), "Tenant field should be enabled when OAuth is selected");
+        Assertions.assertFalse(isElementClickable(apiKeyFieldXpath), "API Key field should be disabled when OAuth is selected");
+
+        // Click API Key radio button: API Key field should be enabled, OAuth fields disabled
+        switchToApiKey();
+        Assertions.assertTrue(isElementClickable(apiKeyFieldXpath), "API Key field should be enabled when API Key is selected");
+        Assertions.assertFalse(isElementClickable(baseUrlFieldXpath), "Base URI field should be disabled when API Key is selected");
+        Assertions.assertFalse(isElementClickable(tenantFieldXpath), "Tenant field should be disabled when API Key is selected");
+    }
+
+    @Test
+    @Order(19)
+    @DisplayName("TC97: Verify Clicking Cancel Dismisses Popup and User Stays on Panel")
+    @Video
+    public void testCancelPopupKeepsSettingsPageVisible() {
+        verifySettingsPageVisibleAfterPopupCancel();
     }
 }

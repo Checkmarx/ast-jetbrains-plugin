@@ -22,7 +22,7 @@ import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.openSettings;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.testASTConnection;
-import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.enterScanIdAndSelect;
+import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.enterScanId;
 import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.*;
 
 public abstract class BaseUITest {
@@ -149,13 +149,22 @@ public abstract class BaseUITest {
     }
 
     protected void getResults() {
+        getResults(Environment.SCAN_ID);
+    }
+
+    /**
+     * Clears the current selection and loads results for the given scan ID. Used to fetch
+     * results for a specific project/scan (e.g. switching to a different project by loading a
+     * scan ID that belongs to it), rather than always defaulting to {@link Environment#SCAN_ID}.
+     *
+     * @param scanId The scan ID to load results for.
+     */
+    protected void getResults(String scanId) {
         focusCxWindow();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         focusCxWindow();
         clearSelection();
-       /* find(JTextFieldFixture.class, SCAN_FIELD).setText(Environment.SCAN_ID);
-        new Keyboard(remoteRobot).key(KeyEvent.VK_ENTER);*/
-        enterScanIdAndSelect(true);
+        enterScanId(scanId);
         waitFor(() -> {
             focusCxWindow();
             return hasAnyComponent(TREE)
