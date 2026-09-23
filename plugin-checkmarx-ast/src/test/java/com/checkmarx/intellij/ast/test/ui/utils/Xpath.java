@@ -78,6 +78,9 @@ public class Xpath {
     static final String OK_BTN = "//div[@text='OK']";
     @Language("XPath")
     public
+    static final String CANCEL_BTN = "//div[@text='Cancel']";
+    @Language("XPath")
+    public
     static final String NO_PROJECT_SELECTED = "//div[@class='ActionButtonWithText' and @visible_text='Project: none']";
     @Language("XPath")
     public
@@ -90,10 +93,13 @@ public class Xpath {
     static final String TRIAGE_LOW = "//div[@class='ComboBox'][.//div[@visible_text='LOW']]";
     @Language("XPath")
     public
-    static final String TRIAGE_CONFIRMED = "//div[@class='ComboBox'][.//div[@visible_text='CONFIRMED']]";
+    static final String TRIAGE_STATE_COMBOBOX = "//div[@class='ComboBox'][.//div[@visible_text='%s']]";
     @Language("XPath")
     public
     static final String TRIAGE_COMMENT = "//div[@class='JTextField']";
+    @Language("XPath")
+    public
+    static final String TRIAGE_NOTE = "//div[@class='JTextField']";
     @Language("XPath")
     public
     static final String UPDATE_BTN = "//div[@text='Update']";
@@ -103,6 +109,21 @@ public class Xpath {
     @Language("XPath")
     public
     static final String TAB_CHANGES_CONTENT = "//div[@accessiblename='Changes' and @accessiblename.key='changes.default.changelist.name CHANGES' and @class='JBTabbedPane']//div[@class='JPanel']";
+    @Language("XPath")
+    public
+    static final String TAB_DESCRIPTION = "//div[@text='Description']";
+    @Language("XPath")
+    public
+    static final String TAB_DESCRIPTION_CONTENT = "//div[@class='JBTabbedPane']//div[@class='JEditorPane']";
+    @Language("XPath")
+    public
+    static final String TAB_ATTACK_VECTOR = "//div[@text='Attack Vector']";
+    @Language("XPath")
+    public
+    static final String ATTACK_VECTOR_NODE_LINK = "(//div[@class='CxLinkLabel'])[%d]";
+    @Language("XPath")
+    public
+    static final String EDITOR_TOOLTIP_CONTENT = "//div[@class='JEditorPane']";
     @Language("XPath")
     public
     static final String TAB_LEARN_MORE = "//div[@text.key='LEARN_MORE']";
@@ -118,6 +139,9 @@ public class Xpath {
     @Language("XPath")
     public
     static final String TAB_RECOMMENDATIONS_EXAMPLES = "//div[@text.key='REMEDIATION_EXAMPLES']";
+    @Language("XPath")
+    public
+    static final String TAB_RECOMMENDATIONS_EXAMPLES_CODE_BLOCK = "(//div[@class='JBTabbedPane']//div[@class='JEditorPane'])[%d]";
     @Language("XPath")
     public
     static final String AUTO_REMEDIATION = "//div[@tooltiptext.key='AUTO_REMEDIATION_TOOLTIP']";
@@ -185,6 +209,12 @@ public class Xpath {
     @Language("XPath")
     public
     static final String OAUTH_POPUP_CANCEL_BUTTON = "//div[@class='JPanel'][.//div[@class='InplaceButton']]//div[@text='Cancel']";
+    @Language("XPath")
+    public
+    static final String OAUTH_CONFIRMATION_POPUP = "//div[@class='JPanel'][.//div[@class='InplaceButton']]";
+    @Language("XPath")
+    public
+    static final String OAUTH_POPUP_BUTTON = "//div[@class='JPanel'][.//div[@class='InplaceButton']]//div[@text='%s']";
     @Language("XPath")
     public static final String INVALID_BASE_URL_ERROR =
             "//div[@accessiblename='Please check the server address of your Checkmarx One environment.' and @class='JBLabel' and @text='<html>Please check the server address of your Checkmarx One environment.</html>']";

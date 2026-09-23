@@ -11,6 +11,7 @@ import com.intellij.remoterobot.utils.Keyboard;
 import com.intellij.remoterobot.utils.RepeatUtilsKt;
 import com.intellij.remoterobot.utils.WaitForConditionTimeoutException;
 import org.intellij.lang.annotations.Language;
+import org.junit.jupiter.api.Assertions;
 
 import java.awt.event.KeyEvent;
 import java.time.Duration;
@@ -23,8 +24,6 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.junit.jupiter.api.Assertions;
-
 import static com.checkmarx.intellij.ast.test.ui.BaseUITest.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
@@ -34,6 +33,7 @@ public class UIHelper {
     private static final Duration waitDuration = Duration.ofSeconds(Integer.getInteger("uiWaitDuration"));
     private static final boolean initialized = false;
     private static int retries = 0;
+    //private static final ThreadLocal<Boolean> recovering = ThreadLocal.withInitial(() -> false);
     private static final int DEFAULT_SLEEP_MS = 1500;
 
     /**
@@ -310,6 +310,14 @@ public class UIHelper {
         });
     }
 
+    public static void assertElementAvailableAfterLogin(String xpath, String elementName) {
+        boolean available = pollingWaitForElement(xpath, true);
+        if (!available) {
+            log("FAILED: " + elementName + " button is not available even after successful login");
+            Assertions.fail(elementName + " button is not available even after successful login");
+        }
+    }
+
     private static void repeatUntilSuccess(int attempts, Runnable action) {
         for (int i = 1; i <= attempts; i++) {
             try {
@@ -517,11 +525,18 @@ public class UIHelper {
         enter(value);
     }
 
-    public static void assertElementAvailableAfterLogin(String xpath, String elementName) {
-        boolean available = pollingWaitForElement(xpath, true);
-        if (!available) {
-            log("FAILED: " + elementName + " button is not available even after successful login");
-            Assertions.fail(elementName + " button is not available even after successful login");
-        }
+    public static List<String> getBranchDropdownOptions(String selectionPrefix) {
+        String xpath = String.format(HAS_SELECTION, selectionPrefix);
+
+        waitFor(() -> {
+            focusCxWindow();
+            find(ActionButtonFixture.class, xpath).callJs("component.click(); 'ok';", true);
+            List<JListFixture> lists = findAll(JListFixture.class, MY_LIST);
+            return lists.size() == 1 && lists.get(0).findAllText().size() > 0;
+        });
+
+        return findAll(JListFixture.class, MY_LIST).get(0).findAllText().stream()
+                .map(RemoteText::getText)
+                .collect(Collectors.toList());
     }
 }

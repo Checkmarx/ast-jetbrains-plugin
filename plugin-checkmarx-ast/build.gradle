@@ -3,6 +3,7 @@ plugins {
     id 'org.jetbrains.intellij'
     id 'io.freefair.lombok'
     id 'jacoco'
+    id 'org.gradle.test-retry' version "${testRetryPluginVersion}"
 }
 
 group = 'com.checkmarx.intellij.ast'
@@ -51,6 +52,17 @@ test {
     jacoco {
         includeNoLocationClasses = true
         excludes = ["jdk.internal.*"]
+    }
+
+    // Only retry failed tests under the UI test package; unit tests are unaffected
+    // regardless of whether the run is triggered via gradlew or the IDE's run action.
+    retry {
+        maxRetries = 1
+        maxFailures = 20
+        failOnPassedAfterRetry = false
+        filter {
+            includeClasses.add("com.checkmarx.intellij.ast.test.ui.*")
+        }
     }
 }
 

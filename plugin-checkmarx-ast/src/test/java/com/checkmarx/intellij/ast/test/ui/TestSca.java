@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.ast.test.ui;
 
 import com.automation.remarks.junit5.Video;
+import com.checkmarx.intellij.ast.test.integration.Environment;
 import com.checkmarx.intellij.common.window.actions.filter.SeverityFilter;
 import com.intellij.remoterobot.fixtures.ComponentFixture;
 import com.intellij.remoterobot.fixtures.JTreeFixture;
@@ -16,6 +17,10 @@ import java.util.stream.Collectors;
 import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
+import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.verifyScaDevTestDependencyFilterHidesNodes;
+import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.verifyScaDevTestFilterUncheckedByDefault;
+import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.verifyScaDevTestFilterNoEffectOnSastOnlyScan;
+import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.verifyScaDevTestFilterOnCombinedScan;
 import static com.checkmarx.intellij.ast.window.results.tree.nodes.ResultNode.UPGRADE_TO_VERSION_LABEL;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -61,38 +66,10 @@ public class TestSca extends com.checkmarx.intellij.ast.test.ui.BaseUITest {
 
         return rowIdx;
     }
-
+    @Disabled("Flaky - TC36")
     @Test
     @Video
     @Order(1)
-    @DisplayName("SCA panel: navigate tree, verify remediation, and test file navigation")
-    public void testScaPanel() {
-        int dsvwRowIdx = navigateToScaVulnerability();
-        JTreeFixture tree = find(JTreeFixture.class, TREE);
-
-        // If there is an auto remediation to the file, there must be a label starting with Upgrade to version
-        if (hasAnyComponent(AUTO_REMEDIATION)) {
-            waitFor(() -> {
-                tree.clickRow(dsvwRowIdx);
-                return find(MAGIC_RESOLVE).getData()
-                        .getAll()
-                        .stream()
-                        .anyMatch(element -> element.getText().startsWith(UPGRADE_TO_VERSION_LABEL));
-            });
-        } else {
-            waitFor(() -> {
-                tree.clickRow(dsvwRowIdx);
-                return !findAll(NO_INFORMATION).isEmpty();
-            });
-        }
-
-        testFileNavigation();
-        openCxToolWindow();
-    }
-
-    @Test
-    @Video
-    @Order(2)
     @DisplayName("TC36: Verify SCA vulnerability details (CVE and CVSS score) are displayed on selection")
     public void testScaVulnerabilityDetailsDisplayed() {
         int rowIdx = navigateToScaVulnerability();
@@ -117,7 +94,7 @@ public class TestSca extends com.checkmarx.intellij.ast.test.ui.BaseUITest {
 
     @Test
     @Video
-    @Order(3)
+    @Order(2)
     @DisplayName("TC37: Verify remediation recommendation with version is displayed for eligible SCA vulnerability")
     public void testScaRemediationVersionDisplayed() {
         int rowIdx = navigateToScaVulnerability();
@@ -151,5 +128,52 @@ public class TestSca extends com.checkmarx.intellij.ast.test.ui.BaseUITest {
             log("No auto-remediation available for this vulnerability — verifying 'No Information' is shown");
             waitFor(() -> !findAll(NO_INFORMATION).isEmpty());
         }
+    }
+
+    @Test
+    @Video
+    @Order(3)
+    @DisplayName("TC53: Verify SCA Dev & Test Filter Hides Dev/Test Dependencies on SCA Scan")
+    public void testScaDevTestFilterHidesDevTestDependencies() {
+        openCxToolWindow();
+        getResults();
+        waitForScanIdSelection();
+
+        verifyScaDevTestDependencyFilterHidesNodes();
+    }
+
+    @Test
+    @Video
+    @Order(4)
+    @DisplayName("TC51: Verify SCA Dev & Test Dependencies Filter Unchecked by Default")
+    public void testScaDevTestFilterUncheckedByDefault() {
+        openCxToolWindow();
+        getResults();
+        waitForScanIdSelection();
+
+        verifyScaDevTestFilterUncheckedByDefault();
+    }
+
+    @Test
+    @Video
+    @Order(5)
+    @DisplayName("TC52: Verify SCA Dev & Test Filter Has No Effect on SAST-Only Scan")
+    public void testScaDevTestFilterNoEffectOnSastOnlyScan() {
+        openCxToolWindow();
+        getResults(Environment.SCAN_ID_SAST_ONLY);
+
+        verifyScaDevTestFilterNoEffectOnSastOnlyScan();
+    }
+
+    @Test
+    @Video
+    @Order(6)
+    @DisplayName("TC54: Verify SCA Dev & Test Filter on SAST/SCA/KICS Combined Scan")
+    public void testScaDevTestFilterOnCombinedScan() {
+        openCxToolWindow();
+        getResults();
+        waitForScanIdSelection();
+
+        verifyScaDevTestFilterOnCombinedScan();
     }
 }

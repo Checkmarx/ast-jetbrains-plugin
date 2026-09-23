@@ -22,7 +22,7 @@ import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.openSettings;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.testASTConnection;
-import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.enterScanIdAndSelect;
+import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.enterScanId;
 import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.*;
 
 public abstract class BaseUITest {
@@ -149,11 +149,22 @@ public abstract class BaseUITest {
     }
 
     protected void getResults() {
+        getResults(Environment.SCAN_ID);
+    }
+
+    /**
+     * Clears the current selection and loads results for the given scan ID. Used to fetch
+     * results for a specific project/scan (e.g. switching to a different project by loading a
+     * scan ID that belongs to it), rather than always defaulting to {@link Environment#SCAN_ID}.
+     *
+     * @param scanId The scan ID to load results for.
+     */
+    protected void getResults(String scanId) {
         focusCxWindow();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         focusCxWindow();
         clearSelection();
-        enterScanIdAndSelect(true);
+        enterScanId(scanId);
         waitFor(() -> {
             focusCxWindow();
             return hasAnyComponent(TREE)
@@ -165,13 +176,9 @@ public abstract class BaseUITest {
 
     protected void waitForScanIdSelection() {
         focusCxWindow();
-        // check that the scan id is visible in the tree or the search field
+        // check scan selection for the scan id
         log("inside waitForScanIdSelection");
-        @Language("XPath") String scanInTree = String.format(
-                "//div[@class='Tree' and contains(@visible_text,'%s')]", Environment.SCAN_ID);
-        @Language("XPath") String scanInField = String.format(
-                "//div[@class='TextFieldWithProcessing' and contains(@visible_text,'%s')]", Environment.SCAN_ID);
-        waitFor(() -> hasAnyComponent(scanInTree) || hasAnyComponent(scanInField));
+        waitFor(() -> hasAnyComponent(String.format(SCAN_ID_SELECTION, Environment.SCAN_ID, Environment.SCAN_ID)));
     }
 
 
@@ -201,6 +208,14 @@ public abstract class BaseUITest {
 
     private void groupAction(String value) {
         openGroupBy();
+
+        boolean alreadySelected = Boolean.TRUE.equals(getMenuOptionsWithState().get(value));
+        if (alreadySelected) {
+            log("Group By '" + value + "' is already selected, leaving as is");
+            new Keyboard(remoteRobot).key(KeyEvent.VK_ESCAPE);
+            return;
+        }
+
         waitFor(() -> {
             enter(value);
             return find(JTreeFixture.class, TREE).findAllText().size() == 1;

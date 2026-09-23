@@ -16,7 +16,7 @@ public class ASCARealTimeScanPage {
 
     private static final Duration SCAN_START_TIMEOUT = Duration.ofSeconds(60);
     private static final Duration SCAN_COMPLETE_TIMEOUT = Duration.ofSeconds(120);
-    private static final long EXPECTED_SCAN_START_DELAY_MS = 5000; // 5 seconds tolerance for the ~2 second trigger
+    private static final long EXPECTED_SCAN_START_DELAY_MS = 12000; // 12 seconds tolerance: ~1s debounce + inspection daemon re-highlight + CLI subprocess spawn + UI polling overhead
     private static final String ASSIGNMENT_FILE = "Assignment5.java";
     private static long lastScanStartDelayMs = -1;
 
@@ -55,11 +55,19 @@ public class ASCARealTimeScanPage {
             Instant editTime = Instant.now();
             editFile();
 
-            // Wait for either the scan progress bar OR the vulnerability in the findings tree
+            // Wait for the scan progress bar only — this must stay a cheap, single-component
+            // check on every poll. Mixing in isVulnerabilityAlreadyInTree() here previously made
+            // each poll open the Cx tool window (its own nested waitFor + component lookups),
+            // which inflated the measured start delay by seconds without reflecting an actual
+            // slower scan trigger.
             try {
-                waitFor(() -> hasAnyComponent(FILE_SCAN_PROGRESS_BAR) || isVulnerabilityAlreadyInTree(),
-                        SCAN_START_TIMEOUT);
+                waitFor(() -> hasAnyComponent(FILE_SCAN_PROGRESS_BAR), SCAN_START_TIMEOUT);
             } catch (WaitForConditionTimeoutException e) {
+                // Progress bar never appeared — only now pay the cost of checking the findings tree.
+                if (isVulnerabilityAlreadyInTree()) {
+                    log("Vulnerability already present in findings tree — scan may have completed quickly");
+                    return false;
+                }
                 log("Neither scan progress bar nor vulnerability detected within " + SCAN_START_TIMEOUT.getSeconds() + "s");
                 if (attempt == maxRetries) {
                     throw e;
@@ -70,12 +78,6 @@ public class ASCARealTimeScanPage {
             // Track how long it took for the scan to start after the file edit
             lastScanStartDelayMs = Duration.between(editTime, Instant.now()).toMillis();
             log("ASCA scan started " + lastScanStartDelayMs + "ms after file edit");
-
-            // Check what we found
-            if (isVulnerabilityAlreadyInTree()) {
-                log("Vulnerability already present in findings tree — scan may have completed quickly");
-                return false;
-            }
 
             // Progress bar appeared — wait for scan to complete
             log("ASCA scan progress bar detected, waiting for scan to complete...");

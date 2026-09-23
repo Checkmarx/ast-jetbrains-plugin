@@ -52,7 +52,14 @@ public class RemoteRobotUtils {
     public static String getText(@NotNull String xpath) {
         try {
             ComponentFixture fixture = remoteRobot.find(ComponentFixture.class, Locators.byXpath(xpath));
-            Object result = fixture.callJs("component.getText ? component.getText() : (component.getLabel ? component.getLabel() : null)");
+            Object result = fixture.callJs(
+                    "(function() {"
+                            + "  var accessibleContext = component.getAccessibleContext ? component.getAccessibleContext() : null;"
+                            + "  var accessibleName = accessibleContext ? accessibleContext.getAccessibleName() : null;"
+                            + "  if (accessibleName) return accessibleName;"
+                            + "  return component.getText ? component.getText() : (component.getLabel ? component.getLabel() : null);"
+                            + "})()"
+            );
             return result != null ? result.toString() : null;
         } catch (Exception e) {
             System.err.println("Failed to get text for xpath: " + xpath + ", reason: " + e.getMessage());
