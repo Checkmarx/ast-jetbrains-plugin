@@ -56,7 +56,7 @@ class AiAgentTest {
     @Test
     @DisplayName("fromSettingsValue_ExactAiAssistantName_ResolvesToAiAssistant")
     void fromSettingsValue_ExactAiAssistantName_ResolvesToAiAssistant() {
-        assertEquals(AiAgent.JETBRAINS_AI_CHAT, AiAgent.fromSettingsValue("JETBRAINS_AI_CHAT"));
+        assertEquals(AiAgent.JETBRAINS_AI_ASSISTANT, AiAgent.fromSettingsValue("JETBRAINS_AI_CHAT"));
     }
 
     // ===== fromAgentName =====
@@ -82,14 +82,14 @@ class AiAgentTest {
     @Test
     @DisplayName("fromAgentName_ExactAiAssistantLabel_ResolvesToAiAssistant")
     void fromAgentName_ExactAiAssistantLabel_ResolvesToAiAssistant() {
-        assertEquals(AiAgent.JETBRAINS_AI_CHAT, AiAgent.fromAgentName(AiAgent.JETBRAINS_AI_CHAT.getAgentName()));
+        assertEquals(AiAgent.JETBRAINS_AI_ASSISTANT, AiAgent.fromAgentName(AiAgent.JETBRAINS_AI_ASSISTANT.getAgentName()));
     }
 
     @Test
     @DisplayName("fromAgentName_MixedCaseLabel_ResolvesCaseInsensitively")
     void fromAgentName_MixedCaseLabel_ResolvesCaseInsensitively() {
-        assertEquals(AiAgent.JETBRAINS_AI_CHAT, AiAgent.fromAgentName("jetbrains ai chat"));
-        assertEquals(AiAgent.JETBRAINS_AI_CHAT, AiAgent.fromAgentName("JETBRAINS AI CHAT"));
+        assertEquals(AiAgent.JETBRAINS_AI_ASSISTANT, AiAgent.fromAgentName("jetbrains ai chat"));
+        assertEquals(AiAgent.JETBRAINS_AI_ASSISTANT, AiAgent.fromAgentName("JETBRAINS AI CHAT"));
     }
 
     // ===== round-trip =====
@@ -111,7 +111,7 @@ class AiAgentTest {
     @DisplayName("chatIntegration_ReturnsNonNullDistinctImplementationsPerAgent")
     void chatIntegration_ReturnsNonNullDistinctImplementationsPerAgent() {
         ChatIntegration copilot = AiAgent.COPILOT.chatIntegration();
-        ChatIntegration aiAssistant = AiAgent.JETBRAINS_AI_CHAT.chatIntegration();
+        ChatIntegration aiAssistant = AiAgent.JETBRAINS_AI_ASSISTANT.chatIntegration();
 
         assertNotNull(copilot);
         assertNotNull(aiAssistant);
@@ -122,7 +122,7 @@ class AiAgentTest {
     @DisplayName("mcpTarget_ReturnsNonNullDistinctImplementationsPerAgent")
     void mcpTarget_ReturnsNonNullDistinctImplementationsPerAgent() {
         McpAgentTarget copilot = AiAgent.COPILOT.mcpTarget();
-        McpAgentTarget aiAssistant = AiAgent.JETBRAINS_AI_CHAT.mcpTarget();
+        McpAgentTarget aiAssistant = AiAgent.JETBRAINS_AI_ASSISTANT.mcpTarget();
 
         assertNotNull(copilot);
         assertNotNull(aiAssistant);
@@ -132,7 +132,7 @@ class AiAgentTest {
     @Test
     @DisplayName("mcpTarget_AiAssistantExposesSettingsPage_CopilotDoesNot")
     void mcpTarget_AiAssistantExposesSettingsPage_CopilotDoesNot() {
-        assertEquals(true, AiAgent.JETBRAINS_AI_CHAT.mcpTarget().getSettingsConfigurableId().isPresent());
+        assertEquals(true, AiAgent.JETBRAINS_AI_ASSISTANT.mcpTarget().getSettingsConfigurableId().isPresent());
         assertEquals(true, AiAgent.COPILOT.mcpTarget().getSettingsConfigurableId().isEmpty());
     }
 
@@ -141,6 +141,6 @@ class AiAgentTest {
     void values_ContainsExactlyCopilotAndAiAssistant() {
         assertEquals(2, AiAgent.values().length);
         assertSame(AiAgent.COPILOT, AiAgent.values()[0]);
-        assertSame(AiAgent.JETBRAINS_AI_CHAT, AiAgent.values()[1]);
+        assertSame(AiAgent.JETBRAINS_AI_ASSISTANT, AiAgent.values()[1]);
     }
 }

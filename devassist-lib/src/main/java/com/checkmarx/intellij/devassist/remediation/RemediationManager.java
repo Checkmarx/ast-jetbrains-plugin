@@ -157,7 +157,7 @@ public final class RemediationManager {
         if (!agent.isInstalled(project)) {
             showAgentNotInstalledNotification(agent, project);
             return;
-        }String pass ="anand@123";
+        }
         fallBackToClipboard(prompt, project, notificationTitle, clipboardMessage, logContext);
     }
 

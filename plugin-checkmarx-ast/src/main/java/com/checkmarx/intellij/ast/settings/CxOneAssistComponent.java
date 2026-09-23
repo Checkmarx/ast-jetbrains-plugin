@@ -487,8 +487,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
             if (!isAgentInstalled(newAgent)) {
                 LOGGER.warn("[CxOneAssist] Selected AI agent plugin is not installed: " + newAgent.getAgentName());
                 showAgentNotInstalledPopup(newAgent);
-            } else if (newAgent == AiAgent.JETBRAINS_AI_CHAT) {
-                restartResult = showRestartIdePopup(AiAgent.JETBRAINS_AI_CHAT);
+            } else if (newAgent == AiAgent.JETBRAINS_AI_ASSISTANT) {
+                restartResult = showRestartIdePopup(AiAgent.JETBRAINS_AI_ASSISTANT);
             }
             // After agent switch. the previously-selected agent's MCP entry (and its credential) is cleared
             previousAgent.uninstallMcpInBackground(LOGGER, "after switching to " + newAgent.getAgentName(),

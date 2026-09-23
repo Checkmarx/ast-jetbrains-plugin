@@ -6,7 +6,6 @@ import com.checkmarx.intellij.devassist.configuration.mcp.McpAgentTarget;
 import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantChatIntegration;
 import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration;
 import com.checkmarx.intellij.devassist.aiagents.copilot.CopilotChatIntegration;
-import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.intellij.ide.plugins.PluginManagerConfigurable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -23,9 +22,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
- * The AI chat agent that receives generated fix/explanation prompts from CxOne Assist, and the
- * MCP client whose config the Checkmarx MCP server entry gets installed into for that agent.
- * <p>
  * This enum doubles as the extension registry: each constant wires a {@link ChatIntegration}
  * and an {@link McpAgentTarget} implementation. To add support for a new agent:
  * <ol>
@@ -34,14 +30,11 @@ import java.util.stream.Collectors;
  *       config file / settings page lives)</li>
  *   <li>Add one constant here wiring the two</li>
  * </ol>
- * No changes are needed in {@link RemediationManager}, {@code McpInstallService}, or the
- * settings UI - they all resolve behavior through {@link #chatIntegration()} / {@link #mcpTarget()}
- * and build their agent picker from {@link #values()}.
  */
 public enum AiAgent {
 
     COPILOT("Copilot", CopilotChatIntegration::new, CopilotMcpTarget::new, "GitHub Copilot", () -> true),
-    JETBRAINS_AI_CHAT("JetBrains AI Chat", AiAssistantChatIntegration::new, AiAssistantMcpTarget::new,
+    JETBRAINS_AI_ASSISTANT("JetBrains AI Assistant", AiAssistantChatIntegration::new, AiAssistantMcpTarget::new,
             "JetBrains AI Assistant", AiAssistantIntegration::supportsAcp);
 
     /**
@@ -49,7 +42,7 @@ public enum AiAgent {
      * highest-preference first; any new {@link AiAgent} constant just needs adding here in its
      * intended rank.
      */
-    private static final List<AiAgent> PREFERENCE_ORDER = List.of(JETBRAINS_AI_CHAT, COPILOT);
+    private static final List<AiAgent> PREFERENCE_ORDER = List.of(JETBRAINS_AI_ASSISTANT, COPILOT);
 
     @Getter
     private final String agentName;
@@ -63,18 +56,13 @@ public enum AiAgent {
     private final Supplier<Boolean> defaultEligible;
 
     /**
-     * Query used to pre-search the IDE's Marketplace tab for this agent's plugin (see
-     * {@link #openMarketplacePage(Project)}) - the plugin's actual Marketplace listing name,
-     * which may differ from {@link #agentName} (e.g. "JetBrains AI Assistant" vs the "JetBrains
-     * AI Chat" label used in our own settings UI).
+     * Query used to pre-search the IDE's Marketplace tab for this agent's plugin
+     * - the plugin's actual Marketplace listing name
      */
     private final String marketplaceSearchQuery;
 
     /**
-     * Serializes {@link #installMcp(String)}/{@link #uninstallMcp()} calls for this specific
-     * agent. {@link #mcpTarget()} returns a fresh {@link McpAgentTarget} instance on every call
-     * (so an instance-level lock would be useless - each caller would get its own, uncontended
-     * lock), so this lock lives on the enum constant itself, which is a stable singleton.
+     * Serializes {@link #installMcp(String)}/{@link #uninstallMcp()} calls for this specific agent.
      */
     private final Object mcpLock = new Object();
 
@@ -95,10 +83,7 @@ public enum AiAgent {
     }
 
     /**
-     * Whether this agent's plugin is installed (and enabled) in the current IDE, delegating to
-     * its {@link ChatIntegration#isAvailable(Project)}. Used before switching the active AI agent
-     * in settings, so the user isn't left with an agent that can't actually be used.
-     *
+     * Whether this agent's plugin is installed (and enabled) in the current IDE
      * @param project the project context; may be {@code null} for a global (non-project-scoped) check
      */
     public boolean isInstalled(@Nullable Project project) {
@@ -106,11 +91,7 @@ public enum AiAgent {
     }
 
     /**
-     * Opens the IDE's own Plugins settings page directly on the Marketplace tab (not the
-     * Installed tab {@link PluginManagerConfigurable#showPluginConfigurable} lands on), pre-
-     * searched for this agent's plugin, so the user can install it without leaving the IDE. Used
-     * wherever the user is told this agent's plugin isn't installed (settings popup, remediation
-     * notification).
+     * Opens the IDE's own Plugins settings page directly on the Marketplace tab.
      *
      * @param project the project context; may be {@code null} to use the default project
      */
@@ -120,10 +101,7 @@ public enum AiAgent {
     }
 
     /**
-     * The MCP client target to install/uninstall the Checkmarx MCP server entry against for this
-     * agent. Prefer {@link #installMcp(String)}/{@link #uninstallMcp()} over calling
-     * {@code mcpTarget().install(...)}/{@code mcpTarget().uninstall()} directly, since those go
-     * through this agent's lock and this one doesn't.
+     * The MCP client target to install/uninstall the Checkmarx MCP server entry against for this agent.
      */
     public McpAgentTarget mcpTarget() {
         return mcpTargetFactory.get();
@@ -156,10 +134,6 @@ public enum AiAgent {
     /**
      * Removes this agent's MCP entry on a background thread, logging (and optionally notifying
      * the EDT via {@code onFailure}) rather than propagating if it fails.
-     * <p>
-     * Used when the user switches away from this agent without logging out: the entry is no
-     * longer tracked by anything once that happens, so it must be proactively cleaned up rather
-     * than left to the next logout/plugin-uninstall.
      *
      * @param logger    the caller's logger (kept caller-side so log lines carry the calling
      *                  class's category, matching the rest of this codebase's logging convention)
@@ -183,8 +157,7 @@ public enum AiAgent {
 
     /**
      * Removes the Checkmarx MCP entry for every known agent, continuing even if one fails -
-     * used wherever ALL agents' entries must be cleaned up (logout, full plugin uninstall) since
-     * the user may have installed MCP for an agent other than the one currently selected.
+     * used wherever ALL agents' entries must be cleaned up (logout, full plugin uninstall).
      *
      * @param logger  the caller's logger
      * @param context short phrase describing why this is happening, appended to each log line
@@ -222,10 +195,7 @@ public enum AiAgent {
 
     /**
      * Resolves a persisted settings value to an {@link AiAgent} without defaulting - returns
-     * {@link Optional#empty()} for a blank/null/unrecognized value instead of silently falling
-     * back to {@link #COPILOT}. Used by the login-time default-agent resolution
-     * ({@code AiAgentLoginResolver}) to distinguish "nothing configured yet" from "explicitly
-     * configured to COPILOT", which {@link #fromSettingsValue(String)} cannot do.
+     * {@link Optional#empty()} for a blank/null/unrecognized value instead of silently.
      */
     public static Optional<AiAgent> tryResolveConfigured(@Nullable String value) {
         if (value == null || value.isBlank()) {

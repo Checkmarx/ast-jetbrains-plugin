@@ -89,7 +89,7 @@ class McpInstallServiceTest {
             injStatic.when(() -> McpSettingsInjector.installForAiAssistant("my-token")).thenReturn(true);
             execStatic.when(AppExecutorUtil::getAppExecutorService).thenReturn(exec);
 
-            CompletableFuture<Boolean> future = McpInstallService.installSilentlyAsync("my-token", AiAgent.JETBRAINS_AI_CHAT);
+            CompletableFuture<Boolean> future = McpInstallService.installSilentlyAsync("my-token", AiAgent.JETBRAINS_AI_ASSISTANT);
             Boolean result = future.get(5, TimeUnit.SECONDS);
 
             assertEquals(Boolean.TRUE, result);
