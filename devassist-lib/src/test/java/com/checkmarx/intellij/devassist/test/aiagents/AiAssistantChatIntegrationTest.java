@@ -1,4 +1,4 @@
-package com.checkmarx.intellij.devassist.test.remediation;
+package com.checkmarx.intellij.devassist.test.aiagents;
 
 import com.checkmarx.intellij.devassist.aiagents.ChatIntegrationResult;
 import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantChatIntegration;
