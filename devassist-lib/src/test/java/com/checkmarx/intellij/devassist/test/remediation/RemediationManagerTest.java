@@ -3,6 +3,7 @@ package com.checkmarx.intellij.devassist.test.remediation;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
+import com.checkmarx.intellij.devassist.aiagents.ChatIntegrationResult;
 import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration;
 import com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration;
 import com.checkmarx.intellij.devassist.remediation.RemediationManager;
@@ -358,7 +359,7 @@ public class RemediationManagerTest {
         ScanIssue issue = buildScanIssue(ScanEngine.OSS);
         RemediationManager manager = new RemediationManager();
 
-        CopilotIntegration.IntegrationResult successResult = mock(CopilotIntegration.IntegrationResult.class);
+        ChatIntegrationResult successResult = mock(ChatIntegrationResult.class);
         when(successResult.isSuccess()).thenReturn(true);
 
         try (MockedStatic<CopilotIntegration> copilotMock = mockStatic(CopilotIntegration.class);
@@ -387,7 +388,7 @@ public class RemediationManagerTest {
         // "Chat opened" succeeds immediately, but the async paste/send automation behind it
         // ultimately fails - simulated here by capturing and directly invoking the callback
         // CopilotChatIntegration wires through to CopilotIntegration.openCopilotWithPromptDetailed.
-        CopilotIntegration.IntegrationResult openedResult = mock(CopilotIntegration.IntegrationResult.class);
+        ChatIntegrationResult openedResult = mock(ChatIntegrationResult.class);
         when(openedResult.isSuccess()).thenReturn(true);
 
         try (MockedStatic<CopilotIntegration> copilotMock = mockStatic(CopilotIntegration.class);
@@ -405,10 +406,10 @@ public class RemediationManagerTest {
             copilotMock.when(() -> CopilotIntegration.openCopilotWithPromptDetailed(anyString(), any(), any()))
                     .thenAnswer(invocation -> {
                         @SuppressWarnings("unchecked")
-                        java.util.function.Consumer<CopilotIntegration.IntegrationResult> callback =
+                        java.util.function.Consumer<ChatIntegrationResult> callback =
                                 invocation.getArgument(2, java.util.function.Consumer.class);
-                        CopilotIntegration.IntegrationResult automationFailedResult =
-                                mock(CopilotIntegration.IntegrationResult.class);
+                        ChatIntegrationResult automationFailedResult =
+                                mock(ChatIntegrationResult.class);
                         when(automationFailedResult.isSuccess()).thenReturn(false);
                         when(automationFailedResult.getMessage()).thenReturn("Automation failed after chat opened");
                         // Simulate the background automation completing (with failure) after the
@@ -433,10 +434,9 @@ public class RemediationManagerTest {
         RemediationManager manager = new RemediationManager();
 
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
-        when(mockState.getAiAgent()).thenReturn("JETBRAINS_AI_CHAT");
+        when(mockState.getAiAgent()).thenReturn("JETBRAINS_AI_ASSISTANT");
 
-        AiAssistantIntegration.IntegrationResult successResult = mock(AiAssistantIntegration.IntegrationResult.class);
-        when(successResult.isSuccess()).thenReturn(true);
+        ChatIntegrationResult successResult = ChatIntegrationResult.success("AI Assistant chat opened");
 
         try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
              MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class);
@@ -447,12 +447,12 @@ public class RemediationManagerTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
             fixPrompts.when(() -> DevAssistFixPrompts.buildSCARemediationPrompt(anyString(), anyString(), anyString(), anyString()))
                     .thenReturn("prompt");
-            aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed(anyString(), any()))
+            aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed(anyString(), any(), any()))
                     .thenReturn(successResult);
 
             manager.fixWithCxOneAssist(project, issue, "actionId");
 
-            aiAssistantMock.verify(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed(eq("prompt"), eq(project)));
+            aiAssistantMock.verify(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed(eq("prompt"), eq(project), any()));
             copilotMock.verify(() -> CopilotIntegration.openCopilotWithPromptDetailed(any(), any(), any()), never());
             devAssist.verify(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()), never());
         }
@@ -468,8 +468,7 @@ public class RemediationManagerTest {
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
         when(mockState.getAiAgent()).thenReturn("AI_ASSISTANT");
 
-        AiAssistantIntegration.IntegrationResult failResult = mock(AiAssistantIntegration.IntegrationResult.class);
-        when(failResult.isSuccess()).thenReturn(false);
+        ChatIntegrationResult failResult = ChatIntegrationResult.notAvailable("AI Assistant not available");
 
         try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
              MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class);
@@ -479,7 +478,7 @@ public class RemediationManagerTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
             fixPrompts.when(() -> DevAssistFixPrompts.buildSCARemediationPrompt(anyString(), anyString(), anyString(), anyString()))
                     .thenReturn("prompt");
-            aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed(anyString(), any()))
+            aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed(anyString(), any(), any()))
                     .thenReturn(failResult);
             devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
                     .thenReturn(true);

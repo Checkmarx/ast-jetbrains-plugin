@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.test.aiagents;
 
+import com.checkmarx.intellij.devassist.aiagents.ChatIntegrationResult;
 import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration;
 import com.intellij.ide.DataManager;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
@@ -20,6 +21,7 @@ import org.mockito.MockedStatic;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -122,8 +124,8 @@ class AiAssistantIntegrationTest {
             cpMock.when(CopyPasteManager::getInstance).thenReturn(mockCpManager);
             doThrow(new RuntimeException("clipboard unavailable")).when(mockCpManager).setContents(any());
 
-            AiAssistantIntegration.IntegrationResult result =
-                    AiAssistantIntegration.openAiAssistantWithPromptDetailed("prompt", project);
+            ChatIntegrationResult result =
+                    AiAssistantIntegration.openAiAssistantWithPromptDetailed("prompt", project, null);
 
             assertFalse(result.isSuccess());
         }
@@ -149,8 +151,8 @@ class AiAssistantIntegrationTest {
             twMock.when(() -> ToolWindowManager.getInstance(project)).thenReturn(mockManager);
             when(mockManager.getToolWindow(anyString())).thenReturn(null);
 
-            AiAssistantIntegration.IntegrationResult result =
-                    AiAssistantIntegration.openAiAssistantWithPromptDetailed("prompt", project);
+            ChatIntegrationResult result =
+                    AiAssistantIntegration.openAiAssistantWithPromptDetailed("prompt", project, null);
 
             assertFalse(result.isSuccess());
         }
@@ -183,8 +185,8 @@ class AiAssistantIntegrationTest {
             twMock.when(() -> ToolWindowManager.getInstance(project)).thenReturn(mockManager);
             when(mockManager.getToolWindow("AI Assistant")).thenReturn(tw);
 
-            AiAssistantIntegration.IntegrationResult result =
-                    AiAssistantIntegration.openAiAssistantWithPromptDetailed("prompt", project);
+            ChatIntegrationResult result =
+                    AiAssistantIntegration.openAiAssistantWithPromptDetailed("prompt", project, null);
 
             assertTrue(result.isSuccess());
         }
@@ -203,8 +205,8 @@ class AiAssistantIntegrationTest {
 
         try (MockedStatic<DataManager> dmMock = mockStatic(DataManager.class)) {
             invokeStatic("onPasteTimerFired",
-                    new Class[]{Project.class, String.class, int.class},
-                    mock(Project.class), "prompt", staleGeneration);
+                    new Class[]{Project.class, String.class, int.class, Consumer.class},
+                    mock(Project.class), "prompt", staleGeneration, (Consumer<?>) result -> {});
 
             // A stale generation must bail out before ever asking for the focused component's
             // DataContext - the first thing a real paste attempt needs.
@@ -221,8 +223,8 @@ class AiAssistantIntegrationTest {
         try (MockedStatic<ActionManager> amMock = mockStatic(ActionManager.class)) {
             DataContext dataContext = dataId -> null;
             invokeStatic("onSendTimerFired",
-                    new Class[]{DataContext.class, int.class},
-                    dataContext, staleGeneration);
+                    new Class[]{DataContext.class, int.class, Consumer.class},
+                    dataContext, staleGeneration, (Consumer<?>) result -> {});
 
             amMock.verifyNoInteractions();
         }
@@ -236,8 +238,8 @@ class AiAssistantIntegrationTest {
 
         try (MockedStatic<ActionManager> amMock = mockStatic(ActionManager.class)) {
             invokeStatic("startNewChatAndPaste",
-                    new Class[]{Project.class, String.class, int.class},
-                    mock(Project.class), "prompt", staleGeneration);
+                    new Class[]{Project.class, String.class, int.class, Consumer.class},
+                    mock(Project.class), "prompt", staleGeneration, (Consumer<?>) result -> {});
 
             amMock.verifyNoInteractions();
         }
@@ -252,8 +254,8 @@ class AiAssistantIntegrationTest {
         ToolWindow tw = mock(ToolWindow.class);
 
         invokeStatic("onShowToolWindowRequested",
-                new Class[]{ToolWindow.class, Project.class, String.class, int.class},
-                tw, mock(Project.class), "prompt", staleGeneration);
+                new Class[]{ToolWindow.class, Project.class, String.class, int.class, Consumer.class},
+                tw, mock(Project.class), "prompt", staleGeneration, (Consumer<?>) result -> {});
 
         verify(tw, never()).show(any());
         verify(tw, never()).activate(any(Runnable.class));
@@ -267,8 +269,8 @@ class AiAssistantIntegrationTest {
 
         try (MockedStatic<ToolWindowManager> twMock = mockStatic(ToolWindowManager.class)) {
             invokeStatic("onPollTimerFired",
-                    new Class[]{Project.class, String.class, int.class, int.class},
-                    mock(Project.class), "prompt", staleGeneration, 10);
+                    new Class[]{Project.class, String.class, int.class, Consumer.class, int.class},
+                    mock(Project.class), "prompt", staleGeneration, (Consumer<?>) result -> {}, 10);
 
             // A stale generation must bail out before even looking up the tool window again.
             twMock.verifyNoInteractions();
@@ -293,8 +295,8 @@ class AiAssistantIntegrationTest {
             // (fire the new-chat action directly, then schedule a paste) must run without
             // throwing even though nothing in this test provides a live IDE.
             assertDoesNotThrow(() -> invokeStatic("onPollTimerFired",
-                    new Class[]{Project.class, String.class, int.class, int.class},
-                    project, "prompt", generation, 1));
+                    new Class[]{Project.class, String.class, int.class, Consumer.class, int.class},
+                    project, "prompt", generation, (Consumer<?>) result -> {}, 1));
         }
     }
 }

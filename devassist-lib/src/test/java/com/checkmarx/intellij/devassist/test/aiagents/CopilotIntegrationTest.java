@@ -1,5 +1,6 @@
 package com.checkmarx.intellij.devassist.test.aiagents;
 
+import com.checkmarx.intellij.devassist.aiagents.ChatIntegrationResult;
 import com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -132,13 +133,11 @@ class CopilotIntegrationTest {
             actionManagerStatic.when(ActionManager::getInstance).thenReturn(mockActionManager);
             when(mockActionManager.getAction(anyString())).thenReturn(null);
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, null);
 
-            assertEquals(CopilotIntegration.OperationResult.COPILOT_NOT_AVAILABLE, result.getResult());
             assertFalse(result.isSuccess());
             assertNotNull(result.getMessage());
-            assertNull(result.getException());
         }
     }
 
@@ -179,11 +178,11 @@ class CopilotIntegrationTest {
                     .when(mockApp).runReadAction(any(Computable.class));
             doNothing().when(mockApp).invokeLater(any(Runnable.class));
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, null);
 
             assertTrue(result.isSuccess());
-            assertEquals(CopilotIntegration.OperationResult.PARTIAL_SUCCESS, result.getResult());
+
         }
     }
 
@@ -201,7 +200,7 @@ class CopilotIntegrationTest {
             actionManagerStatic.when(ActionManager::getInstance).thenReturn(mockActionManager);
             when(mockActionManager.getAction(anyString())).thenReturn(null);
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("prompt", mockProject, null);
 
             assertFalse(result.isSuccess());
@@ -226,13 +225,11 @@ class CopilotIntegrationTest {
             // runReadAction returns false — Copilot available but chat window could not be opened
             doReturn(false).when(mockApp).runReadAction(any(Computable.class));
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, null);
 
-            assertEquals(CopilotIntegration.OperationResult.COPILOT_NOT_AVAILABLE, result.getResult());
             assertFalse(result.isSuccess());
             assertNotNull(result.getMessage());
-            assertNull(result.getException());
         }
     }
 
@@ -256,16 +253,16 @@ class CopilotIntegrationTest {
                 return null;
             }).when(mockApp).invokeLater(any(Runnable.class));
 
-            List<CopilotIntegration.IntegrationResult> captured = new ArrayList<>();
-            Consumer<CopilotIntegration.IntegrationResult> callback = captured::add;
+            List<ChatIntegrationResult> captured = new ArrayList<>();
+            Consumer<ChatIntegrationResult> callback = captured::add;
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, callback);
 
-            assertEquals(CopilotIntegration.OperationResult.COPILOT_NOT_AVAILABLE, result.getResult());
+
             assertFalse(captured.isEmpty());
-            assertEquals(CopilotIntegration.OperationResult.COPILOT_NOT_AVAILABLE,
-                    captured.get(0).getResult());
+            assertFalse(captured.get(0).isSuccess());
+            assertNotNull(captured.get(0).getMessage());
         }
     }
 
@@ -328,13 +325,12 @@ class CopilotIntegrationTest {
         doThrow(new RuntimeException("clipboard unavailable")).when(mockCpm).setContents(any());
 
         Project mockProject = mock(Project.class);
-        CopilotIntegration.IntegrationResult result =
+        ChatIntegrationResult result =
                 CopilotIntegration.openCopilotWithPromptDetailed("prompt", mockProject, null);
 
-        assertEquals(CopilotIntegration.OperationResult.FAILED, result.getResult());
+
         assertFalse(result.isSuccess());
         assertNotNull(result.getMessage());
-        assertNull(result.getException());
 
         // Restore for subsequent tests
         doNothing().when(mockCpm).setContents(any());
@@ -355,11 +351,11 @@ class CopilotIntegrationTest {
         }).when(mockApp).invokeLater(any(Runnable.class));
 
         Project mockProject = mock(Project.class);
-        List<CopilotIntegration.IntegrationResult> captured = new ArrayList<>();
+        List<ChatIntegrationResult> captured = new ArrayList<>();
         CopilotIntegration.openCopilotWithPromptDetailed("prompt", mockProject, captured::add);
 
         assertFalse(captured.isEmpty());
-        assertEquals(CopilotIntegration.OperationResult.FAILED, captured.get(0).getResult());
+
 
         // Restore for subsequent tests
         doNothing().when(mockCpm).setContents(any());
@@ -386,10 +382,10 @@ class CopilotIntegrationTest {
                     .when(mockApp).runReadAction(any(Computable.class));
             doNothing().when(mockApp).invokeLater(any(Runnable.class));
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, null);
 
-            assertEquals(CopilotIntegration.OperationResult.PARTIAL_SUCCESS, result.getResult());
+
             assertTrue(result.isSuccess());
         }
     }
@@ -435,17 +431,12 @@ class CopilotIntegrationTest {
     }
 
     @Test
-    void integrationResult_fullSuccess_isSuccess_returnsTrue() throws Exception {
-        Method fullSuccessMethod = CopilotIntegration.IntegrationResult.class
-                .getDeclaredMethod("fullSuccess", String.class);
-        fullSuccessMethod.setAccessible(true);
-        CopilotIntegration.IntegrationResult result =
-                (CopilotIntegration.IntegrationResult) fullSuccessMethod.invoke(null, "done");
+    void integrationResult_fullSuccess_isSuccess_returnsTrue() {
+        ChatIntegrationResult result = ChatIntegrationResult.success("done");
 
         assertTrue(result.isSuccess());
-        assertEquals(CopilotIntegration.OperationResult.FULL_SUCCESS, result.getResult());
+
         assertNotNull(result.getMessage());
-        assertNull(result.getException());
     }
 
     @Test
@@ -467,14 +458,12 @@ class CopilotIntegrationTest {
                     .when(mockApp).runReadAction(any(Computable.class));
             doNothing().when(mockApp).invokeLater(any(Runnable.class));
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, null);
 
             assertTrue(result.isSuccess());
-            assertNotNull(result.getResult());
             assertNotNull(result.getMessage());
             assertFalse(result.getMessage().isEmpty());
-            assertNull(result.getException());
         }
     }
 

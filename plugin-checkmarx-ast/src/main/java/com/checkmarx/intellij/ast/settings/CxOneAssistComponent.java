@@ -274,8 +274,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private void showAgentNotInstalledPopup(AiAgent agent) {
         String message = Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_MESSAGE, agent.getAgentName());
         String installLabel = Bundle.message(Resource.AI_AGENT_INSTALL_ACTION_LABEL);
-        int result = Messages.showDialog(mainPanel, message, Constants.TOOL_WINDOW_ID,
-                new String[]{installLabel, Messages.getOkButton()}, 0, Messages.getWarningIcon());
+        int result = Messages.showDialog(mainPanel, message, DevAssistConstants.CX_AGENT_NAME,
+                new String[]{installLabel, Messages.getCancelButton()}, 0, Messages.getInformationIcon());
         if (result == 0) {
             agent.openMarketplacePage(currentProjectOrNull());
         }
@@ -288,8 +288,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private int showRestartIdePopup(AiAgent agent) {
         String message = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_MESSAGE, agent.getAgentName());
         String restartLabel = Bundle.message(Resource.AI_AGENT_RESTART_ACTION_LABEL);
-        return Messages.showDialog(mainPanel, message, Constants.TOOL_WINDOW_ID,
-                new String[]{restartLabel, Messages.getOkButton()}, 0, Messages.getInformationIcon());
+        return Messages.showDialog(mainPanel, message, DevAssistConstants.CX_AGENT_NAME,
+                new String[]{restartLabel, Messages.getCancelButton()}, 0, Messages.getInformationIcon());
     }
 
     private void handleMcpResult(Boolean changed, Throwable throwable) {
@@ -476,11 +476,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         AiAgent newAgent = AiAgent.fromAgentName((String) aiAgentCombo.getSelectedItem());
         boolean agentChanged = previousAgent != newAgent;
 
-        // Whatever the user picked is saved, whether or not its plugin is installed - the combo
-        // is never reverted. If it's not installed, still save the choice and warn via a popup,
-        // but MCP is configured for it either way (as soon as the dropdown actually changes) so
-        // it's already in place once the user installs the plugin, rather than requiring them to
-        // revisit this page afterward.
+        // Whatever the user picked is saved, whether or not its plugin is installed
+        // If it's not installed, still save the choice and  MCP is configured for it and inform via a popup..
         state.setAiAgent(newAgent.name());
         if (agentChanged) {
             int restartResult = 1;

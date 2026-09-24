@@ -22,21 +22,17 @@ public final class AiAssistantChatIntegration implements ChatIntegration {
      * {@inheritDoc}
      *
      * <p>
-     * {@link AiAssistantIntegration#openAiAssistantWithPromptDetailed} does not currently expose
-     * its own async paste/send outcome, so its synchronous "chat opened" result is treated as
-     * final and forwarded to {@code onFinalResult} immediately.
+     * AiAssistantIntegration returns its result synchronously (either success or failure) and
+     * doesn't provide an async completion signal, so this adapter invokes the callback
+     * synchronously with that result to match the contract of other ChatIntegration implementations.
      */
     @Override
     public @NotNull ChatIntegrationResult openWithPrompt(@NotNull String prompt, @NotNull Project project,
                                                          @Nullable Consumer<ChatIntegrationResult> onFinalResult) {
-        AiAssistantIntegration.IntegrationResult result =
-                AiAssistantIntegration.openAiAssistantWithPromptDetailed(prompt, project);
-        ChatIntegrationResult chatResult = result.isSuccess()
-                ? ChatIntegrationResult.success(result.getMessage())
-                : ChatIntegrationResult.notAvailable(result.getMessage());
+        ChatIntegrationResult result = AiAssistantIntegration.openAiAssistantWithPromptDetailed(prompt, project, null);
         if (onFinalResult != null) {
-            onFinalResult.accept(chatResult);
+            onFinalResult.accept(result);
         }
-        return chatResult;
+        return result;
     }
 }

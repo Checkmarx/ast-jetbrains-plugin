@@ -3,7 +3,9 @@ package com.checkmarx.intellij.devassist.aiagents;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
+import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.Nullable;
@@ -39,7 +41,7 @@ public final class AiAgentLoginResolver {
             AiAgent chosenDefault = AiAgent.computeVersionBasedDefault();
             state.setAiAgent(chosenDefault.name());
             LOGGER.warn("AI-Agents: No AI agents are installed; defaulting to " + chosenDefault.name());
-            return new AiAgentResolution(chosenDefault, Bundle.message(Resource.AI_AGENT_NO_AGENT_INSTALLED, Utils.getPluginDisplayName()));
+            return new AiAgentResolution(chosenDefault, Bundle.message(Resource.AI_AGENT_NO_AGENT_INSTALLED, getPluginDisplayName()));
         }
 
         AiAgent defaultAgent = AiAgent.tryResolveConfigured(state.getAiAgent()).orElse(AiAgent.computeVersionBasedDefault());
@@ -56,6 +58,14 @@ public final class AiAgentLoginResolver {
                         "installedAgents() was non-empty but resolveBestInstalledAgent() found nothing"));
         state.setAiAgent(fallback.name());
         LOGGER.warn("AI-Agents: Configured agent " + defaultAgent + " is not installed; auto-switching to " + fallback.name());
-        return new AiAgentResolution(fallback, Bundle.message(Resource.AI_AGENT_AUTO_SWITCHED, defaultAgent.getAgentName(), Utils.getPluginDisplayName()));
+        return new AiAgentResolution(fallback, Bundle.message(Resource.AI_AGENT_AUTO_SWITCHED, defaultAgent.getAgentName(), getPluginDisplayName(), fallback.getAgentName()));
+    }
+
+    private static String getPluginDisplayName() {
+        String displayName = Utils.getPluginDisplayName();
+        if(displayName != null && !displayName.isBlank() && displayName.equals(Constants.TOOL_WINDOW_ID)) {
+            return DevAssistConstants.CX_AGENT_NAME;
+        }
+        return displayName;
     }
 }

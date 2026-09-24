@@ -124,8 +124,13 @@ public final class RemediationManager {
                 ? AiAgent.fromSettingsValue(settingsState.getAiAgent())
                 : AiAgent.COPILOT;
         try {
-            agent.chatIntegration().openWithPrompt(prompt, project, result ->
-                    onAiResult(agent, prompt, project, notificationTitle, clipboardMessage, logContext, result));
+            agent.chatIntegration().openWithPrompt(prompt, project, result -> {
+                try {
+                    onAiResult(agent, prompt, project, notificationTitle, clipboardMessage, logContext, result);
+                } catch (Exception callbackException) {
+                    LOGGER.warn(logContext + " - callback error handling AI result", callbackException);
+                }
+            });
         } catch (Exception exception) {
             LOGGER.warn(logContext + " - failed to invoke " + agent.getAgentName() + " integration", exception);
             fallBackToClipboard(prompt, project, notificationTitle, clipboardMessage, logContext);
@@ -172,7 +177,7 @@ public final class RemediationManager {
         Utils.showAppLevelNotification(
                 Utils.getPluginDisplayName(),
                 Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_MESSAGE, agent.getAgentName()),
-                NotificationType.WARNING,
+                NotificationType.INFORMATION,
                 true,
                 Bundle.message(Resource.AI_AGENT_INSTALL_ACTION_LABEL),
                 () -> agent.openMarketplacePage(project));
@@ -415,3 +420,4 @@ public final class RemediationManager {
         return DevAssistUtils.getAgentName() + " - " + scanEngine.name();
     }
 }
+ 

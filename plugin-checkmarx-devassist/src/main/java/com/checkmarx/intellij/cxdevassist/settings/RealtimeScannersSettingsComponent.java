@@ -270,7 +270,7 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         String message = Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_MESSAGE, agent.getAgentName());
         String installLabel = Bundle.message(Resource.AI_AGENT_INSTALL_ACTION_LABEL);
         int result = Messages.showDialog(mainPanel, message, CxDevAssistConstants.PLUGIN_NAME,
-                new String[]{installLabel, Messages.getOkButton()}, 0, Messages.getWarningIcon());
+                new String[]{installLabel, Messages.getCancelButton()}, 0, Messages.getInformationIcon());
         if (result == 0) {
             agent.openMarketplacePage(currentProjectOrNull());
         }
@@ -285,7 +285,7 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         String message = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_MESSAGE, agent.getAgentName());
         String restartLabel = Bundle.message(Resource.AI_AGENT_RESTART_ACTION_LABEL);
         return Messages.showDialog(mainPanel, message, CxDevAssistConstants.PLUGIN_NAME,
-                new String[]{restartLabel, Messages.getOkButton()}, 0, Messages.getInformationIcon());
+                new String[]{restartLabel, Messages.getCancelButton()}, 0, Messages.getInformationIcon());
     }
 
     private void handleMcpResult(Boolean changed, Throwable throwable) {
@@ -333,12 +333,9 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
     }
 
     /**
-     * Handles the "Edit in mcp.json" link. Delegates entirely to the currently-selected agent's
-     * {@link McpAgentTarget}: if it exposes a dedicated settings page
-     * ({@link McpAgentTarget#getSettingsConfigurableId()}), navigates the (still-open) Settings
-     * dialog there instead of hand-editing its config file, since that file's location/schema is
-     * typically undocumented internals and the settings UI is the officially supported way to
-     * manage it. Otherwise opens (and creates if necessary) the raw config file, the same way
+     * Handles the "Edit MCP Settings" link. Delegates entirely to the currently-selected agent's
+     * {@link McpAgentTarget}: if it exposes a dedicated settings page.
+     * Otherwise opens (and creates if necessary) the raw config file, the same way
      * this always worked for Copilot. Adding a new agent needs no changes here - only its
      * {@code McpAgentTarget} implementation decides which path applies.
      */
@@ -472,11 +469,8 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         AiAgent newAgent = AiAgent.fromAgentName((String) aiAgentCombo.getSelectedItem());
         boolean agentChanged = previousAgent != newAgent;
 
-        // Whatever the user picked is saved, whether or not its plugin is installed - the combo
-        // is never reverted. If it's not installed, still save the choice and warn via a popup,
-        // but MCP is configured for it either way (as soon as the dropdown actually changes) so
-        // it's already in place once the user installs the plugin, rather than requiring them to
-        // revisit this page afterward.
+        // Whatever the user picked is saved, whether or not its plugin is installed and MCP is configured for it.
+        // If it's not installed, still save the choice and inform via a popup.
         state.setAiAgent(newAgent.name());
         if (agentChanged) {
             int result = 1;

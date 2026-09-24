@@ -1,16 +1,12 @@
 package com.checkmarx.intellij.devassist.aiagents.aiassistant;
 
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration;
+import com.checkmarx.intellij.devassist.aiagents.ChatIntegrationResult;
 import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.intellij.ide.DataManager;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.ide.plugins.PluginManagerCore;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CommonDataKeys;
-import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.actionSystem.ex.ActionUtil;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.ApplicationManager;
@@ -24,13 +20,13 @@ import com.intellij.util.text.VersionComparatorUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import javax.swing.Timer;
+import javax.swing.*;
 import javax.swing.text.JTextComponent;
-import java.awt.Component;
-import java.awt.KeyboardFocusManager;
+import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 /**
  * Utility class for integrating with JetBrains AI Assistant chat
@@ -71,20 +67,29 @@ public final class AiAssistantIntegration {
     private static final String ACTION_PLACE = "CxOneAssist.FixWithAI";
 
     /**
-     * Delay after the chat tool window reports itself "activated" before attempting to paste.
-     * AI Assistant transfers keyboard focus to its chat input asynchronously (its own internal
-     * UI construction/focus routing runs after our activation callback fires), so pasting
-     * immediately on activation races that and silently lands nowhere. Overridable via
-     * {@code -Dcx.aiassistant.delay.paste=<ms>} for troubleshooting.
+     * Maximum time to wait for focus to move to the AI Assistant chat input after activation.
+     * Fallback timeout for when focus listener doesn't confirm focus moved in time.
+     * Overridable via {@code -Dcx.aiassistant.delay.paste=<ms>} for troubleshooting.
      */
-    private static final int PASTE_DELAY_MS = Integer.getInteger("cx.aiassistant.delay.paste", 900);
+    private static final int PASTE_READINESS_TIMEOUT_MS = Integer.getInteger("cx.aiassistant.delay.paste", 900);
 
     /**
-     * Delay after pasting before submitting, so the chat input's document/model has settled
-     * (and any async validation the input performs on change has run) before Send reads it.
+     * Poll interval (milliseconds) when checking if focus has moved to the input field.
+     * Shorter intervals detect focus changes faster but consume more CPU.
+     */
+    private static final int FOCUS_POLL_INTERVAL_MS = 50;
+
+    /**
+     * Maximum time to wait for the chat input's document to settle after pasting.
+     * Fallback timeout for when content-change listener doesn't confirm change in time.
      * Overridable via {@code -Dcx.aiassistant.delay.send=<ms>}.
      */
-    private static final int SEND_DELAY_MS = Integer.getInteger("cx.aiassistant.delay.send", 300);
+    private static final int SEND_READINESS_TIMEOUT_MS = Integer.getInteger("cx.aiassistant.delay.send", 300);
+
+    /**
+     * Poll interval (milliseconds) when checking if the pasted content is in the input field.
+     */
+    private static final int CONTENT_POLL_INTERVAL_MS = 30;
 
     /**
      * Number of times the fallback path (no matching tool-window id) polls for the tool window
@@ -108,39 +113,10 @@ public final class AiAssistantIntegration {
      * {@link ApplicationInfo#getFullVersion()}) known to ship an AI Assistant compatible with the
      * Agent Client Protocol (ACP), compared via {@link VersionComparatorUtil}.
      */
-    private static final String MIN_ACP_IDE_VERSION = "2025.3.2";
+    private static final String MIN_ACP_IDE_VERSION = "2025.3.3";
 
     private AiAssistantIntegration() {
         // Utility class
-    }
-
-    /**
-     * Detailed result with a user-facing message, mirroring {@link CopilotIntegration.IntegrationResult}.
-     */
-    public static final class IntegrationResult {
-        private final boolean success;
-        private final String message;
-
-        private IntegrationResult(boolean success, String message) {
-            this.success = success;
-            this.message = message;
-        }
-
-        public boolean isSuccess() {
-            return success;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        static IntegrationResult success(String message) {
-            return new IntegrationResult(true, message);
-        }
-
-        static IntegrationResult notAvailable(String message) {
-            return new IntegrationResult(false, message);
-        }
     }
 
     /**
@@ -165,55 +141,65 @@ public final class AiAssistantIntegration {
      * Copies the prompt to the clipboard, opens/focuses the AI Assistant chat, and best-effort
      * pastes the prompt into the now-focused chat input.
      *
-     * @param prompt  the fix/explanation prompt to send
-     * @param project the project context
-     * @return a result describing whether the chat was opened; the caller (e.g. {@link RemediationManager})
-     * is responsible for falling back to a plain clipboard-copy notification when this is not successful.
+     * @param prompt               the fix/explanation prompt to send
+     * @param project              the project context
+     * @param completionCallback   optional callback invoked with the final result after paste+send completes;
+     *                             if null, no async result tracking occurs
+     * @return a preliminary result describing whether the chat was opened; when a completion callback
+     *         is provided, the final result (reflecting paste+send success/failure) is delivered
+     *         asynchronously via the callback
      */
-    public static IntegrationResult openAiAssistantWithPromptDetailed(@NotNull String prompt, @NotNull Project project) {
+    public static ChatIntegrationResult openAiAssistantWithPromptDetailed(
+            @NotNull String prompt,
+            @NotNull Project project,
+            @Nullable Consumer<ChatIntegrationResult> completionCallback) {
         LOGGER.debug("CxFix: Starting AI Assistant integration workflow");
 
         // Supersede any automation chain from a previous call that may still be in flight
         int generation = CURRENT_GENERATION.incrementAndGet();
 
         if (!copyToClipboard(prompt)) {
-            return IntegrationResult.notAvailable("Failed to copy prompt to clipboard.");
+            return ChatIntegrationResult.notAvailable("Failed to copy prompt to clipboard.");
         }
         LOGGER.debug("CxFix: Prompt copied to clipboard");
 
         if (!isAiAssistantAvailable(project)) {
             LOGGER.debug("CxFix: AI Assistant not available, prompt copied to clipboard");
-            return IntegrationResult.notAvailable(
+            return ChatIntegrationResult.notAvailable(
                     "JetBrains AI Assistant is not installed or available. The fix prompt has been copied to your clipboard.");
         }
 
-        boolean opened = tryOpenAiAssistantChat(project, prompt, generation);
+        boolean opened = tryOpenAiAssistantChat(project, prompt, generation, completionCallback);
         if (!opened) {
             LOGGER.warn("CxFix: Failed to open AI Assistant chat window");
-            return IntegrationResult.notAvailable(
+            return ChatIntegrationResult.notAvailable(
                     "Could not open AI Assistant chat. The fix prompt has been copied to your clipboard.");
         }
 
-        return IntegrationResult.success(
+        return ChatIntegrationResult.success(
                 "AI Assistant chat opened. The prompt was copied to the clipboard and an automated paste + send was "
                         + "attempted - if it does not appear in the chat, paste manually from the clipboard and send.");
     }
 
     // ==================== Internal helpers ====================
 
-    private static boolean tryOpenAiAssistantChat(@NotNull Project project, @NotNull String prompt, int generation) {
+    private static boolean tryOpenAiAssistantChat(
+            @NotNull Project project,
+            @NotNull String prompt,
+            int generation,
+            @Nullable Consumer<ChatIntegrationResult> completionCallback) {
         ToolWindow toolWindow = findToolWindow(project);
 
         if (toolWindow == null) {
             boolean actionExists = ActionManager.getInstance().getAction(NEW_CHAT_ACTION_ID) != null;
             if (actionExists) {
-                pollForToolWindowThenProceed(project, prompt, generation, FALLBACK_POLL_ATTEMPTS);
+                pollForToolWindowThenProceed(project, prompt, generation, completionCallback, FALLBACK_POLL_ATTEMPTS);
             }
             return actionExists;
         }
 
         ToolWindow finalToolWindow = toolWindow;
-        ApplicationManager.getApplication().invokeLater(() -> onShowToolWindowRequested(finalToolWindow, project, prompt, generation));
+        ApplicationManager.getApplication().invokeLater(() -> onShowToolWindowRequested(finalToolWindow, project, prompt, generation, completionCallback));
         return true;
     }
 
@@ -221,15 +207,19 @@ public final class AiAssistantIntegration {
      * Body of the main path's {@code invokeLater} callback, extracted to its own named method so
      * the generation-guard logic is directly unit-testable via reflection.
      */
-    private static void onShowToolWindowRequested(@NotNull ToolWindow toolWindow, @NotNull Project project,
-                                                    @NotNull String prompt, int generation) {
+    private static void onShowToolWindowRequested(
+            @NotNull ToolWindow toolWindow,
+            @NotNull Project project,
+            @NotNull String prompt,
+            int generation,
+            @Nullable Consumer<ChatIntegrationResult> completionCallback) {
         if (generation != CURRENT_GENERATION.get()) {
             LOGGER.debug("CxFix: AI Assistant tool-window show superseded by a newer Fix invocation");
             return;
         }
         toolWindow.show(() -> toolWindow.activate(() -> {
             LOGGER.debug("CxFix: AI Assistant tool window activated");
-            startNewChatAndPaste(project, prompt, generation);
+            startNewChatAndPaste(project, prompt, generation, completionCallback);
         }));
     }
 
@@ -250,9 +240,14 @@ public final class AiAssistantIntegration {
      * show()/activate()-confirmed sequencing as the main path; if it never appears, falls back to
      * firing the "new chat" action directly as a last resort.
      */
-    private static void pollForToolWindowThenProceed(@NotNull Project project, @NotNull String prompt, int generation, int attemptsRemaining) {
+    private static void pollForToolWindowThenProceed(
+            @NotNull Project project,
+            @NotNull String prompt,
+            int generation,
+            @Nullable Consumer<ChatIntegrationResult> completionCallback,
+            int attemptsRemaining) {
         Timer timer = new Timer(FALLBACK_POLL_INTERVAL_MS,
-                e -> onPollTimerFired(project, prompt, generation, attemptsRemaining));
+                e -> onPollTimerFired(project, prompt, generation, completionCallback, attemptsRemaining));
         timer.setRepeats(false);
         timer.start();
     }
@@ -262,7 +257,12 @@ public final class AiAssistantIntegration {
      * method so the generation-guard logic is directly unit-testable via reflection without
      * waiting for a real {@link #FALLBACK_POLL_INTERVAL_MS}-delayed Timer to fire.
      */
-    private static void onPollTimerFired(@NotNull Project project, @NotNull String prompt, int generation, int attemptsRemaining) {
+    private static void onPollTimerFired(
+            @NotNull Project project,
+            @NotNull String prompt,
+            int generation,
+            @Nullable Consumer<ChatIntegrationResult> completionCallback,
+            int attemptsRemaining) {
         if (generation != CURRENT_GENERATION.get()) {
             LOGGER.debug("CxFix: AI Assistant tool-window poll superseded by a newer Fix invocation");
             return;
@@ -271,14 +271,14 @@ public final class AiAssistantIntegration {
         if (toolWindow != null) {
             toolWindow.show(() -> toolWindow.activate(() -> {
                 LOGGER.debug("CxFix: AI Assistant tool window appeared during fallback poll");
-                startNewChatAndPaste(project, prompt, generation);
+                startNewChatAndPaste(project, prompt, generation, completionCallback);
             }));
         } else if (attemptsRemaining > 1) {
-            pollForToolWindowThenProceed(project, prompt, generation, attemptsRemaining - 1);
+            pollForToolWindowThenProceed(project, prompt, generation, completionCallback, attemptsRemaining - 1);
         } else {
             LOGGER.debug("CxFix: AI Assistant tool window never appeared - firing 'new chat' action without activation confirmation");
             invokeActionWithContext(NEW_CHAT_ACTION_ID, currentFocusDataContext(project));
-            schedulePaste(project, prompt, generation);
+            schedulePaste(project, prompt, generation, completionCallback);
         }
     }
 
@@ -293,7 +293,11 @@ public final class AiAssistantIntegration {
      * {@link DataContext} (see {@link #pasteIntoFocusedChat}), not just the project, since a
      * project-only context may not carry whatever component/editor key the action needs.
      */
-    private static void startNewChatAndPaste(@NotNull Project project, @NotNull String prompt, int generation) {
+    private static void startNewChatAndPaste(
+            @NotNull Project project,
+            @NotNull String prompt,
+            int generation,
+            @Nullable Consumer<ChatIntegrationResult> completionCallback) {
         if (generation != CURRENT_GENERATION.get()) {
             LOGGER.debug("CxFix: AI Assistant chat activation superseded by a newer Fix invocation");
             return;
@@ -301,7 +305,7 @@ public final class AiAssistantIntegration {
         if (!invokeActionWithContext(NEW_CHAT_ACTION_ID, currentFocusDataContext(project))) {
             LOGGER.debug("CxFix: AI Assistant 'new chat' action unavailable - continuing with whichever chat is open");
         }
-        schedulePaste(project, prompt, generation);
+        schedulePaste(project, prompt, generation, completionCallback);
     }
 
     /**
@@ -322,8 +326,70 @@ public final class AiAssistantIntegration {
      * "activated" fires before AI Assistant finishes moving keyboard focus into its own
      * chat input.
      */
-    private static void schedulePaste(@NotNull Project project, @NotNull String prompt, int generation) {
-        Timer timer = new Timer(PASTE_DELAY_MS, e -> onPasteTimerFired(project, prompt, generation));
+    /**
+     * Waits for keyboard focus to move to the AI Assistant chat input, up to the readiness timeout.
+     * Uses polling to check focus since focus transfers are async and may not fire listeners reliably.
+     *
+     * @return true if focus moved to a component (indicating chat input is ready), false if timeout
+     */
+    private static boolean waitForInputFocus(int timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+            if (focusOwner != null && !(focusOwner instanceof Frame) && !(focusOwner instanceof Window)) {
+                // Focus moved to a text input (not a window/frame), indicating chat is ready
+                LOGGER.debug("CxFix: Focus moved to input field");
+                return true;
+            }
+            try {
+                Thread.sleep(FOCUS_POLL_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        LOGGER.debug("CxFix: Timeout waiting for input focus");
+        return false;
+    }
+
+    /**
+     * Waits for content to appear in the focused text component, indicating paste succeeded.
+     * Uses polling to check document length since paste operations are async.
+     *
+     * @param focusOwner the component that should receive the paste
+     * @param expectedContent substring that should appear after paste (typically part of the prompt)
+     * @param timeoutMs maximum time to wait
+     * @return true if expected content found, false if timeout
+     */
+    private static boolean waitForPasteContent(@Nullable Component focusOwner, @NotNull String expectedContent, int timeoutMs) {
+        if (!(focusOwner instanceof JTextComponent)) {
+            return true; // Non-text component, can't verify but assume success
+        }
+        JTextComponent textField = (JTextComponent) focusOwner;
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            String currentText = textField.getText();
+            if (currentText.contains(expectedContent)) {
+                LOGGER.debug("CxFix: Pasted content verified in input field");
+                return true;
+            }
+            try {
+                Thread.sleep(CONTENT_POLL_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        LOGGER.debug("CxFix: Timeout waiting for paste content verification");
+        return false;
+    }
+
+    private static void schedulePaste(
+            @NotNull Project project,
+            @NotNull String prompt,
+            int generation,
+            @Nullable Consumer<ChatIntegrationResult> completionCallback) {
+        Timer timer = new Timer(PASTE_READINESS_TIMEOUT_MS, e -> onPasteTimerFired(project, prompt, generation, completionCallback));
         timer.setRepeats(false);
         timer.start();
     }
@@ -331,24 +397,47 @@ public final class AiAssistantIntegration {
     /**
      * Body of {@link #schedulePaste}'s Timer callback, extracted to its own named method so the
      * generation-guard logic is directly unit-testable via reflection without waiting for a real
-     * {@link #PASTE_DELAY_MS}-delayed Timer to fire.
+     * {@link #PASTE_READINESS_TIMEOUT_MS}-delayed Timer to fire.
      */
-    private static void onPasteTimerFired(@NotNull Project project, @NotNull String prompt, int generation) {
+    private static void onPasteTimerFired(
+            @NotNull Project project,
+            @NotNull String prompt,
+            int generation,
+            @Nullable Consumer<ChatIntegrationResult> completionCallback) {
         if (generation != CURRENT_GENERATION.get()) {
             LOGGER.debug("CxFix: AI Assistant paste superseded by a newer Fix invocation");
             return;
         }
-        pasteIntoFocusedChat(project, prompt, generation);
+        pasteIntoFocusedChat(project, prompt, generation, completionCallback);
     }
 
     /**
      * Re-copies {@code prompt} to the clipboard, then pastes it into whichever component
-     * currently holds keyboard focus, then submits via {@link #SEND_ACTION_ID}.
+     * currently holds keyboard focus, verifying paste succeeded before submitting via {@link #SEND_ACTION_ID}.
+     *
+     * Verifies readiness at two stages:
+     * 1. After paste delay: waits for focus to actually move to the input field
+     * 2. After paste: polls for the pasted content to appear in the field
+     *
+     * If paste fails and a completion callback is provided, reports failure through the callback.
+     * If paste succeeds, schedules send and reports result after send completes.
      */
-    private static void pasteIntoFocusedChat(@NotNull Project project, @NotNull String prompt, int generation) {
+    private static void pasteIntoFocusedChat(
+            @NotNull Project project,
+            @NotNull String prompt,
+            int generation,
+            @Nullable Consumer<ChatIntegrationResult> completionCallback) {
+        // Verify focus has moved to the input field (after the initial paste delay)
         Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        boolean focusReady = waitForInputFocus(50); // Quick final check after delay
+        if (!focusReady) {
+            LOGGER.debug("CxFix: Focus did not move to input field - chat may not be ready");
+        }
+
+        focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
         if (focusOwner == null) {
             LOGGER.debug("CxFix: No focus owner available to paste the prompt into");
+            reportPasteFailure(completionCallback);
             return;
         }
 
@@ -371,20 +460,47 @@ public final class AiAssistantIntegration {
 
         if (!pasted) {
             LOGGER.debug("CxFix: Could not paste prompt into AI Assistant chat input");
+            reportPasteFailure(completionCallback);
             return;
         }
 
-        Timer sendTimer = new Timer(SEND_DELAY_MS, e -> onSendTimerFired(realContext, generation));
+        // Verify paste actually succeeded by checking if content appeared in the field
+        // Use prompt snippet for verification (first 20 chars or less)
+        String verifyContent = prompt.length() > 20 ? prompt.substring(0, 20) : prompt;
+        boolean pasteVerified = waitForPasteContent(focusOwner, verifyContent, SEND_READINESS_TIMEOUT_MS / 2);
+        if (!pasteVerified) {
+            LOGGER.warn("CxFix: Paste verification failed - content not detected in input field");
+            reportPasteFailure(completionCallback);
+            return;
+        }
+
+        Timer sendTimer = new Timer(SEND_READINESS_TIMEOUT_MS, e -> onSendTimerFired(realContext, generation, completionCallback));
         sendTimer.setRepeats(false);
         sendTimer.start();
     }
 
     /**
+     * Reports paste failure through the completion callback if provided.
+     */
+    private static void reportPasteFailure(@Nullable Consumer<ChatIntegrationResult> completionCallback) {
+        if (completionCallback != null) {
+            ChatIntegrationResult failureResult = ChatIntegrationResult.notAvailable(
+                    "Failed to paste prompt into AI Assistant chat. The prompt has been copied to your clipboard.");
+            completionCallback.accept(failureResult);
+        }
+    }
+
+    /**
      * Body of {@link #pasteIntoFocusedChat}'s send Timer callback, extracted to its own named
      * method so the generation-guard logic is directly unit-testable via reflection without
-     * waiting for a real {@link #SEND_DELAY_MS}-delayed Timer to fire.
+     * waiting for a real {@link #SEND_READINESS_TIMEOUT_MS}-delayed Timer to fire.
+     *
+     * Invokes the completion callback with the final result (success or failure) after send completes.
      */
-    private static void onSendTimerFired(@NotNull DataContext fallbackContext, int generation) {
+    private static void onSendTimerFired(
+            @NotNull DataContext fallbackContext,
+            int generation,
+            @Nullable Consumer<ChatIntegrationResult> completionCallback) {
         if (generation != CURRENT_GENERATION.get()) {
             LOGGER.debug("CxFix: AI Assistant send superseded by a newer Fix invocation");
             return;
@@ -393,8 +509,17 @@ public final class AiAssistantIntegration {
         DataContext sendContext = currentFocus != null
                 ? DataManager.getInstance().getDataContext(currentFocus)
                 : fallbackContext;
-        if (!invokeActionWithContext(SEND_ACTION_ID, sendContext)) {
+        boolean sent = invokeActionWithContext(SEND_ACTION_ID, sendContext);
+        if (!sent) {
             LOGGER.debug("CxFix: AI Assistant send action not available - user must press Enter/click Send");
+        }
+
+        // Report final result: send success or failure through completion callback
+        if (completionCallback != null) {
+            ChatIntegrationResult finalResult = sent
+                    ? ChatIntegrationResult.success("Prompt sent to AI Assistant")
+                    : ChatIntegrationResult.notAvailable("Failed to send prompt to AI Assistant. The prompt has been copied to your clipboard.");
+            completionCallback.accept(finalResult);
         }
     }
 

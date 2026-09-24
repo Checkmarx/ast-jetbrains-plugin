@@ -16,6 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -57,12 +59,10 @@ class AiAssistantChatIntegrationTest {
     @DisplayName("openWithPrompt_UnderlyingSucceeds_ReturnsSuccessAndInvokesCallbackOnceSynchronously")
     void openWithPrompt_UnderlyingSucceeds_ReturnsSuccessAndInvokesCallbackOnceSynchronously() {
         Project project = mock(Project.class);
-        AiAssistantIntegration.IntegrationResult underlyingResult = mock(AiAssistantIntegration.IntegrationResult.class);
-        when(underlyingResult.isSuccess()).thenReturn(true);
-        when(underlyingResult.getMessage()).thenReturn("Prompt sent to AI Assistant");
+        ChatIntegrationResult underlyingResult = ChatIntegrationResult.success("Prompt sent to AI Assistant");
 
         try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
-            aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed("fix this", project))
+            aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed(eq("fix this"), eq(project), any()))
                     .thenReturn(underlyingResult);
 
             List<ChatIntegrationResult> captured = new ArrayList<>();
@@ -81,12 +81,10 @@ class AiAssistantChatIntegrationTest {
     @DisplayName("openWithPrompt_UnderlyingFails_ReturnsNotAvailableAndInvokesCallbackOnce")
     void openWithPrompt_UnderlyingFails_ReturnsNotAvailableAndInvokesCallbackOnce() {
         Project project = mock(Project.class);
-        AiAssistantIntegration.IntegrationResult underlyingResult = mock(AiAssistantIntegration.IntegrationResult.class);
-        when(underlyingResult.isSuccess()).thenReturn(false);
-        when(underlyingResult.getMessage()).thenReturn("AI Assistant not installed");
+        ChatIntegrationResult underlyingResult = ChatIntegrationResult.notAvailable("AI Assistant not installed");
 
         try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
-            aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed("fix this", project))
+            aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed(eq("fix this"), eq(project), any()))
                     .thenReturn(underlyingResult);
 
             List<ChatIntegrationResult> captured = new ArrayList<>();
@@ -103,12 +101,10 @@ class AiAssistantChatIntegrationTest {
     @DisplayName("openWithPrompt_NullCallback_DoesNotThrow")
     void openWithPrompt_NullCallback_DoesNotThrow() {
         Project project = mock(Project.class);
-        AiAssistantIntegration.IntegrationResult underlyingResult = mock(AiAssistantIntegration.IntegrationResult.class);
-        when(underlyingResult.isSuccess()).thenReturn(true);
-        when(underlyingResult.getMessage()).thenReturn("ok");
+        ChatIntegrationResult underlyingResult = ChatIntegrationResult.success("ok");
 
         try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
-            aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed("fix this", project))
+            aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed("fix this", project, null))
                     .thenReturn(underlyingResult);
 
             ChatIntegrationResult result = assertDoesNotThrow(

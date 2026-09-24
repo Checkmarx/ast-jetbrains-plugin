@@ -21,25 +21,12 @@ public final class CopilotChatIntegration implements ChatIntegration {
     /**
      * Copilot's chat-window-open call returns immediately, but whether the fix prompt actually
      * gets pasted/sent is only known once the background UI-automation sequence in
-     * {@link CopilotIntegration} finishes. That final outcome is forwarded to
-     * {@code onFinalResult} as-is - it is not assumed to be a success just because the chat
-     * window itself opened.
+     * {@link CopilotIntegration} finishes. The completion callback will be invoked with the
+     * actual final outcome after automation completes.
      */
     @Override
     public @NotNull ChatIntegrationResult openWithPrompt(@NotNull String prompt, @NotNull Project project,
                                                          @Nullable Consumer<ChatIntegrationResult> onFinalResult) {
-        CopilotIntegration.IntegrationResult result = CopilotIntegration.openCopilotWithPromptDetailed(
-                prompt, project, finalResult -> {
-                    if (onFinalResult != null) {
-                        onFinalResult.accept(toChatIntegrationResult(finalResult));
-                    }
-                });
-        return toChatIntegrationResult(result);
-    }
-
-    private static ChatIntegrationResult toChatIntegrationResult(CopilotIntegration.IntegrationResult result) {
-        return result.isSuccess()
-                ? ChatIntegrationResult.success(result.getMessage())
-                : ChatIntegrationResult.notAvailable(result.getMessage());
+        return CopilotIntegration.openCopilotWithPromptDetailed(prompt, project, onFinalResult);
     }
 }
