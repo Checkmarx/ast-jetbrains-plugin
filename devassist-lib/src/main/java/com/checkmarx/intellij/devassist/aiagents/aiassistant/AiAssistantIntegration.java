@@ -113,7 +113,7 @@ public final class AiAssistantIntegration {
      * {@link ApplicationInfo#getFullVersion()}) known to ship an AI Assistant compatible with the
      * Agent Client Protocol (ACP), compared via {@link VersionComparatorUtil}.
      */
-    private static final String MIN_ACP_IDE_VERSION = "2025.3.3";
+    private static final String MIN_ACP_IDE_VERSION = "2025.3.2";
 
     private AiAssistantIntegration() {
         // Utility class

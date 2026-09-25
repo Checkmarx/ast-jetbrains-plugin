@@ -59,7 +59,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
     private final JPanel mainPanel = new JPanel(new MigLayout("", "[][grow]"));
     private final JBLabel assistMessageLabel = new JBLabel();
 
-    private final JBLabel ascaTitle = new JBLabel(formatTitle("Checkmarx AI Secure Coding Assistant (ASCA): Activate ASCA:"));
+    private final JBLabel ascaTitle = new JBLabel(formatTitle(Bundle.message(Resource.ASCA_DESCRIPTION)));
     private final JBCheckBox ascaCheckbox = new JBCheckBox("Scan your file as you code");
     private final JBLabel ascaInstallationMsg = new JBLabel();
 
@@ -285,8 +285,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
      * Modal popup shown from {@link #apply()} when the user switches to JetBrains AI Chat.
      * Offers to restart immediately rather than just informing the user.
      */
-    private int showRestartIdePopup(AiAgent agent) {
-        String message = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_MESSAGE, agent.getAgentName());
+    private int showRestartIdePopup() {
+        String message = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_MESSAGE);
         String restartLabel = Bundle.message(Resource.AI_AGENT_RESTART_ACTION_LABEL);
         return Messages.showDialog(mainPanel, message, DevAssistConstants.CX_AGENT_NAME,
                 new String[]{restartLabel, Messages.getCancelButton()}, 0, Messages.getInformationIcon());
@@ -485,7 +485,7 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
                 LOGGER.warn("[CxOneAssist] Selected AI agent plugin is not installed: " + newAgent.getAgentName());
                 showAgentNotInstalledPopup(newAgent);
             } else if (newAgent == AiAgent.JETBRAINS_AI_ASSISTANT) {
-                restartResult = showRestartIdePopup(AiAgent.JETBRAINS_AI_ASSISTANT);
+                restartResult = showRestartIdePopup();
             }
             // After agent switch. the previously-selected agent's MCP entry (and its credential) is cleared
             previousAgent.uninstallMcpInBackground(LOGGER, "after switching to " + newAgent.getAgentName(),

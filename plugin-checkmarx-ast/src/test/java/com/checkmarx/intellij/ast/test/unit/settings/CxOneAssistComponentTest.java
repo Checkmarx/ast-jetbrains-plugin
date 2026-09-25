@@ -127,7 +127,7 @@ class CxOneAssistComponentTest {
         setField(component, "containersCheckbox", new JBCheckBox());
         setField(component, "iacCheckbox", new JBCheckBox());
         setField(component, "containersToolCombo", mockCombo("docker"));
-        setField(component, "aiAgentCombo", mockCombo("Copilot"));
+        setField(component, "aiAgentCombo", mockCombo("GitHub Copilot"));
         setField(component, "mcpStatusLabel", new JBLabel());
         setField(component, "assistMessageLabel", new JBLabel());
         setField(component, "state", mockState);
@@ -150,7 +150,7 @@ class CxOneAssistComponentTest {
         when(mockState.isContainersRealtime()).thenReturn(false);
         when(mockState.isIacRealtime()).thenReturn(false);
         when(mockState.getContainersTool()).thenReturn("docker");
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
 
         try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
@@ -198,7 +198,7 @@ class CxOneAssistComponentTest {
         when(mockState.isContainersRealtime()).thenReturn(false);
         when(mockState.isIacRealtime()).thenReturn(false);
         when(mockState.getContainersTool()).thenReturn("docker");
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
 
         try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
@@ -233,7 +233,7 @@ class CxOneAssistComponentTest {
         // them through to the right McpSettingsInjector call - not just that some private helper
         // does the right thing in isolation.
         setField(component, "aiAgentCombo", mockCombo("JetBrains AI Chat"));
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
         // apply() also schedules the unrelated validateIACEngine background task; since this
         // fixture actually runs executeOnPooledThread's Runnable inline, stub containersTool the
         // same way the other apply()/isModified() tests in this class do, so that pre-existing
@@ -275,8 +275,8 @@ class CxOneAssistComponentTest {
 
     @Test
     void apply_WhenAiAgentUnchanged_DoesNotUninstallAnyMcpEntry() throws Exception {
-        setField(component, "aiAgentCombo", mockCombo("Copilot"));
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        setField(component, "aiAgentCombo", mockCombo("GitHub Copilot"));
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
         when(mockState.getContainersTool()).thenReturn("docker");
 
         Application mockApp = mockApplicationRunningPooledThreadInline();

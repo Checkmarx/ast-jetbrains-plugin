@@ -122,7 +122,7 @@ public final class RemediationManager {
         GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
         AiAgent agent = settingsState != null
                 ? AiAgent.fromSettingsValue(settingsState.getAiAgent())
-                : AiAgent.COPILOT;
+                : AiAgent.GITHUB_COPILOT;
         try {
             agent.chatIntegration().openWithPrompt(prompt, project, result -> {
                 try {
@@ -175,7 +175,7 @@ public final class RemediationManager {
      */
     private void showAgentNotInstalledNotification(@NotNull AiAgent agent, @NotNull Project project) {
         Utils.showAppLevelNotification(
-                Utils.getPluginDisplayName(),
+                DevAssistUtils.getCustomPluginDisplayName(),
                 Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_MESSAGE, agent.getAgentName()),
                 NotificationType.INFORMATION,
                 true,

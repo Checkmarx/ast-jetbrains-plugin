@@ -281,8 +281,8 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
      * so a mid-session install/switch needs an explicit restart
      * for Checkmarx MCP remediation to work through it.
      */
-    private int showRestartIdePopup(AiAgent agent) {
-        String message = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_MESSAGE, agent.getAgentName());
+    private int showRestartIdePopup() {
+        String message = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_MESSAGE);
         String restartLabel = Bundle.message(Resource.AI_AGENT_RESTART_ACTION_LABEL);
         return Messages.showDialog(mainPanel, message, CxDevAssistConstants.PLUGIN_NAME,
                 new String[]{restartLabel, Messages.getCancelButton()}, 0, Messages.getInformationIcon());
@@ -478,7 +478,7 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
                 LOGGER.warn("[CxOneAssist] Selected AI agent plugin is not installed: " + newAgent.getAgentName());
                 showAgentNotInstalledPopup(newAgent);
             } else if (newAgent == AiAgent.JETBRAINS_AI_ASSISTANT) {
-                result = showRestartIdePopup(AiAgent.JETBRAINS_AI_ASSISTANT);
+                result = showRestartIdePopup();
             }
             // After agent switch. the previously-selected agent's MCP entry (and its credential) is cleared
             previousAgent.uninstallMcpInBackground(LOGGER, "after switching to " + newAgent.getAgentName(),

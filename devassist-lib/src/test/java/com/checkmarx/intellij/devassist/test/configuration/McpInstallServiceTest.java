@@ -107,7 +107,7 @@ class McpInstallServiceTest {
             injStatic.when(() -> McpSettingsInjector.installForCopilot("my-token")).thenReturn(true);
             execStatic.when(AppExecutorUtil::getAppExecutorService).thenReturn(exec);
 
-            CompletableFuture<Boolean> future = McpInstallService.installSilentlyAsync("my-token", AiAgent.COPILOT);
+            CompletableFuture<Boolean> future = McpInstallService.installSilentlyAsync("my-token", AiAgent.GITHUB_COPILOT);
             Boolean result = future.get(5, TimeUnit.SECONDS);
 
             assertEquals(Boolean.TRUE, result);

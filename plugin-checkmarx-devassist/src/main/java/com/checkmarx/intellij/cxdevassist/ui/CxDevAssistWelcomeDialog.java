@@ -196,9 +196,9 @@ public class CxDevAssistWelcomeDialog extends DialogWrapper {
         JBLabel warningIcon = new JBLabel(AllIcons.General.Warning);
         panel.add(warningIcon, "top, spany 3");
 
-        String agentTitle =  Bundle.message(noticeMessage.contains("automatically")
-                ? Resource.WELCOME_AGENT_SWITCHED_TITLE
-                : Resource.WELCOME_AGENT_NOT_CONNECTED_TITLE);
+        String agentTitle = Bundle.message(noticeMessage.contains("No supported")
+                ? Resource.WELCOME_AGENT_NOT_CONNECTED_TITLE
+                : Resource.WELCOME_AGENT_SWITCHED_TITLE);
 
         JBLabel title = new JBLabel(agentTitle);
         title.setFont(title.getFont().deriveFont(Font.BOLD));

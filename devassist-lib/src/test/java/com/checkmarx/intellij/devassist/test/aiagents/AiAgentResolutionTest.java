@@ -19,10 +19,10 @@ class AiAgentResolutionTest {
     @DisplayName("constructor_WithAgentAndMessage_StoresValues")
     void constructor_WithAgentAndMessage_StoresValues() {
         String message = "Agent was auto-switched";
-        AiAgentResolution resolution = new AiAgentResolution(AiAgent.COPILOT, message);
+        AiAgentResolution resolution = new AiAgentResolution(AiAgent.GITHUB_COPILOT, message);
 
         assertNotNull(resolution);
-        assertEquals(AiAgent.COPILOT, resolution.getAgent());
+        assertEquals(AiAgent.GITHUB_COPILOT, resolution.getAgent());
         assertEquals(message, resolution.getNoticeMessage());
     }
 
@@ -39,8 +39,8 @@ class AiAgentResolutionTest {
     @Test
     @DisplayName("getAgent_ReturnsConfiguredAgent")
     void getAgent_ReturnsConfiguredAgent() {
-        AiAgentResolution resolution = new AiAgentResolution(AiAgent.COPILOT, "message");
-        assertEquals(AiAgent.COPILOT, resolution.getAgent());
+        AiAgentResolution resolution = new AiAgentResolution(AiAgent.GITHUB_COPILOT, "message");
+        assertEquals(AiAgent.GITHUB_COPILOT, resolution.getAgent());
     }
 
     @Test
@@ -54,15 +54,15 @@ class AiAgentResolutionTest {
     @Test
     @DisplayName("getNoticeMessage_WhenNull_ReturnsNull")
     void getNoticeMessage_WhenNull_ReturnsNull() {
-        AiAgentResolution resolution = new AiAgentResolution(AiAgent.COPILOT, null);
+        AiAgentResolution resolution = new AiAgentResolution(AiAgent.GITHUB_COPILOT, null);
         assertNull(resolution.getNoticeMessage());
     }
 
     @Test
     @DisplayName("equality_TwoInstancesWithSameValues_AreEqual")
     void equality_TwoInstancesWithSameValues_AreEqual() {
-        AiAgentResolution res1 = new AiAgentResolution(AiAgent.COPILOT, "message");
-        AiAgentResolution res2 = new AiAgentResolution(AiAgent.COPILOT, "message");
+        AiAgentResolution res1 = new AiAgentResolution(AiAgent.GITHUB_COPILOT, "message");
+        AiAgentResolution res2 = new AiAgentResolution(AiAgent.GITHUB_COPILOT, "message");
 
         assertEquals(res1, res2);
     }
@@ -70,7 +70,7 @@ class AiAgentResolutionTest {
     @Test
     @DisplayName("equality_TwoInstancesWithDifferentAgents_AreNotEqual")
     void equality_TwoInstancesWithDifferentAgents_AreNotEqual() {
-        AiAgentResolution res1 = new AiAgentResolution(AiAgent.COPILOT, "message");
+        AiAgentResolution res1 = new AiAgentResolution(AiAgent.GITHUB_COPILOT, "message");
         AiAgentResolution res2 = new AiAgentResolution(AiAgent.JETBRAINS_AI_ASSISTANT, "message");
 
         assertNotEquals(res1, res2);
@@ -79,8 +79,8 @@ class AiAgentResolutionTest {
     @Test
     @DisplayName("equality_TwoInstancesWithDifferentMessages_AreNotEqual")
     void equality_TwoInstancesWithDifferentMessages_AreNotEqual() {
-        AiAgentResolution res1 = new AiAgentResolution(AiAgent.COPILOT, "message1");
-        AiAgentResolution res2 = new AiAgentResolution(AiAgent.COPILOT, "message2");
+        AiAgentResolution res1 = new AiAgentResolution(AiAgent.GITHUB_COPILOT, "message1");
+        AiAgentResolution res2 = new AiAgentResolution(AiAgent.GITHUB_COPILOT, "message2");
 
         assertNotEquals(res1, res2);
     }
@@ -88,8 +88,8 @@ class AiAgentResolutionTest {
     @Test
     @DisplayName("hashCode_SameForEqualInstances")
     void hashCode_SameForEqualInstances() {
-        AiAgentResolution res1 = new AiAgentResolution(AiAgent.COPILOT, "message");
-        AiAgentResolution res2 = new AiAgentResolution(AiAgent.COPILOT, "message");
+        AiAgentResolution res1 = new AiAgentResolution(AiAgent.GITHUB_COPILOT, "message");
+        AiAgentResolution res2 = new AiAgentResolution(AiAgent.GITHUB_COPILOT, "message");
 
         assertEquals(res1.hashCode(), res2.hashCode());
     }

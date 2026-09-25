@@ -400,7 +400,7 @@ public class WelcomeDialogTest {
 
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
         when(mockState.getUserPreferencesSet()).thenReturn(false);
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
 
         try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
              MockedStatic<CopilotIntegration> copilotMock = mockStatic(CopilotIntegration.class)) {

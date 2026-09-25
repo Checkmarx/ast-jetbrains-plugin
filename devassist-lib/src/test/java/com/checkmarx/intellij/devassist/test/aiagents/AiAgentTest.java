@@ -28,19 +28,19 @@ class AiAgentTest {
     @Test
     @DisplayName("fromSettingsValue_Null_DefaultsToCopilot")
     void fromSettingsValue_Null_DefaultsToCopilot() {
-        assertEquals(AiAgent.COPILOT, AiAgent.fromSettingsValue(null));
+        assertEquals(AiAgent.GITHUB_COPILOT, AiAgent.fromSettingsValue(null));
     }
 
     @Test
     @DisplayName("fromSettingsValue_Blank_DefaultsToCopilot")
     void fromSettingsValue_Blank_DefaultsToCopilot() {
-        assertEquals(AiAgent.COPILOT, AiAgent.fromSettingsValue(""));
+        assertEquals(AiAgent.GITHUB_COPILOT, AiAgent.fromSettingsValue(""));
     }
 
     @Test
     @DisplayName("fromSettingsValue_UnknownValue_DefaultsToCopilot")
     void fromSettingsValue_UnknownValue_DefaultsToCopilot() {
-        assertEquals(AiAgent.COPILOT, AiAgent.fromSettingsValue("SOME_FUTURE_AGENT"));
+        assertEquals(AiAgent.GITHUB_COPILOT, AiAgent.fromSettingsValue("SOME_FUTURE_AGENT"));
     }
 
     @Test
@@ -48,13 +48,13 @@ class AiAgentTest {
     void fromSettingsValue_LowercaseEnumName_DefaultsToCopilot() {
         // valueOf is case-sensitive; a lowercase persisted value must not silently match
         // AI_ASSISTANT and must fall back to the documented default instead of throwing.
-        assertEquals(AiAgent.COPILOT, AiAgent.fromSettingsValue("ai_assistant"));
+        assertEquals(AiAgent.GITHUB_COPILOT, AiAgent.fromSettingsValue("ai_assistant"));
     }
 
     @Test
     @DisplayName("fromSettingsValue_ExactCopilotName_ResolvesToCopilot")
     void fromSettingsValue_ExactCopilotName_ResolvesToCopilot() {
-        assertEquals(AiAgent.COPILOT, AiAgent.fromSettingsValue("COPILOT"));
+        assertEquals(AiAgent.GITHUB_COPILOT, AiAgent.fromSettingsValue("COPILOT"));
     }
 
     @Test
@@ -68,19 +68,19 @@ class AiAgentTest {
     @Test
     @DisplayName("fromAgentName_Null_DefaultsToCopilot")
     void fromAgentName_Null_DefaultsToCopilot() {
-        assertEquals(AiAgent.COPILOT, AiAgent.fromAgentName(null));
+        assertEquals(AiAgent.GITHUB_COPILOT, AiAgent.fromAgentName(null));
     }
 
     @Test
     @DisplayName("fromAgentName_UnknownLabel_DefaultsToCopilot")
     void fromAgentName_UnknownLabel_DefaultsToCopilot() {
-        assertEquals(AiAgent.COPILOT, AiAgent.fromAgentName("Some Future Agent"));
+        assertEquals(AiAgent.GITHUB_COPILOT, AiAgent.fromAgentName("Some Future Agent"));
     }
 
     @Test
     @DisplayName("fromAgentName_ExactCopilotLabel_ResolvesToCopilot")
     void fromAgentName_ExactCopilotLabel_ResolvesToCopilot() {
-        assertEquals(AiAgent.COPILOT, AiAgent.fromAgentName(AiAgent.COPILOT.getAgentName()));
+        assertEquals(AiAgent.GITHUB_COPILOT, AiAgent.fromAgentName(AiAgent.GITHUB_COPILOT.getAgentName()));
     }
 
     @Test
@@ -114,7 +114,7 @@ class AiAgentTest {
     @Test
     @DisplayName("chatIntegration_ReturnsNonNullDistinctImplementationsPerAgent")
     void chatIntegration_ReturnsNonNullDistinctImplementationsPerAgent() {
-        ChatIntegration copilot = AiAgent.COPILOT.chatIntegration();
+        ChatIntegration copilot = AiAgent.GITHUB_COPILOT.chatIntegration();
         ChatIntegration aiAssistant = AiAgent.JETBRAINS_AI_ASSISTANT.chatIntegration();
 
         assertNotNull(copilot);
@@ -125,7 +125,7 @@ class AiAgentTest {
     @Test
     @DisplayName("mcpTarget_ReturnsNonNullDistinctImplementationsPerAgent")
     void mcpTarget_ReturnsNonNullDistinctImplementationsPerAgent() {
-        McpAgentTarget copilot = AiAgent.COPILOT.mcpTarget();
+        McpAgentTarget copilot = AiAgent.GITHUB_COPILOT.mcpTarget();
         McpAgentTarget aiAssistant = AiAgent.JETBRAINS_AI_ASSISTANT.mcpTarget();
 
         assertNotNull(copilot);
@@ -137,14 +137,14 @@ class AiAgentTest {
     @DisplayName("mcpTarget_AiAssistantExposesSettingsPage_CopilotDoesNot")
     void mcpTarget_AiAssistantExposesSettingsPage_CopilotDoesNot() {
         assertEquals(true, AiAgent.JETBRAINS_AI_ASSISTANT.mcpTarget().getSettingsConfigurableId().isPresent());
-        assertEquals(true, AiAgent.COPILOT.mcpTarget().getSettingsConfigurableId().isEmpty());
+        assertEquals(true, AiAgent.GITHUB_COPILOT.mcpTarget().getSettingsConfigurableId().isEmpty());
     }
 
     @Test
     @DisplayName("values_ContainsExactlyCopilotAndAiAssistant")
     void values_ContainsExactlyCopilotAndAiAssistant() {
         assertEquals(2, AiAgent.values().length);
-        assertSame(AiAgent.COPILOT, AiAgent.values()[0]);
+        assertSame(AiAgent.GITHUB_COPILOT, AiAgent.values()[0]);
         assertSame(AiAgent.JETBRAINS_AI_ASSISTANT, AiAgent.values()[1]);
     }
 
@@ -183,7 +183,7 @@ class AiAgentTest {
     @DisplayName("computeVersionBasedDefault_IsValidEnumValue")
     void computeVersionBasedDefault_IsValidEnumValue() {
         AiAgent defaultAgent = AiAgent.computeVersionBasedDefault();
-        assertTrue(defaultAgent == AiAgent.COPILOT || defaultAgent == AiAgent.JETBRAINS_AI_ASSISTANT);
+        assertTrue(defaultAgent == AiAgent.GITHUB_COPILOT || defaultAgent == AiAgent.JETBRAINS_AI_ASSISTANT);
     }
 
     // ===== resolveBestInstalledAgent tests =====
@@ -198,9 +198,9 @@ class AiAgentTest {
     @Test
     @DisplayName("resolveBestInstalledAgent_SingleAgentCopilot_ReturnsCopilot")
     void resolveBestInstalledAgent_SingleAgentCopilot_ReturnsCopilot() {
-        Optional<AiAgent> result = AiAgent.resolveBestInstalledAgent(List.of(AiAgent.COPILOT));
+        Optional<AiAgent> result = AiAgent.resolveBestInstalledAgent(List.of(AiAgent.GITHUB_COPILOT));
         assertTrue(result.isPresent(), "Should return present when Copilot is installed");
-        assertEquals(AiAgent.COPILOT, result.get());
+        assertEquals(AiAgent.GITHUB_COPILOT, result.get());
     }
 
     @Test
@@ -214,10 +214,10 @@ class AiAgentTest {
     @Test
     @DisplayName("resolveBestInstalledAgent_BothAgents_ReturnsOneOfThem")
     void resolveBestInstalledAgent_BothAgents_ReturnsOneOfThem() {
-        List<AiAgent> installed = List.of(AiAgent.COPILOT, AiAgent.JETBRAINS_AI_ASSISTANT);
+        List<AiAgent> installed = List.of(AiAgent.GITHUB_COPILOT, AiAgent.JETBRAINS_AI_ASSISTANT);
         Optional<AiAgent> result = AiAgent.resolveBestInstalledAgent(installed);
         assertTrue(result.isPresent(), "Should return an agent when both are available");
-        assertTrue(result.get() == AiAgent.COPILOT || result.get() == AiAgent.JETBRAINS_AI_ASSISTANT);
+        assertTrue(result.get() == AiAgent.GITHUB_COPILOT || result.get() == AiAgent.JETBRAINS_AI_ASSISTANT);
     }
 
     // ===== tryResolveConfigured tests =====
@@ -255,7 +255,7 @@ class AiAgentTest {
     void tryResolveConfigured_ExactCopilot_ReturnsCopilot() {
         Optional<AiAgent> result = AiAgent.tryResolveConfigured("COPILOT");
         assertTrue(result.isPresent());
-        assertEquals(AiAgent.COPILOT, result.get());
+        assertEquals(AiAgent.GITHUB_COPILOT, result.get());
     }
 
     @Test
@@ -280,7 +280,7 @@ class AiAgentTest {
     void installedAgents_ReturnsOnlyValidAgents() {
         List<AiAgent> installed = AiAgent.installedAgents(null);
         for (AiAgent agent : installed) {
-            assertTrue(agent == AiAgent.COPILOT || agent == AiAgent.JETBRAINS_AI_ASSISTANT,
+            assertTrue(agent == AiAgent.GITHUB_COPILOT || agent == AiAgent.JETBRAINS_AI_ASSISTANT,
                     "Result should only contain known agents");
         }
     }
@@ -299,8 +299,8 @@ class AiAgentTest {
     @Test
     @DisplayName("fromAgentName_CopilotLabel_ReturnsCopilot")
     void fromAgentName_CopilotLabel_ReturnsCopilot() {
-        String label = AiAgent.COPILOT.getAgentName();
-        assertEquals(AiAgent.COPILOT, AiAgent.fromAgentName(label));
+        String label = AiAgent.GITHUB_COPILOT.getAgentName();
+        assertEquals(AiAgent.GITHUB_COPILOT, AiAgent.fromAgentName(label));
     }
 
     @Test

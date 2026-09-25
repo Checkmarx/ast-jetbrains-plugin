@@ -112,7 +112,7 @@ public final class McpInstallService implements StartupActivity.DumbAware {
     }
 
     /**
-     * Resolves the user's configured AI agent, defaulting to {@link AiAgent#COPILOT} if the
+     * Resolves the user's configured AI agent, defaulting to {@link AiAgent#GITHUB_COPILOT} if the
      * settings service is unavailable (e.g. application not fully initialized).
      */
     private static AiAgent resolveConfiguredAgent() {
@@ -120,7 +120,7 @@ public final class McpInstallService implements StartupActivity.DumbAware {
             return AiAgent.fromSettingsValue(GlobalSettingsState.getInstance().getAiAgent());
         } catch (Exception e) {
             LOG.warn("Failed to resolve configured AI agent; defaulting to COPILOT.", e);
-            return AiAgent.COPILOT;
+            return AiAgent.GITHUB_COPILOT;
         }
     }
 }

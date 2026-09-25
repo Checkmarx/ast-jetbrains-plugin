@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
  */
 public enum AiAgent {
 
-    COPILOT("Copilot", CopilotChatIntegration::new, CopilotMcpTarget::new, "GitHub Copilot", () -> true),
+    GITHUB_COPILOT("GitHub Copilot", CopilotChatIntegration::new, CopilotMcpTarget::new, "GitHub Copilot", () -> true),
     JETBRAINS_AI_ASSISTANT("JetBrains AI Assistant", AiAssistantChatIntegration::new, AiAssistantMcpTarget::new,
             "JetBrains AI Assistant", AiAssistantIntegration::supportsAcp);
 
@@ -42,7 +42,7 @@ public enum AiAgent {
      * highest-preference first; any new {@link AiAgent} constant just needs adding here in its
      * intended rank.
      */
-    private static final List<AiAgent> PREFERENCE_ORDER = List.of(JETBRAINS_AI_ASSISTANT, COPILOT);
+    private static final List<AiAgent> PREFERENCE_ORDER = List.of(JETBRAINS_AI_ASSISTANT, GITHUB_COPILOT);
 
     @Getter
     private final String agentName;
@@ -180,16 +180,16 @@ public enum AiAgent {
 
     /**
      * Resolves a persisted {@link com.checkmarx.intellij.common.settings.GlobalSettingsState#getAiAgent()}
-     * value to an {@link AiAgent}, defaulting to {@link #COPILOT} for null/unknown/legacy values.
+     * value to an {@link AiAgent}, defaulting to {@link #GITHUB_COPILOT} for null/unknown/legacy values.
      */
     public static AiAgent fromSettingsValue(String value) {
         if (value == null || value.isBlank()) {
-            return COPILOT;
+            return GITHUB_COPILOT;
         }
         try {
             return AiAgent.valueOf(value);
         } catch (IllegalArgumentException e) {
-            return COPILOT;
+            return GITHUB_COPILOT;
         }
     }
 
@@ -252,7 +252,7 @@ public enum AiAgent {
     }
 
     /**
-     * Resolves an agent name to an {@link AiAgent}, defaulting to {@link #COPILOT} for null/unknown values.
+     * Resolves an agent name to an {@link AiAgent}, defaulting to {@link #GITHUB_COPILOT} for null/unknown values.
      */
     public static AiAgent fromAgentName(String agentName) {
         for (AiAgent agent : AiAgent.values()) {
@@ -260,7 +260,7 @@ public enum AiAgent {
                 return agent;
             }
         }
-        return COPILOT; // Default to COPILOT if no match is found
+        return GITHUB_COPILOT; // Default to COPILOT if no match is found
     }
 
 }
