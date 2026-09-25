@@ -106,6 +106,9 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     @Attribute("welcomeShown")
     private boolean welcomeShown = false;
 
+    @Attribute("aiAgent")
+    private String aiAgent = "";
+
     // Getters for license value
     // Setters for license value
     @Attribute("isDevAssistLicenseEnabled")

@@ -1,11 +1,15 @@
 package com.checkmarx.intellij.ast.ui;
 
+import com.checkmarx.intellij.ast.settings.CxOneAssistConfigurable;
+import com.checkmarx.intellij.common.components.CxLinkLabel;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.settings.SettingsListener;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.ColorUtil;
@@ -33,12 +37,27 @@ public class WelcomeDialog extends DialogWrapper {
 
     private final boolean mcpEnabled;
     private final RealTimeSettingsManager settingsManager;
+    @Nullable
+    private final Project project;
+    @Nullable
+    private final String aiAgentNotice;
 
     @Getter
     private JBCheckBox realTimeScannersCheckbox;
 
     public WelcomeDialog(@Nullable Project project, boolean mcpEnabled) {
-        this(project, mcpEnabled, new DefaultRealTimeSettingsManager());
+        this(project, mcpEnabled, (String) null);
+    }
+
+    public WelcomeDialog(@Nullable Project project, boolean mcpEnabled, @Nullable String aiAgentNotice) {
+        this(project, mcpEnabled, aiAgentNotice, new DefaultRealTimeSettingsManager());
+    }
+
+    /**
+     * Constructor with dependency injection for testability (no {@code aiAgentNotice}).
+     */
+    public WelcomeDialog(@Nullable Project project, boolean mcpEnabled, RealTimeSettingsManager settingsManager) {
+        this(project, mcpEnabled, null, settingsManager);
     }
 
     /**
@@ -46,11 +65,16 @@ public class WelcomeDialog extends DialogWrapper {
      *
      * @param project         current project (nullable)
      * @param mcpEnabled      whether MCP is enabled for this tenant
+     * @param aiAgentNotice   notice about the resolved AI agent to show in the welcome dialog
+     *                        (from {@code AiAgentLoginResolver}), or {@code null} if none applies
      * @param settingsManager wrapper around settings reads/writes
      */
-    public WelcomeDialog(@Nullable Project project, boolean mcpEnabled, RealTimeSettingsManager settingsManager) {
+    public WelcomeDialog(@Nullable Project project, boolean mcpEnabled, @Nullable String aiAgentNotice,
+                          RealTimeSettingsManager settingsManager) {
         super(project, false);
+        this.project = project;
         this.mcpEnabled = mcpEnabled;
+        this.aiAgentNotice = aiAgentNotice;
         this.settingsManager = settingsManager;
         setOKButtonText(Bundle.message(Resource.WELCOME_CLOSE_BUTTON));
         init();
@@ -83,8 +107,14 @@ public class WelcomeDialog extends DialogWrapper {
         subtitle.setForeground(UIUtil.getLabelForeground());
         leftPanel.add(subtitle);
 
+        // Gated on mcpEnabled since Checkmarx One Assist's AI features - and therefore the choice
+        // of agent - only apply then.
+        if (mcpEnabled && aiAgentNotice != null) {
+            leftPanel.add(createAgentNoticeCard(aiAgentNotice), "growx, gapbottom 8");
+        }
+
         // Assist feature card
-        leftPanel.add(createFeatureCard(), "gapbottom 8");
+        leftPanel.add(createFeatureCard(), "growx, gapbottom 8");
 
         // Main bullets
         leftPanel.add(createBullet(Resource.WELCOME_MAIN_FEATURE_1));
@@ -149,6 +179,55 @@ public class WelcomeDialog extends DialogWrapper {
             bulletsPanel.add(mcpDisabledIcon, "growx, wrap");
         }
         return bulletsPanel;
+    }
+
+    /**
+     * Notice card shown when {@code AiAgentLoginResolver} found the configured AI agent missing
+     * on login - either because no supported agent is installed at all, or because a different,
+     * detected agent was automatically selected in its place.
+     */
+    private JComponent createAgentNoticeCard(String noticeMessage) {
+        JPanel panel = new JPanel(new MigLayout("insets 10, gapx 8, gapy 4", "[][grow]"));
+        panel.setBorder(BorderFactory.createLineBorder(JBColor.border()));
+
+        Color base = UIUtil.getPanelBackground();
+        Color subtleBg = JBColor.isBright() ? ColorUtil.darker(base, 1) : ColorUtil.brighter(base, 1);
+        panel.setOpaque(true);
+        panel.setBackground(subtleBg);
+
+        JBLabel warningIcon = new JBLabel(AllIcons.General.Warning);
+        panel.add(warningIcon, "top, spany 3");
+
+        String agentTitle = Bundle.message(noticeMessage.contains("No supported")
+                ? Resource.WELCOME_AGENT_NOT_CONNECTED_TITLE
+                : Resource.WELCOME_AGENT_SWITCHED_TITLE);
+
+        JBLabel title = new JBLabel(agentTitle);
+        title.setFont(title.getFont().deriveFont(Font.BOLD));
+        panel.add(title, "wrap, growx");
+
+        JBLabel message = new JBLabel("<html><div style='width:" + WRAP_WIDTH + "px;'>" +
+                noticeMessage + "</div></html>");
+        panel.add(message, "wrap, growx");
+
+        CxLinkLabel goToSettingsLink = new CxLinkLabel(
+                Bundle.message(Resource.WELCOME_AGENT_NOT_CONNECTED_LINK),
+                e -> openCxOneAssistSettings());
+        panel.add(goToSettingsLink, "growx");
+
+        return panel;
+    }
+
+    /**
+     * Closes this dialog and opens the Settings dialog directly to the Checkmarx One Assist page.
+     * Unlike the equivalent link in {@code GlobalSettingsComponent}, this dialog is never hosted
+     * inside an already-open Settings dialog, so there's no {@code Settings.KEY} tree to navigate
+     * within - it always needs to open a fresh Settings dialog.
+     */
+    private void openCxOneAssistSettings() {
+        close(CANCEL_EXIT_CODE);
+        ApplicationManager.getApplication().invokeLater(() ->
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, CxOneAssistConfigurable.class));
     }
 
     // Builds the right-side panel that hosts an image

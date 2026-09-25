@@ -204,7 +204,7 @@ public class Xpath {
     @Language("XPath")
     public static final String CXONE_ASSIST_BACK_BUTTON = "//div[@myicon='back.svg']";
     @Language("XPath")
-    public static final String ASSIST_ASCA_LABLE = "//div[@accessiblename='Checkmarx AI Secure Coding Assistant (ASCA): Activate ASCA:' and @class='JBLabel' and @text='<html>Checkmarx AI Secure Coding Assistant (ASCA): <b>Activate ASCA:</b></html>']";
+    public static final String ASSIST_ASCA_LABLE = "//div[@accessiblename='Checkmarx AI Secure Coding Assistant (ASCA): Activate ASCA' and @class='JBLabel' and @text='<html>Checkmarx AI Secure Coding Assistant (ASCA): <b>Activate ASCA</b></html>']";
     @Language("XPath")
     public static final String ASCA_ENGINE_SELECTION_CHECKBOX = "//div[@text='Scan your file as you code']";
     @Language("XPath")

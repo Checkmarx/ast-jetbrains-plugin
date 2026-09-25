@@ -483,12 +483,12 @@ public class CxDevAssistSettingsComponentIntTest extends LocalBasePlatformTest {
     @Test
     public void showWelcomeDialog_mcpEnabled_constructsDialog() throws Exception {
         CxDevAssistSettingsComponent comp = new CxDevAssistSettingsComponent();
-        Method m = CxDevAssistSettingsComponent.class.getDeclaredMethod("showWelcomeDialog", boolean.class);
+        Method m = CxDevAssistSettingsComponent.class.getDeclaredMethod("showWelcomeDialog", boolean.class, String.class);
         m.setAccessible(true);
 
         try (MockedConstruction<CxDevAssistWelcomeDialog> dlgMock =
                 mockConstruction(CxDevAssistWelcomeDialog.class)) {
-            Assertions.assertDoesNotThrow(() -> m.invoke(comp, true));
+            Assertions.assertDoesNotThrow(() -> m.invoke(comp, true, null));
             Assertions.assertEquals(1, dlgMock.constructed().size());
         }
     }
@@ -496,12 +496,12 @@ public class CxDevAssistSettingsComponentIntTest extends LocalBasePlatformTest {
     @Test
     public void showWelcomeDialog_mcpDisabled_constructsDialog() throws Exception {
         CxDevAssistSettingsComponent comp = new CxDevAssistSettingsComponent();
-        Method m = CxDevAssistSettingsComponent.class.getDeclaredMethod("showWelcomeDialog", boolean.class);
+        Method m = CxDevAssistSettingsComponent.class.getDeclaredMethod("showWelcomeDialog", boolean.class, String.class);
         m.setAccessible(true);
 
         try (MockedConstruction<CxDevAssistWelcomeDialog> dlgMock =
                 mockConstruction(CxDevAssistWelcomeDialog.class)) {
-            Assertions.assertDoesNotThrow(() -> m.invoke(comp, false));
+            Assertions.assertDoesNotThrow(() -> m.invoke(comp, false, null));
             Assertions.assertEquals(1, dlgMock.constructed().size());
         }
     }

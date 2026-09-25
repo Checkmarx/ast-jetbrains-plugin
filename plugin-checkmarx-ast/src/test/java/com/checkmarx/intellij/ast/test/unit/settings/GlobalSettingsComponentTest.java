@@ -1539,6 +1539,10 @@ class GlobalSettingsComponentTest {
                      mockStatic(com.checkmarx.intellij.ast.service.StateService.class);
              MockedStatic<com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector> mcpMock =
                      mockStatic(com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector.class);
+             MockedStatic<com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration> aiAssistantMock =
+                     mockStatic(com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration.class);
+             MockedStatic<com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration> copilotMock =
+                     mockStatic(com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration.class);
              MockedConstruction<GlobalSettingsSensitiveState> ignored = mockConstruction(GlobalSettingsSensitiveState.class);
              MockedConstruction<com.checkmarx.intellij.ast.ui.WelcomeDialog> wdMock =
                      mockConstruction(com.checkmarx.intellij.ast.ui.WelcomeDialog.class)) {
@@ -1550,6 +1554,12 @@ class GlobalSettingsComponentTest {
             doNothing().when(mockStateService).pruneStaleCustomStates();
             mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector.installForCopilot(any()))
                    .thenReturn(Boolean.FALSE);
+            // AiAgentLoginResolver (invoked when mcpEnabled) checks installed agents - neither is
+            // installed in this plain-JUnit fixture (no live IDE Application/plugin registry).
+            aiAssistantMock.when(() -> com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration.isAiAssistantAvailable(any()))
+                    .thenReturn(false);
+            copilotMock.when(() -> com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration.isCopilotAvailable(any()))
+                    .thenReturn(false);
 
             invokePrivate(component, "completeAuthenticationSetup", new Class[]{String.class}, "api-key");
         }
@@ -1601,6 +1611,10 @@ class GlobalSettingsComponentTest {
                      mockStatic(com.checkmarx.intellij.ast.service.StateService.class);
              MockedStatic<com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector> mcpMock =
                      mockStatic(com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector.class);
+             MockedStatic<com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration> aiAssistantMock =
+                     mockStatic(com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration.class);
+             MockedStatic<com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration> copilotMock =
+                     mockStatic(com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration.class);
              MockedConstruction<GlobalSettingsSensitiveState> ignored = mockConstruction(GlobalSettingsSensitiveState.class);
              MockedConstruction<com.checkmarx.intellij.ast.ui.WelcomeDialog> wdMock =
                      mockConstruction(com.checkmarx.intellij.ast.ui.WelcomeDialog.class)) {
@@ -1612,6 +1626,12 @@ class GlobalSettingsComponentTest {
             doNothing().when(mockStateService).pruneStaleCustomStates();
             mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector.installForCopilot(any()))
                    .thenReturn(Boolean.FALSE);
+            // AiAgentLoginResolver (invoked when mcpEnabled) checks installed agents - neither is
+            // installed in this plain-JUnit fixture (no live IDE Application/plugin registry).
+            aiAssistantMock.when(() -> com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration.isAiAssistantAvailable(any()))
+                    .thenReturn(false);
+            copilotMock.when(() -> com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration.isCopilotAvailable(any()))
+                    .thenReturn(false);
 
             invokePrivate(component, "completeAuthenticationSetup", new Class[]{String.class}, "api-key");
         }
@@ -1656,7 +1676,7 @@ class GlobalSettingsComponentTest {
     void showWelcomeDialog_WhenCalled_CreatesWelcomeDialog() throws Exception {
         try (MockedConstruction<com.checkmarx.intellij.ast.ui.WelcomeDialog> wdMock =
                      mockConstruction(com.checkmarx.intellij.ast.ui.WelcomeDialog.class)) {
-            invokePrivate(component, "showWelcomeDialog", new Class[]{boolean.class}, true);
+            invokePrivate(component, "showWelcomeDialog", new Class[]{boolean.class, String.class}, true, null);
             assertEquals(1, wdMock.constructed().size());
         }
     }
@@ -1667,7 +1687,7 @@ class GlobalSettingsComponentTest {
                      mockConstruction(com.checkmarx.intellij.ast.ui.WelcomeDialog.class,
                              (mock, context) -> doThrow(new RuntimeException("UI error")).when(mock).show())) {
             assertDoesNotThrow(() ->
-                    invokePrivate(component, "showWelcomeDialog", new Class[]{boolean.class}, false));
+                    invokePrivate(component, "showWelcomeDialog", new Class[]{boolean.class, String.class}, false, null));
         }
     }
 

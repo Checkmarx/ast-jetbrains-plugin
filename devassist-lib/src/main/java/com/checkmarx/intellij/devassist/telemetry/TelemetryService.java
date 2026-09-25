@@ -1,8 +1,10 @@
 package com.checkmarx.intellij.devassist.telemetry;
 
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
+import com.checkmarx.intellij.devassist.aiagents.AiAgent;
 import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -59,6 +61,9 @@ public final class TelemetryService {
      * @param problemSeverity the severity of the issue
      */
     public static void setUserEventDataForLogs(String eventType, String subType, String engine, String problemSeverity) {
+
+        String aiAgentProvider = getAIAgentProvider();
+
         CompletableFuture.runAsync(() -> {
             try {
                 String agent = getAgentName();
@@ -67,7 +72,7 @@ public final class TelemetryService {
                         eventType, subType, engine, problemSeverity));
 
                 CxWrapperFactory.build().telemetryAIEvent(
-                        AI_PROVIDER,          // aiProvider
+                        aiAgentProvider,          // aiProvider
                         agent,                // agent
                         eventType,            // eventType
                         subType,              // subType
@@ -77,8 +82,6 @@ public final class TelemetryService {
                         "",                   // status
                         0                     // totalCount
                 );
-
-
             } catch (Exception e) {
                 LOGGER.warn(format("Telemetry: Failed to log user event telemetry for %s", subType), e);
             }
@@ -300,5 +303,22 @@ public final class TelemetryService {
         }
 
         return Constants.JET_BRAINS_AGENT_NAME;
+    }
+
+    /**
+     * Get AI Agent from the settings
+     * @return String - Ai Agent Provider
+     */
+    private static String getAIAgentProvider(){
+        try{
+            GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
+            if (settingsState != null &&  (settingsState.getAiAgent() != null && !settingsState.getAiAgent().isEmpty())) {
+                return settingsState.getAiAgent();
+            }
+            return AI_PROVIDER;
+        } catch (Exception e){
+            LOGGER.debug("Telemetry: Could not determine AI agent provider, using default", e);
+            return AI_PROVIDER;
+        }
     }
 }
