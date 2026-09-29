@@ -45,7 +45,12 @@ public abstract class BaseScannerCommand implements ScannerCommand {
         if (isScannerRegisteredAlready(project)) {
             return;
         }
-        DevAssistUtils.globalScannerController().markRegistered(project, getScannerType());
+        var scannerController = DevAssistUtils.globalScannerController();
+        if (scannerController == null) {
+            LOGGER.warn("GlobalScannerController is unavailable, skipping register for: " + project.getName());
+            return;
+        }
+        scannerController.markRegistered(project, getScannerType());
         LOGGER.info(config.getEnabledMessage() + ":" + project.getName());
         initializeScanner();
     }
@@ -58,10 +63,15 @@ public abstract class BaseScannerCommand implements ScannerCommand {
      */
 
     public void deregister(Project project) {
-        if (!DevAssistUtils.globalScannerController().isRegistered(project, getScannerType())) {
+        var scannerController = DevAssistUtils.globalScannerController();
+        if (scannerController == null) {
+            LOGGER.warn("GlobalScannerController is unavailable, skipping deregister for: " + project.getName());
             return;
         }
-        DevAssistUtils.globalScannerController().markUnregistered(project, getScannerType());
+        if (!scannerController.isRegistered(project, getScannerType())) {
+            return;
+        }
+        scannerController.markUnregistered(project, getScannerType());
         LOGGER.info(config.getDisabledMessage() + ":" + project.getName());
         if (project.isDisposed()) {
             return;
@@ -85,7 +95,8 @@ public abstract class BaseScannerCommand implements ScannerCommand {
      * @param project is required
      */
     private boolean isScannerRegisteredAlready(Project project) {
-        return DevAssistUtils.globalScannerController().isRegistered(project, getScannerType());
+        var scannerController = DevAssistUtils.globalScannerController();
+        return scannerController != null && scannerController.isRegistered(project, getScannerType());
     }
 
 
