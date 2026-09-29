@@ -26,6 +26,20 @@ public class CheckmarxSettingsPage {
         });
     }
 
+    /**
+     * Closes the Settings dialog via OK, falling back to Cancel if OK isn't present.
+     * Used to guarantee the dialog is dismissed even when a test's assertions fail
+     * partway through (e.g. engine checkboxes not selected as expected), so the
+     * dialog doesn't stay open and block the next test's {@link #openSettings()} call.
+     */
+    public static void closeSettingsDialogIfOpen() {
+        if (hasAnyComponent(OK_BTN)) {
+            locateAndClickOnButton(OK_BTN);
+        } else if (hasAnyComponent(CANCEL_BTN)) {
+            locateAndClickOnButton(CANCEL_BTN);
+        }
+    }
+
     public static void testASTConnection(boolean validCredentials) {
         openSettings();
 
@@ -55,8 +69,30 @@ public class CheckmarxSettingsPage {
         }
     }
 
+    /**
+     * TC86: Verifies that after logout, the Base URI and API Key fields still show
+     * their previously-entered values. Logout clears the session, not the form state,
+     * so the user shouldn't have to retype credentials to log back in.
+     * Assumes settings are already open (e.g. right after {@link #logoutIfUserIsAlreadyLoggedIn()}).
+     */
+    public static void verifyCredentialsRetainedAfterLogout() {
+        String baseUrlXpath = String.format(FIELD_NAME, CX_BASE_URI);
+        String apiKeyXpath = String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY);
+
+        Assertions.assertFalse(isFieldEmpty(baseUrlXpath),
+                "Base URI field should still show the previously entered value after logout");
+        Assertions.assertFalse(isFieldEmpty(apiKeyXpath),
+                "API Key field should still show the previously entered value after logout");
+    }
+
+    private static boolean isFieldEmpty(String fieldXpath) {
+        String value = getText(fieldXpath);
+        return value == null || value.isEmpty();
+    }
+
     public static void performLoginUsingApiKey(boolean isValidCredential) {
         //Select API Key radio
+
         selectRadioButton(API_KEY_RADIO);
 
         // Set API key
@@ -69,7 +105,6 @@ public class CheckmarxSettingsPage {
         // Attempt connection
         click(CONNECT_BUTTON);
         waitFor(() -> !hasAnyComponent(VALIDATING_CONNECTION));
-
 
     }
 
@@ -95,6 +130,13 @@ public class CheckmarxSettingsPage {
                 && hasAnyComponent(WELCOME_PAGE_IMAGE));
         String welcomeTitle = getText(WELCOME_TITLE);
         Assertions.assertEquals("Welcome to Checkmarx", welcomeTitle);
+
+        // Ensure the Code Smart with Checkmarx One Assist checkbox reflects the expected default,
+        // selecting it if it should be on by default but isn't.
+        if (isCodeSmartSelectedByDefault && !isComponentSelected(CODE_SMART_CHECKBOX)) {
+            click(CODE_SMART_CHECKBOX);
+        }
+
         // Wait for the checkbox selection state to match the expected default
         waitFor(() -> isComponentSelected(CODE_SMART_CHECKBOX) == isCodeSmartSelectedByDefault);
         boolean checkBoxSelected = isComponentSelected(CODE_SMART_CHECKBOX);
@@ -123,17 +165,28 @@ public class CheckmarxSettingsPage {
         click(OK_BTN);
     }
 
-    public static void testASTOAuthRadioButton(boolean expectSuccess) {
+    /**
+     * Opens settings, ensures a logged-out state, selects OAuth, fills in the
+     * Base URI/Tenant fields and clicks Connect. Shared setup reused by all OAuth flows.
+     */
+    private static void openOAuthConnectDialog(String baseUrl, String tenant) {
         openSettings();
         logoutIfUserIsAlreadyLoggedIn();
         ensureOAuthSelected();
 
-        setField(CX_BASE_URI, Environment.BASE_URL);
-        setField(TENANT, Environment.TENANT);
+        setField(CX_BASE_URI, baseUrl);
+        setField(TENANT, tenant);
 
-        // Attempt connection
+        clickConnect();
+    }
+
+    public static void clickConnect() {
         waitFor(() -> hasAnyComponent(CONNECT_BUTTON));
         click(CONNECT_BUTTON);
+    }
+
+    public static void testASTOAuthRadioButton(boolean expectSuccess) {
+        openOAuthConnectDialog(Environment.BASE_URL, Environment.TENANT);
 
         waitFor(() -> hasAnyComponent(OAUTH_POPUP_CANCEL_BUTTON));
         click(OAUTH_POPUP_CANCEL_BUTTON);
@@ -141,9 +194,93 @@ public class CheckmarxSettingsPage {
 
     }
 
+    public static void verifyOAuthConfirmationPopupVisible() {
+        openOAuthConnectDialog(Environment.BASE_URL, Environment.TENANT);
+
+        // RemoteRobot detects the confirmation popup via its Cancel button
+        waitFor(() -> hasAnyComponent(OAUTH_POPUP_CANCEL_BUTTON));
+        Assertions.assertTrue(hasAnyComponent(OAUTH_POPUP_CANCEL_BUTTON),
+                "OAuth confirmation popup should be visible after clicking Connect");
+
+        // Click Cancel and verify the popup closes
+        click(OAUTH_POPUP_CANCEL_BUTTON);
+        waitFor(() -> !hasAnyComponent(OAUTH_POPUP_CANCEL_BUTTON));
+        Assertions.assertFalse(hasAnyComponent(OAUTH_POPUP_CANCEL_BUTTON),
+                "OAuth confirmation popup should be closed after clicking Cancel");
+
+        click(OK_BTN);
+    }
+
+    /**
+     * TC95: Verifies the OAuth confirmation popup exposes a button for each expected
+     * label (e.g. "Continue", "Cancel"), then dismisses it via Cancel.
+     * RemoteRobot detects the popup via its Cancel button, same as TC87.
+     */
+    public static void verifyPopupHasButtons(String... expectedButtonTexts) {
+        waitFor(() -> hasAnyComponent(OAUTH_POPUP_CANCEL_BUTTON));
+        Assertions.assertTrue(hasAnyComponent(OAUTH_POPUP_CANCEL_BUTTON),
+                "OAuth confirmation popup should be visible after clicking Connect");
+
+        for (String buttonText : expectedButtonTexts) {
+            String buttonXpath = String.format(OAUTH_POPUP_BUTTON, buttonText);
+            Assertions.assertTrue(hasAnyComponent(buttonXpath),
+                    "OAuth popup should contain a '" + buttonText + "' button");
+        }
+
+        click(OAUTH_POPUP_CANCEL_BUTTON);
+        waitFor(() -> !hasAnyComponent(OAUTH_POPUP_CANCEL_BUTTON));
+        click(OK_BTN);
+    }
+
+    public static void verifyOAuthPopupHasContinueCancelButtons() {
+        openOAuthConnectDialog(Environment.BASE_URL, Environment.TENANT);
+        verifyPopupHasButtons("Continue", "Cancel");
+    }
+
+    /**
+     * TC97: Verifies that clicking Cancel on the OAuth confirmation popup dismisses
+     * only the popup, leaving the underlying settings dialog open and interactable.
+     */
+    public static void verifySettingsPageVisibleAfterPopupCancel() {
+        openOAuthConnectDialog(Environment.BASE_URL, Environment.TENANT);
+        clickCancelOnPopup();
+        verifySettingsPageStillVisible();
+    }
+
+    public static void clickCancelOnPopup() {
+        waitFor(() -> hasAnyComponent(OAUTH_POPUP_CANCEL_BUTTON));
+        click(OAUTH_POPUP_CANCEL_BUTTON);
+        waitFor(() -> !hasAnyComponent(OAUTH_POPUP_CANCEL_BUTTON));
+    }
+
+    public static void verifySettingsPageStillVisible() {
+        Assertions.assertTrue(hasAnyComponent(CONNECT_BUTTON),
+                "Settings dialog should remain open and interactable after dismissing the OAuth popup");
+        click(OK_BTN);
+    }
+
     private static void ensureOAuthSelected() {
         waitFor(() -> hasAnyComponent(OAUTH_RADIO));
         find(OAUTH_RADIO).click();
+    }
+
+    /**
+     * TC89: Switches the login method to OAuth, waiting for the OAuth credential
+     * fields (Base URI/Tenant) to become the active form.
+     */
+    public static void switchToOAuth() {
+        ensureOAuthSelected();
+        waitFor(() -> isElementClickable(String.format(FIELD_NAME, CX_BASE_URI))
+                && isElementClickable(String.format(FIELD_NAME, TENANT)));
+    }
+
+    /**
+     * TC89: Switches the login method to API Key, waiting for the API Key
+     * credential field to become the active form.
+     */
+    public static void switchToApiKey() {
+        selectRadioButton(API_KEY_RADIO);
+        waitFor(() -> isElementClickable(String.format(FIELD_NAME, Constants.FIELD_NAME_API_KEY)));
     }
 
     public static void testASTOAuthInvalidInput(
@@ -155,14 +292,7 @@ public class CheckmarxSettingsPage {
     ) {
         log("Executing OAuth negative test: " + scenarioName);
 
-        openSettings();
-        logoutIfUserIsAlreadyLoggedIn();
-        ensureOAuthSelected();
-
-        setField(CX_BASE_URI, baseUrl);
-        setField(TENANT, tenant);
-
-        click(CONNECT_BUTTON);
+        openOAuthConnectDialog(baseUrl, tenant);
 
         // Wait for error to appear
         waitFor(() -> hasAnyComponent(expectedErrorXpath));

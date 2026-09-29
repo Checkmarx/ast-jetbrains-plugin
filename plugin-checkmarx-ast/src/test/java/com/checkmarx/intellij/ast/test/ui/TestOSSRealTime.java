@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.ast.test.ui;
 
 import com.automation.remarks.junit5.Video;
+import org.junit.BeforeClass;
 import org.junit.jupiter.api.*;
 
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.*;
@@ -12,14 +13,22 @@ import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
 
 public class TestOSSRealTime extends com.checkmarx.intellij.ast.test.ui.BaseUITest {
 
-    @AfterEach
-    public void cleanupDialogs() {
-        if (hasAnyComponent(WELCOME_CLOSE_BUTTON)) {
-            click(WELCOME_CLOSE_BUTTON);
-        }
-        if (hasAnyComponent(OK_BTN)) {
-            click(OK_BTN);
-        }
+//    @AfterEach
+//    public void cleanupDialogs() {
+//        if (hasAnyComponent(WELCOME_CLOSE_BUTTON)) {
+//            click(WELCOME_CLOSE_BUTTON);
+//        }
+//        if (hasAnyComponent(OK_BTN)) {
+//            click(OK_BTN);
+//        }
+//    }
+
+    @BeforeClass
+    public static void checkResults() {
+        openSettings();
+        logoutIfUserIsAlreadyLoggedIn();
+        performLoginUsingApiKey(true);
+        validateSuccessfulLogin(true);
     }
 
     @Test
@@ -28,18 +37,22 @@ public class TestOSSRealTime extends com.checkmarx.intellij.ast.test.ui.BaseUITe
     public void testAutoStartOssScanOnLoginWhenEnabled() {
         // Given: User is logged in and welcome page is loaded
         openSettings();
-        logoutIfUserIsAlreadyLoggedIn();
-        performLoginUsingApiKey(true);
-        locateAndClickOnButton(WELCOME_CLOSE_BUTTON);
 
         // When: User enables OSS Real-Time Scan if it is disabled
         navigateToCxOneAssistPage();
-        selectEngine(OSS_REALTIME_ENGINE_CHECKBOX, true);
-        locateAndClickOnButton(OK_BTN);
+        try {
+            selectEngine(OSS_REALTIME_ENGINE_CHECKBOX, true);
+            locateAndClickOnButton(OK_BTN);
 
-        // Then: OSS Real-Time Scan should start automatically after login
-        waitFor(() -> hasAnyComponent(SCAN_PROGRESS_BAR));
-        Assertions.assertTrue(hasAnyComponent(SCAN_PROGRESS_BAR));
+            // Then: OSS Real-Time Scan should start automatically after login
+            waitFor(() -> hasAnyComponent(SCAN_PROGRESS_BAR));
+            Assertions.assertTrue(hasAnyComponent(SCAN_PROGRESS_BAR));
+        } finally {
+            // If the assertion above fails (checkbox not enabled - known flakiness),
+            // the settings dialog would otherwise stay open and break the next test's
+            // openSettings() call. Always close it, via OK or Cancel.
+            closeSettingsDialogIfOpen();
+        }
     }
 
     @Test
@@ -48,9 +61,9 @@ public class TestOSSRealTime extends com.checkmarx.intellij.ast.test.ui.BaseUITe
     public void testDisplayOssFindingsAfterScanCompletion() {
         // Given: User is logged in and welcome page is loaded
         openSettings();
-        logoutIfUserIsAlreadyLoggedIn();
-        performLoginUsingApiKey(true);
-        locateAndClickOnButton(WELCOME_CLOSE_BUTTON);
+//        logoutIfUserIsAlreadyLoggedIn();
+//        performLoginUsingApiKey(true);
+//        locateAndClickOnButton(WELCOME_CLOSE_BUTTON);
 
         // When: User enables OSS Real-Time Scan if it is disabled
         navigateToCxOneAssistPage();
