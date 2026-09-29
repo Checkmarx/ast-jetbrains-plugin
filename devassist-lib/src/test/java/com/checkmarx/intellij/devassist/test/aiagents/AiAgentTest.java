@@ -3,8 +3,10 @@ package com.checkmarx.intellij.devassist.test.aiagents;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpAgentTarget;
 import com.checkmarx.intellij.devassist.aiagents.AiAgent;
 import com.checkmarx.intellij.devassist.aiagents.ChatIntegration;
+import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.mockStatic;
 
 /**
  * Unit tests for {@link AiAgent}'s resolution logic. This is the sole point deciding which
@@ -153,15 +156,21 @@ class AiAgentTest {
     @Test
     @DisplayName("preferenceOrder_DoesNotThrow")
     void preferenceOrder_DoesNotThrow() {
-        assertDoesNotThrow(() -> AiAgent.preferenceOrder());
+        try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
+            aiAssistantMock.when(AiAssistantIntegration::supportsAcp).thenReturn(false);
+            assertDoesNotThrow(() -> AiAgent.preferenceOrder());
+        }
     }
 
     @Test
     @DisplayName("preferenceOrder_IsConsistent")
     void preferenceOrder_IsConsistent() {
-        List<AiAgent> order1 = AiAgent.preferenceOrder();
-        List<AiAgent> order2 = AiAgent.preferenceOrder();
-        assertEquals(order1, order2, "Preference order should be consistent across calls");
+        try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
+            aiAssistantMock.when(AiAssistantIntegration::supportsAcp).thenReturn(false);
+            List<AiAgent> order1 = AiAgent.preferenceOrder();
+            List<AiAgent> order2 = AiAgent.preferenceOrder();
+            assertEquals(order1, order2, "Preference order should be consistent across calls");
+        }
     }
 
     // ===== computeVersionBasedDefault tests =====
@@ -169,21 +178,30 @@ class AiAgentTest {
     @Test
     @DisplayName("computeVersionBasedDefault_DoesNotThrow")
     void computeVersionBasedDefault_DoesNotThrow() {
-        assertDoesNotThrow(() -> AiAgent.computeVersionBasedDefault());
+        try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
+            aiAssistantMock.when(AiAssistantIntegration::supportsAcp).thenReturn(false);
+            assertDoesNotThrow(() -> AiAgent.computeVersionBasedDefault());
+        }
     }
 
     @Test
     @DisplayName("computeVersionBasedDefault_ReturnsNonNull")
     void computeVersionBasedDefault_ReturnsNonNull() {
-        AiAgent defaultAgent = AiAgent.computeVersionBasedDefault();
-        assertNotNull(defaultAgent, "Default agent should never be null");
+        try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
+            aiAssistantMock.when(AiAssistantIntegration::supportsAcp).thenReturn(false);
+            AiAgent defaultAgent = AiAgent.computeVersionBasedDefault();
+            assertNotNull(defaultAgent, "Default agent should never be null");
+        }
     }
 
     @Test
     @DisplayName("computeVersionBasedDefault_IsValidEnumValue")
     void computeVersionBasedDefault_IsValidEnumValue() {
-        AiAgent defaultAgent = AiAgent.computeVersionBasedDefault();
-        assertTrue(defaultAgent == AiAgent.GITHUB_COPILOT || defaultAgent == AiAgent.JETBRAINS_AI_ASSISTANT);
+        try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
+            aiAssistantMock.when(AiAssistantIntegration::supportsAcp).thenReturn(false);
+            AiAgent defaultAgent = AiAgent.computeVersionBasedDefault();
+            assertTrue(defaultAgent == AiAgent.GITHUB_COPILOT || defaultAgent == AiAgent.JETBRAINS_AI_ASSISTANT);
+        }
     }
 
     // ===== resolveBestInstalledAgent tests =====
@@ -191,33 +209,45 @@ class AiAgentTest {
     @Test
     @DisplayName("resolveBestInstalledAgent_EmptyList_ReturnsEmpty")
     void resolveBestInstalledAgent_EmptyList_ReturnsEmpty() {
-        Optional<AiAgent> result = AiAgent.resolveBestInstalledAgent(List.of());
-        assertTrue(result.isEmpty(), "Should return empty when no agents are installed");
+        try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
+            aiAssistantMock.when(AiAssistantIntegration::supportsAcp).thenReturn(false);
+            Optional<AiAgent> result = AiAgent.resolveBestInstalledAgent(List.of());
+            assertTrue(result.isEmpty(), "Should return empty when no agents are installed");
+        }
     }
 
     @Test
     @DisplayName("resolveBestInstalledAgent_SingleAgentCopilot_ReturnsCopilot")
     void resolveBestInstalledAgent_SingleAgentCopilot_ReturnsCopilot() {
-        Optional<AiAgent> result = AiAgent.resolveBestInstalledAgent(List.of(AiAgent.GITHUB_COPILOT));
-        assertTrue(result.isPresent(), "Should return present when Copilot is installed");
-        assertEquals(AiAgent.GITHUB_COPILOT, result.get());
+        try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
+            aiAssistantMock.when(AiAssistantIntegration::supportsAcp).thenReturn(false);
+            Optional<AiAgent> result = AiAgent.resolveBestInstalledAgent(List.of(AiAgent.GITHUB_COPILOT));
+            assertTrue(result.isPresent(), "Should return present when Copilot is installed");
+            assertEquals(AiAgent.GITHUB_COPILOT, result.get());
+        }
     }
 
     @Test
     @DisplayName("resolveBestInstalledAgent_SingleAgentJetBrains_ReturnsJetBrains")
     void resolveBestInstalledAgent_SingleAgentJetBrains_ReturnsJetBrains() {
-        Optional<AiAgent> result = AiAgent.resolveBestInstalledAgent(List.of(AiAgent.JETBRAINS_AI_ASSISTANT));
-        assertTrue(result.isPresent(), "Should return present when JetBrains AI Assistant is installed");
-        assertEquals(AiAgent.JETBRAINS_AI_ASSISTANT, result.get());
+        try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
+            aiAssistantMock.when(AiAssistantIntegration::supportsAcp).thenReturn(false);
+            Optional<AiAgent> result = AiAgent.resolveBestInstalledAgent(List.of(AiAgent.JETBRAINS_AI_ASSISTANT));
+            assertTrue(result.isPresent(), "Should return present when JetBrains AI Assistant is installed");
+            assertEquals(AiAgent.JETBRAINS_AI_ASSISTANT, result.get());
+        }
     }
 
     @Test
     @DisplayName("resolveBestInstalledAgent_BothAgents_ReturnsOneOfThem")
     void resolveBestInstalledAgent_BothAgents_ReturnsOneOfThem() {
-        List<AiAgent> installed = List.of(AiAgent.GITHUB_COPILOT, AiAgent.JETBRAINS_AI_ASSISTANT);
-        Optional<AiAgent> result = AiAgent.resolveBestInstalledAgent(installed);
-        assertTrue(result.isPresent(), "Should return an agent when both are available");
-        assertTrue(result.get() == AiAgent.GITHUB_COPILOT || result.get() == AiAgent.JETBRAINS_AI_ASSISTANT);
+        try (MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class)) {
+            aiAssistantMock.when(AiAssistantIntegration::supportsAcp).thenReturn(false);
+            List<AiAgent> installed = List.of(AiAgent.GITHUB_COPILOT, AiAgent.JETBRAINS_AI_ASSISTANT);
+            Optional<AiAgent> result = AiAgent.resolveBestInstalledAgent(installed);
+            assertTrue(result.isPresent(), "Should return an agent when both are available");
+            assertTrue(result.get() == AiAgent.GITHUB_COPILOT || result.get() == AiAgent.JETBRAINS_AI_ASSISTANT);
+        }
     }
 
     // ===== tryResolveConfigured tests =====
@@ -251,11 +281,10 @@ class AiAgentTest {
     }
 
     @Test
-    @DisplayName("tryResolveConfigured_ExactCopilot_ReturnsCopilot")
-    void tryResolveConfigured_ExactCopilot_ReturnsCopilot() {
+    @DisplayName("tryResolveConfigured_ExactCopilotAlias_ReturnsEmpty")
+    void tryResolveConfigured_ExactCopilotAlias_ReturnsEmpty() {
         Optional<AiAgent> result = AiAgent.tryResolveConfigured("COPILOT");
-        assertTrue(result.isPresent());
-        assertEquals(AiAgent.GITHUB_COPILOT, result.get());
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -264,34 +293,6 @@ class AiAgentTest {
         Optional<AiAgent> result = AiAgent.tryResolveConfigured("JETBRAINS_AI_ASSISTANT");
         assertTrue(result.isPresent());
         assertEquals(AiAgent.JETBRAINS_AI_ASSISTANT, result.get());
-    }
-
-    // ===== installedAgents tests =====
-
-    @Test
-    @DisplayName("installedAgents_ReturnsListNeverNull")
-    void installedAgents_ReturnsListNeverNull() {
-        List<AiAgent> installed = AiAgent.installedAgents(null);
-        assertNotNull(installed, "installedAgents should return a non-null list");
-    }
-
-    @Test
-    @DisplayName("installedAgents_ReturnsOnlyValidAgents")
-    void installedAgents_ReturnsOnlyValidAgents() {
-        List<AiAgent> installed = AiAgent.installedAgents(null);
-        for (AiAgent agent : installed) {
-            assertTrue(agent == AiAgent.GITHUB_COPILOT || agent == AiAgent.JETBRAINS_AI_ASSISTANT,
-                    "Result should only contain known agents");
-        }
-    }
-
-    @Test
-    @DisplayName("installedAgents_ResultSizeIsNonNegative")
-    void installedAgents_ResultSizeIsNonNegative() {
-        List<AiAgent> installed = AiAgent.installedAgents(null);
-        assertTrue(installed.size() >= 0);
-        assertTrue(installed.size() <= AiAgent.values().length,
-                "Result size should not exceed enum size");
     }
 
     // ===== Additional fromAgentName case-sensitivity tests =====

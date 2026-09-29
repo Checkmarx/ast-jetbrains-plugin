@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,7 +49,7 @@ class AiAgentLoginResolverTest {
             assertNotNull(resolution);
             assertEquals(defaultAgent, resolution.getAgent());
             assertNotNull(resolution.getNoticeMessage());
-            assertTrue(resolution.getNoticeMessage().contains("No AI agents"));
+            assertTrue(resolution.getNoticeMessage().contains("No supported AI Assistant"));
         }
     }
 
@@ -78,14 +79,14 @@ class AiAgentLoginResolverTest {
     @DisplayName("resolve_ConfiguredAgentInstalled_UsesCopilot")
     void resolve_ConfiguredAgentInstalled_UsesCopilot() {
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
 
         try (MockedStatic<AiAgent> agentMock = mockStatic(AiAgent.class)) {
 
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
                     List.of(AiAgent.GITHUB_COPILOT, AiAgent.JETBRAINS_AI_ASSISTANT));
-            agentMock.when(() -> AiAgent.tryResolveConfigured("COPILOT"))
-                    .thenCallRealMethod();
+            agentMock.when(() -> AiAgent.tryResolveConfigured("GITHUB_COPILOT"))
+                    .thenReturn(Optional.of(AiAgent.GITHUB_COPILOT));
 
             AiAgentResolution resolution = AiAgentLoginResolver.resolve(null, mockState);
 
@@ -106,7 +107,7 @@ class AiAgentLoginResolverTest {
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
                     List.of(AiAgent.GITHUB_COPILOT, AiAgent.JETBRAINS_AI_ASSISTANT));
             agentMock.when(() -> AiAgent.tryResolveConfigured("JETBRAINS_AI_ASSISTANT"))
-                    .thenCallRealMethod();
+                    .thenReturn(Optional.of(AiAgent.JETBRAINS_AI_ASSISTANT));
 
             AiAgentResolution resolution = AiAgentLoginResolver.resolve(null, mockState);
 
@@ -131,9 +132,9 @@ class AiAgentLoginResolverTest {
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
                     List.of(AiAgent.GITHUB_COPILOT));
             agentMock.when(() -> AiAgent.tryResolveConfigured("JETBRAINS_AI_ASSISTANT"))
-                    .thenCallRealMethod();
-            agentMock.when(() -> AiAgent.resolveBestInstalledAgent(any()))
-                    .thenCallRealMethod();
+                    .thenReturn(Optional.of(AiAgent.JETBRAINS_AI_ASSISTANT));
+            agentMock.when(() -> AiAgent.resolveBestInstalledAgent(List.of(AiAgent.GITHUB_COPILOT)))
+                    .thenReturn(Optional.of(AiAgent.GITHUB_COPILOT));
             utilsMock.when(Utils::getPluginDisplayName).thenReturn("Test Plugin");
 
             AiAgentResolution resolution = AiAgentLoginResolver.resolve(null, mockState);
@@ -141,8 +142,10 @@ class AiAgentLoginResolverTest {
             assertNotNull(resolution);
             assertEquals(AiAgent.GITHUB_COPILOT, resolution.getAgent());
             assertNotNull(resolution.getNoticeMessage());
-            assertTrue(resolution.getNoticeMessage().contains("switched"));
+            assertTrue(resolution.getNoticeMessage().contains("was not found"));
+            assertTrue(resolution.getNoticeMessage().contains("now using"));
             assertTrue(resolution.getNoticeMessage().contains("JetBrains"));
+            assertEquals("AI Assistant switched.", resolution.getNoticeTitle());
         }
     }
 
@@ -158,9 +161,9 @@ class AiAgentLoginResolverTest {
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
                     List.of(AiAgent.GITHUB_COPILOT));
             agentMock.when(() -> AiAgent.tryResolveConfigured("JETBRAINS_AI_ASSISTANT"))
-                    .thenCallRealMethod();
-            agentMock.when(() -> AiAgent.resolveBestInstalledAgent(any()))
-                    .thenCallRealMethod();
+                    .thenReturn(Optional.of(AiAgent.JETBRAINS_AI_ASSISTANT));
+            agentMock.when(() -> AiAgent.resolveBestInstalledAgent(List.of(AiAgent.GITHUB_COPILOT)))
+                    .thenReturn(Optional.of(AiAgent.GITHUB_COPILOT));
             utilsMock.when(Utils::getPluginDisplayName).thenReturn("Test Plugin");
 
             AiAgentLoginResolver.resolve(null, mockState);
@@ -182,9 +185,11 @@ class AiAgentLoginResolverTest {
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
                     List.of(AiAgent.GITHUB_COPILOT));
             agentMock.when(() -> AiAgent.tryResolveConfigured("FUTURE_AGENT"))
-                    .thenCallRealMethod();
-            agentMock.when(() -> AiAgent.resolveBestInstalledAgent(any()))
-                    .thenCallRealMethod();
+                    .thenReturn(Optional.empty());
+            agentMock.when(AiAgent::computeVersionBasedDefault)
+                    .thenReturn(AiAgent.GITHUB_COPILOT);
+            agentMock.when(() -> AiAgent.resolveBestInstalledAgent(List.of(AiAgent.GITHUB_COPILOT)))
+                    .thenReturn(Optional.of(AiAgent.GITHUB_COPILOT));
             utilsMock.when(Utils::getPluginDisplayName).thenReturn("Test Plugin");
 
             AiAgentResolution resolution = AiAgentLoginResolver.resolve(null, mockState);
@@ -208,9 +213,11 @@ class AiAgentLoginResolverTest {
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
                     List.of(AiAgent.GITHUB_COPILOT));
             agentMock.when(() -> AiAgent.tryResolveConfigured(null))
-                    .thenCallRealMethod();
-            agentMock.when(() -> AiAgent.resolveBestInstalledAgent(any()))
-                    .thenCallRealMethod();
+                    .thenReturn(Optional.empty());
+            agentMock.when(AiAgent::computeVersionBasedDefault)
+                    .thenReturn(AiAgent.GITHUB_COPILOT);
+            agentMock.when(() -> AiAgent.resolveBestInstalledAgent(List.of(AiAgent.GITHUB_COPILOT)))
+                    .thenReturn(Optional.of(AiAgent.GITHUB_COPILOT));
             utilsMock.when(Utils::getPluginDisplayName).thenReturn("Test Plugin");
 
             AiAgentResolution resolution = AiAgentLoginResolver.resolve(null, mockState);
@@ -232,9 +239,11 @@ class AiAgentLoginResolverTest {
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
                     List.of(AiAgent.GITHUB_COPILOT));
             agentMock.when(() -> AiAgent.tryResolveConfigured(""))
-                    .thenCallRealMethod();
-            agentMock.when(() -> AiAgent.resolveBestInstalledAgent(any()))
-                    .thenCallRealMethod();
+                    .thenReturn(Optional.empty());
+            agentMock.when(AiAgent::computeVersionBasedDefault)
+                    .thenReturn(AiAgent.GITHUB_COPILOT);
+            agentMock.when(() -> AiAgent.resolveBestInstalledAgent(List.of(AiAgent.GITHUB_COPILOT)))
+                    .thenReturn(Optional.of(AiAgent.GITHUB_COPILOT));
             utilsMock.when(Utils::getPluginDisplayName).thenReturn("Test Plugin");
 
             AiAgentResolution resolution = AiAgentLoginResolver.resolve(null, mockState);

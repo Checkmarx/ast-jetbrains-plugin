@@ -41,14 +41,14 @@ public final class AiAgentLoginResolver {
             state.setAiAgent(chosenDefault.name());
             LOGGER.warn("AI-Agents: No AI agents are installed; defaulting to " + chosenDefault.name());
             return new AiAgentResolution(chosenDefault, Bundle.message(Resource.AI_AGENT_NO_AGENT_INSTALLED,
-                    DevAssistUtils.getCustomPluginDisplayName()));
+                    DevAssistUtils.getCustomPluginDisplayName()), Bundle.message(Resource.WELCOME_AGENT_NOT_CONNECTED_TITLE));
         }
 
         AiAgent defaultAgent = AiAgent.tryResolveConfigured(state.getAiAgent()).orElse(AiAgent.computeVersionBasedDefault());
 
         if (installedAgents.contains(defaultAgent)) {
             LOGGER.info("AI-Agents: Configured agent " + defaultAgent.name() + " is installed; using it");
-            return new AiAgentResolution(defaultAgent, null);
+            return new AiAgentResolution(defaultAgent, null, null);
         }
 
         // The default agent isn't installed, but something else supported is: switch to the
@@ -59,6 +59,6 @@ public final class AiAgentLoginResolver {
         state.setAiAgent(fallback.name());
         LOGGER.warn("AI-Agents: Configured agent " + defaultAgent + " is not installed; auto-switching to " + fallback.name());
         return new AiAgentResolution(fallback, Bundle.message(Resource.AI_AGENT_AUTO_SWITCHED, defaultAgent.getAgentName(),
-                DevAssistUtils.getCustomPluginDisplayName(), fallback.getAgentName()));
+                DevAssistUtils.getCustomPluginDisplayName(), fallback.getAgentName()), Bundle.message(Resource.WELCOME_AGENT_SWITCHED_TITLE));
     }
 }

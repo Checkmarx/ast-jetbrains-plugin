@@ -17,15 +17,19 @@ import com.checkmarx.intellij.common.utils.InputValidator;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.aiagents.AiAgent;
 import com.checkmarx.intellij.devassist.aiagents.AiAgentLoginResolver;
+import com.checkmarx.intellij.devassist.aiagents.AiAgentResolution;
+import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ex.ApplicationManagerEx;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ex.Settings;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.DocumentAdapter;
@@ -373,14 +377,14 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
         CompletableFuture.runAsync(() -> StateService.getInstance().pruneStaleCustomStates());
 
-        String aiAgentNotice = null;
+        AiAgentResolution agentResolution = null;
 
         // Configure realtime scanners based on MCP status - only modify settings when necessary to preserve user preferences during routine re-authentication
         if (!mcpStatusPreviouslyChecked) {
             // First time checking MCP status (new user or plugin upgrade scenario)
             if (mcpServerEnabled) {
                 autoEnableAllRealtimeScanners(); // Enable scanners with preference detection
-                aiAgentNotice = AiAgentLoginResolver.resolve(project, SETTINGS_STATE).getNoticeMessage();
+                agentResolution = AiAgentLoginResolver.resolve(project, SETTINGS_STATE);
                 installMcpAsync(credential);
             } else {
                 disableAllRealtimeScanners(); // Disable scanners while preserving preferences
@@ -391,7 +395,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             if (mcpServerEnabled) {
                 LOGGER.debug("[Auth] MCP re-enabled - restoring user preferences");
                 autoEnableAllRealtimeScanners(); // Restore user preferences
-                aiAgentNotice = AiAgentLoginResolver.resolve(project, SETTINGS_STATE).getNoticeMessage();
+                agentResolution = AiAgentLoginResolver.resolve(project, SETTINGS_STATE);
                 installMcpAsync(credential);
             } else {
                 LOGGER.debug("[Auth] MCP disabled - preserving user preferences and disabling scanners");
@@ -400,14 +404,14 @@ public class GlobalSettingsComponent implements SettingsComponent {
         } else {
             // MCP status unchanged - preserve existing scanner settings and user preferences
             if (mcpServerEnabled) {
-                aiAgentNotice = AiAgentLoginResolver.resolve(project, SETTINGS_STATE).getNoticeMessage();
+                agentResolution = AiAgentLoginResolver.resolve(project, SETTINGS_STATE);
                 installMcpAsync(credential); // Ensure MCP config is up to date
                 LOGGER.debug("[Auth] MCP unchanged (enabled) - user preferences preserved");
             } else {
                 LOGGER.debug("[Auth] MCP unchanged (disabled) - user preferences preserved");
             }
         }
-        showWelcomeDialog(mcpServerEnabled, aiAgentNotice);
+        showWelcomeDialog(mcpServerEnabled, agentResolution);
     }
 
     private void installMcpAsync(String credential) {
@@ -553,12 +557,35 @@ public class GlobalSettingsComponent implements SettingsComponent {
         });
     }
 
-    private void showWelcomeDialog(boolean mcpEnabled, @Nullable String aiAgentNotice) {
+    private void showWelcomeDialog(boolean mcpEnabled, @Nullable AiAgentResolution agentResolution) {
         try {
-            WelcomeDialog dlg = new WelcomeDialog(project, mcpEnabled, aiAgentNotice);
+            WelcomeDialog dlg = new WelcomeDialog(project, mcpEnabled, agentResolution);
             dlg.show();
+            // After welcome dialog closes, check if the selected agent is JetBrains AI Assistant
+            // and show restart popup since MCP configuration changes require IDE restart to take effect
+            if (dlg.getExitCode() == DialogWrapper.OK_EXIT_CODE || dlg.getExitCode() == DialogWrapper.CANCEL_EXIT_CODE) {
+                AiAgent selectedAgent = AiAgent.fromSettingsValue(SETTINGS_STATE.getAiAgent());
+                if (selectedAgent == AiAgent.JETBRAINS_AI_ASSISTANT && agentResolution != null && agentResolution.getNoticeTitle() != null
+                        && agentResolution.getNoticeTitle().contains("AI Assistant switched")) {
+                    ApplicationManager.getApplication().invokeLater(this::showRestartIdePopup);
+                }
+            }
         } catch (Exception ex) {
             LOGGER.warn("Failed to show welcome dialog", ex);
+        }
+    }
+
+    /**
+     * Shows a restart IDE popup after successful authentication, when the selected agent is
+     * JetBrains AI Assistant (since MCP configuration changes require an IDE restart to take effect).
+     */
+    private void showRestartIdePopup() {
+        String message = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_MESSAGE);
+        String restartLabel = Bundle.message(Resource.AI_AGENT_RESTART_ACTION_LABEL);
+        int result = Messages.showDialog(mainPanel, message, DevAssistConstants.CX_AGENT_NAME,
+                new String[]{restartLabel, Messages.getCancelButton()}, 0, Messages.getInformationIcon());
+        if (result == 0) {
+            ApplicationManagerEx.getApplicationEx().restart(true);
         }
     }
 

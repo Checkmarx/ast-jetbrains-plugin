@@ -16,4 +16,7 @@ public class AiAgentResolution {
 
     @Nullable
     private final String noticeMessage;
+
+    @Nullable
+    private final String noticeTitle;
 }
