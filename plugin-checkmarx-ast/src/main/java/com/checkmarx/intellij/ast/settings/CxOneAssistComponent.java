@@ -277,7 +277,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
         int result = Messages.showDialog(mainPanel, message, DevAssistConstants.CX_AGENT_NAME,
                 new String[]{installLabel, Messages.getCancelButton()}, 0, Messages.getInformationIcon());
         if (result == 0) {
-            agent.openMarketplacePage(currentProjectOrNull());
+            ApplicationManager.getApplication().invokeLater(()
+                    -> agent.openMarketplacePage(currentProjectOrNull()));
         }
     }
 
@@ -338,13 +339,8 @@ public class CxOneAssistComponent implements SettingsComponent, Disposable {
 
     /**
      * Handles the "Edit in mcp.json" link. Delegates entirely to the currently-selected agent's
-     * {@link McpAgentTarget}: if it exposes a dedicated settings page
-     * ({@link McpAgentTarget#getSettingsConfigurableId()}), navigates the (still-open) Settings
-     * dialog there instead of hand-editing its config file, since that file's location/schema is
-     * typically undocumented internals and the settings UI is the officially supported way to
-     * manage it. Otherwise opens (and creates if necessary) the raw config file, the same way
-     * this always worked for Copilot. Adding a new agent needs no changes here - only its
-     * {@code McpAgentTarget} implementation decides which path applies.
+     * if it exposes a dedicated settings page, navigates the (still-open) Settings
+     * dialog there instead of hand-editing its config file.
      */
     private void openMcpJson() {
         // Capture the currently-selected agent before apply() touches persisted state.

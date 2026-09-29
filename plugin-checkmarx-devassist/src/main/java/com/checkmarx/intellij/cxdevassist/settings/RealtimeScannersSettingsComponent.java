@@ -272,7 +272,8 @@ public class RealtimeScannersSettingsComponent implements SettingsComponent, Dis
         int result = Messages.showDialog(mainPanel, message, CxDevAssistConstants.PLUGIN_NAME,
                 new String[]{installLabel, Messages.getCancelButton()}, 0, Messages.getInformationIcon());
         if (result == 0) {
-            agent.openMarketplacePage(currentProjectOrNull());
+            ApplicationManager.getApplication().invokeLater(()
+                    -> agent.openMarketplacePage(currentProjectOrNull()));
         }
     }
 

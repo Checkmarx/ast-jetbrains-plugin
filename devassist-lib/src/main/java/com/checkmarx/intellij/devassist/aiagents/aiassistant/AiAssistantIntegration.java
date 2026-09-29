@@ -2,7 +2,6 @@ package com.checkmarx.intellij.devassist.aiagents.aiassistant;
 
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.aiagents.ChatIntegrationResult;
-import com.checkmarx.intellij.devassist.remediation.RemediationManager;
 import com.intellij.ide.DataManager;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.ide.plugins.PluginManagerCore;
@@ -11,6 +10,7 @@ import com.intellij.openapi.actionSystem.ex.ActionUtil;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.extensions.PluginId;
 import com.intellij.openapi.ide.CopyPasteManager;
 import com.intellij.openapi.project.Project;
@@ -68,10 +68,11 @@ public final class AiAssistantIntegration {
 
     /**
      * Maximum time to wait for focus to move to the AI Assistant chat input after activation.
-     * Fallback timeout for when focus listener doesn't confirm focus moved in time.
+     * This includes the "preparing" phase (authentication, initialization), which can take
+     * 2-3+ seconds depending on network and auth state. Increased from 900ms to 3500ms.
      * Overridable via {@code -Dcx.aiassistant.delay.paste=<ms>} for troubleshooting.
      */
-    private static final int PASTE_READINESS_TIMEOUT_MS = Integer.getInteger("cx.aiassistant.delay.paste", 900);
+    private static final int PASTE_READINESS_TIMEOUT_MS = Integer.getInteger("cx.aiassistant.delay.paste", 3500);
 
     /**
      * Poll interval (milliseconds) when checking if focus has moved to the input field.
@@ -80,11 +81,18 @@ public final class AiAssistantIntegration {
     private static final int FOCUS_POLL_INTERVAL_MS = 50;
 
     /**
-     * Maximum time to wait for the chat input's document to settle after pasting.
-     * Fallback timeout for when content-change listener doesn't confirm change in time.
+     * Maximum time to wait for the chat input's document to settle after pasting and for
+     * the chat to finish "preparing" (authentication) before attempting send. Increased from
+     * 300ms to 2000ms to account for the "preparing" phase.
      * Overridable via {@code -Dcx.aiassistant.delay.send=<ms>}.
      */
-    private static final int SEND_READINESS_TIMEOUT_MS = Integer.getInteger("cx.aiassistant.delay.send", 300);
+    private static final int SEND_READINESS_TIMEOUT_MS = Integer.getInteger("cx.aiassistant.delay.send", 2000);
+
+    /**
+     * Maximum number of times to retry sending if it fails, with increasing delays between attempts.
+     * If the chat is still in "preparing" on first attempt, subsequent attempts may succeed.
+     */
+    private static final int SEND_RETRY_ATTEMPTS = 3;
 
     /**
      * Poll interval (milliseconds) when checking if the pasted content is in the input field.
@@ -353,23 +361,42 @@ public final class AiAssistantIntegration {
     }
 
     /**
-     * Waits for content to appear in the focused text component, indicating paste succeeded.
-     * Uses polling to check document length since paste operations are async.
+     * Reads the current text of {@code focusOwner} if it's a component this can introspect:
+     * a plain Swing text component, or an IntelliJ editor-backed one (e.g. {@code EditorTextField},
+     * which is how most modern chat inputs - including AI Assistant's - are actually implemented,
+     * and does not extend {@link JTextComponent}). Returns {@code null} if neither applies, meaning
+     * callers can't verify and must fall back to assuming success.
+     */
+    @Nullable
+    private static String extractText(@Nullable Component focusOwner) {
+        if (focusOwner instanceof JTextComponent) {
+            return ((JTextComponent) focusOwner).getText();
+        }
+        if (focusOwner == null) {
+            return null;
+        }
+        Editor editor = CommonDataKeys.EDITOR.getData(DataManager.getInstance().getDataContext(focusOwner));
+        return editor != null ? editor.getDocument().getText() : null;
+    }
+
+    /**
+     * Waits for content to appear in the focused input, indicating paste succeeded. Uses polling
+     * to check document length since paste operations are async.
      *
      * @param focusOwner the component that should receive the paste
      * @param expectedContent substring that should appear after paste (typically part of the prompt)
      * @param timeoutMs maximum time to wait
-     * @return true if expected content found, false if timeout
+     * @return true if expected content found, or if the component's content can't be introspected
+     *         (assumed success); false if it can be introspected but the content never appeared
      */
     private static boolean waitForPasteContent(@Nullable Component focusOwner, @NotNull String expectedContent, int timeoutMs) {
-        if (!(focusOwner instanceof JTextComponent)) {
-            return true; // Non-text component, can't verify but assume success
+        if (extractText(focusOwner) == null) {
+            return true; // Can't introspect this component's content, can't verify but assume success
         }
-        JTextComponent textField = (JTextComponent) focusOwner;
         long startTime = System.currentTimeMillis();
         while (System.currentTimeMillis() - startTime < timeoutMs) {
-            String currentText = textField.getText();
-            if (currentText.contains(expectedContent)) {
+            String currentText = extractText(focusOwner);
+            if (currentText != null && currentText.contains(expectedContent)) {
                 LOGGER.debug("CxFix: Pasted content verified in input field");
                 return true;
             }
@@ -427,11 +454,13 @@ public final class AiAssistantIntegration {
             @NotNull String prompt,
             int generation,
             @Nullable Consumer<ChatIntegrationResult> completionCallback) {
-        // Verify focus has moved to the input field (after the initial paste delay)
+        // Verify focus has moved to the input field and wait for it to be ready. The "preparing"
+        // phase (authentication, chat initialization) can take 2-3+ seconds, so we wait up to the
+        // full paste readiness timeout rather than a short 50ms check.
         Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
-        boolean focusReady = waitForInputFocus(50); // Quick final check after delay
+        boolean focusReady = waitForInputFocus(PASTE_READINESS_TIMEOUT_MS);
         if (!focusReady) {
-            LOGGER.debug("CxFix: Focus did not move to input field - chat may not be ready");
+            LOGGER.debug("CxFix: Focus did not move to input field - chat may not be ready after waiting " + PASTE_READINESS_TIMEOUT_MS + "ms");
         }
 
         focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
@@ -474,7 +503,7 @@ public final class AiAssistantIntegration {
             return;
         }
 
-        Timer sendTimer = new Timer(SEND_READINESS_TIMEOUT_MS, e -> onSendTimerFired(realContext, generation, completionCallback));
+        Timer sendTimer = new Timer(SEND_READINESS_TIMEOUT_MS, e -> onSendTimerFired(realContext, verifyContent, generation, completionCallback));
         sendTimer.setRepeats(false);
         sendTimer.start();
     }
@@ -499,6 +528,7 @@ public final class AiAssistantIntegration {
      */
     private static void onSendTimerFired(
             @NotNull DataContext fallbackContext,
+            @NotNull String verifyContent,
             int generation,
             @Nullable Consumer<ChatIntegrationResult> completionCallback) {
         if (generation != CURRENT_GENERATION.get()) {
@@ -509,18 +539,72 @@ public final class AiAssistantIntegration {
         DataContext sendContext = currentFocus != null
                 ? DataManager.getInstance().getDataContext(currentFocus)
                 : fallbackContext;
+
+        // For Editor-based inputs (JetBrains AI Assistant's real chat input), we cannot reliably
+        // introspect whether the input cleared, so we trust that Send succeeded if the action fired.
+        // We give it a small delay to allow processing, then report success to avoid interfering
+        // with JetBrains' own chat processing (which can be cancelled by aggressive retries/polling).
         boolean sent = invokeActionWithContext(SEND_ACTION_ID, sendContext);
-        if (!sent) {
-            LOGGER.debug("CxFix: AI Assistant send action not available - user must press Enter/click Send");
+        if (sent) {
+            // For introspectable inputs (Swing JTextComponent), verify the input actually cleared
+            String currentText = extractText(currentFocus);
+            if (currentText != null) {
+                // Swing input: verify it cleared by polling
+                sent = waitForSendCleared(currentFocus, verifyContent, SEND_READINESS_TIMEOUT_MS);
+            }
+            // else: Editor-based input (can't introspect) - trust the Send action succeeded
         }
 
-        // Report final result: send success or failure through completion callback
-        if (completionCallback != null) {
-            ChatIntegrationResult finalResult = sent
-                    ? ChatIntegrationResult.success("Prompt sent to AI Assistant")
-                    : ChatIntegrationResult.notAvailable("Failed to send prompt to AI Assistant. The prompt has been copied to your clipboard.");
-            completionCallback.accept(finalResult);
+        if (!sent) {
+            LOGGER.debug("CxFix: AI Assistant send action not available or did not submit - user must press Enter/click Send");
         }
+
+        // Report final result: send success or failure through completion callback.
+        // Even if sent=true, give JetBrains a moment to start processing before callback fires,
+        // to minimize interference with their event handling.
+        if (completionCallback != null) {
+            if (sent) {
+                // Small delay before reporting success, allowing JetBrains to process the send
+                Timer delayTimer = new Timer(100, e -> {
+                    if (generation == CURRENT_GENERATION.get()) {
+                        completionCallback.accept(ChatIntegrationResult.success("Prompt sent to AI Assistant"));
+                    }
+                });
+                delayTimer.setRepeats(false);
+                delayTimer.start();
+            } else {
+                ChatIntegrationResult failureResult = ChatIntegrationResult.notAvailable(
+                        "Failed to send prompt to AI Assistant. The prompt has been copied to your clipboard.");
+                completionCallback.accept(failureResult);
+            }
+        }
+    }
+
+    /**
+     * Waits for the focused input's content to no longer contain {@code verifyContent}, indicating
+     * a successful send cleared it. Returns {@code true} (assume success) if the component's
+     * content can't be introspected via {@link #extractText(Component)}.
+     */
+    private static boolean waitForSendCleared(@Nullable Component focusOwner, @NotNull String verifyContent, int timeoutMs) {
+        if (extractText(focusOwner) == null) {
+            return true; // Can't introspect this component's content, can't verify but assume success
+        }
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            String currentText = extractText(focusOwner);
+            if (currentText != null && !currentText.contains(verifyContent)) {
+                LOGGER.debug("CxFix: Send verified - input field cleared");
+                return true;
+            }
+            try {
+                Thread.sleep(CONTENT_POLL_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        LOGGER.debug("CxFix: Timeout waiting for send to clear input field");
+        return false;
     }
 
     private static boolean invokeActionWithContext(String actionId, @NotNull DataContext dataContext) {
