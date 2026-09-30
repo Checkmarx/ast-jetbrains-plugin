@@ -4,7 +4,6 @@ import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.common.settings.SettingsComponent;
 import com.checkmarx.intellij.common.utils.Constants;
-import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SearchableConfigurable;
 import org.jetbrains.annotations.Nls;
@@ -17,7 +16,7 @@ import javax.swing.*;
 /**
  * Settings child node under "Checkmarx One" for CxOne Assist realtime features.
  */
-public class CxOneAssistConfigurable implements SearchableConfigurable, Configurable.NoScroll {
+public class CxOneAssistConfigurable implements SearchableConfigurable {
 
     private SettingsComponent settingsComponent;
 

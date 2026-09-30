@@ -10,12 +10,15 @@ import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.wrapper.CxWrapperFactory;
+import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration;
+import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
@@ -124,6 +127,7 @@ class CxOneAssistComponentTest {
         setField(component, "containersCheckbox", new JBCheckBox());
         setField(component, "iacCheckbox", new JBCheckBox());
         setField(component, "containersToolCombo", mockCombo("docker"));
+        setField(component, "aiAgentCombo", mockCombo("GitHub Copilot"));
         setField(component, "mcpStatusLabel", new JBLabel());
         setField(component, "assistMessageLabel", new JBLabel());
         setField(component, "state", mockState);
@@ -146,6 +150,7 @@ class CxOneAssistComponentTest {
         when(mockState.isContainersRealtime()).thenReturn(false);
         when(mockState.isIacRealtime()).thenReturn(false);
         when(mockState.getContainersTool()).thenReturn("docker");
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
 
         try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
@@ -183,7 +188,165 @@ class CxOneAssistComponentTest {
         }
     }
 
+    @Test
+    void isModified_WhenAiAgentDiffersFromState_ReturnsTrue() throws Exception {
+        setField(component, "aiAgentCombo", mockCombo("JetBrains AI Chat"));
+
+        when(mockState.isAscaRealtime()).thenReturn(false);
+        when(mockState.isOssRealtime()).thenReturn(false);
+        when(mockState.isSecretDetectionRealtime()).thenReturn(false);
+        when(mockState.isContainersRealtime()).thenReturn(false);
+        when(mockState.isIacRealtime()).thenReturn(false);
+        when(mockState.getContainersTool()).thenReturn("docker");
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            assertTrue(component.isModified());
+        }
+    }
+
     // ===== apply() =====
+
+    /**
+     * Common apply() fixture for the AI-agent-switch tests below: stubs executeOnPooledThread to
+     * run its Runnable synchronously (both the agent-cleanup task and the unrelated
+     * validateIACEngine task submitted later in apply() will run inline - harmless here since
+     * CxWrapperFactory failures are caught internally by validateIACEngine).
+     */
+    private Application mockApplicationRunningPooledThreadInline() {
+        Application mockApp = mock(Application.class);
+        MessageBus mockBus = mock(MessageBus.class);
+        SettingsListener mockListener = mock(SettingsListener.class);
+        when(mockApp.getMessageBus()).thenReturn(mockBus);
+        when(mockBus.syncPublisher(any())).thenReturn(mockListener);
+        doAnswer(inv -> {
+            ((Runnable) inv.getArgument(0)).run();
+            return null;
+        }).when(mockApp).executeOnPooledThread(any(Runnable.class));
+        return mockApp;
+    }
+
+    @Test
+    void apply_WhenAiAgentChanges_PersistsNewValueAndUninstallsPreviousAgentMcpEntry() throws Exception {
+        // End-to-end: verifies apply() itself derives previousAgent/newAgent correctly and wires
+        // them through to the right McpSettingsInjector call - not just that some private helper
+        // does the right thing in isolation.
+        setField(component, "aiAgentCombo", mockCombo("JetBrains AI Chat"));
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
+        // apply() also schedules the unrelated validateIACEngine background task; since this
+        // fixture actually runs executeOnPooledThread's Runnable inline, stub containersTool the
+        // same way the other apply()/isModified() tests in this class do, so that pre-existing
+        // task doesn't run with a null engine name.
+        when(mockState.getContainersTool()).thenReturn("docker");
+
+        Application mockApp = mockApplicationRunningPooledThreadInline();
+        ProjectManager mockProjectManager = mock(ProjectManager.class);
+        when(mockProjectManager.getOpenProjects()).thenReturn(new Project[0]);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<ApplicationManager> appMgrMock = mockStatic(ApplicationManager.class);
+             MockedStatic<ProjectManager> pmMock = mockStatic(ProjectManager.class);
+             MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class);
+             MockedStatic<McpSettingsInjector> mcpMock = mockStatic(McpSettingsInjector.class);
+             MockedStatic<Messages> messagesMock = mockStatic(Messages.class)) {
+
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            appMgrMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+            pmMock.when(ProjectManager::getInstance).thenReturn(mockProjectManager);
+            // The new agent (JetBrains AI Chat) is available, so apply() takes the
+            // "installed" path rather than showing the not-installed popup - it shows the
+            // restart-IDE popup instead, since switching to it doesn't take effect until restart.
+            aiAssistantMock.when(() -> AiAssistantIntegration.isAiAssistantAvailable(any())).thenReturn(true);
+            // Mocked static int methods default to 0 ("Restart" button index) - stub it to the
+            // "OK" index instead so this test doesn't trigger an actual IDE restart.
+            messagesMock.when(() -> Messages.showDialog(nullable(Component.class), any(), any(), any(), anyInt(), any()))
+                    .thenReturn(1);
+
+            component.apply();
+
+            // Uninstalled from COPILOT (the previous agent), not JETBRAINS_AI_CHAT (the new one).
+            mcpMock.verify(McpSettingsInjector::uninstallFromCopilot);
+            mcpMock.verify(McpSettingsInjector::uninstallFromAiAssistant, never());
+        }
+
+        verify(mockState).setAiAgent("JETBRAINS_AI_CHAT");
+    }
+
+    @Test
+    void apply_WhenAiAgentUnchanged_DoesNotUninstallAnyMcpEntry() throws Exception {
+        setField(component, "aiAgentCombo", mockCombo("GitHub Copilot"));
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
+        when(mockState.getContainersTool()).thenReturn("docker");
+
+        Application mockApp = mockApplicationRunningPooledThreadInline();
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<ApplicationManager> appMgrMock = mockStatic(ApplicationManager.class);
+             MockedStatic<McpSettingsInjector> mcpMock = mockStatic(McpSettingsInjector.class)) {
+
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            appMgrMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+
+            component.apply();
+
+            mcpMock.verifyNoInteractions();
+        }
+
+        verify(mockState).setAiAgent("COPILOT");
+    }
+
+    @Test
+    void apply_WhenPreviousAgentUninstallThrows_ShowsMcpStatusAndDoesNotPropagate() throws Exception {
+        setField(component, "aiAgentCombo", mockCombo("JetBrains AI Chat"));
+        setField(component, "mcpStatusLabel", new JBLabel());
+        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getContainersTool()).thenReturn("docker");
+
+        Application mockApp = mockApplicationRunningPooledThreadInline();
+        doAnswer(inv -> {
+            ((Runnable) inv.getArgument(0)).run();
+            return null;
+        }).when(mockApp).invokeLater(any(Runnable.class));
+
+        // Keep the unrelated validateIACEngine background task on its happy path (matching the
+        // existing validateIACEngine_WhenEngineExists_* tests) since invokeLater now actually
+        // runs inline in this test and would otherwise reach its own notification codepath.
+        CxWrapper mockWrapper = mock(CxWrapper.class);
+        ProjectManager mockProjectManager = mock(ProjectManager.class);
+        when(mockProjectManager.getOpenProjects()).thenReturn(new Project[0]);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<ApplicationManager> appMgrMock = mockStatic(ApplicationManager.class);
+             MockedStatic<ProjectManager> pmMock = mockStatic(ProjectManager.class);
+             MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class);
+             MockedStatic<McpSettingsInjector> mcpMock = mockStatic(McpSettingsInjector.class);
+             MockedStatic<CxWrapperFactory> wfMock = mockStatic(CxWrapperFactory.class);
+             MockedStatic<Bundle> bundleMock = mockStatic(Bundle.class);
+             MockedStatic<Messages> messagesMock = mockStatic(Messages.class)) {
+
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            appMgrMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
+            pmMock.when(ProjectManager::getInstance).thenReturn(mockProjectManager);
+            // The new agent (JetBrains AI Chat) is available, so apply() takes the "installed"
+            // path rather than showing the not-installed popup (which would need a real UI) -
+            // it shows the restart-IDE popup instead, which Messages is mocked to swallow here.
+            aiAssistantMock.when(() -> AiAssistantIntegration.isAiAssistantAvailable(any())).thenReturn(true);
+            mcpMock.when(McpSettingsInjector::uninstallFromCopilot).thenThrow(new RuntimeException("io error"));
+            wfMock.when(CxWrapperFactory::build).thenReturn(mockWrapper);
+            bundleMock.when(() -> Bundle.message(eq(Resource.MCP_PREVIOUS_AGENT_CLEANUP_FAILED), any()))
+                    .thenReturn("Cleanup failed");
+            // Mocked static int methods default to 0 ("Restart" button index) - stub it to the
+            // "OK" index instead so this test doesn't trigger an actual IDE restart.
+            messagesMock.when(() -> Messages.showDialog(nullable(Component.class), any(), any(), any(), anyInt(), any()))
+                    .thenReturn(1);
+
+            assertDoesNotThrow(() -> component.apply());
+        }
+
+        JBLabel label = (JBLabel) getField(component, "mcpStatusLabel");
+        assertEquals("Cleanup failed", label.getText());
+    }
 
     @Test
     void apply_SetsStateFieldsFromCheckboxValues() throws Exception {
@@ -1114,7 +1277,7 @@ class CxOneAssistComponentTest {
             sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitive);
 
             java.util.concurrent.CompletableFuture<Boolean> future = new java.util.concurrent.CompletableFuture<>();
-            mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService.installSilentlyAsync(any()))
+            mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService.installSilentlyAsync(any(), any()))
                    .thenReturn(future);
 
             invokePrivate(component, "installMcp", new Class[]{});
@@ -1312,7 +1475,7 @@ class CxOneAssistComponentTest {
             sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitive);
 
             java.util.concurrent.CompletableFuture<Boolean> future = new java.util.concurrent.CompletableFuture<>();
-            mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService.installSilentlyAsync(any()))
+            mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService.installSilentlyAsync(any(), any()))
                    .thenReturn(future);
 
             invokePrivate(component, "installMcp", new Class[]{});
@@ -1375,7 +1538,7 @@ class CxOneAssistComponentTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
             sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitive);
             mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService
-                           .installSilentlyAsync(any()))
+                           .installSilentlyAsync(any(), any()))
                    .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(true));
             bundleMock.when(() -> Bundle.message(Resource.MCP_CONFIG_SAVED)).thenReturn("Config saved");
             swingMock.when(() -> javax.swing.SwingUtilities.invokeLater(any(Runnable.class)))
@@ -1412,7 +1575,7 @@ class CxOneAssistComponentTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
             sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitive);
             mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService
-                           .installSilentlyAsync(any()))
+                           .installSilentlyAsync(any(), any()))
                    .thenReturn(java.util.concurrent.CompletableFuture.completedFuture(false));
             bundleMock.when(() -> Bundle.message(Resource.MCP_CONFIG_UP_TO_DATE)).thenReturn("Up to date");
             swingMock.when(() -> javax.swing.SwingUtilities.invokeLater(any(Runnable.class)))
@@ -1451,7 +1614,7 @@ class CxOneAssistComponentTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
             sensitiveMock.when(GlobalSettingsSensitiveState::getInstance).thenReturn(mockSensitive);
             mcpMock.when(() -> com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService
-                           .installSilentlyAsync(any()))
+                           .installSilentlyAsync(any(), any()))
                    .thenReturn(failedFuture);
             bundleMock.when(() -> Bundle.message(Resource.MCP_INSTALL_ERROR)).thenReturn("Install failed");
             swingMock.when(() -> javax.swing.SwingUtilities.invokeLater(any(Runnable.class)))
@@ -1595,6 +1758,63 @@ class CxOneAssistComponentTest {
         }
 
         verify(mockFem).openFile(mockVf, true);
+    }
+
+    @Test
+    void openMcpJson_WhenAiAssistantSelected_FallsBackToConfigFileWhenSettingsPageUnavailable() throws Exception {
+        // In this bare unit-test environment there is no live IntelliJ Application, so
+        // DataManager.getInstance() inside openAgentMcpSettingsPage() throws and is caught,
+        // returning false - openMcpJson() must then fall back to opening the raw config file
+        // rather than leaving the user with nothing.
+        setupOpenMcpJsonBase();
+        setField(component, "aiAgentCombo", mockCombo("JetBrains AI Chat"));
+        when(mockState.getAiAgent()).thenReturn("JETBRAINS_AI_CHAT");
+
+        ProjectManager mockPm = mock(ProjectManager.class);
+        Project mockProject = mock(Project.class);
+        when(mockPm.getOpenProjects()).thenReturn(new Project[]{mockProject});
+
+        java.nio.file.Path mockPath = java.nio.file.Paths.get("ai-assistant-mcp.json");
+
+        LocalFileSystem mockLfs = mock(LocalFileSystem.class);
+        VirtualFile mockVf = mock(VirtualFile.class);
+        when(mockVf.exists()).thenReturn(true);
+        when(mockLfs.refreshAndFindFileByNioFile(any())).thenReturn(mockVf);
+
+        FileEditorManager mockFem = mock(FileEditorManager.class);
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<ProjectManager> pmMock = mockStatic(ProjectManager.class);
+             MockedStatic<com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector> mcpMock =
+                     mockStatic(com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector.class);
+             MockedStatic<LocalFileSystem> lfsMock = mockStatic(LocalFileSystem.class);
+             MockedStatic<FileEditorManager> femMock = mockStatic(FileEditorManager.class);
+             MockedStatic<javax.swing.SwingUtilities> swingMock = mockStatic(javax.swing.SwingUtilities.class)) {
+
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            pmMock.when(ProjectManager::getInstance).thenReturn(mockPm);
+            swingMock.when(() -> javax.swing.SwingUtilities.getWindowAncestor(any())).thenReturn(null);
+            mcpMock.when(com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector::getAiAssistantMcpJsonPath)
+                   .thenReturn(mockPath);
+            lfsMock.when(LocalFileSystem::getInstance).thenReturn(mockLfs);
+            femMock.when(() -> FileEditorManager.getInstance(mockProject)).thenReturn(mockFem);
+
+            assertDoesNotThrow(() -> invokePrivate(component, "openMcpJson", new Class[]{}));
+        }
+
+        // Fell all the way through to opening the AI Assistant's own raw config file.
+        verify(mockFem).openFile(mockVf, true);
+    }
+
+    @Test
+    void openAgentMcpSettingsPage_WhenNoLiveApplicationAvailable_ReturnsFalse() throws Exception {
+        // DataManager.getInstance() requires a live ApplicationManager, which this bare unit-test
+        // environment does not provide - the method must catch that and report failure rather
+        // than letting the exception propagate out of the "Edit MCP" click handler.
+        Object result = invokePrivate(component, "openAgentMcpSettingsPage",
+                new Class[]{String.class}, "some.configurable.id");
+
+        assertEquals(Boolean.FALSE, result);
     }
 
     // ===== addAscaCheckBoxListener() — item listener lambda branches =====

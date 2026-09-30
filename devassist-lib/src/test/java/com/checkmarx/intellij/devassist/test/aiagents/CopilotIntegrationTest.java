@@ -1,6 +1,7 @@
-package com.checkmarx.intellij.devassist.test.remediation;
+package com.checkmarx.intellij.devassist.test.aiagents;
 
-import com.checkmarx.intellij.devassist.remediation.CopilotIntegration;
+import com.checkmarx.intellij.devassist.aiagents.ChatIntegrationResult;
+import com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -12,10 +13,17 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
+import com.intellij.ui.content.Content;
+import com.intellij.ui.content.ContentManager;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 import org.mockito.MockedStatic;
 
+import javax.swing.AbstractButton;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import java.awt.Component;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -125,13 +133,11 @@ class CopilotIntegrationTest {
             actionManagerStatic.when(ActionManager::getInstance).thenReturn(mockActionManager);
             when(mockActionManager.getAction(anyString())).thenReturn(null);
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, null);
 
-            assertEquals(CopilotIntegration.OperationResult.COPILOT_NOT_AVAILABLE, result.getResult());
             assertFalse(result.isSuccess());
             assertNotNull(result.getMessage());
-            assertNull(result.getException());
         }
     }
 
@@ -172,11 +178,11 @@ class CopilotIntegrationTest {
                     .when(mockApp).runReadAction(any(Computable.class));
             doNothing().when(mockApp).invokeLater(any(Runnable.class));
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, null);
 
             assertTrue(result.isSuccess());
-            assertEquals(CopilotIntegration.OperationResult.PARTIAL_SUCCESS, result.getResult());
+
         }
     }
 
@@ -194,7 +200,7 @@ class CopilotIntegrationTest {
             actionManagerStatic.when(ActionManager::getInstance).thenReturn(mockActionManager);
             when(mockActionManager.getAction(anyString())).thenReturn(null);
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("prompt", mockProject, null);
 
             assertFalse(result.isSuccess());
@@ -219,13 +225,11 @@ class CopilotIntegrationTest {
             // runReadAction returns false — Copilot available but chat window could not be opened
             doReturn(false).when(mockApp).runReadAction(any(Computable.class));
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, null);
 
-            assertEquals(CopilotIntegration.OperationResult.COPILOT_NOT_AVAILABLE, result.getResult());
             assertFalse(result.isSuccess());
             assertNotNull(result.getMessage());
-            assertNull(result.getException());
         }
     }
 
@@ -249,16 +253,16 @@ class CopilotIntegrationTest {
                 return null;
             }).when(mockApp).invokeLater(any(Runnable.class));
 
-            List<CopilotIntegration.IntegrationResult> captured = new ArrayList<>();
-            Consumer<CopilotIntegration.IntegrationResult> callback = captured::add;
+            List<ChatIntegrationResult> captured = new ArrayList<>();
+            Consumer<ChatIntegrationResult> callback = captured::add;
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, callback);
 
-            assertEquals(CopilotIntegration.OperationResult.COPILOT_NOT_AVAILABLE, result.getResult());
+
             assertFalse(captured.isEmpty());
-            assertEquals(CopilotIntegration.OperationResult.COPILOT_NOT_AVAILABLE,
-                    captured.get(0).getResult());
+            assertFalse(captured.get(0).isSuccess());
+            assertNotNull(captured.get(0).getMessage());
         }
     }
 
@@ -321,13 +325,12 @@ class CopilotIntegrationTest {
         doThrow(new RuntimeException("clipboard unavailable")).when(mockCpm).setContents(any());
 
         Project mockProject = mock(Project.class);
-        CopilotIntegration.IntegrationResult result =
+        ChatIntegrationResult result =
                 CopilotIntegration.openCopilotWithPromptDetailed("prompt", mockProject, null);
 
-        assertEquals(CopilotIntegration.OperationResult.FAILED, result.getResult());
+
         assertFalse(result.isSuccess());
         assertNotNull(result.getMessage());
-        assertNull(result.getException());
 
         // Restore for subsequent tests
         doNothing().when(mockCpm).setContents(any());
@@ -348,11 +351,11 @@ class CopilotIntegrationTest {
         }).when(mockApp).invokeLater(any(Runnable.class));
 
         Project mockProject = mock(Project.class);
-        List<CopilotIntegration.IntegrationResult> captured = new ArrayList<>();
+        List<ChatIntegrationResult> captured = new ArrayList<>();
         CopilotIntegration.openCopilotWithPromptDetailed("prompt", mockProject, captured::add);
 
         assertFalse(captured.isEmpty());
-        assertEquals(CopilotIntegration.OperationResult.FAILED, captured.get(0).getResult());
+
 
         // Restore for subsequent tests
         doNothing().when(mockCpm).setContents(any());
@@ -379,10 +382,10 @@ class CopilotIntegrationTest {
                     .when(mockApp).runReadAction(any(Computable.class));
             doNothing().when(mockApp).invokeLater(any(Runnable.class));
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, null);
 
-            assertEquals(CopilotIntegration.OperationResult.PARTIAL_SUCCESS, result.getResult());
+
             assertTrue(result.isSuccess());
         }
     }
@@ -428,17 +431,12 @@ class CopilotIntegrationTest {
     }
 
     @Test
-    void integrationResult_fullSuccess_isSuccess_returnsTrue() throws Exception {
-        Method fullSuccessMethod = CopilotIntegration.IntegrationResult.class
-                .getDeclaredMethod("fullSuccess", String.class);
-        fullSuccessMethod.setAccessible(true);
-        CopilotIntegration.IntegrationResult result =
-                (CopilotIntegration.IntegrationResult) fullSuccessMethod.invoke(null, "done");
+    void integrationResult_fullSuccess_isSuccess_returnsTrue() {
+        ChatIntegrationResult result = ChatIntegrationResult.success("done");
 
         assertTrue(result.isSuccess());
-        assertEquals(CopilotIntegration.OperationResult.FULL_SUCCESS, result.getResult());
+
         assertNotNull(result.getMessage());
-        assertNull(result.getException());
     }
 
     @Test
@@ -460,14 +458,12 @@ class CopilotIntegrationTest {
                     .when(mockApp).runReadAction(any(Computable.class));
             doNothing().when(mockApp).invokeLater(any(Runnable.class));
 
-            CopilotIntegration.IntegrationResult result =
+            ChatIntegrationResult result =
                     CopilotIntegration.openCopilotWithPromptDetailed("fix this", mockProject, null);
 
             assertTrue(result.isSuccess());
-            assertNotNull(result.getResult());
             assertNotNull(result.getMessage());
             assertFalse(result.getMessage().isEmpty());
-            assertNull(result.getException());
         }
     }
 
@@ -668,5 +664,315 @@ class CopilotIntegrationTest {
         assertNull(result);
         assertEquals(1, calls.get());
         restoreInvokeAndWait();
+    }
+
+    // ==================== isColdStart ====================
+
+    private static Method isColdStartMethod() throws NoSuchMethodException {
+        Method m = CopilotIntegration.class.getDeclaredMethod("isColdStart", Project.class);
+        m.setAccessible(true);
+        return m;
+    }
+
+    @Test
+    void isColdStart_nullProject_returnsTrue() throws Exception {
+        boolean result = (boolean) isColdStartMethod().invoke(null, (Project) null);
+        assertTrue(result);
+    }
+
+    @Test
+    void isColdStart_noToolWindowFound_returnsTrue() throws Exception {
+        try (MockedStatic<ToolWindowManager> twmStatic = mockStatic(ToolWindowManager.class)) {
+            Project mockProject = mock(Project.class);
+            ToolWindowManager mockTwm = mock(ToolWindowManager.class);
+            twmStatic.when(() -> ToolWindowManager.getInstance(mockProject)).thenReturn(mockTwm);
+            when(mockTwm.getToolWindow(anyString())).thenReturn(null);
+
+            boolean result = (boolean) isColdStartMethod().invoke(null, mockProject);
+
+            assertTrue(result);
+        }
+    }
+
+    @Test
+    void isColdStart_toolWindowFoundButNotYetVisible_returnsTrue() throws Exception {
+        try (MockedStatic<ToolWindowManager> twmStatic = mockStatic(ToolWindowManager.class)) {
+            Project mockProject = mock(Project.class);
+            ToolWindowManager mockTwm = mock(ToolWindowManager.class);
+            twmStatic.when(() -> ToolWindowManager.getInstance(mockProject)).thenReturn(mockTwm);
+            ToolWindow mockToolWindow = mock(ToolWindow.class);
+            when(mockTwm.getToolWindow("GitHub Copilot Chat")).thenReturn(mockToolWindow);
+            when(mockToolWindow.isVisible()).thenReturn(false);
+
+            boolean result = (boolean) isColdStartMethod().invoke(null, mockProject);
+
+            assertTrue(result);
+        }
+    }
+
+    @Test
+    void isColdStart_toolWindowAlreadyVisible_returnsFalse() throws Exception {
+        try (MockedStatic<ToolWindowManager> twmStatic = mockStatic(ToolWindowManager.class)) {
+            Project mockProject = mock(Project.class);
+            ToolWindowManager mockTwm = mock(ToolWindowManager.class);
+            twmStatic.when(() -> ToolWindowManager.getInstance(mockProject)).thenReturn(mockTwm);
+            ToolWindow mockToolWindow = mock(ToolWindow.class);
+            when(mockTwm.getToolWindow("GitHub Copilot Chat")).thenReturn(mockToolWindow);
+            when(mockToolWindow.isVisible()).thenReturn(true);
+
+            boolean result = (boolean) isColdStartMethod().invoke(null, mockProject);
+
+            assertFalse(result);
+        }
+    }
+
+    // ==================== New Chat Session (always start fresh) ====================
+
+    private static Method isNewChatSessionActionMethod() throws NoSuchMethodException {
+        Method m = CopilotIntegration.class.getDeclaredMethod("isNewChatSessionAction", ActionButton.class);
+        m.setAccessible(true);
+        return m;
+    }
+
+    private static Method matchesNewChatSessionLabelMethod() throws NoSuchMethodException {
+        Method m = CopilotIntegration.class.getDeclaredMethod("matchesNewChatSessionLabel", String.class);
+        m.setAccessible(true);
+        return m;
+    }
+
+    private static Method tryStartNewChatSessionMethod() throws NoSuchMethodException {
+        Method m = CopilotIntegration.class.getDeclaredMethod("tryStartNewChatSession", ToolWindow.class);
+        m.setAccessible(true);
+        return m;
+    }
+
+    private static Method tryDismissPendingEditsConfirmationMethod() throws NoSuchMethodException {
+        Method m = CopilotIntegration.class.getDeclaredMethod("tryDismissPendingEditsConfirmation");
+        m.setAccessible(true);
+        return m;
+    }
+
+    /** Stand-in for Copilot's internal {@code NewChatSessionAction} - same simple class name. */
+    private static class NewChatSessionAction extends AnAction {
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            // no-op test double
+        }
+    }
+
+    private static ToolWindow toolWindowWithSingleComponent(Component rootComponent) {
+        Content mockContent = mock(Content.class);
+        JComponent mockRoot = mock(JComponent.class);
+        when(mockRoot.getComponents()).thenReturn(new Component[]{rootComponent});
+        when(mockContent.getComponent()).thenReturn(mockRoot);
+
+        ContentManager mockContentManager = mock(ContentManager.class);
+        when(mockContentManager.getContents()).thenReturn(new Content[]{mockContent});
+
+        ToolWindow mockToolWindow = mock(ToolWindow.class);
+        when(mockToolWindow.getContentManager()).thenReturn(mockContentManager);
+        return mockToolWindow;
+    }
+
+    @Test
+    void isNewChatSessionAction_actionClassNameContainsNewSession_returnsTrue() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(new NewChatSessionAction());
+
+        boolean result = (boolean) isNewChatSessionActionMethod().invoke(null, mockButton);
+
+        assertTrue(result);
+    }
+
+    @Test
+    void isNewChatSessionAction_unrelatedActionButMatchingTooltip_returnsTrue() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(new UnrelatedAction());
+        when(mockButton.getToolTipText()).thenReturn("Create a new chat session");
+
+        boolean result = (boolean) isNewChatSessionActionMethod().invoke(null, mockButton);
+
+        assertTrue(result);
+    }
+
+    @Test
+    void isNewChatSessionAction_unrelatedActionAndTooltip_returnsFalse() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(new UnrelatedAction());
+        when(mockButton.getToolTipText()).thenReturn("Configure agents...");
+
+        boolean result = (boolean) isNewChatSessionActionMethod().invoke(null, mockButton);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isNewChatSessionAction_nullAction_returnsFalse() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(null);
+
+        boolean result = (boolean) isNewChatSessionActionMethod().invoke(null, mockButton);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void matchesNewChatSessionLabel_variousKnownLabels_returnTrue() throws Exception {
+        for (String label : new String[]{"New Chat Session", "New Conversation", "New chat",
+                "Create a new chat session", "Create a new conversation"}) {
+            boolean result = (boolean) matchesNewChatSessionLabelMethod().invoke(null, label);
+            assertTrue(result, "Expected match for label: " + label);
+        }
+    }
+
+    @Test
+    void matchesNewChatSessionLabel_nullOrUnrelated_returnFalse() throws Exception {
+        assertFalse((boolean) matchesNewChatSessionLabelMethod().invoke(null, (String) null));
+        assertFalse((boolean) matchesNewChatSessionLabelMethod().invoke(null, "Configure agents..."));
+    }
+
+    @Test
+    void tryStartNewChatSession_actionButtonFoundEnabledAndShowing_clicksAndReturnsTrue() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(new NewChatSessionAction());
+        when(mockButton.isEnabled()).thenReturn(true);
+        when(mockButton.isShowing()).thenReturn(true);
+
+        ToolWindow toolWindow = toolWindowWithSingleComponent(mockButton);
+
+        boolean result = (boolean) tryStartNewChatSessionMethod().invoke(null, toolWindow);
+
+        assertTrue(result);
+        verify(mockButton).click();
+    }
+
+    @Test
+    void tryStartNewChatSession_actionButtonFoundButNotShowing_returnsFalseWithoutClicking() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(new NewChatSessionAction());
+        when(mockButton.isEnabled()).thenReturn(true);
+        when(mockButton.isShowing()).thenReturn(false);
+
+        ToolWindow toolWindow = toolWindowWithSingleComponent(mockButton);
+
+        boolean result = (boolean) tryStartNewChatSessionMethod().invoke(null, toolWindow);
+
+        assertFalse(result);
+        verify(mockButton, never()).click();
+    }
+
+    @Test
+    void tryStartNewChatSession_actionButtonFoundButDisabled_fallsThroughToLegacySearch_returnsFalse() throws Exception {
+        ActionButton mockButton = mock(ActionButton.class);
+        when(mockButton.getAction()).thenReturn(new NewChatSessionAction());
+        when(mockButton.isEnabled()).thenReturn(false);
+        // The legacy-button search also recurses into this component (it's a Container too) -
+        // stub its children as empty so the traversal terminates instead of NPE-ing on a
+        // Mockito mock's default null return for getComponents().
+        when(mockButton.getComponents()).thenReturn(new Component[0]);
+
+        ToolWindow toolWindow = toolWindowWithSingleComponent(mockButton);
+
+        boolean result = (boolean) tryStartNewChatSessionMethod().invoke(null, toolWindow);
+
+        assertFalse(result);
+        verify(mockButton, never()).click();
+    }
+
+    @Test
+    void tryStartNewChatSession_nothingFound_returnsFalse() throws Exception {
+        JComponent unrelatedComponent = mock(JComponent.class);
+        when(unrelatedComponent.getComponents()).thenReturn(new Component[0]);
+
+        ToolWindow toolWindow = toolWindowWithSingleComponent(unrelatedComponent);
+
+        boolean result = (boolean) tryStartNewChatSessionMethod().invoke(null, toolWindow);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void tryDismissPendingEditsConfirmation_noVisibleWindows_returnsFalse() throws Exception {
+        boolean result = (boolean) tryDismissPendingEditsConfirmationMethod().invoke(null);
+
+        assertFalse(result);
+    }
+
+    // ==================== New Chat Session search roots (header vs. content panel) ====================
+
+    /** Stand-in for the platform's internal tool-window decorator - matched by simple class name. */
+    private static class InternalDecoratorStub extends JPanel {
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Component> invokeSearchRoots(ToolWindow toolWindow) throws Exception {
+        Method m = CopilotIntegration.class.getDeclaredMethod("newChatSessionSearchRoots", ToolWindow.class);
+        m.setAccessible(true);
+        return (List<Component>) m.invoke(null, toolWindow);
+    }
+
+    @Test
+    void newChatSessionSearchRoots_decoratorAncestorFound_returnsOnlyDecorator() throws Exception {
+        InternalDecoratorStub decorator = new InternalDecoratorStub();
+        JPanel toolWindowComponent = new JPanel();
+        decorator.add(toolWindowComponent);
+
+        ToolWindow toolWindow = mock(ToolWindow.class);
+        when(toolWindow.getComponent()).thenReturn(toolWindowComponent);
+
+        List<Component> roots = invokeSearchRoots(toolWindow);
+
+        assertEquals(1, roots.size());
+        assertSame(decorator, roots.get(0));
+    }
+
+    @Test
+    void newChatSessionSearchRoots_noDecoratorNoWindow_fallsBackToToolWindowComponentAndContents() throws Exception {
+        JPanel toolWindowComponent = new JPanel(); // not attached to any decorator or top-level window
+
+        Content mockContent = mock(Content.class);
+        JComponent contentComponent = mock(JComponent.class);
+        when(mockContent.getComponent()).thenReturn(contentComponent);
+        ContentManager mockContentManager = mock(ContentManager.class);
+        when(mockContentManager.getContents()).thenReturn(new Content[]{mockContent});
+
+        ToolWindow toolWindow = mock(ToolWindow.class);
+        when(toolWindow.getComponent()).thenReturn(toolWindowComponent);
+        when(toolWindow.getContentManager()).thenReturn(mockContentManager);
+
+        List<Component> roots = invokeSearchRoots(toolWindow);
+
+        assertEquals(2, roots.size());
+        assertSame(toolWindowComponent, roots.get(0));
+        assertSame(contentComponent, roots.get(1));
+    }
+
+    private static Method findNewChatSessionLegacyButtonRecursivelyMethod() throws NoSuchMethodException {
+        Method m = CopilotIntegration.class.getDeclaredMethod("findNewChatSessionLegacyButtonRecursively", Component.class);
+        m.setAccessible(true);
+        return m;
+    }
+
+    /**
+     * Reproduces the reported bug directly: Copilot's "New Chat Session" control lives in the
+     * tool window's header, a sibling of the content panel - not a descendant of it. Searching
+     * only the content panel (the original implementation) would never see it; searching rooted
+     * at the shared decorator ancestor (what {@code newChatSessionSearchRoots} now returns) must
+     * still find it.
+     */
+    @Test
+    void findNewChatSessionLegacyButtonRecursively_findsButtonInHeaderSiblingOfContent() throws Exception {
+        JButton headerButton = new JButton("New Chat Session");
+
+        InternalDecoratorStub decorator = new InternalDecoratorStub();
+        JPanel header = new JPanel();
+        header.add(headerButton);
+        JPanel content = new JPanel();
+        decorator.add(header);
+        decorator.add(content);
+
+        AbstractButton found = (AbstractButton) findNewChatSessionLegacyButtonRecursivelyMethod().invoke(null, decorator);
+
+        assertSame(headerButton, found);
     }
 }

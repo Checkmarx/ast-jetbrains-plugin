@@ -1,6 +1,7 @@
-package com.checkmarx.intellij.devassist.remediation;
+package com.checkmarx.intellij.devassist.aiagents.copilot;
 
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.devassist.aiagents.ChatIntegrationResult;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -25,6 +26,8 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyEvent;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -42,25 +45,6 @@ import java.util.function.Supplier;
  * Since GitHub Copilot does not expose a public API, this implementation uses
  * component-based UI automation with reflection to access Copilot's internal
  * components.
- *
- * <h3>Integration Flow:</h3>
- * <ol>
- * <li>Copy prompt to clipboard (safety fallback)</li>
- * <li>Open Copilot Chat tool window</li>
- * <li>Switch to Agent mode using popup simulation</li>
- * <li>Paste prompt into input field</li>
- * <li>Send message via Enter key simulation</li>
- * </ol>
- *
- * <h3>Agent Mode Selection:</h3>
- * <p>
- * The key insight is that Copilot's ChatModeComboBox requires the full popup
- * interaction sequence (open → select → close) to properly initialize Agent
- * mode.
- * Simply calling {@code setSelectedItem()} does not trigger the internal
- * handlers.
- *
- * <h3>Fallback Behavior:</h3>
  * <p>
  * If automation fails, the prompt remains in the clipboard and the user is
  * notified to paste manually.
@@ -138,7 +122,31 @@ public final class CopilotIntegration {
          * exist yet in the same EDT frame as the {@code setText()} call.
          */
         static final int SEND_CONTROL_MAX_WAIT_MS = Integer.getInteger("cx.copilot.delay.poll.send", 2000);
+
+        /**
+         * Multiplier applied to {@link #COPILOT_OPEN_DELAY_MS}, {@link #AGENT_MODE_DELAY_MS},
+         * {@link #INPUT_FIELD_MAX_WAIT_MS} and {@link #SEND_CONTROL_MAX_WAIT_MS} the very first
+         * time the Copilot tool window is shown in this IDE session (default: 3x).
+         */
+        static final int COLD_START_MULTIPLIER = Integer.getInteger("cx.copilot.delay.coldStartMultiplier", 3);
+
+        /**
+         * Maximum time to poll for Copilot's "New Chat Session" control to appear
+         */
+        static final int NEW_CHAT_SESSION_MAX_WAIT_MS = Integer.getInteger("cx.copilot.delay.poll.newChat", 1500);
+
+        /**
+         * Maximum time to wait for Copilot's pending-edits confirmation dialog to appear after
+         * clicking "New Chat Session" (default: 800ms).
+         */
+        static final int NEW_CHAT_CONFIRMATION_MAX_WAIT_MS = Integer.getInteger("cx.copilot.delay.poll.newChatConfirm", 800);
     }
+
+    /**
+     * Text Copilot uses on the "keep going" button of its pending-edits confirmation dialog
+     * (shown when starting a new chat session would discard unapplied agent file edits).
+     */
+    private static final String DISCARD_PENDING_EDITS_BUTTON_TEXT = "Discard and Continue";
 
     /**
      * Known Copilot action IDs for opening the chat window
@@ -190,72 +198,6 @@ public final class CopilotIntegration {
     /**
      * Result of a Copilot integration operation.
      */
-    public enum OperationResult {
-        /**
-         * Full automation succeeded - prompt was sent to Copilot
-         */
-        FULL_SUCCESS,
-        /**
-         * Partial success - Copilot opened but automation may have issues
-         */
-        PARTIAL_SUCCESS,
-        /**
-         * Copilot not available - prompt copied to clipboard only
-         */
-        COPILOT_NOT_AVAILABLE,
-        /**
-         * Operation failed completely
-         */
-        FAILED
-    }
-
-    /**
-     * Detailed result with message for user feedback.
-     */
-    public static class IntegrationResult {
-        private final OperationResult result;
-        private final String message;
-        private final @Nullable Exception exception;
-
-        private IntegrationResult(OperationResult result, String message, @Nullable Exception exception) {
-            this.result = result;
-            this.message = message;
-            this.exception = exception;
-        }
-
-        public OperationResult getResult() {
-            return result;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public @Nullable Exception getException() {
-            return exception;
-        }
-
-        public boolean isSuccess() {
-            return result == OperationResult.FULL_SUCCESS || result == OperationResult.PARTIAL_SUCCESS;
-        }
-
-        static IntegrationResult fullSuccess(String message) {
-            return new IntegrationResult(OperationResult.FULL_SUCCESS, message, null);
-        }
-
-        static IntegrationResult partialSuccess(String message) {
-            return new IntegrationResult(OperationResult.PARTIAL_SUCCESS, message, null);
-        }
-
-        static IntegrationResult copilotNotAvailable(String message) {
-            return new IntegrationResult(OperationResult.COPILOT_NOT_AVAILABLE, message, null);
-        }
-
-        static IntegrationResult failed(String message, @Nullable Exception e) {
-            return new IntegrationResult(OperationResult.FAILED, message, e);
-        }
-    }
-
     private CopilotIntegration() {
         // Prevent instantiation
     }
@@ -283,30 +225,34 @@ public final class CopilotIntegration {
      * @return true if the operation was initiated successfully, false otherwise
      */
     public static boolean openCopilotWithPrompt(@NotNull String prompt, @NotNull Project project) {
-        IntegrationResult result = openCopilotWithPromptDetailed(prompt, project, null);
+        ChatIntegrationResult result = openCopilotWithPromptDetailed(prompt, project, null);
         return result.isSuccess();
     }
 
     /**
      * Opens Copilot with prompt and provides detailed result via callback.
      *
+     * <p>
+     * Returns a preliminary result immediately, then performs automated paste/send
+     * asynchronously. If a completion callback is provided, it will be invoked with
+     * the actual final result after automation completes.
+     *
      * @param prompt   The fix prompt to send to Copilot
      * @param project  The current project context
-     * @param callback Optional callback to receive the detailed result (called on
-     *                 EDT)
+     * @param callback Optional callback to receive the final result after automation completes
      * @return Immediate result indicating if operation was initiated
      */
-    public static IntegrationResult openCopilotWithPromptDetailed(
+    public static ChatIntegrationResult openCopilotWithPromptDetailed(
             @NotNull String prompt,
             @NotNull Project project,
-            @Nullable Consumer<IntegrationResult> callback) {
+            @Nullable Consumer<ChatIntegrationResult> callback) {
 
         LOGGER.debug("CxFix: Starting Copilot integration workflow");
 
         // Step 1: Always copy to clipboard first (guaranteed fallback)
         if (!copyToClipboard(prompt)) {
-            IntegrationResult result = IntegrationResult.failed(
-                    "Failed to copy prompt to clipboard", null);
+            ChatIntegrationResult result = ChatIntegrationResult.notAvailable(
+                    "Failed to copy prompt to clipboard");
             notifyCallback(callback, result);
             return result;
         }
@@ -315,30 +261,46 @@ public final class CopilotIntegration {
         // Step 2: Check if Copilot is available
         if (!isCopilotAvailable(project)) {
             LOGGER.debug("CxFix: Copilot not available, prompt copied to clipboard");
-            IntegrationResult result = IntegrationResult.copilotNotAvailable(
+            ChatIntegrationResult result = ChatIntegrationResult.notAvailable(
                     "GitHub Copilot is not installed or available. The fix prompt has been copied to your clipboard.");
             notifyCallback(callback, result);
             return result;
         }
 
-        // Step 3: Try to open Copilot chat
+        // Step 3: Detect whether Copilot's chat panel has never been shown yet in this IDE
+        // session - its first-ever render is slower than the steady-state automation budgets
+        // assume, so that case needs extended timing (see Timing.COLD_START_MULTIPLIER).
+        //
+        // Wrapped in try/catch because isColdStart queries UI state (toolWindow.isVisible()),
+        // which requires EDT access on some platform versions. If the query fails, default to
+        // true (assume cold start) - this is the safer assumption as it gives more time for UI init.
+        boolean coldStart;
+        try {
+            coldStart = ApplicationManager.getApplication().runReadAction(
+                    (Computable<Boolean>) () -> isColdStart(project));
+        } catch (Exception e) {
+            LOGGER.debug("CxFix: Failed to detect cold start, defaulting to true for safer timing", e);
+            coldStart = true; // Safe default: assume cold start, give more time for UI init
+        }
+
+        // Step 4: Try to open Copilot chat
         boolean opened = ApplicationManager.getApplication().runReadAction(
                 (Computable<Boolean>) () -> tryOpenCopilotChat(project));
 
         if (!opened) {
             LOGGER.warn("CxFix: Failed to open Copilot chat window");
-            IntegrationResult result = IntegrationResult.copilotNotAvailable(
+            ChatIntegrationResult result = ChatIntegrationResult.notAvailable(
                     "Could not open Copilot chat. The fix prompt has been copied to your clipboard.");
             notifyCallback(callback, result);
             return result;
         }
 
-        LOGGER.debug("CxFix: Copilot chat opened, starting automation sequence");
+        LOGGER.debug("CxFix: Copilot chat opened" + (coldStart ? " (cold start)" : "") + ", starting automation sequence");
 
-        // Step 4: Schedule the automation sequence
-        scheduleAutomatedPromptEntry(project, prompt, callback);
+        // Step 5: Schedule the automation sequence
+        scheduleAutomatedPromptEntry(project, prompt, callback, coldStart);
 
-        return IntegrationResult.partialSuccess("Copilot chat opened, automation in progress...");
+        return ChatIntegrationResult.success("Copilot chat opened, automation in progress...");
     }
 
     /**
@@ -372,6 +334,20 @@ public final class CopilotIntegration {
     // ==================== Automation Implementation ====================
 
     /**
+     * Returns {@code true} if Copilot's chat tool window has not yet been shown in this IDE
+     * session (never registered, or registered but never made visible). Copilot only builds its
+     * chat panel's Swing components the first time the window is actually shown, so this first
+     * activation needs a wider automation timing budget than steady-state clicks.
+     */
+    private static boolean isColdStart(@Nullable Project project) {
+        if (project == null) {
+            return true;
+        }
+        ToolWindow toolWindow = findCopilotToolWindow(project);
+        return toolWindow == null || !toolWindow.isVisible();
+    }
+
+    /**
      * Schedules the automated prompt entry sequence.
      *
      * <p>
@@ -385,44 +361,50 @@ public final class CopilotIntegration {
      * <p>
      * If automation fails, the prompt remains in clipboard for manual paste.
      *
-     * @param project  The current project context
-     * @param prompt   The fix prompt to send
-     * @param callback Optional callback for result notification
+     * @param project   The current project context
+     * @param prompt    The fix prompt to send
+     * @param callback  Optional callback for result notification
+     * @param coldStart Whether this is the first time Copilot's chat panel is being shown in
+     *                  this IDE session (see {@link Timing#COLD_START_MULTIPLIER})
      */
     private static void scheduleAutomatedPromptEntry(
             @NotNull Project project,
             @NotNull String prompt,
-            @Nullable Consumer<IntegrationResult> callback) {
+            @Nullable Consumer<ChatIntegrationResult> callback,
+            boolean coldStart) {
 
         CompletableFuture.runAsync(() -> {
-            IntegrationResult result;
+            ChatIntegrationResult result;
             try {
                 // Wait for Copilot to open and UI to stabilize
-                LOGGER.debug("CxFix: Waiting for Copilot chat to initialize...");
-                TimeUnit.MILLISECONDS.sleep(Timing.COPILOT_OPEN_DELAY_MS);
+                int openDelay = coldStart
+                        ? Timing.COPILOT_OPEN_DELAY_MS * Timing.COLD_START_MULTIPLIER
+                        : Timing.COPILOT_OPEN_DELAY_MS;
+                LOGGER.debug("CxFix: Waiting for Copilot chat to initialize" + (coldStart ? " (cold start)" : "") + "...");
+                TimeUnit.MILLISECONDS.sleep(openDelay);
 
                 // Attempt component-based automation (direct UI interaction)
-                boolean success = tryComponentBasedAutomation(project, prompt);
+                boolean success = tryComponentBasedAutomation(project, prompt, coldStart);
 
                 if (success) {
                     LOGGER.debug("CxFix: Automation completed successfully");
-                    result = IntegrationResult.fullSuccess(
+                    result = ChatIntegrationResult.success(
                             "Fix prompt sent to Copilot Agent successfully!");
                 } else {
                     // Component automation failed - prompt is already in clipboard
                     LOGGER.warn("CxFix: Automation failed, prompt available in clipboard");
-                    result = IntegrationResult.partialSuccess(
+                    result = ChatIntegrationResult.notAvailable(
                             "Copilot opened but automation failed. " +
                                     "The fix prompt has been copied to your clipboard - please paste manually (Ctrl/Cmd+V).");
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 LOGGER.warn("CxFix: Automation interrupted", e);
-                result = IntegrationResult.partialSuccess(
+                result = ChatIntegrationResult.notAvailable(
                         "Operation was interrupted. The fix prompt is in your clipboard - please paste manually.");
             } catch (Exception e) {
                 LOGGER.warn("CxFix: Automation error: " + e.getMessage());
-                result = IntegrationResult.partialSuccess(
+                result = ChatIntegrationResult.notAvailable(
                         "Automation encountered an error. The fix prompt is in your clipboard - please paste manually.");
             }
 
@@ -443,18 +425,84 @@ public final class CopilotIntegration {
      * <li>Send the message via button click or Enter key simulation</li>
      * </ol>
      *
-     * @param project The current project context
-     * @param prompt  The fix prompt to send
+     * @param project   The current project context
+     * @param prompt    The fix prompt to send
+     * @param coldStart Whether this is the first time Copilot's chat panel is being shown in
+     *                  this IDE session - widens every poll budget below (see
+     *                  {@link Timing#COLD_START_MULTIPLIER})
      * @return true if automation completed successfully, false otherwise
      */
-    private static boolean tryComponentBasedAutomation(@NotNull Project project, @NotNull String prompt) {
+    private static boolean tryComponentBasedAutomation(@NotNull Project project, @NotNull String prompt, boolean coldStart) {
+        int agentModeDelayMs = coldStart
+                ? Timing.AGENT_MODE_DELAY_MS * Timing.COLD_START_MULTIPLIER
+                : Timing.AGENT_MODE_DELAY_MS;
+        int inputFieldMaxWaitMs = coldStart
+                ? Timing.INPUT_FIELD_MAX_WAIT_MS * Timing.COLD_START_MULTIPLIER
+                : Timing.INPUT_FIELD_MAX_WAIT_MS;
+        int sendControlMaxWaitMs = coldStart
+                ? Timing.SEND_CONTROL_MAX_WAIT_MS * Timing.COLD_START_MULTIPLIER
+                : Timing.SEND_CONTROL_MAX_WAIT_MS;
+        int newChatSessionMaxWaitMs = coldStart
+                ? Timing.NEW_CHAT_SESSION_MAX_WAIT_MS * Timing.COLD_START_MULTIPLIER
+                : Timing.NEW_CHAT_SESSION_MAX_WAIT_MS;
+        int newChatConfirmationMaxWaitMs = coldStart
+                ? Timing.NEW_CHAT_CONFIRMATION_MAX_WAIT_MS * Timing.COLD_START_MULTIPLIER
+                : Timing.NEW_CHAT_CONFIRMATION_MAX_WAIT_MS;
+
+        // Phase 0: Attempt to start a brand-new chat session, but with optimizations:
+        // - Skip on cold start (fresh window has no prior session to discard)
+        // - Short-circuit if the "New Chat Session" button doesn't exist (will never appear)
+        // - Fall back to current session if pending edits are detected
+        //
+        // This phase wastes 1.5-4.5s on every invocation if skipped, so optimize aggressively.
+        try {
+            ToolWindow copilotWindow = findCopilotToolWindow(project);
+            if (copilotWindow == null) {
+                LOGGER.debug("CxFix: Copilot window not found, skipping new chat session");
+            } else if (coldStart) {
+                // On cold start (first time Copilot chat is shown in this session), there's no
+                // prior conversation with pending edits to discard. Skip the entire phase to
+                // improve perceived responsiveness - go straight to Agent mode switch.
+                LOGGER.debug("CxFix: Cold start detected, skipping new chat session (nothing to discard on fresh window)");
+            } else {
+                // Not cold start - there might be a prior conversation. Check if the button
+                // exists and can be clicked. If the button doesn't exist or is permanently
+                // disabled, short-circuit instead of wasting the full timeout budget.
+                ActionButton actionButton = findNewChatSessionActionButton(copilotWindow);
+                AbstractButton legacyButton = actionButton == null ? findNewChatSessionLegacyButton(copilotWindow) : null;
+
+                if (actionButton == null && legacyButton == null) {
+                    LOGGER.debug("CxFix: New Chat Session button not found in this Copilot version - continuing with current session");
+                } else if ((actionButton != null && actionButton.isEnabled()) || (legacyButton != null && legacyButton.isEnabled())) {
+                    // Button exists and is enabled - attempt to click it with retry budget
+                    boolean newChatStarted = pollUntilTrue(newChatSessionMaxWaitMs, () ->
+                            tryStartNewChatSession(copilotWindow));
+
+                    if (newChatStarted) {
+                        LOGGER.debug("CxFix: Started a new Copilot chat session");
+                        boolean pendingEditsDialogPresent = checkForPendingEditsDialog(newChatConfirmationMaxWaitMs);
+                        if (pendingEditsDialogPresent) {
+                            // Pending edits dialog appeared - preserve user work by canceling new chat
+                            LOGGER.warn("CxFix: New Chat Session triggered pending-edits dialog; falling back to current session to preserve user work");
+                            tryStartNewChatSession(copilotWindow); // Toggle off the new chat
+                        }
+                    }
+                } else {
+                    LOGGER.debug("CxFix: New Chat Session button is disabled - continuing with current session");
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
+
         // Phase 1: Switch to Agent mode (must run on EDT).
         // Copilot populates the ChatModeComboBox asynchronously (coroutines backed
         // by a separate agent process), so a single fixed-delay attempt can race
         // an empty combo box. Poll instead of sleeping-then-trying-once.
         boolean modeSwitchSuccess;
         try {
-            modeSwitchSuccess = pollUntilTrue(Timing.AGENT_MODE_DELAY_MS, () -> {
+            modeSwitchSuccess = pollUntilTrue(agentModeDelayMs, () -> {
                 ToolWindow copilotWindow = findCopilotToolWindow(project);
                 if (copilotWindow == null) {
                     LOGGER.warn("CxFix: Copilot tool window not found");
@@ -490,7 +538,7 @@ public final class CopilotIntegration {
         LOGGER.debug("CxFix: Waiting for Agent mode UI to initialize...");
         JTextComponent inputField;
         try {
-            inputField = pollForResult(Timing.INPUT_FIELD_MAX_WAIT_MS, () -> {
+            inputField = pollForResult(inputFieldMaxWaitMs, () -> {
                 ToolWindow copilotWindow = findCopilotToolWindow(project);
                 if (copilotWindow == null) {
                     return null;
@@ -529,7 +577,7 @@ public final class CopilotIntegration {
         LOGGER.debug("CxFix: Sending message...");
         boolean sentViaRealControl;
         try {
-            sentViaRealControl = pollUntilTrue(Timing.SEND_CONTROL_MAX_WAIT_MS, () -> {
+            sentViaRealControl = pollUntilTrue(sendControlMaxWaitMs, () -> {
                 ToolWindow copilotWindow = findCopilotToolWindow(project);
                 return copilotWindow != null && tryClickRealSendControl(copilotWindow);
             });
@@ -604,6 +652,238 @@ public final class CopilotIntegration {
             TimeUnit.MILLISECONDS.sleep(Timing.POLL_INTERVAL_MS);
         } while (System.currentTimeMillis() < deadline);
         return result.get();
+    }
+
+    /**
+     * Tries to find and click Copilot's "New Chat Session" control so the fix prompt starts a
+     * fresh conversation every time, rather than being appended to whatever the user was
+     * previously discussing with Copilot.
+     *
+     * @param toolWindow The Copilot tool window
+     * @return true if the New Chat Session control was found, enabled, and clicked
+     */
+    private static boolean tryStartNewChatSession(@NotNull ToolWindow toolWindow) {
+        ActionButton actionButton = findNewChatSessionActionButton(toolWindow);
+        if (actionButton != null && actionButton.isEnabled()) {
+            if (!actionButton.isShowing()) {
+                LOGGER.debug("CxFix: New Chat Session button found but not showing yet, will retry");
+                return false;
+            }
+            LOGGER.debug("CxFix: Clicking New Chat Session button: " + actionButton.getAction().getClass().getSimpleName());
+            actionButton.click();
+            return true;
+        }
+
+        AbstractButton legacyButton = findNewChatSessionLegacyButton(toolWindow);
+        if (legacyButton != null && legacyButton.isEnabled()) {
+            if (!legacyButton.isShowing()) {
+                LOGGER.debug("CxFix: New Chat Session button (legacy) found but not showing yet, will retry");
+                return false;
+            }
+            LOGGER.debug("CxFix: Clicking New Chat Session button (legacy)");
+            legacyButton.doClick();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Finds Copilot's action-system-based "New Chat Session" control ({@code ActionButton})
+     * for the given tool window.
+     */
+    private static @Nullable ActionButton findNewChatSessionActionButton(@NotNull ToolWindow toolWindow) {
+        for (Component root : newChatSessionSearchRoots(toolWindow)) {
+            ActionButton button = findNewChatSessionActionButtonRecursively(root);
+            if (button != null) {
+                return button;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Roots to search for Copilot's "New Chat Session" control..
+     */
+    private static List<Component> newChatSessionSearchRoots(@NotNull ToolWindow toolWindow) {
+        List<Component> roots = new ArrayList<>();
+        JComponent toolWindowComponent = toolWindow.getComponent();
+        if (toolWindowComponent != null) {
+            // Prefer the tool window's own decorator (header + content) so the search stays
+            // scoped to this tool window rather than the whole IDE frame - both for
+            // performance and to avoid ever matching an unrelated control elsewhere in the IDE.
+            Component decorator = findToolWindowDecoratorAncestor(toolWindowComponent);
+            if (decorator != null) {
+                roots.add(decorator);
+                return roots;
+            }
+
+            Window window = SwingUtilities.getWindowAncestor(toolWindowComponent);
+            if (window != null) {
+                roots.add(window);
+                return roots;
+            }
+            roots.add(toolWindowComponent);
+        }
+        for (Content content : toolWindow.getContentManager().getContents()) {
+            JComponent component = content.getComponent();
+            if (component != null) {
+                roots.add(component);
+            }
+        }
+        return roots;
+    }
+
+    /**
+     * Walks up from the tool window's content component looking for the nearest ancestor that
+     * represents the tool window's own header/decoration, identified by class name since the
+     * concrete decorator type is internal/undocumented IntelliJ Platform UI, not something this
+     * plugin can depend on directly. Returns {@code null} if no such ancestor is found (e.g. a
+     * platform version where the class name differs), in which case the caller falls back to
+     * searching the whole top-level window instead.
+     */
+    private static @Nullable Component findToolWindowDecoratorAncestor(@NotNull Component component) {
+        Component current = component;
+        while (current != null) {
+            String className = current.getClass().getSimpleName();
+            if (className.contains("InternalDecorator") || className.contains("ToolWindowDecorator")
+                    || className.contains("ToolWindowContentUi")) {
+                return current;
+            }
+            current = current.getParent();
+        }
+        return null;
+    }
+
+    /**
+     * Recursively searches for an {@code ActionButton} whose bound action or tooltip identifies
+     * it as Copilot's "New Chat Session" control.
+     */
+    private static @Nullable ActionButton findNewChatSessionActionButtonRecursively(@NotNull Component component) {
+        if (component instanceof ActionButton) {
+            ActionButton button = (ActionButton) component;
+            if (isNewChatSessionAction(button)) {
+                LOGGER.debug("CxFix: Found New Chat Session ActionButton bound to: " + button.getAction().getClass().getName());
+                return button;
+            }
+        }
+
+        if (component instanceof Container) {
+            Container container = (Container) component;
+            for (Component child : container.getComponents()) {
+                ActionButton found = findNewChatSessionActionButtonRecursively(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Determines whether an {@code ActionButton} represents Copilot's "New Chat Session"
+     * action, checking the bound action's class name and tooltip.
+     */
+    private static boolean isNewChatSessionAction(@NotNull ActionButton button) {
+        AnAction action = button.getAction();
+        if (action == null) {
+            return false;
+        }
+
+        String actionClassName = action.getClass().getSimpleName().toLowerCase();
+        if (actionClassName.contains("newchatsession") || actionClassName.contains("newsession")) {
+            return true;
+        }
+
+        return matchesNewChatSessionLabel(button.getToolTipText());
+    }
+
+    /**
+     * Fallback search for a legacy Swing {@code AbstractButton} identified as Copilot's
+     * "New Chat Session" control by its displayed text or tooltip.
+     */
+    private static @Nullable AbstractButton findNewChatSessionLegacyButton(@NotNull ToolWindow toolWindow) {
+        for (Component root : newChatSessionSearchRoots(toolWindow)) {
+            AbstractButton button = findNewChatSessionLegacyButtonRecursively(root);
+            if (button != null) {
+                return button;
+            }
+        }
+        return null;
+    }
+
+    private static @Nullable AbstractButton findNewChatSessionLegacyButtonRecursively(@NotNull Component component) {
+        if (component instanceof AbstractButton && !(component instanceof ActionButton)) {
+            AbstractButton button = (AbstractButton) component;
+            if (matchesNewChatSessionLabel(button.getText()) || matchesNewChatSessionLabel(button.getToolTipText())) {
+                LOGGER.debug("CxFix: Found New Chat Session button (legacy) - text: '" + button.getText()
+                        + "', tooltip: '" + button.getToolTipText() + "'");
+                return button;
+            }
+        }
+
+        if (component instanceof Container) {
+            Container container = (Container) component;
+            for (Component child : container.getComponents()) {
+                AbstractButton found = findNewChatSessionLegacyButtonRecursively(child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Matches Copilot's known "New Chat Session" labels/tooltips (see
+     * {@code copilot.agent.session.action.new.conversation}{@code /.description} and
+     * {@code copilot.chat.session.action.new.conversation}{@code /.description} in Copilot's
+     * bundle) so this keeps working regardless of which of Copilot's chat surfaces (agent vs.
+     * ask mode) renders the control.
+     */
+    private static boolean matchesNewChatSessionLabel(@Nullable String label) {
+        if (label == null) {
+            return false;
+        }
+        String lower = label.toLowerCase();
+        return lower.contains("new chat session") || lower.contains("new conversation")
+                || lower.equals("new chat") || lower.contains("create a new chat session")
+                || lower.contains("create a new conversation");
+    }
+
+    /**
+     * Checks if a pending-edits confirmation dialog is currently visible, without dismissing it.
+     * This dialog appears when starting a new chat session in a session that had unapplied
+     * agent file edits - clicking it would silently discard the user's unrelated work.
+     *
+     * <p>
+     * By detecting but not auto-dismissing this dialog, we preserve user work and fall back
+     * to the current session instead of destroying pending edits without consent.
+     *
+     * @param timeoutMs maximum time to wait for the dialog to appear
+     * @return true if the pending-edits dialog was found visible
+     */
+    private static boolean checkForPendingEditsDialog(int timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            for (Window window : Window.getWindows()) {
+                if (!window.isVisible()) {
+                    continue;
+                }
+                AbstractButton discardButton = findButtonWithText(window, DISCARD_PENDING_EDITS_BUTTON_TEXT);
+                if (discardButton != null && discardButton.isEnabled() && discardButton.isShowing()) {
+                    LOGGER.warn("CxFix: Detected pending-edits confirmation dialog (user edits in progress)");
+                    return true;
+                }
+            }
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1625,7 +1905,7 @@ public final class CopilotIntegration {
     /**
      * Safely notifies the callback on the EDT.
      */
-    private static void notifyCallback(@Nullable Consumer<IntegrationResult> callback, IntegrationResult result) {
+    private static void notifyCallback(@Nullable Consumer<ChatIntegrationResult> callback, ChatIntegrationResult result) {
         if (callback != null) {
             ApplicationManager.getApplication().invokeLater(() -> callback.accept(result));
         }

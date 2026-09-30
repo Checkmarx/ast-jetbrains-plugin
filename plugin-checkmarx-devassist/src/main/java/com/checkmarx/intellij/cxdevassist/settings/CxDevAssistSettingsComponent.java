@@ -11,19 +11,23 @@ import com.checkmarx.intellij.common.settings.SettingsComponent;
 import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.common.utils.Utils;
-import com.checkmarx.intellij.devassist.configuration.mcp.McpSettingsInjector;
+import com.checkmarx.intellij.devassist.aiagents.AiAgent;
+import com.checkmarx.intellij.devassist.aiagents.AiAgentLoginResolver;
+import com.checkmarx.intellij.devassist.aiagents.AiAgentResolution;
 import com.checkmarx.intellij.cxdevassist.ui.CxDevAssistWelcomeDialog;
 import com.checkmarx.intellij.cxdevassist.utils.CxDevAssistConstants;
 import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ex.ApplicationManagerEx;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.options.ex.Settings;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.DocumentAdapter;
@@ -36,6 +40,7 @@ import lombok.Getter;
 import net.miginfocom.swing.MigLayout;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -189,6 +194,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
             state.setContainersRealtime(globalSettingsState.isContainersRealtime());
             state.setIacRealtime(globalSettingsState.isIacRealtime());
             state.setContainersTool(globalSettingsState.getContainersTool());
+            state.setAiAgent(globalSettingsState.getAiAgent());
 
             // MCP and dialog state
             state.setWelcomeShown(globalSettingsState.isWelcomeShown());
@@ -305,12 +311,14 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
         globalSettingsState.setMcpEnabled(mcpServerEnabled);
         globalSettingsState.setMcpStatusChecked(true);
         apply();
+        AiAgentResolution agentResolution = null;
 
         // Configure realtime scanners based on MCP status - only modify settings when necessary to preserve user preferences during routine re-authentication
         if (!mcpStatusPreviouslyChecked) {
             // First time checking MCP status (new user or plugin upgrade scenario)
             if (mcpServerEnabled) {
                 autoEnableAllRealtimeScanners(); // Enable scanners with preference detection
+                agentResolution = AiAgentLoginResolver.resolve(project, globalSettingsState);
                 installMcpAsync(credential);
             } else {
                 disableAllRealtimeScanners(); // Disable scanners while preserving preferences
@@ -321,6 +329,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
             if (mcpServerEnabled) {
                 LOGGER.debug("[Auth] MCP re-enabled - restoring user preferences");
                 autoEnableAllRealtimeScanners(); // Restore user preferences
+                agentResolution = AiAgentLoginResolver.resolve(project, globalSettingsState);
                 installMcpAsync(credential);
             } else {
                 LOGGER.debug("[Auth] MCP disabled - preserving user preferences and disabling scanners");
@@ -329,21 +338,22 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
         } else {
             // MCP status unchanged - preserve existing scanner settings and user preferences
             if (mcpServerEnabled) {
+                agentResolution = AiAgentLoginResolver.resolve(project, globalSettingsState);
                 installMcpAsync(credential); // Ensure MCP config is up to date
                 LOGGER.debug("[Auth] MCP unchanged (enabled) - user preferences preserved");
             } else {
                 LOGGER.debug("[Auth] MCP unchanged (disabled) - user preferences preserved");
             }
         }
-
-        showWelcomeDialog(mcpServerEnabled);
+        showWelcomeDialog(mcpServerEnabled, agentResolution);
     }
 
     private void installMcpAsync(String credential) {
+        AiAgent agent = AiAgent.fromSettingsValue(globalSettingsState.getAiAgent());
         CompletableFuture.supplyAsync(() -> {
             try {
                 // Returns Boolean.TRUE if MCP modified, Boolean.FALSE if already up-to-date
-                return McpSettingsInjector.installForCopilot(credential);
+                return agent.mcpTarget().install(credential);
             } catch (Exception ex) {
                 return ex;
             }
@@ -374,12 +384,35 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
         }));
     }
 
-    private void showWelcomeDialog(boolean mcpEnabled) {
+    private void showWelcomeDialog(boolean mcpEnabled, @Nullable AiAgentResolution agentResolution) {
         try {
-            CxDevAssistWelcomeDialog dlg = new CxDevAssistWelcomeDialog(project, mcpEnabled);
+            CxDevAssistWelcomeDialog dlg = new CxDevAssistWelcomeDialog(project, mcpEnabled, agentResolution);
             dlg.show();
+            // After welcome dialog closes, check if the selected agent is JetBrains AI Assistant
+            // and show restart popup since MCP configuration changes require IDE restart to take effect
+            if (dlg.getExitCode() == DialogWrapper.OK_EXIT_CODE || dlg.getExitCode() == DialogWrapper.CANCEL_EXIT_CODE) {
+                AiAgent selectedAgent = AiAgent.fromSettingsValue(GlobalSettingsState.getInstance().getAiAgent());
+                if (selectedAgent == AiAgent.JETBRAINS_AI_ASSISTANT && agentResolution != null && agentResolution.getNoticeTitle() != null
+                        && agentResolution.getNoticeTitle().contains("AI Assistant switched")) {
+                    ApplicationManager.getApplication().invokeLater(this::showRestartIdePopup);
+                }
+            }
         } catch (Exception ex) {
             LOGGER.warn("Failed to show welcome dialog", ex);
+        }
+    }
+
+    /**
+     * Shows a restart IDE popup after successful authentication, when the selected agent is
+     * JetBrains AI Assistant (since MCP configuration changes require an IDE restart to take effect).
+     */
+    private void showRestartIdePopup() {
+        String message = Bundle.message(Resource.AI_AGENT_RESTART_REQUIRED_MESSAGE);
+        String restartLabel = Bundle.message(Resource.AI_AGENT_RESTART_ACTION_LABEL);
+        int result = Messages.showDialog(mainPanel, message, CxDevAssistConstants.PLUGIN_NAME,
+                new String[]{restartLabel, Messages.getCancelButton()}, 0, Messages.getInformationIcon());
+        if (result == 0) {
+            ApplicationManagerEx.getApplicationEx().restart(true);
         }
     }
 
@@ -495,17 +528,8 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
                 setLogoutState();
                 notifyLogout();
 
-                // Ensure only the Checkmarx MCP entry is removed and log any issues.
-                CompletableFuture.runAsync(() -> {
-                    try {
-                        boolean removed = McpSettingsInjector.uninstallFromCopilot();
-                        if (!removed) {
-                            LOGGER.debug("Logout completed, but no MCP entry was present to remove.");
-                        }
-                    } catch (Exception ex) {
-                        LOGGER.warn("Failed to remove Checkmarx MCP entry on logout.", ex);
-                    }
-                });
+                // Remove the Checkmarx MCP entry from every known agent
+                CompletableFuture.runAsync(() -> AiAgent.uninstallFromAllAgents(LOGGER, "on logout"));
             }
             // else: Do nothing (user clicked Cancel)
         });

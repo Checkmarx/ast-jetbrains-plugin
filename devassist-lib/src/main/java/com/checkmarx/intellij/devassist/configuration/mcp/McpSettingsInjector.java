@@ -5,11 +5,13 @@ import com.checkmarx.intellij.common.utils.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.openapi.diagnostic.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.*;
 import java.util.*;
 
 public final class McpSettingsInjector {
@@ -52,6 +54,43 @@ public final class McpSettingsInjector {
         return removed;
     }
 
+    /**
+     * Adds or updates the Checkmarx MCP server entry in JetBrains AI Assistant's MCP client
+     * configuration. Returns true if the file was updated.
+     */
+    public static boolean installForAiAssistant(String token) throws Exception {
+        String mcpUrl = getMCPUrl(token);
+        Path cfg = resolveAiAssistantMcpConfigPath();
+        boolean changed = mergeCheckmarxServerStandardSchema(cfg, mcpUrl, token);
+        if (changed) {
+            LOG.info("AI-Assistant: Installed/updated Checkmarx MCP for AI Assistant at: " + cfg);
+        } else {
+            LOG.debug("AI-Assistant: MCP config unchanged at: " + cfg);
+        }
+        return changed;
+    }
+
+    /**
+     * Removes the Checkmarx MCP server entry from AI Assistant's MCP configuration.
+     */
+    public static boolean uninstallFromAiAssistant() throws Exception {
+        Path cfg = resolveAiAssistantMcpConfigPath();
+        boolean removed = removeCheckmarxServerStandardSchema(cfg);
+        if (removed) {
+            LOG.info("AI-Assistant: Removed Checkmarx MCP from AI Assistant at: " + cfg);
+        } else {
+            LOG.debug("AI-Assistant: No Checkmarx MCP entry found to remove at: " + cfg);
+        }
+        return removed;
+    }
+
+    /**
+     * Public accessor used by UI components to locate AI Assistant's MCP configuration file.
+     */
+    public static Path getAiAssistantMcpJsonPath() {
+        return resolveAiAssistantMcpConfigPath();
+    }
+
     /* ---------- Path resolution ---------- */
 
     private static Path resolveCopilotMcpConfigPath() {
@@ -75,6 +114,15 @@ public final class McpSettingsInjector {
         // Fallback to ~/.config/github-copilot/intellij/mcp.json (common on macOS where XDG_CONFIG_HOME is not set)
         Path configBase = Path.of(home, ".config");
         return configBase.resolve(Path.of("github-copilot", "intellij", "mcp.json"));
+    }
+
+    /**
+     * Resolves AI Assistant's global MCP config path: {@code ~/.ai/mcp/mcp.json}, matching the
+     * IDE's default registry value for {@code llm.mcp.client.global.mcp.json.path}.
+     */
+    private static Path resolveAiAssistantMcpConfigPath() {
+        String home = System.getProperty("user.home");
+        return Path.of(home, ".ai", "mcp", "mcp.json");
     }
 
     /* ---------- Helpers ---------- */
@@ -169,6 +217,93 @@ public final class McpSettingsInjector {
         return true;
     }
 
+    /**
+     * Merges the Checkmarx server entry using the standard MCP client {@code mcpServers} schema
+     * (flat {@code headers} map, no {@code requestInit} wrapper) used by AI Assistant's built-in
+     * MCP client rather than Copilot's bespoke {@code servers} schema.
+     */
+    @SuppressWarnings("unchecked")
+    private static boolean mergeCheckmarxServerStandardSchema(Path configPath, String url, String token) throws Exception {
+        Map<String, Object> root = readJson(configPath, "mcpServers");
+        Map<String, Object> servers = (Map<String, Object>) root
+                .getOrDefault("mcpServers", new LinkedHashMap<>());
+
+        Map<String, Object> serverEntry = getServerEntryWithHeader(url, token);
+        String mcpServerKey = getMCPServerKey();
+
+        Map<String, Object> existing = (Map<String, Object>) servers.get(mcpServerKey);
+        boolean changed = !Objects.equals(existing, serverEntry);
+
+        if (!changed) {
+            return false;
+        }
+
+        servers.put(mcpServerKey, serverEntry);
+        root.put("mcpServers", servers);
+
+        Files.createDirectories(configPath.getParent());
+        Files.writeString(configPath,
+                MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(root));
+        return true;
+    }
+
+    /**
+     * Builds a server entry map with the given URL and Authorization token, using the standard
+     * MCP client schema (flat headers map) used by AI Assistant's built-in MCP client.
+     *
+     * @param url   - the MCP server URL
+     * @param token - the Authorization token to include in the headers
+     * @return the server entry map
+     */
+    private static @NotNull Map<String, Object> getServerEntryWithHeader(String url, String token) {
+        Map<String, Object> headers = new LinkedHashMap<>();
+        headers.put("cx-origin", Constants.JET_BRAINS_AGENT_NAME);
+        headers.put("Authorization", token);
+
+        Map<String, Object> serverEntry = new LinkedHashMap<>();
+        serverEntry.put("url", url);
+        serverEntry.put("headers", headers);
+        return serverEntry;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static boolean removeCheckmarxServerStandardSchema(Path configPath) throws Exception {
+        if (!Files.exists(configPath)) return false;
+
+        Map<String, Object> root = readJson(configPath, "mcpServers");
+        Object serversObj = root.get("mcpServers");
+        if (!(serversObj instanceof Map)) return false;
+
+        String mcpServerKey = getMCPServerKey();
+
+        Map<String, Object> servers = (Map<String, Object>) serversObj;
+        boolean removed = servers.remove(mcpServerKey) != null;
+        if (!removed) {
+            return false;
+        }
+
+        root.put("mcpServers", servers);
+        Files.writeString(configPath,
+                MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(root));
+        return true;
+    }
+
+    private static Map<String, Object> readJson(Path path, String rootKey) {
+        if (!Files.exists(path)) return new LinkedHashMap<>(Collections.singletonMap(rootKey, new LinkedHashMap<>()));
+        try {
+            String content = stripLineComments(Files.readString(path));
+            Map<String, Object> map =
+                    MAPPER.readValue(content, new TypeReference<Map<String, Object>>() {
+                    });
+            return (map == null || map.isEmpty())
+                    ? new LinkedHashMap<>(Collections.singletonMap(rootKey, new LinkedHashMap<>()))
+                    : map;
+        } catch (Exception e) {
+            LOG.warn("Failed to read existing MCP config, starting fresh", e);
+            return new LinkedHashMap<>(Collections.singletonMap(rootKey, new LinkedHashMap<>()));
+        }
+    }
+
     private static Map<String, Object> readJson(Path path) {
         if (!Files.exists(path)) return emptyServersRoot();
         try {
@@ -205,6 +340,18 @@ public final class McpSettingsInjector {
      */
     private static String getMCPServerKey() {
         return Utils.getPluginDisplayName();
+    }
+
+    /**
+     * Build MCP url using token
+     *
+     * @param token - the token to use for building the MCP URL
+     * @return the MCP URL
+     */
+    private static String getMCPUrl(String token) {
+        String issuer = tryExtractIssuer(token);
+        String baseUrl = deriveBaseUrlFromIssuer(issuer);
+        return baseUrl + "/api/security-mcp/mcp";
     }
 }
 

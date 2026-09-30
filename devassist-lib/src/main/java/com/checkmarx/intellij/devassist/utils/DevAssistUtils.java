@@ -514,4 +514,12 @@ public class DevAssistUtils {
             return DevAssistConstants.CX_AGENT_NAME;
         }
     }
+
+    public static String getCustomPluginDisplayName() {
+        String displayName = Utils.getPluginDisplayName();
+        if(displayName != null && !displayName.isBlank() && displayName.equals(Constants.TOOL_WINDOW_ID)) {
+            return DevAssistConstants.CX_AGENT_NAME;
+        }
+        return displayName;
+    }
 }
