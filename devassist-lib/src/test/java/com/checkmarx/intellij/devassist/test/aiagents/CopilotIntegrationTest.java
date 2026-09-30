@@ -747,7 +747,7 @@ class CopilotIntegrationTest {
     }
 
     private static Method tryDismissPendingEditsConfirmationMethod() throws NoSuchMethodException {
-        Method m = CopilotIntegration.class.getDeclaredMethod("tryDismissPendingEditsConfirmation");
+        Method m = CopilotIntegration.class.getDeclaredMethod("checkForPendingEditsDialog", int.class);
         m.setAccessible(true);
         return m;
     }
@@ -893,7 +893,7 @@ class CopilotIntegrationTest {
 
     @Test
     void tryDismissPendingEditsConfirmation_noVisibleWindows_returnsFalse() throws Exception {
-        boolean result = (boolean) tryDismissPendingEditsConfirmationMethod().invoke(null);
+        boolean result = (boolean) tryDismissPendingEditsConfirmationMethod().invoke(null, 0);
 
         assertFalse(result);
     }
