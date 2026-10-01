@@ -28,10 +28,13 @@ public abstract class BaseTest extends BasePlatformTestCase {
     public final void setUp() throws Exception {
         super.setUp();
 
-        // Allow access to test data directory for file-based tests
+        // Allow access to test data directories for file-based tests. Paths are resolved the same
+        // way the file-based tests resolve their inputs (relative to the process working
+        // directory) so the allowed roots line up with the files actually being opened.
         String projectRoot = Paths.get("").toAbsolutePath().toString();
-        String testDataPath = Paths.get(projectRoot, "plugin-checkmarx-ast", "src", "test", "java", "com", "checkmarx", "intellij", "ast", "test", "integration", "standard", "data").toString();
-        VfsRootAccess.allowRootAccess(getTestRootDisposable(), testDataPath);
+        String resourcesDataPath = Paths.get(projectRoot, "src", "test", "resources", "data").toString();
+        String integrationDataPath = Paths.get(projectRoot, "src", "test", "java", "com", "checkmarx", "intellij", "ast", "test", "integration", "standard", "data").toString();
+        VfsRootAccess.allowRootAccess(getTestRootDisposable(), resourcesDataPath, integrationDataPath);
 
         // Mock IgnoreFileManager to return a valid temp path
         // This prevents NullPointerException when project.getBasePath() returns null in tests
