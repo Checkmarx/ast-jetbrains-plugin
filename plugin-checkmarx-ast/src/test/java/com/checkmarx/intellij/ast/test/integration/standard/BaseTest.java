@@ -28,6 +28,12 @@ public abstract class BaseTest extends BasePlatformTestCase {
     public final void setUp() throws Exception {
         super.setUp();
 
+        // Skip integration tests if required environment variables are not set
+        if (Environment.PROJECT_NAME == null || Environment.SCAN_ID == null) {
+            throw new AssertionError(
+                    "Integration tests require environment variables: CX_TEST_PROJECT, CX_TEST_SCAN, CX_BASE_URI, CX_TENANT, CX_APIKEY");
+        }
+
         // Allow access to test data directories for file-based tests. Paths are resolved the same
         // way the file-based tests resolve their inputs (relative to the process working
         // directory) so the allowed roots line up with the files actually being opened.

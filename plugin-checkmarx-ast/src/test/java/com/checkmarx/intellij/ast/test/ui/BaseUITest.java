@@ -35,6 +35,12 @@ public abstract class BaseUITest {
     @BeforeAll
     public static void init() {
         if (!initialized) {
+            // Skip UI tests if required environment variables are not set
+            if (Environment.REPO == null || Environment.PROJECT_NAME == null) {
+                Assertions.fail(
+                        "UI tests require environment variables: CX_TEST_REPO, CX_TEST_PROJECT, CX_BASE_URI, CX_TENANT, CX_APIKEY");
+            }
+
             log("Initializing the tests");
             log("Wait duration set for " + waitDuration.getSeconds());
             StepWorker.registerProcessor(new StepLogger());
