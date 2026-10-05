@@ -483,7 +483,7 @@ public class CxDevAssistSettingsComponentIntTest extends LocalBasePlatformTest {
     @Test
     public void showWelcomeDialog_mcpEnabled_constructsDialog() throws Exception {
         CxDevAssistSettingsComponent comp = new CxDevAssistSettingsComponent();
-        Method m = CxDevAssistSettingsComponent.class.getDeclaredMethod("showWelcomeDialog", boolean.class, String.class);
+        Method m = CxDevAssistSettingsComponent.class.getDeclaredMethod("showWelcomeDialog", boolean.class, com.checkmarx.intellij.devassist.aiagents.AiAgentResolution.class);
         m.setAccessible(true);
 
         try (MockedConstruction<CxDevAssistWelcomeDialog> dlgMock =
@@ -496,7 +496,7 @@ public class CxDevAssistSettingsComponentIntTest extends LocalBasePlatformTest {
     @Test
     public void showWelcomeDialog_mcpDisabled_constructsDialog() throws Exception {
         CxDevAssistSettingsComponent comp = new CxDevAssistSettingsComponent();
-        Method m = CxDevAssistSettingsComponent.class.getDeclaredMethod("showWelcomeDialog", boolean.class, String.class);
+        Method m = CxDevAssistSettingsComponent.class.getDeclaredMethod("showWelcomeDialog", boolean.class, com.checkmarx.intellij.devassist.aiagents.AiAgentResolution.class);
         m.setAccessible(true);
 
         try (MockedConstruction<CxDevAssistWelcomeDialog> dlgMock =

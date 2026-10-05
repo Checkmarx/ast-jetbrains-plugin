@@ -339,7 +339,8 @@ public final class McpSettingsInjector {
      * @return plugin-specific mcp server key
      */
     private static String getMCPServerKey() {
-        return Utils.getPluginDisplayName();
+        String name = Utils.getPluginDisplayName();
+        return name != null && !name.isBlank() ? name : Constants.TOOL_WINDOW_ID;
     }
 
     /**

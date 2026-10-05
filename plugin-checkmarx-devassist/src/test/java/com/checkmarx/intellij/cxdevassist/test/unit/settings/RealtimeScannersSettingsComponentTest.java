@@ -83,7 +83,7 @@ class RealtimeScannersSettingsComponentTest {
         setField(component, "containersCheckbox", new JBCheckBox());
         setField(component, "iacCheckbox", new JBCheckBox());
         setField(component, "containersToolCombo", new ComboBox<>(new String[]{"docker", "podman"}));
-        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"Copilot", "JetBrains AI Chat"}));
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"GitHub Copilot", "JetBrains AI Assistant"}));
         setField(component, "assistMessageLabel", new com.intellij.ui.components.JBLabel());
         setField(component, "mainPanel", new JPanel());
 
@@ -119,7 +119,7 @@ class RealtimeScannersSettingsComponentTest {
         when(mockState.isContainersRealtime()).thenReturn(false);
         when(mockState.isIacRealtime()).thenReturn(false);
         when(mockState.getContainersTool()).thenReturn("docker");
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
 
         assertFalse(component.isModified());
     }
@@ -153,7 +153,7 @@ class RealtimeScannersSettingsComponentTest {
 
     @Test
     void isModified_WhenAiAgentDiffersFromState_ReturnsTrue() throws Exception {
-        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"JetBrains AI Chat"}));
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"JetBrains AI Assistant"}));
 
         when(mockState.isAscaRealtime()).thenReturn(false);
         when(mockState.isOssRealtime()).thenReturn(false);
@@ -161,7 +161,7 @@ class RealtimeScannersSettingsComponentTest {
         when(mockState.isContainersRealtime()).thenReturn(false);
         when(mockState.isIacRealtime()).thenReturn(false);
         when(mockState.getContainersTool()).thenReturn("docker");
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
 
         assertTrue(component.isModified());
     }
@@ -191,8 +191,8 @@ class RealtimeScannersSettingsComponentTest {
         // End-to-end: verifies apply() itself derives previousAgent/newAgent correctly and wires
         // them through to the right McpSettingsInjector call - not just that some private helper
         // does the right thing in isolation.
-        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"JetBrains AI Chat"}));
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"JetBrains AI Assistant"}));
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
         when(mockState.getContainersTool()).thenReturn("docker");
 
         Application mockApp = mockApplicationRunningPooledThreadInline();
@@ -207,7 +207,7 @@ class RealtimeScannersSettingsComponentTest {
 
             appMgrMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
             pmMock.when(ProjectManager::getInstance).thenReturn(mockProjectManager);
-            // The new agent (JetBrains AI Chat) is available, so apply() takes the
+            // The new agent (JetBrains AI Assistant) is available, so apply() takes the
             // "installed" path rather than showing the not-installed popup - it shows the
             // restart-IDE popup instead, since switching to it doesn't take effect until restart.
             aiAssistantMock.when(() -> AiAssistantIntegration.isAiAssistantAvailable(any())).thenReturn(true);
@@ -218,18 +218,18 @@ class RealtimeScannersSettingsComponentTest {
 
             component.apply();
 
-            // Uninstalled from COPILOT (the previous agent), not JETBRAINS_AI_CHAT (the new one).
+            // Uninstalled from COPILOT (the previous agent), not JETBRAINS_AI_ASSISTANT (the new one).
             mcpMock.verify(McpSettingsInjector::uninstallFromCopilot);
             mcpMock.verify(McpSettingsInjector::uninstallFromAiAssistant, never());
         }
 
-        verify(mockState).setAiAgent("JETBRAINS_AI_CHAT");
+        verify(mockState).setAiAgent("JETBRAINS_AI_ASSISTANT");
     }
 
     @Test
     void apply_WhenAiAgentUnchanged_DoesNotUninstallAnyMcpEntry() throws Exception {
-        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"Copilot"}));
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"GitHub Copilot"}));
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
         when(mockState.getContainersTool()).thenReturn("docker");
 
         Application mockApp = mockApplicationRunningPooledThreadInline();
@@ -244,14 +244,14 @@ class RealtimeScannersSettingsComponentTest {
             mcpMock.verifyNoInteractions();
         }
 
-        verify(mockState).setAiAgent("COPILOT");
+        verify(mockState).setAiAgent("GITHUB_COPILOT");
     }
 
     @Test
     void apply_WhenPreviousAgentUninstallThrows_ShowsMcpStatusAndDoesNotPropagate() throws Exception {
-        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"JetBrains AI Chat"}));
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"JetBrains AI Assistant"}));
         setField(component, "mcpStatusLabel", new JBLabel());
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
         when(mockState.getContainersTool()).thenReturn("docker");
 
         Application mockApp = mockApplicationRunningPooledThreadInline();
@@ -276,7 +276,7 @@ class RealtimeScannersSettingsComponentTest {
 
             appMgrMock.when(ApplicationManager::getApplication).thenReturn(mockApp);
             pmMock.when(ProjectManager::getInstance).thenReturn(mockProjectManager);
-            // The new agent (JetBrains AI Chat) is available, so apply() takes the "installed"
+            // The new agent (JetBrains AI Assistant) is available, so apply() takes the "installed"
             // path rather than showing the not-installed popup (which would need a real UI) -
             // it shows the restart-IDE popup instead, which Messages is mocked to swallow here.
             aiAssistantMock.when(() -> AiAssistantIntegration.isAiAssistantAvailable(any())).thenReturn(true);
@@ -304,14 +304,14 @@ class RealtimeScannersSettingsComponentTest {
         // DataManager.getInstance() inside openAgentMcpSettingsPage() throws and is caught,
         // returning false - openMcpJson() must then fall back to opening the raw config file
         // rather than leaving the user with nothing.
-        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"JetBrains AI Chat"}));
+        setField(component, "aiAgentCombo", new ComboBox<>(new String[]{"JetBrains AI Assistant"}));
         when(mockState.isAscaRealtime()).thenReturn(false);
         when(mockState.isOssRealtime()).thenReturn(false);
         when(mockState.isSecretDetectionRealtime()).thenReturn(false);
         when(mockState.isContainersRealtime()).thenReturn(false);
         when(mockState.isIacRealtime()).thenReturn(false);
         when(mockState.getContainersTool()).thenReturn("docker");
-        when(mockState.getAiAgent()).thenReturn("JETBRAINS_AI_CHAT");
+        when(mockState.getAiAgent()).thenReturn("JETBRAINS_AI_ASSISTANT");
 
         ProjectManager mockPm = mock(ProjectManager.class);
         Project mockProject = mock(Project.class);
