@@ -1,15 +1,15 @@
 package com.checkmarx.intellij.devassist.aiagents;
 
+import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.configuration.mcp.AiAssistantMcpTarget;
 import com.checkmarx.intellij.devassist.configuration.mcp.CopilotMcpTarget;
 import com.checkmarx.intellij.devassist.configuration.mcp.McpAgentTarget;
 import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantChatIntegration;
 import com.checkmarx.intellij.devassist.aiagents.aiassistant.AiAssistantIntegration;
 import com.checkmarx.intellij.devassist.aiagents.copilot.CopilotChatIntegration;
-import com.intellij.ide.plugins.PluginManagerConfigurable;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
@@ -91,13 +91,19 @@ public enum AiAgent {
     }
 
     /**
-     * Opens the IDE's own Plugins settings page directly on the Marketplace tab.
+     * Opens the JetBrains Marketplace in the default browser for this agent's plugin.
+     * Avoids internal IDE APIs which block plugin publishing on the JetBrains Marketplace.
      *
-     * @param project the project context; may be {@code null} to use the default project
+     * @param project the project context; may be {@code null}
      */
     public void openMarketplacePage(@Nullable Project project) {
-        ShowSettingsUtil.getInstance().showSettingsDialog(project, PluginManagerConfigurable.class,
-                configurable -> configurable.openMarketplaceTab(marketplaceSearchQuery));
+        String marketplaceUrl = "https://plugins.jetbrains.com/search?search=" +
+                marketplaceSearchQuery.replace(" ", "+");
+        try{
+            BrowserUtil.browse(marketplaceUrl);
+        }catch (Exception e) {
+            Utils.getLogger(AiAgent.class).warn("Failed to open marketplace page for " + agentName, e);
+        }
     }
 
     /**
