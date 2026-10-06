@@ -76,7 +76,7 @@ class DevAssistInspectionTest {
         when(psiFile.getVirtualFile()).thenReturn(null);
         try (MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class);
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
-             MockedStatic<Utils> auth = mockStatic(Utils.class)) {
+             MockedStatic<Utils> auth = mockStatic(Utils.class, CALLS_REAL_METHODS)) {
             ProblemDescriptor[] descriptors = inspection.checkFile(psiFile, inspectionManager, true);
             assertEquals(0, descriptors.length);
             verify(inspectionMgr).resetEditorAndResults(project, null);
@@ -97,7 +97,7 @@ class DevAssistInspectionTest {
                 eq(singletonList(scannerService)), eq(inspectionManager)))
                 .thenReturn(new ProblemDescriptor[]{existing});
 
-        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class, CALLS_REAL_METHODS);
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class);
@@ -130,7 +130,7 @@ class DevAssistInspectionTest {
         ScanIssue scanIssue = new ScanIssue();
         scanIssue.setScanEngine(ScanEngine.IAC);
 
-        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class, CALLS_REAL_METHODS);
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class);
@@ -173,7 +173,7 @@ class DevAssistInspectionTest {
         ProblemDescriptor fallback = mock(ProblemDescriptor.class);
         when(inspectionMgr.startScanAndCreateProblemDescriptors(any())).thenReturn(new ProblemDescriptor[]{fallback});
 
-        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class, CALLS_REAL_METHODS);
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class);
@@ -201,7 +201,7 @@ class DevAssistInspectionTest {
         when(virtualFile.getPath()).thenReturn("/repo/Dummy.txt");
 
         try (MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
-             MockedStatic<Utils> auth = mockStatic(Utils.class);
+             MockedStatic<Utils> auth = mockStatic(Utils.class, CALLS_REAL_METHODS);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class)) {
             devUtils.when(() -> DevAssistUtils.isAIAgentEvent("/repo/Dummy.txt")).thenReturn(true);
 
@@ -213,7 +213,7 @@ class DevAssistInspectionTest {
     @Test
     @DisplayName("Returns empty when user is not authenticated")
     void checkFileReturnsEmptyWhenNotAuthenticated() {
-        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class, CALLS_REAL_METHODS);
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class)) {
             auth.when(Utils::isUserAuthenticated).thenReturn(false);
@@ -228,7 +228,7 @@ class DevAssistInspectionTest {
     @Test
     @DisplayName("Returns empty when no scanner is enabled")
     void checkFileReturnsEmptyWhenNoScannerEnabled() {
-        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class, CALLS_REAL_METHODS);
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class)) {
             auth.when(Utils::isUserAuthenticated).thenReturn(true);
@@ -246,7 +246,7 @@ class DevAssistInspectionTest {
     void checkFileReturnsEmptyWhenDocumentIsNull() {
         when(inspectionMgr.getSupportedScanner(anyString(), eq(psiFile))).thenReturn(List.of(scannerService));
 
-        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class, CALLS_REAL_METHODS);
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class)) {
@@ -267,7 +267,7 @@ class DevAssistInspectionTest {
     void checkFileReturnsEmptyWhenNoSupportedScanner() {
         when(inspectionMgr.getSupportedScanner(anyString(), eq(psiFile))).thenReturn(List.of());
 
-        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class, CALLS_REAL_METHODS);
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class)) {
@@ -288,7 +288,7 @@ class DevAssistInspectionTest {
     void checkFileReturnsEmptyWhenProblemHolderServiceNull() {
         when(inspectionMgr.getSupportedScanner(anyString(), eq(psiFile))).thenReturn(List.of(scannerService));
 
-        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class, CALLS_REAL_METHODS);
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class);
@@ -312,7 +312,7 @@ class DevAssistInspectionTest {
     void checkFileReturnsEmptyWhenScanStateHolderNull() {
         when(inspectionMgr.getSupportedScanner(anyString(), eq(psiFile))).thenReturn(List.of(scannerService));
 
-        try (MockedStatic<Utils> auth = mockStatic(Utils.class);
+        try (MockedStatic<Utils> auth = mockStatic(Utils.class, CALLS_REAL_METHODS);
              MockedStatic<DevAssistUtils> devUtils = mockStatic(DevAssistUtils.class);
              MockedStatic<PsiDocumentManager> psiMgr = mockStatic(PsiDocumentManager.class);
              MockedStatic<ProblemHolderService> holder = mockStatic(ProblemHolderService.class);

@@ -223,8 +223,8 @@ class AiAssistantIntegrationTest {
         try (MockedStatic<ActionManager> amMock = mockStatic(ActionManager.class)) {
             DataContext dataContext = dataId -> null;
             invokeStatic("onSendTimerFired",
-                    new Class[]{DataContext.class, int.class, Consumer.class},
-                    dataContext, staleGeneration, (Consumer<?>) result -> {});
+                    new Class[]{DataContext.class, String.class, int.class, Consumer.class},
+                    dataContext, "prompt", staleGeneration, (Consumer<?>) result -> {});
 
             amMock.verifyNoInteractions();
         }

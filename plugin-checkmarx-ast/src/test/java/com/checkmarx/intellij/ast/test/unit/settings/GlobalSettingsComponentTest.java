@@ -1,6 +1,7 @@
 package com.checkmarx.intellij.ast.test.unit.settings;
 
 import com.checkmarx.intellij.ast.settings.GlobalSettingsComponent;
+import com.checkmarx.intellij.devassist.aiagents.AiAgentResolution;
 import com.checkmarx.intellij.common.components.CxLinkLabel;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
@@ -1676,7 +1677,7 @@ class GlobalSettingsComponentTest {
     void showWelcomeDialog_WhenCalled_CreatesWelcomeDialog() throws Exception {
         try (MockedConstruction<com.checkmarx.intellij.ast.ui.WelcomeDialog> wdMock =
                      mockConstruction(com.checkmarx.intellij.ast.ui.WelcomeDialog.class)) {
-            invokePrivate(component, "showWelcomeDialog", new Class[]{boolean.class, String.class}, true, null);
+            invokePrivate(component, "showWelcomeDialog", new Class[]{boolean.class, AiAgentResolution.class}, true, null);
             assertEquals(1, wdMock.constructed().size());
         }
     }
@@ -1687,7 +1688,7 @@ class GlobalSettingsComponentTest {
                      mockConstruction(com.checkmarx.intellij.ast.ui.WelcomeDialog.class,
                              (mock, context) -> doThrow(new RuntimeException("UI error")).when(mock).show())) {
             assertDoesNotThrow(() ->
-                    invokePrivate(component, "showWelcomeDialog", new Class[]{boolean.class, String.class}, false, null));
+                    invokePrivate(component, "showWelcomeDialog", new Class[]{boolean.class, AiAgentResolution.class}, false, null));
         }
     }
 

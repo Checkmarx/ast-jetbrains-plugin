@@ -14,6 +14,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -37,7 +38,7 @@ class AiAgentLoginResolverTest {
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
 
         try (MockedStatic<AiAgent> agentMock = mockStatic(AiAgent.class);
-             MockedStatic<Utils> utilsMock = mockStatic(Utils.class)) {
+             MockedStatic<Utils> utilsMock = mockStatic(Utils.class, CALLS_REAL_METHODS)) {
 
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(List.of());
             AiAgent defaultAgent = AiAgent.GITHUB_COPILOT;
@@ -59,7 +60,7 @@ class AiAgentLoginResolverTest {
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
 
         try (MockedStatic<AiAgent> agentMock = mockStatic(AiAgent.class);
-             MockedStatic<Utils> utilsMock = mockStatic(Utils.class)) {
+             MockedStatic<Utils> utilsMock = mockStatic(Utils.class, CALLS_REAL_METHODS)) {
 
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(List.of());
             AiAgent defaultAgent = AiAgent.JETBRAINS_AI_ASSISTANT;
@@ -126,7 +127,7 @@ class AiAgentLoginResolverTest {
         when(mockState.getAiAgent()).thenReturn("JETBRAINS_AI_ASSISTANT");
 
         try (MockedStatic<AiAgent> agentMock = mockStatic(AiAgent.class);
-             MockedStatic<Utils> utilsMock = mockStatic(Utils.class)) {
+             MockedStatic<Utils> utilsMock = mockStatic(Utils.class, CALLS_REAL_METHODS)) {
 
             // Only Copilot is installed
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
@@ -156,7 +157,7 @@ class AiAgentLoginResolverTest {
         when(mockState.getAiAgent()).thenReturn("JETBRAINS_AI_ASSISTANT");
 
         try (MockedStatic<AiAgent> agentMock = mockStatic(AiAgent.class);
-             MockedStatic<Utils> utilsMock = mockStatic(Utils.class)) {
+             MockedStatic<Utils> utilsMock = mockStatic(Utils.class, CALLS_REAL_METHODS)) {
 
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
                     List.of(AiAgent.GITHUB_COPILOT));
@@ -180,7 +181,7 @@ class AiAgentLoginResolverTest {
         when(mockState.getAiAgent()).thenReturn("FUTURE_AGENT");
 
         try (MockedStatic<AiAgent> agentMock = mockStatic(AiAgent.class);
-             MockedStatic<Utils> utilsMock = mockStatic(Utils.class)) {
+             MockedStatic<Utils> utilsMock = mockStatic(Utils.class, CALLS_REAL_METHODS)) {
 
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
                     List.of(AiAgent.GITHUB_COPILOT));
@@ -208,7 +209,7 @@ class AiAgentLoginResolverTest {
         when(mockState.getAiAgent()).thenReturn(null);
 
         try (MockedStatic<AiAgent> agentMock = mockStatic(AiAgent.class);
-             MockedStatic<Utils> utilsMock = mockStatic(Utils.class)) {
+             MockedStatic<Utils> utilsMock = mockStatic(Utils.class, CALLS_REAL_METHODS)) {
 
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
                     List.of(AiAgent.GITHUB_COPILOT));
@@ -234,7 +235,7 @@ class AiAgentLoginResolverTest {
         when(mockState.getAiAgent()).thenReturn("");
 
         try (MockedStatic<AiAgent> agentMock = mockStatic(AiAgent.class);
-             MockedStatic<Utils> utilsMock = mockStatic(Utils.class)) {
+             MockedStatic<Utils> utilsMock = mockStatic(Utils.class, CALLS_REAL_METHODS)) {
 
             agentMock.when(() -> AiAgent.installedAgents(any())).thenReturn(
                     List.of(AiAgent.GITHUB_COPILOT));

@@ -13,6 +13,7 @@ import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.opentest4j.TestAbortedException;
 
 import java.awt.event.KeyEvent;
 import java.time.Duration;
@@ -35,6 +36,9 @@ public abstract class BaseUITest {
     @BeforeAll
     public static void init() {
         if (!initialized) {
+            // Skip UI tests if required environment variables are not set
+            validateEnvironmentVariables();
+
             log("Initializing the tests");
             log("Wait duration set for " + waitDuration.getSeconds());
             StepWorker.registerProcessor(new StepLogger());
@@ -69,6 +73,40 @@ public abstract class BaseUITest {
             log("Initialization finished");
         } else {
             log("Tests already initialized, skipping");
+        }
+    }
+
+    /**
+     * Validates that all required environment variables are set for UI tests.
+     * Skips the test via TestAbortedException if any required variable is missing.
+     */
+    private static void validateEnvironmentVariables() {
+        StringBuilder missingVars = new StringBuilder();
+
+        if (Environment.BASE_URL == null || Environment.BASE_URL.isBlank()) {
+            missingVars.append("CX_BASE_URI, ");
+        }
+        if (Environment.TENANT == null || Environment.TENANT.isBlank()) {
+            missingVars.append("CX_TENANT, ");
+        }
+        if (Environment.API_KEY == null || Environment.API_KEY.isBlank()) {
+            missingVars.append("CX_APIKEY, ");
+        }
+        if (Environment.REPO == null || Environment.REPO.isBlank()) {
+            missingVars.append("CX_TEST_REPO, ");
+        }
+        if (Environment.PROJECT_NAME == null || Environment.PROJECT_NAME.isBlank()) {
+            missingVars.append("CX_TEST_PROJECT, ");
+        }
+        if (Environment.SCAN_ID == null || Environment.SCAN_ID.isBlank()) {
+            missingVars.append("CX_TEST_SCAN");
+        }
+
+        if (missingVars.length() > 0) {
+            String message = "Skipping UI tests - Missing required environment variables: " +
+                    missingVars.toString().replaceAll(", $", "");
+            log(message);
+            throw new TestAbortedException(message);
         }
     }
 

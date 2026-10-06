@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
+import org.opentest4j.TestAbortedException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,10 +29,16 @@ public abstract class BaseTest extends BasePlatformTestCase {
     public final void setUp() throws Exception {
         super.setUp();
 
-        // Allow access to test data directory for file-based tests
+        // Skip integration tests if required environment variables are not set
+        validateEnvironmentVariables();
+
+        // Allow access to test data directories for file-based tests. Paths are resolved the same
+        // way the file-based tests resolve their inputs (relative to the process working
+        // directory) so the allowed roots line up with the files actually being opened.
         String projectRoot = Paths.get("").toAbsolutePath().toString();
-        String testDataPath = Paths.get(projectRoot, "plugin-checkmarx-ast", "src", "test", "java", "com", "checkmarx", "intellij", "ast", "test", "integration", "standard", "data").toString();
-        VfsRootAccess.allowRootAccess(getTestRootDisposable(), testDataPath);
+        String resourcesDataPath = Paths.get(projectRoot, "src", "test", "resources", "data").toString();
+        String integrationDataPath = Paths.get(projectRoot, "src", "test", "java", "com", "checkmarx", "intellij", "ast", "test", "integration", "standard", "data").toString();
+        VfsRootAccess.allowRootAccess(getTestRootDisposable(), resourcesDataPath, integrationDataPath);
 
         // Mock IgnoreFileManager to return a valid temp path
         // This prevents NullPointerException when project.getBasePath() returns null in tests
@@ -60,6 +67,36 @@ public abstract class BaseTest extends BasePlatformTestCase {
 
         state.loadState(new GlobalSettingsState());
         sensitiveState.reset();
+    }
+
+    /**
+     * Validates that all required environment variables are set for integration tests.
+     * Skips the test via TestAbortedException if any required variable is missing.
+     */
+    private void validateEnvironmentVariables() {
+        StringBuilder missingVars = new StringBuilder();
+
+        if (Environment.BASE_URL == null || Environment.BASE_URL.isBlank()) {
+            missingVars.append("CX_BASE_URI, ");
+        }
+        if (Environment.TENANT == null || Environment.TENANT.isBlank()) {
+            missingVars.append("CX_TENANT, ");
+        }
+        if (Environment.API_KEY == null || Environment.API_KEY.isBlank()) {
+            missingVars.append("CX_APIKEY, ");
+        }
+        if (Environment.PROJECT_NAME == null || Environment.PROJECT_NAME.isBlank()) {
+            missingVars.append("CX_TEST_PROJECT, ");
+        }
+        if (Environment.SCAN_ID == null || Environment.SCAN_ID.isBlank()) {
+            missingVars.append("CX_TEST_SCAN");
+        }
+
+        if (missingVars.length() > 0) {
+            String message = "Skipping integration tests - Missing required environment variables: " +
+                    missingVars.toString().replaceAll(", $", "");
+            throw new TestAbortedException(message);
+        }
     }
 
     protected final Project getEnvProject() {
