@@ -54,6 +54,8 @@
         <!-- Auto-install MCP at IDE startup if already authenticated -->
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService"/>
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
+        <!-- Detects plugin install/update by comparing current vs. last-known plugin version -->
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.PluginInstallTrackingStartupActivity"/>
 
         <notificationGroup id="Checkmarx.Notifications" displayType="BALLOON"
                            bundle="messages.CxBundle" key="NOTIFICATION_GROUP_NAME" isLogByDefault="true"/>

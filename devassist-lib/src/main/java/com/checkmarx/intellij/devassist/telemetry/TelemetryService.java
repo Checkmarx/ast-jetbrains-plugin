@@ -40,6 +40,12 @@ public final class TelemetryService {
     private static final String SUB_TYPE_IGNORE_PACKAGE = "ignorePackage";
     private static final String SUB_TYPE_IGNORE_ALL = "ignoreAll";
 
+    // Plugin lifecycle event type and sub types
+    private static final String EVENT_TYPE_LIFECYCLE = "lifecycle";
+    private static final String SUB_TYPE_PLUGIN_INSTALLED = "install";
+    private static final String SUB_TYPE_PLUGIN_UPDATED = "update";
+    private static final String SUB_TYPE_PLUGIN_UNINSTALLED = "uninstall";
+
     // Engine Names
     private static final String ENGINE_OSS = "Oss";
     private static final String ENGINE_SECRETS = "Secrets";
@@ -179,6 +185,31 @@ public final class TelemetryService {
      */
     public static void logIgnoreAllAction(ScanIssue scanIssue) {
         logUserAction(scanIssue, SUB_TYPE_IGNORE_ALL, "Ignore All");
+    }
+
+    /**
+     * Logs a fresh plugin installation (no previously-known plugin version persisted).
+     */
+    public static void logPluginInstalled() {
+        LOGGER.debug("Telemetry: Logging plugin install event");
+        setUserEventDataForLogs(EVENT_TYPE_LIFECYCLE, SUB_TYPE_PLUGIN_INSTALLED, "", "");
+    }
+
+    /**
+     * Logs a plugin update (persisted plugin version differs from the current running version).
+     */
+    public static void logPluginUpdated() {
+        LOGGER.debug("Telemetry: Logging plugin update event");
+        setUserEventDataForLogs(EVENT_TYPE_LIFECYCLE, SUB_TYPE_PLUGIN_UPDATED, "", "");
+    }
+
+    /**
+     * Logs a plugin uninstallation. Must be called before any credentials used to
+     * authenticate the telemetry call are cleared.
+     */
+    public static void logPluginUninstalled() {
+        LOGGER.debug("Telemetry: Logging plugin uninstall event");
+        setUserEventDataForLogs(EVENT_TYPE_LIFECYCLE, SUB_TYPE_PLUGIN_UNINSTALLED, "", "");
     }
 
     /**

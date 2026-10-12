@@ -270,6 +270,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
 
             // GroupBy state – preserve selected groupBy values across logout/login cycles
             state.setGroupByValues(SETTINGS_STATE.getGroupByValues());
+
+            // Plugin install/update tracking – must be preserved across settings apply
+            state.setLastKnownPluginVersion(SETTINGS_STATE.getLastKnownPluginVersion());
         }
         return state;
     }

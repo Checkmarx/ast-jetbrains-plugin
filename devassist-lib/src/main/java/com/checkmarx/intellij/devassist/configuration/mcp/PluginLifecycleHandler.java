@@ -5,6 +5,7 @@ import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
 import com.checkmarx.intellij.devassist.aiagents.AiAgent;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.intellij.ide.plugins.DynamicPluginListener;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
@@ -32,6 +33,9 @@ public final class PluginLifecycleHandler implements DynamicPluginListener {
         // Only clean up when our plugin is being uninstalled (not updated)
         if (!isUpdate && (CHECKMARX_PLUGIN_ID.equals(pluginDescriptor.getPluginId().getIdString())
                 || CX_DEVASSIST_PLUGIN_ID.equals(pluginDescriptor.getPluginId().getIdString()))) {
+            // Must run before clearAuthSession() - the telemetry call needs the credentials
+            // that clearAuthSession() is about to wipe.
+            TelemetryService.logPluginUninstalled();
             clearAuthSession();
             removeMcpConfiguration();
         }

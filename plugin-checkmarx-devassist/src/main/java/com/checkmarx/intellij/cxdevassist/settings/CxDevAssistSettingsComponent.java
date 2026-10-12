@@ -212,6 +212,9 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
             // License flags – must be preserved to control UI elements like Assist link
             state.setDevAssistLicenseEnabled(globalSettingsState.isDevAssistLicenseEnabled());
             state.setOneAssistLicenseEnabled(globalSettingsState.isOneAssistLicenseEnabled());
+
+            // Plugin install/update tracking – must be preserved across settings apply
+            state.setLastKnownPluginVersion(globalSettingsState.getLastKnownPluginVersion());
         }
         return state;
     }

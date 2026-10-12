@@ -90,6 +90,14 @@ public class GlobalSettingsState implements PersistentStateComponent<GlobalSetti
     private String baseUrl = "";
     private String tenant = "";
 
+    /**
+     * Plugin version observed on the previous IDE startup. Compared against the current
+     * build's version on each startup to detect a fresh install (empty) vs. an update
+     * (differs from current) vs. a normal run (matches current).
+     */
+    @Attribute("lastKnownPluginVersion")
+    private String lastKnownPluginVersion = "";
+
     @Attribute("validationInProgress")
     private boolean validationInProgress = false;
 

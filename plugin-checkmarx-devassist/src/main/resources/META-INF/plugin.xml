@@ -69,6 +69,8 @@
         <!-- Auto-install MCP at IDE startup if already authenticated -->
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService"/>
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
+        <!-- Detects plugin install/update by comparing current vs. last-known plugin version -->
+        <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.PluginInstallTrackingStartupActivity"/>
 
         <!-- DevAssist Inspection (from devassist-lib) -->
         <localInspection
