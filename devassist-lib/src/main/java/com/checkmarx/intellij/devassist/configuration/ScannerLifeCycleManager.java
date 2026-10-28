@@ -1,13 +1,16 @@
 package com.checkmarx.intellij.devassist.configuration;
 
+import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.inspection.DevAssistInspectionMgr;
 import com.checkmarx.intellij.devassist.registry.ScannerRegistry;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.components.Service;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * ScannerLifeCycleManager is a Project level service i.e., it is distinct for each project
@@ -18,6 +21,8 @@ import org.jetbrains.annotations.NotNull;
 @Getter
 @Service(Service.Level.PROJECT)
 public final class ScannerLifeCycleManager implements Disposable {
+
+    private static final Logger LOGGER = Utils.getLogger(ScannerLifeCycleManager.class);
 
     private final Project project;
 
@@ -37,6 +42,7 @@ public final class ScannerLifeCycleManager implements Disposable {
      *
      * @return scanner registry for the current project
      */
+    @Nullable
     private ScannerRegistry scannerRegistry() {
         return this.project.getService(ScannerRegistry.class);
     }
@@ -63,7 +69,12 @@ public final class ScannerLifeCycleManager implements Disposable {
      * @param scannerType scanner engine to start
      */
     public void start(ScanEngine scannerType) {
-        scannerRegistry().registerScanner(scannerType.name());
+        ScannerRegistry registry = scannerRegistry();
+        if (registry == null) {
+            LOGGER.warn("ScannerRegistry is unavailable, skipping start for: " + scannerType);
+            return;
+        }
+        registry.registerScanner(scannerType.name());
     }
 
     /**
@@ -72,7 +83,12 @@ public final class ScannerLifeCycleManager implements Disposable {
      * @param scannerType scanner engine to stop
      */
     public void stop(ScanEngine scannerType) {
-        scannerRegistry().deregisterScanner(scannerType.name());
+        ScannerRegistry registry = scannerRegistry();
+        if (registry == null) {
+            LOGGER.warn("ScannerRegistry is unavailable, skipping stop for: " + scannerType);
+            return;
+        }
+        registry.deregisterScanner(scannerType.name());
     }
 
     /**
@@ -102,6 +118,9 @@ public final class ScannerLifeCycleManager implements Disposable {
      * dependent on the current project's context.
      */
     private void startInspection() {
+        if (project.isDisposed()) {
+            return;
+        }
         new DevAssistInspectionMgr().triggerInspection(project);
     }
 }

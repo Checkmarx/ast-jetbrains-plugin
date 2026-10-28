@@ -53,14 +53,25 @@ class ResetSelectionActionTest {
     void update_WhenDisabled_DisablesPresentation() {
         when(mockEvent.getPresentation()).thenReturn(mockPresentation);
 
-        // Arrange
-        action.setEnabled(false);
+        // update() uses the registered action's presentation as the single source of truth for
+        // enablement, so drive that (disabled) rather than the instance's own flag.
+        Presentation registeredPresentation = mock(Presentation.class);
+        when(registeredPresentation.isEnabled()).thenReturn(false);
+        com.intellij.openapi.actionSystem.AnAction registered =
+                mock(com.intellij.openapi.actionSystem.AnAction.class);
+        when(registered.getTemplatePresentation()).thenReturn(registeredPresentation);
 
-        // Act
-        action.update(mockEvent);
+        try (MockedStatic<ActionManager> amMock = mockStatic(ActionManager.class)) {
+            ActionManager mockActionManager = mock(ActionManager.class);
+            when(mockActionManager.getAction("Checkmarx.ResetSelection")).thenReturn(registered);
+            amMock.when(ActionManager::getInstance).thenReturn(mockActionManager);
 
-        // Assert
-        verify(mockPresentation).setEnabled(false);
+            // Act
+            action.update(mockEvent);
+
+            // Assert
+            verify(mockPresentation).setEnabled(false);
+        }
     }
 
     @Test

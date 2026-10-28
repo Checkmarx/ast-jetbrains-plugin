@@ -59,8 +59,6 @@ on:
         required: true
       CX_TEST_SCAN:
         required: true
-      PUBLISH_TOKEN:
-        required: true
   workflow_dispatch:
     inputs:
       tag:
@@ -238,10 +236,12 @@ jobs:
 
   release:
     name: Release
+    environment: release
     needs: [resolve, verify, testIntegration]
     if: ${{ always() && needs.resolve.result == 'success' && needs.verify.result == 'success' && (needs.testIntegration.result == 'success' || needs.testIntegration.result == 'skipped') }}
     permissions:
       contents: write  # for creating GitHub release and uploading assets
+      id-token: write  # for AWS OIDC federation to fetch secrets
     runs-on: cx-public-ubuntu-x64
     outputs:
       TAG_NAME: ${{ steps.set_outputs.outputs.TAG_NAME }}
@@ -383,11 +383,26 @@ jobs:
           echo "TAG_NAME=${GH_TAG}" >> "$GITHUB_OUTPUT"
           echo "CLI_VERSION=${OUT_CLI_VERSION}" >> "$GITHUB_OUTPUT"
 
+      - name: Configure AWS Credentials for Secrets Manager
+        if: ${{ inputs.publish == true }}
+        uses: step-security/configure-aws-credentials@1448016543d4432bd608e0de7871c7bf9e9be925 # v6.2.1
+        with:
+          role-to-assume: ${{ secrets.SECRET_MANAGER_ROLE_ARN }}
+          aws-region: ${{ secrets.SECRET_MANAGER_AWS_REGION }}
+          role-session-name: release-secrets-fetch
+
+      - name: Fetch secrets from AWS Secrets Manager
+        if: ${{ inputs.publish == true }}
+        uses: step-security/aws-secretsmanager-get-secrets@102b6b2a2528747bcc321bb99ef326d8be7ef58f # v3.0.1
+        with:
+          secret-ids: |
+            ,${{ secrets.SECRET_MANAGER_SECRET_NAME }}
+          parse-json-secrets: true
+
       # Publish only the plugin(s) selected by releaseType
       - name: Publish Plugin
         if: ${{ inputs.publish == true }}
         env:
-          PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
           INPUT_RCHANNELS: ${{ inputs.rchannels }}
           RELEASE_TYPE: ${{ needs.resolve.outputs.releaseType }}
           AST_VERSION: ${{ needs.resolve.outputs.ast_version }}

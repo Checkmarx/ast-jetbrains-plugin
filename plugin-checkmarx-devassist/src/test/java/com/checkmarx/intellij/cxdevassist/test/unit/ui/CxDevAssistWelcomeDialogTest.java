@@ -4,6 +4,7 @@ import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.settings.SettingsListener;
 import com.checkmarx.intellij.cxdevassist.ui.CxDevAssistWelcomeDialog;
 import com.checkmarx.intellij.cxdevassist.ui.CxDevAssistWelcomeDialog.RealTimeSettingsManager;
+import com.checkmarx.intellij.devassist.aiagents.copilot.CopilotIntegration;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.ui.components.JBCheckBox;
@@ -577,10 +578,15 @@ class CxDevAssistWelcomeDialogTest {
         FakeRealTimeSettingsManager mgr = new FakeRealTimeSettingsManager(true, true);
         CxDevAssistWelcomeDialog dialog = createDialogBypassCtor(true, mgr);
 
-        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<CopilotIntegration> copilotMock = mockStatic(CopilotIntegration.class)) {
             GlobalSettingsState mockState = mock(GlobalSettingsState.class);
             when(mockState.getUserPreferencesSet()).thenReturn(false);
+            when(mockState.getAiAgent()).thenReturn("COPILOT");
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            // Default-selected agent (COPILOT) is available, so the "not connected" warning
+            // shouldn't affect this test.
+            copilotMock.when(() -> CopilotIntegration.isCopilotAvailable(any())).thenReturn(true);
 
             Object result = invokeMethod(dialog, "createCenterPanel", new Class[]{});
             assertNotNull(result);

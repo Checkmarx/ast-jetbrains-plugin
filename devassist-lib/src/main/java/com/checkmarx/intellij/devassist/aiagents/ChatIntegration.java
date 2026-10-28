@@ -1,0 +1,38 @@
+package com.checkmarx.intellij.devassist.aiagents;
+
+import com.checkmarx.intellij.devassist.remediation.RemediationManager;
+import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.function.Consumer;
+
+/**
+ * A single AI chat target (Copilot, JetBrains AI Assistant, ...) that {@link RemediationManager}
+ * can send a generated fix/explanation prompt to.
+ * <p>
+ * Implementations are looked up via {@link AiAgent#chatIntegration()} - adding a new agent means
+ * writing one implementation of this interface and wiring it into a new {@link AiAgent} constant,
+ * with no changes required in {@link RemediationManager} itself.
+ */
+public interface ChatIntegration {
+
+    /**
+     * Whether this agent's chat is installed/available for the given project. {@code project}
+     * may be {@code null} for a global (non-project-scoped) check.
+     */
+    boolean isAvailable(@Nullable Project project);
+
+    /**
+     * Opens this agent's chat and attempts to deliver {@code prompt} to it.
+     * Callers rely on this to decide whether to show a fallback notification,
+     *
+     * @param prompt        the prompt to deliver
+     * @param project       the project context
+     * @param onFinalResult callback invoked exactly once with the final outcome; may be
+     *                      {@code null} if the caller does not need the final outcome
+     */
+    @NotNull
+    ChatIntegrationResult openWithPrompt(@NotNull String prompt, @NotNull Project project,
+                                         @Nullable Consumer<ChatIntegrationResult> onFinalResult);
+}

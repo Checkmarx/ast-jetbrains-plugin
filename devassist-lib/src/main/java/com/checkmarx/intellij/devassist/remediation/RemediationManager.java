@@ -2,7 +2,11 @@ package com.checkmarx.intellij.devassist.remediation;
 
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Utils;
+import com.checkmarx.intellij.devassist.aiagents.AiAgent;
+import com.checkmarx.intellij.devassist.aiagents.ChatIntegration;
+import com.checkmarx.intellij.devassist.aiagents.ChatIntegrationResult;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.remediation.prompts.DevAssistFixPrompts;
@@ -10,6 +14,7 @@ import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.PackageManagerMapper;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
@@ -76,7 +81,8 @@ public final class RemediationManager {
     }
 
     /**
-     * Applies the fix by attempting to send to Copilot AI first, with clipboard fallback.
+     * Applies the fix by attempting to send to the configured AI agent first, with clipboard
+     * fallback if the agent can't be reached or its automation ultimately fails.
      *
      * @param project   the project context
      * @param scanIssue the scan issue being fixed
@@ -86,53 +92,106 @@ public final class RemediationManager {
         if (prompt == null || prompt.isEmpty()) {
             return;
         }
-        LOGGER.info(format("RTS-Fix: %s remediation started for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
+         String logContext = (format("RTS-Fix: %s remediation started for issue: %s, for file: %s",
+                 scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
+        LOGGER.info(logContext);
         String notificationTitle = getNotificationTitle(scanIssue.getScanEngine());
+        fixWithAI(prompt, project, notificationTitle, Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), logContext);
+    }
 
-        // Try to fix with Copilot AI first (no notifications shown by fixWithAI)
-        boolean aiSuccess = fixWithAI(prompt, project);
-        if (aiSuccess) {
-            LOGGER.info(format("RTS-Fix: %s remediation sent to Copilot for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
-        } else {
-            // Fallback: Copy to clipboard with notification when Copilot is not available
-            if (DevAssistUtils.copyToClipboardWithNotification(prompt, notificationTitle, Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), project)) {
-                LOGGER.info(format("RTS-Fix: %s remediation completed (clipboard) for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
-            }
+    /**
+     * Sends a prompt to the user's configured AI agent (GitHub Copilot, JetBrains AI Assistant
+     * etc per {@link GlobalSettingsState#getAiAgent()}) and reports the eventual outcome.
+     * <p>
+     * it always waits for the agent's true final
+     * result (delivered synchronously for agents without further async work, or later via the
+     * {@code onFinalResult} callback once automation completes) before deciding whether to fall
+     * back to copying the prompt to the clipboard. This guarantees a failure that only manifests
+     * after this method returns is still surfaced to the user exactly once, rather than left
+     * silent.
+     *
+     * @param prompt            the prompt to send
+     * @param project           the project context
+     * @param notificationTitle title to use for the clipboard-fallback notification
+     * @param clipboardMessage  message to use for the clipboard-fallback notification
+     * @param logContext        short description of the operation, used to prefix log messages
+     */
+    private void fixWithAI(@NotNull String prompt, @NotNull Project project,
+                            @NotNull String notificationTitle, @NotNull String clipboardMessage,
+                            @NotNull String logContext) {
+        GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
+        AiAgent agent = settingsState != null
+                ? AiAgent.fromSettingsValue(settingsState.getAiAgent())
+                : AiAgent.GITHUB_COPILOT;
+        try {
+            agent.chatIntegration().openWithPrompt(prompt, project, result -> {
+                try {
+                    onAiResult(agent, prompt, project, notificationTitle, clipboardMessage, logContext, result);
+                } catch (Exception callbackException) {
+                    LOGGER.warn(logContext + " - callback error handling AI result", callbackException);
+                }
+            });
+        } catch (Exception exception) {
+            LOGGER.warn(logContext + " - failed to invoke " + agent.getAgentName() + " integration", exception);
+            fallBackToClipboard(prompt, project, notificationTitle, clipboardMessage, logContext);
         }
     }
 
     /**
-     * Sends a fix prompt to GitHub Copilot for automated remediation.
+     * Handles the final (possibly delayed) outcome of {@link ChatIntegration#openWithPrompt}:
+     * logs success, or handles failure on failure. Invoked at most once per
+     * {@link #fixWithAI} call - see that method's contract for when this fires.
      * <p>
-     * This method attempts to:
-     * <ol>
-     *   <li>Open GitHub Copilot Chat</li>
-     *   <li>Switch to Agent mode</li>
-     *   <li>Paste and send the prompt automatically</li>
-     * </ol>
-     * <p>
-     * This method does NOT show any notifications - the caller is responsible for
-     * handling success/failure notifications.
-     *
-     * @param prompt  the fix prompt to send to Copilot
-     * @param project the project context
-     * @return true if Copilot was successfully opened and prompt initiated, false otherwise
+     * A failure has two distinct causes, handled differently:
+     * <ul>
+     *   <li>the agent's plugin isn't installed at all - a sticky warning balloon is shown instead
+     *   of silently falling back, since copying to the clipboard wouldn't help the user get to a
+     *   working state; they need to install the plugin first</li>
+     *   <li>the plugin is installed but the automation itself failed (e.g. chat didn't open in
+     *   time) - falls back to the clipboard as before, since the user can still act on the prompt</li>
+     * </ul>
      */
-    private boolean fixWithAI(@NotNull String prompt, @NotNull Project project) {
-        try {
-            CopilotIntegration.IntegrationResult result =
-                    CopilotIntegration.openCopilotWithPromptDetailed(prompt, project, null);
+    private void onAiResult(@NotNull AiAgent agent, @NotNull String prompt, @NotNull Project project,
+                             @NotNull String notificationTitle, @NotNull String clipboardMessage,
+                             @NotNull String logContext, @NotNull ChatIntegrationResult result) {
+        if (result.isSuccess()) {
+            LOGGER.info(logContext + " sent to " + agent.getAgentName());
+            return;
+        }
+        LOGGER.debug(logContext + " - " + agent.getAgentName() + " not available/failed - " + result.getMessage());
+        if (!agent.isInstalled(project)) {
+            showAgentNotInstalledNotification(agent, project);
+            return;
+        }
+        fallBackToClipboard(prompt, project, notificationTitle, clipboardMessage, logContext);
+    }
 
-            if (result.isSuccess()) {
-                LOGGER.debug("Fix with AI: Copilot integration initiated successfully");
-                return true;
-            } else {
-                LOGGER.debug("Fix with AI: Copilot not available - " + result.getMessage());
-                return false;
-            }
-        } catch (Exception exception) {
-            LOGGER.debug("Failed to fix with AI: ", exception);
-            return false;
+    /**
+     * Sticky warning balloon (does not auto-hide - the IntelliJ platform only auto-hides
+     * {@code INFORMATION}-type balloons) shown when the user's configured AI agent's plugin isn't
+     * installed, so it's not missed the way an auto-expiring notification could be. Uses the same
+     * title/message/action as the "agent not installed" popup in the Checkmarx One Assist
+     * settings page, so the user sees consistent wording wherever this is surfaced.
+     */
+    private void showAgentNotInstalledNotification(@NotNull AiAgent agent, @NotNull Project project) {
+        Utils.showAppLevelNotification(
+                DevAssistUtils.getCustomPluginDisplayName(),
+                Bundle.message(Resource.AI_AGENT_NOT_INSTALLED_MESSAGE, agent.getAgentName()),
+                NotificationType.INFORMATION,
+                true,
+                Bundle.message(Resource.AI_AGENT_INSTALL_ACTION_LABEL),
+                () -> agent.openMarketplacePage(project));
+    }
+
+    /**
+     * Copies the prompt to the clipboard and notifies the user, used whenever the configured AI
+     * agent could not be reached or its automation failed.
+     */
+    private void fallBackToClipboard(@NotNull String prompt, @NotNull Project project,
+                                      @NotNull String notificationTitle, @NotNull String clipboardMessage,
+                                      @NotNull String logContext) {
+        if (DevAssistUtils.copyToClipboardWithNotification(prompt, notificationTitle, clipboardMessage, project)) {
+            LOGGER.info(logContext + " completed (clipboard)");
         }
     }
 
@@ -174,7 +233,8 @@ public final class RemediationManager {
     }
 
     /**
-     * Applies the view details by attempting to send to Copilot AI first, with clipboard fallback.
+     * Applies the view details by attempting to send to the configured AI agent first, with
+     * clipboard fallback if the agent can't be reached or its automation ultimately fails.
      *
      * @param project   the project context
      * @param scanIssue the scan issue being explained
@@ -184,19 +244,11 @@ public final class RemediationManager {
         if (prompt == null || prompt.isEmpty()) {
             return;
         }
-        LOGGER.info(format("RTS-ViewDetails: %s explanation started for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
+        String logContext = format("RTS-ViewDetails: %s explanation for issue: %s, for file: %s",
+                scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath());
+        LOGGER.info(logContext + " started");
         String notificationTitle = getNotificationTitle(scanIssue.getScanEngine());
-
-        // Try to send to Copilot AI first (no notifications shown by fixWithAI)
-        boolean aiSuccess = fixWithAI(prompt, project);
-        if (aiSuccess) {
-            LOGGER.info(format("RTS-ViewDetails: %s explanation sent to Copilot for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
-        } else {
-            // Fallback: Copy to clipboard with notification when Copilot is not available
-            if (DevAssistUtils.copyToClipboardWithNotification(prompt, notificationTitle, Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), project)) {
-                LOGGER.info(format("RTS-ViewDetails: %s explanation completed (clipboard) for issue: %s, for file: %s", scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
-            }
-        }
+        fixWithAI(prompt, project, notificationTitle, Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), logContext);
     }
 
     /**
@@ -368,3 +420,4 @@ public final class RemediationManager {
         return DevAssistUtils.getAgentName() + " - " + scanEngine.name();
     }
 }
+ 

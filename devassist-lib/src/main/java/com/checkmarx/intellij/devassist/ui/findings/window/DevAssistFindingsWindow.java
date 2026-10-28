@@ -462,7 +462,10 @@ public class DevAssistFindingsWindow extends SimpleToolWindowPanel implements Di
 
             DefaultMutableTreeNode fileNode = new DefaultMutableTreeNode(new FileNodeLabel(fileName, filePath, severityCounts, icon));
 
-            for (ScanIssue detail : filteredScanDetails) {
+            List<ScanIssue> sortedScanDetails = new ArrayList<>(filteredScanDetails);
+            sortedScanDetails.sort(Comparator.comparingInt(detail -> SeverityLevel.fromValue(detail.getSeverity()).getPrecedence()));
+
+            for (ScanIssue detail : sortedScanDetails) {
                 fileNode.add(new DefaultMutableTreeNode(new ScanDetailWithPath(detail, filePath)));
             }
             rootNode.add(fileNode);

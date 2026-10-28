@@ -2,12 +2,14 @@ package com.checkmarx.intellij.ast.test.ui;
 
 import com.automation.remarks.junit5.Video;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.ASCARealTimeScanPage.*;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.*;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CxOneAssistPage.*;
+import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
@@ -24,17 +26,17 @@ public class TestAscaRealTime extends com.checkmarx.intellij.ast.test.ui.BaseUIT
         }
     }
 
+    @BeforeEach
+    public void checkResults() {
+        openSettings();
+        navigateToCxOneAssistPage();
+    }
+
     @Test
     @Video
     @DisplayName("Verify ASCA Real-Time Scan is enabled and success message is shown")
     public void testASCACheckBoxEnableSuccessMsg() {
-        // Given: User is logged in and welcome page is loade
-        openSettings();
-
-        // When: User navigates to CxOne Assist page
-        navigateToCxOneAssistPage();
-
-        //Then: Validate success message when ASCA Real-Time Scan is enabled
+        // Validate success message when ASCA Real-Time Scan is enabled
         toggleAscaEngineAndVerifySuccessMessage();
     }
 
@@ -42,11 +44,6 @@ public class TestAscaRealTime extends com.checkmarx.intellij.ast.test.ui.BaseUIT
     @Video
     @DisplayName("Verify ASCA vulnerability is displayed in the Issues Tree after file scan completion")
     public void testASCAVulnerabilityDisplayedInProblemTree() {
-        // Given: User is logged in and welcome page is loaded
-        openSettings();
-
-        // When: User enables ASCA Real-Time Scan if it is disabled
-        navigateToCxOneAssistPage();
         selectEngine(ASCA_ENGINE_SELECTION_CHECKBOX, true);
         locateAndClickOnButton(OK_BTN);
 

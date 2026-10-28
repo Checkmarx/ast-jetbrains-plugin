@@ -13,6 +13,7 @@ import org.intellij.lang.annotations.Language;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.opentest4j.TestAbortedException;
 
 import java.awt.event.KeyEvent;
 import java.time.Duration;
@@ -22,7 +23,7 @@ import static com.checkmarx.intellij.ast.test.ui.utils.RemoteRobotUtils.*;
 import static com.checkmarx.intellij.ast.test.ui.utils.Xpath.*;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.openSettings;
 import static com.checkmarx.intellij.ast.test.ui.PageMethods.CheckmarxSettingsPage.testASTConnection;
-import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.enterScanIdAndSelect;
+import static com.checkmarx.intellij.ast.test.ui.PageMethods.ScanResultsPannelPage.enterScanId;
 import static com.checkmarx.intellij.ast.test.ui.utils.UIHelper.*;
 
 public abstract class BaseUITest {
@@ -35,6 +36,9 @@ public abstract class BaseUITest {
     @BeforeAll
     public static void init() {
         if (!initialized) {
+            // Skip UI tests if required environment variables are not set
+            validateEnvironmentVariables();
+
             log("Initializing the tests");
             log("Wait duration set for " + waitDuration.getSeconds());
             StepWorker.registerProcessor(new StepLogger());
@@ -69,6 +73,40 @@ public abstract class BaseUITest {
             log("Initialization finished");
         } else {
             log("Tests already initialized, skipping");
+        }
+    }
+
+    /**
+     * Validates that all required environment variables are set for UI tests.
+     * Skips the test via TestAbortedException if any required variable is missing.
+     */
+    private static void validateEnvironmentVariables() {
+        StringBuilder missingVars = new StringBuilder();
+
+        if (Environment.BASE_URL == null || Environment.BASE_URL.isBlank()) {
+            missingVars.append("CX_BASE_URI, ");
+        }
+        if (Environment.TENANT == null || Environment.TENANT.isBlank()) {
+            missingVars.append("CX_TENANT, ");
+        }
+        if (Environment.API_KEY == null || Environment.API_KEY.isBlank()) {
+            missingVars.append("CX_APIKEY, ");
+        }
+        if (Environment.REPO == null || Environment.REPO.isBlank()) {
+            missingVars.append("CX_TEST_REPO, ");
+        }
+        if (Environment.PROJECT_NAME == null || Environment.PROJECT_NAME.isBlank()) {
+            missingVars.append("CX_TEST_PROJECT, ");
+        }
+        if (Environment.SCAN_ID == null || Environment.SCAN_ID.isBlank()) {
+            missingVars.append("CX_TEST_SCAN");
+        }
+
+        if (missingVars.length() > 0) {
+            String message = "Skipping UI tests - Missing required environment variables: " +
+                    missingVars.toString().replaceAll(", $", "");
+            log(message);
+            throw new TestAbortedException(message);
         }
     }
 
@@ -149,11 +187,22 @@ public abstract class BaseUITest {
     }
 
     protected void getResults() {
+        getResults(Environment.SCAN_ID);
+    }
+
+    /**
+     * Clears the current selection and loads results for the given scan ID. Used to fetch
+     * results for a specific project/scan (e.g. switching to a different project by loading a
+     * scan ID that belongs to it), rather than always defaulting to {@link Environment#SCAN_ID}.
+     *
+     * @param scanId The scan ID to load results for.
+     */
+    protected void getResults(String scanId) {
         focusCxWindow();
         waitFor(() -> hasAnyComponent(SCAN_FIELD) && hasSelection("Project") && hasSelection("Branch") && hasSelection("Scan"));
         focusCxWindow();
         clearSelection();
-        enterScanIdAndSelect(true);
+        enterScanId(scanId);
         waitFor(() -> {
             focusCxWindow();
             return hasAnyComponent(TREE)
@@ -165,13 +214,9 @@ public abstract class BaseUITest {
 
     protected void waitForScanIdSelection() {
         focusCxWindow();
-        // check that the scan id is visible in the tree or the search field
+        // check scan selection for the scan id
         log("inside waitForScanIdSelection");
-        @Language("XPath") String scanInTree = String.format(
-                "//div[@class='Tree' and contains(@visible_text,'%s')]", Environment.SCAN_ID);
-        @Language("XPath") String scanInField = String.format(
-                "//div[@class='TextFieldWithProcessing' and contains(@visible_text,'%s')]", Environment.SCAN_ID);
-        waitFor(() -> hasAnyComponent(scanInTree) || hasAnyComponent(scanInField));
+        waitFor(() -> hasAnyComponent(String.format(SCAN_ID_SELECTION, Environment.SCAN_ID, Environment.SCAN_ID)));
     }
 
 
@@ -201,6 +246,14 @@ public abstract class BaseUITest {
 
     private void groupAction(String value) {
         openGroupBy();
+
+        boolean alreadySelected = Boolean.TRUE.equals(getMenuOptionsWithState().get(value));
+        if (alreadySelected) {
+            log("Group By '" + value + "' is already selected, leaving as is");
+            new Keyboard(remoteRobot).key(KeyEvent.VK_ESCAPE);
+            return;
+        }
+
         waitFor(() -> {
             enter(value);
             return find(JTreeFixture.class, TREE).findAllText().size() == 1;

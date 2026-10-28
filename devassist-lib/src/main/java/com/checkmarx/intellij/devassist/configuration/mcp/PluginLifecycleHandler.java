@@ -4,6 +4,7 @@ import com.checkmarx.intellij.common.settings.GlobalSettingsSensitiveState;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.resources.Bundle;
 import com.checkmarx.intellij.common.resources.Resource;
+import com.checkmarx.intellij.devassist.aiagents.AiAgent;
 import com.intellij.ide.plugins.DynamicPluginListener;
 import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
@@ -17,7 +18,7 @@ import org.jetbrains.annotations.NotNull;
  * <ol>
  *   <li>Clears the persisted authentication session so that OAuth credentials
  *       do not carry over when the user later installs the other Checkmarx plugin.</li>
- *   <li>Removes the Checkmarx MCP server entry from the Copilot configuration.</li>
+ *   <li>Removes the Checkmarx MCP server entry from every known agent's MCP configuration.</li>
  * </ol>
  */
 public final class PluginLifecycleHandler implements DynamicPluginListener {
@@ -72,18 +73,14 @@ public final class PluginLifecycleHandler implements DynamicPluginListener {
     }
 
     /**
-     * Removes the Checkmarx MCP server entry from the Copilot configuration.
+     * Removes the Checkmarx MCP server entry from every known agent's MCP client config
+     * <p>
+     * The user may have installed MCP for one agent, then switched the AI Agent selection to
+     * another without logging out in between - the previously-installed entry (including the
+     * API key / refresh token in its Authorization header) would otherwise be orphaned in that
+     * agent's config file forever, since a full plugin uninstall is the last chance to clean it up.
      */
     private void removeMcpConfiguration() {
-        try {
-            boolean removed = McpSettingsInjector.uninstallFromCopilot();
-            if (removed) {
-                LOG.debug("Checkmarx MCP configuration removed during plugin uninstallation");
-            } else {
-                LOG.debug("No Checkmarx MCP configuration found during plugin uninstallation");
-            }
-        } catch (Exception ex) {
-            LOG.warn("Failed to remove Checkmarx MCP configuration during plugin uninstallation", ex);
-        }
+        AiAgent.uninstallFromAllAgents(LOG, "during plugin uninstallation");
     }
 }

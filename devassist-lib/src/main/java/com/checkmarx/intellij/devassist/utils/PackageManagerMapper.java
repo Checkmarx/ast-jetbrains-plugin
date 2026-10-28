@@ -94,9 +94,9 @@ public final class PackageManagerMapper {
             return List.of("composer.lock");
         }
 
-        // Python Poetry
+        // Python Poetry or UV
         if (fileName.equals("pyproject.toml")) {
-            return List.of("poetry.lock");
+            return List.of("poetry.lock", "uv.lock");
         }
 
         // Dart/Flutter Pub
