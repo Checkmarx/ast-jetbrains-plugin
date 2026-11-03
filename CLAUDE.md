@@ -112,7 +112,7 @@ Key package roots under `src/main/java/`:
 | Build System | Gradle (with wrapper) | 8.x |
 | Annotation Processing | Lombok (io.freefair.lombok) | 8.6 |
 | Plugin Development | org.jetbrains.intellij | 1.17.4 |
-| Platform API | ast-cli-java-wrapper | 2.4.25 (configurable) |
+| Platform API | ast-cli-java-wrapper | 2.4.33 (configurable) |
 | Serialization | Jackson BOM | 2.22.0 |
 | HTTP | OkHttp3 / Okio | 4.12.0 / 3.8.0 |
 | Logging | Log4j | 2.23.1 |
