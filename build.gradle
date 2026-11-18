@@ -5,6 +5,9 @@ plugins {
     id 'jacoco'
 }
 
+// Compatibility shim (AST-193159): accept legacy Jar.baseName used by the SCA resolver.
+org.gradle.api.tasks.bundling.Jar.metaClass.setBaseName = { String name -> delegate.archiveBaseName.set(name) }
+
 def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION') ?: defaultJavaWrapperVersion
 
 // Common configuration for all projects
@@ -32,9 +35,8 @@ subprojects {
     apply plugin: 'java'
 
     java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(Integer.parseInt(javaVersion)))
-        }
+        sourceCompatibility = JavaVersion.toVersion(javaVersion)
+        targetCompatibility = JavaVersion.toVersion(javaVersion)
     }
 
     dependencies {
