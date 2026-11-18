@@ -50,9 +50,11 @@ allprojects {
 subprojects {
     apply plugin: 'java'
 
-    java {
-        sourceCompatibility = JavaVersion.toVersion(javaVersion)
-        targetCompatibility = JavaVersion.toVersion(javaVersion)
+    // No toolchain: the SCA resolver container only has JDK 21 and cannot provision JDK 11 (AST-194122).
+    // --release pins both the bytecode level and the JDK API surface to Java 11, whatever JDK runs the build.
+    def javaRelease = Integer.parseInt(project.property('javaVersion') as String)
+    tasks.withType(JavaCompile).configureEach {
+        options.release = javaRelease
     }
 
     // Raise vulnerable transitive test dependencies to the lowest fixed version within the same major (AST-194122)
