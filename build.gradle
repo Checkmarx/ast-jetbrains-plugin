@@ -99,7 +99,13 @@ subprojects {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
         }
         implementation(enforcedPlatform("com.fasterxml.jackson:jackson-bom:${jacksonBomVersion}"))
-        // enforcedPlatform forces ALL Jackson jars (databind, annotations, core) to use the SAME version.
+        // enforcedPlatform forces ALL Jackson jars (databind, annotations, core) to use the SAME version,
+        // but it only pins versions - it does NOT add any jar to the classpath.
+        // Jackson must be declared explicitly so it is packaged in the plugin's lib/ and not
+        // taken from the IDE (it is not reliably visible to plugin classloaders - AST-193159).
+        implementation "com.fasterxml.jackson.core:jackson-core"
+        implementation "com.fasterxml.jackson.core:jackson-databind"
+        implementation "com.fasterxml.jackson.core:jackson-annotations"
 
         testImplementation "org.mockito:mockito-core:${mockitoVersion}"
         testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
