@@ -232,12 +232,13 @@ public class OssScannerService extends BaseScannerService<OssRealtimeResults> {
             LOGGER.info("Start Realtime Scan On File: " + uri);
             OssRealtimeResults scanResults = CxWrapperFactory.build().ossRealtimeScan(mainTempPath.get(), DevAssistUtils.getIgnoreFilePath(file.getProject()));
             OssScanResultAdaptor scanResultAdaptor = new OssScanResultAdaptor(scanResults, uri);
-            TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.OSS);
+            TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.OSS, uri);
             // Update line numbers for ignored packages if any exist
             updateIgnoredFileDataOnLatestResult(mainTempPath.get(), file.getProject(), uri);
             return scanResultAdaptor;
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);
+            TelemetryService.logScanFailure(ScanEngine.OSS, uri, e);
         } finally {
             LOGGER.info("Deleting temporary folder");
             deleteTempFolder(tempSubFolder);

@@ -168,7 +168,7 @@ public class IacScannerServiceTest {
             utils.when(DevAssistUtils::getContainerTool).thenReturn("docker");
             utils.when(() -> DevAssistUtils.getFileExtension(psiFile)).thenReturn("tf");
             utils.when(() -> DevAssistUtils.getIgnoreFilePath(any())).thenReturn("");
-            telemetry.when(() -> TelemetryService.logScanResults(any(ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
+            telemetry.when(() -> TelemetryService.logScanResults(any(ScanResult.class), any(ScanEngine.class), any())).then(invocation -> null);
 
             CxWrapper wrapper = mock(CxWrapper.class);
             IacRealtimeResults results = mock(IacRealtimeResults.class);

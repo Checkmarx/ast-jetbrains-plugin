@@ -148,11 +148,12 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
             // Create adaptor with filtering applied during issue creation
             AscaScanResultAdaptor scanResultAdaptor = new AscaScanResultAdaptor(ascaResult, uri, psiFile.getProject());
 
-            TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.ASCA);
+            TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.ASCA, uri);
             return scanResultAdaptor;
 
         } catch (Exception e) {
             LOGGER.warn("ASCA scanner: scan error for file: " + uri, e);
+            TelemetryService.logScanFailure(ScanEngine.ASCA, uri, e);
             return null;
         }
     }

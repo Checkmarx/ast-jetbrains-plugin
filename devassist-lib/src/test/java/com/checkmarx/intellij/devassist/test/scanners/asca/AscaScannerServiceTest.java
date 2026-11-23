@@ -391,7 +391,8 @@ class AscaScannerServiceTest {
             // TelemetryService.logScanResults — no-op
             telemetryMock.when(() -> TelemetryService.logScanResults(
                     any(com.checkmarx.intellij.devassist.common.ScanResult.class),
-                    any(com.checkmarx.intellij.devassist.utils.ScanEngine.class))).thenAnswer(inv -> null);
+                    any(com.checkmarx.intellij.devassist.utils.ScanEngine.class),
+                    any())).thenAnswer(inv -> null);
 
             com.checkmarx.intellij.devassist.common.ScanResult<?> result =
                     spyService.scan(psiFile, "/project/Main.java");

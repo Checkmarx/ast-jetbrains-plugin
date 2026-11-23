@@ -3,7 +3,6 @@ package com.checkmarx.intellij.devassist.remediation;
 import com.checkmarx.intellij.common.resources.CxIcons;
 import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
-import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo;
 import com.intellij.codeInspection.LocalQuickFix;
@@ -81,7 +80,6 @@ public class DevAssistFix implements LocalQuickFix, Iconable {
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
         LOGGER.info(format("RTS-Fix: Remediation called: %s for issue: %s", getFamilyName(), scanIssue.getTitle()));
-        TelemetryService.logFixWithCxOneAssistAction(scanIssue);
         new RemediationManager().fixWithCxOneAssist(project, scanIssue, QUICK_FIX);
     }
 

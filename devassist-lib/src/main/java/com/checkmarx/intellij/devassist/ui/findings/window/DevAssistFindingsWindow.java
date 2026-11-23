@@ -569,7 +569,6 @@ public class DevAssistFindingsWindow extends SimpleToolWindowPanel implements Di
 
         JMenuItem fixWithCxOneAssist = new JMenuItem(DevAssistUtils.getAssistQuickFixName());
         fixWithCxOneAssist.addActionListener(ev -> {
-            TelemetryService.logFixWithCxOneAssistAction(detail);
             remediationManager.fixWithCxOneAssist(project, detail, QUICK_FIX);
         });
         fixWithCxOneAssist.setIcon(CxIcons.STAR_ACTION);

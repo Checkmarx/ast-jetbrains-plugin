@@ -111,7 +111,7 @@ public class OssScannerServiceTest {
              })) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
             utils.when(() -> DevAssistUtils.getIgnoreFilePath(any(com.intellij.openapi.project.Project.class))).thenReturn("");
-            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
+            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class), any())).then(invocation -> null);
             CxWrapper wrapper = mock(CxWrapper.class);
             OssRealtimeResults realtimeResults = mock(OssRealtimeResults.class);
             when(realtimeResults.getPackages()).thenReturn(List.of());
@@ -137,7 +137,7 @@ public class OssScannerServiceTest {
              })) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
             utils.when(() -> DevAssistUtils.getIgnoreFilePath(any(com.intellij.openapi.project.Project.class))).thenReturn("");
-            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
+            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class), any())).then(invocation -> null);
             CxWrapper wrapper = mock(CxWrapper.class);
             OssRealtimeResults realtimeResults = mock(OssRealtimeResults.class);
             OssRealtimeScanPackage pkg = mock(OssRealtimeScanPackage.class);
@@ -189,7 +189,7 @@ public class OssScannerServiceTest {
              })) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
             utils.when(() -> DevAssistUtils.getIgnoreFilePath(any(com.intellij.openapi.project.Project.class))).thenReturn("");
-            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
+            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class), any())).then(invocation -> null);
             CxWrapper wrapper = mock(CxWrapper.class);
             OssRealtimeResults realtimeResults = mock(OssRealtimeResults.class);
             when(realtimeResults.getPackages()).thenReturn(List.of());
@@ -216,7 +216,7 @@ public class OssScannerServiceTest {
              })) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
             utils.when(() -> DevAssistUtils.getIgnoreFilePath(any(com.intellij.openapi.project.Project.class))).thenReturn("");
-            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
+            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class), any())).then(invocation -> null);
             CxWrapper wrapper = mock(CxWrapper.class);
             OssRealtimeResults realtimeResults = mock(OssRealtimeResults.class);
             when(realtimeResults.getPackages()).thenReturn(List.of());
@@ -244,7 +244,7 @@ public class OssScannerServiceTest {
              })) {
             utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }\n");
             utils.when(() -> DevAssistUtils.getIgnoreFilePath(any(com.intellij.openapi.project.Project.class))).thenReturn("");
-            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
+            telemetry.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(com.checkmarx.intellij.devassist.common.ScanResult.class), any(ScanEngine.class), any())).then(invocation -> null);
             CxWrapper wrapper = mock(CxWrapper.class);
             OssRealtimeResults realtimeResults = mock(OssRealtimeResults.class);
             when(realtimeResults.getPackages()).thenReturn(List.of());

@@ -86,7 +86,7 @@ public class SecretsScannerServiceTest {
 
             devAssistUtilsStatic.when(() -> DevAssistUtils.getFileContent(mockPsiFile)).thenReturn("file contents");
             devAssistUtilsStatic.when(() -> DevAssistUtils.getIgnoreFilePath(any(Project.class))).thenReturn("");
-            telemetryStatic.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
+            telemetryStatic.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(ScanResult.class), any(ScanEngine.class), any())).then(invocation -> null);
 
             SecretsRealtimeResults mockResults = mock(SecretsRealtimeResults.class);
             when(mockResults.getSecrets()).thenReturn(List.of());

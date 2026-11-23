@@ -11,6 +11,7 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.remediation.prompts.DevAssistFixPrompts;
 import com.checkmarx.intellij.devassist.remediation.prompts.ViewDetailsPrompts;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.PackageManagerMapper;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -96,7 +97,7 @@ public final class RemediationManager {
                  scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath()));
         LOGGER.info(logContext);
         String notificationTitle = getNotificationTitle(scanIssue.getScanEngine());
-        fixWithAI(prompt, project, notificationTitle, Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), logContext);
+        fixWithAI(prompt, project, notificationTitle, Bundle.message(Resource.DEV_ASSIST_COPY_FIX_PROMPT), logContext, scanIssue);
     }
 
     /**
@@ -115,10 +116,11 @@ public final class RemediationManager {
      * @param notificationTitle title to use for the clipboard-fallback notification
      * @param clipboardMessage  message to use for the clipboard-fallback notification
      * @param logContext        short description of the operation, used to prefix log messages
+     * @param issueToFix        the issue being fixed, for the remediation analytics event; null when the prompt is not a fix
      */
     private void fixWithAI(@NotNull String prompt, @NotNull Project project,
                             @NotNull String notificationTitle, @NotNull String clipboardMessage,
-                            @NotNull String logContext) {
+                            @NotNull String logContext, @Nullable ScanIssue issueToFix) {
         GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
         AiAgent agent = settingsState != null
                 ? AiAgent.fromSettingsValue(settingsState.getAiAgent())
@@ -126,6 +128,7 @@ public final class RemediationManager {
         try {
             agent.chatIntegration().openWithPrompt(prompt, project, result -> {
                 try {
+                    logRemediation(issueToFix, agent, result.isSuccess() ? null : result.getMessage());
                     onAiResult(agent, prompt, project, notificationTitle, clipboardMessage, logContext, result);
                 } catch (Exception callbackException) {
                     LOGGER.warn(logContext + " - callback error handling AI result", callbackException);
@@ -133,7 +136,18 @@ public final class RemediationManager {
             });
         } catch (Exception exception) {
             LOGGER.warn(logContext + " - failed to invoke " + agent.getAgentName() + " integration", exception);
+            logRemediation(issueToFix, agent, String.valueOf(exception.getMessage()));
             fallBackToClipboard(prompt, project, notificationTitle, clipboardMessage, logContext);
+        }
+    }
+
+    /**
+     * Sends the remediation analytics event once the outcome of the prompt delivery is known.
+     */
+    private void logRemediation(@Nullable ScanIssue issueToFix, @NotNull AiAgent agent, @Nullable String failureReason) {
+        if (issueToFix != null) {
+            TelemetryService.logRemediation(issueToFix, agent,
+                    failureReason == null ? null : (failureReason.isBlank() ? "AI agent not available" : failureReason));
         }
     }
 
@@ -248,7 +262,7 @@ public final class RemediationManager {
                 scanIssue.getScanEngine().name(), scanIssue.getTitle(), scanIssue.getFilePath());
         LOGGER.info(logContext + " started");
         String notificationTitle = getNotificationTitle(scanIssue.getScanEngine());
-        fixWithAI(prompt, project, notificationTitle, Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), logContext);
+        fixWithAI(prompt, project, notificationTitle, Bundle.message(Resource.DEV_ASSIST_COPY_VIEW_DETAILS_PROMPT), logContext, null);
     }
 
     /**

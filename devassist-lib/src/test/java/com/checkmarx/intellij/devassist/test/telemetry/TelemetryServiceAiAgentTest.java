@@ -3,7 +3,9 @@ package com.checkmarx.intellij.devassist.test.telemetry;
 import com.checkmarx.intellij.common.settings.GlobalSettingsState;
 import com.checkmarx.intellij.common.utils.Constants;
 import com.checkmarx.intellij.devassist.aiagents.AiAgent;
+import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
+import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -38,6 +40,14 @@ class TelemetryServiceAiAgentTest {
         Method method = TelemetryService.class.getDeclaredMethod("getAgentName");
         method.setAccessible(true);
         return (String) method.invoke(null);
+    }
+
+    private static ScanIssue issue(ScanEngine engine, String severity) {
+        ScanIssue scanIssue = new ScanIssue();
+        scanIssue.setScanEngine(engine);
+        scanIssue.setSeverity(severity);
+        scanIssue.setFilePath("/project/file");
+        return scanIssue;
     }
 
     // ===== getAIAgentProvider tests =====
@@ -164,11 +174,11 @@ class TelemetryServiceAiAgentTest {
         assertFalse(result.isEmpty());
     }
 
-    // ===== setUserEventDataForLogs integration tests =====
+    // ===== logUserAction integration tests =====
 
     @Test
-    @DisplayName("setUserEventDataForLogs_WithCopilotAgent_IncludesAgentInTelemetry")
-    void setUserEventDataForLogs_WithCopilotAgent_IncludesAgentInTelemetry() {
+    @DisplayName("logUserAction_WithCopilotAgent_IncludesAgentInTelemetry")
+    void logUserAction_WithCopilotAgent_IncludesAgentInTelemetry() {
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
         when(mockState.getAiAgent()).thenReturn("COPILOT");
 
@@ -176,13 +186,13 @@ class TelemetryServiceAiAgentTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
 
             assertDoesNotThrow(() ->
-                    TelemetryService.setUserEventDataForLogs("click", "fixWithAIChat", "Oss", "High"));
+                    TelemetryService.logViewDetailsAction(issue(ScanEngine.OSS, "High")));
         }
     }
 
     @Test
-    @DisplayName("setUserEventDataForLogs_WithJetBrainsAgent_IncludesAgentInTelemetry")
-    void setUserEventDataForLogs_WithJetBrainsAgent_IncludesAgentInTelemetry() {
+    @DisplayName("logUserAction_WithJetBrainsAgent_IncludesAgentInTelemetry")
+    void logUserAction_WithJetBrainsAgent_IncludesAgentInTelemetry() {
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
         when(mockState.getAiAgent()).thenReturn("JETBRAINS_AI_ASSISTANT");
 
@@ -190,13 +200,13 @@ class TelemetryServiceAiAgentTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
 
             assertDoesNotThrow(() ->
-                    TelemetryService.setUserEventDataForLogs("click", "viewDetails", "Secrets", "Critical"));
+                    TelemetryService.logViewDetailsAction(issue(ScanEngine.SECRETS, "Critical")));
         }
     }
 
     @Test
-    @DisplayName("setUserEventDataForLogs_WithNoAgent_UsesDefaultCopilot")
-    void setUserEventDataForLogs_WithNoAgent_UsesDefaultCopilot() {
+    @DisplayName("logUserAction_WithNoAgent_UsesDefaultCopilot")
+    void logUserAction_WithNoAgent_UsesDefaultCopilot() {
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
         when(mockState.getAiAgent()).thenReturn(null);
 
@@ -204,7 +214,7 @@ class TelemetryServiceAiAgentTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
 
             assertDoesNotThrow(() ->
-                    TelemetryService.setUserEventDataForLogs("click", "ignorePackage", "IaC", "Medium"));
+                    TelemetryService.logIgnorePackageAction(issue(ScanEngine.IAC, "Medium")));
         }
     }
 
@@ -227,8 +237,8 @@ class TelemetryServiceAiAgentTest {
     }
 
     @Test
-    @DisplayName("setUserEventDataForDetectionLogs_WithCopilotAgent_DoesNotThrow")
-    void setUserEventDataForDetectionLogs_WithCopilotAgent_DoesNotThrow() {
+    @DisplayName("logScanFailure_WithCopilotAgent_DoesNotThrow")
+    void logScanFailure_WithCopilotAgent_DoesNotThrow() {
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
         when(mockState.getAiAgent()).thenReturn("COPILOT");
 
@@ -236,7 +246,7 @@ class TelemetryServiceAiAgentTest {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
 
             assertDoesNotThrow(() ->
-                    TelemetryService.setUserEventDataForDetectionLogs("Oss", "High", 5));
+                    TelemetryService.logScanFailure(ScanEngine.OSS, "/project/pom.xml", new RuntimeException("boom")));
         }
     }
 }

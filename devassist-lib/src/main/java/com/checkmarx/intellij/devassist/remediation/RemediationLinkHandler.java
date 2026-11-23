@@ -93,7 +93,6 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
         IgnoreManager ignoremanager = IgnoreManager.getInstance(project);
         switch (link) {
             case FIX:
-                TelemetryService.logFixWithCxOneAssistAction(scanIssue);
                 remediationManager.fixWithCxOneAssist(project, scanIssue, actionId);
                 break;
             case VIEW_DETAILS:

@@ -217,12 +217,13 @@ public class SecretsScannerService extends BaseScannerService<SecretsRealtimeRes
                 }
             }
             SecretsScanResultAdaptor scanResultAdaptor = new SecretsScanResultAdaptor(scanResults, uri);
-            TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.SECRETS);
+            TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.SECRETS, uri);
             // Update line numbers for ignored secrets if any exist
             updateIgnoredFileDataOnLatestResult(tempFilePath.get(), file.getProject(), uri);
             return scanResultAdaptor;
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.debug("Secrets scanner: scan error", e);
+            TelemetryService.logScanFailure(ScanEngine.SECRETS, uri, e);
         } finally {
             LOGGER.debug("Secrets scanner: cleaning up temp folder");
             deleteTempFolder(tempSubFolder);
