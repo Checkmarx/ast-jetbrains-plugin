@@ -99,7 +99,8 @@ public final class Constants {
             throw new UnsupportedOperationException("Cannot instantiate AuthConstants class");
         }
 
-        public static final String OAUTH_IDE_CLIENT_ID = "ide-integration";
+        // IAM client whose refresh tokens live 45 days (ide-integration's expire after hours).
+        public static final String OAUTH_IDE_CLIENT_ID = "cx-mcp-client";
         public static final String ALGO_SHA256 = "SHA-256";
         public static final String SCOPE = "openid offline_access";
         public static final String CODE = "code";

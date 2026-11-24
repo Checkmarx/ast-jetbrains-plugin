@@ -136,7 +136,7 @@ class CxWrapperFactoryTest {
         
         verify(mockCxConfigBuilder).agentName("Jetbrains");
         verify(mockCxConfigBuilder).apiKey("test-refresh-token");
-        verify(mockCxConfigBuilder).clientId("ide-integration");
+        verify(mockCxConfigBuilder).clientId("cx-mcp-client");
         verify(mockCxConfigBuilder).additionalParameters("");
         verify(mockCxConfigBuilder).build();
         
@@ -192,7 +192,7 @@ class CxWrapperFactoryTest {
         
         verify(mockCxConfigBuilder).agentName("Jetbrains");
         verify(mockCxConfigBuilder).apiKey(null);
-        verify(mockCxConfigBuilder).clientId("ide-integration");
+        verify(mockCxConfigBuilder).clientId("cx-mcp-client");
         verify(mockCxConfigBuilder).additionalParameters("--test");
     }
 
@@ -225,7 +225,7 @@ class CxWrapperFactoryTest {
         
         verify(mockCxConfigBuilder).agentName("Jetbrains");
         verify(mockCxConfigBuilder).apiKey("valid-refresh-token");
-        verify(mockCxConfigBuilder).clientId("ide-integration");
+        verify(mockCxConfigBuilder).clientId("cx-mcp-client");
         verify(mockCxConfigBuilder).additionalParameters("--debug");
         // Utils.notifySessionExpired() is called when credentials are expired
     }
@@ -244,7 +244,7 @@ class CxWrapperFactoryTest {
         
         verify(mockCxConfigBuilder).agentName("Jetbrains");
         verify(mockCxConfigBuilder).apiKey("refresh-token");
-        verify(mockCxConfigBuilder).clientId("ide-integration");
+        verify(mockCxConfigBuilder).clientId("cx-mcp-client");
         verify(mockCxConfigBuilder).additionalParameters("");
         // Utils.notifySessionExpired() is called when credentials are expired
     }
@@ -263,7 +263,7 @@ class CxWrapperFactoryTest {
         
         verify(mockCxConfigBuilder).agentName("Jetbrains");
         verify(mockCxConfigBuilder).apiKey("refresh-token");
-        verify(mockCxConfigBuilder).clientId("ide-integration");
+        verify(mockCxConfigBuilder).clientId("cx-mcp-client");
         verify(mockCxConfigBuilder).additionalParameters("");
         // Utils.notifySessionExpired() is called when credentials are expired
     }
@@ -301,7 +301,7 @@ class CxWrapperFactoryTest {
         
         verify(mockCxConfigBuilder).agentName("Jetbrains");
         verify(mockCxConfigBuilder).apiKey("provided-refresh-token");
-        verify(mockCxConfigBuilder).clientId("ide-integration");
+        verify(mockCxConfigBuilder).clientId("cx-mcp-client");
         verify(mockCxConfigBuilder).additionalParameters("");
         
         // Utils.notifySessionExpired() is called when credentials are expired
@@ -385,7 +385,7 @@ class CxWrapperFactoryTest {
         
         verify(mockCxConfigBuilder).agentName("Jetbrains");
         verify(mockCxConfigBuilder).apiKey("");
-        verify(mockCxConfigBuilder).clientId("ide-integration");
+        verify(mockCxConfigBuilder).clientId("cx-mcp-client");
         verify(mockCxConfigBuilder).additionalParameters("");
     }
 
@@ -423,7 +423,7 @@ class CxWrapperFactoryTest {
 
         CxWrapperFactory.build();
 
-        verify(mockCxConfigBuilder, times(1)).clientId("ide-integration");
+        verify(mockCxConfigBuilder, times(1)).clientId("cx-mcp-client");
     }
 
     @Test
