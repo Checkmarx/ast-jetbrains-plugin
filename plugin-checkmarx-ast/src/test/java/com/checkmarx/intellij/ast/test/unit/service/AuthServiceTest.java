@@ -307,7 +307,7 @@ public class AuthServiceTest {
     }
 
     private String getAuthorizationEndPoint() {
-        return AUTH_ENDPOINT + "?response_type=code&client_id=ide-integration" +
+        return AUTH_ENDPOINT + "?response_type=code&client_id=cx-mcp-client" +
                 "&redirect_uri=http%3A%2F%2Flocalhost%3A5000%2Fcheckmarx1%2Fcallback&scope=openid+offline_access" +
                 "&state=d19e1546-f2c2-4da6-8d0d-6b92b7ec7717&code_challenge=" + CODE_CHALLENGE + "&code_challenge_method=S256";
     }
