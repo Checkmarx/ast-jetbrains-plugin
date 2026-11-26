@@ -14,8 +14,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("TelemetryEventFactory unit tests")
 class TelemetryEventFactoryTest {
 
-    // ===== scan event =====
-
     @Test
     @DisplayName("scanEvent_mixedSeverities_countsAndHighestSeverity")
     void scanEvent_mixedSeverities_countsAndHighestSeverity() {
@@ -85,8 +83,6 @@ class TelemetryEventFactoryTest {
         assertEquals("Scan failed. Reason: unknown, Error Code: N/A", event.getStatusResult());
     }
 
-    // ===== login and install events =====
-
     @Test
     @DisplayName("loginEvent_success_hasAuthMethodAndTimestamp")
     void loginEvent_success_hasAuthMethodAndTimestamp() {
@@ -130,8 +126,6 @@ class TelemetryEventFactoryTest {
         assertEquals("intellij-idea-1234", event.getEventAttributes().get("installationId"));
         assertEquals("2026-11-19T09:00:00Z", event.getEventAttributes().get("installationTimestamp"));
     }
-
-    // ===== remediation and click events =====
 
     @Test
     @DisplayName("remediationEvent_success")
@@ -189,8 +183,6 @@ class TelemetryEventFactoryTest {
                 TelemetryEventFactory.clickEvent("somethingElse", "Oss", "High", "Copilot", "x", "").build().getStatusResult());
     }
 
-    // ===== severity helpers =====
-
     @Test
     @DisplayName("toSeverityLabel_mapsAllKnownValues")
     void toSeverityLabel_mapsAllKnownValues() {
@@ -204,8 +196,6 @@ class TelemetryEventFactoryTest {
         assertEquals("Info", TelemetryEventFactory.toSeverityLabel(null));
         assertNull(TelemetryEventFactory.toSeverityLabel("OK"));
     }
-
-    // ===== sanitizeText =====
 
     @Test
     @DisplayName("sanitizeText_removesCredentialsAndSecrets")
@@ -225,5 +215,40 @@ class TelemetryEventFactoryTest {
         assertEquals("a b c", TelemetryEventFactory.sanitizeText("  a \n\t b   c "));
         assertEquals(256, TelemetryEventFactory.sanitizeText("word ".repeat(100)).length());
         assertEquals("", TelemetryEventFactory.sanitizeText(null));
+    }
+
+    @Test
+    @DisplayName("sanitizeText_removesLocalPaths")
+    void sanitizeText_removesLocalPaths() {
+        assertEquals("not found: <path>", TelemetryEventFactory.sanitizeText("not found: C:\\Users\\jdoe\\AppData\\Local\\cx.exe"));
+        assertEquals("not found: <path>", TelemetryEventFactory.sanitizeText("not found: C:/Users/jdoe/AppData/cx.exe"));
+        assertEquals("share <path> down", TelemetryEventFactory.sanitizeText("share \\\\fileserver\\team\\cx down"));
+        assertEquals("cannot read <path>", TelemetryEventFactory.sanitizeText("cannot read /home/jdoe/.config/cx/token"));
+        assertEquals("cannot read <path>", TelemetryEventFactory.sanitizeText("cannot read ~/projects/app/pom.xml"));
+
+        String spaces = TelemetryEventFactory.sanitizeText("at C:\\Users\\John Smith\\AppData\\Temp\\x.tmp");
+        assertFalse(spaces.contains("John"), spaces);
+        assertFalse(spaces.contains("Smith"), spaces);
+    }
+
+    @Test
+    @DisplayName("sanitizeText_keepsUrlsAndOrdinaryMessages")
+    void sanitizeText_keepsUrlsAndOrdinaryMessages() {
+        assertEquals("see https://github.com/acme/app/issues for details",
+                TelemetryEventFactory.sanitizeText("see https://github.com/acme/app/issues for details"));
+        assertEquals("container engine 'docker' is installed but not running",
+                TelemetryEventFactory.sanitizeText("container engine 'docker' is installed but not running"));
+        assertEquals("relative src/main is fine", TelemetryEventFactory.sanitizeText("relative src/main is fine"));
+    }
+
+    @Test
+    @DisplayName("scanFailureEventWithReason_usesTheReasonText")
+    void scanFailureEventWithReason_usesTheReasonText() {
+        TelemetryEvent event = TelemetryEventFactory.scanFailureEventWithReason("Asca", "engine not installed", "").build();
+
+        assertEquals("failure", event.getStatus());
+        assertEquals("Scan failed. Reason: engine not installed, Error Code: N/A", event.getStatusResult());
+        assertEquals("Scan failed. Reason: unknown, Error Code: N/A",
+                TelemetryEventFactory.scanFailureEventWithReason("Asca", "  ", "").build().getStatusResult());
     }
 }

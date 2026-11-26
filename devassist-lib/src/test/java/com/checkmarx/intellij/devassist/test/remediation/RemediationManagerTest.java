@@ -651,4 +651,95 @@ public class RemediationManagerTest {
         issue.setImageTag("nginx:latest");
         return issue;
     }
+
+    @Test
+    @DisplayName("fix telemetry: delivered prompt is reported with the agent used and no failure")
+    void fixTelemetry_delivered_reportsSuccess() {
+        ScanIssue issue = buildScanIssue(ScanEngine.OSS);
+        runFixWithAiAssistant(issue, ChatIntegrationResult.success("opened"), null,
+                telemetry -> telemetry.verify(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logRemediation(
+                        eq(issue), eq(com.checkmarx.intellij.devassist.aiagents.AiAgent.JETBRAINS_AI_ASSISTANT), isNull())));
+    }
+
+    @Test
+    @DisplayName("fix telemetry: agent not available is reported as a failure with its message")
+    void fixTelemetry_notAvailable_reportsFailure() {
+        ScanIssue issue = buildScanIssue(ScanEngine.OSS);
+        runFixWithAiAssistant(issue, ChatIntegrationResult.notAvailable("AI Assistant not available"), null,
+                telemetry -> telemetry.verify(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logRemediation(
+                        eq(issue), eq(com.checkmarx.intellij.devassist.aiagents.AiAgent.JETBRAINS_AI_ASSISTANT), eq("AI Assistant not available"))));
+    }
+
+    @Test
+    @DisplayName("fix telemetry: an exception of the integration is reported as a failure and the prompt is copied")
+    void fixTelemetry_exception_reportsFailureAndCopies() {
+        ScanIssue issue = buildScanIssue(ScanEngine.OSS);
+        runFixWithAiAssistant(issue, null, new IllegalStateException("chat crashed"),
+                telemetry -> telemetry.verify(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logRemediation(
+                        eq(issue), eq(com.checkmarx.intellij.devassist.aiagents.AiAgent.JETBRAINS_AI_ASSISTANT), eq("chat crashed"))));
+    }
+
+    @Test
+    @DisplayName("view details sends no remediation event")
+    void viewDetails_sendsNoRemediationEvent() {
+        Project project = mock(Project.class);
+        ScanIssue issue = buildScanIssue(ScanEngine.OSS);
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.getAiAgent()).thenReturn("JETBRAINS_AI_ASSISTANT");
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class);
+             MockedStatic<ViewDetailsPrompts> viewPrompts = mockStatic(ViewDetailsPrompts.class);
+             MockedStatic<DevAssistUtils> devAssist = mockStatic(DevAssistUtils.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetry =
+                     mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            viewPrompts.when(() -> ViewDetailsPrompts.buildSCAExplanationPrompt(anyString(), anyString(), anyString(), any()))
+                    .thenReturn("viewPrompt");
+            aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed(anyString(), any(), any()))
+                    .thenReturn(ChatIntegrationResult.success("opened"));
+
+            manager().viewDetails(project, issue, QUICK_FIX);
+
+            telemetry.verify(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logRemediation(any(), any(), any()), never());
+        }
+    }
+
+    private static RemediationManager manager() {
+        return new RemediationManager();
+    }
+
+    private void runFixWithAiAssistant(ScanIssue issue, ChatIntegrationResult result, RuntimeException failure,
+                                       java.util.function.Consumer<MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService>> checks) {
+        Project project = mock(Project.class);
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.getAiAgent()).thenReturn("JETBRAINS_AI_ASSISTANT");
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<AiAssistantIntegration> aiAssistantMock = mockStatic(AiAssistantIntegration.class);
+             MockedStatic<DevAssistFixPrompts> fixPrompts = mockStatic(DevAssistFixPrompts.class);
+             MockedStatic<DevAssistUtils> devAssist = mockStatic(DevAssistUtils.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetry =
+                     mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+            fixPrompts.when(() -> DevAssistFixPrompts.buildSCARemediationPrompt(anyString(), anyString(), anyString(), anyString()))
+                    .thenReturn("prompt");
+            devAssist.when(() -> DevAssistUtils.copyToClipboardWithNotification(anyString(), anyString(), anyString(), any()))
+                    .thenReturn(true);
+            if (failure != null) {
+                aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed(anyString(), any(), any()))
+                        .thenThrow(failure);
+            } else {
+                aiAssistantMock.when(() -> AiAssistantIntegration.openAiAssistantWithPromptDetailed(anyString(), any(), any()))
+                        .thenReturn(result);
+            }
+
+            manager().fixWithCxOneAssist(project, issue, "actionId");
+
+            checks.accept(telemetry);
+            if (failure != null) {
+                devAssist.verify(() -> DevAssistUtils.copyToClipboardWithNotification(eq("prompt"), anyString(), anyString(), eq(project)));
+            }
+        }
+    }
 }

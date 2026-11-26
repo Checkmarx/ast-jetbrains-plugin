@@ -14,8 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @DisplayName("RepositoryUrlResolver unit tests")
 class RepositoryUrlResolverTest {
 
-    // ===== sanitizeRemoteUrl =====
-
     @Test
     @DisplayName("sanitizeRemoteUrl_httpsWithCredentials_removesCredentialsAndGitSuffix")
     void sanitizeRemoteUrl_httpsWithCredentials() {
@@ -53,8 +51,6 @@ class RepositoryUrlResolverTest {
         assertEquals("", RepositoryUrlResolver.sanitizeRemoteUrl("not a url"));
     }
 
-    // ===== parseRemoteUrl =====
-
     @Test
     @DisplayName("parseRemoteUrl_prefersOriginOverOtherRemotes")
     void parseRemoteUrl_prefersOrigin() {
@@ -82,8 +78,6 @@ class RepositoryUrlResolverTest {
     void parseRemoteUrl_noRemotes() {
         assertEquals("", RepositoryUrlResolver.parseRemoteUrl(Arrays.asList("[core]", "\tbare = false")));
     }
-
-    // ===== resolve =====
 
     @Test
     @DisplayName("resolve_fileInsideRepository_readsOriginFromGitConfig")

@@ -219,6 +219,34 @@ public class IacScannerServiceTest {
         assertEquals(DevAssistConstants.IAC_REALTIME_SCANNER, config.getConfigSection());
         assertEquals(DevAssistConstants.ACTIVATE_IAC_REALTIME_SCANNER, config.getActivateKey());
     }
+
+    @Test
+    @DisplayName("scan sends a failed scan event when the CLI fails")
+    void scanCliException_sendsFailedScanEvent() throws Exception {
+        when(virtualFile.exists()).thenReturn(true);
+        when(virtualFile.getExtension()).thenReturn("tf");
+        when(virtualFile.getPath()).thenReturn("/repo/main.tf");
+        when(psiFile.getProject()).thenReturn(mock(com.intellij.openapi.project.Project.class));
+        IacScannerService testService = new TestableIacScannerService(Files.createTempDirectory("iac-failure"));
+
+        try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
+             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class);
+             MockedStatic<TelemetryService> telemetry = mockStatic(TelemetryService.class);
+             MockedConstruction<IgnoreManager> ignoreMgr = mockConstruction(IgnoreManager.class, (mock, context) ->
+                     when(mock.hasIgnoredEntries(any())).thenReturn(false))) {
+            utils.when(() -> DevAssistUtils.getFileContent(psiFile)).thenReturn("resource");
+            utils.when(DevAssistUtils::getContainerTool).thenReturn("docker");
+            utils.when(() -> DevAssistUtils.getFileExtension(psiFile)).thenReturn("tf");
+            utils.when(() -> DevAssistUtils.getIgnoreFilePath(any())).thenReturn("");
+            CxWrapper wrapper = mock(CxWrapper.class);
+            when(wrapper.iacRealtimeScan(anyString(), anyString(), anyString()))
+                    .thenThrow(new com.checkmarx.ast.wrapper.CxException(1, "container engine is not running"));
+            factory.when(CxWrapperFactory::build).thenReturn(wrapper);
+
+            assertNull(testService.scan(psiFile, "/repo/main.tf"));
+
+            telemetry.verify(() -> TelemetryService.logScanFailure(eq(ScanEngine.IAC), eq("/repo/main.tf"), any(Throwable.class)));
+            telemetry.verify(() -> TelemetryService.logScanResults(any(), any(), any()), never());
+        }
+    }
 }
-
-

@@ -13,8 +13,6 @@ import static org.mockito.Mockito.*;
 @DisplayName("InstallationTracker unit tests")
 class InstallationTrackerTest {
 
-    // ===== id generation =====
-
     @Test
     @DisplayName("ideSlug_turnsIdeNameIntoLowercaseWords")
     void ideSlug_turnsIdeNameIntoLowercaseWords() {
@@ -39,8 +37,6 @@ class InstallationTrackerTest {
         assertTrue(id.matches("intellij-idea-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"), id);
         assertNotEquals(id, InstallationTracker.generateInstallationId("IntelliJ IDEA"));
     }
-
-    // ===== existing users =====
 
     @Test
     @DisplayName("isExistingInstallation_freshSettings_isFalse")
@@ -73,8 +69,6 @@ class InstallationTrackerTest {
         when(welcomed.isWelcomeShown()).thenReturn(true);
         assertTrue(InstallationTracker.isExistingInstallation(welcomed));
     }
-
-    // ===== ensureInstallationId =====
 
     @Test
     @DisplayName("ensureInstallationId_newUser_createsIdAndPendingEvent")
@@ -133,8 +127,6 @@ class InstallationTrackerTest {
             assertTrue(state.isInstallEventPending());
         }
     }
-
-    // ===== flushPendingInstallEvent =====
 
     @Test
     @DisplayName("flushPendingInstallEvent_delivered_clearsPendingFlag")

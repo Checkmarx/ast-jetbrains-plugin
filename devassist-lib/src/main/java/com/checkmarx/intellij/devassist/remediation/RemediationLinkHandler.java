@@ -100,7 +100,6 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
                 remediationManager.viewDetails(project, scanIssue, actionId);
                 break;
             case IGNORE_THIS_TYPE:
-                // IgnoreManager sends the ignore telemetry event once the entry is saved
                 ignoremanager.addIgnoredEntry(scanIssue, actionId);
                 break;
             case IGNORE_ALL_OF_THIS_TYPE:

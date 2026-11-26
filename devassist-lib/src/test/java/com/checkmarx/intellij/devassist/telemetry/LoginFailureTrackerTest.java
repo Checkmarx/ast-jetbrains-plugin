@@ -19,8 +19,6 @@ class LoginFailureTrackerTest {
 
     private static final Instant NOW = Instant.parse("2026-11-26T10:00:00Z");
 
-    // ===== record =====
-
     @Test
     @DisplayName("record_keepsMethodTimeAndSanitizedReason")
     void record_keepsMethodTimeAndSanitizedReason() {
@@ -89,8 +87,6 @@ class LoginFailureTrackerTest {
         }
     }
 
-    // ===== flushPending =====
-
     @Test
     @DisplayName("flushPending_sendsOldestFirstAsFailureWithAttemptTime_andClearsThem")
     void flushPending_sendsOldestFirstAsFailureWithAttemptTime_andClearsThem() {
@@ -129,7 +125,6 @@ class LoginFailureTrackerTest {
         try (MockedStatic<TelemetryInstallationState> stateMock = mockStatic(TelemetryInstallationState.class)) {
             stateMock.when(TelemetryInstallationState::getInstance).thenReturn(state);
 
-            // the first one is delivered, the second is not: the CLI is not reachable any more
             LoginFailureTracker.flushPending(builder -> {
                 attempted.add(builder.build().getStatusResult());
                 return attempted.size() == 1;
@@ -225,8 +220,6 @@ class LoginFailureTrackerTest {
         assertEquals("2026-11-26T09:00:00Z", failure.getTimestamp());
         assertEquals("invalid key", failure.getReason());
     }
-
-    // ===== TelemetryService integration =====
 
     @Test
     @DisplayName("logLoginEvent_failure_isKeptAndNotSentNow")

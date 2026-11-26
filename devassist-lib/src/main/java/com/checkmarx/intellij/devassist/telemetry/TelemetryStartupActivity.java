@@ -6,9 +6,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Starts the install tracking of the analytics events once per IDE session, not once per opened project.
- */
 public class TelemetryStartupActivity implements StartupActivity.DumbAware {
 
     private static final AtomicBoolean STARTED = new AtomicBoolean(false);

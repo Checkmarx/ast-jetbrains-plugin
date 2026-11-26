@@ -21,7 +21,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -29,15 +32,7 @@ import static com.checkmarx.intellij.devassist.telemetry.TelemetryConstants.*;
 import static java.lang.String.format;
 
 /**
- * Single entry point for the Dev Assist analytics events: install, login, scan and remediation (AST-184118),
- * plus the click events of the findings (view details, ignore).
- * <p>
- * Every event gets the common fields (agent, agent version, plugin version, plugin type and plugin name) and is sent
- * through the CLI wrapper on a background thread. Sending never throws, never blocks the caller and never shows
- * anything to the user. The events are emitted whatever the tenant flags are, the server decides what to keep.
- * <p>
- * A CLI that does not know the analytics flags rejects them with "unknown flag". In that case the scan and click events
- * are sent in the previous format for the rest of the session, so the existing telemetry keeps working.
+ * Sends the Dev Assist analytics events (install, login, scan, remediation and finding actions) through the CLI wrapper.
  */
 public final class TelemetryService {
 
@@ -53,11 +48,20 @@ public final class TelemetryService {
     private static final String ENGINE_ASCA = "Asca";
     private static final String ENGINE_CONTAINERS = "Containers";
 
+    private static final String THREAD_NAME = "Checkmarx-Telemetry";
+    private static final int MAX_QUEUED_EVENTS = 200;
+
+    // One thread: each event starts a CLI process, and login, pending failures and install must stay in order.
+    private static final Executor DEFAULT_EXECUTOR = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<>(MAX_QUEUED_EVENTS), runnable -> {
+                Thread thread = new Thread(runnable, THREAD_NAME);
+                thread.setDaemon(true);
+                return thread;
+            }, (runnable, pool) -> LOGGER.debug("Telemetry: queue full, event dropped"));
+
+    private static volatile Executor executor = DEFAULT_EXECUTOR;
     private static volatile boolean legacyFormat = false;
 
-    /**
-     * Sends an event in the format of the CLI that does not know the analytics flags.
-     */
     @FunctionalInterface
     interface LegacySender {
         void send(CxWrapper wrapper) throws Exception;
@@ -70,20 +74,24 @@ public final class TelemetryService {
     // ------------------------------------------------------------------ install
 
     /**
-     * Creates the installation id on the first start. When the user is already logged in, sends the failed logins and
-     * the install event that are still pending. Called once at IDE startup.
+     * Creates the installation id if missing. Must run before the first login saves any settings,
+     * otherwise a fresh install is taken for an upgrade.
      */
+    public static void ensureInstallationId() {
+        try {
+            InstallationTracker.ensureInstallationId(getIdeName());
+        } catch (Exception e) {
+            LOGGER.debug("Telemetry: installation id could not be created", e);
+        }
+    }
+
     public static void startInstallTracking() {
-        CompletableFuture.runAsync(() -> {
-            try {
-                InstallationTracker.ensureInstallationId(getIdeName());
-                GlobalSettingsState settings = GlobalSettingsState.getInstance();
-                if (settings != null && settings.isAuthenticated()) {
-                    flushPendingLoginFailures();
-                    flushPendingInstallEvent();
-                }
-            } catch (Exception e) {
-                LOGGER.debug("Telemetry: install tracking failed", e);
+        runAsync(() -> {
+            InstallationTracker.ensureInstallationId(getIdeName());
+            GlobalSettingsState settings = GlobalSettingsState.getInstance();
+            if (settings != null && settings.isAuthenticated()) {
+                flushPendingLoginFailures();
+                flushPendingInstallEvent();
             }
         });
     }
@@ -95,36 +103,21 @@ public final class TelemetryService {
     // ------------------------------------------------------------------ login
 
     /**
-     * Logs an interactive login. Call it only for sign-ins done by the user, never for the silent check at startup.
-     * <p>
-     * A failed login is not sent now: without a successful login the CLI has no token, so it cannot be delivered, and
-     * a credential that is still stored would report it for the wrong user. It is kept by {@link LoginFailureTracker}.
-     * A successful login sends its own event first (the CLI starts the new session with it), then the kept failed
-     * logins with the time of each attempt, then the pending install event.
-     *
-     * @param authMethod {@link TelemetryConstants#AUTH_METHOD_OAUTH} or {@link TelemetryConstants#AUTH_METHOD_API_KEY}
-     * @param reason     failure reason, ignored on success
+     * Logs an interactive login, never the silent check at startup. A failed login cannot be sent without a token,
+     * so it is kept and sent after the next successful login.
      */
     public static void logLoginEvent(String authMethod, boolean success, String reason) {
         if (!success) {
             recordLoginFailure(authMethod, reason);
             return;
         }
-        CompletableFuture.runAsync(() -> {
-            try {
-                deliver(withCommonFields(TelemetryEventFactory.loginEvent(authMethod, true, null, Instant.now().toString())), null);
-                flushPendingLoginFailures();
-                flushPendingInstallEvent();
-            } catch (Exception e) {
-                LOGGER.debug("Telemetry: login event failed", e);
-            }
+        runAsync(() -> {
+            deliver(withCommonFields(TelemetryEventFactory.loginEvent(authMethod, true, null, Instant.now().toString())), null);
+            flushPendingLoginFailures();
+            flushPendingInstallEvent();
         });
     }
 
-    /**
-     * Keeps a failed login until the next successful login. Done on the calling thread, so it is stored before a
-     * login that follows right after it is handled. Never throws.
-     */
     private static void recordLoginFailure(String authMethod, String reason) {
         try {
             LoginFailureTracker.record(authMethod, reason, Instant.now());
@@ -141,11 +134,11 @@ public final class TelemetryService {
     // ------------------------------------------------------------------ scan
 
     /**
-     * Logs one scan event for a finished scan, also when it found nothing.
+     * Helper method to log scan results based on scan result and scan engine type.
      *
-     * @param scanResult the result of the scan
-     * @param scanEngine the engine that performed the scan
-     * @param filePath   the scanned file, used to find the repository URL
+     * @param scanResult the scan result containing issues
+     * @param scanEngine the engine type that performed the scan
+     * @param filePath   the scanned file
      */
     public static void logScanResults(ScanResult<?> scanResult, ScanEngine scanEngine, String filePath) {
         if (Objects.isNull(scanResult) || Objects.isNull(scanEngine)) {
@@ -162,15 +155,20 @@ public final class TelemetryService {
                 wrapper -> sendLegacyScan(wrapper, engineName, severities));
     }
 
-    /**
-     * Logs a scan that failed.
-     */
     public static void logScanFailure(ScanEngine scanEngine, String filePath, Throwable error) {
         if (Objects.isNull(scanEngine)) {
             return;
         }
         String engineName = mapScanEngineToTelemetryEngine(scanEngine);
         sendAsync(() -> TelemetryEventFactory.scanFailureEvent(engineName, error, RepositoryUrlResolver.resolve(filePath)), null);
+    }
+
+    public static void logScanFailureReason(ScanEngine scanEngine, String filePath, String reason) {
+        if (Objects.isNull(scanEngine)) {
+            return;
+        }
+        String engineName = mapScanEngineToTelemetryEngine(scanEngine);
+        sendAsync(() -> TelemetryEventFactory.scanFailureEventWithReason(engineName, reason, RepositoryUrlResolver.resolve(filePath)), null);
     }
 
     private static void sendLegacyScan(CxWrapper wrapper, String engineName, List<String> severities) throws Exception {
@@ -188,11 +186,11 @@ public final class TelemetryService {
     // ------------------------------------------------------------------ remediation and clicks
 
     /**
-     * Logs a "Fix with AI" action once the prompt reached the AI agent, or failed to reach it.
+     * Logs user action for "Fix with CxOne Assist".
      *
-     * @param scanIssue     the issue being fixed
-     * @param agent         the AI agent that was used
-     * @param failureReason why the prompt could not be delivered, null on success
+     * @param scanIssue     the scan issue being acted upon
+     * @param agent         the AI agent that received the prompt
+     * @param failureReason null when the prompt was delivered
      */
     public static void logRemediation(ScanIssue scanIssue, AiAgent agent, String failureReason) {
         if (Objects.isNull(scanIssue)) {
@@ -209,7 +207,11 @@ public final class TelemetryService {
     }
 
     /**
-     * Logs a click on a finding action.
+     * Logs user action for scan issue remediation activities.
+     *
+     * @param scanIssue     the scan issue being acted upon
+     * @param actionSubType the specific action sub-type for telemetry
+     * @param actionName    the action name for logging purposes
      */
     private static void logUserAction(ScanIssue scanIssue, String actionSubType, String actionName) {
         if (Objects.isNull(scanIssue)) {
@@ -235,8 +237,7 @@ public final class TelemetryService {
     }
 
     /**
-     * Logs user action for "Ignore this vulnerability". Called by {@code IgnoreManager} once the ignore entry is saved,
-     * so every entry point (hover link, quick fix, findings window) is counted once.
+     * Logs user action for "Ignore this vulnerability".
      *
      * @param scanIssue the scan issue being acted upon
      */
@@ -245,7 +246,7 @@ public final class TelemetryService {
     }
 
     /**
-     * Logs user action for "Ignore all of this type". Called by {@code IgnoreManager} once the ignore entry is saved.
+     * Logs user action for "Ignore All".
      *
      * @param scanIssue the scan issue being acted upon
      */
@@ -255,19 +256,23 @@ public final class TelemetryService {
 
     // ------------------------------------------------------------------ delivery
 
-    private static void sendAsync(Supplier<TelemetryEvent.TelemetryEventBuilder> eventSupplier, LegacySender legacySender) {
-        CompletableFuture.runAsync(() -> {
+    private static void runAsync(Runnable task) {
+        executor.execute(() -> {
             try {
-                deliver(withCommonFields(eventSupplier.get()), legacySender);
+                task.run();
             } catch (Exception e) {
                 LOGGER.debug("Telemetry: failed to send event", e);
             }
         });
     }
 
+    private static void sendAsync(Supplier<TelemetryEvent.TelemetryEventBuilder> eventSupplier, LegacySender legacySender) {
+        runAsync(() -> deliver(withCommonFields(eventSupplier.get()), legacySender));
+    }
+
     /**
-     * Sends the event and returns true only when the CLI accepted it. Never throws.
-     * When the CLI does not know the analytics flags, the legacy sender is used from then on.
+     * Returns true only when the CLI accepted the event. Never throws. A CLI without the analytics flags
+     * switches the session to the legacy format.
      */
     static boolean deliver(TelemetryEvent event, LegacySender legacySender) {
         try {
@@ -299,21 +304,16 @@ public final class TelemetryService {
         }
     }
 
-    /**
-     * Severity label the analytics service accepts: Critical, High, Medium, Low or Info (Malicious counts as Critical).
-     */
     static String analyticsSeverity(ScanIssue issue) {
         String label = TelemetryEventFactory.toSeverityLabel(issue.getSeverity());
         return label == null ? "" : label;
     }
 
     private static boolean isUnknownFlagError(CxException e) {
-        return Objects.nonNull(e.getMessage()) && e.getMessage().toLowerCase().contains(UNKNOWN_FLAG_ERROR);
+        String message = Objects.isNull(e.getMessage()) ? "" : e.getMessage().toLowerCase();
+        return message.contains(UNKNOWN_FLAG_ERROR) && ANALYTICS_FLAGS.stream().anyMatch(message::contains);
     }
 
-    /**
-     * For unit tests: makes the next event use the analytics flags again.
-     */
     static void resetLegacyFormat() {
         legacyFormat = false;
     }
@@ -322,7 +322,14 @@ public final class TelemetryService {
         return legacyFormat;
     }
 
-    private static TelemetryEvent withCommonFields(TelemetryEvent.TelemetryEventBuilder builder) {
+    /**
+     * Tests pass a direct executor to run events on the calling thread; null restores the default.
+     */
+    static void setExecutorForTests(Executor testExecutor) {
+        executor = Objects.isNull(testExecutor) ? DEFAULT_EXECUTOR : testExecutor;
+    }
+
+    static TelemetryEvent withCommonFields(TelemetryEvent.TelemetryEventBuilder builder) {
         return builder
                 .agent(getAgentName())
                 .agentVersion(getAgentVersion())
@@ -335,7 +342,7 @@ public final class TelemetryService {
     // ------------------------------------------------------------------ helpers
 
     /**
-     * Identifier of the finding: ASCA rule id, IaC similarity id, Secrets title, Containers image:tag, OSS package@version.
+     * ASCA rule id, IaC similarity id, Secrets title, Containers image:tag, OSS package@version.
      */
     static String getVulnerabilityId(ScanIssue issue) {
         String title = Objects.isNull(issue.getTitle()) ? "" : issue.getTitle();
@@ -438,10 +445,6 @@ public final class TelemetryService {
         }
     }
 
-    /**
-     * Which plugin sends the event: CxOne or DevAssist. Both plugins run in the same IDEs, so the agent alone cannot tell them apart.
-     * Empty when it cannot be determined.
-     */
     private static String getPluginName() {
         try {
             PluginId pluginId = PluginManager.getPluginByClassName(TelemetryService.class.getName());
@@ -455,9 +458,6 @@ public final class TelemetryService {
         }
     }
 
-    /**
-     * Name of the AI agent that received the prompt, as shown in the analytics.
-     */
     static String toAiProviderName(AiAgent agent) {
         if (Objects.isNull(agent)) {
             return AI_PROVIDER;
@@ -466,9 +466,7 @@ public final class TelemetryService {
     }
 
     /**
-     * AI agent configured in the settings, with the same name the "Fix with AI" event uses
-     * (Copilot, JetBrains AI Assistant), so every click event of a finding reports the provider the same way.
-     * The settings store the enum name (e.g. JETBRAINS_AI_ASSISTANT), which is not sent as is.
+     * Get AI Agent from the settings
      *
      * @return String - Ai Agent Provider
      */

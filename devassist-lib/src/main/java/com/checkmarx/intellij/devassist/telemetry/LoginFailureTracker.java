@@ -8,19 +8,11 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 /**
- * Failed logins of the Dev Assist analytics (AST-184118).
- * <p>
- * A failed login cannot be sent when it happens: the user is not logged in, so the CLI has no token and the analytics
- * service rejects the request. Sending it with a credential that is still stored would also report it for the wrong
- * user. The failure is therefore kept and sent after the next successful login, with the time of the failed attempt
- * as loginTimestamp. At most {@value #MAX_PENDING} failures are kept (the newest ones), and failures older than
- * {@link #MAX_AGE} are dropped without being sent.
- * <p>
- * The list is never changed in place: every change stores a new list, so the IDE can save the state at any time.
+ * Failed logins cannot be sent without a token, so they are kept and sent after the next successful login.
+ * The stored list is always replaced, never changed in place, because the IDE can save the state at any time.
  */
 public final class LoginFailureTracker {
 
@@ -28,18 +20,10 @@ public final class LoginFailureTracker {
     static final Duration MAX_AGE = Duration.ofDays(30);
 
     private static final Object LOCK = new Object();
-    private static final AtomicBoolean FLUSH_IN_PROGRESS = new AtomicBoolean(false);
 
     private LoginFailureTracker() {
     }
 
-    /**
-     * Keeps a failed login until it can be sent.
-     *
-     * @param authMethod OAuth or APIKey
-     * @param reason     failure reason, sanitized before it is stored
-     * @param time       time of the failed attempt
-     */
     public static void record(String authMethod, String reason, Instant time) {
         TelemetryInstallationState state = TelemetryInstallationState.getInstance();
         if (Objects.isNull(state)) {
@@ -58,12 +42,7 @@ public final class LoginFailureTracker {
     }
 
     /**
-     * Sends the kept failures, oldest first, and removes each one once it was delivered.
-     * Stops at the first failure that is not delivered, so the remaining ones are sent next time.
-     * Concurrent calls share one send.
-     *
-     * @param sender sends the event and returns true only when the CLI accepted it
-     * @param now    current time, used to drop failures older than {@link #MAX_AGE}
+     * Sends the kept failures oldest first. Stops at the first one the CLI does not accept; the rest are sent next time.
      */
     public static void flushPending(Predicate<TelemetryEvent.TelemetryEventBuilder> sender, Instant now) {
         TelemetryInstallationState state = TelemetryInstallationState.getInstance();
@@ -73,9 +52,6 @@ public final class LoginFailureTracker {
         List<PendingLoginFailure> snapshot;
         synchronized (LOCK) {
             snapshot = new ArrayList<>(pending(state));
-        }
-        if (snapshot.isEmpty() || !FLUSH_IN_PROGRESS.compareAndSet(false, true)) {
-            return;
         }
         List<PendingLoginFailure> done = new ArrayList<>();
         try {
@@ -92,7 +68,6 @@ public final class LoginFailureTracker {
             }
         } finally {
             remove(state, done);
-            FLUSH_IN_PROGRESS.set(false);
         }
     }
 
@@ -100,7 +75,6 @@ public final class LoginFailureTracker {
         try {
             return Instant.parse(failure.getTimestamp()).isBefore(now.minus(MAX_AGE));
         } catch (DateTimeParseException | NullPointerException e) {
-            // A failure without a valid time cannot be reported correctly
             return true;
         }
     }

@@ -116,7 +116,7 @@ public final class RemediationManager {
      * @param notificationTitle title to use for the clipboard-fallback notification
      * @param clipboardMessage  message to use for the clipboard-fallback notification
      * @param logContext        short description of the operation, used to prefix log messages
-     * @param issueToFix        the issue being fixed, for the remediation analytics event; null when the prompt is not a fix
+     * @param issueToFix        the issue being fixed, null when the prompt is not a fix
      */
     private void fixWithAI(@NotNull String prompt, @NotNull Project project,
                             @NotNull String notificationTitle, @NotNull String clipboardMessage,
@@ -141,9 +141,6 @@ public final class RemediationManager {
         }
     }
 
-    /**
-     * Sends the remediation analytics event once the outcome of the prompt delivery is known.
-     */
     private void logRemediation(@Nullable ScanIssue issueToFix, @NotNull AiAgent agent, @Nullable String failureReason) {
         if (issueToFix != null) {
             TelemetryService.logRemediation(issueToFix, agent,

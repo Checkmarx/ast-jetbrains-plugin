@@ -91,7 +91,6 @@ class TelemetryServiceAiAgentTest {
 
             String result = invokeGetAIAgentProvider();
 
-            // Same name as the Fix with AI event, not the enum name stored in the settings
             assertEquals("JetBrains AI Assistant", result);
         }
     }
@@ -187,8 +186,6 @@ class TelemetryServiceAiAgentTest {
         String result = invokeGetAgentName();
         assertFalse(result.isEmpty());
     }
-
-    // ===== logUserAction integration tests =====
 
     @Test
     @DisplayName("logUserAction_WithCopilotAgent_IncludesAgentInTelemetry")

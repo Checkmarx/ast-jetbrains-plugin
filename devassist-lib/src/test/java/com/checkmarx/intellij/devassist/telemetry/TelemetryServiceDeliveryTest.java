@@ -32,8 +32,6 @@ class TelemetryServiceDeliveryTest {
         return TelemetryEvent.builder().eventType("Scan").subType("scantriggerd").build();
     }
 
-    // ===== deliver =====
-
     @Test
     @DisplayName("deliver_cliAcceptsEvent_returnsTrueAndDoesNotUseLegacy")
     void deliver_cliAcceptsEvent() throws Exception {
@@ -65,7 +63,6 @@ class TelemetryServiceDeliveryTest {
             assertTrue(TelemetryService.isLegacyFormat());
             verify(legacy).send(wrapper);
 
-            // the next event goes straight to the legacy format, the new format is not tried again
             assertTrue(TelemetryService.deliver(event(), legacy));
             verify(wrapper, times(1)).telemetryAIEvent(any(TelemetryEvent.class));
             verify(legacy, times(2)).send(wrapper);
@@ -86,6 +83,45 @@ class TelemetryServiceDeliveryTest {
 
             verify(wrapper, times(1)).telemetryAIEvent(any(TelemetryEvent.class));
             assertTrue(TelemetryService.isLegacyFormat());
+        }
+    }
+
+    @Test
+    @DisplayName("deliver_unknownNonAnalyticsFlag_returnsFalseAndKeepsNewFormat")
+    void deliver_unknownNonAnalyticsFlag() throws Exception {
+        CxWrapper wrapper = mock(CxWrapper.class);
+        when(wrapper.telemetryAIEvent(any(TelemetryEvent.class)))
+                .thenThrow(new CxException(1, "Error: unknown flag: --scan-types\n"));
+        TelemetryService.LegacySender legacy = mock(TelemetryService.LegacySender.class);
+
+        try (MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class)) {
+            factory.when(CxWrapperFactory::build).thenReturn(wrapper);
+
+            assertFalse(TelemetryService.deliver(event(), legacy));
+            assertFalse(TelemetryService.deliver(event(), legacy));
+
+            verify(wrapper, times(2)).telemetryAIEvent(any(TelemetryEvent.class));
+            verifyNoInteractions(legacy);
+            assertFalse(TelemetryService.isLegacyFormat());
+        }
+    }
+
+    @Test
+    @DisplayName("deliver_unknownFlagForEachAnalyticsFlag_switchesToLegacyFormat")
+    void deliver_unknownFlagForEachAnalyticsFlag() throws Exception {
+        for (String flag : TelemetryConstants.ANALYTICS_FLAGS) {
+            TelemetryService.resetLegacyFormat();
+            CxWrapper wrapper = mock(CxWrapper.class);
+            when(wrapper.telemetryAIEvent(any(TelemetryEvent.class)))
+                    .thenThrow(new CxException(1, "Error: unknown flag: " + flag + "\n"));
+
+            try (MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class)) {
+                factory.when(CxWrapperFactory::build).thenReturn(wrapper);
+
+                TelemetryService.deliver(event(), null);
+
+                assertTrue(TelemetryService.isLegacyFormat(), flag);
+            }
         }
     }
 
@@ -132,8 +168,6 @@ class TelemetryServiceDeliveryTest {
         }
     }
 
-    // ===== vulnerability id =====
-
     @Test
     @DisplayName("getVulnerabilityId_perEngine")
     void getVulnerabilityId_perEngine() {
@@ -159,8 +193,6 @@ class TelemetryServiceDeliveryTest {
         assertEquals("AWS key", TelemetryService.getVulnerabilityId(issue(ScanEngine.SECRETS, "AWS key")));
         assertEquals("", TelemetryService.getVulnerabilityId(new ScanIssue()));
     }
-
-    // ===== ai provider names =====
 
     @Test
     @DisplayName("toAiProviderName_mapsAgents")

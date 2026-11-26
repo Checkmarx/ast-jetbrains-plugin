@@ -81,6 +81,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
     private final ExpandableTextField additionalParametersField = new ExpandableTextField();
 
     public CxDevAssistSettingsComponent() {
+        TelemetryService.ensureInstallationId();
         initState();
         addValidateConnectionListener();
         setupFields();
@@ -313,7 +314,6 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
         globalSettingsState.setMcpEnabled(mcpServerEnabled);
         globalSettingsState.setMcpStatusChecked(true);
         apply();
-        // The credentials are stored now, so the analytics event can be sent before the welcome dialog opens
         TelemetryService.logLoginEvent(TelemetryConstants.AUTH_METHOD_API_KEY, true, null);
         AiAgentResolution agentResolution = null;
 

@@ -1632,8 +1632,6 @@ class IgnoreManagerTest {
         assertFalse(result);
     }
 
-    // ========== TELEMETRY - every ignore entry point goes through IgnoreManager ==========
-
     @Test
     void addIgnoredEntry_success_sendsIgnorePackageTelemetryOnce() {
         try (MockedStatic<TelemetryService> telemetry = mockStatic(TelemetryService.class)) {

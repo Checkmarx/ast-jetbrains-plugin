@@ -55,7 +55,6 @@
         <!-- Auto-install MCP at IDE startup if already authenticated -->
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.mcp.McpInstallService"/>
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.configuration.GlobalScannerStartupActivity"/>
-        <!-- Dev Assist analytics: installation id and install event -->
         <postStartupActivity implementation="com.checkmarx.intellij.devassist.telemetry.TelemetryStartupActivity"/>
 
         <notificationGroup id="Checkmarx.Notifications" displayType="BALLOON"

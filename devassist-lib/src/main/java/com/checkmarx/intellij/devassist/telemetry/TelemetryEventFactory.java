@@ -11,31 +11,30 @@ import java.util.stream.Collectors;
 import static com.checkmarx.intellij.devassist.telemetry.TelemetryConstants.*;
 
 /**
- * Builds the event specific part of Dev Assist analytics events.
- * The common fields (agent, versions, plugin type and name) are added by {@link TelemetryService} when the event is sent.
+ * Builds the analytics events. The common fields are added by {@link TelemetryService}.
  */
 public final class TelemetryEventFactory {
 
     private static final int MAX_STATUS_RESULT_LENGTH = 256;
+    private static final String PATH_PLACEHOLDER = "<path>";
 
     private static final Pattern URL_CREDENTIALS = Pattern.compile("([a-z][a-z0-9+.-]*://)[^\\s/@]+@", Pattern.CASE_INSENSITIVE);
     private static final Pattern SECRET_PAIR = Pattern.compile(
             "\\b(api[-_]?key|apikey|token|secret|password)\\s*[:=]\\s*[^\\s,;]+", Pattern.CASE_INSENSITIVE);
     private static final Pattern AUTH_HEADER = Pattern.compile("\\b(bearer|basic)\\s+[^\\s,;]+", Pattern.CASE_INSENSITIVE);
     private static final Pattern JWT = Pattern.compile("\\beyJ[\\w-]+\\.[\\w-]+\\.[\\w-]+");
+    private static final Pattern WINDOWS_PATH = Pattern.compile("\\b[A-Za-z]:[\\\\/][^\\s,;'\"]*");
+    private static final Pattern UNC_PATH = Pattern.compile("\\\\\\\\[^\\s,;'\"]+");
+    // The rest of a Windows path that contains spaces, e.g. "Smith\AppData\Local"
+    private static final Pattern BACKSLASH_PATH = Pattern.compile("[^\\s,;'\"]*\\\\[^\\s,;'\"]*");
+    // At least two segments; the look-behind keeps URLs (https://host/a/b) out
+    private static final Pattern UNIX_PATH = Pattern.compile("(?<![\\w:/.~-])~?/(?:[^\\s,;:'\"/]+/)+[^\\s,;:'\"/]*");
     private static final Pattern LONG_OPAQUE = Pattern.compile("[A-Za-z0-9_\\-+/]{32,}={0,2}");
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
     private TelemetryEventFactory() {
     }
 
-    /**
-     * One event per scan. A scan without findings is sent too, because engagement metrics need every scan.
-     *
-     * @param engine     engine name (Oss, Secrets, IaC, Asca, Containers)
-     * @param severities severity of every finding
-     * @param repoUrl    sanitized repository URL, may be empty
-     */
     public static TelemetryEvent.TelemetryEventBuilder scanEvent(String engine, List<String> severities, String repoUrl) {
         Map<String, Integer> counts = countBySeverity(severities);
         int total = counts.values().stream().mapToInt(Integer::intValue).sum();
@@ -53,24 +52,21 @@ public final class TelemetryEventFactory {
     }
 
     public static TelemetryEvent.TelemetryEventBuilder scanFailureEvent(String engine, Throwable error, String repoUrl) {
+        return scanFailureEventWithReason(engine, describe(error), repoUrl);
+    }
+
+    public static TelemetryEvent.TelemetryEventBuilder scanFailureEventWithReason(String engine, String reason, String repoUrl) {
         return TelemetryEvent.builder()
                 .eventType(TYPE_SCAN)
                 .subType(SUB_TYPE_SCAN_TRIGGERED)
                 .engine(engine)
                 .status(STATUS_FAILURE)
-                .statusResult("Scan failed. Reason: " + describe(error) + ", Error Code: N/A")
+                .statusResult("Scan failed. Reason: " + reasonOrUnknown(reason) + ", Error Code: N/A")
                 .repoUrl(repoUrl)
                 .apiVersion(API_VERSION)
                 .eventAttribute(ATTR_API_VERSION, API_VERSION);
     }
 
-    /**
-     * Login event, sent only for interactive sign-ins.
-     *
-     * @param authMethod {@link TelemetryConstants#AUTH_METHOD_OAUTH} or {@link TelemetryConstants#AUTH_METHOD_API_KEY}
-     * @param reason     failure reason, ignored on success
-     * @param timestamp  ISO-8601 login time
-     */
     public static TelemetryEvent.TelemetryEventBuilder loginEvent(String authMethod, boolean success, String reason,
                                                                  String timestamp) {
         return TelemetryEvent.builder()
@@ -79,7 +75,7 @@ public final class TelemetryEventFactory {
                 .status(success ? STATUS_SUCCESS : STATUS_FAILURE)
                 .statusResult(success
                         ? "Authentication successful."
-                        : "Authentication failed. Reason: " + sanitizeText(reason == null ? "unknown" : reason) + ", Error Code: N/A")
+                        : "Authentication failed. Reason: " + reasonOrUnknown(reason) + ", Error Code: N/A")
                 .eventAttribute(ATTR_AUTH_METHOD, authMethod)
                 .eventAttribute(ATTR_LOGIN_TIMESTAMP, timestamp);
     }
@@ -95,10 +91,7 @@ public final class TelemetryEventFactory {
     }
 
     /**
-     * "Fix with AI" event, sent once the prompt reached (or failed to reach) the AI assistant.
-     *
-     * @param aiProvider    the assistant that was actually used
-     * @param failureReason null on success
+     * @param failureReason null when the prompt reached the AI agent
      */
     public static TelemetryEvent.TelemetryEventBuilder remediationEvent(String engine, String severity, String aiProvider,
                                                                        String vulnerabilityId, String failureReason,
@@ -112,20 +105,13 @@ public final class TelemetryEventFactory {
                 .aiProvider(aiProvider)
                 .status(failed ? STATUS_FAILURE : STATUS_SUCCESS)
                 .statusResult(failed
-                        ? "Remediation failed. Reason: " + sanitizeText(failureReason) + ", Error Code: N/A"
+                        ? "Remediation failed. Reason: " + reasonOrUnknown(failureReason) + ", Error Code: N/A"
                         : "Remediation completed successfully.")
                 .repoUrl(repoUrl)
                 .eventAttribute(ATTR_VULNERABILITY_ID, vulnerabilityId)
                 .eventAttribute(ATTR_REMEDIATION_MODE, REMEDIATION_MODE_DEV_ASSIST);
     }
 
-    /**
-     * Other click events: view details, ignore, ignore all. They carry the same finding context as the
-     * "Fix with AI" event (engine, severity, vulnerability id, repository) so the analytics can tell which finding
-     * the action was taken on. They have no remediation mode, because nothing is remediated.
-     *
-     * @param vulnerabilityId identifier of the finding, see {@link TelemetryService#getVulnerabilityId}
-     */
     public static TelemetryEvent.TelemetryEventBuilder clickEvent(String subType, String engine, String severity,
                                                                  String aiProvider, String vulnerabilityId,
                                                                  String repoUrl) {
@@ -155,8 +141,7 @@ public final class TelemetryEventFactory {
     }
 
     /**
-     * Maps a scanner severity to a telemetry label. Malicious counts as Critical, unknown values are reported as Info,
-     * and "OK" (no vulnerability) is not counted, so it returns null.
+     * Malicious counts as Critical, unknown values as Info; "OK" is not a finding and returns null.
      */
     public static String toSeverityLabel(String severity) {
         String raw = severity == null ? "unknown" : severity.trim().toLowerCase();
@@ -177,9 +162,6 @@ public final class TelemetryEventFactory {
         }
     }
 
-    /**
-     * Count of findings for every severity label, in label order.
-     */
     public static Map<String, Integer> countBySeverity(List<String> severities) {
         Map<String, Integer> counts = new LinkedHashMap<>();
         SEVERITY_LABELS.forEach(label -> counts.put(label, 0));
@@ -194,16 +176,10 @@ public final class TelemetryEventFactory {
         return counts;
     }
 
-    /**
-     * Highest severity with at least one finding, empty for a clean scan.
-     */
     public static String highestSeverity(Map<String, Integer> counts) {
         return SEVERITY_LABELS.stream().filter(label -> counts.getOrDefault(label, 0) > 0).findFirst().orElse("");
     }
 
-    /**
-     * "Critical=1, High=0, Medium=2, Low=0, Info=0"
-     */
     public static String formatSeverityCounts(Map<String, Integer> counts) {
         return SEVERITY_LABELS.stream()
                 .map(label -> label + "=" + counts.getOrDefault(label, 0))
@@ -211,8 +187,7 @@ public final class TelemetryEventFactory {
     }
 
     /**
-     * Makes free text safe to send: removes anything that looks like a token, key or credential,
-     * collapses whitespace and truncates.
+     * Removes credentials, tokens and local file paths, collapses whitespace and truncates.
      */
     public static String sanitizeText(String value) {
         if (value == null) {
@@ -222,9 +197,18 @@ public final class TelemetryEventFactory {
         text = SECRET_PAIR.matcher(text).replaceAll("$1=***");
         text = AUTH_HEADER.matcher(text).replaceAll("$1 ***");
         text = JWT.matcher(text).replaceAll("***");
+        text = WINDOWS_PATH.matcher(text).replaceAll(PATH_PLACEHOLDER);
+        text = UNC_PATH.matcher(text).replaceAll(PATH_PLACEHOLDER);
+        text = BACKSLASH_PATH.matcher(text).replaceAll(PATH_PLACEHOLDER);
+        text = UNIX_PATH.matcher(text).replaceAll(PATH_PLACEHOLDER);
         text = LONG_OPAQUE.matcher(text).replaceAll("***");
         text = WHITESPACE.matcher(text).replaceAll(" ").trim();
         return text.length() > MAX_STATUS_RESULT_LENGTH ? text.substring(0, MAX_STATUS_RESULT_LENGTH) : text;
+    }
+
+    private static String reasonOrUnknown(String reason) {
+        String text = sanitizeText(reason);
+        return text.isEmpty() ? "unknown" : text;
     }
 
     private static String describe(Throwable error) {
@@ -232,6 +216,6 @@ public final class TelemetryEventFactory {
             return "unknown";
         }
         String message = error.getMessage();
-        return sanitizeText(message == null || message.isBlank() ? error.getClass().getSimpleName() : message);
+        return message == null || message.isBlank() ? error.getClass().getSimpleName() : message;
     }
 }

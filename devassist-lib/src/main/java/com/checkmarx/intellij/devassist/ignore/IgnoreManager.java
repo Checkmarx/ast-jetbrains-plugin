@@ -87,7 +87,6 @@ public final class IgnoreManager {
         }
         LOGGER.debug(String.format("RTS-Ignore: Ignoring %s", vulnerabilityKey));
         ignoreFileManager.updateIgnoreData(vulnerabilityKey, ignoreEntry);
-        // Sent here, after the entry is saved, so the hover link, the quick fix and the findings window are all counted once
         TelemetryService.logIgnorePackageAction(issueToIgnore);
         scanFileAndUpdateResults(issueToIgnore.getFilePath(), issueToIgnore.getScanEngine());
         showIgnoreSuccessNotification(project, issueToIgnore, vulnerabilityKey);

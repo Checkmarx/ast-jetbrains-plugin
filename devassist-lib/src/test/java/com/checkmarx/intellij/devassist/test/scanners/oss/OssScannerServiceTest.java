@@ -288,4 +288,27 @@ public class OssScannerServiceTest {
         OssScanResultAdaptor adaptor = new OssScanResultAdaptor(results,"");
         assertTrue(adaptor.getIssues().isEmpty());
     }
+
+    @Test @DisplayName("scan_cliException_sendsFailedScanEvent")
+    void testScan_cliException_sendsFailedScanEvent() throws Exception {
+        Path temp = Files.createTempDirectory("oss-failure");
+        OssScannerService service = spy(new TestableOssScannerService(temp));
+        PsiFile psi = mockPsiFile("package.json");
+        doReturn(true).when(service).shouldScanFile("package.json", psi);
+        try (MockedStatic<DevAssistUtils> utils = mockStatic(DevAssistUtils.class);
+             MockedStatic<CxWrapperFactory> factory = mockStatic(CxWrapperFactory.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetry = mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class)) {
+            utils.when(() -> DevAssistUtils.getFileContent(psi)).thenReturn("{ }");
+            utils.when(() -> DevAssistUtils.getIgnoreFilePath(any(com.intellij.openapi.project.Project.class))).thenReturn("");
+            CxWrapper wrapper = mock(CxWrapper.class);
+            when(wrapper.ossRealtimeScan(anyString(), anyString())).thenThrow(new com.checkmarx.ast.wrapper.CxException(1, "oss failed"));
+            factory.when(CxWrapperFactory::build).thenReturn(wrapper);
+            String uri = temp.resolve("package.json").toString();
+
+            assertNull(service.scan(psi, uri));
+
+            telemetry.verify(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanFailure(eq(ScanEngine.OSS), eq(uri), any(Throwable.class)));
+            telemetry.verify(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(), any(), any()), never());
+        }
+    }
 }

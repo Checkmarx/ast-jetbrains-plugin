@@ -19,8 +19,6 @@ import static org.mockito.Mockito.when;
 @DisplayName("TelemetryService unit tests")
 class TelemetryServiceTest {
 
-    // ===== null guards =====
-
     @Test
     @DisplayName("logViewDetailsAction_nullScanIssue_doesNotThrow")
     void logViewDetailsAction_nullScanIssue_doesNotThrow() {
@@ -53,8 +51,6 @@ class TelemetryServiceTest {
         issue.setSeverity(Constants.HIGH_SEVERITY);
         assertDoesNotThrow(() -> TelemetryService.logRemediation(issue, AiAgent.JETBRAINS_AI_ASSISTANT, "chat did not open"));
     }
-
-    // ===== logScanResults =====
 
     @Test
     @DisplayName("logScanResults_nullScanResult_doesNotThrow")
@@ -104,8 +100,6 @@ class TelemetryServiceTest {
         when(scanResult.getIssues()).thenReturn(List.of(issue));
         assertDoesNotThrow(() -> TelemetryService.logScanResults(scanResult, ScanEngine.CONTAINERS, "/project/Dockerfile"));
     }
-
-    // ===== logScanFailure / logLoginEvent =====
 
     @Test
     @DisplayName("logScanFailure_nullEngine_doesNotThrow")

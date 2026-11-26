@@ -148,7 +148,11 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
             // Create adaptor with filtering applied during issue creation
             AscaScanResultAdaptor scanResultAdaptor = new AscaScanResultAdaptor(ascaResult, uri, psiFile.getProject());
 
-            TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.ASCA, uri);
+            if (ascaResult.getError() != null) {
+                TelemetryService.logScanFailureReason(ScanEngine.ASCA, uri, ascaResult.getError().getDescription());
+            } else {
+                TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.ASCA, uri);
+            }
             return scanResultAdaptor;
 
         } catch (Exception e) {
@@ -199,8 +203,8 @@ public class AscaScannerService extends BaseScannerService<ScanResult> {
                 handleScanResult(file, scanResult);
                 return scanResult;
             } catch (Exception e) {
-                LOGGER.warn("Error during ASCA scan:", e);
-                return null;
+                // Reported as a failed scan by scan()
+                throw new IllegalStateException(e.getMessage(), e);
             } finally {
                 deleteFile(tempFilePath);
             }

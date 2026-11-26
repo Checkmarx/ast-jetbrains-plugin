@@ -17,11 +17,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Finds the repository URL sent with scan and remediation events.
- * <p>
- * It reads the git config file directly, so no git process is started for each scan. The result is cached
- * until the config file changes. The URL never contains credentials, query or fragment, and SSH remotes
- * are converted to https.
+ * Remote URL of the repository of a file, read from the git config (no git process). Credentials are removed and SSH
+ * remotes are converted to https.
  */
 public final class RepositoryUrlResolver {
 
@@ -41,10 +38,6 @@ public final class RepositoryUrlResolver {
     private RepositoryUrlResolver() {
     }
 
-    /**
-     * Sanitized remote URL of the repository that contains the file, or an empty string when there is none.
-     * Never throws.
-     */
     public static String resolve(String filePath) {
         if (filePath == null || filePath.isBlank()) {
             return "";
@@ -58,15 +51,6 @@ public final class RepositoryUrlResolver {
         }
     }
 
-    /**
-     * Removes credentials, query and fragment from a git remote URL, and converts SSH remotes to https.
-     * Returns an empty string for anything that is not a recognisable remote.
-     * <pre>
-     * https://user:token@github.com/org/repo.git -> https://github.com/org/repo
-     * git@github.com:org/repo.git                -> https://github.com/org/repo
-     * ssh://git@host:2222/org/repo.git           -> https://host/org/repo
-     * </pre>
-     */
     public static String sanitizeRemoteUrl(String remoteUrl) {
         String raw = remoteUrl == null ? "" : remoteUrl.trim();
         if (raw.isEmpty() || WINDOWS_PATH.matcher(raw).matches()) {
@@ -97,9 +81,6 @@ public final class RepositoryUrlResolver {
         return host.isEmpty() || repoPath.isEmpty() ? "" : "https://" + host + "/" + repoPath;
     }
 
-    /**
-     * Picks the remote named origin, or the first remote, from the content of a git config file.
-     */
     static String parseRemoteUrl(List<String> configLines) {
         String currentRemote = null;
         String firstUrl = null;

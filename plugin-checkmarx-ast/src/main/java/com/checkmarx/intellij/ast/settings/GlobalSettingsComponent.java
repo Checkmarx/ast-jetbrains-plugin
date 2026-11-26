@@ -89,6 +89,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private boolean sessionConnected = false;
 
     public GlobalSettingsComponent() {
+        TelemetryService.ensureInstallationId();
         if (SETTINGS_STATE == null) {
             SETTINGS_STATE = GlobalSettingsState.getInstance();
         }
@@ -376,7 +377,6 @@ public class GlobalSettingsComponent implements SettingsComponent {
         SETTINGS_STATE.setMcpEnabled(mcpServerEnabled);
         SETTINGS_STATE.setMcpStatusChecked(true);
         apply();
-        // The credentials are stored now, so the analytics event can be sent before the welcome dialog opens
         TelemetryService.logLoginEvent(SETTINGS_STATE.isApiKeyEnabled() ? TelemetryConstants.AUTH_METHOD_API_KEY : TelemetryConstants.AUTH_METHOD_OAUTH, true, null);
 
         CompletableFuture.runAsync(() -> StateService.getInstance().pruneStaleCustomStates());

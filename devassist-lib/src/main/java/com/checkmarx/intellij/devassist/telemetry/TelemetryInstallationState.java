@@ -13,9 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Installation id, the install event that still has to be delivered, and the failed logins waiting for the next
- * successful login (see {@link LoginFailureTracker}).
- * Kept apart from GlobalSettingsState, because the settings pages replace that state as a whole when they apply it.
+ * Kept apart from GlobalSettingsState, which the settings pages replace as a whole when they apply it.
  */
 @Getter
 @Setter
@@ -25,7 +23,6 @@ public class TelemetryInstallationState implements PersistentStateComponent<Tele
     private String installationId = "";
     private String installationTimestamp = "";
     private boolean installEventPending = false;
-    /** Never changed in place, see {@link LoginFailureTracker}. */
     private List<PendingLoginFailure> pendingLoginFailures = new ArrayList<>();
 
     public static TelemetryInstallationState getInstance() {
