@@ -56,14 +56,27 @@ class TelemetryServiceAiAgentTest {
     @DisplayName("getAIAgentProvider_CopilotConfigured_ReturnsCopilot")
     void getAIAgentProvider_CopilotConfigured_ReturnsCopilot() throws Exception {
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
-        when(mockState.getAiAgent()).thenReturn("COPILOT");
+        when(mockState.getAiAgent()).thenReturn("GITHUB_COPILOT");
 
         try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
             stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
 
             String result = invokeGetAIAgentProvider();
 
-            assertEquals("COPILOT", result);
+            assertEquals("Copilot", result);
+        }
+    }
+
+    @Test
+    @DisplayName("getAIAgentProvider_UnknownValue_ReturnsDefaultCopilot")
+    void getAIAgentProvider_UnknownValue_ReturnsDefaultCopilot() throws Exception {
+        GlobalSettingsState mockState = mock(GlobalSettingsState.class);
+        when(mockState.getAiAgent()).thenReturn("COPILOT");
+
+        try (MockedStatic<GlobalSettingsState> stateMock = mockStatic(GlobalSettingsState.class)) {
+            stateMock.when(GlobalSettingsState::getInstance).thenReturn(mockState);
+
+            assertEquals("Copilot", invokeGetAIAgentProvider());
         }
     }
 
@@ -78,7 +91,8 @@ class TelemetryServiceAiAgentTest {
 
             String result = invokeGetAIAgentProvider();
 
-            assertEquals("JETBRAINS_AI_ASSISTANT", result);
+            // Same name as the Fix with AI event, not the enum name stored in the settings
+            assertEquals("JetBrains AI Assistant", result);
         }
     }
 
@@ -221,8 +235,8 @@ class TelemetryServiceAiAgentTest {
     // ===== Edge case tests =====
 
     @Test
-    @DisplayName("getAIAgentProvider_WhitespaceOnlyAiAgent_ReturnsAsIs")
-    void getAIAgentProvider_WhitespaceOnlyAiAgent_ReturnsAsIs() throws Exception {
+    @DisplayName("getAIAgentProvider_WhitespaceOnlyAiAgent_ReturnsDefaultCopilot")
+    void getAIAgentProvider_WhitespaceOnlyAiAgent_ReturnsDefaultCopilot() throws Exception {
         GlobalSettingsState mockState = mock(GlobalSettingsState.class);
         when(mockState.getAiAgent()).thenReturn("   ");
 
@@ -231,8 +245,7 @@ class TelemetryServiceAiAgentTest {
 
             String result = invokeGetAIAgentProvider();
 
-            // Implementation checks isEmpty(), not isBlank(), so whitespace is returned as-is
-            assertNotNull(result);
+            assertEquals("Copilot", result);
         }
     }
 

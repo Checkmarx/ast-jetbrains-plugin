@@ -46,12 +46,6 @@ public final class TelemetryService {
     // AI Provider and Agent constants
     private static final String AI_PROVIDER = AI_PROVIDER_COPILOT;
 
-    // Sub Types
-    private static final String SUB_TYPE_FIX_WITH_AI_CHAT = "fixWithAIChat";
-    private static final String SUB_TYPE_VIEW_DETAILS = "viewDetails";
-    private static final String SUB_TYPE_IGNORE_PACKAGE = "ignorePackage";
-    private static final String SUB_TYPE_IGNORE_ALL = "ignoreAll";
-
     // Engine Names
     private static final String ENGINE_OSS = "Oss";
     private static final String ENGINE_SECRETS = "Secrets";
@@ -76,8 +70,8 @@ public final class TelemetryService {
     // ------------------------------------------------------------------ install
 
     /**
-     * Creates the installation id on the first start and sends the pending install event when the user is already logged in.
-     * Called once at IDE startup.
+     * Creates the installation id on the first start. When the user is already logged in, sends the failed logins and
+     * the install event that are still pending. Called once at IDE startup.
      */
     public static void startInstallTracking() {
         CompletableFuture.runAsync(() -> {
@@ -85,6 +79,7 @@ public final class TelemetryService {
                 InstallationTracker.ensureInstallationId(getIdeName());
                 GlobalSettingsState settings = GlobalSettingsState.getInstance();
                 if (settings != null && settings.isAuthenticated()) {
+                    flushPendingLoginFailures();
                     flushPendingInstallEvent();
                 }
             } catch (Exception e) {
@@ -101,23 +96,46 @@ public final class TelemetryService {
 
     /**
      * Logs an interactive login. Call it only for sign-ins done by the user, never for the silent check at startup.
-     * A successful login also sends the pending install event. A failed login is sent best-effort: the CLI
-     * delivers it only while a valid credential is still stored.
+     * <p>
+     * A failed login is not sent now: without a successful login the CLI has no token, so it cannot be delivered, and
+     * a credential that is still stored would report it for the wrong user. It is kept by {@link LoginFailureTracker}.
+     * A successful login sends its own event first (the CLI starts the new session with it), then the kept failed
+     * logins with the time of each attempt, then the pending install event.
      *
      * @param authMethod {@link TelemetryConstants#AUTH_METHOD_OAUTH} or {@link TelemetryConstants#AUTH_METHOD_API_KEY}
      * @param reason     failure reason, ignored on success
      */
     public static void logLoginEvent(String authMethod, boolean success, String reason) {
+        if (!success) {
+            recordLoginFailure(authMethod, reason);
+            return;
+        }
         CompletableFuture.runAsync(() -> {
             try {
-                deliver(withCommonFields(TelemetryEventFactory.loginEvent(authMethod, success, reason, Instant.now().toString())), null);
-                if (success) {
-                    flushPendingInstallEvent();
-                }
+                deliver(withCommonFields(TelemetryEventFactory.loginEvent(authMethod, true, null, Instant.now().toString())), null);
+                flushPendingLoginFailures();
+                flushPendingInstallEvent();
             } catch (Exception e) {
                 LOGGER.debug("Telemetry: login event failed", e);
             }
         });
+    }
+
+    /**
+     * Keeps a failed login until the next successful login. Done on the calling thread, so it is stored before a
+     * login that follows right after it is handled. Never throws.
+     */
+    private static void recordLoginFailure(String authMethod, String reason) {
+        try {
+            LoginFailureTracker.record(authMethod, reason, Instant.now());
+            LOGGER.info(format("Telemetry: failed %s login kept, it is sent after the next successful login", authMethod));
+        } catch (Exception e) {
+            LOGGER.debug("Telemetry: failed login could not be kept", e);
+        }
+    }
+
+    private static void flushPendingLoginFailures() {
+        LoginFailureTracker.flushPending(builder -> deliver(withCommonFields(builder), null), Instant.now());
     }
 
     // ------------------------------------------------------------------ scan
@@ -201,8 +219,9 @@ public final class TelemetryService {
         String engine = mapScanEngineToTelemetryEngine(scanIssue.getScanEngine());
         String severity = normalizeSeverity(scanIssue.getSeverity());
         String provider = getAIAgentProvider();
+        String vulnerabilityId = getVulnerabilityId(scanIssue);
         sendAsync(() -> TelemetryEventFactory.clickEvent(actionSubType, engine, analyticsSeverity(scanIssue), provider,
-                        RepositoryUrlResolver.resolve(scanIssue.getFilePath())),
+                        vulnerabilityId, RepositoryUrlResolver.resolve(scanIssue.getFilePath())),
                 wrapper -> wrapper.telemetryAIEvent(provider, "", TYPE_CLICK, actionSubType, engine, severity, "", "", 0));
     }
 
@@ -216,16 +235,17 @@ public final class TelemetryService {
     }
 
     /**
-     * Logs user action for "Ignore Package".
+     * Logs user action for "Ignore this vulnerability". Called by {@code IgnoreManager} once the ignore entry is saved,
+     * so every entry point (hover link, quick fix, findings window) is counted once.
      *
      * @param scanIssue the scan issue being acted upon
      */
     public static void logIgnorePackageAction(ScanIssue scanIssue) {
-        logUserAction(scanIssue, SUB_TYPE_IGNORE_PACKAGE, "Ignore Package");
+        logUserAction(scanIssue, SUB_TYPE_IGNORE, "Ignore");
     }
 
     /**
-     * Logs user action for "Ignore All".
+     * Logs user action for "Ignore all of this type". Called by {@code IgnoreManager} once the ignore entry is saved.
      *
      * @param scanIssue the scan issue being acted upon
      */
@@ -446,15 +466,17 @@ public final class TelemetryService {
     }
 
     /**
-     * Get AI Agent from the settings
+     * AI agent configured in the settings, with the same name the "Fix with AI" event uses
+     * (Copilot, JetBrains AI Assistant), so every click event of a finding reports the provider the same way.
+     * The settings store the enum name (e.g. JETBRAINS_AI_ASSISTANT), which is not sent as is.
      *
      * @return String - Ai Agent Provider
      */
     private static String getAIAgentProvider() {
         try {
             GlobalSettingsState settingsState = GlobalSettingsState.getInstance();
-            if (settingsState != null && (settingsState.getAiAgent() != null && !settingsState.getAiAgent().isEmpty())) {
-                return settingsState.getAiAgent();
+            if (settingsState != null) {
+                return toAiProviderName(AiAgent.fromSettingsValue(settingsState.getAiAgent()));
             }
             return AI_PROVIDER;
         } catch (Exception e) {

@@ -120,10 +120,15 @@ public final class TelemetryEventFactory {
     }
 
     /**
-     * Other click events: view details, ignore package, ignore all.
+     * Other click events: view details, ignore, ignore all. They carry the same finding context as the
+     * "Fix with AI" event (engine, severity, vulnerability id, repository) so the analytics can tell which finding
+     * the action was taken on. They have no remediation mode, because nothing is remediated.
+     *
+     * @param vulnerabilityId identifier of the finding, see {@link TelemetryService#getVulnerabilityId}
      */
     public static TelemetryEvent.TelemetryEventBuilder clickEvent(String subType, String engine, String severity,
-                                                                 String aiProvider, String repoUrl) {
+                                                                 String aiProvider, String vulnerabilityId,
+                                                                 String repoUrl) {
         return TelemetryEvent.builder()
                 .eventType(TYPE_CLICK)
                 .subType(subType)
@@ -131,7 +136,22 @@ public final class TelemetryEventFactory {
                 .problemSeverity(severity)
                 .aiProvider(aiProvider)
                 .status(STATUS_SUCCESS)
-                .repoUrl(repoUrl);
+                .statusResult(clickStatusResult(subType))
+                .repoUrl(repoUrl)
+                .eventAttribute(ATTR_VULNERABILITY_ID, vulnerabilityId);
+    }
+
+    private static String clickStatusResult(String subType) {
+        if (SUB_TYPE_VIEW_DETAILS.equals(subType)) {
+            return STATUS_RESULT_VIEW_DETAILS;
+        }
+        if (SUB_TYPE_IGNORE.equals(subType)) {
+            return STATUS_RESULT_IGNORE;
+        }
+        if (SUB_TYPE_IGNORE_ALL.equals(subType)) {
+            return STATUS_RESULT_IGNORE_ALL;
+        }
+        return "";
     }
 
     /**

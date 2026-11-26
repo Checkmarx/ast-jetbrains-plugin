@@ -165,6 +165,8 @@ class RemediationLinkHandlerTest {
 
             assertTrue(handler.handleLink("ignorethis:issue-789:OSS", mockEditor));
             verify(mockIgnoreManager).addIgnoredEntry(eq(mockIssue), eq("issue-789"));
+            // IgnoreManager sends the ignore event; the link handler must not send a second one
+            telemetryMock.verifyNoInteractions();
         }
     }
 
@@ -182,6 +184,8 @@ class RemediationLinkHandlerTest {
 
             assertTrue(handler.handleLink("ignoreallofthis:issue-999:OSS", mockEditor));
             verify(mockIgnoreManager).addAllIgnoredEntry(eq(mockIssue), eq("issue-999"));
+            // IgnoreManager sends the ignore event; the link handler must not send a second one
+            telemetryMock.verifyNoInteractions();
         }
     }
 

@@ -100,12 +100,11 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
                 remediationManager.viewDetails(project, scanIssue, actionId);
                 break;
             case IGNORE_THIS_TYPE:
+                // IgnoreManager sends the ignore telemetry event once the entry is saved
                 ignoremanager.addIgnoredEntry(scanIssue, actionId);
-                TelemetryService.logIgnorePackageAction(scanIssue);
                 break;
             case IGNORE_ALL_OF_THIS_TYPE:
                 ignoremanager.addAllIgnoredEntry(scanIssue, actionId);
-                TelemetryService.logIgnoreAllAction(scanIssue);
                 break;
             default:
                 LOGGER.warn(format("RTS-Fix: Remediation action %s is not supported.", link));

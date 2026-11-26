@@ -11,6 +11,7 @@ import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.problems.ProblemHelper;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
@@ -86,6 +87,8 @@ public final class IgnoreManager {
         }
         LOGGER.debug(String.format("RTS-Ignore: Ignoring %s", vulnerabilityKey));
         ignoreFileManager.updateIgnoreData(vulnerabilityKey, ignoreEntry);
+        // Sent here, after the entry is saved, so the hover link, the quick fix and the findings window are all counted once
+        TelemetryService.logIgnorePackageAction(issueToIgnore);
         scanFileAndUpdateResults(issueToIgnore.getFilePath(), issueToIgnore.getScanEngine());
         showIgnoreSuccessNotification(project, issueToIgnore, vulnerabilityKey);
         LOGGER.debug(String.format("RTS-Ignore: Successfully added ignore entry for issue: %s", issueToIgnore.getTitle()));
@@ -133,6 +136,7 @@ public final class IgnoreManager {
         }
         ignoreEntry.setFiles(fileRefs);
         ignoreFileManager.updateIgnoreData(vulnerabilityKey, ignoreEntry);
+        TelemetryService.logIgnoreAllAction(issueToIgnore);
         LOGGER.debug(String.format("RTS-Ignore: Successfully added ignore entry for issue: %s", issueToIgnore.getTitle()));
         showIgnoreSuccessNotification(project, issueToIgnore, vulnerabilityKey);
     }

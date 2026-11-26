@@ -21,6 +21,16 @@ public final class TelemetryConstants {
     public static final String SUB_TYPE_INSTALLATION = "installation";
     public static final String SUB_TYPE_AUTHENTICATION = "authentication";
     public static final String SUB_TYPE_SCAN_TRIGGERED = "scantriggerd";
+    public static final String SUB_TYPE_FIX_WITH_AI_CHAT = "fixWithAIChat";
+    public static final String SUB_TYPE_VIEW_DETAILS = "viewDetails";
+    // "Ignore this vulnerability". Same value as the VS Code extension.
+    public static final String SUB_TYPE_IGNORE = "Ignore";
+    public static final String SUB_TYPE_IGNORE_ALL = "ignoreAll";
+
+    // Status results of the finding actions other than Fix with AI
+    public static final String STATUS_RESULT_VIEW_DETAILS = "Vulnerability details opened successfully.";
+    public static final String STATUS_RESULT_IGNORE = "Vulnerability ignored successfully.";
+    public static final String STATUS_RESULT_IGNORE_ALL = "All vulnerabilities of this type ignored successfully.";
 
     // Status
     public static final String STATUS_SUCCESS = "success";
@@ -45,9 +55,10 @@ public final class TelemetryConstants {
     public static final String ATTR_VULNERABILITY_ID = "vulnerabilityId";
     public static final String ATTR_REMEDIATION_MODE = "remediationMode";
 
-    // Plugin names, sent in the pluginName attribute so analytics can tell the two plugins apart
-    public static final String PLUGIN_NAME_CXONE = "CxOne";
-    public static final String PLUGIN_NAME_DEV_ASSIST = "DevAssist";
+    // Plugin names, sent in the pluginName attribute so analytics can tell the two plugins apart.
+    // Same values as the VS Code extensions.
+    public static final String PLUGIN_NAME_CXONE = "Checkmarx One Assist";
+    public static final String PLUGIN_NAME_DEV_ASSIST = "Checkmarx One Developer Assist";
     public static final String DEV_ASSIST_PLUGIN_ID = "com.checkmarx.devassist-jetbrains-plugin";
 
     // Severity labels used in scan events, highest first

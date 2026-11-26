@@ -9,8 +9,12 @@ import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Installation id and the install event that still has to be delivered.
+ * Installation id, the install event that still has to be delivered, and the failed logins waiting for the next
+ * successful login (see {@link LoginFailureTracker}).
  * Kept apart from GlobalSettingsState, because the settings pages replace that state as a whole when they apply it.
  */
 @Getter
@@ -21,6 +25,8 @@ public class TelemetryInstallationState implements PersistentStateComponent<Tele
     private String installationId = "";
     private String installationTimestamp = "";
     private boolean installEventPending = false;
+    /** Never changed in place, see {@link LoginFailureTracker}. */
+    private List<PendingLoginFailure> pendingLoginFailures = new ArrayList<>();
 
     public static TelemetryInstallationState getInstance() {
         return ApplicationManager.getApplication().getService(TelemetryInstallationState.class);

@@ -163,14 +163,30 @@ class TelemetryEventFactoryTest {
     }
 
     @Test
-    @DisplayName("clickEvent_hasNoRemediationAttributes")
-    void clickEvent_hasNoRemediationAttributes() {
-        TelemetryEvent event = TelemetryEventFactory.clickEvent("viewDetails", "IaC", "Medium", "Copilot", "").build();
+    @DisplayName("clickEvent_carriesFindingContextButNoRemediationMode")
+    void clickEvent_carriesFindingContextButNoRemediationMode() {
+        TelemetryEvent event = TelemetryEventFactory.clickEvent("viewDetails", "IaC", "Medium", "Copilot",
+                "sim-123", "https://github.com/acme/repo").build();
 
         assertEquals("click", event.getEventType());
         assertEquals("viewDetails", event.getSubType());
+        assertEquals("IaC", event.getEngine());
+        assertEquals("Medium", event.getProblemSeverity());
         assertEquals("success", event.getStatus());
-        assertTrue(event.getEventAttributes().isEmpty());
+        assertEquals("Vulnerability details opened successfully.", event.getStatusResult());
+        assertEquals("https://github.com/acme/repo", event.getRepoUrl());
+        assertEquals(Map.of("vulnerabilityId", "sim-123"), event.getEventAttributes());
+    }
+
+    @Test
+    @DisplayName("clickEvent_statusResultPerAction")
+    void clickEvent_statusResultPerAction() {
+        assertEquals("Vulnerability ignored successfully.",
+                TelemetryEventFactory.clickEvent("Ignore", "Oss", "High", "Copilot", "lodash@4.17.20", "").build().getStatusResult());
+        assertEquals("All vulnerabilities of this type ignored successfully.",
+                TelemetryEventFactory.clickEvent("ignoreAll", "Oss", "High", "Copilot", "lodash@4.17.20", "").build().getStatusResult());
+        assertEquals("",
+                TelemetryEventFactory.clickEvent("somethingElse", "Oss", "High", "Copilot", "x", "").build().getStatusResult());
     }
 
     // ===== severity helpers =====
