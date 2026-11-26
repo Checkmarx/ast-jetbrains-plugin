@@ -5,6 +5,9 @@ plugins {
     id 'jacoco'
 }
 
+// Compatibility shim (AST-193159): accept legacy Jar.baseName used by the SCA resolver.
+org.gradle.api.tasks.bundling.Jar.metaClass.setBaseName = { String name -> delegate.archiveBaseName.set(name) }
+
 def javaWrapperVersion = System.getenv('JAVA_WRAPPER_VERSION') ?: defaultJavaWrapperVersion
 
 // Common configuration for all projects
@@ -27,13 +30,42 @@ allprojects {
     }
 }
 
+// asm 9.7 comes from the JaCoCo ant task (build tooling only). The root project applies jacoco too,
+// so this covers the root and all submodules (AST-194122).
+allprojects {
+    plugins.withId('jacoco') {
+        dependencies {
+            constraints {
+                ['asm', 'asm-commons', 'asm-tree'].each { module ->
+                    jacocoAnt("org.ow2.asm:${module}:${asmVersion}") {
+                        because 'CVE-2026-110257/58/60/61/63 in asm 9.7'
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Common configuration for all submodules
 subprojects {
     apply plugin: 'java'
 
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(Integer.parseInt(javaVersion)))
+    // No toolchain: the SCA resolver container only has JDK 21 and cannot provision JDK 11 (AST-194122).
+    // --release pins both the bytecode level and the JDK API surface to Java 11, whatever JDK runs the build.
+    def javaRelease = Integer.parseInt(project.property('javaVersion') as String)
+    tasks.withType(JavaCompile).configureEach {
+        options.release = javaRelease
+    }
+
+    // Raise vulnerable transitive test dependencies to the lowest fixed version within the same major (AST-194122)
+    dependencies {
+        constraints {
+            testImplementation("org.assertj:assertj-core:${assertjVersion}") {
+                because 'CVE-2026-24400 in 3.17.2, pulled in by remote-robot via assertj-swing'
+            }
+            testImplementation("org.objenesis:objenesis:${objenesisVersion}") {
+                because 'CVE-2026-116486 in 2.6/3.3, pulled in by mockito and awaitility'
+            }
         }
     }
 
@@ -67,7 +99,13 @@ subprojects {
             exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
         }
         implementation(enforcedPlatform("com.fasterxml.jackson:jackson-bom:${jacksonBomVersion}"))
-        // enforcedPlatform forces ALL Jackson jars (databind, annotations, core) to use the SAME version.
+        // enforcedPlatform forces ALL Jackson jars (databind, annotations, core) to use the SAME version,
+        // but it only pins versions - it does NOT add any jar to the classpath.
+        // Jackson must be declared explicitly so it is packaged in the plugin's lib/ and not
+        // taken from the IDE (it is not reliably visible to plugin classloaders - AST-193159).
+        implementation "com.fasterxml.jackson.core:jackson-core"
+        implementation "com.fasterxml.jackson.core:jackson-databind"
+        implementation "com.fasterxml.jackson.core:jackson-annotations"
 
         testImplementation "org.mockito:mockito-core:${mockitoVersion}"
         testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"

@@ -300,7 +300,9 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         sessionConnected = true;
                         SwingUtilities.invokeLater(() -> onAuthSuccessApiKey());
                         LOGGER.info(Bundle.message(Resource.VALIDATE_SUCCESS));
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
+                        // Throwable (not Exception) so linkage errors such as NoClassDefFoundError
+                        // also reset the UI instead of leaving it on "Validating..." forever.
                         handleConnectionFailure(e);
                     }
                 });
@@ -494,13 +496,19 @@ public class GlobalSettingsComponent implements SettingsComponent {
                         SETTINGS_STATE.setValidationExpiry(getValidationExpiry());
                         apply();
 
-                        new AuthService(project).authenticate(baseUrl, tenant, authResult -> {
-                            if (authResult.containsKey(Constants.AuthConstants.REFRESH_TOKEN)) {
-                                handleOAuthSuccess(authResult); // Extract token
-                            } else {
-                                handleOAuthFailure(authResult.get(Constants.AuthConstants.ERROR).toString());
-                            }
-                        });
+                        try {
+                            new AuthService(project).authenticate(baseUrl, tenant, authResult -> {
+                                if (authResult.containsKey(Constants.AuthConstants.REFRESH_TOKEN)) {
+                                    handleOAuthSuccess(authResult); // Extract token
+                                } else {
+                                    handleOAuthFailure(authResult.get(Constants.AuthConstants.ERROR).toString());
+                                }
+                            });
+                        } catch (Throwable t) {
+                            // e.g. NoClassDefFoundError: do not leave the UI stuck on "Validating..."
+                            LOGGER.error("OAuth authentication failed to start", t);
+                            handleOAuthFailure(Bundle.message(Resource.VALIDATE_ERROR));
+                        }
                     } else {
                         connectButton.setEnabled(true);
                         validateResult.setVisible(false);
@@ -594,7 +602,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         }
     }
 
-    private void handleConnectionFailure(Exception e) {
+    private void handleConnectionFailure(Throwable e) {
         SwingUtilities.invokeLater(() -> {
             setValidationResult(Bundle.message(Resource.VALIDATE_ERROR), JBColor.RED);
             connectButton.setEnabled(true);
