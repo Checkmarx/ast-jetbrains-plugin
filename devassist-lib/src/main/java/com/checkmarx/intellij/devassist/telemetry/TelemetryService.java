@@ -13,14 +13,19 @@ import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.ide.plugins.PluginManager;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.extensions.PluginId;
+import org.apache.commons.lang3.StringUtils;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -77,17 +82,29 @@ public final class TelemetryService {
      * Creates the installation id if missing. Must run before the first login saves any settings,
      * otherwise a fresh install is taken for an upgrade.
      */
-    public static void ensureInstallationId() {
+    public static synchronized void ensureInstallationId() {
         try {
-            InstallationTracker.ensureInstallationId(getIdeName());
+            PropertiesComponent properties = PropertiesComponent.getInstance();
+            if (StringUtils.isNotBlank(properties.getValue("checkmarx.telemetry.installationId"))) {
+                return;
+            }
+            boolean upgraded = isExistingInstallation(GlobalSettingsState.getInstance());
+            properties.setValue("checkmarx.telemetry.installationId", generateInstallationId(getIdeName()));
+            properties.setValue("checkmarx.telemetry.installationTimestamp", Instant.now().toString());
+            if (!upgraded) {
+                properties.setValue("checkmarx.telemetry.installEventPending", "true");
+            }
         } catch (Exception e) {
             LOGGER.debug("Telemetry: installation id could not be created", e);
         }
     }
 
+    /**
+     * Runs at every project start; sends whatever is still pending when the user is logged in.
+     */
     public static void startInstallTracking() {
         runAsync(() -> {
-            InstallationTracker.ensureInstallationId(getIdeName());
+            ensureInstallationId();
             GlobalSettingsState settings = GlobalSettingsState.getInstance();
             if (settings != null && settings.isAuthenticated()) {
                 flushPendingLoginFailures();
@@ -97,7 +114,30 @@ public final class TelemetryService {
     }
 
     private static void flushPendingInstallEvent() {
-        InstallationTracker.flushPendingInstallEvent(builder -> deliver(withCommonFields(builder), null));
+        PropertiesComponent properties = PropertiesComponent.getInstance();
+        String installationId = properties.getValue("checkmarx.telemetry.installationId");
+        if (!"true".equals(properties.getValue("checkmarx.telemetry.installEventPending")) || StringUtils.isBlank(installationId)) {
+            return;
+        }
+        String timestamp = properties.getValue("checkmarx.telemetry.installationTimestamp");
+        if (deliver(withCommonFields(TelemetryEventFactory.installEvent(installationId, timestamp)), null)) {
+            properties.unsetValue("checkmarx.telemetry.installEventPending");
+        }
+    }
+
+    static boolean isExistingInstallation(GlobalSettingsState settings) {
+        return settings != null && (settings.isAuthenticated()
+                || StringUtils.isNotBlank(settings.getBaseUrl())
+                || StringUtils.isNotBlank(settings.getTenant())
+                || settings.isMcpStatusChecked()
+                || settings.isWelcomeShown()
+                || StringUtils.isNotBlank(settings.getAiAgent()));
+    }
+
+    static String generateInstallationId(String ideName) {
+        String slug = Objects.toString(ideName, "").toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
+        return (slug.isEmpty() ? "jetbrains" : slug) + "-" + UUID.randomUUID();
     }
 
     // ------------------------------------------------------------------ login
@@ -108,7 +148,8 @@ public final class TelemetryService {
      */
     public static void logLoginEvent(String authMethod, boolean success, String reason) {
         if (!success) {
-            recordLoginFailure(authMethod, reason);
+            String attemptTime = Instant.now().toString();
+            runAsync(() -> recordLoginFailure(authMethod, attemptTime, reason));
             return;
         }
         runAsync(() -> {
@@ -118,17 +159,38 @@ public final class TelemetryService {
         });
     }
 
-    private static void recordLoginFailure(String authMethod, String reason) {
-        try {
-            LoginFailureTracker.record(authMethod, reason, Instant.now());
-            LOGGER.info(format("Telemetry: failed %s login kept, it is sent after the next successful login", authMethod));
-        } catch (Exception e) {
-            LOGGER.debug("Telemetry: failed login could not be kept", e);
+    // Kept as "authMethod<TAB>attemptTime<TAB>reason", newest 10 only. Read and written on the telemetry thread only.
+    private static void recordLoginFailure(String authMethod, String attemptTime, String reason) {
+        PropertiesComponent properties = PropertiesComponent.getInstance();
+        List<String> failures = new ArrayList<>(pendingLoginFailures(properties));
+        failures.add(String.join("\t", Objects.toString(authMethod, ""), attemptTime, TelemetryEventFactory.sanitizeText(reason)));
+        while (failures.size() > 10) {
+            failures.remove(0);
         }
+        properties.setList("checkmarx.telemetry.pendingLoginFailures", failures);
+        LOGGER.info(format("Telemetry: failed %s login kept, it is sent after the next successful login", authMethod));
     }
 
     private static void flushPendingLoginFailures() {
-        LoginFailureTracker.flushPending(builder -> deliver(withCommonFields(builder), null), Instant.now());
+        PropertiesComponent properties = PropertiesComponent.getInstance();
+        List<String> failures = new ArrayList<>(pendingLoginFailures(properties));
+        if (failures.isEmpty()) {
+            return;
+        }
+        while (!failures.isEmpty()) {
+            String[] parts = failures.get(0).split("\t", 3);
+            if (parts.length == 3
+                    && !deliver(withCommonFields(TelemetryEventFactory.loginEvent(parts[0], false, parts[2], parts[1])), null)) {
+                break;
+            }
+            failures.remove(0);
+        }
+        properties.setList("checkmarx.telemetry.pendingLoginFailures", failures);
+    }
+
+    private static List<String> pendingLoginFailures(PropertiesComponent properties) {
+        List<String> failures = properties.getList("checkmarx.telemetry.pendingLoginFailures");
+        return Objects.isNull(failures) ? List.of() : failures;
     }
 
     // ------------------------------------------------------------------ scan

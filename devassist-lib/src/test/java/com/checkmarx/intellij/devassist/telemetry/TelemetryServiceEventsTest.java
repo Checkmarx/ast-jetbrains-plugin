@@ -11,6 +11,7 @@ import com.checkmarx.intellij.devassist.common.ScanResult;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.ide.plugins.PluginManager;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.extensions.PluginId;
 import org.junit.jupiter.api.AfterEach;
@@ -20,7 +21,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,7 +38,13 @@ class TelemetryServiceEventsTest {
     private static final String AST_PLUGIN_ID = "com.checkmarx.checkmarx-ast-jetbrains-plugin";
     private static final String REPO = "https://github.com/acme/app";
 
+    private static final String INSTALLATION_ID = "checkmarx.telemetry.installationId";
+    private static final String INSTALLATION_TIMESTAMP = "checkmarx.telemetry.installationTimestamp";
+    private static final String INSTALL_PENDING = "checkmarx.telemetry.installEventPending";
+    private static final String LOGIN_FAILURES = "checkmarx.telemetry.pendingLoginFailures";
+
     private final List<TelemetryEvent> sent = new ArrayList<>();
+    private final Map<String, Object> stored = new HashMap<>();
     private CxWrapper wrapper;
     private GlobalSettingsState settings;
     private MockedStatic<CxWrapperFactory> factoryMock;
@@ -43,6 +53,7 @@ class TelemetryServiceEventsTest {
     private MockedStatic<PluginManager> pluginManagerMock;
     private MockedStatic<RepositoryUrlResolver> repoMock;
     private MockedStatic<GlobalSettingsState> settingsMock;
+    private MockedStatic<PropertiesComponent> propertiesMock;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -76,10 +87,21 @@ class TelemetryServiceEventsTest {
         when(settings.getAiAgent()).thenReturn("JETBRAINS_AI_ASSISTANT");
         settingsMock = mockStatic(GlobalSettingsState.class);
         settingsMock.when(GlobalSettingsState::getInstance).thenReturn(settings);
+
+        PropertiesComponent properties = mock(PropertiesComponent.class);
+        when(properties.getValue(anyString())).thenAnswer(inv -> stored.get(inv.<String>getArgument(0)));
+        doAnswer(inv -> stored.put(inv.getArgument(0), inv.getArgument(1))).when(properties).setValue(anyString(), anyString());
+        doAnswer(inv -> stored.remove(inv.<String>getArgument(0))).when(properties).unsetValue(anyString());
+        when(properties.getList(anyString())).thenAnswer(inv -> stored.get(inv.<String>getArgument(0)));
+        doAnswer(inv -> stored.put(inv.getArgument(0), new ArrayList<>(inv.<Collection<String>>getArgument(1))))
+                .when(properties).setList(anyString(), any());
+        propertiesMock = mockStatic(PropertiesComponent.class);
+        propertiesMock.when(PropertiesComponent::getInstance).thenReturn(properties);
     }
 
     @AfterEach
     void tearDown() {
+        propertiesMock.close();
         settingsMock.close();
         repoMock.close();
         pluginManagerMock.close();
@@ -201,65 +223,150 @@ class TelemetryServiceEventsTest {
     @Test
     @DisplayName("successful login: login event, then the kept failures, then the install event")
     void loginSuccess_sendsLoginFailuresThenInstall() {
-        TelemetryInstallationState state = new TelemetryInstallationState();
-        state.setInstallationId("pycharm-abc");
-        state.setInstallationTimestamp("2026-11-26T08:00:00Z");
-        state.setInstallEventPending(true);
-        state.setPendingLoginFailures(new ArrayList<>(List.of(
-                new PendingLoginFailure("APIKey", java.time.Instant.now().toString(), "invalid key"))));
+        stored.put(INSTALLATION_ID, "pycharm-abc");
+        stored.put(INSTALLATION_TIMESTAMP, "2026-11-26T08:00:00Z");
+        stored.put(INSTALL_PENDING, "true");
+        stored.put(LOGIN_FAILURES, new ArrayList<>(List.of("APIKey\t2026-11-26T09:00:00Z\tinvalid key")));
 
-        try (MockedStatic<TelemetryInstallationState> stateMock = mockStatic(TelemetryInstallationState.class)) {
-            stateMock.when(TelemetryInstallationState::getInstance).thenReturn(state);
-
-            TelemetryService.logLoginEvent(TelemetryConstants.AUTH_METHOD_OAUTH, true, null);
-        }
+        TelemetryService.logLoginEvent(TelemetryConstants.AUTH_METHOD_OAUTH, true, null);
 
         assertEquals(List.of("authentication/success", "authentication/failure", "install/success"),
                 sent.stream().map(e -> e.getEventType() + "/" + e.getStatus()).collect(Collectors.toList()));
         assertEquals("OAuth", sent.get(0).getEventAttributes().get("authMethod"));
-        assertEquals("APIKey", sent.get(1).getEventAttributes().get("authMethod"));
-        assertTrue(state.getPendingLoginFailures().isEmpty());
-        assertFalse(state.isInstallEventPending());
+        TelemetryEvent failure = sent.get(1);
+        assertEquals("APIKey", failure.getEventAttributes().get("authMethod"));
+        assertEquals("2026-11-26T09:00:00Z", failure.getEventAttributes().get("loginTimestamp"));
+        assertEquals("Authentication failed. Reason: invalid key, Error Code: N/A", failure.getStatusResult());
+        TelemetryEvent install = sent.get(2);
+        assertEquals("pycharm-abc", install.getEventAttributes().get("installationId"));
+        assertEquals("2026-11-26T08:00:00Z", install.getEventAttributes().get("installationTimestamp"));
+        assertEquals(List.of(), failures());
+        assertFalse(stored.containsKey(INSTALL_PENDING));
     }
 
     @Test
-    @DisplayName("start-up: pending install event is sent only when logged in")
-    void startInstallTracking_sendsOnlyWhenAuthenticated() {
-        TelemetryInstallationState state = new TelemetryInstallationState();
-        state.setInstallationId("pycharm-abc");
-        state.setInstallEventPending(true);
+    @DisplayName("failed login: kept with a sanitized reason, not sent")
+    void loginFailure_isKeptAndNotSent() {
+        TelemetryService.logLoginEvent(TelemetryConstants.AUTH_METHOD_OAUTH, false, "apikey=abc123secret rejected");
 
-        try (MockedStatic<TelemetryInstallationState> stateMock = mockStatic(TelemetryInstallationState.class)) {
-            stateMock.when(TelemetryInstallationState::getInstance).thenReturn(state);
+        assertTrue(sent.isEmpty());
+        List<String> kept = failures();
+        assertEquals(1, kept.size());
+        assertTrue(kept.get(0).startsWith("OAuth\t"), kept.get(0));
+        assertFalse(kept.get(0).contains("abc123secret"), kept.get(0));
+    }
 
-            when(settings.isAuthenticated()).thenReturn(false);
-            TelemetryService.startInstallTracking();
-            assertTrue(sent.isEmpty());
-
-            when(settings.isAuthenticated()).thenReturn(true);
-            TelemetryService.startInstallTracking();
+    @Test
+    @DisplayName("failed logins: only the newest 10 are kept")
+    void loginFailures_keepsNewestTen() {
+        for (int i = 0; i < 12; i++) {
+            TelemetryService.logLoginEvent(TelemetryConstants.AUTH_METHOD_API_KEY, false, "attempt " + i);
         }
+
+        List<String> kept = failures();
+        assertEquals(10, kept.size());
+        assertTrue(kept.get(0).endsWith("\tattempt 2"), kept.get(0));
+        assertTrue(kept.get(9).endsWith("\tattempt 11"), kept.get(9));
+    }
+
+    @Test
+    @DisplayName("kept failures: sending stops at the first one not delivered, the rest wait for the next login")
+    void loginFailures_stopAtFirstNotDelivered() throws Exception {
+        stored.put(LOGIN_FAILURES, new ArrayList<>(List.of("OAuth\t2026-11-26T09:00:00Z\tfirst",
+                "OAuth\t2026-11-26T09:01:00Z\tsecond", "OAuth\t2026-11-26T09:02:00Z\tthird")));
+        when(wrapper.telemetryAIEvent(any(TelemetryEvent.class))).thenAnswer(inv -> {
+            TelemetryEvent event = inv.getArgument(0);
+            if (event.getStatusResult().contains("second")) {
+                throw new CxException(1, "Failed logging the data");
+            }
+            sent.add(event);
+            return "";
+        });
+
+        TelemetryService.logLoginEvent(TelemetryConstants.AUTH_METHOD_OAUTH, true, null);
+
+        assertEquals(2, sent.size());
+        assertEquals(List.of("OAuth\t2026-11-26T09:01:00Z\tsecond", "OAuth\t2026-11-26T09:02:00Z\tthird"), failures());
+    }
+
+    @Test
+    @DisplayName("start-up: pending install event is sent only when logged in, and only once")
+    void startInstallTracking_sendsOnlyWhenAuthenticated() {
+        stored.put(INSTALLATION_ID, "pycharm-abc");
+        stored.put(INSTALL_PENDING, "true");
+
+        when(settings.isAuthenticated()).thenReturn(false);
+        TelemetryService.startInstallTracking();
+        assertTrue(sent.isEmpty());
+
+        when(settings.isAuthenticated()).thenReturn(true);
+        TelemetryService.startInstallTracking();
+        TelemetryService.startInstallTracking();
 
         assertEquals("install", single().getEventType());
     }
 
     @Test
-    @DisplayName("ensureInstallationId creates the id of a fresh install and never throws")
+    @DisplayName("install event not delivered: stays pending")
+    void installNotDelivered_staysPending() throws Exception {
+        stored.put(INSTALLATION_ID, "pycharm-abc");
+        stored.put(INSTALL_PENDING, "true");
+        when(settings.isAuthenticated()).thenReturn(true);
+        when(wrapper.telemetryAIEvent(any(TelemetryEvent.class))).thenThrow(new CxException(1, "Failed logging the data"));
+
+        TelemetryService.startInstallTracking();
+
+        assertEquals("true", stored.get(INSTALL_PENDING));
+    }
+
+    @Test
+    @DisplayName("ensureInstallationId: a fresh install gets an id and a pending install event")
     void ensureInstallationId_freshInstall() {
-        TelemetryInstallationState state = new TelemetryInstallationState();
         when(settings.getAiAgent()).thenReturn("");
 
-        try (MockedStatic<TelemetryInstallationState> stateMock = mockStatic(TelemetryInstallationState.class)) {
-            stateMock.when(TelemetryInstallationState::getInstance).thenReturn(state);
+        TelemetryService.ensureInstallationId();
 
-            TelemetryService.ensureInstallationId();
+        assertTrue(((String) stored.get(INSTALLATION_ID)).startsWith("pycharm-"));
+        assertNotNull(stored.get(INSTALLATION_TIMESTAMP));
+        assertEquals("true", stored.get(INSTALL_PENDING));
+    }
 
-            assertTrue(state.getInstallationId().startsWith("pycharm-"));
-            assertTrue(state.isInstallEventPending());
+    @Test
+    @DisplayName("ensureInstallationId: an upgrade gets an id but no install event")
+    void ensureInstallationId_upgrade() {
+        when(settings.getAiAgent()).thenReturn("");
+        when(settings.getBaseUrl()).thenReturn("https://ast.checkmarx.net");
 
-            stateMock.when(TelemetryInstallationState::getInstance).thenThrow(new IllegalStateException("no application"));
-            assertDoesNotThrow(TelemetryService::ensureInstallationId);
-        }
+        TelemetryService.ensureInstallationId();
+
+        assertNotNull(stored.get(INSTALLATION_ID));
+        assertFalse(stored.containsKey(INSTALL_PENDING));
+    }
+
+    @Test
+    @DisplayName("ensureInstallationId: an existing id is kept, and it never throws")
+    void ensureInstallationId_existingIdAndNoApplication() {
+        stored.put(INSTALLATION_ID, "pycharm-existing");
+
+        TelemetryService.ensureInstallationId();
+        assertEquals("pycharm-existing", stored.get(INSTALLATION_ID));
+
+        propertiesMock.when(PropertiesComponent::getInstance).thenThrow(new IllegalStateException("no application"));
+        assertDoesNotThrow(TelemetryService::ensureInstallationId);
+    }
+
+    @Test
+    @DisplayName("installation id: IDE name in lowercase words, then a UUID")
+    void generateInstallationId_format() {
+        assertTrue(TelemetryService.generateInstallationId("IntelliJ IDEA")
+                .matches("intellij-idea-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"));
+        assertTrue(TelemetryService.generateInstallationId(null).startsWith("jetbrains-"));
+        assertTrue(TelemetryService.generateInstallationId("***").startsWith("jetbrains-"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> failures() {
+        return (List<String>) stored.get(LOGIN_FAILURES);
     }
 
     private TelemetryEvent single() {
