@@ -93,7 +93,6 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
         IgnoreManager ignoremanager = IgnoreManager.getInstance(project);
         switch (link) {
             case FIX:
-                TelemetryService.logFixWithCxOneAssistAction(scanIssue);
                 remediationManager.fixWithCxOneAssist(project, scanIssue, actionId);
                 break;
             case VIEW_DETAILS:
@@ -102,11 +101,9 @@ public class RemediationLinkHandler extends TooltipLinkHandler {
                 break;
             case IGNORE_THIS_TYPE:
                 ignoremanager.addIgnoredEntry(scanIssue, actionId);
-                TelemetryService.logIgnorePackageAction(scanIssue);
                 break;
             case IGNORE_ALL_OF_THIS_TYPE:
                 ignoremanager.addAllIgnoredEntry(scanIssue, actionId);
-                TelemetryService.logIgnoreAllAction(scanIssue);
                 break;
             default:
                 LOGGER.warn(format("RTS-Fix: Remediation action %s is not supported.", link));

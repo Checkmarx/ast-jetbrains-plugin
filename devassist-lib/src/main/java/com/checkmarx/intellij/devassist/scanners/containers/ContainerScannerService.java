@@ -10,6 +10,7 @@ import com.checkmarx.intellij.devassist.configuration.ScannerConfig;
 import com.checkmarx.intellij.devassist.ignore.IgnoreManager;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -220,11 +221,14 @@ public class ContainerScannerService extends BaseScannerService<ContainersRealti
                 ContainersRealtimeResults scanResults = CxWrapperFactory.build().containersRealtimeScan(tempFilePath, DevAssistUtils.getIgnoreFilePath(psiFile.getProject()));
                 // Update line numbers for ignored container images if any exist
                 updateIgnoredFileDataOnLatestResult(tempFilePath, psiFile.getProject(), uri);
-                return new ContainerScanResultAdaptor(scanResults, fileType, uri);
+                ContainerScanResultAdaptor scanResultAdaptor = new ContainerScanResultAdaptor(scanResults, fileType, uri);
+                TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.CONTAINERS, uri);
+                return scanResultAdaptor;
             }
 
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);
+            TelemetryService.logScanFailure(ScanEngine.CONTAINERS, uri, e);
         } finally {
             LOGGER.info("Deleting temporary folder");
             if (Objects.nonNull(saveResult)) {

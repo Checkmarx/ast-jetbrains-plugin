@@ -391,7 +391,8 @@ class AscaScannerServiceTest {
             // TelemetryService.logScanResults — no-op
             telemetryMock.when(() -> TelemetryService.logScanResults(
                     any(com.checkmarx.intellij.devassist.common.ScanResult.class),
-                    any(com.checkmarx.intellij.devassist.utils.ScanEngine.class))).thenAnswer(inv -> null);
+                    any(com.checkmarx.intellij.devassist.utils.ScanEngine.class),
+                    any())).thenAnswer(inv -> null);
 
             com.checkmarx.intellij.devassist.common.ScanResult<?> result =
                     spyService.scan(psiFile, "/project/Main.java");
@@ -535,6 +536,83 @@ class AscaScannerServiceTest {
             devUtilsMock.when(() -> DevAssistUtils.getIgnoreFilePath(any())).thenReturn(null);
 
             assertNull(spyService.scan(psiFile, "/project/Main.java"));
+        }
+    }
+
+    @Test
+    @DisplayName("scan telemetry: success sends the scan event")
+    void scan_success_sendsScanEvent() throws Exception {
+        ScanResult scanResult = mock(ScanResult.class);
+        when(scanResult.getError()).thenReturn(null);
+        when(scanResult.getScanDetails()).thenReturn(Collections.emptyList());
+
+        runScanWithResult(scanResult, null, telemetry -> {
+            telemetry.verify(() -> TelemetryService.logScanResults(any(), eq(com.checkmarx.intellij.devassist.utils.ScanEngine.ASCA), eq("/project/Main.java")));
+            telemetry.verify(() -> TelemetryService.logScanFailureReason(any(), any(), any()), never());
+        });
+    }
+
+    @Test
+    @DisplayName("scan telemetry: an error result is sent as a failed scan, not as a clean scan")
+    void scan_errorResult_sendsFailureNotSuccess() throws Exception {
+        ScanResult scanResult = mock(ScanResult.class, RETURNS_DEEP_STUBS);
+        when(scanResult.getError().getDescription()).thenReturn("ASCA engine not installed");
+        when(scanResult.getScanDetails()).thenReturn(Collections.emptyList());
+
+        runScanWithResult(scanResult, null, telemetry -> {
+            telemetry.verify(() -> TelemetryService.logScanFailureReason(
+                    com.checkmarx.intellij.devassist.utils.ScanEngine.ASCA, "/project/Main.java", "ASCA engine not installed"));
+            telemetry.verify(() -> TelemetryService.logScanResults(any(), any(), any()), never());
+        });
+    }
+
+    @Test
+    @DisplayName("scan telemetry: a CLI exception is sent as a failed scan and returns null")
+    void scan_cliException_sendsFailure() throws Exception {
+        runScanWithResult(null, new com.checkmarx.ast.wrapper.CxException(1, "asca failed"), telemetry -> {
+            telemetry.verify(() -> TelemetryService.logScanFailure(
+                    eq(com.checkmarx.intellij.devassist.utils.ScanEngine.ASCA), eq("/project/Main.java"), any(Throwable.class)));
+            telemetry.verify(() -> TelemetryService.logScanResults(any(), any(), any()), never());
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private void runScanWithResult(ScanResult scanResult, Exception cliError,
+                                   java.util.function.Consumer<MockedStatic<TelemetryService>> checks) throws Exception {
+        AscaScannerService spyService = spy(new AscaScannerService());
+        doReturn(true).when(spyService).shouldScanFile(anyString(), eq(psiFile));
+        Project mockProject = mock(Project.class);
+        when(psiFile.getProject()).thenReturn(mockProject);
+        when(psiFile.getName()).thenReturn("Main.java");
+        when(virtualFile.getPath()).thenReturn("/project/Main.java");
+        when(virtualFile.isInLocalFileSystem()).thenReturn(true);
+
+        try (MockedStatic<ApplicationManager> appMgr = mockStatic(ApplicationManager.class);
+             MockedStatic<PsiDocumentManager> psiDocMgrStatic = mockStatic(PsiDocumentManager.class);
+             MockedStatic<CxWrapperFactory> factoryMock = mockStatic(CxWrapperFactory.class);
+             MockedStatic<TelemetryService> telemetryMock = mockStatic(TelemetryService.class);
+             MockedStatic<DevAssistUtils> devUtilsMock = mockStatic(DevAssistUtils.class)) {
+            Application mockApp = mock(Application.class);
+            appMgr.when(ApplicationManager::getApplication).thenReturn(mockApp);
+            Document mockDoc = mock(Document.class);
+            when(mockDoc.getText()).thenReturn("public class Main {}");
+            PsiDocumentManager psiDocMgr = mock(PsiDocumentManager.class);
+            psiDocMgrStatic.when(() -> PsiDocumentManager.getInstance(mockProject)).thenReturn(psiDocMgr);
+            when(psiDocMgr.getDocument(psiFile)).thenReturn(mockDoc);
+            doAnswer(inv -> ((Computable<?>) inv.getArgument(0)).compute()).when(mockApp).runReadAction(any(Computable.class));
+            CxWrapper wrapper = mock(CxWrapper.class);
+            factoryMock.when(CxWrapperFactory::build).thenReturn(wrapper);
+            if (cliError != null) {
+                when(wrapper.ScanAsca(anyString(), anyBoolean(), anyString(), any())).thenThrow(cliError);
+            } else {
+                when(wrapper.ScanAsca(anyString(), anyBoolean(), anyString(), any())).thenReturn(scanResult);
+            }
+            devUtilsMock.when(() -> DevAssistUtils.getIgnoreFilePath(any())).thenReturn(null);
+
+            com.checkmarx.intellij.devassist.common.ScanResult<?> result = spyService.scan(psiFile, "/project/Main.java");
+
+            assertEquals(cliError == null, result != null);
+            checks.accept(telemetryMock);
         }
     }
 }

@@ -18,6 +18,8 @@ import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.aiagents.AiAgent;
 import com.checkmarx.intellij.devassist.aiagents.AiAgentLoginResolver;
 import com.checkmarx.intellij.devassist.aiagents.AiAgentResolution;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryConstants;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistConstants;
 import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
@@ -87,6 +89,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
     private boolean sessionConnected = false;
 
     public GlobalSettingsComponent() {
+        TelemetryService.ensureInstallationId();
         if (SETTINGS_STATE == null) {
             SETTINGS_STATE = GlobalSettingsState.getInstance();
         }
@@ -376,6 +379,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
         SETTINGS_STATE.setMcpEnabled(mcpServerEnabled);
         SETTINGS_STATE.setMcpStatusChecked(true);
         apply();
+        TelemetryService.logLoginEvent(SETTINGS_STATE.isApiKeyEnabled() ? TelemetryConstants.AUTH_METHOD_API_KEY : TelemetryConstants.AUTH_METHOD_OAUTH, true, null);
 
         CompletableFuture.runAsync(() -> StateService.getInstance().pruneStaleCustomStates());
 
@@ -548,6 +552,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
      * Handle post-authentication failure state
      */
     private void handleOAuthFailure(String error) {
+        TelemetryService.logLoginEvent(TelemetryConstants.AUTH_METHOD_OAUTH, false, error);
         SwingUtilities.invokeLater(() -> {
             sessionConnected = false;
             SETTINGS_STATE.setValidationInProgress(false);
@@ -603,6 +608,7 @@ public class GlobalSettingsComponent implements SettingsComponent {
             connectButton.setEnabled(true);
         });
         LOGGER.error("Connection failed", e);
+        TelemetryService.logLoginEvent(TelemetryConstants.AUTH_METHOD_API_KEY, false, e.getMessage());
     }
 
 

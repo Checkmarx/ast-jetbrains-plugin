@@ -165,6 +165,7 @@ class RemediationLinkHandlerTest {
 
             assertTrue(handler.handleLink("ignorethis:issue-789:OSS", mockEditor));
             verify(mockIgnoreManager).addIgnoredEntry(eq(mockIssue), eq("issue-789"));
+            telemetryMock.verifyNoInteractions();
         }
     }
 
@@ -182,6 +183,7 @@ class RemediationLinkHandlerTest {
 
             assertTrue(handler.handleLink("ignoreallofthis:issue-999:OSS", mockEditor));
             verify(mockIgnoreManager).addAllIgnoredEntry(eq(mockIssue), eq("issue-999"));
+            telemetryMock.verifyNoInteractions();
         }
     }
 

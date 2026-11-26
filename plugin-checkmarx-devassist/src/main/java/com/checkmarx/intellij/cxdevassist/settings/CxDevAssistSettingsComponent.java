@@ -14,6 +14,8 @@ import com.checkmarx.intellij.common.utils.Utils;
 import com.checkmarx.intellij.devassist.aiagents.AiAgent;
 import com.checkmarx.intellij.devassist.aiagents.AiAgentLoginResolver;
 import com.checkmarx.intellij.devassist.aiagents.AiAgentResolution;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryConstants;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.cxdevassist.ui.CxDevAssistWelcomeDialog;
 import com.checkmarx.intellij.cxdevassist.utils.CxDevAssistConstants;
 import com.intellij.ide.DataManager;
@@ -79,6 +81,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
     private final ExpandableTextField additionalParametersField = new ExpandableTextField();
 
     public CxDevAssistSettingsComponent() {
+        TelemetryService.ensureInstallationId();
         initState();
         addValidateConnectionListener();
         setupFields();
@@ -311,6 +314,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
         globalSettingsState.setMcpEnabled(mcpServerEnabled);
         globalSettingsState.setMcpStatusChecked(true);
         apply();
+        TelemetryService.logLoginEvent(TelemetryConstants.AUTH_METHOD_API_KEY, true, null);
         AiAgentResolution agentResolution = null;
 
         // Configure realtime scanners based on MCP status - only modify settings when necessary to preserve user preferences during routine re-authentication
@@ -422,6 +426,7 @@ public class CxDevAssistSettingsComponent implements SettingsComponent {
             connectButton.setEnabled(true);
         });
         LOGGER.error("Connection failed", e);
+        TelemetryService.logLoginEvent(TelemetryConstants.AUTH_METHOD_API_KEY, false, e.getMessage());
     }
 
 

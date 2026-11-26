@@ -273,7 +273,7 @@ Plugin code runs inside the shared IDE process. Blocking the Event Dispatch Thre
 - Wrapper calls may involve network I/O to Checkmarx One. Handle `InterruptedException` and `IOException` gracefully and always provide timeout protection.
 
 **Telemetry**
-- All `TelemetryService` calls are already executed asynchronously via `CompletableFuture`. Preserve this pattern — do not convert telemetry calls to synchronous invocations.
+- All `TelemetryService` events run asynchronously on its dedicated telemetry thread. Preserve this pattern — do not convert telemetry calls to synchronous invocations.
 
 ---
 
@@ -382,28 +382,28 @@ Releases are triggered via `.github/workflows/release.yml` (manual dispatch or c
 
 ## Telemetry
 
-The plugin sends two types of telemetry events via `TelemetryService`:
+`TelemetryService` sends the Dev Assist analytics events (AST-184118) through
+`CxWrapperFactory.build().telemetryAIEvent(TelemetryEvent)`. The CLI posts them to the realtime-scanner
+(`/api/realtime-scanner/log`), which publishes them to RabbitMQ when the tenant flag `DEV_ASSIST_ANALYTICS_ENABLED`
+or `USAGE_DEV_ASSIST_API_ENABLED` is on.
 
-### User Action Events (on click)
+| Event | `type` / `subType` | Sent when | Specific fields |
+|-------|--------------------|-----------|-----------------|
+| Install | `install` / `installation` | After the first successful login of a fresh install (not on upgrade) | `installationId` (`<ide>-<uuid>`), `installationTimestamp` |
+| Login | `authentication` / `authentication` | Interactive login only. Failures are kept and sent after the next successful login | `authMethod` (`OAuth` / `APIKey`), `loginTimestamp` |
+| Scan | `Scan` / `scantriggerd` | Once per realtime scan and engine, clean scans included; failures with status `failure` | `engine`, `problemSeverity` (highest), `totalCount`, `statusResult` (`Critical=a, High=b, Medium=c, Low=d, Info=e`), `apiVersion=v2` |
+| Fix with AI | `click` / `fixWithAIChat` | After the prompt reached (or failed to reach) the AI agent | `aiProvider` (agent used), `vulnerabilityId`, `remediationMode=DevAssist` |
+| Finding actions | `click` / `viewDetails`, `Ignore`, `ignoreAll` | On the action; ignore events are sent by `IgnoreManager` after the entry is saved | `vulnerabilityId` |
 
-| Field | Values |
-|-------|--------|
-| `eventType` | `"click"` |
-| `subType` | `"fixWithAIChat"`, `"viewDetails"`, `"ignorePackage"`, `"ignoreAll"` |
-| `engine` | `"Oss"`, `"Secrets"`, `"IaC"`, `"Asca"`, `"Containers"` |
-| `problemSeverity` | `"Critical"`, `"High"`, `"Medium"`, `"Low"`, `"Malicious"`, `"Unknown"` |
-| `aiProvider` | `"Copilot"` |
-| `agent` | `"Jetbrains <IDE name>"` |
+Common to every event: `agent` (`Jetbrains <IDE name>`), `agentVersion`, `cxPluginVersion`, `pluginType=IDE`,
+`eventAttributes.pluginName` (`Checkmarx One Assist` / `Checkmarx One Developer Assist`), `repoUrl` (credentials removed),
+and `status` `success` / `failure` (lowercase: the CLI needs it to start a session on login).
+Engines: `Oss`, `Secrets`, `IaC`, `Asca`, `Containers`. Severities: `Critical` (includes Malicious), `High`, `Medium`, `Low`, `Info` (unknown).
 
-### Scan Result Events (on scan completion)
-
-| Field | Values |
-|-------|--------|
-| `scanType` | `"Oss"`, `"Secrets"`, `"IaC"`, `"Asca"`, `"Containers"` |
-| `status` | `"Critical"`, `"High"`, `"Medium"`, `"Low"`, `"Malicious"`, `"Unknown"` |
-| `totalCount` | Integer count of issues at that severity |
-
-All telemetry calls are asynchronous via `CompletableFuture` and use `CxWrapperFactory.build().telemetryAIEvent()`.
+Rules:
+- Events run on one dedicated background thread (`Checkmarx-Telemetry`, bounded queue), never on the EDT; they never throw or show UI.
+- Free text (`statusResult` reasons) goes through `TelemetryEventFactory.sanitizeText`, which removes credentials, tokens and local file paths.
+- A CLI without the analytics flags ("unknown flag") switches the session to the previous per-severity format; login and install events are skipped then.
 
 ---
 

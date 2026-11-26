@@ -197,11 +197,12 @@ public class IacScannerService extends BaseScannerService<IacRealtimeResults> {
                 updateIgnoredFileDataOnLatestResult(tempFilePath, psiFile.getProject(), uri);
                 IacRealtimeResults scanResults = CxWrapperFactory.build().iacRealtimeScan(tempFilePath, DevAssistUtils.getContainerTool(), DevAssistUtils.getIgnoreFilePath(psiFile.getProject()));
                 IacScanResultAdaptor scanResultAdaptor = new IacScanResultAdaptor(scanResults, fileType, uri);
-                TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.IAC);
+                TelemetryService.logScanResults(scanResultAdaptor, ScanEngine.IAC, uri);
                 return scanResultAdaptor;
             }
         } catch (IOException | CxException | InterruptedException e) {
             LOGGER.warn(this.config.getErrorMessage(), e);
+            TelemetryService.logScanFailure(ScanEngine.IAC, uri, e);
         } finally {
             LOGGER.debug("Deleting temporary folder");
             if (Objects.nonNull(saveResult)) {

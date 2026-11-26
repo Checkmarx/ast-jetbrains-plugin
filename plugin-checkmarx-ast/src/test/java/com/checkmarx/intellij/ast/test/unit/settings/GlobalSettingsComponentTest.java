@@ -2010,4 +2010,57 @@ class GlobalSettingsComponentTest {
             component.reset();
         }
     }
+
+    @Test
+    void completeAuthenticationSetup_ApiKeyLogin_SendsApiKeyLoginEvent() throws Exception {
+        runCompleteAuthenticationSetup(true);
+    }
+
+    @Test
+    void completeAuthenticationSetup_OAuthLogin_SendsOAuthLoginEvent() throws Exception {
+        runCompleteAuthenticationSetup(false);
+    }
+
+    @Test
+    void handleOAuthFailure_SendsFailedOAuthLoginEvent() throws Exception {
+        try (MockedStatic<javax.swing.SwingUtilities> swingMock = mockStatic(javax.swing.SwingUtilities.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetry =
+                     mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class)) {
+            swingMock.when(() -> javax.swing.SwingUtilities.invokeLater(any(Runnable.class))).thenAnswer(inv -> null);
+
+            invokePrivate(component, "handleOAuthFailure", new Class[]{String.class}, "auth failed");
+
+            telemetry.verify(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logLoginEvent(
+                    com.checkmarx.intellij.devassist.telemetry.TelemetryConstants.AUTH_METHOD_OAUTH, false, "auth failed"));
+        }
+    }
+
+    private void runCompleteAuthenticationSetup(boolean apiKey) throws Exception {
+        GlobalSettingsState mockSt = setupCompleteAuthDependencies(true, false, true);
+        when(mockState.isApiKeyEnabled()).thenReturn(apiKey);
+        com.checkmarx.intellij.ast.service.StateService mockStateService =
+                mock(com.checkmarx.intellij.ast.service.StateService.class);
+
+        try (MockedStatic<com.checkmarx.intellij.common.commands.TenantSetting> tsMock =
+                     mockStatic(com.checkmarx.intellij.common.commands.TenantSetting.class);
+             MockedStatic<GlobalSettingsState> gsMock = mockStatic(GlobalSettingsState.class);
+             MockedStatic<com.checkmarx.intellij.ast.service.StateService> ssMock =
+                     mockStatic(com.checkmarx.intellij.ast.service.StateService.class);
+             MockedConstruction<GlobalSettingsSensitiveState> ignored = mockConstruction(GlobalSettingsSensitiveState.class);
+             MockedConstruction<com.checkmarx.intellij.ast.ui.WelcomeDialog> wdMock =
+                     mockConstruction(com.checkmarx.intellij.ast.ui.WelcomeDialog.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetry =
+                     mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class)) {
+            tsMock.when(() -> com.checkmarx.intellij.common.commands.TenantSetting.isAiMcpServerEnabled(any(), any()))
+                  .thenReturn(false);
+            gsMock.when(GlobalSettingsState::getInstance).thenReturn(mockSt);
+            ssMock.when(com.checkmarx.intellij.ast.service.StateService::getInstance).thenReturn(mockStateService);
+
+            invokePrivate(component, "completeAuthenticationSetup", new Class[]{String.class}, "credential");
+
+            String method = apiKey ? com.checkmarx.intellij.devassist.telemetry.TelemetryConstants.AUTH_METHOD_API_KEY
+                    : com.checkmarx.intellij.devassist.telemetry.TelemetryConstants.AUTH_METHOD_OAUTH;
+            telemetry.verify(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logLoginEvent(method, true, null));
+        }
+    }
 }

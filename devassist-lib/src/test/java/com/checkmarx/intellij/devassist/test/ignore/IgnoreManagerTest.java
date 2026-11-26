@@ -7,6 +7,7 @@ import com.checkmarx.intellij.devassist.model.Location;
 import com.checkmarx.intellij.devassist.model.ScanIssue;
 import com.checkmarx.intellij.devassist.model.Vulnerability;
 import com.checkmarx.intellij.devassist.problems.ProblemHolderService;
+import com.checkmarx.intellij.devassist.telemetry.TelemetryService;
 import com.checkmarx.intellij.devassist.utils.DevAssistUtils;
 import com.checkmarx.intellij.devassist.utils.ScanEngine;
 import com.intellij.notification.NotificationGroup;
@@ -1629,5 +1630,79 @@ class IgnoreManagerTest {
         boolean result = ignoreManager.isAscaVulnerabilityIgnored(vuln, Collections.emptyList(), "/project/src/File.java");
 
         assertFalse(result);
+    }
+
+    @Test
+    void addIgnoredEntry_success_sendsIgnorePackageTelemetryOnce() {
+        try (MockedStatic<TelemetryService> telemetry = mockStatic(TelemetryService.class)) {
+            ScanIssue issue = mock(ScanIssue.class);
+            when(issue.getTitle()).thenReturn("AWS_KEY");
+            when(issue.getScanEngine()).thenReturn(ScanEngine.SECRETS);
+            when(issue.getFilePath()).thenReturn("/project/secrets.js");
+            when(issue.getRuleId()).thenReturn(2001);
+            when(issue.getSecretValue()).thenReturn("not-a-real-secret");
+            when(issue.getLocations()).thenReturn(List.of(new Location(3, 0, 10)));
+            when(ignoreFileManager.normalizePath(anyString())).thenReturn("secrets.js");
+            when(ignoreFileManager.getIgnoreData()).thenReturn(new HashMap<>());
+
+            ignoreManager.addIgnoredEntry(issue, "click-id");
+
+            telemetry.verify(() -> TelemetryService.logIgnorePackageAction(issue), times(1));
+            telemetry.verify(() -> TelemetryService.logIgnoreAllAction(any()), never());
+        }
+    }
+
+    @Test
+    void addIgnoredEntry_notSaved_sendsNoTelemetry() {
+        try (MockedStatic<TelemetryService> telemetry = mockStatic(TelemetryService.class)) {
+            ScanIssue issue = mock(ScanIssue.class);
+            when(issue.getTitle()).thenReturn("test-vuln");
+            when(issue.getScanEngine()).thenReturn(ScanEngine.ASCA);
+            when(issue.getFilePath()).thenReturn("/project/Main.java");
+            when(issue.getScanIssueId()).thenReturn("issue-id");
+            when(ignoreFileManager.normalizePath(anyString())).thenReturn("Main.java");
+            devAssistUtilsStatic.when(() -> DevAssistUtils.getVulnerabilityDetails(any(), any())).thenReturn(null);
+
+            ignoreManager.addIgnoredEntry(issue, "click-id");
+
+            telemetry.verify(() -> TelemetryService.logIgnorePackageAction(any()), never());
+        }
+    }
+
+    @Test
+    void addAllIgnoredEntry_success_sendsIgnoreAllTelemetryOnce() {
+        try (MockedStatic<LocalFileSystem> localFileSystemMock = mockStatic(LocalFileSystem.class);
+             MockedStatic<TelemetryService> telemetry = mockStatic(TelemetryService.class)) {
+            localFileSystemMock.when(LocalFileSystem::getInstance).thenReturn(mock(LocalFileSystem.class));
+            ScanIssue issue = mock(ScanIssue.class);
+            when(issue.getScanEngine()).thenReturn(ScanEngine.OSS);
+            when(issue.getPackageManager()).thenReturn("npm");
+            when(issue.getTitle()).thenReturn("lodash");
+            when(issue.getPackageVersion()).thenReturn("4.17.21");
+            when(issue.getFilePath()).thenReturn("/path/to/file.js");
+            when(issue.getLocations()).thenReturn(List.of(new Location(2, 0, 10)));
+            Map<String, List<ScanIssue>> issues = new HashMap<>();
+            issues.put("key", new ArrayList<>(List.of(issue)));
+            when(problemHolder.getAllIssues()).thenReturn(issues);
+            when(ignoreFileManager.normalizePath(anyString())).thenReturn("file.js");
+
+            ignoreManager.addAllIgnoredEntry(issue, "clickId");
+
+            telemetry.verify(() -> TelemetryService.logIgnoreAllAction(issue), times(1));
+            telemetry.verify(() -> TelemetryService.logIgnorePackageAction(any()), never());
+        }
+    }
+
+    @Test
+    void addAllIgnoredEntry_noIssues_sendsNoTelemetry() {
+        try (MockedStatic<TelemetryService> telemetry = mockStatic(TelemetryService.class)) {
+            when(problemHolder.getAllIssues()).thenReturn(Collections.emptyMap());
+            ScanIssue issue = mock(ScanIssue.class);
+            when(issue.getScanEngine()).thenReturn(ScanEngine.OSS);
+
+            ignoreManager.addAllIgnoredEntry(issue, "clickId");
+
+            telemetry.verify(() -> TelemetryService.logIgnoreAllAction(any()), never());
+        }
     }
 }

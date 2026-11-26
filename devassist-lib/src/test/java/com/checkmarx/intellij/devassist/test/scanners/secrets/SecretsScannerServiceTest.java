@@ -86,7 +86,7 @@ public class SecretsScannerServiceTest {
 
             devAssistUtilsStatic.when(() -> DevAssistUtils.getFileContent(mockPsiFile)).thenReturn("file contents");
             devAssistUtilsStatic.when(() -> DevAssistUtils.getIgnoreFilePath(any(Project.class))).thenReturn("");
-            telemetryStatic.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(ScanResult.class), any(ScanEngine.class))).then(invocation -> null);
+            telemetryStatic.when(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanResults(any(ScanResult.class), any(ScanEngine.class), any())).then(invocation -> null);
 
             SecretsRealtimeResults mockResults = mock(SecretsRealtimeResults.class);
             when(mockResults.getSecrets()).thenReturn(List.of());
@@ -158,7 +158,9 @@ public class SecretsScannerServiceTest {
         when(mockPsiFile.getProject()).thenReturn(mockProject);
 
         try (MockedStatic<DevAssistUtils> devAssistUtilsStatic = mockStatic(DevAssistUtils.class);
-             MockedStatic<CxWrapperFactory> wrapperFactoryStatic = mockStatic(CxWrapperFactory.class)) {
+             MockedStatic<CxWrapperFactory> wrapperFactoryStatic = mockStatic(CxWrapperFactory.class);
+             MockedStatic<com.checkmarx.intellij.devassist.telemetry.TelemetryService> telemetry =
+                     mockStatic(com.checkmarx.intellij.devassist.telemetry.TelemetryService.class)) {
 
             devAssistUtilsStatic.when(() -> DevAssistUtils.getFileContent(mockPsiFile)).thenReturn("content");
             devAssistUtilsStatic.when(() -> DevAssistUtils.getIgnoreFilePath(any(Project.class))).thenReturn("");
@@ -173,6 +175,8 @@ public class SecretsScannerServiceTest {
 
             ScanResult<?> result = secretsScannerService.scan(mockPsiFile, "secret.js");
             assertNull(result);
+            telemetry.verify(() -> com.checkmarx.intellij.devassist.telemetry.TelemetryService.logScanFailure(
+                    eq(ScanEngine.SECRETS), eq("secret.js"), any(Throwable.class)));
         }
     }
 
