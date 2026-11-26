@@ -1,0 +1,117 @@
+name: Update Checkmarx Java wrapper
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Java wrapper version (e.g. 2.4.34). Leave empty for the latest on Maven Central.'
+        required: false
+        default: ''
+  repository_dispatch:
+    types: [java-wrapper-version-update]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  update-java-wrapper:
+    name: Update Java wrapper version
+    runs-on: cx-public-ubuntu-x64
+    environment: release-automation
+    permissions:
+      contents: read  # for actions/checkout; the branch push and the PR use the GitHub App token
+      id-token: write  # for configure-aws-credentials to assume the AWS role via OIDC
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Get the Java wrapper version
+        id: java-wrapper
+        env:
+          VERSION_INPUT: ${{ github.event.inputs.version || github.event.client_payload.version }}
+        run: |
+          if [ -n "${VERSION_INPUT}" ]; then
+            release_tag="${VERSION_INPUT#v}"
+          else
+            release_tag=$(curl -fsS "https://repo1.maven.org/maven2/com/checkmarx/ast/ast-cli-java-wrapper/maven-metadata.xml" | grep -oPm1 "(?<=<latest>)[^<]+")
+          fi
+          if ! [[ "${release_tag}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid Java wrapper version: ${release_tag}"
+            exit 1
+          fi
+          current_tag=$(grep -oP '^defaultJavaWrapperVersion=\K[^[:space:]]+' gradle.properties)
+          echo "Current: ${current_tag}, new: ${release_tag}"
+          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+          echo "current_tag=${current_tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Update gradle.properties
+        if: steps.java-wrapper.outputs.current_tag != steps.java-wrapper.outputs.release_tag
+        env:
+          RELEASE_TAG: ${{ steps.java-wrapper.outputs.release_tag }}
+        run: sed -i "s/^defaultJavaWrapperVersion=.*/defaultJavaWrapperVersion=${RELEASE_TAG}/" gradle.properties
+
+      - name: Configure AWS credentials
+        if: steps.java-wrapper.outputs.current_tag != steps.java-wrapper.outputs.release_tag
+        uses: step-security/configure-aws-credentials@1448016543d4432bd608e0de7871c7bf9e9be925 # v6.2.1
+        with:
+          role-to-assume: ${{ secrets.PLUGINS_APP_ROLE_ARN }}
+          aws-region: ${{ secrets.PLUGINS_APP_AWS_REGION }}
+          role-session-name: plugins-release-update-pr
+
+      - name: Fetch GitHub App private key
+        if: steps.java-wrapper.outputs.current_tag != steps.java-wrapper.outputs.release_tag
+        uses: step-security/aws-secretsmanager-get-secrets@102b6b2a2528747bcc321bb99ef326d8be7ef58f # v3.0.1
+        with:
+          secret-ids: PLUGINS_APP_KEY,${{ secrets.PLUGINS_APP_SECRET_NAME }}
+
+      - name: Mask each line of the private key
+        if: steps.java-wrapper.outputs.current_tag != steps.java-wrapper.outputs.release_tag
+        run: |
+          while IFS= read -r line; do
+            line="${line%$'\r'}"
+            if [ -n "${line}" ]; then
+              echo "::add-mask::${line}"
+            fi
+          done <<< "${PLUGINS_APP_KEY}"
+
+      - name: Create GitHub App token
+        id: app-token
+        if: steps.java-wrapper.outputs.current_tag != steps.java-wrapper.outputs.release_tag
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.PLUGINS_APP_CLIENT_ID }}
+          private-key: ${{ env.PLUGINS_APP_KEY }}
+          permission-contents: write  # push the update branch
+          permission-pull-requests: write  # open the PR and enable auto-merge
+
+      - name: Remove the private key from the environment
+        if: steps.java-wrapper.outputs.current_tag != steps.java-wrapper.outputs.release_tag
+        run: echo "PLUGINS_APP_KEY=" >> "${GITHUB_ENV}"
+
+      - name: Create Pull Request
+        id: create_pull_request
+        if: steps.java-wrapper.outputs.current_tag != steps.java-wrapper.outputs.release_tag
+        uses: step-security/create-pull-request@50c103da2b9ca12cd5bc013fc6931051a5aa872b # v8.1.1
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          commit-message: Update ast-cli-java-wrapper to ${{ steps.java-wrapper.outputs.release_tag }}
+          title: Update ast-cli-java-wrapper to ${{ steps.java-wrapper.outputs.release_tag }}
+          body: |
+            Updates [ast-cli-java-wrapper][1] to ${{ steps.java-wrapper.outputs.release_tag }}
+
+            [1]: https://github.com/Checkmarx/ast-cli-java-wrapper
+          labels: cxone
+          branch: other/update_java_wrapper_${{ steps.java-wrapper.outputs.release_tag }}
+
+      - name: Enable auto-merge (squash after 2 cx-maintainers approvals)
+        if: steps.create_pull_request.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ steps.create_pull_request.outputs.pull-request-number }}
+        run: gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --squash
